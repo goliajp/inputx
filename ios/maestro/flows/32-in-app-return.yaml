@@ -1,0 +1,22 @@
+appId: jp.golia.inputx
+name: in-app-return
+tags:
+  - keyboard
+  - in-app
+---
+# Return mid-compose drops the inline preedit, inserts \n. We can't easily
+# assert a literal newline character via maestro, but absence of "kp" is
+# the key invariant.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-k"
+- tapOn:
+    id: "key-p"
+- assertVisible: "kp"
+
+- tapOn:
+    id: "key-return"
+- assertNotVisible: "kp"

@@ -1,0 +1,24 @@
+[workspace]
+resolver = "2"
+members = ["crates/inputx-core"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+
+# wubi (v0.4.0) and golia-pinyin (v0.2.0) are published to crates.io + npm.
+# Dual `version = "X.Y"` + `path = "..."` syntax: cargo uses the path for
+# local builds (fast edit cycle on ~/workspace/goliajp/{wubi,pinyin}) but
+# advertises the version constraint when *this* crate is itself published
+# or consumed by downstream — ensures Inputx v1.0 release builds can pull
+# from crates.io without the local path even existing.
+[workspace.dependencies]
+wubi = { version = "0.4", path = "../../../goliajp/wubi/crates/wubi" }
+golia-pinyin = { version = "0.2", path = "../../../goliajp/pinyin/crates/golia-pinyin" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = "symbols"
+panic = "abort"

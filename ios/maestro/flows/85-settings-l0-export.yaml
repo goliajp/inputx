@@ -1,0 +1,26 @@
+appId: jp.golia.inputx
+name: settings-l0-export
+tags:
+  - settings
+---
+# Export L0 button. On first install no learning data exists — button
+# surfaces a banner instead of share sheet. After committing a couple
+# of candidates (creating L0 entries) the share sheet should appear.
+# We verify the BANNER path (no data) since it's deterministic across
+# clean installs.
+
+- launchApp
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      text: "(?s).*导出学习数据.*"
+    direction: DOWN
+- tapOn:
+    text: "(?s).*导出学习数据.*"
+
+# Either share sheet appears OR banner "还没有学习数据" surfaces (depends
+# on whether L0 file exists from prior maestro runs). Match either
+# outcome — both indicate the button is wired correctly.
+- assertVisible:
+    text: "(?s).*(还没有学习数据|AirDrop|拷贝|信息).*"

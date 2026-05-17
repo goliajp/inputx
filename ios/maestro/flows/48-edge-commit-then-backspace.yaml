@@ -1,0 +1,28 @@
+appId: jp.golia.inputx
+name: edge-commit-then-backspace
+tags:
+  - keyboard
+  - edge
+---
+# After committing a candidate, backspace should delete the committed
+# character from the host text (engine has no preedit so it doesn't
+# consume; pass-through to host's deleteBackward). Committed text isn't
+# "reversed" back into the compose buffer.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Commit 你
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-你"
+- assertVisible: "你"
+
+# Backspace once → 你 removed from host. Engine buffer empty so it's
+# a pass-through host delete.
+- tapOn:
+    id: "key-backspace"
+- assertVisible: "（按下方键盘开始输入）"

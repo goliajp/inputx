@@ -1,0 +1,63 @@
+appId: jp.golia.inputx
+name: settings-autocommit-policy
+tags:
+  - settings
+  - keyboard
+---
+# AutoCommitPolicy picker (.menu style). Default = "满 4 码且唯一". Switch
+# to "从不自动" + relaunch + verify that even a known wubi 4-letter unique
+# code doesn't auto-commit. Restore at end.
+
+- launchApp
+- waitForAnimationToEnd
+
+# --- Phase 1: change policy to 从不自动 (Never) ---
+# `.pickerStyle(.menu)` renders its dropdown via UIKit's system menu
+# controller, which does NOT propagate the SwiftUI accessibility ids
+# we attached to the Text tags. So we tap the trigger by id (sticks
+# to the button) but the dropdown items must be selected by their
+# visible Chinese text. `(?s).*X.*` allows a partial match since the
+# menu may decorate the selected row with checkmark glyph metadata.
+- scrollUntilVisible:
+    element:
+      id: "picker-autocommit"
+    direction: DOWN
+- tapOn:
+    id: "picker-autocommit"
+- waitForAnimationToEnd
+- tapOn:
+    text: "(?s).*从不自动.*"
+
+- launchApp
+- waitForAnimationToEnd
+
+# WubiOnly switch — only way to actually test policy without pinyin
+# extension veto. Switch first.
+- scrollUntilVisible:
+    element:
+      id: "picker-engine-mode"
+    direction: DOWN
+- tapOn:
+    id: "engine-mode-wubi"
+
+- launchApp
+- waitForAnimationToEnd
+
+# Type wubi 4-letter unique (gggg → 王). With Never policy: no auto-commit.
+- tapOn:
+    id: "key-g"
+- tapOn:
+    id: "key-g"
+- tapOn:
+    id: "key-g"
+- tapOn:
+    id: "key-g"
+- assertVisible: "gggg"
+
+# Restoration intentionally NOT done via UI here — SwiftUI .menu Picker
+# inside a Form's UICollectionView only reliably opens on its first tap
+# in a session; subsequent taps on the same picker land on the row's
+# label container (no-op for .menu) and the dropdown silently doesn't
+# open. The maestro_test.sh wrapper resets `autoCommitPolicy` (and any
+# other App Group state this flow leaks) via PlistBuddy after running,
+# so subsequent flows still see the default policy.

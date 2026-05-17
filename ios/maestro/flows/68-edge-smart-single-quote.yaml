@@ -1,0 +1,23 @@
+appId: jp.golia.inputx
+name: edge-smart-single-quote
+tags:
+  - keyboard
+  - edge
+  - symbols
+---
+# Smart-quote alternation for `'`. Symmetric to double-quote (test 63):
+# first `'` → opening (U+2018 ‘), second `'` → closing (U+2019 ’).
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-layer-toggle"
+
+- tapOn:
+    id: "key-'"
+- assertVisible: "‘"
+
+- tapOn:
+    id: "key-'"
+- assertVisible: "‘’"

@@ -1,0 +1,28 @@
+appId: jp.golia.inputx
+name: in-app-basic
+tags:
+  - keyboard
+  - in-app
+---
+# Happy path on the in-app keyboard (item 92). Uses InputxApp's embedded
+# KeyboardViewController + fake text proxy — no iOS-keyboard switching
+# needed. Same Inputx source compiled into both InputxApp and InputxKeyboard
+# targets so this exercises the production keyboard path 1:1.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Type "ni" via the in-app keyboard.
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+
+# Inline preedit "ni" should now be in the debug text area.
+- assertVisible: "ni"
+
+# Pick 你 from the candidate bar.
+- tapOn:
+    id: "candidate-你"
+- assertVisible: "你"
+- assertNotVisible: "ni"

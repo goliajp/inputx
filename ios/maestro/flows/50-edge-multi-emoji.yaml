@@ -1,0 +1,38 @@
+appId: jp.golia.inputx
+name: edge-multi-emoji
+tags:
+  - keyboard
+  - edge
+  - emoji
+---
+# Multiple emoji inserts in the emoji layer + return to letter layer.
+# Picker stays on the same screen; each emoji tap is a separate insertText.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Enter emoji layer
+- tapOn:
+    id: "key-emoji"
+
+# Pick 3 emoji
+- tapOn: "😀"
+- tapOn: "😁"
+- tapOn: "😂"
+- assertVisible: "😀😁😂"
+
+# Use picker's backspace to remove one
+- tapOn:
+    id: "key-backspace"
+- assertVisible: "😀😁"
+
+# Back to letters, compose, commit
+- tapOn:
+    id: "key-abc"
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-你"
+- assertVisible: "😀😁你"

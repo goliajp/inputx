@@ -1,0 +1,26 @@
+appId: jp.golia.inputx
+name: edge-initials
+tags:
+  - keyboard
+  - edge
+---
+# 简拼 (initials-only) lookup — `hh` has no vowels, falls through full-
+# pinyin lookup, hits the `INITIALS_INDEX` path that warmup primes. If
+# warmup didn't cover this path the test would stall on first run.
+# Top candidate for `hh` from our corpus is 好的 or 哈哈; verify *some*
+# Chinese candidate gets committed rather than `hh` being typed literally.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-h"
+- tapOn:
+    id: "key-h"
+- assertVisible: "hh"
+
+# Commit 哈哈 (a stable common candidate for `hh` initials).
+- tapOn:
+    id: "candidate-哈哈"
+- assertVisible: "哈哈"
+- assertNotVisible: "hh"

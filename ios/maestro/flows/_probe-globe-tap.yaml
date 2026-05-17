@@ -1,0 +1,20 @@
+appId: jp.golia.inputx
+name: probe-globe-tap
+tags:
+  - probe
+---
+- launchApp
+- tapOn:
+    id: "debug-text-area"
+- waitForAnimationToEnd
+- takeScreenshot:
+    path: 01-before-globe
+# Globe button center per hierarchy: bounds [8,805][76,874], center ~(42, 840).
+# Screen is 402x874 logical → ~10%,96%.
+- longPressOn:
+    point: "10%,96%"
+- takeScreenshot:
+    path: 02-after-longpress
+- waitForAnimationToEnd
+- takeScreenshot:
+    path: 03-popup-rendered

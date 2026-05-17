@@ -1,0 +1,33 @@
+appId: jp.golia.inputx
+name: edge-no-candidate
+tags:
+  - keyboard
+  - edge
+---
+# Engine receives input that yields no Chinese candidates (gibberish ASCII
+# like "xyzz"). Composing buffer stays put, candidate bar may be empty,
+# and the user can backspace out cleanly without crashes.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-x"
+- tapOn:
+    id: "key-y"
+- tapOn:
+    id: "key-z"
+- tapOn:
+    id: "key-z"
+- assertVisible: "xyzz"
+
+# Backspace all the way out — should reach empty state placeholder.
+- tapOn:
+    id: "key-backspace"
+- tapOn:
+    id: "key-backspace"
+- tapOn:
+    id: "key-backspace"
+- tapOn:
+    id: "key-backspace"
+- assertVisible: "（按下方键盘开始输入）"

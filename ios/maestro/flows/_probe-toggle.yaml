@@ -1,0 +1,20 @@
+appId: jp.golia.inputx
+name: probe-toggle
+tags:
+  - probe
+---
+- launchApp
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "toggle-cjk-punct"
+    direction: DOWN
+- takeScreenshot:
+    path: probe-toggle-before
+# Try index-based selector to target inner UISwitch (2nd child = switch)
+- tapOn:
+    childOf:
+      id: "toggle-cjk-punct"
+    index: 1
+- takeScreenshot:
+    path: probe-toggle-after

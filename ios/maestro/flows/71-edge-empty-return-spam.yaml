@@ -1,0 +1,29 @@
+appId: jp.golia.inputx
+name: edge-empty-return-spam
+tags:
+  - keyboard
+  - edge
+---
+# Multiple returns on an empty buffer — no crash, just newlines.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-return"
+- tapOn:
+    id: "key-return"
+- tapOn:
+    id: "key-return"
+
+# Type something to verify engine still healthy after 3 returns
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- assertVisible:
+    text: "(?s).*ni.*"
+- tapOn:
+    id: "candidate-你"
+- assertVisible:
+    text: "(?s).*你.*"

@@ -1,0 +1,46 @@
+appId: jp.golia.inputx
+name: in-app-emoji-layer
+tags:
+  - keyboard
+  - in-app
+  - emoji
+---
+# Switching to emoji layer mid-compose must drop the inline preedit.
+# Otherwise the engine still thinks it's composing "wo" while the host
+# grew with an emoji — next deleteBackward count goes wrong.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-w"
+- tapOn:
+    id: "key-o"
+- assertVisible: "wo"
+
+# Tap emoji key → switchToLayer(.emoji) should drop the preedit.
+- tapOn:
+    id: "key-emoji"
+- assertNotVisible: "wo"
+
+# Pick the first emoji (😀 in the smileys section).
+- tapOn: "😀"
+- assertVisible: "😀"
+
+# Back to letters via the picker's ABC button.
+- tapOn:
+    id: "key-abc"
+
+# Type "ni" — should compose cleanly, no leftover state.
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- assertVisible: "ni"
+
+# Commit 你 — emoji + chinese char both in host. Use full host string for
+# the assertion (maestro's text matching is exact, not contains).
+- tapOn:
+    id: "candidate-你"
+- assertVisible: "😀你"
+- assertNotVisible: "ni"

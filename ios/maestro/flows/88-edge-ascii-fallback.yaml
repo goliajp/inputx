@@ -1,0 +1,41 @@
+appId: jp.golia.inputx
+name: edge-ascii-fallback
+tags:
+  - keyboard
+  - edge
+  - ascii
+---
+# Sogou-style ASCII auto-commit on long unrecognized input. The composite
+# engine fires `is_pure_garbage` at >= 5 chars when pinyin has no dict
+# prefix match, dumping the raw preedit to the host.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Type 5 letters that aren't a valid wubi code AND not a pinyin prefix.
+# After the 5th letter, ASCII fallback should fire — host text shows
+# "qwxzy" and engine returns to idle (no preedit echo).
+- tapOn:
+    id: "key-q"
+- tapOn:
+    id: "key-w"
+- tapOn:
+    id: "key-x"
+- tapOn:
+    id: "key-z"
+- tapOn:
+    id: "key-y"
+
+- assertVisible:
+    text: "(?s).*qwxzy.*"
+
+# Valid Chinese input still works after ASCII fallback — engine is idle,
+# next compose starts clean.
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-你"
+- assertVisible:
+    text: "(?s).*qwxzy你.*"

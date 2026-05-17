@@ -1,0 +1,32 @@
+appId: jp.golia.inputx
+name: edge-empty-backspace
+tags:
+  - keyboard
+  - edge
+---
+# Backspace on an empty buffer + empty host should be a no-op, not a crash
+# or stuck state. Engine doesn't consume → falls through to host's
+# deleteBackward, which is also a no-op when host is empty.
+
+- launchApp
+- waitForAnimationToEnd
+- assertVisible: "（按下方键盘开始输入）"
+
+# Spam backspace on empty state — must not crash, must not affect anything.
+- tapOn:
+    id: "key-backspace"
+- tapOn:
+    id: "key-backspace"
+- tapOn:
+    id: "key-backspace"
+- assertVisible: "（按下方键盘开始输入）"
+
+# Now type something + commit to confirm engine state is still healthy.
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- assertVisible: "ni"
+- tapOn:
+    id: "candidate-你"
+- assertVisible: "你"

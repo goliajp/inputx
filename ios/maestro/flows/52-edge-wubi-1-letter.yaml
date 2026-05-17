@@ -1,0 +1,21 @@
+appId: jp.golia.inputx
+name: edge-wubi-1-letter
+tags:
+  - keyboard
+  - edge
+  - wubi
+---
+# Wubi 一级简码: single letter `g` → 一 (canonical 86 standard). Type the
+# letter, see 一 in the candidate bar, commit it.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-g"
+- assertVisible: "g"
+
+- tapOn:
+    id: "candidate-一"
+- assertVisible: "一"
+# Can't assertNotVisible "g" — the keyboard's `g` key is always on screen.

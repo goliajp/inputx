@@ -1,0 +1,21 @@
+appId: jp.golia.inputx
+name: edge-long-press-letter
+tags:
+  - keyboard
+  - edge
+  - long-press
+---
+# Long-press a letter key surfaces the variants popup. For a Chinese IME
+# the only variant per letter is uppercase (item 63 in roadmap). Maestro
+# `longPressOn` simulates press+hold+release at the same point; that
+# selects the first variant (the uppercase letter).
+
+- launchApp
+- waitForAnimationToEnd
+
+- longPressOn:
+    id: "key-q"
+
+# After release, "Q" should be inserted directly (variant pick bypasses
+# the engine).
+- assertVisible: "Q"

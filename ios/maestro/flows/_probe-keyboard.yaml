@@ -1,0 +1,14 @@
+appId: jp.golia.inputx
+name: probe-keyboard
+tags:
+  - probe
+---
+# Probe-only flow — launches the app and taps the debug TextEditor so the
+# keyboard pops up. Run `maestro hierarchy` separately right after to dump
+# the accessibility tree and confirm Inputx keyboard buttons are reachable.
+
+- launchApp
+- tapOn:
+    point: "50%,38%"
+- takeScreenshot:
+    path: probe-keyboard-up

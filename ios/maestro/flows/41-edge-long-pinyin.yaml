@@ -1,0 +1,36 @@
+appId: jp.golia.inputx
+name: edge-long-pinyin
+tags:
+  - keyboard
+  - edge
+---
+# Long pinyin compose — exercises inline preedit length (multi-character
+# deleteBackward/reinsert cycle), candidate cap, and perf. "zhongguo" is
+# 8 chars covering the wubi → pinyin dispatch path multiple times.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-z"
+- tapOn:
+    id: "key-h"
+- tapOn:
+    id: "key-o"
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-g"
+- tapOn:
+    id: "key-g"
+- tapOn:
+    id: "key-u"
+- tapOn:
+    id: "key-o"
+- assertVisible: "zhongguo"
+
+# Commit 中国 (top candidate for zhongguo).
+- tapOn:
+    id: "candidate-中国"
+- assertVisible: "中国"
+- assertNotVisible: "zhongguo"

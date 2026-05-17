@@ -1,0 +1,23 @@
+appId: jp.golia.inputx
+name: edge-emoji-tab-switch
+tags:
+  - keyboard
+  - edge
+  - emoji
+---
+# Emoji picker has category tabs; tapping a tab scrolls the grid to that
+# category. We don't have stable identifiers on tabs (they're UIButtons
+# with SF symbols), so probe by emoji content — pick an emoji from the
+# 食物 (food) section to confirm we can reach later categories.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-emoji"
+
+# Each category tab button has its accessibility label = the category
+# name. Tap "Food & Drink" — scrolls grid to that section.
+- tapOn: "Food & Drink"
+- tapOn: "🍎"
+- assertVisible: "🍎"

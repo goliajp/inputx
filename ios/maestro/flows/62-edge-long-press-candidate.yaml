@@ -1,0 +1,33 @@
+appId: jp.golia.inputx
+name: edge-long-press-candidate
+tags:
+  - keyboard
+  - edge
+  - long-press
+---
+# Long-press a candidate chip surfaces a Unihan info popup (action sheet
+# with codepoint + source info). Verify the popup appears with the
+# candidate char as the title, then dismiss it.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- assertVisible: "ni"
+
+- longPressOn:
+    id: "candidate-你"
+
+# Popup should show with 你 as title and Unihan codepoint info. Alert
+# message has accessibility text "你 — U+4F60\n\n来源:拼音". Maestro
+# `assertVisible` matches the WHOLE accessibility text against the
+# regex, so use `(?s).*` to span newlines.
+- assertVisible:
+    text: "(?s).*4F60.*"
+# On regular-size-class iPhone the alert renders as a popover (anchored
+# to the chip's `sourceRect`) — no cancel button on screen. Verifying
+# the popup content is the test goal; dismissal happens naturally on the
+# next outside tap or app relaunch.

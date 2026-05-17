@@ -1,0 +1,23 @@
+appId: jp.golia.inputx
+name: edge-long-press-punct
+tags:
+  - keyboard
+  - edge
+  - long-press
+  - symbols
+---
+# Long-press a punctuation key in 123 layer surfaces alternates (item 64).
+# Comma's alternates: 「，, 、, ?」. First variant `，` (CJK comma).
+
+- launchApp
+- waitForAnimationToEnd
+
+# Switch to 123 layer
+- tapOn:
+    id: "key-layer-toggle"
+
+# Long-press comma → picks first alternate `，`
+- longPressOn:
+    id: "key-,"
+
+- assertVisible: "，"

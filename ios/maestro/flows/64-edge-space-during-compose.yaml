@@ -1,0 +1,29 @@
+appId: jp.golia.inputx
+name: edge-space-during-compose
+tags:
+  - keyboard
+  - edge
+---
+# Space key during compose buffer — Inputx routes space through the engine
+# (`handleSpace` → `runEngine(0x20)`). With the default mixed-mode setup,
+# space mid-compose typically commits the top candidate then inserts the
+# space (or just inserts space, depending on engine config). Document
+# whichever path is current.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Compose pinyin "ni"
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- assertVisible: "ni"
+
+# Tap space — engine handles. Either commits top candidate or inserts
+# space as fallback.
+- tapOn:
+    id: "key-space"
+
+# Whichever happened, "ni" preedit shouldn't linger.
+- assertNotVisible: "ni"

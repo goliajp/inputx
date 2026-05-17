@@ -1,0 +1,15 @@
+appId: jp.golia.inputx
+name: probe-globe-longpress
+tags:
+  - probe
+---
+- launchApp
+- tapOn:
+    id: "debug-text-area"
+- waitForAnimationToEnd
+# Long-press the system globe to surface the keyboard picker popup, then
+# pause so external `maestro hierarchy` can capture the tree.
+- longPressOn:
+    point: "5%,97%"
+- takeScreenshot:
+    path: globe-popup

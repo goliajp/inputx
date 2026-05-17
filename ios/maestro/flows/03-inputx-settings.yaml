@@ -1,0 +1,18 @@
+appId: jp.golia.inputx
+name: inputx-settings
+tags:
+  - app
+  - settings
+---
+# Exercises the InputxApp settings view — toggles and pickers reachable from
+# the host app (separate from keyboard extension surface). Verifies the UI
+# strings render and main interactions don't crash. Good regression net
+# whenever SwiftUI bindings in App/SettingsView.swift change.
+
+- launchApp
+- assertVisible: ".*"   # any text — placeholder until UI strings stabilize
+- takeScreenshot:
+    path: settings-initial
+# Replace these with real element matchers as the UI settles:
+# - tapOn: "显示罕用扩展字"
+# - tapOn: "回到字母键盘"

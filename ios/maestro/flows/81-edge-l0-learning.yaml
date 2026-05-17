@@ -1,0 +1,59 @@
+appId: jp.golia.inputx
+name: edge-l0-learning
+tags:
+  - keyboard
+  - edge
+  - l0
+---
+# L0 learning: committing the same candidate `PROMOTE_THRESHOLD` (=3)
+# times for the same input pins it to the top. Verify by composing the
+# same input a 4th time and confirming the candidate now lives at the
+# leftmost (top) position via `candidates-bar` hierarchy ordering.
+#
+# Hard to assert position directly via maestro yaml, so instead verify
+# the pinned candidate is reachable + actually selects on 4th attempt.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Cycle 1
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-妮"
+- tapOn:
+    id: "key-backspace"
+
+# Cycle 2
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-妮"
+- tapOn:
+    id: "key-backspace"
+
+# Cycle 3 — triggers PROMOTE_THRESHOLD; 妮 auto-pinned for "ni"
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-妮"
+- tapOn:
+    id: "key-backspace"
+
+# 4th compose — 妮 should be reachable + behavior should still commit fine
+# (we can't verify "position 1" directly via maestro yaml; trusting
+# Rust unit tests for the pin promotion; this test just checks that the
+# pin doesn't break subsequent compose/commit).
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-妮"
+- assertVisible: "妮"

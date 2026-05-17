@@ -1,0 +1,56 @@
+appId: jp.golia.inputx
+name: edge-layer-pingpong
+tags:
+  - keyboard
+  - edge
+---
+# Rapid layer transitions — letter → 123 → letter → emoji → letter.
+# Each switch through `switchToLayer`/`toggleLayer` calls
+# `dropInlinePreedit`, so the engine must stay clean across transitions
+# and a fresh compose after the last hop must work normally.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Compose first to seed engine state
+- tapOn:
+    id: "key-n"
+- assertVisible: "n"
+
+# letter → 123 (drops preedit)
+- tapOn:
+    id: "key-layer-toggle"
+- assertVisible: "（按下方键盘开始输入）"
+- tapOn:
+    id: "key-5"
+- assertVisible: "5"
+
+# 123 → letter
+- tapOn:
+    id: "key-layer-toggle"
+
+# Start composing again — should work cleanly
+- tapOn:
+    id: "key-w"
+- assertVisible: "5w"
+
+# letter → emoji (drops preedit "w")
+- tapOn:
+    id: "key-emoji"
+- assertVisible: "5"
+- tapOn: "😀"
+- assertVisible: "5😀"
+
+# emoji → letter via ABC
+- tapOn:
+    id: "key-abc"
+
+# Final compose to verify engine still works
+- tapOn:
+    id: "key-w"
+- tapOn:
+    id: "key-o"
+- assertVisible: "5😀wo"
+- tapOn:
+    id: "candidate-我"
+- assertVisible: "5😀我"

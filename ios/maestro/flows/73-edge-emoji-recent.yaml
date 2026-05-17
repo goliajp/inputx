@@ -1,0 +1,31 @@
+appId: jp.golia.inputx
+name: edge-emoji-recent
+tags:
+  - keyboard
+  - edge
+  - emoji
+---
+# Pick a few emojis, leave + re-enter emoji layer; the "Recent" section
+# (`⏰` clock tab) should be populated with the just-picked emojis.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-emoji"
+- tapOn: "😀"
+- tapOn: "😁"
+
+# Leave + re-enter emoji layer
+- tapOn:
+    id: "key-abc"
+- tapOn:
+    id: "key-emoji"
+
+# Recent tab should be present now (was hidden when empty). The tab's
+# accessibility label is "Recent" (from EmojiCategory.name).
+- tapOn: "Recent"
+
+# 😁 was picked most-recently → should appear at top of recent.
+- tapOn: "😁"
+- assertVisible: "😀😁😁"

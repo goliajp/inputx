@@ -1,0 +1,44 @@
+appId: jp.golia.inputx
+name: edge-compose-bspc-continue
+tags:
+  - keyboard
+  - edge
+---
+# Compose a long buffer, backspace partway, then continue composing.
+# Engine state must stay coherent — partial backspace shrinks preedit
+# but doesn't break the next letter append.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-z"
+- tapOn:
+    id: "key-h"
+- tapOn:
+    id: "key-o"
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-g"
+- assertVisible: "zhong"
+
+# Backspace 3 → preedit "zh"
+- tapOn:
+    id: "key-backspace"
+- tapOn:
+    id: "key-backspace"
+- tapOn:
+    id: "key-backspace"
+- assertVisible: "zh"
+
+# Continue composing → "zhe"
+- tapOn:
+    id: "key-e"
+- assertVisible: "zhe"
+
+# Commit 这 (top zhe candidate)
+- tapOn:
+    id: "candidate-这"
+- assertVisible: "这"
+- assertNotVisible: "zhe"

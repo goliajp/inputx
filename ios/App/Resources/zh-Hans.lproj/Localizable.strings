@@ -1,0 +1,11 @@
+/* Lab8 IME — 简体中文 (zh-Hans).
+ *
+ * The codebase uses Chinese strings as keys, so SwiftUI's
+ * Text(_: LocalizedStringKey) returns the key verbatim when no
+ * translation is found. This file is intentionally near-empty (the keys
+ * already match the Simplified Chinese display strings); we still ship
+ * it so the App declares zh-Hans as a supported localization in
+ * App Store Connect.
+ */
+
+/* (no overrides — keys ARE the zh-Hans display strings) */

@@ -1,0 +1,28 @@
+appId: jp.golia.inputx
+name: edge-shift-auto-off
+tags:
+  - keyboard
+  - edge
+  - shift
+---
+# Single-tap shift = .temp: next letter inserts uppercase, then shift
+# auto-reverts to .off, so the second letter is lowercase.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Single shift → .temp
+- tapOn:
+    id: "key-shift"
+
+# First letter capitalized
+- tapOn:
+    id: "key-h"
+- assertVisible: "H"
+
+# Second letter — shift auto-reverted, so it's lowercase
+# composes pinyin "i" → top candidate path. But we just want to see the
+# inline preedit lowercase 'i' next to the H committed earlier.
+- tapOn:
+    id: "key-i"
+- assertVisible: "Hi"

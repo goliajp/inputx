@@ -1,0 +1,55 @@
+appId: jp.golia.inputx
+name: settings-cjk-punct-cycle
+tags:
+  - settings
+  - keyboard
+---
+# Full cycle: toggle 中文标点 off → relaunch → verify ASCII comma in
+# 123 layer → toggle back on → restore.
+
+- launchApp
+- waitForAnimationToEnd
+
+# --- Phase 1: toggle CJK punct OFF ---
+- scrollUntilVisible:
+    element:
+      id: "toggle-cjk-punct"
+    direction: DOWN
+# SwiftUI Toggle's outer container ignores XCUITest's synthetic taps;
+# need to target the inner UISwitch widget (childOf, index 1).
+- tapOn:
+    childOf:
+      id: "toggle-cjk-punct"
+    index: 1
+
+# Relaunch app so the in-app KeyboardViewController re-reads settings
+- launchApp
+- waitForAnimationToEnd
+
+# Compose + commit + comma — should yield ASCII `,` not CJK `，`
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-你"
+- tapOn:
+    id: "key-layer-toggle"
+- tapOn:
+    id: "key-,"
+
+# Host has 你,  (ASCII comma) — assert by regex matching ASCII char
+- assertVisible:
+    text: "(?s).*你,.*"
+
+# --- Phase 2: restore (toggle back on) so subsequent tests aren't poisoned ---
+- scrollUntilVisible:
+    element:
+      id: "toggle-cjk-punct"
+    direction: DOWN
+# SwiftUI Toggle's outer container ignores XCUITest's synthetic taps;
+# need to target the inner UISwitch widget (childOf, index 1).
+- tapOn:
+    childOf:
+      id: "toggle-cjk-punct"
+    index: 1

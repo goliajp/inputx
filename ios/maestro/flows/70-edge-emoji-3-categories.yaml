@@ -1,0 +1,29 @@
+appId: jp.golia.inputx
+name: edge-emoji-3-categories
+tags:
+  - keyboard
+  - edge
+  - emoji
+---
+# Walk through 3 emoji categories (Smileys, Animals, Food), picking one
+# from each. Exercises the picker's tab-strip scroll + sectional grid.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-emoji"
+
+# Smileys section is the initial view — pick the first 😀.
+- tapOn: "😀"
+- assertVisible: "😀"
+
+# Animals & Nature tab
+- tapOn: "Animals & Nature"
+- tapOn: "🐶"
+- assertVisible: "😀🐶"
+
+# Food & Drink tab
+- tapOn: "Food & Drink"
+- tapOn: "🍎"
+- assertVisible: "😀🐶🍎"

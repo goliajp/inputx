@@ -1,0 +1,32 @@
+appId: jp.golia.inputx
+name: edge-emoji-recent-persist
+tags:
+  - keyboard
+  - edge
+  - emoji
+---
+# Recent emoji persists across an app relaunch — `RecentEmojis` writes to
+# App Group UserDefaults. After cold relaunch, the "Recent" tab should
+# still surface the just-picked emojis.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-emoji"
+# 😀 is the first emoji in unicode smiley order so it's always
+# visible at the default emoji-panel scroll position. (Earlier
+# 😎 needed an in-panel scroll to come into view — flaky on
+# the maestro hierarchy snapshot.)
+- tapOn: "😀"
+
+# Cold restart InputxApp
+- launchApp
+- waitForAnimationToEnd
+
+# Re-enter emoji layer + verify Recent section shows 😀 (persisted)
+- tapOn:
+    id: "key-emoji"
+- tapOn: "Recent"
+- tapOn: "😀"
+- assertVisible: "😀"

@@ -1,0 +1,32 @@
+appId: jp.golia.inputx
+name: edge-caps-lock-across-emoji
+tags:
+  - keyboard
+  - edge
+  - shift
+---
+# Caps-lock survives a round-trip through the emoji layer — switching
+# layers doesn't reset shiftState (instance variable).
+
+- launchApp
+- waitForAnimationToEnd
+
+- doubleTapOn:
+    id: "key-shift"
+
+# Confirm caps-lock active: first letter is uppercase
+- tapOn:
+    id: "key-h"
+- assertVisible: "H"
+
+# Detour through emoji layer
+- tapOn:
+    id: "key-emoji"
+- tapOn: "😀"
+- tapOn:
+    id: "key-abc"
+
+# Caps-lock should still be active: next letter uppercase
+- tapOn:
+    id: "key-i"
+- assertVisible: "H😀I"
