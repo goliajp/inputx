@@ -1,0 +1,32 @@
+appId: jp.golia.inputx
+name: edge-symbol-question
+tags:
+  - keyboard
+  - edge
+  - symbols
+---
+# 123 layer punctuation `?` and `!` CJK mapping. Default useCjkPunct=true
+# maps ASCII ? → ？ and ! → ！.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Compose + commit something first
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-你"
+
+# 123 layer
+- tapOn:
+    id: "key-layer-toggle"
+
+- tapOn:
+    id: "key-\\?"
+- assertVisible: "你？"
+
+- tapOn:
+    id: "key-!"
+- assertVisible: "你？！"

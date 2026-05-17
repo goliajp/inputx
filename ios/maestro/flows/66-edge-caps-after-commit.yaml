@@ -1,0 +1,30 @@
+appId: jp.golia.inputx
+name: edge-caps-after-commit
+tags:
+  - keyboard
+  - edge
+  - shift
+---
+# Caps lock state survives a candidate commit. After commit, shift state
+# should still be .locked. (Caps lock is for explicit user English input
+# in the middle of a Chinese context — committing a Chinese character
+# shouldn't reset the user's typing mode.)
+
+- launchApp
+- waitForAnimationToEnd
+
+# Enable caps lock first
+- doubleTapOn:
+    id: "key-shift"
+
+# Type & commit "A B"
+- tapOn:
+    id: "key-a"
+- tapOn:
+    id: "key-b"
+- assertVisible: "AB"
+
+# Caps lock should still be on — next letter still uppercase
+- tapOn:
+    id: "key-c"
+- assertVisible: "ABC"

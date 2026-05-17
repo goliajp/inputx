@@ -1,0 +1,33 @@
+appId: jp.golia.inputx
+name: edge-shift-temp-across-layer
+tags:
+  - keyboard
+  - edge
+  - shift
+---
+# Shift.temp behavior across a layer switch — does it survive switching
+# to 123 layer and back? iOS standard is that .temp gets cleared by
+# layer switches (each layer has its own keyboard context). We preserve
+# `shiftState` as instance state in KeyboardViewController. Verify the
+# observable outcome.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Set shift.temp
+- tapOn:
+    id: "key-shift"
+
+# Switch to 123 layer and back (this rebuilds the keyboard view).
+- tapOn:
+    id: "key-layer-toggle"
+- tapOn:
+    id: "key-layer-toggle"
+
+# Now type a letter — if shift state was preserved (.temp), letter is
+# uppercase; if reset (.off), letter is lowercase. Document whichever
+# behavior is current. With current code (instance var preserved),
+# shift was .temp → letter should be 'H'.
+- tapOn:
+    id: "key-h"
+- assertVisible: "H"

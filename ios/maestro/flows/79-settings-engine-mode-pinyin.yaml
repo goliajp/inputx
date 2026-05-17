@@ -1,0 +1,43 @@
+appId: jp.golia.inputx
+name: settings-engine-mode-pinyin
+tags:
+  - settings
+  - keyboard
+---
+# Switch engine mode to 拼音 (pinyinOnly) → relaunch → verify wubi
+# candidates suppressed. With mixed mode (default), typing 'g' shows
+# wubi 一级简码 一. With pinyinOnly, only pinyin candidates appear
+# (no 一 since 'g' isn't a pinyin syllable that produces 一).
+#
+# Restore to mixed at end to avoid poisoning subsequent tests.
+
+- launchApp
+- waitForAnimationToEnd
+
+# --- Phase 1: switch to 拼音 ---
+- scrollUntilVisible:
+    element:
+      id: "picker-engine-mode"
+    direction: DOWN
+- tapOn:
+    id: "engine-mode-pinyin"
+
+# Relaunch for keyboard to pick up new engine mode
+- launchApp
+- waitForAnimationToEnd
+
+# Type g — wubi would have 'g' → 一; pinyinOnly suppresses it.
+- tapOn:
+    id: "key-g"
+
+# In pinyinOnly mode candidate-一 should NOT appear (wubi engine off).
+- assertNotVisible:
+    id: "candidate-一"
+
+# --- Phase 2: restore mixed mode ---
+- scrollUntilVisible:
+    element:
+      id: "picker-engine-mode"
+    direction: DOWN
+- tapOn:
+    id: "engine-mode-mixed"

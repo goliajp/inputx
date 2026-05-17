@@ -1,0 +1,20 @@
+appId: jp.golia.inputx
+name: settings-version
+tags:
+  - settings
+  - smoke
+---
+# About section shows version + build number. Verifies Form scrolling
+# reaches the bottom, and Bundle info reads correctly.
+
+- launchApp
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      text: "版本"
+    direction: DOWN
+
+- assertVisible: "版本"
+- assertVisible:
+    text: "(?s).*1\\.0\\.0.*"

@@ -1,0 +1,23 @@
+appId: jp.golia.inputx
+name: settings-oss-nav
+tags:
+  - settings
+---
+# OSS 致谢 NavigationLink — verify it pushes the credits view containing
+# real attribution lines (Unihan / jieba / wubi).
+
+- launchApp
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      text: "OSS 致谢"
+    direction: DOWN
+- tapOn: "OSS 致谢"
+
+# Credits view should now show. Element text is multi-line; maestro
+# regex anchors to whole element so wrap with `(?s).*`.
+- assertVisible:
+    text: "(?s).*Unihan.*"
+- assertVisible:
+    text: "(?s).*wubi.*"

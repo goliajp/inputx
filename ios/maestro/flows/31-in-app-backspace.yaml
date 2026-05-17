@@ -1,0 +1,43 @@
+appId: jp.golia.inputx
+name: in-app-backspace
+tags:
+  - keyboard
+  - in-app
+---
+# Backspace mid-compose must shrink the inline preedit, not delete a host
+# character. Exercises the engine-consumes-backspace branch.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "key-h"
+- tapOn:
+    id: "key-a"
+- tapOn:
+    id: "key-o"
+- assertVisible: "nihao"
+
+# One backspace → preedit "niha"
+- tapOn:
+    id: "key-backspace"
+- assertVisible: "niha"
+- assertNotVisible: "nihao"
+
+# Drain the rest — when host text is empty the placeholder takes over.
+- tapOn:
+    id: "key-backspace"
+- tapOn:
+    id: "key-backspace"
+- tapOn:
+    id: "key-backspace"
+- tapOn:
+    id: "key-backspace"
+# Empty-state placeholder visible iff debug text area is empty. Use the
+# exact full string (maestro `assertVisible` doesn't reliably partial-
+# match across visible elements).
+- assertVisible: "（按下方键盘开始输入）"

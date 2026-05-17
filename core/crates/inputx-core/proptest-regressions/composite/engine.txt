@@ -1,0 +1,9 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 5057fd003ccfda8cea295e0707c79f8c676e355c9e227283f20dbe9138e52fe8 # shrinks to ops = [Letter(97)]
+cc cb2c5ab9156a3705129b0c1238bdc10cebc155c27144ed0ae3f02c13b2292c1f # shrinks to ops = [Letter(97), Letter(97), Letter(109), Letter(98), SetMode(WubiOnly), Letter(97), Backspace]
+cc e0ec50dfb2cb535b1148ccab7b2ed2b6b0fb3b6afbbd68a8de0ad601e8495989 # shrinks to ops = [SetMode(WubiOnly), Letter(97), SetMode(Mixed)]

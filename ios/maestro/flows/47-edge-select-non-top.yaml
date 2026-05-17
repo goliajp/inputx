@@ -1,0 +1,24 @@
+appId: jp.golia.inputx
+name: edge-select-non-top
+tags:
+  - keyboard
+  - edge
+---
+# Commit a candidate that isn't the top one. For "ni" the wubi top is
+# 悄, pinyin's 你 sits at position 2. Commit 妮 (a less-frequent pinyin
+# entry) to exercise the same `commit(at:)` path with a higher index.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- assertVisible: "ni"
+
+# Pick 妮 (5th-ish candidate in the standard ranking).
+- tapOn:
+    id: "candidate-妮"
+- assertVisible: "妮"
+- assertNotVisible: "ni"

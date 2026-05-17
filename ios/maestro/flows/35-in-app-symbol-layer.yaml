@@ -1,0 +1,45 @@
+appId: jp.golia.inputx
+name: in-app-symbol-layer
+tags:
+  - keyboard
+  - in-app
+  - symbols
+---
+# 123 ↔ 五笔 mid-compose drops the inline preedit (same reasoning as
+# emoji layer — host context changes shouldn't leave the engine holding
+# stale buffer).
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-z"
+- tapOn:
+    id: "key-h"
+- assertVisible: "zh"
+
+# Toggle to 123 layer (drops preedit)
+- tapOn:
+    id: "key-layer-toggle"
+- assertNotVisible: "zh"
+
+# Tap a digit — symbol layer treats digits as direct insert.
+- tapOn:
+    id: "key-5"
+- assertVisible: "5"
+
+# Back to letter layer
+- tapOn:
+    id: "key-layer-toggle"
+
+# Fresh compose works. Inline preedit shows "5wo" (the 5 from before plus
+# the new compose buffer), then commit replaces "wo" with 我 → "5我".
+- tapOn:
+    id: "key-w"
+- tapOn:
+    id: "key-o"
+- assertVisible: "5wo"
+- tapOn:
+    id: "candidate-我"
+- assertVisible: "5我"
+- assertNotVisible: "wo"

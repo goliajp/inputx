@@ -1,0 +1,49 @@
+appId: jp.golia.inputx
+name: edge-emoji-letter-mix-bspc
+tags:
+  - keyboard
+  - edge
+  - emoji
+---
+# Mix emoji + Chinese commits, then use picker's backspace inside the
+# emoji layer to delete the last-inserted character. Backspace from
+# inside the emoji picker is a pass-through host delete, so it should
+# work regardless of what's at the cursor (emoji, ASCII, CJK).
+
+- launchApp
+- waitForAnimationToEnd
+
+# emoji 😀
+- tapOn:
+    id: "key-emoji"
+- tapOn: "😀"
+- tapOn:
+    id: "key-abc"
+
+# 你
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-你"
+
+# 😁
+- tapOn:
+    id: "key-emoji"
+- tapOn: "😁"
+
+# Picker backspace → deletes the trailing 😁
+- tapOn:
+    id: "key-backspace"
+- assertVisible: "😀你"
+
+# Backspace again → deletes 你 (CJK char)
+- tapOn:
+    id: "key-backspace"
+- assertVisible: "😀"
+
+# Backspace again → deletes 😀
+- tapOn:
+    id: "key-backspace"
+- assertVisible: "（按下方键盘开始输入）"

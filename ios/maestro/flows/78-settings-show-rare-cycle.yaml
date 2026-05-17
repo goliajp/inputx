@@ -1,0 +1,39 @@
+appId: jp.golia.inputx
+name: settings-show-rare-cycle
+tags:
+  - settings
+---
+# Show rare CJK chars toggle. When on, an extra mobileconfig profile
+# button appears underneath. Verify toggle reveals + hides the button.
+
+- launchApp
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      id: "toggle-show-rare"
+    direction: DOWN
+
+# Initially off — profile button hidden
+- assertNotVisible:
+    text: "(?s).*在 Safari 中下载 Profile.*"
+
+# Toggle on
+# Tap inner UISwitch of the Toggle row (childOf + index 1)
+- tapOn:
+    childOf:
+      id: "toggle-show-rare"
+    index: 1
+
+# Profile button + caveat text now visible
+- assertVisible:
+    text: "(?s).*在 Safari 中下载 Profile.*"
+
+# Toggle off — restore + verify button gone
+# Tap inner UISwitch of the Toggle row (childOf + index 1)
+- tapOn:
+    childOf:
+      id: "toggle-show-rare"
+    index: 1
+- assertNotVisible:
+    text: "(?s).*在 Safari 中下载 Profile.*"

@@ -1,0 +1,30 @@
+appId: jp.golia.inputx
+name: settings-reset-l0-cancel
+tags:
+  - settings
+---
+# Reset L0 button shows a confirmation alert; tapping 取消 dismisses
+# without actually resetting. Verifies the alert flow + that 取消 path
+# is functional (no actual L0 wipe).
+
+- launchApp
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      text: "(?s).*重置学习数据.*"
+    direction: DOWN
+- tapOn:
+    text: "(?s).*重置学习数据.*"
+
+# Alert title is "重置全部学习数据？" with full-width 「？」.
+- assertVisible:
+    text: "(?s).*重置全部学习数据.*"
+- assertVisible: "取消"
+
+# Cancel — no destructive action
+- tapOn: "取消"
+
+# Alert dismissed, back to settings
+- assertNotVisible:
+    text: "(?s).*重置全部学习数据.*"

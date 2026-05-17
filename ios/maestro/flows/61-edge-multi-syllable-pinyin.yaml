@@ -1,0 +1,36 @@
+appId: jp.golia.inputx
+name: edge-multi-syllable-pinyin
+tags:
+  - keyboard
+  - edge
+  - pinyin
+---
+# Multi-syllable pinyin compose — 'beijing' → 北京 (regression for the
+# composite engine wubi-cutoff bug: original "beij" had no pinyin
+# candidates, so defuse didn't fire and wubi force-committed "阴湿" at
+# 5th letter, leaking "ng" into pinyin buffer). Defuse is now
+# unconditional in Mixed mode at 4 letters.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-b"
+- tapOn:
+    id: "key-e"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "key-j"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-g"
+- assertVisible: "beijing"
+
+- tapOn:
+    id: "candidate-北京"
+- assertVisible: "北京"
+- assertNotVisible: "beijing"

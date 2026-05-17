@@ -1,0 +1,44 @@
+appId: jp.golia.inputx
+name: edge-rapid-commits
+tags:
+  - keyboard
+  - edge
+---
+# Multiple compose-commit cycles back-to-back. Each commit must fully
+# clear engine state so the next compose doesn't carry over leftover
+# preedit (a regression risk if `refreshFromSession`/`session.commit`
+# diverge in their state-clearing semantics).
+
+- launchApp
+- waitForAnimationToEnd
+
+# Cycle 1: ni → 你
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-你"
+- assertVisible: "你"
+
+# Cycle 2: hao → 好 (top hao candidate)
+- tapOn:
+    id: "key-h"
+- tapOn:
+    id: "key-a"
+- tapOn:
+    id: "key-o"
+- assertVisible: "你hao"
+- tapOn:
+    id: "candidate-好"
+- assertVisible: "你好"
+
+# Cycle 3: ma → 吗
+- tapOn:
+    id: "key-m"
+- tapOn:
+    id: "key-a"
+- assertVisible: "你好ma"
+- tapOn:
+    id: "candidate-吗"
+- assertVisible: "你好吗"

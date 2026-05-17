@@ -1,0 +1,29 @@
+appId: jp.golia.inputx
+name: in-app-shift
+tags:
+  - keyboard
+  - in-app
+  - shift
+---
+# Mid-compose shift drops the inline preedit AND the uppercase letter
+# inserts cleanly — no leftover composing buffer.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-w"
+- tapOn:
+    id: "key-o"
+- assertVisible: "wo"
+
+# Tap shift once (temp on)
+- tapOn:
+    id: "key-shift"
+
+# Now tap a letter — shift active should drop "wo" and insert "A".
+- tapOn:
+    id: "key-a"
+
+- assertVisible: "A"
+- assertNotVisible: "wo"

@@ -1,0 +1,31 @@
+appId: jp.golia.inputx
+name: edge-wubi-4-letter
+tags:
+  - keyboard
+  - edge
+  - wubi
+---
+# Wubi 键名字根 王 = gggg (full 4-letter code). Tests the auto-commit path
+# that the shang/wang regression (item 47f) involved — composite engine
+# must not let wubi snap-commit unless the pinyin side is empty. 'gggg'
+# is a vowel-free input that falls into 简拼 lookup for pinyin; if no
+# pinyin candidates surface, wubi side commits 王 via OnFourCodesIfUnique.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-g"
+- tapOn:
+    id: "key-g"
+- tapOn:
+    id: "key-g"
+- tapOn:
+    id: "key-g"
+
+# Commit 王 — either auto-committed (host has 王 already) or available
+# as a candidate. tapping the candidate is robust to either outcome.
+- tapOn:
+    id: "candidate-王"
+    optional: true
+- assertVisible: "王"

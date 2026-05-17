@@ -1,0 +1,26 @@
+appId: jp.golia.inputx
+name: edge-long-press-with-shift
+tags:
+  - keyboard
+  - edge
+  - shift
+  - long-press
+---
+# Long-press a letter while shift.temp is active. The shift bypass path
+# in `handleLetter` runs on `onTap` (touchUpInside), not on the variant
+# pick callback — so long-press picks the uppercase variant via the
+# popup directly, bypassing shift state entirely. Either way the result
+# is uppercase. Test: shift.temp + long-press q → Q.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Activate shift.temp
+- tapOn:
+    id: "key-shift"
+
+# Long-press q while shift.temp active → variant pick = Q
+- longPressOn:
+    id: "key-q"
+
+- assertVisible: "Q"

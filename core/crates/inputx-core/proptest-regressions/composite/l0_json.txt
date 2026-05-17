@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc be72c9385e69f1ec4b3cd3d48e8c3a28c7048a3862454beb08fc2aa86794a1d3 # shrinks to snap = L0Snapshot { pins: [], pick_counts: [], layer_prefs: [0.0, 0.0, 0.0, 3.9284819576442147, 0.0, 0.0] }
+cc 21b70bc921694e5de3fbbe4239bbeeacd5b92e4789de75c263c863056348ee96 # shrinks to snap = L0Snapshot { pins: [], pick_counts: [], layer_prefs: [0.0, 0.0, 0.0, 0.0, 1.8214578926411533, 0.0] }

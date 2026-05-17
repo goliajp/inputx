@@ -1,0 +1,13 @@
+appId: jp.golia.inputx
+name: smoke
+tags:
+  - smoke
+---
+# Smoke test — launch InputxApp, assert the main screen renders.
+# Run as: ./maestro_test.sh 01-smoke
+
+- launchApp
+- assertVisible:
+    text: ".*Inputx.*"
+- takeScreenshot:
+    path: inputx-launch

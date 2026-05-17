@@ -1,0 +1,26 @@
+appId: jp.golia.inputx
+name: edge-smart-quotes
+tags:
+  - keyboard
+  - edge
+  - symbols
+---
+# Smart-quote alternation in 123 layer. ASCII " toggles between opening
+# (U+201C “) and closing (U+201D ”) CJK glyphs via session's
+# `smart_quote` state machine.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-layer-toggle"
+
+# First `"` → opening 「”» pattern: first should be 左“ (U+201C).
+- tapOn:
+    id: 'key-"'
+- assertVisible: "“"
+
+# Second `"` → closing 右” (U+201D).
+- tapOn:
+    id: 'key-"'
+- assertVisible: "“”"

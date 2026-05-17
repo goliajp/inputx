@@ -1,0 +1,22 @@
+appId: jp.golia.inputx
+name: settings-l0-import
+tags:
+  - settings
+---
+# Import L0 button surfaces iOS's fileImporter (UIDocumentPickerView).
+# Verify the picker UI appears.
+
+- launchApp
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      text: "(?s).*导入学习数据.*"
+    direction: DOWN
+- tapOn:
+    text: "(?s).*导入学习数据.*"
+
+# UIDocumentPickerView shows location chooser / file list. Common
+# anchors: "最近", "浏览", "取消" (cancel button on iOS file picker).
+- assertVisible:
+    text: "(?s).*(取消|浏览|最近|Cancel|Browse|Recent).*"

@@ -1,0 +1,24 @@
+appId: jp.golia.inputx
+name: edge-pinyin-multi-reading
+tags:
+  - keyboard
+  - edge
+  - pinyin
+---
+# Pinyin `le` has multiple common readings: 了 (le, particle) and 乐
+# (lè, joy). Both should appear as candidates; pick the non-top one
+# to exercise the same `commit(at:)` path through different chars.
+
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "key-l"
+- tapOn:
+    id: "key-e"
+- assertVisible: "le"
+
+# 乐 (joy) is a secondary candidate behind 了 (particle, far more common).
+- tapOn:
+    id: "candidate-乐"
+- assertVisible: "乐"

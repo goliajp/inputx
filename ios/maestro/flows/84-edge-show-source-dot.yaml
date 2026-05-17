@@ -1,0 +1,47 @@
+appId: jp.golia.inputx
+name: edge-show-source-dot
+tags:
+  - keyboard
+  - settings
+  - candidates
+---
+# Toggle "候选条显示 W / P 来源点" — turning off should hide the small
+# blue/orange source-marker dot above each candidate chip. Direct visual
+# verification is hard with maestro, but the toggle's behavior (flip
+# binding + relaunch + compose) is testable.
+
+- launchApp
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      id: "toggle-show-source"
+    direction: DOWN
+
+# Toggle off
+- tapOn:
+    childOf:
+      id: "toggle-show-source"
+    index: 1
+
+- launchApp
+- waitForAnimationToEnd
+
+# Compose + verify candidates still show (dot hidden but chips render)
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-你"
+- assertVisible: "你"
+
+# --- Restore ---
+- scrollUntilVisible:
+    element:
+      id: "toggle-show-source"
+    direction: DOWN
+- tapOn:
+    childOf:
+      id: "toggle-show-source"
+    index: 1

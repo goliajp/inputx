@@ -1,0 +1,38 @@
+appId: jp.golia.inputx
+name: edge-symbol-punctuation
+tags:
+  - keyboard
+  - edge
+  - symbols
+---
+# Symbol-layer punctuation insertion. Inputx maps ASCII , . ? ! through the
+# locale layer to CJK forms when `useCjkPunct` is on (default). Default
+# settings: comma → ，, period → 。.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Letters first to seed a starting state
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-你"
+- assertVisible: "你"
+
+# Switch to 123 / symbol layer
+- tapOn:
+    id: "key-layer-toggle"
+
+# Punctuation comma is at row 3 first slot among ".,?!'\"#"
+# Maestro `id` is a regex, so `.` is a wildcard. Escape it for the
+# period key (`key-.`) — otherwise the regex `key-.` matches `key-1`
+# `key-q` etc., taking the first match in hierarchy order (a digit).
+- tapOn:
+    id: "key-,"
+- assertVisible: "你，"
+
+- tapOn:
+    id: "key-\\."
+- assertVisible: "你，。"

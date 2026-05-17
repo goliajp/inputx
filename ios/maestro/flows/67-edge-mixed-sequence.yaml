@@ -1,0 +1,65 @@
+appId: jp.golia.inputx
+name: edge-mixed-sequence
+tags:
+  - keyboard
+  - edge
+---
+# Realistic typing — Chinese + English + digit + emoji + punctuation in
+# one sentence. Combined regression: each path holds up next to the
+# others.
+# Target: "你好2026, 😀!"
+
+- launchApp
+- waitForAnimationToEnd
+
+# 你好
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-你"
+- tapOn:
+    id: "key-h"
+- tapOn:
+    id: "key-a"
+- tapOn:
+    id: "key-o"
+- tapOn:
+    id: "candidate-好"
+- assertVisible: "你好"
+
+# 123 → 2026
+- tapOn:
+    id: "key-layer-toggle"
+- tapOn:
+    id: "key-2"
+- tapOn:
+    id: "key-0"
+- tapOn:
+    id: "key-2"
+- tapOn:
+    id: "key-6"
+- assertVisible: "你好2026"
+
+# 标点 ,
+- tapOn:
+    id: "key-,"
+- assertVisible: "你好2026，"
+
+# 五笔 back → emoji 😀
+- tapOn:
+    id: "key-layer-toggle"
+- tapOn:
+    id: "key-emoji"
+- tapOn: "😀"
+- tapOn:
+    id: "key-abc"
+- assertVisible: "你好2026，😀"
+
+# 123 → !
+- tapOn:
+    id: "key-layer-toggle"
+- tapOn:
+    id: "key-!"
+- assertVisible: "你好2026，😀！"

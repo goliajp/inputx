@@ -1,0 +1,66 @@
+/* Lab8 IME — English (en-US) translations.
+ *
+ * Item 89 of the iOS commercial-grade roadmap. The codebase uses Chinese
+ * strings as keys (via SwiftUI's `Text(_: LocalizedStringKey)`); this file
+ * provides the en-US fallback for users whose system language is English.
+ *
+ * Long descriptive strings (footers, alert messages) are translated when
+ * trivially possible; some context-heavy notes are left untranslated for
+ * v1 (Chinese-primary IME — most users speak Chinese already). v1.x can
+ * fill those in.
+ */
+
+/* ---------- App + section titles ---------- */
+"Lab8 输入法" = "Lab8 IME";
+"启用步骤" = "How to enable";
+"输入方案" = "Input method";
+"引擎模式" = "Engine mode";
+"显示" = "Display";
+"输入行为" = "Input behavior";
+"中文输入习惯" = "Chinese input conventions";
+"学习与个性化" = "Learning & personalization";
+"关于" = "About";
+
+/* ---------- Engine mode picker ---------- */
+"混合" = "Mixed";
+"五笔" = "Wubi";
+"拼音" = "Pinyin";
+
+/* ---------- Display section ---------- */
+"候选条显示 W / P 来源点" = "Show W/P source dot in candidate bar";
+"显示罕用扩展字（CJK Ext B+）" = "Show rare CJK extension characters (Ext B+)";
+"在 Safari 中下载 Profile" = "Download profile in Safari";
+
+/* ---------- Behavior section ---------- */
+"自动提交策略" = "Auto-commit policy";
+"从不自动" = "Never";
+"满 4 码" = "On 4 codes";
+"仅唯一候选" = "On unique match";
+"满 4 码且唯一（默认）" = "On 4 codes if unique (default)";
+
+/* ---------- Locale section ---------- */
+"中文标点" = "Chinese punctuation";
+"英文 / 数字全宽" = "Full-width letters / digits";
+
+/* ---------- Learning section ---------- */
+"导出学习数据" = "Export learning data";
+"导入学习数据" = "Import learning data";
+"重置学习数据" = "Reset learning data";
+"重置全部学习数据？" = "Reset all learning data?";
+"取消" = "Cancel";
+"重置" = "Reset";
+
+/* ---------- About section ---------- */
+"版本" = "Version";
+"源代码 (GitHub)" = "Source code (GitHub)";
+"隐私政策" = "Privacy policy";
+"OSS 致谢" = "OSS acknowledgments";
+
+/* ---------- Engine-mode footer notes ---------- */
+"纯五笔输入。" = "Wubi-only input.";
+"纯拼音输入。" = "Pinyin-only input.";
+"五笔为主，自动识别拼音 fallback（万能 / 搜狗五笔风格）。" = "Wubi-primary with automatic pinyin fallback (万能/搜狗 Wubi style).";
+
+/* ---------- Footer descriptions (longer; translated where possible) ---------- */
+"切换后请关闭再重新打开 Lab8 键盘以生效（v1 不支持 mid-session 切换）。" = "After switching, close and reopen the Lab8 keyboard for the change to take effect (v1 doesn't support mid-session switching).";
+"控制 Lab8 何时不等用户选择就直接 commit 顶部候选。" = "Controls when Lab8 commits the top candidate without waiting for user selection.";

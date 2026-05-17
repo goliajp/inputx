@@ -1,0 +1,36 @@
+appId: jp.golia.inputx
+name: edge-caps-lock
+tags:
+  - keyboard
+  - edge
+  - shift
+---
+# Caps lock via double-tap-within-300ms (iOS-standard gesture). Locked
+# state must NOT auto-clear after one letter (that's only `.temp`), AND
+# must survive at least 3 consecutive letters before being tapped off.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Double-tap shift → caps lock (.locked). Two sequential `tapOn` calls
+# typically end up > 300ms apart in maestro (it waits for UI stability
+# between commands), which falls below my double-tap timestamp threshold;
+# `doubleTapOn` issues two taps in a single XCUITest gesture < 300ms.
+- doubleTapOn:
+    id: "key-shift"
+
+# Three letters all uppercase, no auto-off.
+- tapOn:
+    id: "key-h"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "key-i"
+- assertVisible: "HII"
+
+# Tap shift once → back to .off.
+- tapOn:
+    id: "key-shift"
+- tapOn:
+    id: "key-a"
+- assertVisible: "HIIa"

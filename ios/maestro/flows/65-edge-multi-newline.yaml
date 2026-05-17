@@ -1,0 +1,36 @@
+appId: jp.golia.inputx
+name: edge-multi-newline
+tags:
+  - keyboard
+  - edge
+---
+# Multiple return key presses + interleaved compose. Verifies the
+# handleReturn path drops preedit cleanly and that newlines accumulate
+# in the host even if SwiftUI Text view renders them as one block.
+
+- launchApp
+- waitForAnimationToEnd
+
+# Compose, commit, return, compose, commit. Sequence: 你 \n 我
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- tapOn:
+    id: "candidate-你"
+
+- tapOn:
+    id: "key-return"
+
+- tapOn:
+    id: "key-w"
+- tapOn:
+    id: "key-o"
+- tapOn:
+    id: "candidate-我"
+
+# Host contains "你\n我" (literal newline in accessibility text). Maestro
+# regex needs `(?s)` or explicit dot-wildcards to span the newline; use
+# anchored substring patterns instead.
+- assertVisible:
+    text: "(?s).*你.*我.*"

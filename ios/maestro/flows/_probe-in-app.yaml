@@ -1,0 +1,12 @@
+appId: jp.golia.inputx
+name: probe-in-app
+tags:
+  - probe
+---
+- launchApp
+- waitForAnimationToEnd
+- takeScreenshot:
+    path: probe-in-app-01
+- scroll
+- takeScreenshot:
+    path: probe-in-app-02

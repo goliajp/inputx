@@ -1,0 +1,15 @@
+appId: jp.golia.inputx
+name: probe-long-press-alert
+tags:
+  - probe
+---
+- launchApp
+- waitForAnimationToEnd
+- tapOn:
+    id: "key-n"
+- tapOn:
+    id: "key-i"
+- longPressOn:
+    id: "candidate-你"
+- takeScreenshot:
+    path: probe-alert
