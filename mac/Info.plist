@@ -17,14 +17,18 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.1.0</string>
+    <string>1.0.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
-    <key>LSBackgroundOnly</key>
+    <!-- LSUIElement (not LSBackgroundOnly): app runs without a Dock icon
+         but is still allowed to show NSStatusItem in the menu bar. The
+         menu bar item is the only user-facing settings surface on macOS
+         (no container app like iOS). -->
+    <key>LSUIElement</key>
     <true/>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
