@@ -80,14 +80,21 @@ dict.record_pick("zhongguo", "中国");
 里以「每次 keystroke 不超过一帧 16 ms (60 Hz)」为硬约束，
 覆盖完整的候选刷新流水线（精确查、简拼、前缀扫描、过滤）。
 
-引擎裸性能（Apple Silicon，release）：
+引擎裸性能（Apple Silicon，release；跑 `cargo bench -p inputx-pinyin`）：
 
 | 操作 | 延迟 |
 |---|---|
-| `dict.lookup("zhongguo")` | < 100 ns |
-| `dict.prefix_for_each("zhong", ...)` | ~ 0.8 ms |
-| `dict.prefix_for_each("z", ...)` worst case | ~ 4.5 ms |
+| `dict.lookup("zhongguo")` 精确多候选 | ~530 ns |
+| `dict.lookup_into("zhongguo", &mut buf)` 复用 buf | ~510 ns |
+| `dict.lookup("ni")` 单音节大扇出 | ~7.3 µs |
+| `dict.lookup("xxxxxx")` 未命中 | ~160 ns |
+| `dict.prefix_for_each("zhong", _)` 4 字母前缀 | ~770 µs |
+| `dict.prefix_for_each("z", _)` worst case（约 5 万条目） | ~4.8 ms |
+| `dict.prefix_for_each_raw` 对比 `_for_each` | ~10% 更快 |
+| `dict.prefix_exists("zhong")` 早 termination bool | < 100 ns |
 | `dict.record_pick(input, word)` | < 1 µs |
+| `segment("zhongguorenmin")` 4 音节 | < 2 µs |
+| `encode::char_to_pinyin('中')` 反查 cache | < 50 ns |
 
 ## 工具（`--features tools`）
 

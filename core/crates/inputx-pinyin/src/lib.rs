@@ -4,15 +4,12 @@
 //! `golia-pinyin` — self-developed Mandarin Pinyin input method engine.
 //!
 //! Engine surface ✓ (segmenter, fuzzy, FST dict, encode, session) +
-//! 919k-entry corpus-derived dict (Unihan + jieba + Leipzig + SUBTLEX) +
-//! L0 user-learning ranking (3-pick auto-pin). The published crate
-//! version stays at `0.1.0` per the publish strategy in lab8-ime ROADMAP
-//! item 35; internal milestone names (v0.2-data, v0.3-l0) refer to data +
-//! feature readiness. See [workspace ROADMAP](https://github.com/goliajp/pinyin/blob/main/ROADMAP.md).
+//! 414k-entry corpus-derived dict (Unihan kHanyuPinlu + jieba + pypinyin
+//! + Leipzig + SUBTLEX) + L0 user-learning ranking (3-pick auto-pin).
 //!
-//! Sibling library: [`wubi`](https://crates.io/crates/wubi) — same
-//! architectural pattern (PHF static tables, FST main dict, zero-alloc hot
-//! path).
+//! Sibling library: [`inputx-wubi`](https://crates.io/crates/inputx-wubi)
+//! — same architectural pattern (PHF static tables, FST main dict,
+//! zero-alloc hot path).
 //!
 //! # Quickstart
 //!

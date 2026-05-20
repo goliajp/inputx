@@ -629,8 +629,8 @@ mod tests {
         assert_eq!(d.layer_pref(Layer::Phrase), 0.0);
     }
 
-    #[test]
-    fn promote_threshold_is_at_least_one() {
-        assert!(PROMOTE_THRESHOLD >= 1);
-    }
+    // Compile-time check — `PROMOTE_THRESHOLD` is a `const`, so a runtime
+    // assertion would be trivially true (and clippy flags it). A `const _`
+    // assertion fails at compile time if anyone ever sets it to 0.
+    const _: () = assert!(PROMOTE_THRESHOLD >= 1);
 }

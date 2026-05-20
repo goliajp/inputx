@@ -1,8 +1,9 @@
 //! Per-input mutable state — accumulates the user's typing buffer and exposes
 //! candidates / commit semantics.
 //!
-//! Mirrors the lab8-core wubi-side surface so the dual-engine wrapper (Phase 4
-//! of the lab8-ime ROADMAP) can dispatch between engines uniformly.
+//! Mirrors the [`inputx-wubi`](https://crates.io/crates/inputx-wubi) session
+//! surface so a composite engine (e.g. the Inputx IME's `inputx-core`) can
+//! dispatch between both engines uniformly.
 
 use crate::dict::PinyinDict;
 use crate::engine::PinyinEngine;

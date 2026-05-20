@@ -230,11 +230,11 @@ impl CompositeEngine {
     ///   - In PinyinOnly mode wubi is dormant.
     ///   - In WubiOnly mode the wubi engine commits natively on the
     ///     5th char before this check is reached.
-    /// We use pinyin `has_future_match` (dict prefix lookup) rather
-    /// than `candidates().is_empty()` because pinyin candidates
-    /// briefly empty mid-syllable for long words (e.g. `zhongg`
-    /// between `zhong` and `zhongguo`) while the dict prefix still
-    /// resolves.
+    ///
+    /// We use pinyin `has_future_match` (dict prefix lookup) rather than
+    /// `candidates().is_empty()` because pinyin candidates briefly empty
+    /// mid-syllable for long words (e.g. `zhongg` between `zhong` and
+    /// `zhongguo`) while the dict prefix still resolves.
     fn is_pure_garbage(&self) -> bool {
         if !self.mode.allows_pinyin() {
             // WubiOnly path. wubi commits natively at 5 chars so we
@@ -953,7 +953,7 @@ mod tests {
         }
         // 4 letters — composing with candidates.
         assert!(e.is_composing());
-        assert!(e.candidates().len() > 0);
+        assert!(!e.candidates().is_empty());
     }
 
     /// Real-world repro from the user: typing English mid-Chinese
@@ -1060,10 +1060,15 @@ mod tests {
 
         /// Mirror real engine's `preedit()` selection rule.
         fn preedit(&self) -> &str {
-            if !self.mode.allows_pinyin() { &self.wubi_buf }
-            else if !self.mode.allows_wubi() { &self.pinyin_buf }
-            else if !self.pinyin_buf.is_empty() { &self.pinyin_buf }
-            else { &self.wubi_buf }
+            if !self.mode.allows_pinyin() {
+                &self.wubi_buf
+            } else if !self.mode.allows_wubi() || !self.pinyin_buf.is_empty() {
+                // Pinyin is the sole engine OR has live composition — either way
+                // its buffer is what the user sees.
+                &self.pinyin_buf
+            } else {
+                &self.wubi_buf
+            }
         }
     }
 

@@ -81,8 +81,7 @@ before the iOS target can link. The build scripts handle this ordering for you.
 iOS v1, targeting the App Store. The Rust engine, dual-engine routing, L0
 persistence, locale handling, and the iOS keyboard/settings UI are all
 implemented and tested. Remaining work is on-device verification, performance
-profiling, TestFlight, and App Store submission — see [`ROADMAP.md`](ROADMAP.md)
-for the linear checklist.
+profiling, TestFlight, and App Store submission.
 
 Out of scope for v1: the macOS shell (frozen), iCloud L0 sync, and ja-JP /
 ko-KR localization.

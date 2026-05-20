@@ -75,14 +75,21 @@ candidate-refresh pipeline (exact lookup + 简拼 initials + prefix scan +
 filter), measured in its [`perfgate` unit
 test](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-core/src/composite/pinyin_adapter.rs).
 
-Bare engine numbers (Apple Silicon, release):
+Bare engine numbers (Apple Silicon, release; run `cargo bench -p inputx-pinyin`):
 
 | Op | Latency |
 |---|---|
-| `dict.lookup("zhongguo")` | < 100 ns |
-| `dict.prefix_for_each("zhong", ...)` | ~ 0.8 ms |
-| `dict.prefix_for_each("z", ...)` worst case | ~ 4.5 ms |
+| `dict.lookup("zhongguo")` (exact, multi-candidate) | ~530 ns |
+| `dict.lookup_into("zhongguo", &mut buf)` (reused buf) | ~510 ns |
+| `dict.lookup("ni")` (single-syllable, large fanout) | ~7.3 µs |
+| `dict.lookup("xxxxxx")` (miss) | ~160 ns |
+| `dict.prefix_for_each("zhong", _)` (4-letter prefix) | ~770 µs |
+| `dict.prefix_for_each("z", _)` (worst case, ~50k entries) | ~4.8 ms |
+| `dict.prefix_for_each_raw` (vs `_for_each`) | ~10% faster |
+| `dict.prefix_exists("zhong")` (early-terminate bool) | < 100 ns |
 | `dict.record_pick(input, word)` | < 1 µs |
+| `segment("zhongguorenmin")` (4-syllable input) | < 2 µs |
+| `encode::char_to_pinyin('中')` (reverse lookup, cached) | < 50 ns |
 
 ## Tools (`--features tools`)
 

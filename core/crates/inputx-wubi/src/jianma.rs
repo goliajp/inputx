@@ -27,4 +27,13 @@ mod tests {
         assert_eq!(lookup_jianma1(b'q'), Some('我'));
         assert_eq!(lookup_jianma1(b'z'), None);
     }
+
+    #[test]
+    fn iter_jianma1_round_trips_through_lookup() {
+        let pairs: Vec<_> = iter_jianma1().collect();
+        assert_eq!(pairs.len(), 25);
+        for (letter, ch) in pairs {
+            assert_eq!(lookup_jianma1(letter), Some(ch));
+        }
+    }
 }

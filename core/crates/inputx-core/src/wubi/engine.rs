@@ -10,18 +10,15 @@ use super::table;
 /// selection. Default: `OnFourCodesIfUnique`.
 #[repr(u32)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Default)]
 pub enum AutoCommitPolicy {
     Never = 0,
     OnFourCodes = 1,
     OnUniqueMatch = 2,
+    #[default]
     OnFourCodesIfUnique = 3,
 }
 
-impl Default for AutoCommitPolicy {
-    fn default() -> Self {
-        Self::OnFourCodesIfUnique
-    }
-}
 
 impl AutoCommitPolicy {
     pub fn from_u32(v: u32) -> Option<Self> {

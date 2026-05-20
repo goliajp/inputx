@@ -334,8 +334,8 @@ struct AcknowledgementsView: View {
                 creditRow(name: "SUBTLEX-CH-WF", license: "CC-BY 4.0 (Cai & Brysbaert 2010)", url: "https://doi.org/10.1371/journal.pone.0010729")
             }
             Section("引擎代码") {
-                creditRow(name: "wubi (五笔 86)", license: "MIT or Apache-2.0, GOLIA K.K.", url: "https://github.com/goliajp/wubi")
-                creditRow(name: "golia-pinyin", license: "MIT or Apache-2.0, GOLIA K.K.", url: "https://github.com/goliajp/pinyin")
+                creditRow(name: "inputx-wubi (五笔 86)", license: "MIT or Apache-2.0, GOLIA K.K.", url: "https://crates.io/crates/inputx-wubi")
+                creditRow(name: "inputx-pinyin", license: "MIT or Apache-2.0, GOLIA K.K.", url: "https://crates.io/crates/inputx-pinyin")
             }
             Section("字体") {
                 creditRow(name: "Lab8 CJK Extended (Plangothic Super P1 subset)", license: "OFL 1.1, renamed per §1 RFN clause", url: "https://github.com/goliajp/lab8-cjk-extended-font")
