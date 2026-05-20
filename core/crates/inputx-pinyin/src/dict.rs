@@ -155,6 +155,25 @@ impl PinyinDict {
         }
     }
 
+    /// `true` iff at least one entry's pinyin starts with `prefix`. Stops
+    /// scanning at the first hit — much cheaper than calling `.prefix()`
+    /// or `.prefix_for_each()` just to check existence. Used by composite
+    /// engines on the per-keystroke hot path where short prefixes would
+    /// otherwise allocate tens of thousands of `(String, String)` pairs
+    /// only to throw them away.
+    pub fn prefix_exists(&self, prefix: &str) -> bool {
+        let lower = prefix.to_ascii_lowercase();
+        let lo = lower.into_bytes();
+        let hi = bump_last(&lo);
+        let mut stream = self
+            .map
+            .range()
+            .ge(lo.as_slice())
+            .lt(hi.as_slice())
+            .into_stream();
+        stream.next().is_some()
+    }
+
     /// All `(pinyin, word)` pairs with pinyin starting with `prefix`. Ordered
     /// by (pinyin asc, word asc) — useful for prefix completion suggestions.
     pub fn prefix(&self, prefix: &str) -> Vec<(String, String)> {

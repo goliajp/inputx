@@ -24,3 +24,11 @@ cbindgen = "0.28"
 # Property-based fuzz testing — generates randomized op sequences and
 # shrinks counterexamples. Used in composite::engine::tests::fuzz_*.
 proptest = "1"
+# Criterion — fine-grained perf measurement for the composite engine hot
+# path. Complements (doesn't replace) the perfgate unit test, which gates
+# regressions; criterion is for tuning + reporting.
+criterion = "0.5"
+
+[[bench]]
+name = "composite"
+harness = false

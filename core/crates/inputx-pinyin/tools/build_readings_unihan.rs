@@ -262,7 +262,7 @@ fn extract_pinlu(value: &str) -> Vec<String> {
             scored.push((normalized, freq));
         }
     }
-    scored.sort_by(|a, b| b.1.cmp(&a.1));
+    scored.sort_by_key(|x| std::cmp::Reverse(x.1));
     scored.into_iter().map(|(r, _)| r).collect()
 }
 

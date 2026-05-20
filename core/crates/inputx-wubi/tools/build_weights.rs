@@ -318,7 +318,7 @@ fn enumerate_entries(data_dir: &Path) -> Result<Vec<Entry>, String> {
             strokes: &strokes,
             shape,
         };
-        if let Ok(n) = encode_with_lookup(&decomp_ref, &lookup, &mut buf) {
+        if let Ok(n) = encode_with_lookup(&decomp_ref, lookup, &mut buf) {
             let code = std::str::from_utf8(&buf[..n]).unwrap_or("").to_string();
             if !code.is_empty() {
                 take(code, ch.to_string(), Layer::Zigen);
@@ -336,7 +336,7 @@ fn enumerate_entries(data_dir: &Path) -> Result<Vec<Entry>, String> {
             strokes: &strokes,
             shape,
         };
-        if let Ok(n) = encode_with_lookup(&decomp_ref, &lookup, &mut buf) {
+        if let Ok(n) = encode_with_lookup(&decomp_ref, lookup, &mut buf) {
             let code = std::str::from_utf8(&buf[..n]).unwrap_or("").to_string();
             if !code.is_empty() {
                 take(code, ch.to_string(), Layer::Auto);

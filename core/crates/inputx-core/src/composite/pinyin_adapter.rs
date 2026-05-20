@@ -115,7 +115,10 @@ impl PinyinAdapter {
         if self.buffer.is_empty() {
             return false;
         }
-        !self.engine.dict().prefix(&self.buffer).is_empty()
+        // `prefix_exists` is O(log n) seek + first-item check — vs the old
+        // `prefix(...)` which allocated a full Vec<(String, String)> for
+        // every match just to take `.is_empty()`. Hot per-keystroke path.
+        self.engine.dict().prefix_exists(&self.buffer)
     }
 
     /// Append one ASCII alphabetic byte. Non-alpha bytes are silently

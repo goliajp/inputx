@@ -229,12 +229,13 @@ fn parse_snapshot(obj: &js_sys::Object) -> L0Snapshot {
         .unwrap_or_default();
 
     let mut layer_prefs = wubi::DEFAULT_LAYER_PREFS;
-    if let Ok(arr) = js_sys::Reflect::get(obj, &"layerPrefs".into()) {
-        if let Ok(arr) = arr.dyn_into::<js_sys::Array>() {
-            for i in 0..LAYER_COUNT.min(arr.length() as usize) {
-                if let Some(v) = arr.get(i as u32).as_f64() {
-                    layer_prefs[i] = v;
-                }
+    if let Ok(arr) = js_sys::Reflect::get(obj, &"layerPrefs".into())
+        && let Ok(arr) = arr.dyn_into::<js_sys::Array>()
+    {
+        let len = LAYER_COUNT.min(arr.length() as usize);
+        for (i, slot) in layer_prefs.iter_mut().take(len).enumerate() {
+            if let Some(v) = arr.get(i as u32).as_f64() {
+                *slot = v;
             }
         }
     }

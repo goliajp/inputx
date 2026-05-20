@@ -83,7 +83,9 @@ fn main() {
     writeln!(out, "  ? not in ref: {not_in_ref}").ok();
 }
 
-fn parse_reference(src: &str) -> (HashMap<&str, HashSet<&str>>, HashMap<&str, HashSet<&str>>) {
+type RefIndex<'a> = HashMap<&'a str, HashSet<&'a str>>;
+
+fn parse_reference(src: &str) -> (RefIndex<'_>, RefIndex<'_>) {
     let mut codes_for_word: HashMap<&str, HashSet<&str>> = HashMap::new();
     let mut words_for_code: HashMap<&str, HashSet<&str>> = HashMap::new();
     for raw in src.lines() {

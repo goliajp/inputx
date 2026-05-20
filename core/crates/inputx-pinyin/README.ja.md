@@ -89,14 +89,21 @@ dict.record_pick("zhongguo", "中国");
 ハード制約とし、候補リフレッシュのフルパイプライン (完全一致、
 简拼、prefix scan、フィルタ) を計測している。
 
-エンジン単体の性能 (Apple Silicon、release ビルド):
+エンジン単体の性能 (Apple Silicon、release ビルド; `cargo bench -p inputx-pinyin`):
 
 | 操作 | レイテンシ |
 |---|---|
-| `dict.lookup("zhongguo")` | < 100 ns |
-| `dict.prefix_for_each("zhong", ...)` | ~ 0.8 ms |
-| `dict.prefix_for_each("z", ...)` 最悪ケース | ~ 4.5 ms |
+| `dict.lookup("zhongguo")` 完全一致・多候補 | ~530 ns |
+| `dict.lookup_into("zhongguo", &mut buf)` バッファ再利用 | ~510 ns |
+| `dict.lookup("ni")` 単音節・多候補 | ~7.3 µs |
+| `dict.lookup("xxxxxx")` ミス | ~160 ns |
+| `dict.prefix_for_each("zhong", _)` 4 文字 prefix | ~770 µs |
+| `dict.prefix_for_each("z", _)` 最悪ケース (約 5 万エントリ) | ~4.8 ms |
+| `dict.prefix_for_each_raw` (`_for_each` 比) | ~10% 高速 |
+| `dict.prefix_exists("zhong")` 早期終了 bool | < 100 ns |
 | `dict.record_pick(input, word)` | < 1 µs |
+| `segment("zhongguorenmin")` 4 音節入力 | < 2 µs |
+| `encode::char_to_pinyin('中')` 逆引きキャッシュ | < 50 ns |
 
 ## ツール (`--features tools`)
 

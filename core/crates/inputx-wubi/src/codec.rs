@@ -378,4 +378,123 @@ mod tests {
             Err(EncodeError::EmptyZigen)
         ));
     }
+
+    // ---- Coverage fill: helper accessors + error formatting + 2/3-字根
+    // branches were exercised only by the wider integration tests, which
+    // hides regressions in these specific surfaces behind unrelated test
+    // failures. Direct unit tests keep them honest.
+
+    #[test]
+    fn stroke_shape_from_u8_round_trip_and_reject() {
+        for (n, s) in [
+            (1u8, Stroke::Heng),
+            (2, Stroke::Shu),
+            (3, Stroke::Pie),
+            (4, Stroke::Na),
+            (5, Stroke::Zhe),
+        ] {
+            assert_eq!(Stroke::from_u8(n), Some(s));
+        }
+        assert_eq!(Stroke::from_u8(0), None);
+        assert_eq!(Stroke::from_u8(6), None);
+
+        for (n, sh) in [
+            (1u8, Shape::LeftRight),
+            (2, Shape::TopBottom),
+            (3, Shape::Whole),
+        ] {
+            assert_eq!(Shape::from_u8(n), Some(sh));
+        }
+        assert_eq!(Shape::from_u8(0), None);
+        assert_eq!(Shape::from_u8(4), None);
+    }
+
+    #[test]
+    fn decomp_ref_stroke_accessors() {
+        let with_three = DecompRef {
+            zigen: &[],
+            strokes: &[Stroke::Heng, Stroke::Shu, Stroke::Pie],
+            shape: Shape::Whole,
+        };
+        assert_eq!(with_three.first_stroke(), Some(Stroke::Heng));
+        assert_eq!(with_three.second_stroke(), Some(Stroke::Shu));
+        assert_eq!(with_three.last_stroke(), Some(Stroke::Pie));
+
+        let single = DecompRef {
+            zigen: &[],
+            strokes: &[Stroke::Heng],
+            shape: Shape::Whole,
+        };
+        assert_eq!(single.first_stroke(), Some(Stroke::Heng));
+        assert_eq!(single.second_stroke(), None);
+        assert_eq!(single.last_stroke(), Some(Stroke::Heng));
+
+        let empty = DecompRef {
+            zigen: &[],
+            strokes: &[],
+            shape: Shape::Whole,
+        };
+        assert_eq!(empty.first_stroke(), None);
+        assert_eq!(empty.second_stroke(), None);
+        assert_eq!(empty.last_stroke(), None);
+    }
+
+    #[test]
+    fn encode_error_display_messages() {
+        assert_eq!(
+            format!("{}", EncodeError::EmptyZigen),
+            "empty zigen sequence"
+        );
+        assert_eq!(
+            format!("{}", EncodeError::UnknownZigen('🦀')),
+            "unknown zigen: 🦀"
+        );
+        assert_eq!(
+            format!("{}", EncodeError::MissingStroke),
+            "decomp has no strokes"
+        );
+    }
+
+    #[test]
+    fn two_zigen_emits_three_codes_with_shibie() {
+        // 2-字根: l1 + l2 + 识别码(last stroke, shape). dummy() only knows
+        // single-stroke 字根, so use the 一+一 case → both map to 'g', last
+        // stroke is Heng, shape Whole → 识别码 = 'd'. Expected: "ggd".
+        let d = DecompRef {
+            zigen: &['一', '一'],
+            strokes: &[Stroke::Heng, Stroke::Heng],
+            shape: Shape::Whole,
+        };
+        let mut out = [0u8; 4];
+        let n = encode_with_lookup(&d, dummy, &mut out).unwrap();
+        assert_eq!(&out[..n], b"ggd");
+    }
+
+    #[test]
+    fn three_zigen_emits_four_codes_with_shibie() {
+        // 3-字根: l1 + l2 + l3 + 识别码. Three 一 字根 + Heng + Whole
+        // shape → "ggg" + 识别码('d') = "gggd".
+        let d = DecompRef {
+            zigen: &['一', '一', '一'],
+            strokes: &[Stroke::Heng, Stroke::Heng, Stroke::Heng],
+            shape: Shape::Whole,
+        };
+        let mut out = [0u8; 4];
+        let n = encode_with_lookup(&d, dummy, &mut out).unwrap();
+        assert_eq!(&out[..n], b"gggd");
+    }
+
+    #[test]
+    fn two_zigen_missing_stroke_errors_out() {
+        let d = DecompRef {
+            zigen: &['一', '一'],
+            strokes: &[],
+            shape: Shape::Whole,
+        };
+        let mut out = [0u8; 4];
+        assert!(matches!(
+            encode_with_lookup(&d, dummy, &mut out),
+            Err(EncodeError::MissingStroke)
+        ));
+    }
 }
