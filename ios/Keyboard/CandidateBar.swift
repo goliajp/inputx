@@ -151,7 +151,7 @@ final class CandidateBar: UIView {
     private static let minPointSize: CGFloat = 14
     private static let maxPointSize: CGFloat = 22
 
-    /// Build the cascade-list candidate font (PingFang + Lab8CJKExtended
+    /// Build the cascade-list candidate font (PingFang + InputxCJKExtended
     /// fallback for CJK Ext B+). Cached on the instance and only rebuilt
     /// when Dynamic Type actually changes — not per keystroke.
     private static func candidateFont(for traits: UITraitCollection) -> UIFont {
@@ -162,8 +162,8 @@ final class CandidateBar: UIView {
         )
         let clamped = max(minPointSize, min(maxPointSize, scaled))
         let base = UIFont.systemFont(ofSize: clamped, weight: .regular)
-        guard let extFont = UIFont(name: "Lab8CJKExtended-Regular", size: clamped)
-            ?? UIFont(name: "Lab8 CJK Extended", size: clamped)
+        guard let extFont = UIFont(name: "InputxCJKExtended-Regular", size: clamped)
+            ?? UIFont(name: "Inputx CJK Extended", size: clamped)
         else {
             return base
         }
@@ -359,7 +359,7 @@ final class CandidateBar: UIView {
 
     /// Force CoreText glyph measurement up front by stamping a CJK string
     /// into every chip and triggering a layout pass. Without this, the first
-    /// real setState pays Pingfang + Lab8CJKExtended cascade-font glyph
+    /// real setState pays Pingfang + InputxCJKExtended cascade-font glyph
     /// metrics for every chip during the keystroke — visible as a stutter
     /// the first time pinyin candidates appear.
     func warmChipLayout() {

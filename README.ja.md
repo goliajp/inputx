@@ -31,7 +31,7 @@ Inputx は万能五笔 / 搜狗五笔と同じ方式で中国語を入力する 
   ユニットテストで 16 ms / 60 Hz 1 フレーム予算を強制する。入力の
   レイテンシは IME UX で最も致命的な問題として扱われる。
 - **稀少 CJK 対応** — Plane-2+ 文字の表示をオプションで有効化、
-  同梱の cascade フォント (`Lab8CJKExtended`、Plangothic サブセット、
+  同梱の cascade フォント (`InputxCJKExtended`、Plangothic サブセット、
   OFL) 経由。
 - **CJK タイポグラフィ** — 全角 / 半角切替、ASCII→CJK 句読点変換、
   状態を持つスマートクォート。

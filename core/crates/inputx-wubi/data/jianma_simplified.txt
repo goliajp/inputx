@@ -1,11 +1,4 @@
-warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
-package:   /Users/doracawl/workspace/labs/lab8-ime/core/crates/golia-wubi-wasm/Cargo.toml
-workspace: /Users/doracawl/workspace/labs/lab8-ime/core/Cargo.toml
-warning: golia-wubi@0.1.0: golia-wubi: FST wrote 20917 entries (jianma1+seed+auto, auto skipped 0 dups)
-   Compiling golia-wubi v0.1.0 (/Users/doracawl/workspace/labs/lab8-ime/core/crates/golia-wubi)
-    Finished `release` profile [optimized] target(s) in 3.22s
-     Running `target/release/golia-import-simplified`
-# Auto-imported by golia-import-simplified.
+# Auto-imported by wubi-import-simplified.
 # Format: <code>\t<char>
 # Source: Wubi 86 standard 简码 table (公开规范).
 # Counts: see footer.

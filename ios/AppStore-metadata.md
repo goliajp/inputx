@@ -153,14 +153,14 @@ Engine details for the reviewer:
    The keyboard extension also makes no network calls.
 
 4. "Allow Full Access" prompt: NOT requested. The keyboard works without
-   it. The bundled font fallback ("Lab8 CJK Extended", subset of
+   it. The bundled font fallback ("Inputx CJK Extended", subset of
    Plangothic Super, OFL 1.1) lives inside the keyboard extension's
    bundle so no system-wide font registration is needed.
 
 5. Bundled mobileconfig profile: there's an optional system-font install
    button under Settings → 显示 → "在 Safari 中下载 Profile". This
    downloads a configuration profile from
-   github.com/goliajp/lab8-cjk-extended-font (signed by an Apple
+   github.com/goliajp/inputx releases (signed by an Apple
    Development cert; chain incomplete = system shows "尚未验证"). The
    user must manually install in Settings → General → VPN & Device
    Management. Even after install, third-party apps may not pick up the

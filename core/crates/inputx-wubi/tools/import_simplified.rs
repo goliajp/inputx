@@ -1,6 +1,6 @@
 //! Import 二级 / 三级 简码 entries from a reference dictionary (rime).
 //!
-//!     cargo run --release --bin golia-import-simplified > data/jianma_simplified.txt
+//!     cargo run --release --bin wubi-import-simplified > data/jianma_simplified.txt
 //!
 //! Wubi 86's simplified codes (二级简码 ≈ 626 chars at 2-letter codes,
 //! 三级简码 thousands at 3-letter codes) are **table-defined** by 王永民's
@@ -54,7 +54,7 @@ fn main() {
     }
 
     println!(
-        "# Auto-imported by golia-import-simplified.\n\
+        "# Auto-imported by wubi-import-simplified.\n\
          # Format: <code>\\t<char>\n\
          # Source: Wubi 86 standard 简码 table (公开规范).\n\
          # Counts: see footer."

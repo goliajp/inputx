@@ -1,6 +1,6 @@
 //! End-to-end gate test for the v0.1 Phase 1 milestone.
 //!
-//! From the lab8-ime ROADMAP Phase 1 gate:
+//! From the inputx ROADMAP Phase 1 gate:
 //! > `let mut buf = vec![]; session.lookup_into("zhongguo", &mut buf)`
 //! > returns `["中国", ...]` from bootstrap dict.
 

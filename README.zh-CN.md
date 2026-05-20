@@ -25,7 +25,7 @@ Inputx 像万能五笔 / 搜狗五笔那样输入中文 —— **五笔 86 为�
 - **Perfgate 守护每个 keystroke** —— 每次候选刷新都有单元测试守
   16ms / 60Hz 一帧预算。输入卡顿被当成最差用户体验。
 - **生僻字支持** —— 可选显示 Plane-2+ 字符，通过内嵌 cascade 字体
-  （`Lab8CJKExtended`，Plangothic 子集，OFL）。
+  （`InputxCJKExtended`，Plangothic 子集，OFL）。
 - **CJK 排版** —— 全角 / 半角切换、ASCII→CJK 标点映射、状态化的智能引号。
 - **iOS 原生 UX** —— Dynamic Type、深色模式、VoiceOver、横屏重排、
   按键长按变体、候选来源指示。
