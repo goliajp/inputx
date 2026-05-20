@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>wubi · WASM demo</title>
+    <style>
+        :root { color-scheme: light dark; }
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", sans-serif;
+            max-width: 720px;
+            margin: 2.5em auto;
+            padding: 0 1.2em;
+            line-height: 1.5;
+        }
+        h1 { font-size: 1.4em; margin: 0 0 0.2em; }
+        .subtitle { color: #888; font-size: 0.95em; margin-bottom: 1.5em; }
+        .row { display: flex; gap: 0.5em; align-items: stretch; }
+        input {
+            font-size: 1.6em;
+            padding: 0.45em 0.6em;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: ui-monospace, Menlo, monospace;
+        }
+        .candidates {
+            margin-top: 0.8em;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4em;
+            min-height: 2.4em;
+        }
+        .chip {
+            background: rgba(127, 127, 127, 0.15);
+            padding: 0.4em 0.85em;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            font-size: 1.2em;
+        }
+        .chip:hover { background: rgba(127, 127, 127, 0.3); }
+        .chip .code { color: #888; font-size: 0.7em; margin-left: 0.5em; font-family: ui-monospace, monospace; }
+        .out-row {
+            margin-top: 1.5em;
+            padding: 0.7em 0.9em;
+            background: rgba(127, 127, 127, 0.08);
+            border-radius: 6px;
+            min-height: 1.6em;
+        }
+        .out-label { font-size: 0.8em; color: #888; }
+        .out-text { font-size: 1.4em; }
+        .meta { color: #888; font-size: 0.85em; margin-top: 1.5em; }
+        .meta code { font-family: ui-monospace, Menlo, monospace; }
+        button { padding: 0 0.9em; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>wubi · 自研 Wubi 86 · WASM 演示</h1>
+    <div class="subtitle">单行 Rust 库经 wasm-bindgen 暴露给浏览器。MIT/Apache-2.0。</div>
+
+    <div class="row">
+        <input id="code" placeholder="键入 Wubi 86 编码 (如 gggg → 王)" autofocus autocomplete="off" autocapitalize="off" />
+        <button id="clear">清</button>
+    </div>
+    <div class="candidates" id="candidates"></div>
+
+    <div class="out-row">
+        <div class="out-label">已上屏</div>
+        <div class="out-text" id="out"></div>
+    </div>
+
+    <div class="meta" id="status">加载中…</div>
+
+    <script type="module">
+        import init, { WubiEngine } from "../pkg/golia_wubi_wasm.js";
+
+        await init();
+        const eng = new WubiEngine();
+        document.getElementById('status').textContent =
+            `字典已加载: ${eng.len} 条目 · WASM ~33KB`;
+
+        const codeInput = document.getElementById('code');
+        const candDiv = document.getElementById('candidates');
+        const outDiv = document.getElementById('out');
+        const clearBtn = document.getElementById('clear');
+
+        function commit(word) {
+            outDiv.textContent += word;
+            codeInput.value = '';
+            refresh();
+            codeInput.focus();
+        }
+
+        function refresh() {
+            const code = codeInput.value.trim().toLowerCase();
+            candDiv.innerHTML = '';
+            if (!code) return;
+
+            const seen = new Set();
+
+            // 1. Exact-code candidates (highest priority)
+            const exact = eng.lookup(code);
+            for (const word of exact) {
+                const key = `${code}|${word}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                const chip = document.createElement('span');
+                chip.className = 'chip';
+                chip.innerHTML = `<b>${word}</b><span class="code">${code}</span>`;
+                chip.onclick = () => commit(word);
+                candDiv.appendChild(chip);
+            }
+
+            // 2. Prefix completions (longer codes starting with `code`)
+            const prefix = eng.prefix(code);
+            for (const { code: c, word: w } of prefix) {
+                if (c === code) continue;
+                const key = `${c}|${w}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                const chip = document.createElement('span');
+                chip.className = 'chip';
+                chip.innerHTML = `${w}<span class="code">${c}</span>`;
+                chip.onclick = () => commit(w);
+                candDiv.appendChild(chip);
+            }
+        }
+
+        codeInput.addEventListener('input', refresh);
+        codeInput.addEventListener('keydown', (e) => {
+            if (e.key === ' ' && eng.lookup(codeInput.value.trim().toLowerCase()).length > 0) {
+                e.preventDefault();
+                const exact = eng.lookup(codeInput.value.trim().toLowerCase());
+                if (exact.length) commit(exact[0]);
+            }
+        });
+        clearBtn.addEventListener('click', () => {
+            outDiv.textContent = '';
+            codeInput.value = '';
+            refresh();
+            codeInput.focus();
+        });
+    </script>
+</body>
+</html>
