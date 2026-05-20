@@ -47,12 +47,15 @@
          "Inputx" app has no Dock icon and no window either way). -->
     <key>LSBackgroundOnly</key>
     <true/>
-    <!-- Custom NSApplication subclass — module-qualified name. Plain
-         "NSApplication" leaves a race where IMK probes NSApp.delegate
-         before the top-level Swift code has attached one, causing the
-         IMK server to fail registration. See Sources/InputxApplication.swift. -->
+    <!-- Custom NSApplication subclass. Class name MUST be the bare ObjC
+         runtime name (`InputxApplication`), NOT the Swift module-prefixed
+         form (`Inputx.InputxApplication`) — `@objc(InputxApplication)` in
+         Sources/InputxApplication.swift strips the module prefix, and
+         Cocoa's principal-class lookup uses the ObjC runtime name.
+         Plain "NSApplication" leaves a race where IMK probes NSApp.delegate
+         before the top-level Swift code has attached one. -->
     <key>NSPrincipalClass</key>
-    <string>Inputx.InputxApplication</string>
+    <string>InputxApplication</string>
     <key>InputMethodConnectionName</key>
     <string>jp.golia.inputx_Connection</string>
     <key>InputMethodServerControllerClass</key>
