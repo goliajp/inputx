@@ -1,0 +1,10 @@
+# Downloaded corpora (potentially multi-GB) are fetched on demand by
+# `wubi-fetch-corpus` and live in `cache/`. Only the manifest is tracked.
+cache/
+*.bz2
+*.gz
+*.zip
+*.tar
+*.xml
+*.txt
+!manifest.toml

@@ -1,0 +1,71 @@
+# Wubi corpus manifest — the "stable survey" half of the weight pipeline.
+#
+# Each [corpus.<id>] block references a downloadable plain-text corpus.
+# `wubi-fetch-corpus` validates the SHA-256 after download; `wubi-build-
+# weights` scans the cached files to derive the per-entry frequency scores
+# that get packed into the FST.
+#
+# Schema:
+#   url         (string, required) — download URL; HTTPS strongly preferred
+#   sha256      (string, required) — 64 hex chars; download fails if mismatch
+#   weight      (float,  required) — mixing weight (relative; normalized at
+#                                    scan time across all corpora)
+#   license     (string, required) — informational, for compliance audits
+#   description (string, required) — human-readable provenance note
+#   format      (string, required) — one of: "plain"
+#                                    (additional formats coming as needed)
+#
+# To add a corpus:
+#   1. Pick a stable, license-compatible source.
+#   2. Download once locally; compute SHA-256 (`shasum -a 256 <file>`).
+#   3. Add an entry below; commit; run:
+#        cargo run --features tools --release --bin wubi-fetch-corpus
+#        cargo run --features tools --release --bin wubi-build-weights
+#      (the second produces `data/weights/weights.tsv` + provenance.toml)
+#   4. Commit the regenerated `weights.tsv` — that's a wubi data version bump.
+#
+# With zero entries, the build still works: weights.tsv is generated with
+# all freq_score = 0, and ranking falls back to LAYER_BASE alone.
+
+# --- data-v1 corpora (Pack A) ---
+#
+# Mixing rationale: weight 1.0 (wiki 1M) vs 10.0 (news 100K) approximately
+# equalizes per-corpus contribution despite the 10:1 sentence-count ratio.
+# The smaller, fresher news corpus thus contributes ~50% of the freq signal
+# — gives modern vocabulary (post-2018 terms) a proportional voice that
+# Wikipedia 2018 alone would underweight.
+
+[corpus.zho_wikipedia_2018_1m]
+url         = "https://downloads.wortschatz-leipzig.de/corpora/zho_wikipedia_2018_1M.tar.gz"
+sha256      = "1fa674cd44842c16ee724f9c57d6b3a3cc4493e83e59b4fba2768213184fdfd4"
+weight      = 1.0
+license     = "CC-BY 4.0"
+description = "Leipzig Corpora — 1M Chinese Wikipedia sentences (2018)"
+format      = "tar_gz"
+
+[corpus.zho_news_2020_100k]
+url         = "https://downloads.wortschatz-leipzig.de/corpora/zho_news_2020_100K.tar.gz"
+sha256      = "ba219ac3a5b9e13f2653690ab67a03a184cab6019cbbb374791fd4cc7446a7e1"
+weight      = 10.0
+license     = "CC-BY 4.0"
+description = "Leipzig Corpora — 100K Chinese news sentences (2020, modern register)"
+format      = "tar_gz"
+
+# --- data-v2 (Pack B) — spoken / colloquial register ---
+#
+# SUBTLEX-CH-WF is a pre-aggregated word frequency table from 33.5M chars of
+# Chinese film subtitles (Cai & Brysbaert 2010). The URL below points at a
+# byte-identical mirror of the PLOS ONE supplementary file (s002.zip's
+# SUBTLEX-CH-WF entry); the SHA matches the official PLOS distribution.
+# Weight 0.6 was chosen so the top-frequency word "的" (raw count 1,682,530)
+# contributes approximately the same magnitude to the freq accumulator as
+# Wikipedia and News do — keeps the three corpora roughly equal.
+
+[corpus.zho_subtlex_ch_wf]
+url         = "https://raw.githubusercontent.com/leonsilicon/subtlex-ch-wf/main/data/SUBTLEX-CH-WF"
+sha256      = "086536450b1f77d0c7ff3ac0fc8375897162ace807d3167bec48b4c493434077"
+weight      = 0.6
+license     = "CC-BY 4.0"
+description = "SUBTLEX-CH-WF (Cai & Brysbaert 2010, PLOS ONE 10.1371/journal.pone.0010729) — Chinese word frequency from 33.5M chars of film subtitles; byte-identical mirror of PLOS supplementary"
+format      = "frequency_list"
+encoding    = "gb18030"

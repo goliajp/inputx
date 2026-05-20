@@ -1,0 +1,23 @@
+# Weight derivation parameters. Bumping any value here is a wubi data
+# version bump — `wubi-build-weights` writes the SHA of this file into
+# provenance.toml so future contributors can detect drift.
+
+[normalization]
+# Per-layer raw counts → log → min-max normalized to [0, max_freq_score].
+# Cap must fit in 56 bits (FST value's freq half) AND stay well below
+# LAYER_BASE differences so a high-freq Auto entry can never outrank a
+# low-freq Phrase. Smallest LAYER_BASE gap is 100k (Phrase=400k vs
+# Zigen=500k), so 50k is safely under that.
+max_freq_score = 50_000
+
+# log(1 + raw) before scaling. Natural log is the conventional choice.
+log_base = 2.718281828459045
+
+# Words with raw aggregated count below this get freq_score = 0
+# (denoise — rare matches are usually OCR noise / encoding errors).
+min_count = 5
+
+# When multiple corpora are configured, aggregate per-word counts are
+# `sum_i (count_i * weight_i)` where weight_i comes from manifest.toml.
+# This is just here for forward-compat with future smoothing knobs.
+aggregation = "weighted_sum"

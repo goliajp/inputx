@@ -1,0 +1,36 @@
+[package]
+name = "inputx-wubi-wasm"
+version = "1.0.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "WASM bindings for inputx-wubi — Wubi 86 encoder + dictionary, browser/Node ready. Powers the Inputx IME web surface."
+authors = ["GOLIA K.K."]
+repository = "https://github.com/goliajp/inputx"
+homepage = "https://github.com/goliajp/inputx"
+readme = "README.md"
+keywords = ["wubi", "ime", "chinese", "wasm", "wasm-bindgen"]
+categories = ["text-processing", "internationalization", "wasm"]
+
+[lib]
+name = "wubi_wasm"
+crate-type = ["cdylib"]
+
+[dependencies]
+# `package = "inputx-wubi"` rename keeps the `use wubi::...` import path
+# stable across the rename. Path dep for local-dev edit cycle; version
+# constraint kicks in for crates.io consumers.
+wubi = { package = "inputx-wubi", version = "1.0", path = "../inputx-wubi" }
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+
+# `[profile.release]` lives at the workspace root (`core/Cargo.toml`) now
+# that this crate is a workspace member — non-root profile would be ignored.
+# wasm-pack tunes its own profile via `[package.metadata.wasm-pack.*]`
+# below, independent of the workspace release profile.
+
+# Skip `wasm-opt` — its version on this machine doesn't accept the bulk-memory
+# instructions the current Rust toolchain emits. wasm-pack uses the
+# unoptimized output (still ~33KB code).
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

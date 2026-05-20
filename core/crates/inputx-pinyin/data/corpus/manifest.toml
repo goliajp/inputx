@@ -1,0 +1,78 @@
+# golia-pinyin corpus manifest.
+#
+# Each [corpus.<id>] block references a downloadable plain-text corpus
+# (or a pre-aggregated frequency table — see `format` field).
+# `pinyin-fetch-corpus` validates the SHA-256 after download;
+# `pinyin-build-weights` scans the cached files to derive the per-(pinyin,
+# word) frequency scores that get packed into the FST.
+#
+# Schema (mirrors goliajp/wubi/data/corpus/manifest.toml exactly so corpus
+# entries can be reused between the two engines):
+#   url         (string, required) — download URL; HTTPS strongly preferred
+#   sha256      (string, required) — 64 hex chars; download fails if mismatch
+#   weight      (float,  required) — mixing weight (relative; normalized at
+#                                    scan time across all corpora)
+#   license     (string, required) — informational, for compliance audits
+#   description (string, required) — human-readable provenance note
+#   format      (string, required) — one of: "plain", "gzip", "bzip2",
+#                                    "tar_gz", "frequency_list"
+#   encoding    (string, optional) — for non-UTF-8 sources; e.g. "gb18030"
+#
+# To add a corpus:
+#   1. Run `cargo run --features tools --release --bin pinyin-fetch-corpus -- probe <url>`
+#   2. Review the printed stanza, fill in the TBD fields, paste here.
+#   3. Run `cargo run --features tools --release --bin pinyin-fetch-corpus`
+#   4. Run `cargo run --features tools --release --bin pinyin-build-weights`
+#   5. Commit the regenerated `weights.tsv` — that's a pinyin data-version bump.
+#
+# With zero entries, the build still works: weights.tsv is generated with
+# all freq_score = 0, and ranking falls back to dict-listed reading order.
+
+# --- corpus mixing weights ---
+#
+# Weight rationale (revised 2026-05-11 to address sim-testing finding that
+# colloquial words like 你好/红包/哈哈哈 ranked too low):
+#
+# An IME's primary input register is **conversational / colloquial** —
+# users type chat messages, search queries, casual notes. Book / news
+# corpora overweight formal vocabulary (proper nouns, professional jargon,
+# Wikipedia entity titles like 合欢花 / 黄淮海 / 惠皇后) which then drown
+# out frequent colloquial words in candidate ranking.
+#
+# Therefore SUBTLEX-CH-WF (33.5M chars of film subtitles → most spoken-
+# Mandarin-like data we can ship under CC-BY) gets the **highest** mixing
+# weight; News + Wikipedia provide secondary signal so written-register
+# vocabulary doesn't disappear entirely.
+#
+# Per-corpus weighted-mass sanity check (raw count of 的 ≈):
+#   subtlex 1,682,530 × 3.0 ≈ 5,047k  ← dominant signal
+#   news    ~50,000  × 3.0 ≈   150k   ← floor for modern news vocab
+#   wiki    ~150,000 × 1.0 ≈   150k   ← floor for entity / encyclopedic vocab
+# Colloquial words present mostly in subtlex thus rank ~30× higher than
+# under the previous (0.6 / 10 / 1) mix; formal-register words still get
+# meaningful baseline contribution from the 1+3 weighted mass.
+
+[corpus.zho_subtlex_ch_wf]
+url         = "https://raw.githubusercontent.com/leonsilicon/subtlex-ch-wf/main/data/SUBTLEX-CH-WF"
+sha256      = "086536450b1f77d0c7ff3ac0fc8375897162ace807d3167bec48b4c493434077"
+weight      = 3.0
+license     = "CC-BY 4.0"
+description = "SUBTLEX-CH-WF (Cai & Brysbaert 2010, PLOS ONE 10.1371/journal.pone.0010729) — Chinese word frequency from 33.5M chars of film subtitles; primary signal source for IME ranking (closest to colloquial input)"
+format      = "frequency_list"
+encoding    = "gb18030"
+
+[corpus.zho_wikipedia_2018_1m]
+url         = "https://downloads.wortschatz-leipzig.de/corpora/zho_wikipedia_2018_1M.tar.gz"
+sha256      = "1fa674cd44842c16ee724f9c57d6b3a3cc4493e83e59b4fba2768213184fdfd4"
+weight      = 1.0
+license     = "CC-BY 4.0"
+description = "Leipzig Corpora — 1M Chinese Wikipedia sentences (2018); secondary signal for encyclopedic / proper-noun vocab"
+format      = "tar_gz"
+
+[corpus.zho_news_2020_100k]
+url         = "https://downloads.wortschatz-leipzig.de/corpora/zho_news_2020_100K.tar.gz"
+sha256      = "ba219ac3a5b9e13f2653690ab67a03a184cab6019cbbb374791fd4cc7446a7e1"
+weight      = 3.0
+license     = "CC-BY 4.0"
+description = "Leipzig Corpora — 100K Chinese news sentences (2020); secondary signal for modern (post-2018) news vocabulary"
+format      = "tar_gz"

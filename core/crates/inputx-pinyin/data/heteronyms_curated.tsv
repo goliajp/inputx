@@ -1,0 +1,129 @@
+# heteronyms_curated.tsv — hand-curated canonical readings for high-stakes phrases.
+# format: <phrase>\t<canonical_pinyin>
+#
+# Semantics: for each phrase listed here, the dict assembly (ROADMAP item 23)
+# emits ONLY the canonical (pinyin, phrase) entry; all other reading variants
+# from phrases_composed.tsv are suppressed for this phrase.
+#
+# Inclusion policy: confidence >90% that the listed reading is canonical
+# in standard Mandarin (Putonghua / 普通话). Ambiguous phrases like 朝阳
+# (district name zhaoyang vs sun-facing chaoyang) and 长大 (zhangda vs changda)
+# are deliberately omitted = both readings retained in dict; v0.3 L0 user-
+# learning handles per-user disambiguation.
+#
+# This list covers ~80 entries — the high-frequency cases where Unihan's
+# inclusion of dialectal / archaic readings produces noise (自己 ziji/ziqi,
+# 没有 meiyou + 5 noise variants) plus genuine heteronyms (银行 yinhang,
+# 行业 hangye, 都是 doushi).
+#
+# Source ranking: top entries from data/heteronyms_candidates.tsv (jieba freq
+# desc). Curated by hand using standard Mandarin knowledge.
+
+# === noise suppression — phrases with single canonical reading ===
+他们	tamen
+自己	ziji
+没有	meiyou
+国家	guojia
+可以	keyi
+这个	zhege
+什么	shenme
+地方	difang
+这些	zhexie
+不是	bushi
+公司	gongsi
+这种	zhezhong
+地区	diqu
+如果	ruguo
+技术	jishu
+研究	yanjiu
+文化	wenhua
+其中	qizhong
+不能	buneng
+一些	yixie
+关系	guanxi
+生活	shenghuo
+一种	yizhong
+可能	keneng
+以及	yiji
+一般	yiban
+所以	suoyi
+不同	butong
+两个	liangge
+但是	danshi
+部分	bufen
+活动	huodong
+需要	xuyao
+怎么	zenme
+方面	fangmian
+其他	qita
+之间	zhijian
+具有	juyou
+以上	yishang
+政治	zhengzhi
+机关	jiguan
+包括	baokuo
+教育	jiaoyu
+建立	jianli
+而且	erqie
+面积	mianji
+各种	gezhong
+提出	tichu
+皇帝	huangdi
+制度	zhidu
+以后	yihou
+为了	weile
+之一	zhiyi
+之后	zhihou
+系统	xitong
+有关	youguan
+民族	minzu
+增长	zengzhang
+大学	daxue
+计划	jihua
+不会	buhui
+最后	zuihou
+一次	yici
+表示	biaoshi
+机构	jigou
+大家	dajia
+改革	gaige
+那么	name
+这么	zheme
+能力	nengli
+革命	geming
+得到	dedao
+目前	muqian
+对于	duiyu
+方法	fangfa
+由于	youyu
+
+# === true heteronyms — pick canonical reading ===
+进行	jinxing
+行政	xingzheng
+行业	hangye
+行李	xingli
+行为	xingwei
+行程	xingcheng
+举行	juxing
+银行	yinhang
+重要	zhongyao
+重庆	chongqing
+朝鲜	chaoxian
+朝代	chaodai
+王朝	wangchao
+长城	changcheng
+长江	changjiang
+长沙	changsha
+长春	changchun
+还是	haishi
+还有	haiyou
+都是	doushi
+都市	dushi
+首都	shoudu
+看见	kanjian
+快乐	kuaile
+音乐	yinyue
+睡觉	shuijiao
+觉得	juede
+调查	diaocha
+调整	tiaozheng

@@ -1,0 +1,79 @@
+# Character decomposition seed — char → (字根 sequence, stroke sequence, shape).
+#
+# Format:
+#   <char><tab><zigen-seq (space-separated)><tab><stroke-seq (1-5, space-separated)><tab><shape (1-3)>
+#
+# Stroke codes: 1=横 2=竖 3=撇 4=捺 5=折
+# Shape codes:  1=左右 2=上下 3=杂合
+#
+# What the encoder uses:
+# - Multi-字根 chars: only the LAST stroke (for 识别码).
+# - 键名字根: nothing (rule = letter × 4).
+# - 成字字根: first + second + last strokes.
+# - 单笔画: the single stroke.
+#
+# So you can write a minimal stroke sequence (e.g., just first/second/last) for
+# 成字字根 — the algorithm doesn't care about strokes in the middle.
+
+# === 25 键名字根 (rule = letter × 4) ===
+王	王	1	3
+土	土	1	3
+大	大	4	3
+木	木	4	3
+工	工	1	3
+目	目	1	3
+日	日	1	3
+口	口	1	3
+田	田	5	3
+山	山	2	3
+禾	禾	4	3
+白	白	1	3
+月	月	1	3
+人	人	4	3
+金	金	1	3
+言	言	1	3
+立	立	1	3
+水	水	5	3
+火	火	4	3
+之	之	4	3
+已	已	5	3
+子	子	1	3
+女	女	1	3
+又	又	4	3
+纟	纟	5	3
+
+# === 5 单笔画 (rule = letter letter L L) ===
+一	一	1	3
+丨	丨	2	3
+丿	丿	3	3
+丶	丶	4	3
+乙	乙	5	3
+
+# === 2-stroke 成字字根 (rule = letter + first + last, 3-letter code) ===
+二	二	1 1	3
+七	七	1 5	3
+八	八	3 4	3
+
+# === 2-字根 (rule 2: letter1 + letter2 + 识别码) ===
+全	人 王	1	2
+信	亻 言	1	1
+好	女 子	1	1
+明	日 月	1	1
+吗	口 马	1	1
+朋	月 月	1	1
+卡	上 卜	4	2
+吕	口 口	1	2
+占	卜 口	1	2
+林	木 木	4	1
+多	夕 夕	4	2
+少	小 丿	3	2
+时	日 寸	4	1
+江	氵 工	1	1
+汉	氵 又	4	1
+油	氵 由	1	1
+
+# === 3-字根 (rule 3: letter1 + letter2 + letter3 + 识别码) ===
+河	氵 丁 口	1	1
+想	木 目 心	4	2
+沙	氵 小 丿	3	1
+没	氵 几 又	4	1

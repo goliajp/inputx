@@ -1,0 +1,46 @@
+[package]
+name = "inputx-pinyin-wasm"
+version = "1.0.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "WASM bindings for inputx-pinyin — Mandarin Pinyin IME engine, browser/Node ready. Powers the Inputx IME web surface."
+authors = ["GOLIA K.K."]
+repository = "https://github.com/goliajp/inputx"
+homepage = "https://github.com/goliajp/inputx"
+readme = "README.md"
+keywords = ["pinyin", "ime", "chinese", "wasm", "wasm-bindgen"]
+categories = ["text-processing", "internationalization", "wasm"]
+
+[lib]
+name = "golia_pinyin_wasm"
+crate-type = ["cdylib"]
+
+[dependencies]
+# `package = "inputx-pinyin"` rename keeps the `use golia_pinyin::...`
+# import path stable across the rename. Path dep for local-dev edit
+# cycle; version constraint kicks in for crates.io consumers.
+#
+# To shrink the wasm bundle, build with --features bootstrap_only:
+#   wasm-pack build crates/inputx-pinyin-wasm --features bootstrap_only --release
+# (publish-npm.sh wires this in by default; full-dict bundles take
+# --no-default-features.)
+golia-pinyin = { package = "inputx-pinyin", version = "1.0", path = "../inputx-pinyin" }
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+
+[features]
+default = []
+# Propagates bootstrap_only to golia-pinyin → tiny dict baked into wasm.
+# Recommended for production wasm bundles (108 KB vs ~15 MB).
+bootstrap_only = ["golia-pinyin/bootstrap_only"]
+
+# `[profile.release]` lives at the workspace root (`core/Cargo.toml`) now
+# that this crate is a workspace member — non-root profile would be ignored.
+# wasm-pack tunes its own profile via `[package.metadata.wasm-pack.*]`
+# below, independent of the workspace release profile.
+
+# Skip `wasm-opt` — version on the build machine doesn't accept the
+# bulk-memory instructions emitted by current Rust toolchains.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
