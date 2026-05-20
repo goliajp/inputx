@@ -47,12 +47,17 @@ swiftc \
     -o "$APP_DIR/Contents/MacOS/$APP_NAME" \
     Sources/main.swift \
     Sources/Globals.swift \
+    Sources/InputxApplication.swift \
     Sources/IMEController.swift \
     Sources/CandidatePanel.swift \
     Sources/MenubarSettings.swift
 
-echo "[build] copying Info.plist"
+echo "[build] copying Info.plist + Resources"
 cp Info.plist "$APP_DIR/Contents/Info.plist"
+# Resources are referenced by Info.plist's tsInputMethodIconFileKey etc.;
+# without the actual files in place, macOS' input-source picker treats the
+# bundle as malformed and silently filters it out of enumeration.
+cp -R Resources/. "$APP_DIR/Contents/Resources/"
 
 printf "APPL????" > "$APP_DIR/Contents/PkgInfo"
 
@@ -63,9 +68,15 @@ printf "APPL????" > "$APP_DIR/Contents/PkgInfo"
 # Override with: SIGN_IDENTITY="..." ./build.sh
 SIGN_IDENTITY="${SIGN_IDENTITY:-159E4E05CB2166A0641FAF1A8AE61A0FE0277D0D}"
 echo "[build] signing as: $SIGN_IDENTITY"
+# Default to secure Apple TSA timestamp — Apple notarytool rejects
+# signatures without one. Local-only smoke tests can `SIGN_TIMESTAMP=none
+# ./build.sh` to skip the TSA round-trip (saves ~1s).
+TIMESTAMP_ARG="--timestamp"
+[ "${SIGN_TIMESTAMP:-}" = "none" ] && TIMESTAMP_ARG="--timestamp=none"
 codesign --force --deep \
     --options runtime \
-    --timestamp=none \
+    --entitlements Inputx.entitlements \
+    "$TIMESTAMP_ARG" \
     --sign "$SIGN_IDENTITY" \
     "$APP_DIR"
 

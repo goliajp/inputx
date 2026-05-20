@@ -24,16 +24,37 @@
     <string>????</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
-    <!-- LSUIElement (not LSBackgroundOnly): app runs without a Dock icon
-         but is still allowed to show NSStatusItem in the menu bar. The
-         menu bar item is the only user-facing settings surface on macOS
-         (no container app like iOS). -->
-    <key>LSUIElement</key>
+    <!-- Xcode-style build metadata. Manually-built (`swiftc` direct, not
+         via Xcode) bundles otherwise miss these and macOS 26's input-source
+         picker treats them as suspicious / non-enumerable. Values mirror
+         what Xcode would emit for an arm64 macosx target. -->
+    <key>CFBundleSupportedPlatforms</key>
+    <array>
+        <string>MacOSX</string>
+    </array>
+    <key>DTPlatformName</key>
+    <string>macosx</string>
+    <key>DTSDKName</key>
+    <string>macosx13.0</string>
+    <key>DTPlatformVersion</key>
+    <string>13.0</string>
+    <key>DTCompiler</key>
+    <string>com.apple.compilers.llvm.clang.1_0</string>
+    <!-- LSBackgroundOnly is *required* for IME enumeration in macOS
+         13+ — the input-source picker silently filters out bundles
+         that set LSUIElement instead. NSStatusItem still works under
+         LSBackgroundOnly (the menu-bar item is its only UI; the
+         "Inputx" app has no Dock icon and no window either way). -->
+    <key>LSBackgroundOnly</key>
     <true/>
+    <!-- Custom NSApplication subclass — module-qualified name. Plain
+         "NSApplication" leaves a race where IMK probes NSApp.delegate
+         before the top-level Swift code has attached one, causing the
+         IMK server to fail registration. See Sources/InputxApplication.swift. -->
     <key>NSPrincipalClass</key>
-    <string>NSApplication</string>
+    <string>Inputx.InputxApplication</string>
     <key>InputMethodConnectionName</key>
-    <string>Inputx_Connection</string>
+    <string>jp.golia.inputx_Connection</string>
     <key>InputMethodServerControllerClass</key>
     <string>InputxController</string>
     <key>InputMethodServerDelegateClass</key>
@@ -43,6 +64,13 @@
         <string>Latn</string>
         <string>Hans</string>
     </array>
+    <!-- macOS 26's input-source picker filters out IMEs that don't ship
+         a top-level menu icon file. Empty string in tsInputModeMenuIconFileKey
+         counts as "missing"; the bundle is silently dropped from TIS
+         enumeration. Real .tiff in Contents/Resources/ — see
+         Resources/inputx_menu_icon.tiff (built into the .app by build.sh). -->
+    <key>tsInputMethodIconFileKey</key>
+    <string>inputx_menu_icon.tiff</string>
     <key>ComponentInputModeDict</key>
     <dict>
         <key>tsInputModeListKey</key>
@@ -50,7 +78,7 @@
             <key>jp.golia.inputx.zh</key>
             <dict>
                 <key>tsInputModeAlternateMenuIconFileKey</key>
-                <string></string>
+                <string>inputx_menu_icon.tiff</string>
                 <key>tsInputModeDefaultStateKey</key>
                 <true/>
                 <key>tsInputModeIsVisibleKey</key>
@@ -60,9 +88,9 @@
                 <key>tsInputModeKeyEquivalentModifiersKey</key>
                 <integer>0</integer>
                 <key>tsInputModeMenuIconFileKey</key>
-                <string></string>
+                <string>inputx_menu_icon.tiff</string>
                 <key>tsInputModePaletteIconFileKey</key>
-                <string></string>
+                <string>inputx_menu_icon.tiff</string>
                 <key>tsInputModePrimaryInScriptKey</key>
                 <true/>
                 <key>tsInputModeScriptKey</key>

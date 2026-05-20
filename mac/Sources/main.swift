@@ -2,7 +2,10 @@ import Cocoa
 import InputMethodKit
 import InputxKit
 
-let kConnectionName = "Inputx_Connection"
+// Mach service name — MUST match Info.plist's `InputMethodConnectionName`
+// AND the `com.apple.security.temporary-exception.mach-register.global-name`
+// entitlement value. Apple convention: `<bundleID>_Connection`.
+let kConnectionName = "jp.golia.inputx_Connection"
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var server: IMKServer?
@@ -26,7 +29,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-let app = NSApplication.shared
-let delegate = AppDelegate()
-app.delegate = delegate
-app.run()
+// Force-load the InputxApplication subclass — Info.plist's NSPrincipalClass
+// (`Inputx.InputxApplication`) points at it, and Cocoa's bootstrap creates
+// the instance from that string. We don't manually `NSApplication.shared` /
+// `.run()` here: the subclass wires the delegate in its `init()` and then
+// `NSApplicationMain` runs the loop.
+_ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)

@@ -4,6 +4,14 @@ import InputxKit
 
 /// IMKit input controller — one instance per client (text view / editor).
 ///
+/// **`@objc(InputxController)` is load-bearing.** IMKit reads the class
+/// name from `Info.plist`'s `InputMethodServerControllerClass` string
+/// and resolves it through the Objective-C runtime. Without an explicit
+/// `@objc(...)` name, Swift mangles the symbol to
+/// `<ModuleName>.InputxController`, IMKit can't find the class, and the
+/// System Settings input-source picker silently drops the bundle from
+/// its enumeration — the IME "doesn't exist" from the user's POV.
+///
 /// Lifecycle each keystroke:
 ///   1. Map NSEvent → (codepoint, modifiers).
 ///   2. Number-key shortcut path: if the candidate panel is visible and a
@@ -13,6 +21,7 @@ import InputxKit
 ///   4. Engine path: feed (cp, mods) into the Rust session. Drain any
 ///      auto-commit / force-commit text. Refresh marked-text preedit +
 ///      candidate panel.
+@objc(InputxController)
 final class InputxController: IMKInputController {
     private let session = InputxSession()
     private var candidatePanel: CandidatePanel?
