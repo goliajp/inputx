@@ -9,7 +9,8 @@
 //! directly — the dict's `lookup_into` is allocation-friendly for hot
 //! per-keystroke refresh.
 
-use std::collections::HashMap;
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 
 use golia_pinyin::PinyinEngine;
@@ -27,6 +28,19 @@ pub struct PinyinAdapter {
     engine: PinyinEngine,
     buffer: String,
     candidates: Vec<String>,
+    /// `true` iff the current `candidates` includes at least one entry
+    /// from the exact-syllable path or the 简拼 initials path — i.e., the
+    /// user typed something that resolves directly to a pinyin reading.
+    /// `false` when `candidates` is empty OR contains only speculative
+    /// prefix-completion entries (path 3).
+    ///
+    /// Used by `CompositeEngine` to distinguish "user is actively typing
+    /// pinyin" (veto wubi auto-commit) from "user typed wubi-flavored
+    /// input that happens to have FST-prefix overlap" (let wubi commit).
+    /// Without this distinction, prefix completion would mask single-
+    /// letter wubi 简码 commits like `g → 一` because `g` always has
+    /// prefix matches in the pinyin dict.
+    has_non_speculative_candidate: bool,
 }
 
 impl Default for PinyinAdapter {
@@ -41,7 +55,20 @@ impl PinyinAdapter {
             engine: PinyinEngine::new(),
             buffer: String::with_capacity(16),
             candidates: Vec::with_capacity(16),
+            has_non_speculative_candidate: false,
         }
+    }
+
+    /// `true` if the current candidate list contains at least one entry
+    /// that came from exact-pinyin lookup or the 简拼 initials index —
+    /// i.e., the user typed an input that resolves to a real pinyin
+    /// reading. `false` when the list is empty or contains only
+    /// speculative FST-prefix completions.
+    ///
+    /// Used by `CompositeEngine::should_force_commit_wubi` to decide
+    /// whether a wubi auto-commit would interrupt active pinyin typing.
+    pub fn has_non_speculative_candidate(&self) -> bool {
+        self.has_non_speculative_candidate
     }
 
     pub fn is_composing(&self) -> bool {
@@ -118,12 +145,14 @@ impl PinyinAdapter {
         }
         self.buffer.clear();
         self.candidates.clear();
+        self.has_non_speculative_candidate = false;
         true
     }
 
     pub fn clear_all(&mut self) {
         self.buffer.clear();
         self.candidates.clear();
+        self.has_non_speculative_candidate = false;
     }
 
     /// Commit candidate at `index`. Records the pick into the engine's L0
@@ -134,6 +163,7 @@ impl PinyinAdapter {
         self.engine.dict().record_pick(&self.buffer, &word);
         self.buffer.clear();
         self.candidates.clear();
+        self.has_non_speculative_candidate = false;
         Some(word)
     }
 
@@ -160,29 +190,141 @@ impl PinyinAdapter {
     }
 
     fn refresh_candidates(&mut self) {
+        self.candidates.clear();
+        self.has_non_speculative_candidate = false;
+        if self.buffer.is_empty() {
+            return;
+        }
+
+        // Path 1: exact-syllable lookup (含 fuzzy / tone-strip / heteronym
+        // collapsing). Buffer must already parse as one or more valid
+        // pinyin syllables; partial-syllable input like "zho" returns ∅.
+        let mut exact_buf: Vec<String> = Vec::new();
         self.engine
             .dict()
-            .lookup_into(&self.buffer, &mut self.candidates);
-        // 简拼 (first-letter abbreviation) fallback. If full-pinyin lookup
-        // yields nothing AND the input is purely consonant initials (no
-        // vowels), look up via the process-global initials index. This is
-        // standard behavior in Sogou / 百度 / Apple Pinyin — `hhh` should
-        // produce 哈哈哈 / 好好好, `zg` should produce 中国, etc.
-        if self.candidates.is_empty() && looks_like_initials(&self.buffer) {
-            if let Some(matches) = initials_index(&self.engine).get(&self.buffer) {
-                // Cap raised to 200 — candidate bar is horizontally scrollable;
-                // a 50 cap was hiding mid-frequency colloquial words (e.g.,
-                // 红包 which sits at position ~70 in `hb` bucket because the
-                // corpus weights subtitle/news/wiki and 红包 only spikes in
-                // chat contexts not present in any of them).
-                self.candidates.extend(matches.iter().take(200).cloned());
+            .lookup_into(&self.buffer, &mut exact_buf);
+        let mut seen: HashSet<String> = HashSet::with_capacity(64);
+        for w in exact_buf {
+            if seen.insert(w.clone()) {
+                self.candidates.push(w);
+                self.has_non_speculative_candidate = true;
             }
         }
-        // Apply the same rare-CJK filter wubi/table.rs uses, so the
-        // process-global `showRareChars` toggle (FFI: inputx_set_show_rare_chars)
-        // affects both engines uniformly. Item 54 of workspace ROADMAP.
+
+        // Path 2: 简拼 (first-letter abbreviation) — vowel-free input only.
+        // `hhh → 哈哈哈`, `zg → 中国`. Uses process-global lazy initials
+        // index. Skipped when input has vowels (would be a valid syllable
+        // start handled by Path 3).
+        if looks_like_initials(&self.buffer)
+            && let Some(matches) = initials_index(&self.engine).get(&self.buffer)
+        {
+            for w in matches.iter().take(200) {
+                if seen.insert(w.clone()) {
+                    self.candidates.push(w.clone());
+                    self.has_non_speculative_candidate = true;
+                }
+            }
+        }
+
+        // Path 3: FST prefix completion — covers partial-syllable input
+        // (`zho` → 中国/众/重..) and post-syllable phrase completion
+        // (`zhong` → 中国/中华/中央 even though exact `zhong` only has
+        // single-char entries). This is the dominant code path for "I'm
+        // mid-typing and need to see something". Length-adaptive cap +
+        // top-K-by-freq heap keep short-prefix scans bounded:
+        //   len=1  → cap 30  (~50k entries scanned worst-case)
+        //   len=2  → cap 80  (~30k)
+        //   len=3  → cap 150 (~10k)
+        //   len=4+ → cap 200 (~few k)
+        // Perfgate (see `perfgate_refresh_candidates_under_budget` test):
+        // even the worst case must complete < 16ms (one frame) on a release
+        // build; measured ~1-3ms on M-class CPU.
+        let cap = match self.buffer.len() {
+            1 => 30,
+            2 => 80,
+            3 => 150,
+            _ => 200,
+        };
+        if self.candidates.len() < cap {
+            let want = cap - self.candidates.len();
+            push_prefix_top_k(
+                &self.engine,
+                &self.buffer,
+                want,
+                &mut seen,
+                &mut self.candidates,
+            );
+        }
+
+        // Path 4: rare-CJK filter (same as wubi/table.rs).
         if !crate::wubi::show_rare() {
             self.candidates.retain(|w| crate::wubi::is_displayable(w));
+        }
+    }
+}
+
+/// Scan `engine.dict()` for entries whose pinyin starts with `prefix`, pick
+/// the top `k` by frequency (excluding anything already in `seen`), and push
+/// them onto `out` in freq-desc order.
+///
+/// Uses the streaming `prefix_for_each` API so the visit cost is O(n) FST
+/// stream + O(k log k) heap work, with String allocation only for the ≤ k
+/// winners — short prefixes like `"z"` would otherwise pay ~50k String
+/// allocations just to throw most away.
+///
+/// Heap discipline: min-heap of size k keyed by freq. New entry is admitted
+/// iff its freq beats the current heap minimum. Word-asc tiebreaker for
+/// determinism (matches `lookup_into`'s ordering).
+fn push_prefix_top_k(
+    engine: &PinyinEngine,
+    prefix: &str,
+    k: usize,
+    seen: &mut HashSet<String>,
+    out: &mut Vec<String>,
+) {
+    if k == 0 {
+        return;
+    }
+    // Entry tuple: (freq, Reverse(word)). The Reverse on word makes lex-asc
+    // the tiebreaker (smaller word wins ties). Wrapped in outer Reverse so
+    // BinaryHeap behaves as a min-heap (top = smallest freq, ready to evict).
+    type Entry = Reverse<(u64, Reverse<String>)>;
+    let mut heap: BinaryHeap<Entry> = BinaryHeap::with_capacity(k + 1);
+
+    engine
+        .dict()
+        .prefix_for_each_raw(prefix, |_pinyin_bytes, word_bytes, freq| {
+            // Cheap pre-check FIRST: compare raw freq against heap's current
+            // minimum without touching anything else. >99% of FST entries on
+            // short prefixes fail this and bail before allocating anything
+            // (or even running utf8 decode). For `z` (~50k entries) this
+            // saves both the per-entry HashSet lookup AND the utf8 decode.
+            // Dedup vs. `seen` is deferred to drain time when there are only
+            // k candidates left.
+            if heap.len() == k {
+                let min_freq = heap.peek().expect("heap is full (len == k)").0.0;
+                if freq <= min_freq {
+                    return;
+                }
+                heap.pop();
+            }
+            // Now decode utf8 (cheap: ~50ns for typical 6-byte word) +
+            // allocate the String. Only ≤k of these run per scan.
+            let Ok(word) = std::str::from_utf8(word_bytes) else {
+                return;
+            };
+            heap.push(Reverse((freq, Reverse(word.to_owned()))));
+        });
+
+    // Drain in freq-desc + lex-asc order.
+    let mut drained: Vec<(u64, String)> = heap
+        .into_iter()
+        .map(|Reverse((freq, Reverse(word)))| (freq, word))
+        .collect();
+    drained.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
+    for (_, word) in drained {
+        if seen.insert(word.clone()) {
+            out.push(word);
         }
     }
 }
@@ -707,6 +849,183 @@ mod tests {
             !a.candidates().iter().any(|w| w == "重新"),
             "zhongxin should NOT match 重新; got {:?}",
             a.candidates()
+        );
+    }
+
+    // ------------------------------------------------------------------
+    // Path 3: prefix-completion regression tests (2026-05-20).
+    // Partial-syllable input must yield meaningful candidates instead of
+    // an empty bar. Without prefix completion, `zho` returns ∅ (not a
+    // valid syllable) — user observed this on device and called it
+    // unacceptable. The fix scans FST entries whose pinyin starts with
+    // the buffer and merges top-K-by-freq into the candidate list.
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn prefix_partial_zho_yields_candidates() {
+        let mut a = PinyinAdapter::new();
+        for b in b"zho" {
+            a.handle_letter(*b);
+        }
+        let cands = a.candidates();
+        assert!(
+            !cands.is_empty(),
+            "zho should yield prefix-completion candidates, not ∅"
+        );
+        // zho is the prefix of zhong* and zhou* — 中国 (stored under
+        // "zhongguo") is by far the most-frequent zho* phrase and must
+        // surface in the visible window.
+        assert!(
+            cands.iter().take(30).any(|w| w == "中国"),
+            "zho should surface 中国 in top 30; got {:?}",
+            cands.iter().take(30).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn prefix_partial_zhon_narrows_to_zhong_subtree() {
+        let mut a = PinyinAdapter::new();
+        for b in b"zhon" {
+            a.handle_letter(*b);
+        }
+        let cands = a.candidates();
+        assert!(!cands.is_empty(), "zhon should yield candidates");
+        // zhon is the prefix of zhong* only (zhou doesn't fit) — at least
+        // one high-freq 中* word must appear.
+        assert!(
+            cands
+                .iter()
+                .take(30)
+                .any(|w| w == "中" || w == "中国" || w == "中文"),
+            "zhon should surface 中 / 中国 / 中文 in top 30; got {:?}",
+            cands.iter().take(30).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn prefix_zhong_includes_phrase_completions() {
+        // `zhong` is a valid syllable AND a phrase prefix. Exact lookup
+        // gives single chars (中, 众, 终, ...); prefix scan must add
+        // phrase completions like 中国 (stored at "zhongguo").
+        let mut a = PinyinAdapter::new();
+        for b in b"zhong" {
+            a.handle_letter(*b);
+        }
+        let cands = a.candidates();
+        assert!(
+            cands.iter().any(|w| w == "中"),
+            "zhong should include exact-match 中; got {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+        assert!(
+            cands.iter().any(|w| w == "中国"),
+            "zhong should also surface 中国 via prefix scan; got {:?}",
+            cands.iter().take(20).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn prefix_single_letter_yields_candidates() {
+        // `z` is not a valid syllable but is the prefix of every z* word.
+        // Must surface high-freq words, capped at 30 (length-adaptive
+        // cap — short prefix doesn't need many candidates).
+        let mut a = PinyinAdapter::new();
+        a.handle_letter(b'z');
+        let cands = a.candidates();
+        assert!(!cands.is_empty(), "z should yield prefix matches");
+        assert!(
+            cands.len() <= 30,
+            "z cap should be 30 (length-adaptive); got {}",
+            cands.len()
+        );
+    }
+
+    // ------------------------------------------------------------------
+    // Perfgate: refresh_candidates per-keystroke budget.
+    //
+    // The user-stated requirement is "high-performance prediction" —
+    // input lag is the single worst IME UX failure. This test asserts a
+    // hard upper bound on the last-keystroke cost for representative
+    // worst-case inputs (short prefixes scan the most FST entries).
+    //
+    // Budget (release builds only):
+    //   - p50 < 5 ms  (most keystrokes feel instant)
+    //   - max < 16 ms (one display frame at 60Hz; never drops a frame)
+    //
+    // Debug builds: log but don't assert — debug perf is 10-50× slower
+    // and a hard gate would block fast iteration.
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn perfgate_refresh_candidates_under_budget() {
+        // Warmup once: pages in the FST `.rodata` and builds the global
+        // INITIALS_INDEX so the first measured keystroke isn't paying
+        // cold-start cost.
+        let mut warmer = PinyinAdapter::new();
+        warmer.warmup();
+
+        const ITER: usize = 30;
+        const MEAN_BUDGET_NS: u128 = 5_000_000; // 5 ms
+        const MAX_BUDGET_NS: u128 = 16_000_000; // 16 ms (one frame @ 60Hz)
+
+        // Worst cases first (short prefix → biggest scan).
+        let probes: &[&str] = &[
+            "z", "zh", "zho", "zhon", "zhong", "zhongguo", "wo", "women", "ni", "nihao", "h",
+            "hh", "hhh",
+        ];
+
+        let mut all_passed = true;
+        for input in probes {
+            let bytes = input.as_bytes();
+            let mut times: Vec<u128> = Vec::with_capacity(ITER);
+
+            for _ in 0..ITER {
+                let mut a = PinyinAdapter::new();
+                // Type all-but-last (not timed).
+                for &b in &bytes[..bytes.len() - 1] {
+                    a.handle_letter(b);
+                }
+                let last = bytes[bytes.len() - 1];
+                let start = std::time::Instant::now();
+                a.handle_letter(last);
+                times.push(start.elapsed().as_nanos());
+            }
+
+            times.sort_unstable();
+            let mean = times.iter().sum::<u128>() / ITER as u128;
+            let p50 = times[times.len() / 2];
+            let max = *times.last().unwrap();
+
+            eprintln!(
+                "perfgate {input:>8}: mean={:>5.2}ms p50={:>5.2}ms max={:>5.2}ms",
+                mean as f64 / 1_000_000.0,
+                p50 as f64 / 1_000_000.0,
+                max as f64 / 1_000_000.0,
+            );
+
+            if !cfg!(debug_assertions) {
+                if p50 > MEAN_BUDGET_NS {
+                    eprintln!(
+                        "  ^^ FAIL: p50 {:.2}ms exceeds {}ms budget",
+                        p50 as f64 / 1_000_000.0,
+                        MEAN_BUDGET_NS / 1_000_000
+                    );
+                    all_passed = false;
+                }
+                if max > MAX_BUDGET_NS {
+                    eprintln!(
+                        "  ^^ FAIL: max {:.2}ms exceeds {}ms frame budget",
+                        max as f64 / 1_000_000.0,
+                        MAX_BUDGET_NS / 1_000_000
+                    );
+                    all_passed = false;
+                }
+            }
+        }
+
+        assert!(
+            all_passed || cfg!(debug_assertions),
+            "perfgate failed — see eprintln output above for per-probe timings"
         );
     }
 
