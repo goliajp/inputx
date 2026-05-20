@@ -255,12 +255,14 @@ impl CompositeEngine {
     /// Decide whether to fire a wubi force-commit on the current state.
     ///
     /// **Mixed mode** veto rules:
-    ///   - `pinyin.candidates()` non-empty → user is mid-pinyin (e.g.
-    ///     `shan` → 上, `wang` → 王). Original 47f veto.
-    ///   - `pinyin.has_future_match()` true → user might be building a
-    ///     longer word whose prefix has no exact-match candidates yet
-    ///     (`beij` → 北京). Without this we'd commit 阴 and leak "ing"
-    ///     into the pinyin buffer.
+    ///   - `pinyin.has_non_speculative_candidate()` true → user is mid-pinyin
+    ///     (`shan` → 上, `wang` → 王, `hh` → 哈哈 via 简拼). Original 47f
+    ///     veto, narrowed to exact + initials matches only since prefix
+    ///     completion (added 2026-05-20) makes pinyin candidates always
+    ///     non-empty — which would otherwise mask all wubi 简码 commits.
+    ///   - `pinyin.has_future_match()` true at buf=4 → user might be
+    ///     building a longer pinyin word (`beij` → 北京). Without this
+    ///     we'd commit 阴 and leak "ing" into the pinyin buffer.
     ///
     /// **WubiOnly** applies the policy verbatim — pinyin is dormant so
     /// no veto. **PinyinOnly** wubi never runs.
@@ -281,7 +283,7 @@ impl CompositeEngine {
             return false;
         }
         if self.mode == Mode::Mixed {
-            if !self.pinyin.candidates().is_empty() {
+            if self.pinyin.has_non_speculative_candidate() {
                 return false;
             }
             // 4-letter wubi unique codes are the dangerous ones — they're
