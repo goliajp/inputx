@@ -14,10 +14,16 @@ publish = false
 # existing iOS / Mac linker configs (`-linputx_core`) don't have to change.
 # Omit `rlib` to avoid colliding with the pure-Rust sibling `inputx-core`
 # crate's `libinputx_core.rlib` (same artifact name, different content).
-# Hosts that need the C ABI use the staticlib / cdylib; pure-Rust callers
-# go straight to `inputx-core`.
+#
+# **`staticlib` only — no `cdylib`.** With both present, `swiftc -L … -linputx_core`
+# preferred the `.dylib` and the resulting binary referenced the dev-machine's
+# absolute cargo target path. macOS' IME picker silently drops bundles whose
+# Mach-O references a missing dylib, which exactly explains why the Inputx
+# .app didn't show up in System Settings → Add Input Source. Staticlib only
+# forces the whole engine (incl. embedded FSTs, ~18 MB) into the host
+# executable, making the .app self-contained.
 name = "inputx_core"
-crate-type = ["staticlib", "cdylib"]
+crate-type = ["staticlib"]
 
 [dependencies]
 inputx-core = { path = "../inputx-core" }
