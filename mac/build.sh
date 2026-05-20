@@ -28,7 +28,13 @@ swiftc \
     -linputx_core \
     -O \
     -o "$APP_DIR/Contents/MacOS/$APP_NAME" \
-    Sources/main.swift Sources/IMEController.swift Sources/InputxCore.swift
+    Sources/main.swift \
+    Sources/IMEController.swift \
+    Sources/InputxCore.swift \
+    Sources/Settings.swift \
+    Sources/L0Storage.swift \
+    Sources/CandidatePanel.swift \
+    Sources/MenubarSettings.swift
 
 echo "[build] copying Info.plist"
 cp Info.plist "$APP_DIR/Contents/Info.plist"
