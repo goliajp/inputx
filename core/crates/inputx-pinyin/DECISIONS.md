@@ -17,7 +17,7 @@ entry: what was chosen, what was rejected, why. New entries go at the top.
 - README mentions only the dict file format, not upstream sources.
 - Conclusion: jieba publishes dict.txt under MIT via the blanket repo LICENSE; downstream use is permitted per MIT (preserve copyright notice).
 
-**Attribution obligation:** bundle `crates/golia-pinyin/LICENSE-JIEBA` (verbatim copy of jieba's MIT notice) in published crate; reference jieba in README + this file.
+**Attribution obligation:** bundle `LICENSE-JIEBA` (verbatim copy of jieba's MIT notice) in the published crate root; reference jieba in README + this file.
 
 **Caveat (low-risk):** if jieba upstream were technically derived from BY-SA sources without disclosure, downstream liability is theoretical but unprovable. Standard OSS practice trusts upstream license declarations; we document our use chain so any future challenge can be addressed cleanly.
 
@@ -96,7 +96,7 @@ corpus):
 
 ### Attribution obligations
 
-Bundled in `crates/golia-pinyin/README.md` + the published crate's `LICENSE-UNICODE`:
+Bundled in the published crate's `README.md` + `LICENSE-UNICODE`:
 
 > Single-character readings derived from the Unicode Character Database (UCD), specifically the Unihan kMandarin and kHanyuPinyin fields. © 1991-2026 Unicode, Inc. Distributed under the Unicode License v3. https://www.unicode.org/license.txt
 

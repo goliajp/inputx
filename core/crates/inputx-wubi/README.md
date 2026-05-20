@@ -14,7 +14,7 @@ permissively-licensed Wubi stack.
 the public Wubi 86 standard (王永民, 1986); no GPL or LGPL data is
 embedded.
 
-> Read this in [简体中文](README.zh-CN.md) · [日本語](README.ja.md).
+> Read this in [简体中文](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-wubi/README.zh-CN.md) · [日本語](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-wubi/README.ja.md).
 
 ## What's in the box
 

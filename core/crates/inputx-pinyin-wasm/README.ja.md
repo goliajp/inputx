@@ -10,7 +10,7 @@ feature で切替可能)。
 
 **ライセンス:** MIT OR Apache-2.0。
 
-**言語**: [English](README.md) · [简体中文](README.zh-CN.md) · 日本語
+**言語**: [English](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-pinyin-wasm/README.md) · [简体中文](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-pinyin-wasm/README.zh-CN.md) · 日本語
 
 ## インストール
 

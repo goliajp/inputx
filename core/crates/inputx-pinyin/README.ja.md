@@ -15,7 +15,7 @@ FST バックエンドの辞書、L0 / L1+ ランキング、WebAssembly を
 npm に単独公開している。寛容なライセンスの普通話拼音スタックを必要と
 する他プロジェクトもそのまま利用できる。
 
-**言語**: [English](README.md) · [简体中文](README.zh-CN.md) · 日本語
+**言語**: [English](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-pinyin/README.md) · [简体中文](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-pinyin/README.zh-CN.md) · 日本語
 
 ## 内容
 

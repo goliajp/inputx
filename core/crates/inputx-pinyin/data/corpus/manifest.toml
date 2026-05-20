@@ -6,8 +6,8 @@
 # `pinyin-build-weights` scans the cached files to derive the per-(pinyin,
 # word) frequency scores that get packed into the FST.
 #
-# Schema (mirrors goliajp/wubi/data/corpus/manifest.toml exactly so corpus
-# entries can be reused between the two engines):
+# Schema (mirrors inputx-wubi's corpus manifest exactly so entries can be
+# reused between the two engines):
 #   url         (string, required) — download URL; HTTPS strongly preferred
 #   sha256      (string, required) — 64 hex chars; download fails if mismatch
 #   weight      (float,  required) — mixing weight (relative; normalized at
