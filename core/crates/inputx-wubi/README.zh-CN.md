@@ -12,7 +12,7 @@
 本 crate 是独立可复用的 Wubi 引擎，对外也单独发布到 crates.io / npm，
 方便其它项目使用一份干净、许可宽松的五笔栈。
 
-**语言**：[English](README.md) · 简体中文 · [日本語](README.ja.md)
+**语言**：[English](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-wubi/README.md) · 简体中文 · [日本語](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-wubi/README.ja.md)
 
 ## 特性
 

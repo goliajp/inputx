@@ -13,7 +13,7 @@ permissively-licensed Mandarin Pinyin stack.
 permissively-licensed sources only — see [License](#license) below for
 the full attribution chain.
 
-> Read this in [简体中文](README.zh-CN.md) · [日本語](README.ja.md).
+> Read this in [简体中文](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-pinyin/README.zh-CN.md) · [日本語](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-pinyin/README.ja.md).
 
 ## What's in the box
 

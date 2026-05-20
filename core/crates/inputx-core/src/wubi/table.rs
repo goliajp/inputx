@@ -1,7 +1,7 @@
-//! Thin adapter over [`wubi::WubiDict`] (the embedded FST in the
-//! [`wubi`](https://github.com/goliajp/wubi) crate). The dict instance is
-//! process-global via `OnceLock`; L0 (per-user learning) state therefore
-//! persists across `Session` instances within one process.
+//! Thin adapter over [`wubi::WubiDict`] (the embedded FST in the sibling
+//! [`inputx-wubi`](https://crates.io/crates/inputx-wubi) crate). The dict
+//! instance is process-global via `OnceLock`; L0 (per-user learning) state
+//! therefore persists across `Session` instances within one process.
 
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, Ordering};

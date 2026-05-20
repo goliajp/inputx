@@ -14,7 +14,7 @@ Rust で書かれた五筆字型 (Wubi 86) 中国語入力エンジン。WebAsse
 npm に単独公開している。寛容なライセンスの五筆スタックを必要とする
 他プロジェクトもそのまま利用できる。
 
-**言語**: [English](README.md) · [简体中文](README.zh-CN.md) · 日本語
+**言語**: [English](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-wubi/README.md) · [简体中文](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-wubi/README.zh-CN.md) · 日本語
 
 ## 特徴
 

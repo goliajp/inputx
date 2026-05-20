@@ -10,7 +10,7 @@ The web surface of the [Inputx IME](https://github.com/goliajp/inputx).
 
 **License:** MIT OR Apache-2.0.
 
-> Read this in [简体中文](README.zh-CN.md) · [日本語](README.ja.md).
+> Read this in [简体中文](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-pinyin-wasm/README.zh-CN.md) · [日本語](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-pinyin-wasm/README.ja.md).
 
 ## Install
 

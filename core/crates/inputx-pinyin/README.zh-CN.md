@@ -13,7 +13,7 @@ L0 / L1+ 排序、WebAssembly 原生支持
 本 crate 是独立可复用的拼音引擎，对外也单独发布到 crates.io / npm，
 方便其它项目使用一份干净、许可宽松的拼音栈。
 
-**语言**：[English](README.md) · 简体中文 · [日本語](README.ja.md)
+**语言**：[English](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-pinyin/README.md) · 简体中文 · [日本語](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-pinyin/README.ja.md)
 
 ## 内容
 

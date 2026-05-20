@@ -8,7 +8,7 @@
 
 **许可：** MIT OR Apache-2.0。
 
-**语言**：[English](README.md) · 简体中文 · [日本語](README.ja.md)
+**语言**：[English](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-wubi-wasm/README.md) · 简体中文 · [日本語](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-wubi-wasm/README.ja.md)
 
 ## 安装
 
