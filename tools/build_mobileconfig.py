@@ -9,8 +9,8 @@ profiles bypass that gate).
 
 Usage:
     python3 tools/build_mobileconfig.py \
-        --font ios/App/Resources/Lab8CJKExtended.ttf \
-        --output ios/App/Resources/Lab8CJKExtended.mobileconfig
+        --font ios/App/Resources/InputxCJKExtended.ttf \
+        --output ios/App/Resources/InputxCJKExtended.mobileconfig
 
 Run once after font changes; commit the output. iOS will warn the user
 the profile is unsigned — that's expected for ad-hoc distribution. Sign
@@ -96,14 +96,14 @@ def main() -> int:
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument(
         "--payload-id",
-        default="jp.golia.lab8ime.fontprofile.cjkext",
+        default="jp.golia.inputx.fontprofile.cjkext",
     )
     ap.add_argument("--organization", default="GOLIA K.K.")
-    ap.add_argument("--family-name", default="Lab8 CJK Extended")
+    ap.add_argument("--family-name", default="Inputx CJK Extended")
     ap.add_argument(
         "--description",
         default=(
-            "Lab8 输入法 — 安装 CJK 扩展 B+ 区汉字字体到系统级，"
+            "Inputx 输入法 — 安装 CJK 扩展 B+ 区汉字字体到系统级，"
             "其他 app 也能正确显示罕见汉字。基于 Plangothic Project (SIL OFL 1.1)。"
         ),
     )

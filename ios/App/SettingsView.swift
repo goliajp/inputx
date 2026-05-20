@@ -316,7 +316,7 @@ struct SettingsView: View {
     }
 
     private func openProfile() {
-        let url = URL(string: "https://github.com/goliajp/lab8-cjk-extended-font/releases/download/v1.0/Lab8CJKExtended.mobileconfig")!
+        let url = URL(string: "https://github.com/goliajp/inputx/releases/download/v1.0.0/InputxCJKExtended.mobileconfig")!
         UIApplication.shared.open(url)
     }
 
@@ -354,7 +354,7 @@ struct AcknowledgementsView: View {
                 creditRow(name: "inputx-pinyin", license: "MIT or Apache-2.0, GOLIA K.K.", url: "https://crates.io/crates/inputx-pinyin")
             }
             Section("字体") {
-                creditRow(name: "Lab8 CJK Extended (Plangothic Super P1 subset)", license: "OFL 1.1, renamed per §1 RFN clause", url: "https://github.com/goliajp/lab8-cjk-extended-font")
+                creditRow(name: "Inputx CJK Extended (Plangothic Super P1 subset)", license: "OFL 1.1, renamed per §1 RFN clause", url: "https://github.com/goliajp/inputx")
             }
         }
         .navigationTitle("OSS 致谢")

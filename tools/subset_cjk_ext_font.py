@@ -2,14 +2,14 @@
 """
 subset_cjk_ext_font.py — subset Plangothic Super (P1) to just the CJK
 Extension B+ codepoints present in wubi's auto_decomp.txt, rename per OFL
-RFN clause, and emit a small TTF for the Lab8 keyboard candidate bar.
+RFN clause, and emit a small TTF for the Inputx keyboard candidate bar.
 
 Inputs:
     --plangothic-p1  path to Plangothic-Super .../static/PlangothicP1-Regular.ttf
     --auto-decomp    path to wubi's data/auto_decomp.txt (source of codepoints)
     --output         output TTF path
 
-Output font name: "Lab8 CJK Extended" — distinct from Plangothic's reserved
+Output font name: "Inputx CJK Extended" — distinct from Plangothic's reserved
 name (OFL 1.1 §1) so subset distribution complies.
 
 Run after any wubi data version bump that touches auto_decomp.txt.
@@ -22,8 +22,8 @@ from pathlib import Path
 from fontTools import subset
 from fontTools.ttLib import TTFont
 
-NEW_FAMILY = "Lab8 CJK Extended"
-NEW_PSNAME = "Lab8CJKExtended-Regular"
+NEW_FAMILY = "Inputx CJK Extended"
+NEW_PSNAME = "InputxCJKExtended-Regular"
 
 
 def collect_codepoints(auto_decomp: Path) -> list[int]:

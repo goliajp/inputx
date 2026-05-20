@@ -31,7 +31,7 @@ analytics, no "Allow Full Access" required.
   against a per-frame budget (< 16 ms on 60 Hz); input lag is treated as
   the single worst IME UX failure.
 - **Rare CJK support** — optional display of Plane-2+ characters via a
-  bundled cascade font (`Lab8CJKExtended`, a Plangothic subset, OFL).
+  bundled cascade font (`InputxCJKExtended`, a Plangothic subset, OFL).
 - **CJK typography** — full-width / half-width toggle, ASCII→CJK
   punctuation mapping, stateful smart quotes.
 - **iOS-native UX** — Dynamic Type, dark mode, VoiceOver, landscape

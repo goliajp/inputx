@@ -13,7 +13,7 @@
 //!     lists huó/huò/hú, etc.). Including it caused phrase composition to
 //!     emit nonsensical variants like `honghe → 共和` and `gonghuo → 共和`,
 //!     which polluted both full-pinyin lookup AND the 简拼 (initial-letter)
-//!     fallback. The bug surfaced via lab8-ime sim testing on 2026-05-11.
+//!     fallback. The bug surfaced via inputx ios sim testing on 2026-05-11.
 //!
 //! Why kHanyuPinlu over kTGHZ2013 / kXHC1983 (other modern-Mandarin sources):
 //!   - kHanyuPinlu directly gives a **frequency** number per reading; the

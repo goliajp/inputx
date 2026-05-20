@@ -54,7 +54,7 @@ final class MenubarSettings {
         addToggle("英文数字全角",
                   isOn: inputxSettings.useFullWidth,
                   selector: #selector(toggleFullWidth))
-        addToggle("显示生僻字（Plane-2+ 需安装 Lab8CJKExtended 字体）",
+        addToggle("显示生僻字（Plane-2+ 需安装 InputxCJKExtended 字体）",
                   isOn: inputxSettings.showRareChars,
                   selector: #selector(toggleRareChars))
         menu.addItem(.separator())

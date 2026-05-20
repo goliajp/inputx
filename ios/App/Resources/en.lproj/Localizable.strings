@@ -1,4 +1,4 @@
-/* Lab8 IME — English (en-US) translations.
+/* Inputx IME — English (en-US) translations.
  *
  * Item 89 of the iOS commercial-grade roadmap. The codebase uses Chinese
  * strings as keys (via SwiftUI's `Text(_: LocalizedStringKey)`); this file
@@ -11,7 +11,7 @@
  */
 
 /* ---------- App + section titles ---------- */
-"Lab8 输入法" = "Lab8 IME";
+"Inputx 输入法" = "Inputx IME";
 "启用步骤" = "How to enable";
 "输入方案" = "Input method";
 "引擎模式" = "Engine mode";
@@ -62,5 +62,5 @@
 "五笔为主，自动识别拼音 fallback（万能 / 搜狗五笔风格）。" = "Wubi-primary with automatic pinyin fallback (万能/搜狗 Wubi style).";
 
 /* ---------- Footer descriptions (longer; translated where possible) ---------- */
-"切换后请关闭再重新打开 Lab8 键盘以生效（v1 不支持 mid-session 切换）。" = "After switching, close and reopen the Lab8 keyboard for the change to take effect (v1 doesn't support mid-session switching).";
-"控制 Lab8 何时不等用户选择就直接 commit 顶部候选。" = "Controls when Lab8 commits the top candidate without waiting for user selection.";
+"切换后请关闭再重新打开 Inputx 键盘以生效（v1 不支持 mid-session 切换）。" = "After switching, close and reopen the Inputx keyboard for the change to take effect (v1 doesn't support mid-session switching).";
+"控制 Inputx 何时不等用户选择就直接 commit 顶部候选。" = "Controls when Inputx commits the top candidate without waiting for user selection.";

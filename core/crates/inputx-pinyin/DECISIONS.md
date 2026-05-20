@@ -42,7 +42,7 @@ entry: what was chosen, what was rejected, why. New entries go at the top.
 |---|---|---|---|---|
 | **Unihan database** | Unicode License v3 (permissive, MIT-compatible) | Yes — `kMandarin` (primary single-char reading), `kHanyuPinyin` (multi-reading + freq from 汉语大词典), `kXHC1983`, `kTGHZ2013` | ✅ **Use** | Authoritative single-char source; PD-equivalent terms; baked-in attribution requirement is trivial (one line in README + LICENSE-UNICODE bundled in published crate). Covers ~92k CJK chars including Ext A–G. |
 | **OpenCC** | Apache 2.0 | **No** — surveyed `BYVoid/OpenCC/data/dictionary/` directly: only S↔T conversion tables (STCharacters / STPhrases / TSPhrases / HKVariants / JPShinjitai / TWPhrases). Zero pinyin data. | ❌ **Skip** | My initial recommendation listed OpenCC for word-level pinyin — that was wrong; OpenCC is a Simplified↔Traditional converter, not a pinyin resource. |
-| **CC-CEDICT** | CC-BY-SA 3.0 | Yes — word-level `traditional simplified [pinyin] /english/` | ❌ **Skip** | ShareAlike clause: any work derived from BY-SA data must also be BY-SA. Shipping a derived FST in our binary likely propagates SA to downstream consumers (incl. lab8-ime). Even the conservative reading — that frequencies are factual but reading-mappings are creative — is enough to disqualify. |
+| **CC-CEDICT** | CC-BY-SA 3.0 | Yes — word-level `traditional simplified [pinyin] /english/` | ❌ **Skip** | ShareAlike clause: any work derived from BY-SA data must also be BY-SA. Shipping a derived FST in our binary likely propagates SA to downstream consumers (incl. inputx). Even the conservative reading — that frequencies are factual but reading-mappings are creative — is enough to disqualify. |
 | **Wiktionary zh dump** | CC-BY-SA 4.0 (text) + GFDL | Yes — per-word readings in entry markup | ❌ **Skip** | Same SA issue. Plus extraction effort is high (parse MediaWiki templates). |
 | **pypinyin data files** | Code MIT; data provenance unclear | Yes — single-char + phrase dicts | ❌ **Skip** | pypinyin's `pinyin_dict.py` is plausibly Unihan-clean; phrase dict (`phrases_dict.py`) historically credits CC-CEDICT-derived sources — same SA risk. Even MIT-labeled, you can't relicense BY-SA upstream as MIT, so the actual data may carry BY-SA invisibly. Avoid the audit cost; we already have a clean path. |
 | **THUOCL** (清华大学开放中文词库) | Unspecified / academic-restrictive in places | Some lists have pinyin | ❌ **Skip** | License unclear → can't ship in MIT/Apache binary. Academic word lists aren't worth the audit effort given alternatives. |
@@ -112,7 +112,7 @@ and `data/weights/provenance.toml`; pinyin will mirror that pattern.
 - **Use pypinyin's data behind feature flag**: doesn't help — once shipped,
   audit liability remains. Cleaner to never depend on it.
 - **Defer phrase-level pinyin to v0.3**: tempting but means Phase 3 (J/K/L)
-  publishes a single-char-only dict, which the dual-engine in lab8-core
+  publishes a single-char-only dict, which the dual-engine in inputx
   would find anemic. Phrase-level is core to commercial-grade.
 
 ---
@@ -121,6 +121,6 @@ and `data/weights/provenance.toml`; pinyin will mirror that pattern.
 
 **Decision:** v0.1 bootstrap dict is hand-curated (`data/bootstrap.tsv`, ~125 entries), not CC-CEDICT subset.
 
-**Why:** original ROADMAP plan called for CC-CEDICT subset (CC-BY-SA 4.0), but shipping CC-BY-SA-derived FST data in an MIT/Apache binary risks SA propagation into lab8-ime (where pinyin lib will be a path/version dep). Hand-curating ~125 most-common entries (50 single chars + 25 phrases) takes < 1h and is original work. v0.2 replaces this with the self-collected pipeline (D1).
+**Why:** original ROADMAP plan called for CC-CEDICT subset (CC-BY-SA 4.0), but shipping CC-BY-SA-derived FST data in an MIT/Apache binary risks SA propagation into inputx (where pinyin lib will be a path/version dep). Hand-curating ~125 most-common entries (50 single chars + 25 phrases) takes < 1h and is original work. v0.2 replaces this with the self-collected pipeline (D1).
 
 **Recorded in:** v0.1 commit `86540db` ("license-clean MIT/Apache, replacing planned CC-CEDICT to avoid SA propagation").

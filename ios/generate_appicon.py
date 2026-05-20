@@ -134,7 +134,7 @@ def write_contents_json(iconset_dir: Path):
         })
     contents = {
         "images": images,
-        "info": {"author": "lab8 generate_appicon.py", "version": 1},
+        "info": {"author": "inputx generate_appicon.py", "version": 1},
     }
     (iconset_dir / "Contents.json").write_text(
         json.dumps(contents, indent=2) + "\n"
@@ -143,7 +143,7 @@ def write_contents_json(iconset_dir: Path):
 
 def write_catalog_contents(catalog_dir: Path):
     contents = {
-        "info": {"author": "lab8 generate_appicon.py", "version": 1},
+        "info": {"author": "inputx generate_appicon.py", "version": 1},
     }
     (catalog_dir / "Contents.json").write_text(
         json.dumps(contents, indent=2) + "\n"

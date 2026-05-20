@@ -113,9 +113,9 @@ Under **Settings → 显示 → 显示罕用扩展字 → 在 Safari 中下载 P
 the App offers an optional system-wide font installation via Apple's
 configuration profile mechanism. This:
 
-- Downloads `Lab8CJKExtended.mobileconfig` from
-  https://github.com/goliajp/lab8-cjk-extended-font (a public GitHub
-  repository hosting the signed profile).
+- Downloads `InputxCJKExtended.mobileconfig` from
+  https://github.com/goliajp/inputx/releases (a public GitHub
+  repository release hosting the signed profile).
 - Hands the file off to iOS Settings, where you must manually approve
   installation under **Settings → General → VPN & Device Management**.
 - Even if installed, the font may not be picked up by all third-party
