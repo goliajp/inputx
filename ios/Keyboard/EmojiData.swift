@@ -202,7 +202,7 @@ enum RecentEmojis {
     private static let cap = 30
 
     static func load() -> [String] {
-        return inputxSharedDefaults?.stringArray(forKey: key) ?? []
+        return inputxSharedDefaults.stringArray(forKey: key) ?? []
     }
 
     /// Record use of `emoji`: prepend to the list, de-dup (last-use wins),
@@ -212,10 +212,10 @@ enum RecentEmojis {
         current.removeAll { $0 == emoji }
         current.insert(emoji, at: 0)
         if current.count > cap { current = Array(current.prefix(cap)) }
-        inputxSharedDefaults?.set(current, forKey: key)
+        inputxSharedDefaults.set(current, forKey: key)
     }
 
     static func clear() {
-        inputxSharedDefaults?.removeObject(forKey: key)
+        inputxSharedDefaults.removeObject(forKey: key)
     }
 }

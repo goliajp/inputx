@@ -1,4 +1,5 @@
 import UIKit
+import InputxKit
 
 /// I2 keyboard. Letter / symbol layers, equal-width letter keys, candidate
 /// chips at top, haptics, layered punctuation. Layout follows the iOS standard
@@ -74,44 +75,39 @@ final class KeyboardViewController: UIInputViewController {
         // UserDefaults and forward into the Rust core. Re-read on every
         // viewDidLoad so toggling the setting in the main app + reopening
         // the keyboard takes effect without a full process restart.
-        let showRare = inputxSharedDefaults?.bool(forKey: "showRareChars") ?? false
-        InputxSettings.setShowRareChars(showRare)
+        let showRare = inputxSharedDefaults.bool(forKey: "showRareChars")
+        InputxRareChars.enabled = showRare
 
         // Phase 4 dual-engine: read engine mode from App Group UserDefaults.
         // Item 51 default seed: missing key returns 0 from .integer(forKey:),
         // which is InputxEngineMode.mixed — exactly the v1 default. So no
         // explicit first-install seed needed; the default takes care of it.
-        let modeRaw = UInt8(clamping: inputxSharedDefaults?.integer(forKey: "engineMode") ?? 0)
+        let modeRaw = UInt8(clamping: inputxSharedDefaults.integer(forKey: "engineMode"))
         let engineMode = InputxEngineMode(rawValue: modeRaw) ?? .mixed
-        session.setMode(engineMode)
+        session.setEngineMode(engineMode)
 
         // Item 73 — read auto-commit policy from settings (default 3 =
         // OnFourCodesIfUnique). Missing key returns 0 (Never), so seed an
         // explicit default the first time we read it.
         let policyKey = "autoCommitPolicy"
-        let hasKey = inputxSharedDefaults?.object(forKey: policyKey) != nil
+        let hasKey = inputxSharedDefaults.object(forKey: policyKey) != nil
         let policyRaw = UInt32(
-            clamping: inputxSharedDefaults?.integer(forKey: policyKey) ?? 3
+            clamping: hasKey
+                ? inputxSharedDefaults.integer(forKey: policyKey)
+                : 3
         )
         let policy = InputxAutoCommitPolicy(rawValue: policyRaw) ?? .onFourCodesIfUnique
         session.setAutoCommitPolicy(policy)
         if !hasKey {
             // First-install: persist the actual default so the SwiftUI
             // settings picker reads the right value.
-            inputxSharedDefaults?.set(3, forKey: policyKey)
+            inputxSharedDefaults.set(3, forKey: policyKey)
         }
 
         // Item 77 — restore L0 from App Group container so user-trained
         // pins / pick counters survive process restarts (kill keyboard,
         // reboot, etc.).
-        for engine in [InputxCandidateSource.wubi, InputxCandidateSource.pinyin] {
-            if let json = InputxL0Storage.readL0Json(engineRawValue: engine.rawValue) {
-                let n = session.importL0Json(engine: engine, json: json)
-                if n > 0 {
-                    print("[InputxKeyboard] restored \(n) L0 entries for \(engine == .wubi ? "wubi" : "pinyin")")
-                }
-            }
-        }
+        inputxL0Storage.load(into: session)
 
         candidateBar = CandidateBar()
         candidateBar.translatesAutoresizingMaskIntoConstraints = false
@@ -121,8 +117,8 @@ final class KeyboardViewController: UIInputViewController {
         // Show/hide the W/P source dot per user preference (item 72 setting,
         // item 78 persistence). Default ON for first install — visual cue
         // helps newcomers learn which engine produced each candidate.
-        candidateBar.showSourceIndicator = inputxSharedDefaults?
-            .object(forKey: "showSourceIndicator") as? Bool ?? true
+        candidateBar.showSourceIndicator =
+            (inputxSharedDefaults.object(forKey: "showSourceIndicator") as? Bool) ?? true
         // Item 88 — pay chip-construction cost at keyboard-load time, not
         // during a keystroke. Pool size matches refreshCandidateCap so a
         // burst from 0→20 candidates never allocates on the hot path.
@@ -209,11 +205,7 @@ final class KeyboardViewController: UIInputViewController {
         // for keyboards (extensions don't get the full UIApplication
         // lifecycle); writing here covers normal user flow (close text
         // field, switch app, etc.).
-        for engine in [InputxCandidateSource.wubi, InputxCandidateSource.pinyin] {
-            if let json = session.exportL0Json(engine: engine) {
-                InputxL0Storage.writeL0Json(json, engineRawValue: engine.rawValue)
-            }
-        }
+        inputxL0Storage.save(from: session)
         session.clear()
         refreshFromSession()
         super.viewWillDisappear(animated)
@@ -646,8 +638,8 @@ final class KeyboardViewController: UIInputViewController {
         // (default true for Chinese IME), map ASCII punct → CJK forms.
         // Smart quotes go through the per-session state (alternates
         // open/close). Full-width letters/digits when `useFullWidth` is on.
-        let useCjk = inputxSharedDefaults?.object(forKey: "useCjkPunct") as? Bool ?? true
-        let useFw = inputxSharedDefaults?.object(forKey: "useFullWidth") as? Bool ?? false
+        let useCjk = inputxSharedDefaults.object(forKey: "useCjkPunct") as? Bool ?? true
+        let useFw = inputxSharedDefaults.object(forKey: "useFullWidth") as? Bool ?? false
         var effective = cp
         var fallback = ch
 
@@ -655,13 +647,13 @@ final class KeyboardViewController: UIInputViewController {
             // Quotes go through smart-quote state machine first.
             // 0x22 = ASCII "  / 0x27 = ASCII '
             if cp == 0x22 || cp == 0x27 {
-                let mapped = session.smartQuote(codepoint: cp)
+                let mapped = session.smartQuote(cp)
                 if mapped != cp, let scalar = Unicode.Scalar(mapped) {
                     effective = mapped
                     fallback = String(scalar)
                 }
             } else {
-                let mapped = InputxLocale.cjkPunct(cp)
+                let mapped = InputxLocale.asciiToCjk(cp)
                 if mapped != cp, let scalar = Unicode.Scalar(mapped) {
                     effective = mapped
                     fallback = String(scalar)
@@ -840,7 +832,11 @@ final class KeyboardViewController: UIInputViewController {
         sources.reserveCapacity(n)
         for i in 0..<n {
             if let c = session.candidate(at: i) { cands.append(c) }
-            sources.append(session.candidateSource(at: i))
+            // InputxKit returns `.unknown` for indices the engine doesn't
+            // attribute; the candidate bar treats `nil` as "no source dot",
+            // so collapse `.unknown` → nil here.
+            let src = session.candidateSource(at: i)
+            sources.append(src == .unknown ? nil : src)
         }
         #if DEBUG
         let t1 = CFAbsoluteTimeGetCurrent()

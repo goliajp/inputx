@@ -1,0 +1,30 @@
+[package]
+name = "inputx-core-ffi"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+# Not published — this is the iOS / Mac / Linux / Windows native ABI layer.
+# Wraps `inputx-core` (pure Rust) with extern "C" so non-Rust hosts can link
+# against `libinputx_core.{a,dylib}` and consume the API via cbindgen-emitted
+# `inputx_core.h`.
+
+[lib]
+# Keep the output artifact name `inputx_core` (not `inputx_core_ffi`) so
+# existing iOS / Mac linker configs (`-linputx_core`) don't have to change.
+# Omit `rlib` to avoid colliding with the pure-Rust sibling `inputx-core`
+# crate's `libinputx_core.rlib` (same artifact name, different content).
+# Hosts that need the C ABI use the staticlib / cdylib; pure-Rust callers
+# go straight to `inputx-core`.
+name = "inputx_core"
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+inputx-core = { path = "../inputx-core" }
+
+[build-dependencies]
+cbindgen = "0.28"
+
+[dev-dependencies]
+# Fuzz the C ABI: random op sequences must not panic across the boundary.
+proptest = "1"

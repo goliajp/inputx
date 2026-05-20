@@ -1,11 +1,15 @@
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
+import InputxKit
 
 /// Non-optional UserDefaults reference for SwiftUI `@AppStorage`. Falls
 /// back to `.standard` if the App Group entitlement is somehow missing
 /// (defensive — shouldn't happen in production).
-let inputxSharedDefaultsNonOpt: UserDefaults = inputxSharedDefaults ?? .standard
+// Backward-compat alias: pre-refactor the keyboard's `inputxSharedDefaults`
+// was an `UserDefaults?`. Globals.swift now exposes a non-optional value
+// with a `.standard` fallback baked in, so this alias is identity.
+let inputxSharedDefaultsNonOpt: UserDefaults = inputxSharedDefaults
 
 /// Phase 8 (item 70-75) — top-level InputxApp settings UI, SwiftUI rewrite of
 /// the v0.1 UIKit-built `MainViewController`. Five sections:
@@ -248,12 +252,19 @@ struct SettingsView: View {
     // MARK: - L0 actions
 
     private func exportL0() {
+        // Share the on-disk JSON files directly so iOS's share sheet picks
+        // up the right MIME type. The InputxL0Storage instance exposes its
+        // directory so we can build per-engine URLs without re-encoding the
+        // file-name policy here.
+        let dir = inputxL0Storage.directoryURL
         var urls: [URL] = []
-        for raw in [InputxL0Storage.wubiEngineRaw, InputxL0Storage.pinyinEngineRaw] {
-            if let url = InputxL0Storage.l0FileURL(engineRawValue: raw),
-               FileManager.default.fileExists(atPath: url.path) {
+        for (engine, name) in [(InputxL0Engine.wubi, "wubi_l0.json"),
+                               (.pinyin, "pinyin_l0.json")] {
+            let url = dir.appendingPathComponent(name)
+            if FileManager.default.fileExists(atPath: url.path) {
                 urls.append(url)
             }
+            _ = engine // satisfy unused-binding lint
         }
         if urls.isEmpty {
             flashBanner("还没有学习数据。在键盘里多打几次试试。")
@@ -274,15 +285,15 @@ struct SettingsView: View {
                 defer { if needsRelease { url.stopAccessingSecurityScopedResource() } }
                 guard let data = try? String(contentsOf: url, encoding: .utf8) else { continue }
                 // Best-effort detect: "engine":"wubi" or "engine":"pinyin"
-                let raw: UInt8?
+                let engine: InputxL0Engine?
                 if data.contains("\"engine\":\"wubi\"") {
-                    raw = InputxL0Storage.wubiEngineRaw
+                    engine = .wubi
                 } else if data.contains("\"engine\":\"pinyin\"") {
-                    raw = InputxL0Storage.pinyinEngineRaw
+                    engine = .pinyin
                 } else {
-                    raw = nil
+                    engine = nil
                 }
-                if let r = raw, InputxL0Storage.writeL0Json(data, engineRawValue: r) {
+                if let e = engine, inputxL0Storage.writeJson(data, engine: e) {
                     imported += 1
                 }
             }
@@ -295,8 +306,13 @@ struct SettingsView: View {
     }
 
     private func resetL0() {
-        let removed = InputxL0Storage.resetAll()
-        flashBanner(removed ? "学习数据已重置。" : "本来就没有学习数据。")
+        // Check existence before reset so we can give the right message.
+        let dir = inputxL0Storage.directoryURL
+        let any = ["wubi_l0.json", "pinyin_l0.json"].contains { name in
+            FileManager.default.fileExists(atPath: dir.appendingPathComponent(name).path)
+        }
+        inputxL0Storage.reset()
+        flashBanner(any ? "学习数据已重置。" : "本来就没有学习数据。")
     }
 
     private func openProfile() {

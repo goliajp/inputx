@@ -10,7 +10,7 @@
 use core::ffi::{CStr, c_char};
 use std::ffi::CString;
 
-use crate::{AutoCommitPolicy, EngineMode, Session};
+use inputx_core::{AutoCommitPolicy, EngineMode, Session};
 
 /// Opaque handle to a Inputx IME session.
 pub struct InputxSession {
@@ -238,12 +238,12 @@ pub unsafe extern "C" fn inputx_string_free(s: *mut c_char) {
 /// Process-global state; affects all sessions in the same process.
 #[unsafe(no_mangle)]
 pub extern "C" fn inputx_set_show_rare_chars(show: u8) {
-    crate::wubi::set_show_rare(show != 0);
+    inputx_core::wubi::set_show_rare(show != 0);
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn inputx_get_show_rare_chars() -> u8 {
-    if crate::wubi::show_rare() { 1 } else { 0 }
+    if inputx_core::wubi::show_rare() { 1 } else { 0 }
 }
 
 // ----------------------------------------------------------------------
@@ -381,7 +381,7 @@ pub unsafe extern "C" fn inputx_session_import_l0_json(
 #[unsafe(no_mangle)]
 pub extern "C" fn inputx_punct_ascii_to_cjk(codepoint: u32) -> u32 {
     match char::from_u32(codepoint) {
-        Some(c) => crate::locale::punct::ascii_to_cjk_punct(c)
+        Some(c) => inputx_core::locale::punct::ascii_to_cjk_punct(c)
             .map(|m| m as u32)
             .unwrap_or(codepoint),
         None => codepoint,
@@ -394,7 +394,7 @@ pub extern "C" fn inputx_punct_ascii_to_cjk(codepoint: u32) -> u32 {
 #[unsafe(no_mangle)]
 pub extern "C" fn inputx_punct_full_width(codepoint: u32) -> u32 {
     match char::from_u32(codepoint) {
-        Some(c) => crate::locale::width::full_width(c)
+        Some(c) => inputx_core::locale::width::full_width(c)
             .map(|m| m as u32)
             .unwrap_or(codepoint),
         None => codepoint,

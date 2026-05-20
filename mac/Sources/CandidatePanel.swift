@@ -1,5 +1,6 @@
 import Cocoa
 import InputMethodKit
+import InputxKit
 
 /// Thin wrapper around `IMKCandidates` that lifts the bits of state IMKit
 /// doesn't track for you: the current candidate list (so `commit(at:)` works

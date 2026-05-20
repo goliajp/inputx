@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/inputx-core",
+    "crates/inputx-core-ffi",
     "crates/inputx-wubi",
     "crates/inputx-wubi-wasm",
     "crates/inputx-pinyin",

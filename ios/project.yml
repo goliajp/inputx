@@ -6,6 +6,16 @@ options:
   groupSortPosition: top
   generateEmptyDirectories: true
 
+# Shared Apple Swift layer (`platform/apple/`). InputxKit exposes the FFI
+# wrapper (`InputxSession`), L0 storage helpers, locale helpers, and the
+# `InputxSettings` types. Both targets below depend on it. Mac IME builds
+# from the same `Package.swift` via `swift build`; iOS / Web / future
+# Linux+Windows wrappers will each plug into the shared layer through
+# their host-native package manager.
+packages:
+  InputxKit:
+    path: ../platform/apple
+
 settings:
   base:
     DEVELOPMENT_TEAM: KF79DRC524
@@ -31,21 +41,21 @@ targets:
       - path: App
       - path: Keyboard
         excludes:
-          - "InputxCore-Bridging-Header.h"
           # InputxApp doesn't need a second copy of Keyboard/Resources —
-          # the embedded InputxKeyboard.appex carries fonts / OFL.txt. Avoids
-          # "Multiple commands produce …" duplicate-resource build errors.
+          # the embedded InputxKeyboard.appex carries fonts / OFL.txt.
+          # Avoids "Multiple commands produce …" duplicate-resource errors.
           - "Resources"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: jp.golia.inputx
         INFOPLIST_FILE: plists/App-Info.plist
         CODE_SIGN_ENTITLEMENTS: plists/App.entitlements
-        # Same Rust core link config as InputxKeyboard — lets the host app
-        # also instantiate KeyboardViewController + call inputx-core FFI for
-        # the in-app debug keyboard view (item 92, maestro TDD).
-        SWIFT_OBJC_BRIDGING_HEADER: $(SRCROOT)/Keyboard/InputxCore-Bridging-Header.h
-        HEADER_SEARCH_PATHS: $(SRCROOT)/../core/include
+        # InputxKit (Swift package) wraps the C header via its InputxCoreC
+        # system-library module, so no bridging header / HEADER_SEARCH_PATHS
+        # is needed at the host-target level anymore. The static link to
+        # `libinputx_core.a` still happens here — the modulemap declares
+        # `link "inputx_core"` but SPM's library search path differs from
+        # the Rust release dir, so we set `LIBRARY_SEARCH_PATHS` explicitly.
         OTHER_LDFLAGS: -linputx_core
         "LIBRARY_SEARCH_PATHS[sdk=iphoneos*]": $(SRCROOT)/../core/target/aarch64-apple-ios/release
         "LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]": $(SRCROOT)/../core/target/aarch64-apple-ios-sim/release
@@ -53,21 +63,20 @@ targets:
       - target: InputxKeyboard
         embed: true
         codeSign: true
+      - package: InputxKit
 
   InputxKeyboard:
     type: app-extension
     platform: iOS
     sources:
       - path: Keyboard
-        excludes:
-          - "InputxCore-Bridging-Header.h"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: jp.golia.inputx.keyboard
         INFOPLIST_FILE: plists/Keyboard-Info.plist
         CODE_SIGN_ENTITLEMENTS: plists/Keyboard.entitlements
-        SWIFT_OBJC_BRIDGING_HEADER: $(SRCROOT)/Keyboard/InputxCore-Bridging-Header.h
-        HEADER_SEARCH_PATHS: $(SRCROOT)/../core/include
         OTHER_LDFLAGS: -linputx_core
         "LIBRARY_SEARCH_PATHS[sdk=iphoneos*]": $(SRCROOT)/../core/target/aarch64-apple-ios/release
         "LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]": $(SRCROOT)/../core/target/aarch64-apple-ios-sim/release
+    dependencies:
+      - package: InputxKit
