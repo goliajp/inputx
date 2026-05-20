@@ -1,5 +1,6 @@
 import Cocoa
 import InputMethodKit
+import InputxKit
 
 let kConnectionName = "Inputx_Connection"
 
@@ -8,10 +9,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var menubar: MenubarSettings?
 
     func applicationDidFinishLaunching(_ note: Notification) {
-        InputxSettings.registerDefaults()
-        // Pin process-global rare-CJK toggle to the persisted pref so newly
-        // spawned `InputxController` instances inherit the same value.
-        InputxRareChars.enabled = InputxSettings.showRareChars
+        // `inputxSettings.registerDefaults()` already ran inside Globals.swift
+        // on first access. Pin process-global rare-CJK toggle to the persisted
+        // pref so newly spawned `InputxController` instances inherit the value.
+        InputxRareChars.enabled = inputxSettings.showRareChars
 
         guard let bundleID = Bundle.main.bundleIdentifier else {
             NSLog("Inputx: missing bundle identifier")

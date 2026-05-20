@@ -1,5 +1,6 @@
 import UIKit
 import CoreText
+import InputxKit
 
 /// Reusable chip — replaces per-keystroke UIButton construction. CandidateBar
 /// keeps a lazy-grown pool of these; setState only updates label text + source
@@ -450,9 +451,10 @@ final class CandidateBar: UIView {
         let position = "候选 \(index + 1)"
         let engineTag: String
         switch source {
-        case .wubi:   engineTag = "五笔"
-        case .pinyin: engineTag = "拼音"
-        case .none:   engineTag = ""
+        case .wubi:    engineTag = "五笔"
+        case .pinyin:  engineTag = "拼音"
+        case .unknown: engineTag = ""
+        case .none:    engineTag = ""
         }
         if engineTag.isEmpty {
             return "\(position): \(word)"

@@ -1,5 +1,6 @@
 import Cocoa
 import InputMethodKit
+import InputxKit
 
 /// IMKit input controller — one instance per client (text view / editor).
 ///
@@ -18,7 +19,6 @@ final class InputxController: IMKInputController {
 
     override init!(server: IMKServer!, delegate: Any!, client inputClient: Any!) {
         super.init(server: server, delegate: delegate, client: inputClient)
-        InputxSettings.registerDefaults()
         applySettingsToSession()
         if let server = server {
             self.candidatePanel = CandidatePanel(server: server)
@@ -27,9 +27,9 @@ final class InputxController: IMKInputController {
         // measured keystroke doesn't take ~1-2 s.
         session.warmup()
         // Re-hydrate user-learning state from the on-disk JSON store.
-        InputxL0Storage.loadInto(session)
+        inputxL0Storage.load(into: session)
         // Process-global rare-CJK toggle reads from prefs at startup.
-        InputxRareChars.enabled = InputxSettings.showRareChars
+        InputxRareChars.enabled = inputxSettings.showRareChars
     }
 
     // MARK: - IMKit overrides ------------------------------------------------
@@ -38,7 +38,7 @@ final class InputxController: IMKInputController {
         super.activateServer(sender)
         // Re-pick up any settings changes made while another client was active.
         applySettingsToSession()
-        InputxRareChars.enabled = InputxSettings.showRareChars
+        InputxRareChars.enabled = inputxSettings.showRareChars
     }
 
     override func deactivateServer(_ sender: Any!) {
@@ -48,7 +48,7 @@ final class InputxController: IMKInputController {
         candidatePanel?.hide()
         clearMarkedText(client: sender)
         // Best-effort persist of L0 state; cheap (atomic JSON write).
-        InputxL0Storage.saveFrom(session)
+        inputxL0Storage.save(from: session)
         super.deactivateServer(sender)
     }
 
@@ -85,7 +85,7 @@ final class InputxController: IMKInputController {
         // routing. Only fires when the engine is NOT composing (a punctuation
         // key during composition is meaningful for some IME schemes — but
         // wubi / pinyin don't use them, so we route punct directly).
-        if !session.isComposingProxy && codepoint < 0x80 {
+        if !session.isComposing && codepoint < 0x80 {
             if let mapped = applyLocaleIfApplicable(codepoint: codepoint) {
                 commitText(mapped, to: sender)
                 return true
@@ -131,8 +131,8 @@ final class InputxController: IMKInputController {
     // MARK: - Helpers --------------------------------------------------------
 
     private func applySettingsToSession() {
-        session.setEngineMode(InputxSettings.engineMode)
-        session.setAutoCommitPolicy(InputxSettings.autoCommitPolicy)
+        session.setEngineMode(inputxSettings.engineMode)
+        session.setAutoCommitPolicy(inputxSettings.autoCommitPolicy)
     }
 
     private func mapModifiers(_ flags: NSEvent.ModifierFlags) -> InputxModifiers {
@@ -148,9 +148,9 @@ final class InputxController: IMKInputController {
     /// Returns the post-locale-mapping string to insert, or `nil` if no
     /// mapping applied (caller falls through to engine path).
     private func applyLocaleIfApplicable(codepoint: UInt32) -> String? {
-        guard InputxSettings.useCjkPunct else {
+        guard inputxSettings.useCjkPunct else {
             // Pure full-width mode: only the width toggle applies.
-            return InputxSettings.useFullWidth
+            return inputxSettings.useFullWidth
                 ? stringFromCodepoint(InputxLocale.fullWidth(codepoint))
                 : nil
         }
@@ -170,7 +170,7 @@ final class InputxController: IMKInputController {
         }
 
         // Full-width applies as a second pass when CJK punct didn't take.
-        if InputxSettings.useFullWidth {
+        if inputxSettings.useFullWidth {
             let fw = InputxLocale.fullWidth(codepoint)
             if fw != codepoint {
                 return stringFromCodepoint(fw)
@@ -216,14 +216,5 @@ final class InputxController: IMKInputController {
     }
 }
 
-// MARK: - Tiny composing-state proxy ----------------------------------------
-
-extension InputxSession {
-    /// `true` iff the engine is mid-composition (preedit is non-empty). The
-    /// FFI doesn't expose this directly; we derive it from the preedit
-    /// string. Cheap — preedit fetch is < 1µs.
-    var isComposingProxy: Bool {
-        guard let pre = preedit else { return false }
-        return !pre.isEmpty
-    }
-}
+// `InputxSession.isComposing` already lives in InputxKit's InputxCore.swift —
+// no Mac-local extension needed.

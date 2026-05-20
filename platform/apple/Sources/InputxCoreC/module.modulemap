@@ -1,0 +1,14 @@
+module InputxCoreC [system] {
+    // cbindgen-emitted C header for the Rust `inputx-core-ffi` crate. Path
+    // is relative to *this* file:
+    //   platform/apple/Sources/InputxCoreC/module.modulemap →
+    //   core/include/inputx_core.h
+    // Regenerated automatically by `cargo build` (build.rs in inputx-core-ffi).
+    header "../../../../core/include/inputx_core.h"
+
+    // SPM-linker directive: every target that imports InputxCoreC will pick
+    // up `-linputx_core`. The library search path itself is set by the
+    // consumer (iOS Xcode LIBRARY_SEARCH_PATHS; macOS build.sh `-L`).
+    link "inputx_core"
+    export *
+}

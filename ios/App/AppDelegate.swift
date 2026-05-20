@@ -20,7 +20,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // cache so subsequent reads by relaunched keyboard/host see fresh
         // values. Direct plist edits leave cfprefsd serving stale values.
         if CommandLine.arguments.contains("-inputx-reset-defaults") {
-            if let defs = inputxSharedDefaults {
+            do {
+                let defs = inputxSharedDefaults
                 defs.set(3,    forKey: "autoCommitPolicy")
                 defs.set(0,    forKey: "engineMode")
                 defs.set(true, forKey: "useCjkPunct")

@@ -5,20 +5,19 @@ edition.workspace = true
 rust-version.workspace = true
 
 [lib]
-name = "inputx_core"
-crate-type = ["staticlib", "rlib"]
+# `inputx-core` is now pure Rust — no extern "C", no wasm-bindgen. The
+# C ABI lives in the sibling `inputx-core-ffi` crate, and a future
+# `inputx-core-wasm` will mirror it for browsers. rlib only.
+crate-type = ["rlib"]
 
 [dependencies]
 wubi = { workspace = true }
 golia-pinyin = { workspace = true }
-# JSON for the L0 export/import FFI (item 45). Internal inputx-core dep —
-# the underlying wubi + golia-pinyin libs stay serde-free per their
-# published-crate design.
+# JSON for the L0 export/import (item 45). Stays here even though the C
+# ABI moved out, because the JSON schema is part of the engine surface
+# (the FFI just exposes the already-serialized string).
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
-[build-dependencies]
-cbindgen = "0.28"
 
 [dev-dependencies]
 # Property-based fuzz testing — generates randomized op sequences and

@@ -1,4 +1,5 @@
 import Cocoa
+import InputxKit
 
 /// Menubar (NSStatusItem) settings UI — the Mac counterpart to the iOS
 /// container app's Settings screen. Lives in the system menu bar so users
@@ -48,13 +49,13 @@ final class MenubarSettings {
 
         // Toggles
         addToggle("中文标点（，。？！…）",
-                  isOn: InputxSettings.useCjkPunct,
+                  isOn: inputxSettings.useCjkPunct,
                   selector: #selector(toggleCjkPunct))
         addToggle("英文数字全角",
-                  isOn: InputxSettings.useFullWidth,
+                  isOn: inputxSettings.useFullWidth,
                   selector: #selector(toggleFullWidth))
         addToggle("显示生僻字（Plane-2+ 需安装 Lab8CJKExtended 字体）",
-                  isOn: InputxSettings.showRareChars,
+                  isOn: inputxSettings.showRareChars,
                   selector: #selector(toggleRareChars))
         menu.addItem(.separator())
 
@@ -79,7 +80,7 @@ final class MenubarSettings {
                               keyEquivalent: "")
         item.target = self
         item.tag = Int(mode.rawValue)
-        item.state = (InputxSettings.engineMode == mode) ? .on : .off
+        item.state = (inputxSettings.engineMode == mode) ? .on : .off
         menu.addItem(item)
     }
 
@@ -89,7 +90,7 @@ final class MenubarSettings {
                               keyEquivalent: "")
         item.target = self
         item.tag = Int(policy.rawValue)
-        item.state = (InputxSettings.autoCommitPolicy == policy) ? .on : .off
+        item.state = (inputxSettings.autoCommitPolicy == policy) ? .on : .off
         menu.addItem(item)
     }
 
@@ -110,29 +111,29 @@ final class MenubarSettings {
 
     @objc private func pickMode(_ sender: NSMenuItem) {
         guard let mode = InputxEngineMode(rawValue: UInt8(sender.tag)) else { return }
-        InputxSettings.engineMode = mode
+        inputxSettings.engineMode = mode
         rebuildMenu()
     }
 
     @objc private func pickPolicy(_ sender: NSMenuItem) {
         guard let p = InputxAutoCommitPolicy(rawValue: UInt32(sender.tag)) else { return }
-        InputxSettings.autoCommitPolicy = p
+        inputxSettings.autoCommitPolicy = p
         rebuildMenu()
     }
 
     @objc private func toggleCjkPunct() {
-        InputxSettings.useCjkPunct.toggle()
+        inputxSettings.useCjkPunct.toggle()
         rebuildMenu()
     }
 
     @objc private func toggleFullWidth() {
-        InputxSettings.useFullWidth.toggle()
+        inputxSettings.useFullWidth.toggle()
         rebuildMenu()
     }
 
     @objc private func toggleRareChars() {
-        InputxSettings.showRareChars.toggle()
-        InputxRareChars.enabled = InputxSettings.showRareChars
+        inputxSettings.showRareChars.toggle()
+        InputxRareChars.enabled = inputxSettings.showRareChars
         rebuildMenu()
     }
 
@@ -155,7 +156,7 @@ final class MenubarSettings {
         alert.addButton(withTitle: "重置")
         alert.addButton(withTitle: "取消")
         if alert.runModal() == .alertFirstButtonReturn {
-            InputxL0Storage.reset()
+            inputxL0Storage.reset()
         }
     }
 

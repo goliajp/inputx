@@ -6,33 +6,48 @@ cd "$(dirname "$0")"
 APP_NAME="Inputx"
 PROJECT_ROOT="$(cd .. && pwd)"
 CORE_DIR="$PROJECT_ROOT/core"
+APPLE_PKG="$PROJECT_ROOT/platform/apple"
 BUILD_DIR="$PROJECT_ROOT/build"
 APP_DIR="$BUILD_DIR/$APP_NAME.app"
 
 echo "[build] building Rust core (release)"
 (cd "$CORE_DIR" && cargo build --release)
 
+echo "[build] building shared Swift layer (platform/apple/InputxKit)"
+# Build the shared Apple Swift layer (InputxKit + InputxCoreC system lib
+# wrapper) as a Swift package; produces .swiftmodule + .a we link against
+# from the IME executable. Doing this here (instead of using `swiftc` to
+# compile all sources flat) preserves a clean module boundary between
+# `InputxKit` (cross-host shared code) and `InputxApp` (Mac-IMK glue).
+(cd "$APPLE_PKG" && swift build --configuration release)
+
+# SPM places artifacts under a target-arch subdir (e.g. arm64-apple-macosx);
+# resolve dynamically rather than hard-coding so a future x86_64 build still
+# works.
+SWIFTKIT_BUILD="$(cd "$APPLE_PKG" && swift build --configuration release --show-bin-path)"
+SWIFTKIT_MODULES="$SWIFTKIT_BUILD/Modules"
+
 echo "[build] cleaning $APP_DIR"
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS"
 mkdir -p "$APP_DIR/Contents/Resources"
 
-echo "[build] compiling Swift + linking inputx_core"
+echo "[build] compiling IMK glue + linking InputxKit + libinputx_core"
 swiftc \
     -target arm64-apple-macos13.0 \
     -framework Cocoa \
     -framework InputMethodKit \
-    -import-objc-header Sources/InputxCore-Bridging-Header.h \
-    -I "$CORE_DIR/include" \
+    -I "$SWIFTKIT_MODULES" \
+    -I "$APPLE_PKG/Sources/InputxCoreC" \
+    -L "$SWIFTKIT_BUILD" \
+    -lInputxKit \
     -L "$CORE_DIR/target/release" \
     -linputx_core \
     -O \
     -o "$APP_DIR/Contents/MacOS/$APP_NAME" \
     Sources/main.swift \
+    Sources/Globals.swift \
     Sources/IMEController.swift \
-    Sources/InputxCore.swift \
-    Sources/Settings.swift \
-    Sources/L0Storage.swift \
     Sources/CandidatePanel.swift \
     Sources/MenubarSettings.swift
 
