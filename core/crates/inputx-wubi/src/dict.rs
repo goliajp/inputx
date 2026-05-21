@@ -192,7 +192,23 @@ impl WubiDict {
             .unwrap_or(DEFAULT_LAYER_PREFS);
 
         // Score during the FST scan; reuse a small scratch Vec.
-        let mut scratch: Vec<(String, f64)> = Vec::with_capacity(8);
+        // Tuple: (word, score, promote_to_top).
+        //
+        // `promote_to_top` encodes the wubi-86 "full-code single-char wins"
+        // rule: at a fully-typed 4-letter code, a single-char entry with
+        // non-zero corpus frequency should rank above any phrase sharing
+        // the same code. Without it, Auto-layer single chars (e.g. gmww →
+        // 两, layer Auto base ~100k, freq 37372) silently lose to Phrase-
+        // layer 4-char idioms (e.g. 两败俱伤, layer Phrase base ~400k)
+        // because the layer base swamps per-entry freq.
+        //
+        // The `freq > 0` gate stops the rule from promoting CJK-extension
+        // single chars that have no corpus presence (e.g. khlg → 䟧 freq 0)
+        // above the canonical phrase (khlg → 中国 freq 44985) — those
+        // rare-char entries are correctly classified as "exists but isn't
+        // what anyone typing this code meant".
+        let full_code = prefix_len == 4;
+        let mut scratch: Vec<(String, f64, bool)> = Vec::with_capacity(8);
         let mut stream = self
             .map
             .range()
@@ -208,13 +224,24 @@ impl WubiDict {
                 let (layer, freq) = unpack(value);
                 let base = layer.base() as f64;
                 let pref = prefs[layer.as_index()];
-                scratch.push((s.to_string(), base * pref + freq as f64));
+                let is_single = s.chars().count() == 1;
+                let promote = full_code && is_single && freq > 0;
+                scratch.push((s.to_string(), base * pref + freq as f64, promote));
             }
         }
-        scratch.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        scratch.sort_by(|a, b| {
+            if a.2 != b.2 {
+                return if a.2 {
+                    std::cmp::Ordering::Less
+                } else {
+                    std::cmp::Ordering::Greater
+                };
+            }
+            b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         out.reserve(scratch.len());
-        for (w, _) in scratch.drain(..) {
+        for (w, _, _) in scratch.drain(..) {
             out.push(w);
         }
 
