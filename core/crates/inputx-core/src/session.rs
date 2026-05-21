@@ -95,7 +95,7 @@ impl Session {
         self.composite.auto_commit_policy()
     }
 
-    /// Current engine mode (Mixed / WubiOnly / PinyinOnly).
+    /// Current engine mode (Mixed / WubiOnly / PinyinOnly / JapaneseOnly).
     pub fn mode(&self) -> Mode {
         self.composite.mode()
     }
@@ -106,6 +106,20 @@ impl Session {
     /// keyboard UI in v1.
     pub fn set_mode(&mut self, m: Mode) {
         self.composite.set_mode(m);
+        self.refresh_caches();
+    }
+
+    /// JP plugin "enhancement" toggle. Independent of `mode`:
+    /// - In Mixed / WubiOnly / PinyinOnly: when on, JP candidates are
+    ///   appended after the Chinese candidates.
+    /// - In JapaneseOnly: this flag is implicitly true and the toggle
+    ///   here is a no-op (mode forces JP to run).
+    pub fn japanese_enabled(&self) -> bool {
+        self.composite.japanese_enabled()
+    }
+
+    pub fn set_japanese_enabled(&mut self, on: bool) {
+        self.composite.set_japanese_enabled(on);
         self.refresh_caches();
     }
 
@@ -303,8 +317,10 @@ impl Session {
     }
 
     /// JSON export per-engine for App-Group persistence (item 45).
-    /// `engine_kind`: 0 = Wubi, 1 = Pinyin.
-    /// Returns `None` for unrecognized engine_kind.
+    /// `engine_kind`: 0 = Wubi, 1 = Pinyin, 2 = Japanese.
+    /// Returns `None` for unrecognized engine_kind, OR for Japanese
+    /// (the JP plugin doesn't ship per-user L0 in v0.1 — no pin counters,
+    /// no freq learning, so there's nothing to persist).
     pub fn export_l0_json(&self, engine_kind: u8) -> Option<String> {
         match Source::from_u8(engine_kind)? {
             Source::Wubi => Some(l0_json::wubi_to_json(&wubi::export_l0())),
@@ -312,11 +328,13 @@ impl Session {
                 .composite
                 .pinyin_export_l0()
                 .map(|snap| l0_json::pinyin_to_json(&snap)),
+            Source::Japanese => None,
         }
     }
 
     /// Restore L0 from JSON for the given engine. Returns count of accepted
-    /// pins, or 0 on parse error / unrecognized engine.
+    /// pins, or 0 on parse error / unrecognized engine. Japanese always
+    /// returns 0 — no L0 to restore (see `export_l0_json` doc).
     pub fn import_l0_json(&self, engine_kind: u8, json: &str) -> usize {
         let Some(kind) = Source::from_u8(engine_kind) else {
             return 0;
@@ -336,6 +354,7 @@ impl Session {
                     0
                 }
             }
+            Source::Japanese => 0,
         }
     }
 

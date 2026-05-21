@@ -13,6 +13,11 @@ crate-type = ["rlib"]
 [dependencies]
 wubi = { workspace = true }
 golia-pinyin = { workspace = true }
+# Pluggable Japanese plugin — adapter lives in composite/japanese_adapter.rs.
+# This dep is unconditional (no Cargo feature) because Inputx ships one
+# binary that handles the toggle at runtime via Session.enable_japanese;
+# size impact is small (≈few hundred KB of romaji + kanji static tables).
+inputx-jp = { path = "../inputx-jp", version = "0.1.0" }
 # JSON for the L0 export/import (item 45). Stays here even though the C
 # ABI moved out, because the JSON schema is part of the engine surface
 # (the FFI just exposes the already-serialized string).

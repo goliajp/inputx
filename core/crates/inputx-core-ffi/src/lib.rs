@@ -254,6 +254,7 @@ pub extern "C" fn inputx_get_show_rare_chars() -> u8 {
 ///   0 = Mixed (wubi primary + pinyin fallback)
 ///   1 = WubiOnly
 ///   2 = PinyinOnly
+///   3 = JapaneseOnly (standalone JP plugin; wubi/pinyin dormant)
 /// Returns `1` if accepted, `0` if `mode` was out of range or session NULL
 /// (state unchanged in either case).
 ///
@@ -326,12 +327,54 @@ pub unsafe extern "C" fn inputx_session_get_input_mode(session: *const InputxSes
     }
 }
 
+/// Toggle the JP plugin's "enhancement" attachment. `on` is interpreted
+/// as boolean: `0` = off, anything else = on. Returns `1` if the call
+/// reached the engine, `0` if `session` was NULL.
+///
+/// Independent of `inputx_session_set_engine_mode` — the JP plugin can
+/// attach to any Chinese mode (Mixed / WubiOnly / PinyinOnly) as a
+/// supplementary source, or run standalone via `engine_mode = 3`
+/// (`JapaneseOnly`). When `engine_mode = JapaneseOnly`, this toggle is
+/// implicitly true and explicit `set_japanese_enabled(0)` has no effect.
+///
+/// Default after `inputx_session_new` is OFF.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_set_japanese_enabled(
+    session: *mut InputxSession,
+    on: u8,
+) -> u8 {
+    let Some(s) = (unsafe { session.as_mut() }) else {
+        return 0;
+    };
+    s.inner.set_japanese_enabled(on != 0);
+    1
+}
+
+/// Read the JP-plugin enhancement toggle: returns `1` if on, `0` if off
+/// or `session` is NULL.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_get_japanese_enabled(
+    session: *const InputxSession,
+) -> u8 {
+    match unsafe { session.as_ref() } {
+        Some(s) => if s.inner.japanese_enabled() { 1 } else { 0 },
+        None => 0,
+    }
+}
+
 /// Source byte for the candidate at `index`:
 ///   0 = Wubi
 ///   1 = Pinyin
+///   2 = Japanese
 /// Returns `255` (sentinel) if `index` is out of range or session is NULL.
-/// 255 is chosen because it's outside the 0..=1 valid range and unsigned-
-/// safe; iOS bridge treats anything > 1 as "unknown" → no W/P dot.
+/// 255 is chosen because it's outside the valid range and unsigned-safe;
+/// iOS bridge treats anything > 2 as "unknown" → no source dot.
 ///
 /// # Safety
 /// `session` must be valid (or NULL).
