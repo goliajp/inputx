@@ -1,39 +1,28 @@
 #!/bin/bash
-# Inputx .pkg postinstall — register the freshly-installed IME with Launch
-# Services and prompt the user to log out + log in (one-time macOS rule
-# for adding a new input method to the System Settings picker).
-
+# Inputx .pkg postinstall — make the IME show up in System Settings → Keyboard
+# → Text Input → + immediately, without requiring the user to log out.
 set -euo pipefail
 
 APP="/Library/Input Methods/Inputx.app"
 LSREG="/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
 
-# Force-register the bundle so the LS database picks up the new install
-# immediately instead of waiting for the next opportunistic scan.
-"$LSREG" -f "$APP" || true
-
-# Restart the input-source menu agent — picks up the registered bundle
-# on its next enumeration (still won't appear in the Add picker until
-# the user logs out + back in, but the menu-bar input switcher will
-# reflect changes after the user enables Inputx).
-killall -KILL TextInputMenuAgent 2>/dev/null || true
-
-# User-facing dialog. Routed via the console user's launchctl so the
-# dialog appears on the user's session even though the .pkg postinstall
-# runs as root.
 CONSOLE_USER=$(/usr/bin/stat -f%Su /dev/console)
 CONSOLE_UID=$(/usr/bin/id -u "$CONSOLE_USER")
+USER_TMP=$(/bin/launchctl asuser "$CONSOLE_UID" /usr/bin/getconf DARWIN_USER_CACHE_DIR)
 
-/bin/launchctl asuser "$CONSOLE_UID" /usr/bin/osascript <<APPLESCRIPT
-display dialog "Inputx 输入法已装好。
+"$LSREG" -f "$APP" || true
 
-要在「系统设置 → 键盘 → 输入法」里看到 Inputx，需要 退出登录 然后再登录一次 — 这是 macOS 第一次安装新输入法的标准要求（之后的 Inputx 升级就不需要了）。
+# The IntlDataCache files under the user's `C/` temp dir hold the input-source
+# enumeration result and are sticky across TextInputMenuAgent restarts. Delete
+# them so the next TIS query rebuilds against the freshly-installed bundle.
+/bin/rm -f \
+    "$USER_TMP/com.apple.IntlDataCache.le" \
+    "$USER_TMP/com.apple.IntlDataCache.le.kbdx"
 
-回来后：系统设置 → 键盘 → 输入法 → + → 简体中文 → Inputx 输入法 → 添加。" with title "Inputx 装好了" buttons {"现在退出登录", "稍后"} default button "稍后" with icon note
-set userChoice to button returned of result
-if userChoice is "现在退出登录" then
-    tell application "loginwindow" to «event aevtrlgo»
-end if
-APPLESCRIPT
+# Register Inputx with the TIS database + enable each declared mode in the
+# console user's session (so it lands in their keyboard menu).
+/bin/launchctl asuser "$CONSOLE_UID" "$APP/Contents/MacOS/Inputx" install || true
+
+/usr/bin/killall TextInputMenuAgent 2>/dev/null || true
 
 exit 0

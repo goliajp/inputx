@@ -141,6 +141,17 @@ xcrun notarytool submit "$DMG_PATH" \
 xcrun stapler staple "$DMG_PATH"
 xcrun stapler validate "$DMG_PATH"
 
+# --- 7. Purge intermediate .app from LS + disk ----------------------------
+# The .dmg above is the sealed deliverable; keeping build/Inputx.app around
+# lets LaunchServices register it and shadow the real install under
+# /Library/Input Methods/ (see mac/_purge_ls.sh for the full story).
+# Override with KEEP_BUILD_APP=1 if you need the loose .app for inspection.
+if [ "${KEEP_BUILD_APP:-0}" != "1" ]; then
+    # shellcheck source=./_purge_ls.sh
+    source "$(dirname "$0")/_purge_ls.sh"
+    purge_ls_app "$APP_DIR"
+fi
+
 echo
 echo "[release] ✓ done."
 echo "[release] artifact: $DMG_PATH"

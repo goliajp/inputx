@@ -2,107 +2,132 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- Bundle identity -->
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
     <string>Inputx</string>
+    <!-- The `.inputmethod.` infix is the canonical reverse-DNS namespace
+         that the macOS input-source picker uses to recognize third-party
+         IME bundles. Drop the infix and the picker won't enumerate. -->
     <key>CFBundleIdentifier</key>
-    <string>jp.golia.inputx</string>
+    <string>jp.golia.inputmethod.wubi</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
     <string>Inputx</string>
-    <key>CFBundleDisplayName</key>
-    <string>Inputx 输入法</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>1.0.1</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>2</string>
     <key>CFBundleSignature</key>
-    <string>????</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>13.0</string>
-    <!-- Xcode-style build metadata. Manually-built (`swiftc` direct, not
-         via Xcode) bundles otherwise miss these and macOS 26's input-source
-         picker treats them as suspicious / non-enumerable. Values mirror
-         what Xcode would emit for an arm64 macosx target. -->
+    <string>INPX</string>
     <key>CFBundleSupportedPlatforms</key>
     <array>
         <string>MacOSX</string>
     </array>
-    <key>DTPlatformName</key>
-    <string>macosx</string>
-    <key>DTSDKName</key>
-    <string>macosx13.0</string>
-    <key>DTPlatformVersion</key>
+    <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
-    <key>DTCompiler</key>
-    <string>com.apple.compilers.llvm.clang.1_0</string>
-    <!-- LSBackgroundOnly is *required* for IME enumeration in macOS
-         13+ — the input-source picker silently filters out bundles
-         that set LSUIElement instead. NSStatusItem still works under
-         LSBackgroundOnly (the menu-bar item is its only UI; the
-         "Inputx" app has no Dock icon and no window either way). -->
-    <key>LSBackgroundOnly</key>
+    <key>NSHumanReadableCopyright</key>
+    <string>© 2026 Golia K.K. / Inputx contributors. MIT License.</string>
+
+    <!-- LaunchServices behavior -->
+    <key>LSUIElement</key>
     <true/>
-    <!-- Custom NSApplication subclass. Class name MUST be the bare ObjC
-         runtime name (`InputxApplication`), NOT the Swift module-prefixed
-         form (`Inputx.InputxApplication`) — `@objc(InputxApplication)` in
-         Sources/InputxApplication.swift strips the module prefix, and
-         Cocoa's principal-class lookup uses the ObjC runtime name.
-         Plain "NSApplication" leaves a race where IMK probes NSApp.delegate
-         before the top-level Swift code has attached one. -->
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
+    <!-- Read CFBundleName / CFBundleDisplayName / per-mode display labels
+         from `Resources/<locale>.lproj/InfoPlist.strings`. The mode-id =>
+         label mapping in each .strings file is what the picker shows under
+         each language tab. -->
+    <key>LSHasLocalizedDisplayName</key>
+    <true/>
     <key>NSPrincipalClass</key>
-    <string>InputxApplication</string>
+    <string>NSApplication</string>
+    <key>NSRequiresAquaSystemAppearance</key>
+    <string>No</string>
+    <key>NSSupportsSuddenTermination</key>
+    <false/>
+    <key>UIDesignRequiresCompatibility</key>
+    <false/>
+
+    <!-- App icon. CFBundleIconFile (legacy) + CFBundleIconName (modern)
+         both point to the same .icns; build.sh generates it from the menu
+         TIFF via `sips -s format icns`. -->
+    <key>CFBundleIconFile</key>
+    <string>inputx_app_icon</string>
+    <key>CFBundleIconName</key>
+    <string>inputx_app_icon</string>
+
+    <!-- IMK server wiring. InputMethodConnectionName is the Mach service
+         name the IMK server registers; the matching entitlement is in
+         Inputx.entitlements. -->
     <key>InputMethodConnectionName</key>
-    <string>jp.golia.inputx_Connection</string>
+    <string>jp.golia.inputmethod.wubi_Connection</string>
     <key>InputMethodServerControllerClass</key>
     <string>InputxController</string>
     <key>InputMethodServerDelegateClass</key>
     <string>InputxController</string>
+
+    <!-- Top-level TIS umbrella source: bundle-level TIS entry separate
+         from the per-mode entries inside ComponentInputModeDict. -->
+    <key>TISInputSourceID</key>
+    <string>jp.golia.inputmethod.wubi</string>
+    <key>TISIconIsTemplate</key>
+    <true/>
+    <key>TISParticipatesInTouchBar</key>
+    <false/>
+
+    <!-- IMK character repertoire + menu icon (TIFF, used by the menu-bar
+         input-source indicator; distinct from the bundle .icns above). -->
     <key>tsInputMethodCharacterRepertoireKey</key>
     <array>
         <string>Latn</string>
         <string>Hans</string>
     </array>
-    <!-- macOS 26's input-source picker filters out IMEs that don't ship
-         a top-level menu icon file. Empty string in tsInputModeMenuIconFileKey
-         counts as "missing"; the bundle is silently dropped from TIS
-         enumeration. Real .tiff in Contents/Resources/ — see
-         Resources/inputx_menu_icon.tiff (built into the .app by build.sh). -->
     <key>tsInputMethodIconFileKey</key>
     <string>inputx_menu_icon.tiff</string>
+
     <key>ComponentInputModeDict</key>
     <dict>
         <key>tsInputModeListKey</key>
         <dict>
-            <key>jp.golia.inputx.zh</key>
+            <key>jp.golia.inputmethod.wubi.zh</key>
             <dict>
-                <key>tsInputModeAlternateMenuIconFileKey</key>
-                <string>inputx_menu_icon.tiff</string>
-                <key>tsInputModeDefaultStateKey</key>
-                <true/>
+                <key>TISInputSourceID</key>
+                <string>jp.golia.inputmethod.wubi.zh</string>
+                <!-- TISIntendedLanguage routes the mode to a specific
+                     language tab in the System Settings picker. -->
+                <key>TISIntendedLanguage</key>
+                <string>zh-Hans</string>
+                <key>TISIconLabels</key>
+                <dict>
+                    <key>Primary</key>
+                    <string>五笔</string>
+                </dict>
+                <key>tsInputModeScriptKey</key>
+                <string>smUnicode</string>
+                <key>tsInputModeCharacterRepertoireKey</key>
+                <array>
+                    <string>Hans</string>
+                    <string>Hani</string>
+                    <string>Han</string>
+                </array>
                 <key>tsInputModeIsVisibleKey</key>
                 <true/>
-                <key>tsInputModeKeyEquivalentKey</key>
-                <string></string>
-                <key>tsInputModeKeyEquivalentModifiersKey</key>
-                <integer>0</integer>
                 <key>tsInputModeMenuIconFileKey</key>
                 <string>inputx_menu_icon.tiff</string>
                 <key>tsInputModePaletteIconFileKey</key>
                 <string>inputx_menu_icon.tiff</string>
                 <key>tsInputModePrimaryInScriptKey</key>
                 <true/>
-                <key>tsInputModeScriptKey</key>
-                <string>smSimpChinese</string>
             </dict>
         </dict>
         <key>tsVisibleInputModeOrderedArrayKey</key>
         <array>
-            <string>jp.golia.inputx.zh</string>
+            <string>jp.golia.inputmethod.wubi.zh</string>
         </array>
     </dict>
 </dict>

@@ -1,20 +1,53 @@
+import Carbon
 import Cocoa
 import InputMethodKit
 import InputxKit
 
-// Mach service name — MUST match Info.plist's `InputMethodConnectionName`
-// AND the `com.apple.security.temporary-exception.mach-register.global-name`
-// entitlement value. Apple convention: `<bundleID>_Connection`.
-let kConnectionName = "jp.golia.inputx_Connection"
+// `Inputx install` registers the bundle with the TIS database and enables
+// each declared input mode. install.sh runs this immediately after copying
+// the .app into place so the IME shows up in the picker AND lands in the
+// user's enabled input-source list in one step.
+if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "install" {
+    let modeIDs: [String] = {
+        guard let comp = Bundle.main.infoDictionary?["ComponentInputModeDict"] as? [String: Any],
+              let list = comp["tsInputModeListKey"] as? [String: Any]
+        else { return [] }
+        return Array(list.keys)
+    }()
+    let all = (TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource]) ?? []
+    func match(_ src: TISInputSource) -> Bool {
+        guard let p = TISGetInputSourceProperty(src, kTISPropertyInputSourceID) else { return false }
+        let id = Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
+        return modeIDs.contains(id)
+    }
+    let alreadyRegistered = all.filter(match)
+    if alreadyRegistered.isEmpty {
+        let status = TISRegisterInputSource(Bundle.main.bundleURL as CFURL)
+        guard status == noErr else {
+            NSLog("Inputx install: TISRegisterInputSource failed OSStatus=\(status)")
+            exit(1)
+        }
+    }
+    let postRegister = ((TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource]) ?? [])
+        .filter(match)
+    for src in postRegister {
+        TISEnableInputSource(src)
+    }
+    NSLog("Inputx install: \(postRegister.count) mode(s) registered + enabled")
+    exit(0)
+}
+
+// MUST match Info.plist `InputMethodConnectionName` AND the entitlement's
+// `com.apple.security.temporary-exception.mach-register.global-name`.
+let kConnectionName = "jp.golia.inputmethod.wubi_Connection"
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var server: IMKServer?
     var menubar: MenubarSettings?
 
     func applicationDidFinishLaunching(_ note: Notification) {
-        // `inputxSettings.registerDefaults()` already ran inside Globals.swift
-        // on first access. Pin process-global rare-CJK toggle to the persisted
-        // pref so newly spawned `InputxController` instances inherit the value.
+        // Pin process-global rare-CJK toggle so spawned InputxController
+        // instances inherit the persisted pref.
         InputxRareChars.enabled = inputxSettings.showRareChars
 
         guard let bundleID = Bundle.main.bundleIdentifier else {
@@ -22,16 +55,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             exit(1)
         }
         server = IMKServer(name: kConnectionName, bundleIdentifier: bundleID)
-        // Status-bar item lives for the lifetime of the IME process — it's
-        // the only user-facing settings surface on macOS (no container app).
+        // Menubar status item is the only user-facing settings surface —
+        // there's no container app on macOS.
         menubar = MenubarSettings()
-        NSLog("Inputx: server up, bundle=\(bundleID)")
     }
 }
 
-// Force-load the InputxApplication subclass — Info.plist's NSPrincipalClass
-// (`Inputx.InputxApplication`) points at it, and Cocoa's bootstrap creates
-// the instance from that string. We don't manually `NSApplication.shared` /
-// `.run()` here: the subclass wires the delegate in its `init()` and then
-// `NSApplicationMain` runs the loop.
-_ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)
+// Wire the delegate to NSApplication.shared BEFORE .run() so IMK's delegate
+// probe during server bring-up never sees a nil delegate.
+let delegate = AppDelegate()
+let app = NSApplication.shared
+app.delegate = delegate
+app.run()
