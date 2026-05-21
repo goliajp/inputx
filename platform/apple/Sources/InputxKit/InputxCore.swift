@@ -29,8 +29,8 @@ public enum InputxEngineMode: UInt8, Sendable, CaseIterable {
 
 /// Top-level input mode — CJK vs EN. Orthogonal to `InputxEngineMode`.
 /// On macOS: toggled by single-click shift. On iOS: toggled by the
-/// on-screen "中/EN" key. EN runs an ASCII preedit pipeline; the engine
-/// is dormant.
+/// on-screen "中/EN" key. EN is pure passthrough — `handleKey` returns
+/// false so the host receives ASCII directly with no IME preedit.
 public enum InputxInputMode: UInt8, Sendable, CaseIterable {
     case cjk = 0
     case en = 1
@@ -151,10 +151,10 @@ public final class InputxSession {
         return InputxEngineMode(rawValue: raw) ?? .mixed
     }
 
-    /// Switch the top-level input mode. See `Session::set_input_mode` in
-    /// the Rust core for the asymmetric transition rules:
-    ///   .cjk → .en  drops in-flight CJK composing (escape).
-    ///   .en  → .cjk commits in-flight en_preedit.
+    /// Switch the top-level input mode. `.cjk → .en` while composing
+    /// commits the in-flight wubi/pinyin codes as **raw ASCII** (user
+    /// signaled "not CJK after all") — same semantic as pressing return
+    /// with a non-empty preedit. `.en → .cjk` is a pure state flip.
     @discardableResult
     public func setInputMode(_ mode: InputxInputMode) -> Bool {
         return inputx_session_set_input_mode(handle, mode.rawValue) != 0
