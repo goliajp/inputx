@@ -53,6 +53,7 @@ SWIFT_SOURCES=(
     Sources/IMEController.swift
     Sources/CandidatePanel.swift
     Sources/MenubarSettings.swift
+    Sources/InputModeToast.swift
 )
 # swiftc refuses cross-arch .swiftmodule loads, so compile each arch
 # against the matching-arch SPM bin-path's Modules/ directory.

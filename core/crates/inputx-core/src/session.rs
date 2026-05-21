@@ -37,12 +37,10 @@ pub struct Session {
     /// quote is opening.
     smart_quote: SmartQuoteState,
     /// Top-level input mode (CJK vs EN). Orthogonal to engine `Mode`
-    /// (which is `WubiOnly`/`PinyinOnly`/`Mixed` *within* Cjk).
+    /// (which is `WubiOnly`/`PinyinOnly`/`Mixed` *within* Cjk). In EN
+    /// mode `handle_key` returns false unconditionally so the host
+    /// receives ASCII directly — no IME-side preedit / buffering.
     input_mode: InputMode,
-    /// ASCII preedit buffer used only in `InputMode::En`. Letters /
-    /// digits / printable punct push; `return` commits (no \n sent);
-    /// `space` commits with trailing " "; backspace pops; escape clears.
-    en_preedit: String,
 }
 
 impl Default for Session {
@@ -60,7 +58,6 @@ impl Session {
             pending_commit: None,
             smart_quote: SmartQuoteState::new(),
             input_mode: InputMode::Cjk,
-            en_preedit: String::new(),
         }
     }
 
@@ -116,37 +113,37 @@ impl Session {
         self.input_mode
     }
 
-    /// Switch top-level input mode. Asymmetric transition rules:
-    /// - **Cjk → En**: in-flight CJK composing is *dropped* (escape, not
-    ///   committed) — user toggling to EN implies the wubi/pinyin code
-    ///   they were typing is no longer wanted.
-    /// - **En → Cjk**: in-flight `en_preedit` is *committed* — the
-    ///   typed English so far is kept (it's already valid output).
-    /// No-op when target equals current mode.
+    /// Switch top-level input mode. On **Cjk → En** any in-flight CJK
+    /// preedit is committed as **raw ASCII** (the wubi/pinyin letters the
+    /// user typed) — user toggling to EN with codes still composing is
+    /// signaling "this wasn't supposed to be CJK, ship it as English".
+    /// Same semantic as pressing return in CJK with a non-empty preedit.
+    /// **En → Cjk** has nothing to drain (EN mode doesn't buffer — see
+    /// `handle_key`). No-op when target equals current mode.
     pub fn set_input_mode(&mut self, m: InputMode) {
         if m == self.input_mode {
             return;
         }
-        match self.input_mode {
-            InputMode::Cjk => {
-                self.composite.escape();
-                self.refresh_caches();
-            }
-            InputMode::En => {
-                if !self.en_preedit.is_empty() {
-                    let text = std::mem::take(&mut self.en_preedit);
-                    self.append_pending(text);
-                }
+        if self.input_mode == InputMode::Cjk && self.composite.is_composing() {
+            let raw = self.composite.preedit().to_string();
+            self.composite.escape();
+            self.refresh_caches();
+            if !raw.is_empty() {
+                self.append_pending(raw);
             }
         }
         self.input_mode = m;
     }
 
-    /// Process a keystroke. Returns `true` if the IME consumed it.
+    /// Process a keystroke. Returns `true` if the IME consumed it. In
+    /// `InputMode::En` always returns `false` — the IME steps aside and
+    /// the host receives the raw ASCII keystroke. Host adapters may
+    /// short-circuit this call entirely when in EN mode for efficiency;
+    /// the returned `false` is the canonical answer either way.
     pub fn handle_key(&mut self, codepoint: u32, modifiers: u32) -> bool {
         match self.input_mode {
             InputMode::Cjk => self.handle_key_cjk(codepoint, modifiers),
-            InputMode::En => self.handle_key_en(codepoint, modifiers),
+            InputMode::En => false,
         }
     }
 
@@ -190,6 +187,23 @@ impl Session {
                 }
                 consumed
             }
+            CP_RETURN_CR | CP_RETURN_LF => {
+                // Return while composing = "I didn't want this to be CJK".
+                // Commit the raw ASCII codes the user typed, clear preedit,
+                // swallow the event (no \n to host — the user only wanted
+                // to escape composing). Return when not composing falls
+                // through to passthrough so plain Enter still produces \n.
+                if !self.composite.is_composing() {
+                    return false;
+                }
+                let raw = self.composite.preedit().to_string();
+                self.composite.escape();
+                self.refresh_caches();
+                if !raw.is_empty() {
+                    self.append_pending(raw);
+                }
+                true
+            }
             cp if (b'0' as u32..=b'9' as u32).contains(&cp) => {
                 if !self.composite.is_composing() {
                     return false;
@@ -220,69 +234,11 @@ impl Session {
         }
     }
 
-    /// EN-mode keystroke handler. Pure ASCII preedit pipeline; no engine
-    /// lookup, no candidates. See `set_input_mode` doc for transition
-    /// rules at mode boundary.
-    fn handle_key_en(&mut self, codepoint: u32, modifiers: u32) -> bool {
-        if modifiers & (MOD_CTRL | MOD_CMD) != 0 {
-            return false;
-        }
-
-        match codepoint {
-            CP_RETURN_CR | CP_RETURN_LF => {
-                if self.en_preedit.is_empty() {
-                    return false;
-                }
-                let text = std::mem::take(&mut self.en_preedit);
-                self.append_pending(text);
-                true
-            }
-            CP_SPACE => {
-                if self.en_preedit.is_empty() {
-                    return false;
-                }
-                let mut text = std::mem::take(&mut self.en_preedit);
-                text.push(' ');
-                self.append_pending(text);
-                true
-            }
-            CP_BACKSPACE | CP_DEL_FORWARD => {
-                if self.en_preedit.is_empty() {
-                    return false;
-                }
-                self.en_preedit.pop();
-                true
-            }
-            CP_ESCAPE => {
-                if self.en_preedit.is_empty() {
-                    return false;
-                }
-                self.en_preedit.clear();
-                true
-            }
-            cp => {
-                if let Some(c) = char::from_u32(cp)
-                    && is_en_input_char(c)
-                {
-                    self.en_preedit.push(c);
-                    return true;
-                }
-                // Unhandled key: if preedit non-empty, commit before
-                // letting the host receive the keystroke (so the typed
-                // English doesn't get stranded behind the new char).
-                if !self.en_preedit.is_empty() {
-                    let text = std::mem::take(&mut self.en_preedit);
-                    self.append_pending(text);
-                }
-                false
-            }
-        }
-    }
-
     pub fn preedit(&self) -> &str {
         match self.input_mode {
             InputMode::Cjk => self.composite.preedit(),
-            InputMode::En => &self.en_preedit,
+            // EN mode has no IME-side preedit — host owns the text.
+            InputMode::En => "",
         }
     }
 
@@ -317,8 +273,7 @@ impl Session {
         self.pending_commit = None;
         // Reset smart-quote alternator — fresh context.
         self.smart_quote.reset();
-        // Reset EN preedit + return to default CJK mode.
-        self.en_preedit.clear();
+        // Return to default CJK mode.
         self.input_mode = InputMode::Cjk;
     }
 
@@ -389,14 +344,6 @@ impl Session {
             self.source_cache.push(c.source);
         }
     }
-}
-
-/// Predicate for EN-mode preedit acceptance: printable ASCII that isn't
-/// whitespace or control. Matches letters, digits, and visible punctuation.
-/// Space / return / backspace / escape are routed by codepoint in
-/// `handle_key_en` and never reach this check.
-fn is_en_input_char(c: char) -> bool {
-    c.is_ascii() && !c.is_ascii_whitespace() && !c.is_ascii_control()
 }
 
 #[cfg(test)]
@@ -612,7 +559,7 @@ mod tests {
     }
 
     // ------------------------------------------------------------------
-    // v1.1.0 InputMode (Cjk / En) + EN preedit pipeline
+    // v1.1.0 InputMode (Cjk / En) — EN mode is pure passthrough
     // ------------------------------------------------------------------
 
     const CP_RETURN: u32 = 0x0D;
@@ -641,180 +588,124 @@ mod tests {
     }
 
     #[test]
-    fn en_mode_letter_accumulates_in_preedit() {
+    fn en_mode_consumes_no_keys() {
+        // Every keystroke variety should pass straight through to the host:
+        // letters, digits, punct, space, return, backspace, escape, ctrl/cmd.
         let mut sess = s();
         sess.set_input_mode(InputMode::En);
-        for cp in b"hello" {
-            assert!(sess.handle_key(*cp as u32, 0));
+        for cp in b"hello world! 12,3.45" {
+            assert!(!sess.handle_key(*cp as u32, 0), "letter/digit/punct should passthrough");
         }
-        assert_eq!(sess.preedit(), "hello");
-        assert!(sess.take_pending_commit().is_none());
-    }
-
-    #[test]
-    fn en_mode_digit_accumulates() {
-        let mut sess = s();
-        sess.set_input_mode(InputMode::En);
-        for cp in b"abc123" {
-            assert!(sess.handle_key(*cp as u32, 0));
-        }
-        assert_eq!(sess.preedit(), "abc123");
-    }
-
-    #[test]
-    fn en_mode_punct_accumulates() {
-        let mut sess = s();
-        sess.set_input_mode(InputMode::En);
-        for cp in b"a.b,c!" {
-            assert!(sess.handle_key(*cp as u32, 0));
-        }
-        assert_eq!(sess.preedit(), "a.b,c!");
-    }
-
-    #[test]
-    fn en_mode_return_commits_without_newline() {
-        let mut sess = s();
-        sess.set_input_mode(InputMode::En);
-        for cp in b"hello" {
-            sess.handle_key(*cp as u32, 0);
-        }
-        assert!(sess.handle_key(CP_RETURN, 0));
-        assert_eq!(sess.take_pending_commit().as_deref(), Some("hello"));
-        assert!(sess.preedit().is_empty());
-    }
-
-    #[test]
-    fn en_mode_return_when_empty_passthrough() {
-        let mut sess = s();
-        sess.set_input_mode(InputMode::En);
         assert!(!sess.handle_key(CP_RETURN, 0));
-    }
-
-    #[test]
-    fn en_mode_space_commits_with_trailing_space() {
-        let mut sess = s();
-        sess.set_input_mode(InputMode::En);
-        for cp in b"world" {
-            sess.handle_key(*cp as u32, 0);
-        }
-        assert!(sess.handle_key(CP_SPACE, 0));
-        assert_eq!(sess.take_pending_commit().as_deref(), Some("world "));
-        assert!(sess.preedit().is_empty());
-    }
-
-    #[test]
-    fn en_mode_space_when_empty_passthrough() {
-        let mut sess = s();
-        sess.set_input_mode(InputMode::En);
-        assert!(!sess.handle_key(CP_SPACE, 0));
-    }
-
-    #[test]
-    fn en_mode_backspace_pops() {
-        let mut sess = s();
-        sess.set_input_mode(InputMode::En);
-        for cp in b"abc" {
-            sess.handle_key(*cp as u32, 0);
-        }
-        assert!(sess.handle_key(CP_BACKSPACE, 0));
-        assert_eq!(sess.preedit(), "ab");
-        assert!(sess.handle_key(CP_BACKSPACE, 0));
-        assert!(sess.handle_key(CP_BACKSPACE, 0));
-        assert!(sess.preedit().is_empty());
-        // empty → passthrough
         assert!(!sess.handle_key(CP_BACKSPACE, 0));
-    }
-
-    #[test]
-    fn en_mode_escape_clears() {
-        let mut sess = s();
-        sess.set_input_mode(InputMode::En);
-        for cp in b"abc" {
-            sess.handle_key(*cp as u32, 0);
-        }
-        assert!(sess.handle_key(CP_ESCAPE, 0));
-        assert!(sess.preedit().is_empty());
-        // empty → passthrough
         assert!(!sess.handle_key(CP_ESCAPE, 0));
-    }
-
-    #[test]
-    fn en_mode_ctrl_cmd_passthrough() {
-        let mut sess = s();
-        sess.set_input_mode(InputMode::En);
         assert!(!sess.handle_key(b'c' as u32, MOD_CMD));
         assert!(!sess.handle_key(b'a' as u32, MOD_CTRL));
     }
 
     #[test]
-    fn cjk_to_en_drops_composing_does_not_commit() {
-        // User types "jeg" in CJK (mid-composition), then toggles to EN.
-        // Expectation: jeg is dropped (escape), not committed.
+    fn en_mode_has_no_preedit_or_candidates() {
+        // Engine never runs in EN — preedit empty, no candidates, no commits.
+        let mut sess = s();
+        sess.set_input_mode(InputMode::En);
+        for cp in b"khlg" {
+            sess.handle_key(*cp as u32, 0);
+        }
+        assert!(sess.preedit().is_empty());
+        assert_eq!(sess.candidate_count(), 0);
+        assert!(sess.take_pending_commit().is_none());
+    }
+
+    #[test]
+    fn cjk_to_en_with_preedit_commits_raw_ascii() {
+        // User types "jeg" in CJK, then toggles to EN. The preedit
+        // letters ship as English (user signaled "not CJK after all").
         let mut sess = s();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'j' as u32, 0);
         sess.handle_key(b'e' as u32, 0);
         sess.handle_key(b'g' as u32, 0);
-        assert!(!sess.preedit().is_empty());
+        assert_eq!(sess.preedit(), "jeg");
+        sess.set_input_mode(InputMode::En);
+        assert_eq!(sess.take_pending_commit().as_deref(), Some("jeg"));
+        assert!(sess.preedit().is_empty());
+        assert_eq!(sess.candidate_count(), 0);
+        assert_eq!(sess.input_mode(), InputMode::En);
+    }
+
+    #[test]
+    fn cjk_to_en_without_preedit_just_switches() {
+        // No in-flight composing → toggle is a pure state flip.
+        let mut sess = s();
         sess.set_input_mode(InputMode::En);
         assert!(sess.take_pending_commit().is_none());
+        assert_eq!(sess.input_mode(), InputMode::En);
+    }
+
+    #[test]
+    fn cjk_return_with_preedit_commits_raw_ascii() {
+        // Return in CJK while composing ships the raw codes as ASCII
+        // and swallows the event (no \n to host).
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.handle_key(b'h' as u32, 0);
+        sess.handle_key(b'u' as u32, 0);
+        sess.handle_key(b'i' as u32, 0);
+        sess.handle_key(b'l' as u32, 0);
+        assert_eq!(sess.preedit(), "huil");
+        assert!(sess.handle_key(CP_RETURN, 0));
+        assert_eq!(sess.take_pending_commit().as_deref(), Some("huil"));
         assert!(sess.preedit().is_empty());
         assert_eq!(sess.candidate_count(), 0);
     }
 
     #[test]
-    fn en_to_cjk_commits_en_preedit() {
-        // User types "hel" in EN, then toggles to CJK.
-        // Expectation: "hel" is committed (not lost).
+    fn cjk_return_without_preedit_passes_through() {
+        // Plain return with no composing → engine doesn't consume it
+        // so the host receives the \n normally.
+        let mut sess = s();
+        assert!(!sess.handle_key(CP_RETURN, 0));
+        assert!(sess.take_pending_commit().is_none());
+    }
+
+    #[test]
+    fn en_to_cjk_is_pure_state_flip_no_commit() {
+        // EN→Cjk has nothing to drain (EN doesn't buffer). Just flips state.
         let mut sess = s();
         sess.set_input_mode(InputMode::En);
         for cp in b"hel" {
             sess.handle_key(*cp as u32, 0);
         }
         sess.set_input_mode(InputMode::Cjk);
-        assert_eq!(sess.take_pending_commit().as_deref(), Some("hel"));
+        assert!(sess.take_pending_commit().is_none());
         assert!(sess.preedit().is_empty());
         assert_eq!(sess.input_mode(), InputMode::Cjk);
     }
 
     #[test]
-    fn clear_resets_input_mode_and_en_preedit() {
+    fn clear_resets_input_mode() {
         let mut sess = s();
         sess.set_input_mode(InputMode::En);
-        for cp in b"abc" {
-            sess.handle_key(*cp as u32, 0);
-        }
-        assert_eq!(sess.preedit(), "abc");
         sess.clear();
         assert_eq!(sess.input_mode(), InputMode::Cjk);
         assert!(sess.preedit().is_empty());
         assert!(sess.take_pending_commit().is_none());
     }
 
-    #[test]
-    fn en_mode_cjk_engine_dormant_no_candidates() {
-        // Letters that would produce wubi candidates in CJK should not in EN.
-        let mut sess = s();
-        sess.set_input_mode(InputMode::En);
-        for cp in b"khlg" {
-            sess.handle_key(*cp as u32, 0);
-        }
-        assert_eq!(sess.candidate_count(), 0);
-        assert_eq!(sess.preedit(), "khlg");
-    }
-
     // ------------------------------------------------------------------
-    // Proptest: InputMode round-trips never leak buffers
+    // Proptest: arbitrary op sequences keep session invariants
     // ------------------------------------------------------------------
     //
-    // Two properties:
     //   - any op sequence followed by clear() leaves a default session
-    //   - any op sequence followed by 2 full mode-toggle cycles drains
-    //     both CJK and EN buffers (no preedit, no cand, idle in Cjk)
+    //   - any op sequence followed by 2 full mode-toggle cycles ends in
+    //     a clean idle CJK session (no preedit, no cand, no commit)
     //
-    // The second one is the actual mode-switch-doesn't-leak invariant
+    // The second one is the mode-switch-doesn't-leak invariant
     // ([[proptest-engine-invariants]] caught the analogous bug at the
     // composite/engine layer — this is the Session-layer counterpart).
+    // EN mode is pure passthrough (`handle_key` returns false), so EN
+    // keystrokes can't leak buffers — but the Cjk→En transition still
+    // has to escape an in-flight composing buffer.
 
     use proptest::prelude::*;
 
@@ -852,7 +743,7 @@ mod tests {
                 sess.handle_key(CP_SPACE, 0);
             }
             SessionOp::Return => {
-                sess.handle_key(CP_RETURN_CR, 0);
+                sess.handle_key(CP_RETURN, 0);
             }
             SessionOp::Backspace => {
                 sess.handle_key(CP_BACKSPACE, 0);
@@ -867,13 +758,18 @@ mod tests {
     }
 
     fn check_invariants(sess: &Session, after: &str) {
-        // INV-A: EN mode has no candidates (engine dormant).
+        // INV-A: EN mode is dormant — no candidates, no preedit.
         if sess.input_mode() == InputMode::En {
             assert_eq!(
                 sess.candidate_count(),
                 0,
                 "INV-A violated after {after}: EN has {} candidates",
                 sess.candidate_count()
+            );
+            assert!(
+                sess.preedit().is_empty(),
+                "INV-A violated after {after}: EN preedit is non-empty: {:?}",
+                sess.preedit()
             );
         }
         // INV-B: CJK preedit is ASCII lowercase wubi codes only.
@@ -882,16 +778,6 @@ mod tests {
                 assert!(
                     b.is_ascii_lowercase(),
                     "INV-B violated after {after}: CJK preedit byte {b:#x}"
-                );
-            }
-        }
-        // INV-C: EN preedit is printable ASCII (no control / whitespace).
-        if sess.input_mode() == InputMode::En {
-            for b in sess.preedit().bytes() {
-                assert!(
-                    b.is_ascii() && !(b as char).is_ascii_whitespace()
-                        && !(b as char).is_ascii_control(),
-                    "INV-C violated after {after}: EN preedit byte {b:#x}"
                 );
             }
         }
@@ -928,9 +814,9 @@ mod tests {
             for op in &ops {
                 apply(&mut sess, op);
             }
-            // Two full mode-cycles. After this, both CJK composing buffer
-            // (escape()d on each Cjk→En) and en_preedit (drained on each
-            // En→Cjk) must be empty.
+            // Two full mode-cycles. After this, the CJK composing buffer
+            // (escape()d on each Cjk→En) must be empty. EN→Cjk has nothing
+            // to drain since EN doesn't buffer.
             sess.set_input_mode(InputMode::En);
             sess.set_input_mode(InputMode::Cjk);
             sess.set_input_mode(InputMode::En);

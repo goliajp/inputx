@@ -2,8 +2,9 @@
 //! (which picks wubi / pinyin / mixed *within* CJK mode).
 //!
 //! Default = `Cjk`. User toggles via shift-single-click on macOS or the
-//! on-screen "中/EN" key on iOS. EN mode runs a pure ASCII preedit
-//! pipeline; the composite engine is dormant.
+//! on-screen "中/EN" key on iOS. EN mode is pure passthrough — the IME
+//! steps aside and the host receives ASCII directly, with no preedit /
+//! buffering on the engine side.
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
@@ -11,9 +12,9 @@ pub enum InputMode {
     /// Composite CJK engine flow (wubi + pinyin per `EngineMode`).
     #[default]
     Cjk = 0,
-    /// English preedit mode. Letters/digits/punct accumulate in the
-    /// session's `en_preedit`; `return` commits without sending \n;
-    /// `space` commits with a trailing ASCII space. Engine dormant.
+    /// English passthrough mode. `Session::handle_key` returns false so
+    /// the host receives the raw ASCII keystroke; there is no IME-side
+    /// preedit, no candidates, no commits.
     En = 1,
 }
 

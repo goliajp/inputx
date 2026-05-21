@@ -95,6 +95,14 @@ final class InputxController: IMKInputController {
         // Any keyDown disarms the shift detector — shift wasn't alone.
         shiftDetector.observeKeyDown()
 
+        // EN mode: IME steps aside. Host receives the raw ASCII keystroke
+        // (including return / backspace / cmd-combos) directly. We still
+        // observed shiftDown above so a subsequent single-shift toggle is
+        // detectable; everything else is a pure passthrough.
+        if session.inputMode == .en {
+            return false
+        }
+
         guard let chars = event.charactersIgnoringModifiers,
               let firstScalar = chars.unicodeScalars.first
         else { return false }
@@ -107,31 +115,26 @@ final class InputxController: IMKInputController {
             return false
         }
 
-        // Path A and Path B are CJK-specific (number-key candidate commit,
-        // CJK punct / smart-quote mapping). In EN mode the engine pipeline
-        // handles digits / punctuation as preedit characters directly.
-        if session.inputMode == .cjk {
-            // ---- Path A: number-key candidate commit -----------------------
-            // When the panel is up, 1-9 picks the corresponding candidate
-            // without touching the engine state machine.
-            if let panel = candidatePanel, panel.isVisible,
-               let idx = panel.candidateIndex(forNumberKey: codepoint) {
-                if let committed = session.commit(at: idx), !committed.isEmpty {
-                    commitText(committed, to: sender)
-                }
-                panel.hide()
-                updatePreedit(client: sender)
-                return true
+        // ---- Path A: number-key candidate commit ---------------------------
+        // When the panel is up, 1-9 picks the corresponding candidate
+        // without touching the engine state machine.
+        if let panel = candidatePanel, panel.isVisible,
+           let idx = panel.candidateIndex(forNumberKey: codepoint) {
+            if let committed = session.commit(at: idx), !committed.isEmpty {
+                commitText(committed, to: sender)
             }
+            panel.hide()
+            updatePreedit(client: sender)
+            return true
+        }
 
-            // ---- Path B: symbol / punctuation in zh mode -------------------
-            // The engine doesn't know about CJK punct mapping; we apply it
-            // before routing. Only fires when the engine is NOT composing.
-            if !session.isComposing && codepoint < 0x80 {
-                if let mapped = applyLocaleIfApplicable(codepoint: codepoint) {
-                    commitText(mapped, to: sender)
-                    return true
-                }
+        // ---- Path B: symbol / punctuation in zh mode -----------------------
+        // The engine doesn't know about CJK punct mapping; we apply it
+        // before routing. Only fires when the engine is NOT composing.
+        if !session.isComposing && codepoint < 0x80 {
+            if let mapped = applyLocaleIfApplicable(codepoint: codepoint) {
+                commitText(mapped, to: sender)
+                return true
             }
         }
 
@@ -174,10 +177,11 @@ final class InputxController: IMKInputController {
         return false
     }
 
-    /// Flip CJK ↔ EN. Drains commits produced by the transition (En→Cjk
-    /// commits en_preedit; Cjk→En only escapes — no commit) and refreshes
-    /// preedit + candidate panel UI. Broadcasts the new mode so the
-    /// menubar status item can update its indicator label.
+    /// Flip CJK ↔ EN. Cjk→En with in-flight composing commits the raw
+    /// ASCII codes (user signaled "not CJK after all"); En→Cjk has
+    /// nothing to drain. Drains `takeCommit()`, refreshes preedit +
+    /// candidate UI, broadcasts the new mode for the menubar indicator,
+    /// and flashes a brief HUD toast showing "入" / "A".
     private func toggleInputMode(client sender: Any!) {
         let newMode = session.toggleInputMode()
         if let committed = session.takeCommit(), !committed.isEmpty {
@@ -190,6 +194,7 @@ final class InputxController: IMKInputController {
             object: nil,
             userInfo: ["mode": newMode.rawValue]
         )
+        InputModeToast.shared.show(mode: newMode)
     }
 
     // MARK: - IMKit candidate selection callbacks ----------------------------

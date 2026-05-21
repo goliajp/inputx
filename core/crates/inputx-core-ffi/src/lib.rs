@@ -288,13 +288,14 @@ pub unsafe extern "C" fn inputx_session_get_engine_mode(session: *const InputxSe
 
 /// Set the top-level input mode (orthogonal to engine mode).
 ///   0 = Cjk (default — CJK composing pipeline)
-///   1 = En  (ASCII preedit; return commits, space commits+" ")
+///   1 = En  (pure passthrough: `inputx_session_key_event` returns 0;
+///            host receives ASCII directly, no IME preedit)
 /// Returns `1` if accepted, `0` if `mode` was out of range or session NULL
 /// (state unchanged in either case).
 ///
-/// Asymmetric transition semantics — see `Session::set_input_mode` doc:
-///   Cjk → En: in-flight composing dropped (escape, not committed).
-///   En → Cjk: in-flight en_preedit committed.
+/// Cjk → En with in-flight composing commits the raw ASCII codes the
+/// user typed (same semantic as pressing return in CJK with a non-empty
+/// preedit). En → Cjk has nothing to drain — EN doesn't buffer.
 ///
 /// # Safety
 /// `session` must be valid (or NULL).
