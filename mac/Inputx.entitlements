@@ -2,11 +2,28 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- Modern security baseline for a third-party IME on macOS 26.
+         Six entitlements is the minimum that actually lets IMKServer
+         register a Mach service and stays compatible with the host-app
+         IPC paths. vChewing has 8; we omit the two file-path exceptions
+         that are vChewing-specific (Yahoo KeyKey + iCloud Documents). -->
     <key>com.apple.security.app-sandbox</key>
     <true/>
-    <!-- IMK servers register a Mach service named after `InputMethodConnectionName`
-         in Info.plist. The sandbox blocks bootstrap_register without this exception. -->
+    <key>com.apple.security.files.bookmarks.app-scope</key>
+    <true/>
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <!-- IMK servers register a Mach service named after the
+         InputMethodConnectionName key in Info.plist. The sandbox blocks
+         bootstrap_register without this exception. Value MUST equal the
+         Info.plist InputMethodConnectionName exactly. -->
     <key>com.apple.security.temporary-exception.mach-register.global-name</key>
     <string>jp.golia.inputmethod.wubi_Connection</string>
+    <!-- IMK's preference-read paths cross the sandbox container boundary;
+         allow reading our own bundle-id prefs from anywhere on the system. -->
+    <key>com.apple.security.temporary-exception.shared-preference.read-only</key>
+    <string>jp.golia.inputmethod.wubi</string>
 </dict>
 </plist>

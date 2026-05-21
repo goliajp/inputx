@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    Template for ~/Library/LaunchAgents/jp.golia.inputmethod.wubi.plist.
+
+    Purpose: keep the Inputx binary always running so its IMK Mach service
+    is permanently published, bypassing the macOS 26 imklaunchagent rule
+    that silently refuses to launch our bundle on demand. (Picker enumeration
+    works without this; typing does not. See ../docs/macos-ime-recipe-2026.md
+    Investigation §6, plus memory project_macos26_ime_service_launch.)
+
+    Substitutions done by install.sh / pkg postinstall:
+      __APP_PATH__   absolute path to the .app bundle (e.g.
+                     /Users/foo/Library/Input Methods/Inputx.app or
+                     /Library/Input Methods/Inputx.app)
+
+    Pitfalls:
+      - Do NOT add a MachServices key. launchd would then own the Mach
+        service name and conflict with IMKServer's self-register, putting
+        the IME into a "switch-to-it-then-auto-skip" state.
+      - LimitLoadToSessionType=Aqua because the IME is a GUI-session
+        service; loading it in non-Aqua sessions wastes resources.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>jp.golia.inputmethod.wubi</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__APP_PATH__/Contents/MacOS/Inputx</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+    <key>ProcessType</key>
+    <string>Interactive</string>
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+    <key>StandardOutPath</key>
+    <string>/tmp/inputx.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/inputx.err.log</string>
+</dict>
+</plist>
