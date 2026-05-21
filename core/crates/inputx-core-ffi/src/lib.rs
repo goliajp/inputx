@@ -10,7 +10,7 @@
 use core::ffi::{CStr, c_char};
 use std::ffi::CString;
 
-use inputx_core::{AutoCommitPolicy, EngineMode, Session};
+use inputx_core::{AutoCommitPolicy, EngineMode, InputMode, Session};
 
 /// Opaque handle to a Inputx IME session.
 pub struct InputxSession {
@@ -283,6 +283,45 @@ pub unsafe extern "C" fn inputx_session_get_engine_mode(session: *const InputxSe
     match unsafe { session.as_ref() } {
         Some(s) => s.inner.mode().as_u8(),
         None => EngineMode::default().as_u8(),
+    }
+}
+
+/// Set the top-level input mode (orthogonal to engine mode).
+///   0 = Cjk (default — CJK composing pipeline)
+///   1 = En  (ASCII preedit; return commits, space commits+" ")
+/// Returns `1` if accepted, `0` if `mode` was out of range or session NULL
+/// (state unchanged in either case).
+///
+/// Asymmetric transition semantics — see `Session::set_input_mode` doc:
+///   Cjk → En: in-flight composing dropped (escape, not committed).
+///   En → Cjk: in-flight en_preedit committed.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_set_input_mode(session: *mut InputxSession, mode: u8) -> u8 {
+    let Some(s) = (unsafe { session.as_mut() }) else {
+        return 0;
+    };
+    match InputMode::from_u8(mode) {
+        Some(m) => {
+            s.inner.set_input_mode(m);
+            1
+        }
+        None => 0,
+    }
+}
+
+/// Returns the current input mode (0=Cjk / 1=En). Returns 0 (Cjk) if
+/// session is NULL — same as the default.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_get_input_mode(session: *const InputxSession) -> u8 {
+    match unsafe { session.as_ref() } {
+        Some(s) => s.inner.input_mode().as_u8(),
+        None => InputMode::default().as_u8(),
     }
 }
 

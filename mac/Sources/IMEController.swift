@@ -2,6 +2,13 @@ import Cocoa
 import InputMethodKit
 import InputxKit
 
+extension Notification.Name {
+    /// Posted whenever any `InputxController` toggles between CJK and EN.
+    /// `userInfo["mode"]` is a `UInt8` matching `InputxInputMode.rawValue`.
+    /// Used by `MenubarSettings` to refresh its status-item indicator.
+    static let inputxInputModeChanged = Notification.Name("InputxInputModeChanged")
+}
+
 /// IMKit input controller — one instance per client (text view / editor).
 ///
 /// **`@objc(InputxController)` is load-bearing.** IMKit reads the class
@@ -25,6 +32,10 @@ import InputxKit
 final class InputxController: IMKInputController {
     private let session = InputxSession()
     private var candidatePanel: CandidatePanel?
+    /// Detects pure shift single-clicks (no other key in between) to
+    /// toggle `InputxInputMode` between `.cjk` and `.en`. See
+    /// `InputxShiftSingleClickDetector` for the state machine.
+    private let shiftDetector = InputxShiftSingleClickDetector()
 
     override init!(server: IMKServer!, delegate: Any!, client inputClient: Any!) {
         super.init(server: server, delegate: delegate, client: inputClient)
@@ -56,13 +67,33 @@ final class InputxController: IMKInputController {
         session.clear()
         candidatePanel?.hide()
         clearMarkedText(client: sender)
+        // A shift held across deactivation would otherwise leave the
+        // detector armed forever; reset.
+        shiftDetector.reset()
         // Best-effort persist of L0 state; cheap (atomic JSON write).
         inputxL0Storage.save(from: session)
         super.deactivateServer(sender)
     }
 
+    /// Expand IMKit's default keyDown-only event set to also include
+    /// `flagsChanged`, so we can observe pure shift presses/releases.
+    /// Without this override, modifier-only events never reach `handle`.
+    override func recognizedEvents(_ sender: Any!) -> Int {
+        return Int(
+            NSEvent.EventTypeMask.keyDown.rawValue
+                | NSEvent.EventTypeMask.flagsChanged.rawValue
+        )
+    }
+
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
-        guard let event = event, event.type == .keyDown else { return false }
+        guard let event = event else { return false }
+
+        if event.type == .flagsChanged {
+            return handleFlagsChanged(event: event, client: sender)
+        }
+        guard event.type == .keyDown else { return false }
+        // Any keyDown disarms the shift detector — shift wasn't alone.
+        shiftDetector.observeKeyDown()
 
         guard let chars = event.charactersIgnoringModifiers,
               let firstScalar = chars.unicodeScalars.first
@@ -76,28 +107,31 @@ final class InputxController: IMKInputController {
             return false
         }
 
-        // ---- Path A: number-key candidate commit ---------------------------
-        // When the panel is up, 1-9 picks the corresponding candidate without
-        // touching the engine state machine.
-        if let panel = candidatePanel, panel.isVisible,
-           let idx = panel.candidateIndex(forNumberKey: codepoint) {
-            if let committed = session.commit(at: idx), !committed.isEmpty {
-                commitText(committed, to: sender)
-            }
-            panel.hide()
-            updatePreedit(client: sender)
-            return true
-        }
-
-        // ---- Path B: symbol / punctuation in zh mode -----------------------
-        // The engine doesn't know about CJK punct mapping; we apply it before
-        // routing. Only fires when the engine is NOT composing (a punctuation
-        // key during composition is meaningful for some IME schemes — but
-        // wubi / pinyin don't use them, so we route punct directly).
-        if !session.isComposing && codepoint < 0x80 {
-            if let mapped = applyLocaleIfApplicable(codepoint: codepoint) {
-                commitText(mapped, to: sender)
+        // Path A and Path B are CJK-specific (number-key candidate commit,
+        // CJK punct / smart-quote mapping). In EN mode the engine pipeline
+        // handles digits / punctuation as preedit characters directly.
+        if session.inputMode == .cjk {
+            // ---- Path A: number-key candidate commit -----------------------
+            // When the panel is up, 1-9 picks the corresponding candidate
+            // without touching the engine state machine.
+            if let panel = candidatePanel, panel.isVisible,
+               let idx = panel.candidateIndex(forNumberKey: codepoint) {
+                if let committed = session.commit(at: idx), !committed.isEmpty {
+                    commitText(committed, to: sender)
+                }
+                panel.hide()
+                updatePreedit(client: sender)
                 return true
+            }
+
+            // ---- Path B: symbol / punctuation in zh mode -------------------
+            // The engine doesn't know about CJK punct mapping; we apply it
+            // before routing. Only fires when the engine is NOT composing.
+            if !session.isComposing && codepoint < 0x80 {
+                if let mapped = applyLocaleIfApplicable(codepoint: codepoint) {
+                    commitText(mapped, to: sender)
+                    return true
+                }
             }
         }
 
@@ -119,6 +153,43 @@ final class InputxController: IMKInputController {
         updatePreedit(client: sender)
         candidatePanel?.refresh(session: session, client: sender as AnyObject?)
         return true
+    }
+
+    /// Process a `flagsChanged` event. Routes shift toggles through the
+    /// single-click detector; non-shift modifier toggles disarm it. Never
+    /// consumes the event (host apps need to see modifier state).
+    private func handleFlagsChanged(event: NSEvent, client sender: Any!) -> Bool {
+        let kc = event.keyCode
+        let isShiftKey =
+            (kc == InputxShiftSingleClickDetector.leftShiftKeyCode
+                || kc == InputxShiftSingleClickDetector.rightShiftKeyCode)
+        if isShiftKey {
+            let shiftDown = event.modifierFlags.contains(.shift)
+            if shiftDetector.observeShiftFlagsChanged(keyCode: kc, shiftDown: shiftDown) {
+                toggleInputMode(client: sender)
+            }
+        } else {
+            shiftDetector.observeOtherModifierChange()
+        }
+        return false
+    }
+
+    /// Flip CJK ↔ EN. Drains commits produced by the transition (En→Cjk
+    /// commits en_preedit; Cjk→En only escapes — no commit) and refreshes
+    /// preedit + candidate panel UI. Broadcasts the new mode so the
+    /// menubar status item can update its indicator label.
+    private func toggleInputMode(client sender: Any!) {
+        let newMode = session.toggleInputMode()
+        if let committed = session.takeCommit(), !committed.isEmpty {
+            commitText(committed, to: sender)
+        }
+        updatePreedit(client: sender)
+        candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+        NotificationCenter.default.post(
+            name: .inputxInputModeChanged,
+            object: nil,
+            userInfo: ["mode": newMode.rawValue]
+        )
     }
 
     // MARK: - IMKit candidate selection callbacks ----------------------------

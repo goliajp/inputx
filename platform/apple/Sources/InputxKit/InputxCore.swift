@@ -27,6 +27,19 @@ public enum InputxEngineMode: UInt8, Sendable, CaseIterable {
     case pinyinOnly = 2
 }
 
+/// Top-level input mode — CJK vs EN. Orthogonal to `InputxEngineMode`.
+/// On macOS: toggled by single-click shift. On iOS: toggled by the
+/// on-screen "中/EN" key. EN runs an ASCII preedit pipeline; the engine
+/// is dormant.
+public enum InputxInputMode: UInt8, Sendable, CaseIterable {
+    case cjk = 0
+    case en = 1
+
+    public func toggled() -> InputxInputMode {
+        self == .cjk ? .en : .cjk
+    }
+}
+
 public enum InputxL0Engine: UInt8, Sendable, CaseIterable {
     case wubi = 0
     case pinyin = 1
@@ -136,6 +149,28 @@ public final class InputxSession {
     public var engineMode: InputxEngineMode {
         let raw = inputx_session_get_engine_mode(handle)
         return InputxEngineMode(rawValue: raw) ?? .mixed
+    }
+
+    /// Switch the top-level input mode. See `Session::set_input_mode` in
+    /// the Rust core for the asymmetric transition rules:
+    ///   .cjk → .en  drops in-flight CJK composing (escape).
+    ///   .en  → .cjk commits in-flight en_preedit.
+    @discardableResult
+    public func setInputMode(_ mode: InputxInputMode) -> Bool {
+        return inputx_session_set_input_mode(handle, mode.rawValue) != 0
+    }
+
+    public var inputMode: InputxInputMode {
+        let raw = inputx_session_get_input_mode(handle)
+        return InputxInputMode(rawValue: raw) ?? .cjk
+    }
+
+    /// Convenience: flip CJK ↔ EN. Returns the resulting mode.
+    @discardableResult
+    public func toggleInputMode() -> InputxInputMode {
+        let next = inputMode.toggled()
+        _ = setInputMode(next)
+        return next
     }
 
     // MARK: - L0 persistence -------------------------------------------------
