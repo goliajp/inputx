@@ -41,5 +41,10 @@ let package = Package(
             dependencies: ["InputxCoreC"],
             path: "Sources/InputxKit"
         ),
+        .testTarget(
+            name: "InputxKitTests",
+            dependencies: ["InputxKit"],
+            path: "Tests/InputxKitTests"
+        ),
     ]
 )

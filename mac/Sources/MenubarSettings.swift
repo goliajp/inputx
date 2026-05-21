@@ -17,12 +17,34 @@ final class MenubarSettings {
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            // U+5165 "入" — visual mnemonic for "input method".
+            // U+5165 "入" — visual mnemonic for CJK input. Flipped to "A"
+            // while the controller is in EN mode (see `handleModeChanged`).
             button.title = "入"
             button.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
         }
         statusItem.menu = menu
         rebuildMenu()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleInputModeChanged(_:)),
+            name: .inputxInputModeChanged,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    /// Update the status-item title to reflect the current CJK / EN mode.
+    /// Posted by `InputxController.toggleInputMode`.
+    @objc private func handleInputModeChanged(_ note: Notification) {
+        guard let raw = note.userInfo?["mode"] as? UInt8,
+              let mode = InputxInputMode(rawValue: raw)
+        else { return }
+        if let button = statusItem.button {
+            button.title = (mode == .cjk) ? "入" : "A"
+        }
     }
 
     private func rebuildMenu() {
