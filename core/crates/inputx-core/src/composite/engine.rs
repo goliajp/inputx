@@ -333,25 +333,31 @@ impl CompositeEngine {
         None
     }
 
-    /// True iff the current input has NO chance of matching any
-    /// Chinese word. We only consult pinyin because:
-    ///   - At ASCII_FALLBACK_THRESHOLD (5+) chars in Mixed mode, the
-    ///     wubi buffer has necessarily been reset (wubi codes max at
-    ///     4 chars) — its `candidates()` reflects only the post-reset
-    ///     tail and doesn't represent user intent.
-    ///   - In PinyinOnly mode wubi is dormant.
-    ///   - In WubiOnly mode the wubi engine commits natively on the
-    ///     5th char before this check is reached.
+    /// True iff the current input has NO chance of matching any word
+    /// in any active engine. Drives the ASCII-fallback (auto-uppercase-
+    /// the-raw-buffer) at THRESHOLD chars.
     ///
-    /// We use pinyin `has_future_match` (dict prefix lookup) rather than
-    /// `candidates().is_empty()` because pinyin candidates briefly empty
-    /// mid-syllable for long words (e.g. `zhongg` between `zhong` and
-    /// `zhongguo`) while the dict prefix still resolves.
+    /// Engines consulted:
+    ///   - **Pinyin** via `has_future_match` (dict prefix lookup) —
+    ///     pinyin candidates briefly empty mid-syllable for long words
+    ///     (e.g. `zhongg` between `zhong` and `zhongguo`) while the
+    ///     dict prefix still resolves, so `is_empty` is too eager.
+    ///   - **JP plugin** — when active, the user could still be typing
+    ///     a multi-syllable JP word (`watashi` mid-typing at `watas`
+    ///     would otherwise ASCII-fall at length 5 before the user
+    ///     finishes the word). Treat JP-active as a categorical "no
+    ///     ASCII fallback" — the user opted into JP and accepts that
+    ///     typing English in mixed-mode requires the JP toggle off.
     fn is_pure_garbage(&self) -> bool {
         if !self.mode.allows_pinyin() {
             // WubiOnly path. wubi commits natively at 5 chars so we
             // shouldn't normally reach here; fall back to false to be
             // safe.
+            return false;
+        }
+        if self.japanese.is_some() {
+            // JP plugin active — give the user room to finish a romaji
+            // word that's longer than the 5-char ASCII-fallback budget.
             return false;
         }
         !self.pinyin.has_future_match()

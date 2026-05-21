@@ -35,11 +35,14 @@ pub fn dispatch(
     pinyin: &PinyinAdapter,
     japanese: Option<&JapaneseAdapter>,
 ) -> Vec<Candidate> {
-    let jp_cands = japanese.map(|j| j.candidates()).unwrap_or_default();
+    let (jp_kanji, jp_kana) = match japanese {
+        Some(j) => (j.kanji_candidates(), j.kana_candidates()),
+        None => (vec![], vec![]),
+    };
     match mode {
-        Mode::WubiOnly => merge(wubi.candidates().to_vec(), vec![], jp_cands),
-        Mode::PinyinOnly => merge(vec![], pinyin.candidates().to_vec(), jp_cands),
-        Mode::JapaneseOnly => merge(vec![], vec![], jp_cands),
+        Mode::WubiOnly => merge(wubi.candidates().to_vec(), jp_kanji, vec![], jp_kana),
+        Mode::PinyinOnly => merge(vec![], jp_kanji, pinyin.candidates().to_vec(), jp_kana),
+        Mode::JapaneseOnly => merge(vec![], jp_kanji, vec![], jp_kana),
         Mode::Mixed => {
             let z_prefix = pinyin.buffer_str().starts_with('z');
             let wubi_cands = if z_prefix {
@@ -51,9 +54,9 @@ pub fn dispatch(
             if pinyin.buffer_str().len() > wubi.buffer_str().len()
                 && !pinyin_cands.is_empty()
             {
-                merge_pinyin_first(wubi_cands, pinyin_cands, jp_cands)
+                merge_pinyin_first(wubi_cands, pinyin_cands, jp_kanji, jp_kana)
             } else {
-                merge(wubi_cands, pinyin_cands, jp_cands)
+                merge(wubi_cands, jp_kanji, pinyin_cands, jp_kana)
             }
         }
     }
@@ -61,43 +64,47 @@ pub fn dispatch(
 
 /// Merge but with pinyin candidates listed before wubi (still attributing
 /// each to its source). Used when pinyin buffer outpaced wubi (collision
-/// scenarios from the 5+ char input path). JP candidates always rank last
-/// regardless of the pinyin/wubi reorder above.
+/// scenarios from the 5+ char input path). JP kanji still ride near the
+/// top; JP kana still reserved at the tail. Ordering:
+///   1. JP kanji (high conviction)
+///   2. Pinyin (it outpaced wubi — user's clearly committed to pinyin path)
+///   3. Wubi (leftover)
+///   4. JP kana (low-conviction tail reserve)
 fn merge_pinyin_first(
     wubi: Vec<String>,
     pinyin: Vec<String>,
-    japanese: Vec<String>,
+    jp_kanji: Vec<String>,
+    jp_kana: Vec<String>,
 ) -> Vec<Candidate> {
-    use crate::composite::merge::{Candidate, JAPANESE_RESERVE, MAX_PER_INPUT, Source};
+    use crate::composite::merge::{Candidate, JP_KANA_RESERVE, MAX_PER_INPUT, Source};
     let total_hint =
-        (wubi.len() + pinyin.len() + japanese.len()).min(MAX_PER_INPUT);
+        (wubi.len() + pinyin.len() + jp_kanji.len() + jp_kana.len()).min(MAX_PER_INPUT);
     let mut out = Vec::with_capacity(total_hint);
     let mut seen = std::collections::HashSet::with_capacity(total_hint);
-    // Reserve JP slots at the end (see merge.rs comment).
-    let jp_reserve = japanese.len().min(JAPANESE_RESERVE);
-    let chinese_cap = MAX_PER_INPUT - jp_reserve;
-    for p in pinyin {
-        if out.len() >= chinese_cap {
-            break;
+    let kana_reserve = jp_kana.len().min(JP_KANA_RESERVE);
+    let main_cap = MAX_PER_INPUT.saturating_sub(kana_reserve);
+    for k in jp_kanji {
+        if out.len() >= main_cap { break; }
+        if seen.insert(k.clone()) {
+            out.push(Candidate { word: k, source: Source::Japanese });
         }
+    }
+    for p in pinyin {
+        if out.len() >= main_cap { break; }
         if seen.insert(p.clone()) {
             out.push(Candidate { word: p, source: Source::Pinyin });
         }
     }
     for w in wubi {
-        if out.len() >= chinese_cap {
-            break;
-        }
+        if out.len() >= main_cap { break; }
         if seen.insert(w.clone()) {
             out.push(Candidate { word: w, source: Source::Wubi });
         }
     }
-    for j in japanese {
-        if out.len() >= MAX_PER_INPUT {
-            break;
-        }
-        if seen.insert(j.clone()) {
-            out.push(Candidate { word: j, source: Source::Japanese });
+    for k in jp_kana {
+        if out.len() >= MAX_PER_INPUT { break; }
+        if seen.insert(k.clone()) {
+            out.push(Candidate { word: k, source: Source::Japanese });
         }
     }
     out

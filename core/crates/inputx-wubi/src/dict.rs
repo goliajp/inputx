@@ -192,23 +192,34 @@ impl WubiDict {
             .unwrap_or(DEFAULT_LAYER_PREFS);
 
         // Score during the FST scan; reuse a small scratch Vec.
-        // Tuple: (word, score, promote_to_top).
+        // Tuple: (word, score, is_single_char, freq, is_phrase).
         //
-        // `promote_to_top` encodes the wubi-86 "full-code single-char wins"
-        // rule: at a fully-typed 4-letter code, a single-char entry with
-        // non-zero corpus frequency should rank above any phrase sharing
-        // the same code. Without it, Auto-layer single chars (e.g. gmww →
-        // 两, layer Auto base ~100k, freq 37372) silently lose to Phrase-
-        // layer 4-char idioms (e.g. 两败俱伤, layer Phrase base ~400k)
-        // because the layer base swamps per-entry freq.
+        // The wubi-86 "full-code single-char wins" rule applied here:
+        // at a fully-typed 4-letter code, a single-char entry whose
+        // corpus frequency *exceeds the highest phrase frequency at
+        // the same code* gets promoted above all phrases. Otherwise
+        // the standard score ordering (layer_base × pref + freq) wins.
         //
-        // The `freq > 0` gate stops the rule from promoting CJK-extension
-        // single chars that have no corpus presence (e.g. khlg → 䟧 freq 0)
-        // above the canonical phrase (khlg → 中国 freq 44985) — those
-        // rare-char entries are correctly classified as "exists but isn't
-        // what anyone typing this code meant".
+        // Why this shape (relative freq comparison, not absolute):
+        //
+        //   - gmww 两 (Auto, freq 37372) vs 两败俱伤 (Phrase, freq 15272):
+        //     37372 > 15272 → 两 promoted. ✓
+        //
+        //   - wcng 鹟 (Auto, freq 5961) vs 公司 (Phrase, freq 42817):
+        //     5961 < 42817 → 鹟 stays at its natural Auto score (low),
+        //     公司 wins on layer_base alone. ✓
+        //
+        //   - khlg 䟧 (Auto, freq 0) vs 中国 (Phrase, freq 44985):
+        //     0 < 44985 → 䟧 stays low, 中国 wins. ✓
+        //
+        // The earlier absolute-`freq > 0` gate worked for gmww but
+        // wrongly promoted any uncommon-but-corpus-present single char
+        // over a popular phrase (the wcng case the user just flagged).
         let full_code = prefix_len == 4;
-        let mut scratch: Vec<(String, f64, bool)> = Vec::with_capacity(8);
+        let mut scratch: Vec<(String, f64, bool, u64)> = Vec::with_capacity(8);
+        // Track the highest phrase frequency at this code so the
+        // promote decision can be made after the FST scan.
+        let mut max_phrase_freq: u64 = 0;
         let mut stream = self
             .map
             .range()
@@ -225,13 +236,22 @@ impl WubiDict {
                 let base = layer.base() as f64;
                 let pref = prefs[layer.as_index()];
                 let is_single = s.chars().count() == 1;
-                let promote = full_code && is_single && freq > 0;
-                scratch.push((s.to_string(), base * pref + freq as f64, promote));
+                if !is_single && freq > max_phrase_freq {
+                    max_phrase_freq = freq;
+                }
+                scratch.push((
+                    s.to_string(),
+                    base * pref + freq as f64,
+                    is_single,
+                    freq,
+                ));
             }
         }
         scratch.sort_by(|a, b| {
-            if a.2 != b.2 {
-                return if a.2 {
+            let a_promote = full_code && a.2 && a.3 > max_phrase_freq;
+            let b_promote = full_code && b.2 && b.3 > max_phrase_freq;
+            if a_promote != b_promote {
+                return if a_promote {
                     std::cmp::Ordering::Less
                 } else {
                     std::cmp::Ordering::Greater
@@ -241,7 +261,7 @@ impl WubiDict {
         });
 
         out.reserve(scratch.len());
-        for (w, _, _) in scratch.drain(..) {
+        for (w, _, _, _) in scratch.drain(..) {
             out.push(w);
         }
 

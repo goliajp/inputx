@@ -39,65 +39,70 @@ pub struct Candidate {
 /// inputs from blowing memory.
 pub const MAX_PER_INPUT: usize = 50;
 
-/// Slots reserved at the *end* of the merged list for the Japanese
-/// plugin when it has candidates. Without this, common pinyin inputs
-/// (e.g. `ka` → 50+ 卡/咖/喀/… candidates) would fill the cap before
-/// JP ever got a turn, and the toggle would feel broken.
-pub const JAPANESE_RESERVE: usize = 8;
+/// Slots reserved at the *end* of the merged list for low-conviction
+/// JP kana candidates (always-available fallback regardless of whether
+/// the buffer is a known JP word). 4 is enough for hiragana + katakana
+/// + maybe small/voiced variants without crowding out pinyin bulk.
+pub const JP_KANA_RESERVE: usize = 4;
 
-/// Merge wubi + pinyin + japanese candidate lists.
+/// Merge wubi + JP kanji + pinyin + JP kana into a single candidate list.
 ///
-/// Ranking — wubi strictly first (deliberate user intent), pinyin next,
-/// japanese last. JP appended only when the caller passes a non-empty
-/// slice (engine disables JP by handing in an empty vec). Duplicates by
-/// `word` are dropped on second occurrence (keeps the first-seen source
-/// attribution).
+/// Ranking rationale:
+///   1. **Wubi** — deliberate user 字根 codes, top priority always.
+///   2. **JP kanji** (jukugo compounds + on/kun single-kanji matches) —
+///      promoted ABOVE pinyin because when JP is toggled on AND the
+///      buffer resolves to a known kanji form, the user's intent is
+///      clearly Japanese. Without this rank-boost, common JP words
+///      (yama → 山, nihon → 日本) land below pinyin's fuzzy guesses
+///      ("yama" → 亚麻色 / 牙买加 / …) which is visually buried.
+///   3. **Pinyin** — Chinese fuzzy / phonetic matches, the bulk.
+///   4. **JP kana** — hiragana + katakana renderings of whatever romaji
+///      the user typed. Always present (mechanically derivable from any
+///      buffer), low-conviction; reserved last so the bulk of pinyin
+///      stays visible, but the kana form is always reachable.
 ///
-/// When JP has candidates, the Chinese-engine portion is capped to
-/// `MAX_PER_INPUT - min(jp.len(), JAPANESE_RESERVE)` to guarantee JP
-/// visibility. With JP toggle off, the full `MAX_PER_INPUT` is available
-/// to wubi+pinyin (backward compatible).
-pub fn merge(wubi: Vec<String>, pinyin: Vec<String>, japanese: Vec<String>) -> Vec<Candidate> {
-    let total_hint = (wubi.len() + pinyin.len() + japanese.len()).min(MAX_PER_INPUT);
+/// Duplicates by `word` keep the first-seen source attribution.
+///
+/// Whichever vec the caller hands in empty (e.g. JP toggle off → both
+/// jp_kanji and jp_kana empty) is a no-op for that group.
+pub fn merge(
+    wubi: Vec<String>,
+    jp_kanji: Vec<String>,
+    pinyin: Vec<String>,
+    jp_kana: Vec<String>,
+) -> Vec<Candidate> {
+    let total_hint = (wubi.len() + jp_kanji.len() + pinyin.len() + jp_kana.len())
+        .min(MAX_PER_INPUT);
     let mut out = Vec::with_capacity(total_hint);
     let mut seen = std::collections::HashSet::with_capacity(total_hint);
 
-    let jp_reserve = japanese.len().min(JAPANESE_RESERVE);
-    let chinese_cap = MAX_PER_INPUT - jp_reserve;
+    // Reserve tail slots for jp_kana so the bulk of pinyin doesn't push
+    // kana off the visible cap.
+    let kana_reserve = jp_kana.len().min(JP_KANA_RESERVE);
+    let main_cap = MAX_PER_INPUT.saturating_sub(kana_reserve);
 
     for w in wubi {
-        if out.len() >= chinese_cap {
-            break;
-        }
+        if out.len() >= main_cap { break; }
         if seen.insert(w.clone()) {
-            out.push(Candidate {
-                word: w,
-                source: Source::Wubi,
-            });
+            out.push(Candidate { word: w, source: Source::Wubi });
         }
     }
-
+    for k in jp_kanji {
+        if out.len() >= main_cap { break; }
+        if seen.insert(k.clone()) {
+            out.push(Candidate { word: k, source: Source::Japanese });
+        }
+    }
     for p in pinyin {
-        if out.len() >= chinese_cap {
-            break;
-        }
+        if out.len() >= main_cap { break; }
         if seen.insert(p.clone()) {
-            out.push(Candidate {
-                word: p,
-                source: Source::Pinyin,
-            });
+            out.push(Candidate { word: p, source: Source::Pinyin });
         }
     }
-
-    for j in japanese {
-        if out.len() >= MAX_PER_INPUT {
-            break;
-        }
-        if seen.insert(j.clone()) {
-            out.push(Candidate {
-                word: j,
-                source: Source::Japanese,
-            });
+    for k in jp_kana {
+        if out.len() >= MAX_PER_INPUT { break; }
+        if seen.insert(k.clone()) {
+            out.push(Candidate { word: k, source: Source::Japanese });
         }
     }
 
@@ -110,12 +115,12 @@ mod tests {
 
     #[test]
     fn empty_inputs_yield_empty() {
-        assert!(merge(vec![], vec![], vec![]).is_empty());
+        assert!(merge(vec![], vec![], vec![], vec![]).is_empty());
     }
 
     #[test]
     fn wubi_only_tagged_wubi() {
-        let m = merge(vec!["国".into(), "果".into()], vec![], vec![]);
+        let m = merge(vec!["国".into(), "果".into()], vec![], vec![], vec![]);
         assert_eq!(m.len(), 2);
         assert!(m.iter().all(|c| c.source == Source::Wubi));
         assert_eq!(m[0].word, "国");
@@ -123,45 +128,50 @@ mod tests {
 
     #[test]
     fn pinyin_only_tagged_pinyin() {
-        let m = merge(vec![], vec!["中国".into(), "中过".into()], vec![]);
+        let m = merge(vec![], vec![], vec!["中国".into(), "中过".into()], vec![]);
         assert_eq!(m.len(), 2);
         assert!(m.iter().all(|c| c.source == Source::Pinyin));
     }
 
     #[test]
-    fn japanese_only_tagged_japanese() {
-        let m = merge(vec![], vec![], vec!["か".into(), "カ".into(), "高".into()]);
-        assert_eq!(m.len(), 3);
-        assert!(m.iter().all(|c| c.source == Source::Japanese));
-    }
-
-    #[test]
-    fn ranking_wubi_pinyin_japanese() {
-        let m = merge(vec!["W".into()], vec!["P".into()], vec!["J".into()]);
-        assert_eq!(m[0].source, Source::Wubi);
-        assert_eq!(m[1].source, Source::Pinyin);
-        assert_eq!(m[2].source, Source::Japanese);
-    }
-
-    #[test]
-    fn duplicate_words_keep_first_source() {
+    fn jp_kanji_appears_before_pinyin() {
         let m = merge(
-            vec!["X".into(), "Y".into()],
-            vec!["Y".into(), "Z".into()],
-            vec!["Z".into(), "W".into()],
+            vec![],
+            vec!["山".into()],
+            vec!["亚麻色".into(), "牙买加".into()],
+            vec!["やま".into(), "ヤマ".into()],
         );
-        // X (W), Y (W via dedup), Z (P via dedup), W (J)
-        assert_eq!(m.len(), 4);
+        // Expected order: 山 (JP kanji), pinyin entries, やま, ヤマ.
+        assert_eq!(m[0].word, "山");
+        assert_eq!(m[0].source, Source::Japanese);
+        assert_eq!(m[1].source, Source::Pinyin);
+        assert_eq!(m[2].source, Source::Pinyin);
+        // Kana lands at tail
+        assert_eq!(m[3].word, "やま");
+        assert_eq!(m[3].source, Source::Japanese);
+        assert_eq!(m[4].word, "ヤマ");
+    }
+
+    #[test]
+    fn ranking_wubi_jpkanji_pinyin_jpkana() {
+        let m = merge(
+            vec!["W".into()],
+            vec!["K".into()],
+            vec!["P".into()],
+            vec!["N".into()],
+        );
         assert_eq!(m[0].source, Source::Wubi);
-        assert_eq!(m[1].source, Source::Wubi);
+        assert_eq!(m[1].source, Source::Japanese);
+        assert_eq!(m[1].word, "K");
         assert_eq!(m[2].source, Source::Pinyin);
         assert_eq!(m[3].source, Source::Japanese);
+        assert_eq!(m[3].word, "N");
     }
 
     #[test]
     fn cap_at_max_per_input() {
         let many: Vec<String> = (0..MAX_PER_INPUT * 2).map(|i| i.to_string()).collect();
-        let m = merge(many.clone(), many.clone(), many);
+        let m = merge(many.clone(), many.clone(), many.clone(), many);
         assert_eq!(m.len(), MAX_PER_INPUT);
     }
 

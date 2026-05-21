@@ -50,11 +50,42 @@ impl JapaneseAdapter {
         self.engine.preedit()
     }
 
-    /// Materialize the engine's candidates into `Vec<String>` — the
-    /// shape the merge layer expects. Cheap (≤8 small allocations
-    /// per call; the engine caps at hiragana + katakana + ≤6 kanji).
+    /// Materialize ALL JP candidates as `Vec<String>` — kept for the
+    /// `commit_index` round-trip where the host already has the merged
+    /// list and just needs a flat slice.
     pub fn candidates(&self) -> Vec<String> {
         self.engine.candidates().iter().map(|c| c.word.clone()).collect()
+    }
+
+    /// JP candidates whose `kind == Kanji` (jukugo compound or single-
+    /// char by on/kun reading). These are the "high-conviction" JP
+    /// outputs — the user typing romaji that resolves to a known kanji
+    /// form clearly meant Japanese. Merged BEFORE pinyin in the host's
+    /// dispatch so 山 / 日本 / 私 / etc. rank prominently rather than
+    /// landing below a wall of pinyin fuzzy matches.
+    pub fn kanji_candidates(&self) -> Vec<String> {
+        use inputx_jp::KanaKind;
+        self.engine
+            .candidates()
+            .iter()
+            .filter(|c| c.kind == KanaKind::Kanji)
+            .map(|c| c.word.clone())
+            .collect()
+    }
+
+    /// JP candidates whose `kind` is Hiragana or Katakana. Lower
+    /// conviction (the kana form is mechanically derivable from any
+    /// romaji input — present even when there's no semantic JP word),
+    /// merged AFTER pinyin in the host's dispatch as the "always-
+    /// available fallback".
+    pub fn kana_candidates(&self) -> Vec<String> {
+        use inputx_jp::KanaKind;
+        self.engine
+            .candidates()
+            .iter()
+            .filter(|c| c.kind != KanaKind::Kanji)
+            .map(|c| c.word.clone())
+            .collect()
     }
 
     /// Commit by index into the engine's candidate list.
