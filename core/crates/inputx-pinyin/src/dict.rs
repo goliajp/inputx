@@ -347,6 +347,17 @@ impl PinyinDict {
         true
     }
 
+    /// Look up the user-pinned word for a given pinyin code, if any.
+    /// Composite hosts use this to apply cross-engine pin promotion —
+    /// e.g. if the user pinned pinyin `jixu → 继续`, the merged
+    /// candidate list (which may include a wubi entry for the same
+    /// code) needs to surface 继续 at position 0 even though wubi
+    /// candidates structurally lead in the merge order.
+    pub fn pinned_word(&self, pinyin: &str) -> Option<String> {
+        let lower = lower_str(pinyin);
+        self.l0.read().ok().and_then(|l0| l0.pins.get(&lower).cloned())
+    }
+
     /// Drop the pin for `pinyin` (if any) AND any pick counters for it.
     /// Returns whether any state was removed.
     pub fn forget(&self, pinyin: &str) -> bool {

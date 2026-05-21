@@ -55,34 +55,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             exit(1)
         }
         server = IMKServer(name: kConnectionName, bundleIdentifier: bundleID)
-        // Menubar status item is one user-facing settings surface; the
-        // Settings window (opened via `open -a Inputx` / Spotlight /
-        // Finder double-click — handlers below) is the other.
+        // Settings entry points (in order of discoverability):
+        //   1. Click the active input source in the macOS menu bar (the
+        //      one labelled "入 Inputx 五笔") — IMKInputController.menu()
+        //      override on `InputxController` injects "Inputx 设置…" as
+        //      the first item there.
+        //   2. NSStatusItem in the menu bar (`MenubarSettings`) — visible
+        //      when the user doesn't have menu-bar auto-hide on.
+        //
+        // We deliberately do NOT auto-open the Settings window from
+        // `applicationShouldHandleReopen` / `applicationOpenUntitledFile`
+        // because macOS dispatches those events during LaunchServices /
+        // IMK activation cycles too, which means every `launchctl bootout
+        // + bootstrap` (every dev reinstall, every system reboot) was
+        // popping the window. The IMK-menu entry covers the discoverability
+        // need without the side-effect.
         menubar = MenubarSettings()
-    }
-
-    /// Triggered when the user `open`s an already-running Inputx.app —
-    /// from Spotlight (type "Inputx" + Enter), the Dock (right-click →
-    /// Show), Terminal (`open -a Inputx`), or any AppleScript activate.
-    /// Default behaviour for an LSUIElement / IMK service is "nothing";
-    /// we hijack it to surface the Settings window, which is otherwise
-    /// only reachable via the menubar status item — easy to miss when
-    /// macOS's auto-hide menu bar keeps the icon invisible, or when
-    /// users confuse our "入" with macOS's system-input-source-switcher
-    /// "入" sitting right next to it.
-    func applicationShouldHandleReopen(_ sender: NSApplication,
-                                       hasVisibleWindows: Bool) -> Bool {
-        SettingsWindowController.shared.show()
-        return true
-    }
-
-    /// Triggered when the user opens Inputx.app from Finder while no
-    /// document path is given. IMEs are LSUIElement (no Dock icon) so
-    /// Finder double-click would otherwise be a no-op — same hijack
-    /// pattern as `applicationShouldHandleReopen`.
-    func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
-        SettingsWindowController.shared.show()
-        return true
     }
 }
 
