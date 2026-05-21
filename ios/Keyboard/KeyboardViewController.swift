@@ -86,6 +86,12 @@ final class KeyboardViewController: UIInputViewController {
         let engineMode = InputxEngineMode(rawValue: modeRaw) ?? .mixed
         session.setEngineMode(engineMode)
 
+        // JP plugin "enhancement" toggle (v1.2.0-α1). Independent of engineMode.
+        // Default false — JP candidates only appear if the user explicitly
+        // turns this on in Settings, OR if engineMode == .japaneseOnly.
+        let japaneseEnabled = inputxSharedDefaults.bool(forKey: "japaneseEnabled")
+        session.setJapaneseEnabled(japaneseEnabled)
+
         // Item 73 — read auto-commit policy from settings (default 3 =
         // OnFourCodesIfUnique). Missing key returns 0 (Never), so seed an
         // explicit default the first time we read it.

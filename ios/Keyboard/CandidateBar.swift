@@ -98,9 +98,19 @@ final class ChipView: UIView {
         // surrounding host text or other UI labels.
         accessibilityIdentifier = "candidate-\(text)"
         if showSourceDot, let src = source {
-            let color: UIColor = (src == .wubi) ? .systemBlue : .systemOrange
-            if dot.backgroundColor != color { dot.backgroundColor = color }
-            if dot.isHidden { dot.isHidden = false }
+            let color: UIColor
+            switch src {
+            case .wubi:     color = .systemBlue
+            case .pinyin:   color = .systemOrange
+            case .japanese: color = .systemPink  // distinct hue from W/P
+            case .unknown:  color = .clear
+            }
+            if color == .clear {
+                if !dot.isHidden { dot.isHidden = true }
+            } else {
+                if dot.backgroundColor != color { dot.backgroundColor = color }
+                if dot.isHidden { dot.isHidden = false }
+            }
         } else {
             if !dot.isHidden { dot.isHidden = true }
         }
@@ -434,9 +444,17 @@ final class CandidateBar: UIView {
             lines.append("\(c) — \(cp)")
         }
         if let s = source {
-            let tag = s == .wubi ? "五笔" : "拼音"
-            lines.append("")
-            lines.append("来源:\(tag)")
+            let tag: String
+            switch s {
+            case .wubi:     tag = "五笔"
+            case .pinyin:   tag = "拼音"
+            case .japanese: tag = "日语"
+            case .unknown:  tag = ""
+            }
+            if !tag.isEmpty {
+                lines.append("")
+                lines.append("来源:\(tag)")
+            }
         }
         return lines.joined(separator: "\n")
     }
@@ -451,10 +469,11 @@ final class CandidateBar: UIView {
         let position = "候选 \(index + 1)"
         let engineTag: String
         switch source {
-        case .wubi:    engineTag = "五笔"
-        case .pinyin:  engineTag = "拼音"
-        case .unknown: engineTag = ""
-        case .none:    engineTag = ""
+        case .wubi:     engineTag = "五笔"
+        case .pinyin:   engineTag = "拼音"
+        case .japanese: engineTag = "日语"
+        case .unknown:  engineTag = ""
+        case .none:     engineTag = ""
         }
         if engineTag.isEmpty {
             return "\(position): \(word)"

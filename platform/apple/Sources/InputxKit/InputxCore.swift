@@ -25,6 +25,11 @@ public enum InputxEngineMode: UInt8, Sendable, CaseIterable {
     case mixed = 0
     case wubiOnly = 1
     case pinyinOnly = 2
+    /// Japanese plugin runs standalone — wubi / pinyin dormant regardless
+    /// of the `japaneseEnabled` toggle (which is implicitly true here).
+    /// Reach this mode when the user wants pure Japanese input without
+    /// Chinese-candidate interference.
+    case japaneseOnly = 3
 }
 
 /// Top-level input mode — CJK vs EN. Orthogonal to `InputxEngineMode`.
@@ -48,6 +53,7 @@ public enum InputxL0Engine: UInt8, Sendable, CaseIterable {
 public enum InputxCandidateSource: UInt8, Sendable {
     case wubi = 0
     case pinyin = 1
+    case japanese = 2
     case unknown = 255
 }
 
@@ -149,6 +155,21 @@ public final class InputxSession {
     public var engineMode: InputxEngineMode {
         let raw = inputx_session_get_engine_mode(handle)
         return InputxEngineMode(rawValue: raw) ?? .mixed
+    }
+
+    /// Japanese plugin "enhancement" toggle. Independent of `engineMode`:
+    /// - In `.mixed` / `.wubiOnly` / `.pinyinOnly`: when on, JP candidates
+    ///   are appended after the Chinese candidates.
+    /// - In `.japaneseOnly`: implicitly true (mode forces JP).
+    /// Default OFF.
+    public var japaneseEnabled: Bool {
+        get { inputx_session_get_japanese_enabled(handle) != 0 }
+        set { _ = inputx_session_set_japanese_enabled(handle, newValue ? 1 : 0) }
+    }
+
+    @discardableResult
+    public func setJapaneseEnabled(_ on: Bool) -> Bool {
+        return inputx_session_set_japanese_enabled(handle, on ? 1 : 0) != 0
     }
 
     /// Switch the top-level input mode. `.cjk → .en` while composing

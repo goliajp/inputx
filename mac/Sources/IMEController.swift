@@ -218,6 +218,7 @@ final class InputxController: IMKInputController {
     private func applySettingsToSession() {
         session.setEngineMode(inputxSettings.engineMode)
         session.setAutoCommitPolicy(inputxSettings.autoCommitPolicy)
+        session.setJapaneseEnabled(inputxSettings.japaneseEnabled)
     }
 
     private func mapModifiers(_ flags: NSEvent.ModifierFlags) -> InputxModifiers {
