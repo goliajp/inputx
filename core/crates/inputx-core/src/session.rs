@@ -515,6 +515,29 @@ mod tests {
     }
 
     #[test]
+    fn wcng_top_candidate_is_phrase_gongsi_not_rare_single_char() {
+        // Regression for the dual of gmww — at full code, when the
+        // single-char's freq is LOWER than the phrase's, the phrase
+        // wins. Pre-fix, the absolute-`freq > 0` rule promoted ANY
+        // single-char with corpus presence (鹟 freq 5961) above the
+        // phrase, even when the phrase had far higher actual frequency
+        // (公司 freq 42817). The corrected rule compares freqs.
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for cp in b"wcng" {
+            sess.handle_key(*cp as u32, 0);
+        }
+        let cands = sess.candidates();
+        assert!(!cands.is_empty());
+        assert_eq!(
+            cands.first().map(String::as_str),
+            Some("公司"),
+            "wcng top candidate should be 公司, got {:?}",
+            cands.first()
+        );
+    }
+
+    #[test]
     fn gmww_top_candidate_is_single_char_liang_not_phrase() {
         // Regression: at a fully-typed 4-letter wubi code, the canonical
         // single-char answer must rank above any phrase sharing the code.
