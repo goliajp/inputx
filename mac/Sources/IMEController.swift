@@ -160,14 +160,44 @@ final class InputxController: IMKInputController {
             return true
         }
 
-        // ---- Path B: symbol / punctuation in zh mode -----------------------
-        // The engine doesn't know about CJK punct mapping; we apply it
-        // before routing. Only fires when the engine is NOT composing.
-        if !session.isComposing && codepoint < 0x80 {
-            if let mapped = applyLocaleIfApplicable(codepoint: codepoint) {
+        // ---- Path B: ASCII punct / symbol -- one consistent flow -------
+        //
+        // Behavior contract (also defends against two user-reported bugs):
+        //   (1) "houxuan + ," ghost-candidate. Previously, the engine's
+        //       default-arm pushed 候选 to `pending_commit` then escaped,
+        //       and returned consumed=false. The host then received the
+        //       raw `,` via IMK default routing, but IMEController never
+        //       drained `pending_commit` on the consumed=false branch —
+        //       so 候选 hung around as a ghost that re-appeared on the
+        //       next keystroke. Fix: on punct mid-compose, *force-commit
+        //       the top candidate via the IME path* (deterministic),
+        //       hide the panel, then process the punct as if not
+        //       composing (Path B locale mapping below).
+        //   (2) `shift+"` returns CJK single quote instead of double.
+        //       `charactersIgnoringModifiers` on some keyboard layouts
+        //       returns 0x27 (`'`) for the apostrophe key even when
+        //       shift is held. We pass `event` into
+        //       `applyLocaleIfApplicable` so it can read the live shift
+        //       state and route 0x27+shift to the double-quote map.
+        if codepoint < 0x80 && isAsciiPunctKey(codepoint) {
+            if session.isComposing {
+                if let top = session.commit(at: 0), !top.isEmpty {
+                    commitText(top, to: sender)
+                }
+                candidatePanel?.hide()
+                updatePreedit(client: sender)
+                // Fall through — punct is now in "not composing" state.
+            }
+            if let mapped = applyLocaleIfApplicable(
+                codepoint: codepoint,
+                event: event
+            ) {
                 commitText(mapped, to: sender)
                 return true
             }
+            // No CJK mapping (and useCjkPunct may be off) — pass the
+            // raw ASCII punct through to host via IMK default routing.
+            return false
         }
 
         // ---- Path C: engine input ------------------------------------------
@@ -188,6 +218,17 @@ final class InputxController: IMKInputController {
         updatePreedit(client: sender)
         candidatePanel?.refresh(session: session, client: sender as AnyObject?)
         return true
+    }
+
+    /// `true` iff `codepoint` is a printable ASCII non-alphanumeric — i.e.,
+    /// the characters that *might* belong in CJK punct or smart-quote
+    /// territory. Excludes 0–31 (control) and 0x7F.
+    private func isAsciiPunctKey(_ codepoint: UInt32) -> Bool {
+        guard (0x21...0x7E).contains(codepoint) else { return false }
+        let isDigit = (0x30...0x39).contains(codepoint)
+        let isUpper = (0x41...0x5A).contains(codepoint)
+        let isLower = (0x61...0x7A).contains(codepoint)
+        return !isDigit && !isUpper && !isLower
     }
 
     /// Process a `flagsChanged` event. Routes shift toggles through the
@@ -337,7 +378,16 @@ final class InputxController: IMKInputController {
 
     /// Returns the post-locale-mapping string to insert, or `nil` if no
     /// mapping applied (caller falls through to engine path).
-    private func applyLocaleIfApplicable(codepoint: UInt32) -> String? {
+    ///
+    /// `event` is read for the shift modifier state, which disambiguates
+    /// the quote-key codepoint on layouts where `charactersIgnoringModifiers`
+    /// returns 0x27 (apostrophe) regardless of whether shift is held —
+    /// pressing shift on the same physical key clearly signals "double
+    /// quote intent" and we route accordingly.
+    private func applyLocaleIfApplicable(
+        codepoint: UInt32,
+        event: NSEvent
+    ) -> String? {
         guard inputxSettings.useCjkPunct else {
             // Pure full-width mode: only the width toggle applies.
             return inputxSettings.useFullWidth
@@ -346,9 +396,19 @@ final class InputxController: IMKInputController {
         }
 
         // Quote chars route through the session's stateful smart-quote.
+        // Apostrophe + shift → force-interpret as double-quote regardless
+        // of what the layout returned. (`charactersIgnoringModifiers` on
+        // some layouts returns 0x27 for shift+apostrophe; trust the
+        // modifier flag over the layout's mapping.)
         if codepoint == 0x22 /* " */ || codepoint == 0x27 /* ' */ {
-            let mapped = session.smartQuote(codepoint)
-            if mapped != codepoint {
+            let cp: UInt32 = if codepoint == 0x27
+                && event.modifierFlags.contains(.shift) {
+                0x22
+            } else {
+                codepoint
+            }
+            let mapped = session.smartQuote(cp)
+            if mapped != cp {
                 return stringFromCodepoint(mapped)
             }
         }
