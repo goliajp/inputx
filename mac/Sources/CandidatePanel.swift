@@ -27,7 +27,26 @@ final class CandidatePanel {
             server: server,
             panelType: kIMKSingleColumnScrollingCandidatePanel
         )
-        self.panel.setSelectionKeysKeylayout(TISCopyCurrentKeyboardInputSource().takeRetainedValue())
+        // P0 nil-check — `TISCopyCurrentKeyboardInputSource()` can return
+        // NULL during IMKServer bring-up race (IM switch in progress,
+        // CursorUIViewService not yet spawned, user has no keyboard
+        // source set). Force-unwrapping via `.takeRetainedValue()` on
+        // the resulting Unmanaged<T>! either traps directly or poisons
+        // IMKCandidates' internal `_currentKeyboardLayout` ivar with
+        // NULL. The poisoned ivar then propagates: when the system's
+        // `TUINSCursorUIController._selectCurrentInputSource` later
+        // does a `CFRelease` on it (via `TSMMessagePortCallBack`
+        // broadcast on input-source switch), every text-input host app
+        // receiving the broadcast traps with `CFRelease(NULL)` →
+        // SIGTRAP. Observed crashing WeChat 4.1.9 on macOS 26.5
+        // every time the user switched into/out of Inputx. The fix is
+        // to skip the call when TIS returns NULL — IMKCandidates falls
+        // back to a default keyboard layout for selection-key parsing.
+        if let cur = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() {
+            self.panel.setSelectionKeysKeylayout(cur)
+        } else {
+            NSLog("Inputx CandidatePanel: TISCopyCurrentKeyboardInputSource returned nil; skipping setSelectionKeysKeylayout")
+        }
         // 1-9 number-key shortcut for committing the corresponding candidate.
         // 0 deliberately skipped so it stays available as a plain digit.
         self.panel.setSelectionKeys([18, 19, 20, 21, 23, 22, 26, 28, 25])
