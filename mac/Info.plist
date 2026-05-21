@@ -2,11 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- ===== Basic bundle identity ===== -->
+    <!-- Bundle identity -->
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
     <string>Inputx</string>
+    <!-- The `.inputmethod.` infix is the canonical reverse-DNS namespace
+         that the macOS input-source picker uses to recognize third-party
+         IME bundles. Drop the infix and the picker won't enumerate. -->
     <key>CFBundleIdentifier</key>
     <string>jp.golia.inputmethod.wubi</string>
     <key>CFBundleInfoDictionaryVersion</key>
@@ -19,8 +22,6 @@
     <string>1.0.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
-    <!-- Differentiated 4-char creator code (was "????"). Cosmetic but matches
-         the convention vChewing follows (MACV) — distinct per-IME. -->
     <key>CFBundleSignature</key>
     <string>INPX</string>
     <key>CFBundleSupportedPlatforms</key>
@@ -31,63 +32,56 @@
     <string>13.0</string>
     <key>NSHumanReadableCopyright</key>
     <string>© 2026 Golia K.K. / Inputx contributors. MIT License.</string>
-    <!-- ===== LaunchServices / UI behavior ===== -->
-    <!-- LSUIElement (not LSBackgroundOnly): an IME needs to be able to
-         display a candidate window, so it must be UI-element, not pure
-         background. Matches vChewing / Apple SCIM / gureum / fcitx5. -->
+
+    <!-- LaunchServices behavior -->
     <key>LSUIElement</key>
     <true/>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.utilities</string>
-    <!-- Read CFBundleName / CFBundleDisplayName from per-locale
-         `.lproj/InfoPlist.strings` rather than from this plist. Without
-         this opt-in, LS treats the inline CFBundleDisplayName as a
-         language-free fallback and the input-source picker has no
-         per-language binding for the bundle. We dropped the top-level
-         CFBundleDisplayName entirely and rely on
-         Resources/{Base,en,zh-Hans,zh-Hant,ja}.lproj/InfoPlist.strings. -->
+    <!-- Read CFBundleName / CFBundleDisplayName / per-mode display labels
+         from `Resources/<locale>.lproj/InfoPlist.strings`. The mode-id =>
+         label mapping in each .strings file is what the picker shows under
+         each language tab. -->
     <key>LSHasLocalizedDisplayName</key>
     <true/>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
-    <!-- Standard modern Cocoa behavior toggles. vChewing sets these
-         explicitly; we follow suit to keep our plist consistent with the
-         working third-party reference. -->
     <key>NSRequiresAquaSystemAppearance</key>
     <string>No</string>
     <key>NSSupportsSuddenTermination</key>
     <false/>
     <key>UIDesignRequiresCompatibility</key>
     <false/>
-    <!-- ===== Bundle icon ===== -->
-    <!-- Apple convention: bundle icon shipped as `.icns` named via
-         CFBundleIconFile + CFBundleIconName. build.sh generates
-         Resources/inputx_app_icon.icns from inputx_menu_icon.tiff so the
-         LaunchServices record gets the `icons`, `iconName`, `icon flags`
-         fields populated (matching vChewing's LS record). -->
+
+    <!-- App icon. CFBundleIconFile (legacy) + CFBundleIconName (modern)
+         both point to the same .icns; build.sh generates it from the menu
+         TIFF via `sips -s format icns`. -->
     <key>CFBundleIconFile</key>
     <string>inputx_app_icon</string>
     <key>CFBundleIconName</key>
     <string>inputx_app_icon</string>
-    <!-- ===== IMK server wiring ===== -->
+
+    <!-- IMK server wiring. InputMethodConnectionName is the Mach service
+         name the IMK server registers; the matching entitlement is in
+         Inputx.entitlements. -->
     <key>InputMethodConnectionName</key>
     <string>jp.golia.inputmethod.wubi_Connection</string>
     <key>InputMethodServerControllerClass</key>
     <string>InputxController</string>
     <key>InputMethodServerDelegateClass</key>
     <string>InputxController</string>
-    <!-- ===== Top-level TIS umbrella source ===== -->
-    <!-- vChewing declares this at top level (in addition to per-mode
-         TISInputSourceID inside ComponentInputModeDict children). The
-         umbrella entry is what TIS lists as the bundle-level input source
-         separate from the per-mode entries. -->
+
+    <!-- Top-level TIS umbrella source: bundle-level TIS entry separate
+         from the per-mode entries inside ComponentInputModeDict. -->
     <key>TISInputSourceID</key>
     <string>jp.golia.inputmethod.wubi</string>
     <key>TISIconIsTemplate</key>
     <true/>
     <key>TISParticipatesInTouchBar</key>
     <false/>
-    <!-- ===== IMK metadata ===== -->
+
+    <!-- IMK character repertoire + menu icon (TIFF, used by the menu-bar
+         input-source indicator; distinct from the bundle .icns above). -->
     <key>tsInputMethodCharacterRepertoireKey</key>
     <array>
         <string>Latn</string>
@@ -95,6 +89,7 @@
     </array>
     <key>tsInputMethodIconFileKey</key>
     <string>inputx_menu_icon.tiff</string>
+
     <key>ComponentInputModeDict</key>
     <dict>
         <key>tsInputModeListKey</key>
@@ -103,6 +98,8 @@
             <dict>
                 <key>TISInputSourceID</key>
                 <string>jp.golia.inputmethod.wubi.zh</string>
+                <!-- TISIntendedLanguage routes the mode to a specific
+                     language tab in the System Settings picker. -->
                 <key>TISIntendedLanguage</key>
                 <string>zh-Hans</string>
                 <key>TISIconLabels</key>
@@ -110,10 +107,6 @@
                     <key>Primary</key>
                     <string>五笔</string>
                 </dict>
-                <!-- smUnicode + TISIntendedLanguage is the modern declaration
-                     (vChewing / Apple SCIM convention). Legacy smSimpChinese
-                     still works for grandfathered installs but new bundles on
-                     macOS 26 should use smUnicode. -->
                 <key>tsInputModeScriptKey</key>
                 <string>smUnicode</string>
                 <key>tsInputModeCharacterRepertoireKey</key>

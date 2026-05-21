@@ -3,8 +3,8 @@
 #
 # Output: build/Inputx-1.0.0.pkg
 # Layout: payload installs to /Library/Input Methods/Inputx.app, then
-# `scripts/postinstall` registers with Launch Services and prompts the
-# user to log out + back in (one-time macOS requirement for fresh IME).
+# `scripts/postinstall` registers with TIS + invalidates the user's
+# IntlDataCache so the IME shows up in the picker without a logout.
 #
 # Signing & notarization:
 #   - If a Developer ID Installer certificate is in the keychain, the
