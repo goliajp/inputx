@@ -18,6 +18,7 @@ const CP_ESCAPE: u32 = 0x1B;
 const CP_SPACE: u32 = b' ' as u32;
 const CP_RETURN_CR: u32 = 0x0D;
 const CP_RETURN_LF: u32 = 0x0A;
+const CP_TAB: u32 = 0x09;
 
 pub struct Session {
     composite: CompositeEngine,
@@ -203,6 +204,16 @@ impl Session {
                     self.append_pending(raw);
                 }
                 true
+            }
+            CP_TAB => {
+                // Tab is reserved for future candidate page navigation.
+                // While composing: swallow silently — no state change, no
+                // commit, no \t to host. The default branch would otherwise
+                // force-commit the top candidate and pass \t through, which
+                // is the wrong UX (user expects tab to be a no-op or page
+                // candidates, never a "commit + tab" combo). Not composing:
+                // passthrough so plain tab still inserts a tab character.
+                self.composite.is_composing()
             }
             cp if (b'0' as u32..=b'9' as u32).contains(&cp) => {
                 if !self.composite.is_composing() {
@@ -485,6 +496,33 @@ mod tests {
     }
 
     #[test]
+    fn gmww_top_candidate_is_single_char_liang_not_phrase() {
+        // Regression: at a fully-typed 4-letter wubi code, the canonical
+        // single-char answer must rank above any phrase sharing the code.
+        // Pre-fix, 两 (Auto layer, base ~100k) lost to 两败俱伤 (Phrase
+        // layer, base ~400k) at gmww. The full-code single-char-wins
+        // rule in `inputx_wubi::dict::lookup_into` corrects this.
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for cp in b"gmww" {
+            sess.handle_key(*cp as u32, 0);
+        }
+        let cands = sess.candidates();
+        assert!(!cands.is_empty(), "expected gmww candidates");
+        assert_eq!(
+            cands.first().map(String::as_str),
+            Some("两"),
+            "gmww top candidate should be 两 (single char), got {:?}",
+            cands.first()
+        );
+        // 两败俱伤 should still appear, just not at #1.
+        assert!(
+            cands.iter().any(|w| w == "两败俱伤"),
+            "phrase 两败俱伤 should still appear in gmww candidates"
+        );
+    }
+
+    #[test]
     fn item_47_mixed_pinyin_input_gives_pinyin_candidate() {
         // Manual probe per ROADMAP item 47: `zhongguo` → 中国 (Source::Pinyin).
         let mut sess = s();
@@ -665,6 +703,33 @@ mod tests {
         // so the host receives the \n normally.
         let mut sess = s();
         assert!(!sess.handle_key(CP_RETURN, 0));
+        assert!(sess.take_pending_commit().is_none());
+    }
+
+    #[test]
+    fn cjk_tab_with_preedit_is_swallowed() {
+        // Tab while composing must not leak to the host (no \t in the
+        // text field) and must not disturb preedit. Reserved for future
+        // candidate page navigation.
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for cp in b"jeg" {
+            sess.handle_key(*cp as u32, 0);
+        }
+        let preedit_before = sess.preedit().to_string();
+        let cands_before = sess.candidate_count();
+        assert!(sess.handle_key(0x09, 0));
+        assert!(sess.take_pending_commit().is_none());
+        assert_eq!(sess.preedit(), preedit_before);
+        assert_eq!(sess.candidate_count(), cands_before);
+    }
+
+    #[test]
+    fn cjk_tab_without_preedit_passes_through() {
+        // Plain tab with no composing → engine doesn't consume so the
+        // host receives \t as a tab character.
+        let mut sess = s();
+        assert!(!sess.handle_key(0x09, 0));
         assert!(sess.take_pending_commit().is_none());
     }
 

@@ -11,6 +11,21 @@ final class InputxSessionIntegrationTests: XCTestCase {
         InputxSession()
     }
 
+    /// Regression: gmww (full 4-letter code) must rank single-char 两
+    /// above the phrase 两败俱伤. Without the full-code-single-char-wins
+    /// rule in inputx-wubi's lookup sort, Auto-layer chars lose to
+    /// Phrase-layer idioms via layer base weight alone.
+    func testCjkGmwwTopCandidateIsLiang() {
+        let s = session()
+        s.setAutoCommitPolicy(.never)
+        for cp in "gmww".unicodeScalars {
+            _ = s.handleKey(codepoint: cp.value, modifiers: [])
+        }
+        XCTAssertGreaterThan(s.candidateCount, 0)
+        XCTAssertEqual(s.candidate(at: 0), "两",
+                       "gmww top candidate should be 两 (single char)")
+    }
+
     /// CJK wubi pipeline still works: `khlg` + space → "中国". khlg is the
     /// canonical multi-candidate test code in the engine's own tests; using
     /// the same input keeps this test deterministic across data refreshes.
@@ -47,6 +62,30 @@ final class InputxSessionIntegrationTests: XCTestCase {
     func testCjkReturnWithoutPreeditPassesThrough() {
         let s = session()
         XCTAssertFalse(s.handleKey(codepoint: 0x0D, modifiers: []))
+        XCTAssertNil(s.takeCommit())
+    }
+
+    /// CJK + non-empty preedit + tab → engine swallows it. Tab is reserved
+    /// for future candidate page navigation; right now the only requirement
+    /// is that the host doesn't get a stray \t inserted ahead of an
+    /// inadvertently committed candidate.
+    func testCjkTabWithPreeditIsSwallowed() {
+        let s = session()
+        s.setAutoCommitPolicy(.never)
+        for cp in "jeg".unicodeScalars {
+            _ = s.handleKey(codepoint: cp.value, modifiers: [])
+        }
+        let preeditBefore = s.preedit
+        XCTAssertTrue(s.handleKey(codepoint: 0x09, modifiers: []),
+                      "tab while composing must be consumed")
+        XCTAssertNil(s.takeCommit())
+        XCTAssertEqual(s.preedit, preeditBefore)
+    }
+
+    /// CJK + empty preedit + tab → passthrough, host inserts a tab.
+    func testCjkTabWithoutPreeditPassesThrough() {
+        let s = session()
+        XCTAssertFalse(s.handleKey(codepoint: 0x09, modifiers: []))
         XCTAssertNil(s.takeCommit())
     }
 
