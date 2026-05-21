@@ -1,31 +1,23 @@
+// Diagnostic: dump the TIS database entries for Inputx.
+// Usage: `swift mac/list_sources.swift`
+// 0 hits + a fresh install = check `~/Library/Input Methods/Inputx.app`,
+// the bundle's code-sign state, and the IntlDataCache files described in
+// docs/macos-ime-debugging.md (delete to force TIS rebuild).
 import Foundation
 import Carbon
 
-// Try filtering by our bundle ID
-let filterBundleID = "jp.golia.inputx"
-let props = [kTISPropertyBundleID: filterBundleID] as CFDictionary
-if let list = TISCreateInputSourceList(props, true)?.takeRetainedValue() as? [TISInputSource] {
-    print("filtered by bundle id: \(list.count)")
-    for src in list {
-        func get(_ key: CFString) -> String? {
-            guard let p = TISGetInputSourceProperty(src, key) else { return nil }
-            return Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
-        }
-        let id = get(kTISPropertyInputSourceID) ?? "?"
-        let name = get(kTISPropertyLocalizedName) ?? "?"
-        let bundleID = get(kTISPropertyBundleID) ?? "?"
-        let cat = get(kTISPropertyInputSourceCategory) ?? "?"
-        print("  id=\(id) name=\(name) bundle=\(bundleID) cat=\(cat)")
-    }
-}
+let bundleID = "jp.golia.inputmethod.wubi"
+let filter = [kTISPropertyBundleID: bundleID] as CFDictionary
 
-// Also dump unique categories, to see what's expected
-if let allList = TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource] {
-    var cats = Set<String>()
-    for src in allList {
-        if let p = TISGetInputSourceProperty(src, kTISPropertyInputSourceCategory) {
-            cats.insert(Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String)
-        }
+guard let list = TISCreateInputSourceList(filter, true)?.takeRetainedValue() as? [TISInputSource] else {
+    print("no TIS sources for \(bundleID)")
+    exit(0)
+}
+print("\(list.count) TIS source(s) for \(bundleID):")
+for src in list {
+    func get(_ key: CFString) -> String {
+        guard let p = TISGetInputSourceProperty(src, key) else { return "?" }
+        return Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
     }
-    print("\nall categories seen: \(cats)")
+    print("  \(get(kTISPropertyInputSourceID))  name=\(get(kTISPropertyLocalizedName))  cat=\(get(kTISPropertyInputSourceCategory))")
 }

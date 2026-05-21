@@ -6,52 +6,51 @@ cd "$(dirname "$0")"
 APP_NAME="Inputx"
 PROJECT_ROOT="$(cd .. && pwd)"
 APP_SRC="$PROJECT_ROOT/build/$APP_NAME.app"
-
-# macOS 26.x (Tahoe) won't enumerate user-local third-party IMEs in
-# `~/Library/Input Methods/` reliably anymore — the System Settings
-# "Add Input Source" picker only sees system-wide installs at
-# `/Library/Input Methods/`. Default to system-wide here so the .app
-# actually shows up after install. Set `USER_INSTALL=1` to keep the old
-# behaviour (e.g., for testing without sudo).
-if [ "${USER_INSTALL:-0}" = "1" ]; then
-    APP_DST="$HOME/Library/Input Methods/$APP_NAME.app"
-    INSTALL_CMD=(cp -R "$APP_SRC" "$APP_DST")
-    NEEDS_SUDO=false
-else
-    APP_DST="/Library/Input Methods/$APP_NAME.app"
-    INSTALL_CMD=(sudo cp -R "$APP_SRC" "$APP_DST")
-    NEEDS_SUDO=true
-fi
+APP_DST="$HOME/Library/Input Methods/$APP_NAME.app"
 
 if [ ! -d "$APP_SRC" ]; then
     echo "Build not found at $APP_SRC. Run ./build.sh first." >&2
     exit 1
 fi
 
-# Kill running instance so the binary isn't busy.
 pkill -x "$APP_NAME" 2>/dev/null || true
 
-if [ "$NEEDS_SUDO" = "true" ]; then
-    echo "[install] system-wide install (sudo required) → $APP_DST"
-    sudo rm -rf "$APP_DST"
-    sudo mkdir -p "$(dirname "$APP_DST")"
-else
-    echo "[install] user-local install → $APP_DST"
-    rm -rf "$APP_DST"
-    mkdir -p "$(dirname "$APP_DST")"
+# Remove any prior install. If a `.pkg` previously installed Inputx, the
+# bundle may be root-owned and need an admin prompt to clear.
+if [ -d "$APP_DST" ]; then
+    if [ -w "$APP_DST" ] && [ -w "$APP_DST/Contents" ]; then
+        rm -rf "$APP_DST"
+    else
+        echo "[install] removing root-owned prior install (admin password)"
+        osascript -e "do shell script \"rm -rf '$APP_DST'\" with administrator privileges"
+    fi
 fi
 
-"${INSTALL_CMD[@]}"
-echo "[install] copied to: $APP_DST"
+echo "[install] → $APP_DST"
+mkdir -p "$(dirname "$APP_DST")"
+cp -R "$APP_SRC" "$APP_DST"
 
-# Force the IME catalog to re-enumerate. Without this the picker may
-# still show the cached list from before the install.
-killall -KILL TextInputMenuAgent 2>/dev/null || true
+# Register with TIS + enable each declared input mode (see main.swift
+# `install` CLI handler). Runs as the current user so the registration
+# lands in the user's TIS database.
+"$APP_DST/Contents/MacOS/$APP_NAME" install
 
-echo
-echo "Next steps:"
-echo "  1) Open System Settings → Keyboard → Input Sources → Edit (or +)"
-echo "  2) Add: Chinese (Simplified) → Inputx 输入法"
-echo "  3) Switch to it via the menu-bar input source picker"
-echo
-echo "If it doesn't show up, log out and back in (or reboot) — macOS caches input sources."
+# Restart TextInputMenuAgent so the menu-bar input-source picker re-reads
+# its display cache after our new bundle entered TIS.
+killall TextInputMenuAgent 2>/dev/null || true
+
+# Unregister the build/ source bundle from LaunchServices so the csstore
+# doesn't shadow the install with a stale entry. See _purge_ls.sh.
+if [ "${KEEP_BUILD_APP:-0}" != "1" ]; then
+    # shellcheck source=./_purge_ls.sh
+    source "$(dirname "$0")/_purge_ls.sh"
+    purge_ls_app "$APP_SRC"
+fi
+
+cat <<EOF
+
+Installed. Next steps:
+  1. System Settings → Keyboard → Text Input → Edit → +
+  2. Add: 简体中文 → Inputx 五笔
+  3. Approve the third-party IME prompt
+EOF

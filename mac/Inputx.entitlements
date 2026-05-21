@@ -2,12 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- Required under hardened runtime: the IMK server registers a Mach
-         service named in Info.plist's `InputMethodConnectionName`. Without
-         this exception, sandbox + hardened runtime block the register call
-         and the IME never finishes registering with the system — which is
-         exactly why the input-source picker won't enumerate the bundle. -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <!-- IMK servers register a Mach service named after `InputMethodConnectionName`
+         in Info.plist. The sandbox blocks bootstrap_register without this exception. -->
     <key>com.apple.security.temporary-exception.mach-register.global-name</key>
-    <string>jp.golia.inputx_Connection</string>
+    <string>jp.golia.inputmethod.wubi_Connection</string>
 </dict>
 </plist>
