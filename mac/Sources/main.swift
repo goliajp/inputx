@@ -55,9 +55,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             exit(1)
         }
         server = IMKServer(name: kConnectionName, bundleIdentifier: bundleID)
-        // Menubar status item is the only user-facing settings surface —
-        // there's no container app on macOS.
+        // Menubar status item is one user-facing settings surface; the
+        // Settings window (opened via `open -a Inputx` / Spotlight /
+        // Finder double-click — handlers below) is the other.
         menubar = MenubarSettings()
+    }
+
+    /// Triggered when the user `open`s an already-running Inputx.app —
+    /// from Spotlight (type "Inputx" + Enter), the Dock (right-click →
+    /// Show), Terminal (`open -a Inputx`), or any AppleScript activate.
+    /// Default behaviour for an LSUIElement / IMK service is "nothing";
+    /// we hijack it to surface the Settings window, which is otherwise
+    /// only reachable via the menubar status item — easy to miss when
+    /// macOS's auto-hide menu bar keeps the icon invisible, or when
+    /// users confuse our "入" with macOS's system-input-source-switcher
+    /// "入" sitting right next to it.
+    func applicationShouldHandleReopen(_ sender: NSApplication,
+                                       hasVisibleWindows: Bool) -> Bool {
+        SettingsWindowController.shared.show()
+        return true
+    }
+
+    /// Triggered when the user opens Inputx.app from Finder while no
+    /// document path is given. IMEs are LSUIElement (no Dock icon) so
+    /// Finder double-click would otherwise be a no-op — same hijack
+    /// pattern as `applicationShouldHandleReopen`.
+    func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        SettingsWindowController.shared.show()
+        return true
     }
 }
 
