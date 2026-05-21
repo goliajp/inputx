@@ -11,6 +11,7 @@
 //! concerns and would only add ambiguity to a passthrough-style JP
 //! engine at this MVP stage.
 
+use crate::jukugo;
 use crate::kanji;
 use crate::romaji;
 
@@ -114,10 +115,37 @@ impl JapaneseEngine {
         self.candidates.clear();
         let s = std::str::from_utf8(&self.buffer).unwrap_or("");
 
-        // Whole-buffer kana renderings always come first — they're the
-        // "I just want kana" answers the user is most likely to commit
-        // when JP is enabled in enhancement mode (and only answers when
-        // standalone JP with no kanji match).
+        // Order within the JP block (the host appends after wubi/pinyin
+        // via the composite layer; this is the *relative* order JP
+        // candidates land in within the merged list):
+        //
+        //   1. 熟語 compound match (whole-buffer, e.g. nihon → 日本)
+        //   2. Single-kanji by on/kun reading (e.g. watashi → 私)
+        //   3. Hiragana of the full buffer
+        //   4. Katakana of the full buffer
+        //
+        // Kanji forms come first because that's the actual conversion
+        // target most users care about — kana is always available via
+        // the row 3 / 4 fallback, but if 日本 appears at position 9
+        // (after both kana variants) users rightly feel it's buried.
+        // Standard JP IME workflow is: type romaji, see kanji
+        // candidates immediately, fall back to kana via the lower
+        // slots if none of the kanji matches intent.
+
+        for compound in jukugo::lookup_by_reading(s) {
+            self.candidates.push(Candidate {
+                word: compound.to_string(),
+                kind: KanaKind::Kanji,
+            });
+        }
+
+        for kanji_char in kanji::lookup_by_reading(s) {
+            self.candidates.push(Candidate {
+                word: kanji_char.to_string(),
+                kind: KanaKind::Kanji,
+            });
+        }
+
         let h = romaji::to_hiragana(s);
         if !h.is_empty() && h != s {
             self.candidates.push(Candidate {
@@ -130,17 +158,6 @@ impl JapaneseEngine {
             self.candidates.push(Candidate {
                 word: k,
                 kind: KanaKind::Katakana,
-            });
-        }
-
-        // Single-kanji lookup: if the FULL buffer is a valid on-yomi
-        // reading, surface matching kanji after the kana renderings.
-        // Multi-syllable buffer → no kanji (compound conversion is
-        // future work, not v0.1 scope).
-        for kanji_char in kanji::lookup_by_reading(s) {
-            self.candidates.push(Candidate {
-                word: kanji_char.to_string(),
-                kind: KanaKind::Kanji,
             });
         }
     }
