@@ -105,6 +105,19 @@ impl PinyinAdapter {
         &self.candidates
     }
 
+    /// User-pinned word for the *current* pinyin buffer, if any. Used by
+    /// composite::engine to apply cross-engine pin promotion: when the
+    /// user has explicitly trained `jixu → 继续`, the merged candidate
+    /// list should surface 继续 at position 0 even though wubi-3-char-
+    /// phrase coincidence (曳光弹 also encodes to `jixu`) would
+    /// structurally push 曳光弹 ahead of pinyin in the merge.
+    pub fn pinned_word_for_buffer(&self) -> Option<String> {
+        if self.buffer.is_empty() {
+            return None;
+        }
+        self.engine.dict().pinned_word(&self.buffer)
+    }
+
     /// `true` if the current buffer is a prefix of at least one word in
     /// the pinyin dict (i.e., the user could keep typing and land on a
     /// real pinyin word). Used by the composite engine to veto wubi

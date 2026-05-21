@@ -967,3 +967,40 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod cross_engine_pin {
+    use super::*;
+    /// `jixu` is a natural code collision: wubi-3-char-phrase encoding
+    /// for 曳光弹 (曳=j..., 光=i..., 弹=xu...) equals the pinyin
+    /// reading for 继续 / 急需 / etc. In Mixed mode with the wubi-first
+    /// merge rule, 曳光弹 takes #0 even though 继续 has 6× the corpus
+    /// freq. The user has a L0 pin `jixu → 继续` recorded over time,
+    /// and the composite engine's pin-promotion pass must surface that
+    /// pin across the engine boundary — wubi's structural priority
+    /// loses to an explicit user pin.
+    #[test]
+    fn pinyin_pin_promotes_across_engine_in_mixed_mode() {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        // Import a pinyin L0 with the jixu→继续 pin (mirrors what loads
+        // at runtime from ~/Library/.../pinyin_l0.json).
+        let pin_json = r#"{
+            "version": 1,
+            "engine": "pinyin",
+            "pins": [["jixu", "继续"]],
+            "pick_counts": []
+        }"#;
+        let n = sess.import_l0_json(1, pin_json);
+        assert_eq!(n, 1, "L0 import should accept the pin");
+
+        for cp in b"jixu" { sess.handle_key(*cp as u32, 0); }
+        let cands = sess.candidates();
+        assert_eq!(
+            cands.first().map(String::as_str),
+            Some("继续"),
+            "expected 继续 at #0 via pinyin pin promotion. Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+}
