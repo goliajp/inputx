@@ -51,7 +51,7 @@ PKGBUILD_ARGS=(
     --root "$STAGE"
     --install-location "/Library/Input Methods"
     --scripts pkg/scripts
-    --identifier "jp.golia.inputx.pkg"
+    --identifier "jp.golia.inputmethod.wubi.pkg"
     --version "$VERSION"
     --ownership recommended
 )
@@ -76,6 +76,16 @@ if [ -n "$INSTALLER_ID" ] && /usr/bin/security find-generic-password -s "com.app
     /usr/bin/xcrun stapler validate "$PKG_OUT"
 else
     echo "[pkg] skipping notarization (unsigned .pkg, or no '$NOTARY_PROFILE' notary profile)"
+fi
+
+# Purge the staging .app — once the .pkg is sealed, the loose stage copy
+# only pollutes LaunchServices (see mac/_purge_ls.sh for the full story).
+# Override with KEEP_BUILD_APP=1 to keep $STAGE for inspection.
+if [ "${KEEP_BUILD_APP:-0}" != "1" ]; then
+    # shellcheck source=../_purge_ls.sh
+    source "$(dirname "$0")/../_purge_ls.sh"
+    purge_ls_app "$STAGE/$APP_NAME.app"
+    rmdir "$STAGE" 2>/dev/null || true
 fi
 
 echo
