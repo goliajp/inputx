@@ -22,13 +22,15 @@ struct SettingsView: View {
     @AppStorage("engineMode",          store: inputxSharedDefaultsNonOpt) private var engineMode: Int = 0
     @AppStorage("showRareChars",       store: inputxSharedDefaultsNonOpt) private var showRare: Bool = false
     @AppStorage("showSourceIndicator", store: inputxSharedDefaultsNonOpt) private var showSrc: Bool = true
-    @AppStorage("autoCommitPolicy",    store: inputxSharedDefaultsNonOpt) private var autoCommitPolicy: Int = 3
+    // Default 0 (Never) — see InputxSettings.registerDefaults() rationale.
+    @AppStorage("autoCommitPolicy",    store: inputxSharedDefaultsNonOpt) private var autoCommitPolicy: Int = 0
     // Phase 9 (items 84-85) — locale toggles
     @AppStorage("useCjkPunct",         store: inputxSharedDefaultsNonOpt) private var useCjkPunct: Bool = true
     @AppStorage("useFullWidth",        store: inputxSharedDefaultsNonOpt) private var useFullWidth: Bool = false
     /// JP plugin enhancement toggle — orthogonal to engineMode. When
     /// engineMode == .japaneseOnly (3), this toggle is moot (mode forces JP).
-    @AppStorage("japaneseEnabled",     store: inputxSharedDefaultsNonOpt) private var japaneseEnabled: Bool = false
+    /// Default true — see InputxSettings.registerDefaults().
+    @AppStorage("japaneseEnabled",     store: inputxSharedDefaultsNonOpt) private var japaneseEnabled: Bool = true
 
     @State private var showResetConfirm = false
     @State private var showImportPicker = false

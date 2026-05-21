@@ -141,8 +141,19 @@ final class InputxController: IMKInputController {
         // without touching the engine state machine.
         if let panel = candidatePanel, panel.isVisible,
            let idx = panel.candidateIndex(forNumberKey: codepoint) {
+            let bufferBefore = session.preedit ?? ""
+            let candsBefore = panel.current
             if let committed = session.commit(at: idx), !committed.isEmpty {
                 commitText(committed, to: sender)
+                // Telemetry: log #0 != #picked as a polish-corpus signal.
+                PolishLog.recordIfMiss(
+                    buffer: bufferBefore,
+                    candidates: candsBefore,
+                    pickedIdx: idx,
+                    pickedWord: committed,
+                    engineMode: inputxSettings.engineMode.rawValue,
+                    japaneseEnabled: inputxSettings.japaneseEnabled
+                )
             }
             panel.hide()
             updatePreedit(client: sender)
@@ -218,6 +229,68 @@ final class InputxController: IMKInputController {
         InputModeToast.shared.show(mode: newMode)
     }
 
+    // MARK: - System input-source menu integration ---------------------------
+
+    /// Injects entries into the macOS system input-source switcher
+    /// dropdown (the menu that drops down when the user clicks the
+    /// active input source's title in the menu bar — same menu that
+    /// hosts macOS's "编辑自定义短语…" / "显示表情与符号" etc.).
+    ///
+    /// This is the conventional entry point for IME-specific settings
+    /// on macOS — Sogou / Microsoft / Apple's bundled IMEs all hang
+    /// their "Preferences…" item here. Our menubar NSStatusItem stays
+    /// as a secondary entry, but it's auto-hide-prone + visually
+    /// collides with the system "入" indicator, so this menu is the
+    /// reliable surface users will discover first.
+    override func menu() -> NSMenu! {
+        let m = NSMenu(title: "Inputx")
+        let settingsItem = NSMenuItem(
+            title: "Inputx 设置…",
+            action: #selector(openInputxSettings),
+            keyEquivalent: ","
+        )
+        settingsItem.target = self
+        settingsItem.keyEquivalentModifierMask = [.command]
+        m.addItem(settingsItem)
+        m.addItem(.separator())
+
+        let jpItem = NSMenuItem(
+            title: "日语扩展（候补に假名 + 共形汉字）",
+            action: #selector(toggleJapaneseEnhancement),
+            keyEquivalent: ""
+        )
+        jpItem.target = self
+        jpItem.state = inputxSettings.japaneseEnabled ? .on : .off
+        m.addItem(jpItem)
+
+        m.addItem(.separator())
+        let logItem = NSMenuItem(
+            title: "打开 polish 日志（候选未取首位的记录）",
+            action: #selector(revealPolishLog),
+            keyEquivalent: ""
+        )
+        logItem.target = self
+        m.addItem(logItem)
+
+        return m
+    }
+
+    @objc private func revealPolishLog() {
+        NSWorkspace.shared.activateFileViewerSelecting([PolishLog.url])
+    }
+
+    @objc private func openInputxSettings() {
+        SettingsWindowController.shared.show()
+    }
+
+    @objc private func toggleJapaneseEnhancement() {
+        inputxSettings.japaneseEnabled.toggle()
+        NotificationCenter.default.post(
+            name: .inputxSettingsChanged,
+            object: nil
+        )
+    }
+
     // MARK: - IMKit candidate selection callbacks ----------------------------
 
     override func candidateSelected(_ candidateString: NSAttributedString!) {
@@ -227,8 +300,18 @@ final class InputxController: IMKInputController {
               let pickedWord = candidateString?.string,
               let idx = panel.current.firstIndex(of: pickedWord)
         else { return }
+        let bufferBefore = session.preedit ?? ""
+        let candsBefore = panel.current
         if let committed = session.commit(at: idx), !committed.isEmpty {
             commitText(committed, to: client())
+            PolishLog.recordIfMiss(
+                buffer: bufferBefore,
+                candidates: candsBefore,
+                pickedIdx: idx,
+                pickedWord: committed,
+                engineMode: inputxSettings.engineMode.rawValue,
+                japaneseEnabled: inputxSettings.japaneseEnabled
+            )
         }
         panel.hide()
         updatePreedit(client: client())

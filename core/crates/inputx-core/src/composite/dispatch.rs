@@ -83,16 +83,20 @@ fn merge_pinyin_first(
     let mut seen = std::collections::HashSet::with_capacity(total_hint);
     let kana_reserve = jp_kana.len().min(JP_KANA_RESERVE);
     let main_cap = MAX_PER_INPUT.saturating_sub(kana_reserve);
-    for k in jp_kanji {
-        if out.len() >= main_cap { break; }
-        if seen.insert(k.clone()) {
-            out.push(Candidate { word: k, source: Source::Japanese });
-        }
-    }
+    // Pinyin-first special case: user's pinyin buffer outpaced wubi
+    // (collision recovery from 5+ char overflow). Pinyin leads here
+    // because the user is clearly committed to that path. JP kanji
+    // and wubi follow. JP kana stays at the tail reserve.
     for p in pinyin {
         if out.len() >= main_cap { break; }
         if seen.insert(p.clone()) {
             out.push(Candidate { word: p, source: Source::Pinyin });
+        }
+    }
+    for k in jp_kanji {
+        if out.len() >= main_cap { break; }
+        if seen.insert(k.clone()) {
+            out.push(Candidate { word: k, source: Source::Japanese });
         }
     }
     for w in wubi {

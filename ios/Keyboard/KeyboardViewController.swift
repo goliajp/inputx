@@ -86,28 +86,34 @@ final class KeyboardViewController: UIInputViewController {
         let engineMode = InputxEngineMode(rawValue: modeRaw) ?? .mixed
         session.setEngineMode(engineMode)
 
-        // JP plugin "enhancement" toggle (v1.2.0-α1). Independent of engineMode.
-        // Default false — JP candidates only appear if the user explicitly
-        // turns this on in Settings, OR if engineMode == .japaneseOnly.
-        let japaneseEnabled = inputxSharedDefaults.bool(forKey: "japaneseEnabled")
+        // JP plugin "enhancement" toggle. Independent of engineMode.
+        // Default ON (v1.2.0-α2) — see InputxSettings.registerDefaults().
+        // First-install: persist the explicit default so SwiftUI's
+        // Settings picker reflects the live state.
+        let jpKey = "japaneseEnabled"
+        let jpHas = inputxSharedDefaults.object(forKey: jpKey) != nil
+        let japaneseEnabled = jpHas
+            ? inputxSharedDefaults.bool(forKey: jpKey)
+            : true
         session.setJapaneseEnabled(japaneseEnabled)
+        if !jpHas {
+            inputxSharedDefaults.set(true, forKey: jpKey)
+        }
 
-        // Item 73 — read auto-commit policy from settings (default 3 =
-        // OnFourCodesIfUnique). Missing key returns 0 (Never), so seed an
-        // explicit default the first time we read it.
+        // Item 73 — read auto-commit policy from settings. Default = 0
+        // (Never): user has the final say on every commit. See
+        // InputxSettings.registerDefaults() rationale.
         let policyKey = "autoCommitPolicy"
         let hasKey = inputxSharedDefaults.object(forKey: policyKey) != nil
         let policyRaw = UInt32(
             clamping: hasKey
                 ? inputxSharedDefaults.integer(forKey: policyKey)
-                : 3
+                : 0
         )
-        let policy = InputxAutoCommitPolicy(rawValue: policyRaw) ?? .onFourCodesIfUnique
+        let policy = InputxAutoCommitPolicy(rawValue: policyRaw) ?? .never
         session.setAutoCommitPolicy(policy)
         if !hasKey {
-            // First-install: persist the actual default so the SwiftUI
-            // settings picker reads the right value.
-            inputxSharedDefaults.set(3, forKey: policyKey)
+            inputxSharedDefaults.set(0, forKey: policyKey)
         }
 
         // Item 77 — restore L0 from App Group container so user-trained

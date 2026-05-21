@@ -515,6 +515,37 @@ mod tests {
     }
 
     #[test]
+    fn jixu_top_pinyin_candidate_is_jixu_continue() {
+        // Regression for the user-reported 曳光弹-at-#0 confusion. The
+        // weights data has `jixu 继续 44652` as the highest-freq entry
+        // and 曳光弹 isn't under the `jixu` key at all (its reading is
+        // `yeguangdan`). If this test ever fails, the pinyin engine
+        // has acquired a fuzzy / heteronym path that's pulling
+        // 曳光弹 into jixu candidates and needs to be traced.
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(crate::composite::Mode::PinyinOnly);
+        for cp in b"jixu" {
+            sess.handle_key(*cp as u32, 0);
+        }
+        let cands = sess.candidates();
+        assert!(!cands.is_empty());
+        // 继续 must be in the top 3 (allowing some flex for noise).
+        let top3: Vec<&str> = cands.iter().take(3).map(String::as_str).collect();
+        assert!(
+            top3.contains(&"继续"),
+            "expected 继续 in top-3 for jixu, got {:?}",
+            top3
+        );
+        // 曳光弹 absolutely must not appear (yeguangdan isn't jixu).
+        assert!(
+            !cands.iter().any(|w| w == "曳光弹"),
+            "曳光弹 must not appear for jixu — its reading is yeguangdan. Got candidates: {:?}",
+            &cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
     fn wcng_top_candidate_is_phrase_gongsi_not_rare_single_char() {
         // Regression for the dual of gmww — at full code, when the
         // single-char's freq is LOWER than the phrase's, the phrase

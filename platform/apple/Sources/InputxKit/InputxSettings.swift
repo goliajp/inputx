@@ -36,12 +36,21 @@ public final class InputxSettings {
     public func registerDefaults() {
         defaults.register(defaults: [
             Keys.engineMode: Int(InputxEngineMode.mixed.rawValue),
-            Keys.autoCommitPolicy: Int(InputxAutoCommitPolicy.onFourCodesIfUnique.rawValue),
+            // First-install default: "从不自动" — user has the final say
+            // on every commit. The OnFourCodesIfUnique policy was too
+            // surprising for users typing free-form Chinese; making
+            // Never the floor lets users opt up to auto-commit if they
+            // want, rather than fighting accidental commits from day 1.
+            Keys.autoCommitPolicy: Int(InputxAutoCommitPolicy.never.rawValue),
             Keys.showRareChars: false,
             Keys.useCjkPunct: true,
             Keys.useFullWidth: false,
             Keys.showSourceIndicator: true,
-            Keys.japaneseEnabled: false,
+            // JP plugin on by default — the plugin's whole point is
+            // making JP work seamlessly, and zero-cost-when-off-anyway
+            // was the original justification for "default false". In
+            // practice users expect the IME to "know JP" out of the box.
+            Keys.japaneseEnabled: true,
         ])
     }
 

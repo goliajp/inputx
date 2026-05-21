@@ -147,9 +147,16 @@ private struct SettingsRootView: View {
                 Button("打开数据目录") {
                     revealL0Dir()
                 }
+                Button("打开 polish 日志（非首位选取记录）") {
+                    NSWorkspace.shared.activateFileViewerSelecting([PolishLog.url])
+                }
             } header: {
                 Text("学习与个性化")
                     .font(.headline)
+            } footer: {
+                Text("Polish 日志：你每次用数字键或鼠标点了**不是首位**的候选，Inputx 都会记一行到日志。Dev 周期看这个日志反推哪些 input 排序不合理 → 修 + 加 regression test。")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
 
             // ---- 关于 ----
