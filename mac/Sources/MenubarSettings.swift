@@ -50,6 +50,20 @@ final class MenubarSettings {
     private func rebuildMenu() {
         menu.removeAllItems()
 
+        // First-class "open settings" entry — opens the SwiftUI window
+        // where every toggle is laid out at once. Promotes discoverability
+        // since two "入" glyphs (Apple's system input switcher + our
+        // NSStatusItem) currently look identical and confuse users.
+        let openSettings = NSMenuItem(
+            title: "Inputx 设置…",
+            action: #selector(openSettings),
+            keyEquivalent: ","
+        )
+        openSettings.target = self
+        openSettings.keyEquivalentModifierMask = [.command]
+        menu.addItem(openSettings)
+        menu.addItem(.separator())
+
         // Engine mode picker
         let modeHeader = NSMenuItem(title: "输入方案", action: nil, keyEquivalent: "")
         modeHeader.isEnabled = false
@@ -142,37 +156,54 @@ final class MenubarSettings {
 
     // MARK: - Actions --------------------------------------------------------
 
+    @objc private func openSettings() {
+        SettingsWindowController.shared.show()
+    }
+
     @objc private func pickMode(_ sender: NSMenuItem) {
         guard let mode = InputxEngineMode(rawValue: UInt8(sender.tag)) else { return }
         inputxSettings.engineMode = mode
         rebuildMenu()
+        broadcastSettingsChanged()
     }
 
     @objc private func pickPolicy(_ sender: NSMenuItem) {
         guard let p = InputxAutoCommitPolicy(rawValue: UInt32(sender.tag)) else { return }
         inputxSettings.autoCommitPolicy = p
         rebuildMenu()
+        broadcastSettingsChanged()
     }
 
     @objc private func toggleCjkPunct() {
         inputxSettings.useCjkPunct.toggle()
         rebuildMenu()
+        broadcastSettingsChanged()
     }
 
     @objc private func toggleFullWidth() {
         inputxSettings.useFullWidth.toggle()
         rebuildMenu()
+        broadcastSettingsChanged()
     }
 
     @objc private func toggleRareChars() {
         inputxSettings.showRareChars.toggle()
         InputxRareChars.enabled = inputxSettings.showRareChars
         rebuildMenu()
+        broadcastSettingsChanged()
     }
 
     @objc private func toggleJapanese() {
         inputxSettings.japaneseEnabled.toggle()
         rebuildMenu()
+        broadcastSettingsChanged()
+    }
+
+    private func broadcastSettingsChanged() {
+        NotificationCenter.default.post(
+            name: .inputxSettingsChanged,
+            object: nil
+        )
     }
 
     @objc private func revealL0Dir() {

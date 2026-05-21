@@ -50,6 +50,27 @@ final class InputxController: IMKInputController {
         inputxL0Storage.load(into: session)
         // Process-global rare-CJK toggle reads from prefs at startup.
         InputxRareChars.enabled = inputxSettings.showRareChars
+
+        // Listen for live settings changes (broadcast by MenubarSettings
+        // and SettingsWindow). Without this, the user has to switch input
+        // sources out and back to trigger `activateServer` before a
+        // freshly toggled JP-enable / engine-mode / policy / locale flag
+        // actually reaches the running engine.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSettingsChanged),
+            name: .inputxSettingsChanged,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc private func handleSettingsChanged() {
+        applySettingsToSession()
+        InputxRareChars.enabled = inputxSettings.showRareChars
     }
 
     // MARK: - IMKit overrides ------------------------------------------------
