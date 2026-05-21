@@ -47,19 +47,42 @@ pub const JP_KANA_RESERVE: usize = 4;
 
 /// Merge wubi + JP kanji + pinyin + JP kana into a single candidate list.
 ///
-/// Ranking rationale:
-///   1. **Wubi** — deliberate user 字根 codes, top priority always.
+/// # Current ordering rule (Mixed mode, JP-enabled)
+///
+///   1. **Wubi** — the product is "Inputx 五笔"; wubi outputs lead.
+///      Within wubi, jianma1 / jianma2 layer_base dominates per the
+///      wubi dict's existing sort, so 一级 / 二级简码 always top.
 ///   2. **JP kanji** (jukugo compounds + on/kun single-kanji matches) —
-///      promoted ABOVE pinyin because when JP is toggled on AND the
-///      buffer resolves to a known kanji form, the user's intent is
-///      clearly Japanese. Without this rank-boost, common JP words
-///      (yama → 山, nihon → 日本) land below pinyin's fuzzy guesses
-///      ("yama" → 亚麻色 / 牙买加 / …) which is visually buried.
-///   3. **Pinyin** — Chinese fuzzy / phonetic matches, the bulk.
+///      full-buffer matches only, sits above pinyin bulk so common JP
+///      words like `nihon` → 日本 don't get drowned in pinyin fuzz.
+///   3. **Pinyin** — Chinese fuzzy / phonetic matches.
 ///   4. **JP kana** — hiragana + katakana renderings of whatever romaji
-///      the user typed. Always present (mechanically derivable from any
-///      buffer), low-conviction; reserved last so the bulk of pinyin
-///      stays visible, but the kana form is always reachable.
+///      the user typed. Mechanically derivable from any buffer,
+///      low-conviction; reserved last so pinyin bulk stays visible.
+///
+/// # Design note: future "unified score" v0.2 ↓ direction
+///
+/// The user's principle is **"公允的同数值化比较"** — a single normalized
+/// score across all engines, sort by that, with wubi getting a
+/// brand-loyalty boost (since "Inputx 五笔"). Today's hard layered
+/// merge (wubi → JP kanji → pinyin → JP kana) is a *placeholder* for
+/// that:
+///
+///   - Each engine produces (word, freq) with engine-specific scales
+///     (wubi 0-50k, pinyin similar, JP currently has none).
+///   - To unify: normalize freq to [0, 1] per engine (percentile or
+///     log-rank), apply per-engine multiplier (wubi 1.2, pinyin 1.0,
+///     JP 0.9, etc.), sort by `score = normalized * multiplier`.
+///   - Wubi 一级 / 二级简码 floors stay enforced via layer_base in
+///     the wubi dict (already the case) — they'd land on top of the
+///     unified score by virtue of having highest absolute freq + the
+///     wubi multiplier.
+///
+/// Not implemented yet because: (a) the JP plugin has no real freq
+/// data (hand-curated tables, all entries weighted equally), (b)
+/// cross-engine normalization is a calibration project that wants
+/// the polish-log corpus to validate against. See PolishLog telemetry
+/// on mac/iOS for the data-collection side.
 ///
 /// Duplicates by `word` keep the first-seen source attribution.
 ///
@@ -81,6 +104,10 @@ pub fn merge(
     let kana_reserve = jp_kana.len().min(JP_KANA_RESERVE);
     let main_cap = MAX_PER_INPUT.saturating_sub(kana_reserve);
 
+    // HARD RULE: wubi outputs lead. Inputx-五笔 brand promise — wubi
+    // 一级简码 / 二级简码 are non-negotiable top hits for their codes
+    // (e → 有, go → 来, etc.). Within wubi the dict-internal layer_base
+    // sort already enforces 简码 > 词组 > Auto.
     for w in wubi {
         if out.len() >= main_cap { break; }
         if seen.insert(w.clone()) {
@@ -134,22 +161,21 @@ mod tests {
     }
 
     #[test]
-    fn jp_kanji_appears_before_pinyin() {
+    fn wubi_strictly_first_in_merged_list() {
+        // Hard rule: Inputx-五笔 brand promise. Wubi 简码 / 字根 outputs
+        // lead even when JP has a high-conviction kanji match. Within
+        // wubi, dict-internal layer_base ordering handles 一级 > 二级 >
+        // 三级 > 字根 > 词组 > Auto.
         let m = merge(
+            vec!["有".into()],
+            vec!["会".into()],  // JP 会 (on-yomi "e") would match `e` too
             vec![],
-            vec!["山".into()],
-            vec!["亚麻色".into(), "牙买加".into()],
-            vec!["やま".into(), "ヤマ".into()],
+            vec![],
         );
-        // Expected order: 山 (JP kanji), pinyin entries, やま, ヤマ.
-        assert_eq!(m[0].word, "山");
-        assert_eq!(m[0].source, Source::Japanese);
-        assert_eq!(m[1].source, Source::Pinyin);
-        assert_eq!(m[2].source, Source::Pinyin);
-        // Kana lands at tail
-        assert_eq!(m[3].word, "やま");
-        assert_eq!(m[3].source, Source::Japanese);
-        assert_eq!(m[4].word, "ヤマ");
+        assert_eq!(m[0].word, "有");
+        assert_eq!(m[0].source, Source::Wubi);
+        assert_eq!(m[1].word, "会");
+        assert_eq!(m[1].source, Source::Japanese);
     }
 
     #[test]
@@ -166,6 +192,19 @@ mod tests {
         assert_eq!(m[2].source, Source::Pinyin);
         assert_eq!(m[3].source, Source::Japanese);
         assert_eq!(m[3].word, "N");
+    }
+
+    #[test]
+    fn jp_kanji_empty_falls_through_to_wubi_first() {
+        // JP off (kanji empty) → behaves like before: wubi → pinyin.
+        let m = merge(
+            vec!["中国".into()],
+            vec![],
+            vec!["zhongguo".into()],
+            vec![],
+        );
+        assert_eq!(m[0].word, "中国");
+        assert_eq!(m[0].source, Source::Wubi);
     }
 
     #[test]

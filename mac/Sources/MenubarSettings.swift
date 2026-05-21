@@ -106,11 +106,12 @@ final class MenubarSettings {
                   selector: #selector(toggleRareChars))
         menu.addItem(.separator())
 
-        // L0 user-learning actions
+        // L0 user-learning actions + polish-log
         let l0Header = NSMenuItem(title: "学习记录 (L0)", action: nil, keyEquivalent: "")
         l0Header.isEnabled = false
         menu.addItem(l0Header)
         menu.addItem(menuItem("打开数据目录…", selector: #selector(revealL0Dir)))
+        menu.addItem(menuItem("打开 polish 日志（非首位选取记录）", selector: #selector(revealPolishLog)))
         menu.addItem(menuItem("重置（清空所有学习）", selector: #selector(resetL0)))
         menu.addItem(.separator())
 
@@ -215,6 +216,10 @@ final class MenubarSettings {
         try? FileManager.default.createDirectory(at: url,
                                                   withIntermediateDirectories: true)
         NSWorkspace.shared.open(url)
+    }
+
+    @objc private func revealPolishLog() {
+        NSWorkspace.shared.activateFileViewerSelecting([PolishLog.url])
     }
 
     @objc private func resetL0() {
