@@ -2,12 +2,24 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- Required under hardened runtime: the IMK server registers a Mach
-         service named in Info.plist's `InputMethodConnectionName`. Without
-         this exception, sandbox + hardened runtime block the register call
-         and the IME never finishes registering with the system — which is
-         exactly why the input-source picker won't enumerate the bundle. -->
+    <!-- macOS 26's TextInputMenuAgent silently refuses to add a freshly-
+         installed third-party IME to the TIS database unless the bundle
+         claims `com.apple.security.app-sandbox`. Notarization, Developer
+         ID signing, user- vs system-level install, and self-registering
+         via TISRegisterInputSource from inside the IME's own process are
+         all individually insufficient. SogouWBInput is the lone non-
+         sandboxed third-party IME that enumerates on macOS 26, and only
+         because its TIS-db entry was grandfathered in from an older
+         macOS release before this check existed. vChewing, Apple's own
+         IMEs, and every other enumerating IME on this machine are
+         sandboxed. -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <!-- IMK servers register a Mach service named after
+         `InputMethodConnectionName` in Info.plist. Without this exception
+         the sandbox blocks the bootstrap_register call and the IME never
+         finishes coming online. -->
     <key>com.apple.security.temporary-exception.mach-register.global-name</key>
-    <string>jp.golia.inputx_Connection</string>
+    <string>jp.golia.inputmethod.wubi_Connection</string>
 </dict>
 </plist>

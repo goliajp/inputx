@@ -2,7 +2,7 @@ import Foundation
 import Carbon
 
 // Try filtering by our bundle ID
-let filterBundleID = "jp.golia.inputx"
+let filterBundleID = "jp.golia.inputmethod.wubi"
 let props = [kTISPropertyBundleID: filterBundleID] as CFDictionary
 if let list = TISCreateInputSourceList(props, true)?.takeRetainedValue() as? [TISInputSource] {
     print("filtered by bundle id: \(list.count)")

@@ -44,9 +44,40 @@ fi
 "${INSTALL_CMD[@]}"
 echo "[install] copied to: $APP_DST"
 
+# Make the bundle root-owned. SogouWBInput (system-level grandfathered) and
+# vChewing (user-level installed via signed .pkg) both end up root-owned;
+# our cp-as-user copy was the only bundle in the dir owned by the login
+# user. Keeping ownership consistent with the working third-party reference
+# avoids one structural difference we can't otherwise explain.
+if [ "$NEEDS_SUDO" = "true" ]; then
+    sudo chown -R root:wheel "$APP_DST"
+else
+    # User-level install — chown via osascript-admin since the cp ran as user.
+    osascript -e "do shell script \"chown -R root:wheel '$APP_DST'\" with administrator privileges"
+fi
+
+# Self-register against the TIS database. macOS 26's TextInputMenuAgent does
+# NOT auto-scan /Library/Input Methods/ — the IME's own binary must call
+# TISRegisterInputSource(Bundle.main.bundleURL) from inside its own
+# code-signature context. See main.swift's `install` CLI handler. Run as the
+# current user (not via sudo) so the registration lands in the user's TIS db.
+echo "[install] self-registering IME with TIS database"
+"$APP_DST/Contents/MacOS/$APP_NAME" install
+
 # Force the IME catalog to re-enumerate. Without this the picker may
 # still show the cached list from before the install.
 killall -KILL TextInputMenuAgent 2>/dev/null || true
+
+# Purge the source bundle — after install the build/ copy is redundant and
+# LaunchServices would otherwise tend to pick *it* (newer mtime) as primary
+# over the install at /Library/Input Methods/, shadowing the real entry
+# with launch-disabled. See mac/_purge_ls.sh for the full story.
+# Override with KEEP_BUILD_APP=1 if you want to re-install without rebuilding.
+if [ "${KEEP_BUILD_APP:-0}" != "1" ]; then
+    # shellcheck source=./_purge_ls.sh
+    source "$(dirname "$0")/_purge_ls.sh"
+    purge_ls_app "$APP_SRC"
+fi
 
 echo
 echo "Next steps:"
