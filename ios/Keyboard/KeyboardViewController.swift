@@ -681,13 +681,22 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func handleReturn() {
-        // Drop any inline preedit first (we don't commit it on return —
-        // keeps behavior predictable for power users), then insert newline.
-        let oldPreedit = session.preedit ?? ""
+        // Route through the engine first: when there's an in-flight CJK
+        // preedit, the engine's CP_RETURN arm commits the raw wubi/pinyin
+        // letters as ASCII and swallows the \r ("not CJK after all" —
+        // same semantic shared with the mac IME). With no composing, the
+        // engine declines and we insert the newline normally.
         UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.6)
+        let oldPreedit = session.preedit ?? ""
+        let consumed = session.handleKey(codepoint: 0x0D, modifiers: [])
         eraseHostText(oldPreedit.count)
-        inputxProxy.insertText("\n")
-        session.clear()
+        if consumed {
+            if let text = session.takeCommit(), !text.isEmpty {
+                inputxProxy.insertText(text)
+            }
+        } else {
+            inputxProxy.insertText("\n")
+        }
         refreshFromSession()
         evaluateAutoCaps()
     }
