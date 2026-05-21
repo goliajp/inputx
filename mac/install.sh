@@ -62,7 +62,11 @@ fi
 cat <<EOF
 
 Installed. Next steps:
-  1. System Settings → Keyboard → Text Input → Edit → +
-  2. Add: 简体中文 → Inputx 五笔
-  3. Approve the third-party IME prompt
+  1. First-time only: System Settings → Keyboard → 文本输入 → Edit
+     → + → 简体中文 → Inputx 五笔 → 添加, then approve the
+     third-party IME permission popup.
+  2. If you've installed before and Inputx 五笔 has fallen out of the
+     menu-bar input switcher (AppleEnabledInputSources cleared for
+     unclear reasons), run mac/scripts/reenable.sh to restore it
+     without going back through the System Settings UI.
 EOF
