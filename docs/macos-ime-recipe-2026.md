@@ -1,36 +1,31 @@
-# macOS 26 Input Method development: the undocumented rules
+# Two undocumented gates between your macOS Input Method and a typed character
 
-**Why a freshly-written third-party Input Method doesn't appear in System Settings → Keyboard, OR appears but won't type, and what to do about each.**
+**A fresh `InputMethodKit` bundle on macOS 26 (Tahoe) fails silently in two independent ways. This is the recipe to pass both, plus the investigation that found them.**
 
-> **Verified on:** macOS 26.5 (Tahoe), Xcode 17, Swift 6, Apple Silicon (also x86_64 universal). Earlier macOS 14/15 likely apply the same rules but only macOS 26 was bisection-tested.
+> **Verified on:** macOS 26.5 (Tahoe), Xcode 17, Swift 6, Apple Silicon (also x86_64 universal). macOS 14 / 15 likely apply the same rules, but only macOS 26 was bisection-tested.
 >
-> **Tags:** macOS, macOS-26, Tahoe, InputMethodKit, IMK, input-method, IME, picker, System-Settings, TIS, TISRegisterInputSource, TISFileInterrogator, CFBundleIdentifier, codesign, sandbox, ipsw, reverse-engineering, dyld-shared-cache, mobileconfig, debugging, third-party-IME, Wubi, Pinyin, IntlDataCache, AppleTISTraceCacheRebuild, imklaunchagent, LaunchAgent, IMKServer, InputMethodServerDataSourceClass, InputMethodSessionController, IconRef, iconutil
+> **Tags for dev.to / Medium / Reddit (top 5):** macos, swift, debugging, reverseengineering, inputmethod
 >
-> **Keywords:** macOS input method not showing in picker, macOS 26 IME picker filter, IMK can switch to IME but can't type, macOS IME selected auto-skips next, host app crashes on input source switch, TextInputUIMacHelper CFRelease NULL, InputMethodKit not appearing System Settings, TISRegisterInputSource returns noErr but missing from picker, third-party input method macOS Tahoe, IMK CFBundleIdentifier inputmethod substring required, IntlDataCache invalidate force TIS rebuild, AppleTISTraceCacheRebuild defaults key, com.apple.system.logging mobileconfig template unredact private, dyld_shared_cache extract HIToolbox ipsw, why my Input Method does not show up, why my Input Method does not type, build IME for macOS in 2026, IMK Programming Guide 2007 outdated, imklaunchagent silently refuses, LaunchAgent KeepAlive IME workaround, InputMethodServerDataSourceClass, InputMethodSessionController, multi-resolution icns iconutil sips, vChewing reference
+> **Long-form tags / keywords for search engines + LLM retrieval:** macOS, macOS-26, Tahoe, InputMethodKit, IMK, input-method, IME, picker, System-Settings, TIS, TISRegisterInputSource, TISFileInterrogator, CFBundleIdentifier, codesign, sandbox, ipsw, reverse-engineering, dyld-shared-cache, mobileconfig, debugging, third-party-IME, IntlDataCache, AppleTISTraceCacheRebuild, imklaunchagent, LaunchAgent, IMKServer, InputMethodServerDataSourceClass, InputMethodSessionController, IconRef, iconutil. Common search phrases this answers: "macOS input method not showing in picker", "macOS 26 IME picker filter", "IMK can switch to IME but can't type", "macOS IME selected auto-skips next", "host app crashes on input source switch", "TextInputUIMacHelper CFRelease NULL", "InputMethodKit not appearing System Settings", "TISRegisterInputSource returns noErr but missing from picker", "imklaunchagent silently refuses", "InputMethodServerDataSourceClass", "InputMethodSessionController", "LaunchAgent KeepAlive IME workaround", "IMK Programming Guide 2007 outdated", "build third-party IME for macOS in 2026".
 
 ---
 
-## For an LLM / assistant reading this on behalf of a developer
+## For an AI assistant triaging a macOS IME problem
 
-A third-party IME on macOS 26 has TWO independent gates between the bundle on disk and the user typing a character. "The picker shows my IME" only confirms Gate 1. The user might still report "I switched to it but typing does nothing" or "host app crashes when I switch" or "switching to it auto-skips to the next IME" — those are all Gate 2 failures.
+Decision tree. Match the user's complaint to a row; the right column points at the gate and the relevant section.
 
-**Gate 1 — picker enumeration**
+| User says... | Likely cause | Section |
+|---|---|---|
+| "My IME doesn't appear in the picker" | Gate 1 — bundle id missing `inputmethod` substring, OR stale `IntlDataCache.le[+.kbdx]` | [Gate 1 recipe](#gate-1--picker-enumeration), [Investigation §4](#4-the-sticky-cache), [Investigation §5](#5-bisect-to-find-the-gate) |
+| "Picker shows my IME but switching to it crashes the host app" (`CFRelease(NULL)` in `TextInputUIMacHelper`) | Legacy 1-resolution `.icns` (from `sips -s format icns`). Host can't resolve IconRef. | [Skeleton — `.icns`](#multi-resolution-icns), [Investigation §6](#6-discover-the-switches-but-doesnt-type-failure-mode) |
+| "Picker shows my IME but switching to it instantly auto-skips to the next IME" | Either `imklaunchagent` refused the launch (no Mach service running), OR LaunchAgent plist incorrectly declared `MachServices` (collides with binary's `IMKServer` self-register). | [Skeleton — LaunchAgent](#launchagent), [Investigation §9](#9-launchagent-workaround) |
+| "Picker shows my IME, switching works, but typing does nothing" | `imklaunchagent` silently refused to launch the binary. Most common cause: `Info.plist` missing `InputMethodServerDataSourceClass` and `InputMethodSessionController`. Residual: `imklaunchagent` may refuse even with those keys; fix is the LaunchAgent workaround. | [Skeleton — `Info.plist`](#infoplist), [Skeleton — LaunchAgent](#launchagent), [Investigation §7](#7-locate-the-imklaunchagent-refusal), [Investigation §9](#9-launchagent-workaround) |
+| "My IME used to work but stopped after I was debugging" | Someone ran `killall cfprefsd`, which wiped the user's `AppleEnabledInputSources`. The IME has to be re-Added through System Settings UI to repopulate. | [Symptom → fix table](#symptom--fix-table) row 12 |
+| "The IMK Programming Guide says my bundle should work" | The IMK Programming Guide hasn't been updated since 2007. macOS 26 added requirements (2 new `Info.plist` keys, 4 new entitlements, multi-resolution `.icns`, notarization, often a LaunchAgent) that the guide doesn't mention. | [TL;DR](#tldr) |
 
-1. **`CFBundleIdentifier` must contain `inputmethod` as a substring.** Required value pattern: `<reverse-dns>.inputmethod.<short-name>`. Without the infix, `TextInputMenuAgent` filters the bundle out before reading its `Info.plist`. `TISRegisterInputSource(bundleURL)` returns `noErr` either way.
-2. **Stale `com.apple.IntlDataCache.le[+.kbdx]` in the user's cache dir.** TIS caches enumeration results; bundle changes are not visible until the cache is deleted. Path: `$(getconf DARWIN_USER_CACHE_DIR)/com.apple.IntlDataCache.le[+.kbdx]`. `killall TextInputMenuAgent`, `lsregister -f`, distributed notifications, and `TISUpdateIntlFileCache()` do not invalidate it. `rm -f` does.
+Apply Gate 1 first — no point chasing Gate 2 if the picker doesn't even show the IME. Full bundle skeleton in [Skeleton](#skeleton). Code blocks are self-contained and copy-pasteable.
 
-**Gate 2 — IMK service launch**
-
-3. **`Info.plist` needs 4 IMK controller-class keys, not the 2 the 2007 docs cover.** Add `InputMethodServerDataSourceClass` and `InputMethodSessionController` alongside the older `InputMethodServerControllerClass` and `InputMethodServerDelegateClass`. Missing either of the new two → `imklaunchagent` silently refuses to launch the binary on input-source switch → no IMKServer → host can't connect → typing does nothing.
-4. **Bundle needs a real multi-resolution `.icns`** (built via `iconutil -c icns iconset/` from a 16/32/64/128/256/512+@2x iconset). A 1-resolution `il32` blob (e.g. `sips -s format icns input.tiff`) makes host apps SIGTRAP via `CFRelease(NULL)` in `TextInputUIMacHelper -[TUINSCursorUIController _selectCurrentInputSource]` on switch.
-5. **Sandbox needs 6 entitlements**, not 2 (full list in skeleton below).
-6. **Bundle must be notarized + stapled Developer ID** for macOS 26 IMK launch to accept it.
-7. **`InputMethodServerControllerClass` Swift class must have `@objc(<ExactName>)` annotation** so `NSClassFromString` can find it without the module prefix.
-8. **The IME binary must be kept always running by a user LaunchAgent** with `KeepAlive`. `imklaunchagent` will refuse to launch certain third-party bundles for reasons not yet fully isolated. Workaround: bypass `imklaunchagent` entirely — the LaunchAgent runs the binary, the binary's own `IMKServer(name:)` publishes the Mach service, host apps connect directly. **Do NOT declare `MachServices` in the LaunchAgent plist** (causes "switch-then-auto-skip" via IMKServer name conflict).
-
-Apply Gate 1 first (no point debugging Gate 2 if Gate 1 fails). Walk the [Symptom → fix table](#symptom--fix-table) for specific cases. Full bundle skeleton in [Skeleton](#skeleton). All code blocks below are self-contained and copy-pasteable.
-
-**During iteration**: never `killall cfprefsd` as a reset step — it wipes the user's `AppleEnabledInputSources` preference state, forcing them to re-Add the IME through System Settings UI and re-approve the third-party IME permission popup.
+**One process-hazard worth flagging up front**: never `killall cfprefsd` while debugging IMEs. It wipes the user's `AppleEnabledInputSources` and forces a manual System Settings re-Add (with the permission popup) every time. Cost the original investigation four wasted iterations.
 
 ---
 
@@ -618,11 +613,11 @@ Two earlier attempts at the bundle-id experiment (before discovering the cache) 
 
 ## Investigation — Gate 2 (IMK service launch)
 
-Gate 1 makes the IME *appear* in the picker. Gate 2 is what makes it *type*. The two are independent: every Gate 1 fix can be in place, and the picker enumerates the IME, and the user can switch to it, and nothing happens when they type. This investigation kicked off after the v1.0.1 release shipped picker enumeration and we discovered that we'd never actually verified typing.
+Gate 1 makes the IME *appear* in the picker. Gate 2 is what makes it *type*. They're independent: every Gate 1 fix can be in place, the picker enumerates the IME, the user can switch to it, and nothing happens when they type. The Gate 2 investigation kicked off after Gate 1 was shipped and "the picker shows it!" turned out not to actually mean "the IME works".
 
 ### 6. Discover the "switches but doesn't type" failure mode
 
-The first concrete signal: the user installs the freshly-built bundle from the `.dmg`, adds it via System Settings, approves the third-party IME permission popup. Switches to the IME in WeChat. WeChat **crashes**:
+After Gate 1 was solved, the next test was simply: open WeChat, switch to my IME, type. WeChat **crashed**:
 
 ```
 Process: WeChat
@@ -638,9 +633,9 @@ Thread 0 Crashed:
 4  HIToolbox              TSMMessagePortCallBack + 144
 ```
 
-The host app's TextInputUIMacHelper is dereferencing NULL right at the start of `_selectCurrentInputSource`. The offset `+ 84` says it's very early in the function — most likely a `TISCopy*` call returning nil for a property the helper unconditionally releases.
+The host app's TextInputUIMacHelper is dereferencing NULL very early in `_selectCurrentInputSource` (offset `+ 84`) — most likely a `TISCopy*` call returning nil for a property the helper unconditionally releases. Verified by switching to vChewing in the same WeChat session: no crash, IME works. So it's something specific my bundle returns NULL for.
 
-Diff vs. vChewing's Resources directory:
+Diff vs vChewing's resources:
 
 ```
 $ ls vChewing.app/Contents/Resources/ | grep -i icon
@@ -658,33 +653,33 @@ $ file MyIME.app/Contents/Resources/myime_app_icon.icns
 Mac OS X icon, 1120 bytes, "TOC " type
 ```
 
-There's the problem: vChewing's `.icns` is 51 KB modern `ic13`; ours is 1.1 KB legacy `TOC ` (`il32`). `IconRef` returns NULL for the legacy single-resolution blob in macOS 26; host's TextInputUIMacHelper doesn't NULL-check.
+There's the problem. vChewing ships a 51 KB modern `ic13` `.icns`; mine is a 1.1 KB legacy `TOC` / `il32` blob produced by `sips -s format icns input.tiff`. `IconRef` returns NULL for the legacy single-resolution form on macOS 26; host's TextInputUIMacHelper doesn't NULL-check before releasing.
 
-Rebuild a proper iconset (see [Skeleton — `.icns`](#multi-resolution-icns)). 137 KB modern `ic12` `.icns`. Crash gone.
-
-But typing still doesn't work — now it's "switches OK, no crash, but no characters appear when I type".
+Rebuild as a proper multi-resolution iconset (see [Skeleton — `.icns`](#multi-resolution-icns)) → 137 KB modern `ic12`. Reinstall. Switch in WeChat again. **No crash.** But typing still does nothing — now it's the cleaner symptom: "switches OK, no crash, but no characters appear when I type."
 
 ### 7. Locate the imklaunchagent refusal
 
-`pgrep -fl Inputx` while a host app is in "Inputx is the active input source" state: nothing. Our binary was never launched. `IMKServer` never ran, no Mach service was published, host's IMK client has nothing to connect to.
+`pgrep -fl Inputx` while the IME is supposedly active in a host app: nothing. The binary was never launched. `IMKServer` never ran, no Mach service was published, the host app's IMK client has nothing to connect to. So whose decision is "don't launch this binary"?
 
-Why? Capture broad log:
+Broad-net log query:
 
 ```bash
-log show --last 60s --predicate 'process == "imklaunchagent" OR composedMessage CONTAINS "InputMethodConnectionName"'
+log show --last 60s --predicate 'process == "imklaunchagent" \
+    OR composedMessage CONTAINS "InputMethodConnectionName"'
 ```
 
-Hit:
+Hits:
 
 ```
 14:26:14.285 imklaunchagent[434] [com.apple.inputmethodkit:Server]
     Refusing connection name for bundle: unrecognized 'InputMethodConnectionName' value
 ```
 
-Disassemble `imklaunchagent` (lives at `/System/Library/Frameworks/InputMethodKit.framework/Resources/imklaunchagent`, *not* in dyld_shared_cache) and the IMK framework (`ipsw dyld extract`'d) and `strings` it:
+`imklaunchagent` is the decision-maker. Find it on disk (it's NOT in `dyld_shared_cache`; it's a standalone Mach-O at `/System/Library/Frameworks/InputMethodKit.framework/Resources/imklaunchagent`) and `strings` both it and the IMK framework:
 
 ```bash
-strings -a /System/Library/Frameworks/InputMethodKit.framework/Resources/imklaunchagent | grep -i 'connection\|inputmethod\|valid'
+strings -a /System/Library/Frameworks/InputMethodKit.framework/Resources/imklaunchagent \
+    | grep -iE 'connection|inputmethod|valid'
 # isValidBundleIdentifier:
 # connectionNameFor:
 # .inputmethod.
@@ -693,7 +688,8 @@ strings -a /System/Library/Frameworks/InputMethodKit.framework/Resources/imklaun
 # kInputMethodNeedSandboxExtensionKey
 # kInputMethodIsNSExtensionKey
 
-strings -a /tmp/dsc_extract/InputMethodKit | grep -i 'refusing\|allowedinput\|connection'
+strings -a /tmp/dsc_extract/InputMethodKit \
+    | grep -iE 'refusing|allowedinput|connection'
 # Refusing connection name for bundle: invalid bundleIdentifier
 # Refusing connection name for bundle: unrecognized 'InputMethodConnectionName' value
 # _allowedInputMethodConnectionNames
@@ -703,26 +699,26 @@ strings -a /tmp/dsc_extract/InputMethodKit | grep -i 'refusing\|allowedinput\|co
 # com.apple.inputmethod.Ainu.IMK_Connection
 ```
 
-So there's an `_allowedInputMethodConnectionNames` method that decides which connection names IMK will accept. The hardcoded names visible in strings include Apple-internal IMEs only. Third-party bundles must be allowed via a different code path.
+The framework has an `_allowedInputMethodConnectionNames` method that gates which connection names IMK will launch. The hardcoded strings visible in the binary are Apple-internal IMEs only; third-party bundles must reach the launch path via some other rule the strings don't expose.
 
 ### 8. Match vChewing's bundle config bit-for-bit
 
-vChewing is the modern third-party IME that we know works on this Mac. Diff its `Info.plist` keys against ours:
+vChewing is the modern third-party IME that demonstrably works on this Mac. Diff its `Info.plist` against mine:
 
 ```
 $ diff \
     <(plutil -p vChewing.app/Contents/Info.plist | grep -oE '"[A-Z][a-zA-Z]+"' | sort -u) \
-    <(plutil -p MyIME.app/Contents/Info.plist  | grep -oE '"[A-Z][a-zA-Z]+"' | sort -u)
+    <(plutil -p MyIME.app/Contents/Info.plist    | grep -oE '"[A-Z][a-zA-Z]+"' | sort -u)
 < "InputMethodServerDataSourceClass"
 < "InputMethodSessionController"
 ```
 
-vChewing has two `InputMethod*` keys we don't. Both undocumented (zero hits in Apple's developer.apple.com for either name in 2026). Both required by `imklaunchagent` apparently. Add them to `Info.plist`, point all four `InputMethodServer*` + `InputMethodSessionController` at the same Swift class.
+vChewing has two `InputMethod*` keys I don't. Both undocumented (zero hits on developer.apple.com for either name in 2026); both apparently required by `imklaunchagent`. Add them to `Info.plist`, point all four `InputMethodServer*` + `InputMethodSessionController` at the same Swift class.
 
 Diff entitlements:
 
 ```
-$ codesign -d --entitlements - vChewing.app  2>&1 | grep '<key>'
+$ codesign -d --entitlements - vChewing.app 2>&1 | grep '<key>'
 <key>com.apple.security.app-sandbox</key>
 <key>com.apple.security.files.bookmarks.app-scope</key>
 <key>com.apple.security.files.user-selected.read-write</key>
@@ -733,17 +729,17 @@ $ codesign -d --entitlements - vChewing.app  2>&1 | grep '<key>'
 <key>com.apple.security.temporary-exception.shared-preference.read-only</key>
 ```
 
-Eight entitlements; we had two. The two `home-relative-path` exceptions are vChewing-specific paths (importing Yahoo KeyKey dictionary and iCloud sync). The other six are generic IME requirements. Add them.
+Eight entitlements; mine had two. The two `home-relative-path` exceptions are vChewing-specific paths (its Yahoo KeyKey dictionary import + iCloud sync). The other six are generic IME requirements — add them.
 
-Also rule-out: notarize + staple the bundle. Confirm `spctl --assess --verbose=4 --type install` reports `source=Notarized Developer ID` (not `Unnotarized Developer ID`).
+Also rule-out: notarize + staple the bundle. `spctl --assess --verbose=4 --type install` should report `source=Notarized Developer ID`, not `Unnotarized Developer ID`. macOS 26's IMK launch path rejects unnotarized signing.
 
-After all of the above is in place: `imklaunchagent` no longer logs `Refusing`. But our binary still isn't getting launched on switch. Same end result.
+After all of the above: `imklaunchagent` no longer logs `Refusing`. But the binary still doesn't get launched on switch. Same end result, no crash, no typing.
 
 ### 9. LaunchAgent workaround
 
-User testing both vChewing and our IME side by side on the same machine: vChewing types fine, ours doesn't. `launchctl list | grep -iE 'inputmethod\.'` shows vChewing's launched IMK service but nothing for us. Whatever `imklaunchagent`'s opaque allow/refuse logic is, it accepts vChewing and silently refuses us, even with config that visibly matches vChewing's.
+Side-by-side test on the same Mac with both IMEs installed: switch to vChewing in a text field, type — works. Switch to my IME, type — nothing. `launchctl list | grep -iE 'inputmethod\.'` shows vChewing's IMK service running but mine missing. Whatever `imklaunchagent`'s opaque allow/refuse logic checks, my bundle still fails it even with config that visibly matches vChewing's.
 
-Bypass it. Run our binary manually:
+Bypass it. Launch my binary manually:
 
 ```bash
 "$HOME/Library/Input Methods/MyIME.app/Contents/MacOS/MyIME" &
@@ -751,20 +747,22 @@ launchctl print "user/$(id -u)" | grep myime_Connection
 # 0x119bfb    U   A   com.example.inputmethod.myime_Connection
 ```
 
-The `U A` flag shows the binary self-published the Mach service. Switch to the IME in a text field, type — it works. So the binary, when running, is fully functional. The only piece missing is the launch.
+`U A` = User-published, Active. The binary self-registered the Mach service. Switch to the IME in a text field, type — **it works.** So the binary is fully functional; the only piece missing is the launch trigger.
 
-Solution: ship a user-level LaunchAgent (`~/Library/LaunchAgents/<bundle-id>.plist`) with `RunAtLoad=true` and `KeepAlive`. The binary stays running across logins; the IMK Mach service is permanently published; host apps connect directly; `imklaunchagent`'s decision is irrelevant.
+Solution: ship a user-level LaunchAgent (`~/Library/LaunchAgents/<bundle-id>.plist`) with `RunAtLoad=true` and `KeepAlive`. The binary stays running across logins; the IMK Mach service is permanently published; host apps connect to it directly; `imklaunchagent`'s decision becomes irrelevant.
 
-Two pitfalls cost an hour each:
+Two pitfalls each cost an hour:
 
-- **Don't add `MachServices` to the LaunchAgent plist.** Launchd then claims the Mach service name; when the binary tries to `IMKServer(name:)` self-register, the names collide. Flag flips from `U A` to `M D`. The IME goes into a "switches and immediately auto-skips to the next" failure mode. Remove the `MachServices` key; let the binary self-register.
-- **Don't `killall cfprefsd` for any purpose during this debugging.** `cfprefsd` holds `AppleEnabledInputSources` in RAM; killing it wipes the user's enabled-IME list. Symptom: the IME is in System Settings as "installed", but does not appear in the keyboard menu. The user has to re-Add it via System Settings UI to repopulate (and re-approve the permission popup). Cost us four iterations in the original session.
+- **Don't add `MachServices` to the LaunchAgent plist.** It tells launchd to claim the Mach service name; the binary's `IMKServer(name:)` then collides. Flag flips from `U A` to `M D`, and the IME goes into a "switch-to-it-then-immediately-auto-skip" failure mode. Let the binary self-register; the LaunchAgent just runs the process.
+- **Don't `killall cfprefsd` for any reason while debugging.** `cfprefsd` holds `AppleEnabledInputSources` in RAM; killing it wipes the user's enabled-IME list. The IME is then still "installed" per System Settings, but doesn't appear in the menu-bar input switcher. The user has to re-Add it via System Settings UI (re-triggering the third-party IME permission popup) to repopulate the list. Cost four iterations in the original investigation before I realized what was wiping the state.
 
-The LaunchAgent's `ProgramArguments` must contain an absolute path; substitute via your install script (see [Skeleton — `install.sh`](#installsh) and [Skeleton — `.pkg` postinstall](#pkg-postinstall)).
+The LaunchAgent's `ProgramArguments` needs an absolute path (`~` is not shell-expanded by launchd). Substitute the value via your install script ([Skeleton — `install.sh`](#installsh)) or `.pkg` postinstall ([Skeleton — `.pkg` postinstall](#pkg-postinstall)).
 
-After the LaunchAgent loads + the user adds the IME via System Settings: typing works end-to-end. That's the moment 12 hours of investigation finally yields one character.
+After the LaunchAgent loads and the user Adds the IME via System Settings: typing works end-to-end. That's the moment two days of investigation finally yield one character.
 
-The proper fix is to figure out *why* `imklaunchagent` refuses our bundle in the first place — we never isolated it. Both vChewing's and ours satisfy every visible check (bundle id pattern, 4 IMK keys, 6 entitlements, signing, runtime). Something else gates it. If you isolate it, please file an issue on this article and we'll update.
+### What's still unknown
+
+I did not isolate the actual root cause of `imklaunchagent`'s residual refusal. Both vChewing's bundle and mine satisfy every visible check — bundle id pattern, all 4 IMK keys, all 6 entitlements, Notarized DevID signing, hardened runtime, `@objc(...)` controller. Something else gates the launch decision and I couldn't see it from the disassembly. The LaunchAgent is a clean bypass, but it's a workaround, not the proper fix. If you isolate the actual check `imklaunchagent` runs, please file an issue on this article and I'll update.
 
 ---
 
