@@ -17,6 +17,10 @@ public final class InputxSettings {
         static let useCjkPunct = "useCjkPunct"
         static let useFullWidth = "useFullWidth"
         static let showSourceIndicator = "showSourceIndicator"
+        /// JP plugin "enhancement attach" toggle — orthogonal to engineMode.
+        /// Mixed / WubiOnly / PinyinOnly + this=true → JP candidates appended.
+        /// engineMode=.japaneseOnly forces JP regardless of this flag.
+        static let japaneseEnabled = "japaneseEnabled"
     }
 
     /// Construct over a specific `UserDefaults`. Pass `.standard` for Mac
@@ -37,6 +41,7 @@ public final class InputxSettings {
             Keys.useCjkPunct: true,
             Keys.useFullWidth: false,
             Keys.showSourceIndicator: true,
+            Keys.japaneseEnabled: false,
         ])
     }
 
@@ -78,5 +83,10 @@ public final class InputxSettings {
     public var showSourceIndicator: Bool {
         get { defaults.bool(forKey: Keys.showSourceIndicator) }
         set { defaults.set(newValue, forKey: Keys.showSourceIndicator) }
+    }
+
+    public var japaneseEnabled: Bool {
+        get { defaults.bool(forKey: Keys.japaneseEnabled) }
+        set { defaults.set(newValue, forKey: Keys.japaneseEnabled) }
     }
 }

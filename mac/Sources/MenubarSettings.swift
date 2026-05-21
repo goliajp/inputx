@@ -57,7 +57,18 @@ final class MenubarSettings {
         addModeItem("混合（五笔为主，拼音兜底）", mode: .mixed)
         addModeItem("仅五笔", mode: .wubiOnly)
         addModeItem("仅拼音", mode: .pinyinOnly)
+        addModeItem("仅日语", mode: .japaneseOnly)
         menu.addItem(.separator())
+
+        // Japanese plugin attachment toggle. Visible only when the engine
+        // mode is a Chinese mode — under `.japaneseOnly` the toggle is
+        // implicit and the menu line would just be confusing.
+        if inputxSettings.engineMode != .japaneseOnly {
+            addToggle("日本語拡張（候補に平仮名・片仮名・漢字を追加）",
+                      isOn: inputxSettings.japaneseEnabled,
+                      selector: #selector(toggleJapanese))
+            menu.addItem(.separator())
+        }
 
         // Auto-commit policy
         let policyHeader = NSMenuItem(title: "自动上屏", action: nil, keyEquivalent: "")
@@ -156,6 +167,11 @@ final class MenubarSettings {
     @objc private func toggleRareChars() {
         inputxSettings.showRareChars.toggle()
         InputxRareChars.enabled = inputxSettings.showRareChars
+        rebuildMenu()
+    }
+
+    @objc private func toggleJapanese() {
+        inputxSettings.japaneseEnabled.toggle()
         rebuildMenu()
     }
 

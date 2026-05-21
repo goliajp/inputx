@@ -26,6 +26,9 @@ struct SettingsView: View {
     // Phase 9 (items 84-85) — locale toggles
     @AppStorage("useCjkPunct",         store: inputxSharedDefaultsNonOpt) private var useCjkPunct: Bool = true
     @AppStorage("useFullWidth",        store: inputxSharedDefaultsNonOpt) private var useFullWidth: Bool = false
+    /// JP plugin enhancement toggle — orthogonal to engineMode. When
+    /// engineMode == .japaneseOnly (3), this toggle is moot (mode forces JP).
+    @AppStorage("japaneseEnabled",     store: inputxSharedDefaultsNonOpt) private var japaneseEnabled: Bool = false
 
     @State private var showResetConfirm = false
     @State private var showImportPicker = false
@@ -97,16 +100,24 @@ struct SettingsView: View {
                         Text("混合").tag(0).accessibilityIdentifier("engine-mode-mixed")
                         Text("五笔").tag(1).accessibilityIdentifier("engine-mode-wubi")
                         Text("拼音").tag(2).accessibilityIdentifier("engine-mode-pinyin")
+                        Text("日语").tag(3).accessibilityIdentifier("engine-mode-japanese")
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.menu)
                     .accessibilityIdentifier("picker-engine-mode")
+                    // JP plugin enhancement toggle. Hidden when the picker
+                    // is already on .japaneseOnly (mode forces JP, toggle
+                    // would just confuse).
+                    if engineMode != 3 {
+                        Toggle("日语扩展（候选追加假名 + 共形汉字）", isOn: $japaneseEnabled)
+                            .accessibilityIdentifier("toggle-japanese-enabled")
+                    }
                     Text(engineModeNote)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } header: {
                     Text("输入方案")
                 } footer: {
-                    Text("切换后请关闭再重新打开 Inputx 键盘以生效（v1 不支持 mid-session 切换）。")
+                    Text("切换后请关闭再重新打开 Inputx 键盘以生效（v1 不支持 mid-session 切换）。日语扩展默认关闭——打开后输入罗马字时会在中文候选之后追加平假名 / 片假名 / 与简体共形的汉字。")
                 }
 
                 // ---------- 2. Display (item 72) ----------
@@ -239,6 +250,7 @@ struct SettingsView: View {
         switch engineMode {
         case 1: return "纯五笔输入。"
         case 2: return "纯拼音输入。"
+        case 3: return "纯日语输入：罗马字 → 平假名 / 片假名 / 共形汉字。中文引擎关闭。"
         default: return "五笔为主，自动识别拼音 fallback（万能 / 搜狗五笔风格）。"
         }
     }

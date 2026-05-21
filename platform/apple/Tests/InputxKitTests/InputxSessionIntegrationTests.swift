@@ -136,6 +136,71 @@ final class InputxSessionIntegrationTests: XCTestCase {
         XCTAssertEqual(s.inputMode, .cjk)
     }
 
+    // ----- v1.2.0-α1 JP plugin -----------------------------------------
+
+    /// JP disabled by default — no JP candidates in any Chinese mode.
+    func testJapaneseDisabledByDefault() {
+        let s = session()
+        XCTAssertFalse(s.japaneseEnabled)
+        s.setAutoCommitPolicy(.never)
+        for cp in "ka".unicodeScalars {
+            _ = s.handleKey(codepoint: cp.value, modifiers: [])
+        }
+        for i in 0..<s.candidateCount {
+            XCTAssertNotEqual(s.candidateSource(at: i), .japanese,
+                              "no JP candidates expected when toggle off (i=\(i))")
+        }
+    }
+
+    /// JP enabled in Mixed → hiragana / katakana appear after Chinese candidates.
+    func testJapaneseEnabledAppendsCandidatesInMixed() {
+        let s = session()
+        s.setAutoCommitPolicy(.never)
+        s.setJapaneseEnabled(true)
+        XCTAssertTrue(s.japaneseEnabled)
+        for cp in "ka".unicodeScalars {
+            _ = s.handleKey(codepoint: cp.value, modifiers: [])
+        }
+        var found_kana = false
+        var first_jp_index = -1
+        for i in 0..<s.candidateCount {
+            if s.candidateSource(at: i) == .japanese {
+                if first_jp_index < 0 { first_jp_index = i }
+                if let w = s.candidate(at: i), w == "か" {
+                    found_kana = true
+                }
+            }
+        }
+        XCTAssertTrue(found_kana, "expected か in JP candidates")
+        // All non-JP candidates must precede JP.
+        for i in 0..<first_jp_index where first_jp_index >= 0 {
+            XCTAssertNotEqual(s.candidateSource(at: i), .japanese)
+        }
+    }
+
+    /// JapaneseOnly mode: only JP candidates surface, Chinese engines silent.
+    func testJapaneseOnlyModeSilencesChineseEngines() {
+        let s = session()
+        s.setEngineMode(.japaneseOnly)
+        for cp in "kou".unicodeScalars {
+            _ = s.handleKey(codepoint: cp.value, modifiers: [])
+        }
+        XCTAssertGreaterThan(s.candidateCount, 0)
+        for i in 0..<s.candidateCount {
+            XCTAssertEqual(s.candidateSource(at: i), .japanese,
+                           "JapaneseOnly should yield only JP candidates (i=\(i))")
+        }
+        // 高 (the user's framing example) must be in the kanji candidates.
+        var found_high = false
+        for i in 0..<s.candidateCount {
+            if s.candidate(at: i) == "高" {
+                found_high = true
+                break
+            }
+        }
+        XCTAssertTrue(found_high, "expected 高 for kou in JapaneseOnly")
+    }
+
     /// clear() resets to default CJK + empty preedit, regardless of prior mode.
     func testClearResetsToCjkDefault() {
         let s = session()
