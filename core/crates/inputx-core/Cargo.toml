@@ -43,3 +43,7 @@ perfgate = []
 [[bench]]
 name = "composite"
 harness = false
+
+[[bin]]
+name = "inputx-probe"
+path = "src/bin/inputx_probe.rs"

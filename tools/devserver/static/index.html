@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Inputx Dev Inspector</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <h1>Inputx Dev Inspector</h1>
+  <nav>
+    <a href="#probe" class="tab active" data-tab="probe">候选探针</a>
+    <a href="#weights" class="tab" data-tab="weights">词典搜索</a>
+    <a href="#heteronyms" class="tab" data-tab="heteronyms">多音字</a>
+    <a href="#polish" class="tab" data-tab="polish">Polish 日志</a>
+  </nav>
+</header>
+
+<main>
+
+<!-- ============ Probe tab ============ -->
+<section id="probe" class="panel active">
+  <div class="probe-controls">
+    <input id="probe-q" type="text" placeholder="输入拼音/五笔 (live)" autocomplete="off" autofocus>
+    <select id="probe-mode">
+      <option value="mixed">Mixed (默认)</option>
+      <option value="pinyin">PinyinOnly</option>
+      <option value="wubi">WubiOnly</option>
+      <option value="japanese">JapaneseOnly</option>
+    </select>
+    <label><input id="probe-jp" type="checkbox"> JP enhance</label>
+  </div>
+  <div class="probe-meta" id="probe-meta"></div>
+  <table id="probe-table">
+    <thead><tr><th>#</th><th>候选</th><th>来源</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<!-- ============ Weights tab ============ -->
+<section id="weights" class="panel">
+  <div class="probe-controls">
+    <input id="weights-q" type="text" placeholder="拼音码前缀搜索 (e.g. jixu)" autocomplete="off">
+    <span class="hint">显示前 100 条；按 code 精确匹配优先，再按 freq 降序</span>
+  </div>
+  <table id="weights-table">
+    <thead><tr><th>code</th><th>word</th><th>freq</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<!-- ============ Heteronyms tab ============ -->
+<section id="heteronyms" class="panel">
+  <div class="probe-controls">
+    <input id="hetero-q" type="text" placeholder="搜索 phrase 或 canonical pinyin">
+    <span class="hint" id="hetero-count"></span>
+  </div>
+  <table id="hetero-table">
+    <thead><tr><th>phrase</th><th>canonical pinyin</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<!-- ============ Polish-log tab ============ -->
+<section id="polish" class="panel">
+  <h2>Recent picks (非 #0)</h2>
+  <p class="hint"><span id="polish-total"></span> 条总条目；最近 50 条 + 重复 ≥ 2 的聚合 patterns。</p>
+  <h3>重复模式 (count ≥ 2)</h3>
+  <table id="polish-agg">
+    <thead><tr><th>buffer</th><th>preferred</th><th>count</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <h3>近期日志</h3>
+  <table id="polish-recent">
+    <thead><tr><th>ts</th><th>buffer</th><th>candidates (top 3)</th><th>picked</th><th>idx</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
