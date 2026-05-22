@@ -337,8 +337,9 @@ pub fn merge(
 ) -> Vec<Candidate> {
     let total_hint = wubi.len() + pinyin.len() + jp_kanji.len() + jp_kana.len();
     let mut all: Vec<Candidate> = Vec::with_capacity(total_hint);
+    use crate::composite::scoring::TC_DEMOTE_MULTIPLIER;
     let demote = |w: &str, s: f64| -> f64 {
-        if contains_demote_tc(w) { s * 1e-3 } else { s }
+        if contains_demote_tc(w) { s * TC_DEMOTE_MULTIPLIER } else { s }
     };
     for (w, s) in wubi {
         let s = demote(&w, s);
