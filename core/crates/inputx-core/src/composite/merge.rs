@@ -26,13 +26,28 @@ impl Source {
     }
 }
 
-/// One candidate with its source engine. The composite session exposes
-/// `Vec<Candidate>` to the host; FFI splits into parallel arrays.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// One candidate with its source engine + unified score. The score is
+/// produced by the engine's `*_with_scores` API and is comparable
+/// across sources after the engine has applied its `engine_mult` /
+/// `layer_floor` calibration. The composite merge sorts by score
+/// desc; ties keep the first-seen source.
+///
+/// Equality intentionally ignores `score` so legacy tests that
+/// compare `Candidate { word, source }` literals still match — score
+/// is a sort key, not part of identity.
+#[derive(Clone, Debug)]
 pub struct Candidate {
     pub word: String,
     pub source: Source,
+    pub score: f64,
 }
+
+impl PartialEq for Candidate {
+    fn eq(&self, other: &Self) -> bool {
+        self.word == other.word && self.source == other.source
+    }
+}
+impl Eq for Candidate {}
 
 /// Maximum candidates retained in the merged list. iOS candidate bar
 /// paginates via swipe (item 55), but capping prevents pathological
@@ -88,51 +103,250 @@ pub const JP_KANA_RESERVE: usize = 4;
 ///
 /// Whichever vec the caller hands in empty (e.g. JP toggle off → both
 /// jp_kanji and jp_kana empty) is a no-op for that group.
+/// Unified-score merge. Takes scored candidates from each engine, sorts
+/// by score desc, dedupes by word (first-seen source attribution).
+///
+/// The score is set by the engine adapter — see
+/// `WubiEngine::candidates_with_scores`, `PinyinAdapter::candidates_with_scores`,
+/// `JapaneseAdapter::candidates_with_scores`. The engine encodes its
+/// own multipliers (wubi simcode floor via `layer.base`, L0 pin via
+/// score boost, JP per-kind synthetic scores). Cross-engine ordering
+/// is then *just sorting numbers* — no hard rule lives here.
+///
+/// Source attribution preserved on dedup: if `wubi` and `pinyin` both
+/// produce 我们, the higher-scored one wins position; if scores tie,
+/// the first one encountered (wubi by iteration order) wins both
+/// position and `Source::Wubi` tag.
+/// Strict TC-only characters that cannot rank above their simplified
+/// equivalents. User-reported (2026-05-22): `dmu` listed 頁 above 页 —
+/// "不允许" since Inputx's default target is Mainland Mandarin simplified
+/// text. Stopgap until the v0.2 pipeline rebuild folds OpenCC's full
+/// TS↔SC table into the FST data directly (SCORING.md §1.2). Score
+/// penalty is multiplicative × 1e-3 so TC candidates still surface at
+/// the tail when no SC equivalent exists, but never beat their SC
+/// siblings at the same input.
+///
+/// IMPORTANT: this list must contain ONLY characters whose simplified
+/// form is a *different* character. Shared chars (公 / 司 / 学 / 时
+/// — same glyph in both registers) must NEVER appear, or the demote
+/// fires on legitimately-simplified candidates like 公司 too. Each
+/// char below is paired with its SC counterpart in the comment for
+/// review.
+const TC_DEMOTE_CHARS: &str = concat!(
+    "頁",  // 页
+    "國",  // 国
+    "經",  // 经
+    "學",  // 学
+    "體",  // 体
+    "後",  // 后
+    "個",  // 个
+    "樣",  // 样
+    "變",  // 变
+    "風",  // 风
+    "種",  // 种
+    "點",  // 点
+    "達",  // 达
+    "過",  // 过
+    "還",  // 还
+    "進",  // 进
+    "這",  // 这
+    "麼",  // 么
+    "開",  // 开
+    "關",  // 关
+    "問",  // 问
+    "題",  // 题
+    "們",  // 们
+    "發",  // 发
+    "說",  // 说
+    "讓",  // 让
+    "給",  // 给
+    "話",  // 话
+    "寫",  // 写
+    "聽",  // 听
+    "當",  // 当
+    "際",  // 际
+    "樂",  // 乐
+    "業",  // 业
+    "師",  // 师
+    "參",  // 参
+    "與",  // 与
+    "資",  // 资
+    "產",  // 产
+    "務",  // 务
+    "員",  // 员
+    "應",  // 应
+    "該",  // 该
+    "總",  // 总
+    "統",  // 统
+    "舉",  // 举
+    "辦",  // 办
+    "會",  // 会
+    "議",  // 议
+    "圖",  // 图
+    "書",  // 书
+    "畫",  // 画
+    "媽",  // 妈
+    "親",  // 亲
+    "愛",  // 爱
+    "聲",  // 声
+    "響",  // 响
+    "繪",  // 绘
+    "認",  // 认
+    "識",  // 识
+    "記",  // 记
+    "憶",  // 忆
+    "夢",  // 梦
+    "覺",  // 觉
+    "鐵",  // 铁
+    "車",  // 车
+    "場",  // 场
+    "馬",  // 马
+    "電",  // 电
+    "腦",  // 脑
+    "軟",  // 软
+    "網",  // 网
+    "絡",  // 络
+    "線",  // 线
+    "灣",  // 湾
+    "島",  // 岛
+    "嶼",  // 屿
+    "鄉",  // 乡
+    "莊",  // 庄
+    "頭",  // 头
+    "淚",  // 泪
+    "錢",  // 钱
+    "價",  // 价
+    "買",  // 买
+    "賣",  // 卖
+    "質",  // 质
+    "傳",  // 传
+    "節",  // 节
+    "氣",  // 气
+    "養",  // 养
+    "緒",  // 绪
+    "醫",  // 医
+    "療",  // 疗
+    "藥",  // 药
+    "處",  // 处
+    "劑",  // 剂
+    "戶",  // 户
+    "裡",  // 里
+    "裏",  // 里
+    "內",  // 内
+    "飯",  // 饭
+    "館",  // 馆
+    "飲",  // 饮
+    "鋪",  // 铺
+    "舖",  // 铺
+    "營",  // 营
+    "歡",  // 欢
+    "臨",  // 临
+    "鎮",  // 镇
+    "縣",  // 县
+    "結",  // 结
+    "構",  // 构
+    "協",  // 协
+    "權",  // 权
+    "藝",  // 艺
+    "術",  // 术
+    "劇",  // 剧
+    "戲",  // 戏
+    "詞",  // 词
+    "詩",  // 诗
+    "廳",  // 厅
+    "緊",  // 紧
+    "張",  // 张
+    "壓",  // 压
+    "釋",  // 释
+    "鬆",  // 松
+    "寢",  // 寝
+    "導",  // 导
+    "輔",  // 辅
+    "練",  // 练
+    "習",  // 习
+    "慣",  // 惯
+    "貨",  // 货
+    "幣",  // 币
+    "銀",  // 银
+    "儲",  // 储
+    "黃",  // 黄
+    "鈔",  // 钞
+    "賬",  // 账
+    "碼",  // 码
+    "編",  // 编
+    "輯",  // 辑
+    "華",  // 华
+    "麗",  // 丽
+    "從",  // 从
+    "標",  // 标
+    "準",  // 准
+    "確",  // 确
+    "實",  // 实
+    "見",  // 见
+    "東",  // 东
+    "區",  // 区
+    "兒",  // 儿
+    "兩",  // 两
+    "幾",  // 几
+    "報",  // 报
+    "紙",  // 纸
+    "選",  // 选
+    "擇",  // 择
+    "顯",  // 显
+    "對",  // 对
+    "錯",  // 错
+    "覽",  // 览
+    "視",  // 视
+    "覺",  // 觉
+    "聞",  // 闻
+    "聲",  // 声
+    "驚",  // 惊
+    "嚇",  // 吓
+    "懼",  // 惧
+);
+
+fn contains_demote_tc(word: &str) -> bool {
+    word.chars().any(|c| TC_DEMOTE_CHARS.contains(c))
+}
+
 pub fn merge(
-    wubi: Vec<String>,
-    jp_kanji: Vec<String>,
-    pinyin: Vec<String>,
-    jp_kana: Vec<String>,
+    wubi: Vec<(String, f64)>,
+    pinyin: Vec<(String, f64)>,
+    jp_kanji: Vec<(String, f64)>,
+    jp_kana: Vec<(String, f64)>,
 ) -> Vec<Candidate> {
-    let total_hint = (wubi.len() + jp_kanji.len() + pinyin.len() + jp_kana.len())
-        .min(MAX_PER_INPUT);
-    let mut out = Vec::with_capacity(total_hint);
-    let mut seen = std::collections::HashSet::with_capacity(total_hint);
-
-    // Reserve tail slots for jp_kana so the bulk of pinyin doesn't push
-    // kana off the visible cap.
-    let kana_reserve = jp_kana.len().min(JP_KANA_RESERVE);
-    let main_cap = MAX_PER_INPUT.saturating_sub(kana_reserve);
-
-    // HARD RULE: wubi outputs lead. Inputx-五笔 brand promise — wubi
-    // 一级简码 / 二级简码 are non-negotiable top hits for their codes
-    // (e → 有, go → 来, etc.). Within wubi the dict-internal layer_base
-    // sort already enforces 简码 > 词组 > Auto.
-    for w in wubi {
-        if out.len() >= main_cap { break; }
-        if seen.insert(w.clone()) {
-            out.push(Candidate { word: w, source: Source::Wubi });
-        }
+    let total_hint = wubi.len() + pinyin.len() + jp_kanji.len() + jp_kana.len();
+    let mut all: Vec<Candidate> = Vec::with_capacity(total_hint);
+    let demote = |w: &str, s: f64| -> f64 {
+        if contains_demote_tc(w) { s * 1e-3 } else { s }
+    };
+    for (w, s) in wubi {
+        let s = demote(&w, s);
+        all.push(Candidate { word: w, source: Source::Wubi, score: s });
     }
-    for k in jp_kanji {
-        if out.len() >= main_cap { break; }
-        if seen.insert(k.clone()) {
-            out.push(Candidate { word: k, source: Source::Japanese });
-        }
+    for (w, s) in pinyin {
+        let s = demote(&w, s);
+        all.push(Candidate { word: w, source: Source::Pinyin, score: s });
     }
-    for p in pinyin {
-        if out.len() >= main_cap { break; }
-        if seen.insert(p.clone()) {
-            out.push(Candidate { word: p, source: Source::Pinyin });
-        }
+    for (w, s) in jp_kanji {
+        // JP candidates are explicitly JP — TC demote doesn't apply
+        // (whether a JP kanji happens to share form with TC is fine).
+        all.push(Candidate { word: w, source: Source::Japanese, score: s });
     }
-    for k in jp_kana {
+    for (w, s) in jp_kana {
+        all.push(Candidate { word: w, source: Source::Japanese, score: s });
+    }
+    // Stable sort by score desc — ties keep input order (wubi first).
+    all.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    // Dedupe by word — first-seen wins (higher score after sort).
+    let mut seen = std::collections::HashSet::with_capacity(total_hint.min(MAX_PER_INPUT));
+    let mut out: Vec<Candidate> = Vec::with_capacity(total_hint.min(MAX_PER_INPUT));
+    for c in all {
         if out.len() >= MAX_PER_INPUT { break; }
-        if seen.insert(k.clone()) {
-            out.push(Candidate { word: k, source: Source::Japanese });
+        if seen.insert(c.word.clone()) {
+            out.push(c);
         }
     }
-
     out
 }
 
@@ -140,76 +354,91 @@ pub fn merge(
 mod tests {
     use super::*;
 
+    fn s(word: &str, score: f64) -> (String, f64) {
+        (word.into(), score)
+    }
+
     #[test]
     fn empty_inputs_yield_empty() {
         assert!(merge(vec![], vec![], vec![], vec![]).is_empty());
     }
 
     #[test]
-    fn wubi_only_tagged_wubi() {
-        let m = merge(vec!["国".into(), "果".into()], vec![], vec![], vec![]);
-        assert_eq!(m.len(), 2);
-        assert!(m.iter().all(|c| c.source == Source::Wubi));
-        assert_eq!(m[0].word, "国");
-    }
-
-    #[test]
-    fn pinyin_only_tagged_pinyin() {
-        let m = merge(vec![], vec![], vec!["中国".into(), "中过".into()], vec![]);
-        assert_eq!(m.len(), 2);
-        assert!(m.iter().all(|c| c.source == Source::Pinyin));
-    }
-
-    #[test]
-    fn wubi_strictly_first_in_merged_list() {
-        // Hard rule: Inputx-五笔 brand promise. Wubi 简码 / 字根 outputs
-        // lead even when JP has a high-conviction kanji match. Within
-        // wubi, dict-internal layer_base ordering handles 一级 > 二级 >
-        // 三级 > 字根 > 词组 > Auto.
+    fn wubi_simcode_score_dominates() {
+        // 有 wubi Jianma1 score ≈ 1.05M; 会 (JP "e" on-yomi) 200k.
+        // Hard-rule simcode floor is enforced by score, not by layered
+        // concat — the number wins.
         let m = merge(
-            vec!["有".into()],
-            vec!["会".into()],  // JP 会 (on-yomi "e") would match `e` too
+            vec![s("有", 1_045_000.0)],
             vec![],
+            vec![s("会", 200_000.0)],
             vec![],
         );
         assert_eq!(m[0].word, "有");
         assert_eq!(m[0].source, Source::Wubi);
-        assert_eq!(m[1].word, "会");
-        assert_eq!(m[1].source, Source::Japanese);
     }
 
     #[test]
-    fn ranking_wubi_jpkanji_pinyin_jpkana() {
+    fn pinyin_top_phrase_beats_wubi_phrase_via_score() {
+        // jixu collision: wubi 曳光弹 Phrase 400k+7269 = 407k, pinyin
+        // 继续 Phrase-base 400k+44652 = 445k. Pinyin wins on score.
         let m = merge(
-            vec!["W".into()],
-            vec!["K".into()],
-            vec!["P".into()],
-            vec!["N".into()],
+            vec![s("曳光弹", 407_269.0)],
+            vec![s("继续", 444_652.0)],
+            vec![],
+            vec![],
         );
-        assert_eq!(m[0].source, Source::Wubi);
-        assert_eq!(m[1].source, Source::Japanese);
-        assert_eq!(m[1].word, "K");
-        assert_eq!(m[2].source, Source::Pinyin);
-        assert_eq!(m[3].source, Source::Japanese);
-        assert_eq!(m[3].word, "N");
+        assert_eq!(m[0].word, "继续");
+        assert_eq!(m[0].source, Source::Pinyin);
     }
 
     #[test]
-    fn jp_kanji_empty_falls_through_to_wubi_first() {
-        // JP off (kanji empty) → behaves like before: wubi → pinyin.
+    fn pin_score_multiplier_dominates() {
+        // L0 pin × 1000 lifts the pinned word above any wubi simcode.
         let m = merge(
-            vec!["中国".into()],
+            vec![s("有", 1_045_000.0)],
+            vec![s("继续", 444_652.0 * 1000.0)],
             vec![],
-            vec!["zhongguo".into()],
             vec![],
+        );
+        assert_eq!(m[0].word, "继续");
+    }
+
+    #[test]
+    fn jp_jukugo_above_wubi_auto_below_pinyin_top() {
+        // JP jukugo synthetic = 300k. Wubi Auto top ≈ 107k. Pinyin
+        // top ≈ 445k. JP fits between.
+        let m = merge(
+            vec![s("两", 107_000.0)],
+            vec![s("中国", 445_000.0)],
+            vec![s("日本", 300_000.0)],
+            vec![s("にほん", 100_000.0)],
         );
         assert_eq!(m[0].word, "中国");
+        assert_eq!(m[1].word, "日本");
+        assert_eq!(m[2].word, "两");
+        assert_eq!(m[3].word, "にほん");
+    }
+
+    #[test]
+    fn dedup_keeps_highest_score_source() {
+        // 你 produced by both wubi (500k) and pinyin (440k) — wubi
+        // wins via higher score; pinyin entry dropped.
+        let m = merge(
+            vec![s("你", 500_000.0)],
+            vec![s("你", 440_000.0)],
+            vec![],
+            vec![],
+        );
+        assert_eq!(m.len(), 1);
         assert_eq!(m[0].source, Source::Wubi);
     }
 
     #[test]
     fn cap_at_max_per_input() {
-        let many: Vec<String> = (0..MAX_PER_INPUT * 2).map(|i| i.to_string()).collect();
+        let many: Vec<(String, f64)> = (0..MAX_PER_INPUT * 2)
+            .map(|i| (i.to_string(), 100.0))
+            .collect();
         let m = merge(many.clone(), many.clone(), many.clone(), many);
         assert_eq!(m.len(), MAX_PER_INPUT);
     }

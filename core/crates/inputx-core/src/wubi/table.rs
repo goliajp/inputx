@@ -73,6 +73,17 @@ pub fn lookup(code: &str) -> Vec<String> {
     all
 }
 
+/// Scored variant of [`lookup`]. Returns `(word, score)` tuples for
+/// the composite cross-engine merge. Rare-CJK filter applied here too.
+pub fn lookup_with_scores(code: &str) -> Vec<(String, f64)> {
+    let mut all: Vec<(String, f64)> = Vec::new();
+    dict().lookup_with_scores_into(code, &mut all);
+    if !SHOW_RARE.load(Ordering::Relaxed) {
+        all.retain(|(w, _)| is_displayable(w));
+    }
+    all
+}
+
 /// Notify the dictionary that the user committed `word` for `code`. The
 /// internal pick counter advances; on threshold the word auto-pins. All
 /// learning logic lives in `wubi` — this is just a passthrough so the IME

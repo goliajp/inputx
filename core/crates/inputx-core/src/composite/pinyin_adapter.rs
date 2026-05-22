@@ -105,6 +105,43 @@ impl PinyinAdapter {
         &self.candidates
     }
 
+    /// Scored variant of `candidates()`. Returns the current candidate
+    /// list paired with each entry's unified score (see
+    /// `inputx_pinyin::PinyinDict::lookup_with_scores_into` for the score
+    /// formula).
+    ///
+    /// Implementation: re-scores the existing `self.candidates` Vec.
+    /// Path 1 (exact lookup) is scored via the dict's
+    /// `lookup_with_scores_into`. Paths 2/3 (initials + prefix
+    /// completion) inject candidates that wouldn't otherwise have a
+    /// freq; for those we default to a low score so the cross-engine
+    /// sort puts them below exact matches.
+    pub fn candidates_with_scores(&self) -> Vec<(String, f64)> {
+        if self.candidates.is_empty() || self.buffer.is_empty() {
+            return Vec::new();
+        }
+        // Score exact-match entries via the dict; everything else
+        // (initials + prefix-completion injected entries) gets a small
+        // floor so the cross-engine merge still ranks them.
+        let mut scored: Vec<(String, f64)> = Vec::with_capacity(self.candidates.len());
+        let mut exact_scored: Vec<(String, f64)> = Vec::new();
+        self.engine.dict().lookup_with_scores_into(&self.buffer, &mut exact_scored);
+        let exact_map: std::collections::HashMap<String, f64> =
+            exact_scored.into_iter().collect();
+        // Floor for non-exact (initials / prefix-completion) entries —
+        // sits below the lowest natural exact-match score so exact
+        // matches dominate. 1k chosen as "any positive but tiny".
+        const NON_EXACT_FLOOR: f64 = 1000.0;
+        // Decay non-exact entries by position so the original within-
+        // path ordering is preserved at the bottom of the merged list.
+        for (i, w) in self.candidates.iter().enumerate() {
+            let s = exact_map.get(w).copied()
+                .unwrap_or(NON_EXACT_FLOOR * 0.99f64.powi(i as i32));
+            scored.push((w.clone(), s));
+        }
+        scored
+    }
+
     /// User-pinned word for the *current* pinyin buffer, if any. Used by
     /// composite::engine to apply cross-engine pin promotion: when the
     /// user has explicitly trained `jixu → 继续`, the merged candidate
@@ -261,7 +298,17 @@ impl PinyinAdapter {
             3 => 150,
             _ => 200,
         };
-        if self.candidates.len() < cap {
+        // Suppress prefix-completion when Path 1 (exact-syllable) already
+        // produced any candidate. Rationale (user-reported, 2026-05-22):
+        // typing `lianxiang` should yield only 联想 (exact reading) in
+        // the immediate candidate list, NOT 联想集团 / 联想起 / etc. The
+        // latter are *predictions* — words whose pinyin EXTENDS what the
+        // user typed. They belong in a post-commit "next-word" list,
+        // not muddling the immediate candidates the user is choosing
+        // among right now. Path 3 still fires when Path 1 was empty
+        // (e.g., `zho` mid-syllable → 中/中国/众/… via prefix scan).
+        let allow_prefix_completion = !self.has_non_speculative_candidate;
+        if allow_prefix_completion && self.candidates.len() < cap {
             let want = cap - self.candidates.len();
             push_prefix_top_k(
                 &self.engine,
@@ -919,10 +966,14 @@ mod tests {
     }
 
     #[test]
-    fn prefix_zhong_includes_phrase_completions() {
-        // `zhong` is a valid syllable AND a phrase prefix. Exact lookup
-        // gives single chars (中, 众, 终, ...); prefix scan must add
-        // phrase completions like 中国 (stored at "zhongguo").
+    fn complete_syllable_zhong_excludes_prefix_extension_words() {
+        // Inverted from earlier behavior (pre-2026-05-22). When the input
+        // resolves to a *complete* syllable like `zhong`, exact-reading
+        // matches (中, 众, 终, ...) take the candidate list and prefix-
+        // extension words like 中国 (whose reading is "zhongguo", strictly
+        // longer than `zhong`) are SUPPRESSED. They're predictions, not
+        // current candidates — they belong in a post-commit next-word
+        // list. Same principle as the user-reported lianxiang→联想 case.
         let mut a = PinyinAdapter::new();
         for b in b"zhong" {
             a.handle_letter(*b);
@@ -934,8 +985,9 @@ mod tests {
             cands.iter().take(10).collect::<Vec<_>>()
         );
         assert!(
-            cands.iter().any(|w| w == "中国"),
-            "zhong should also surface 中国 via prefix scan; got {:?}",
+            !cands.iter().any(|w| w == "中国"),
+            "zhong must NOT surface 中国 — it's a prefix-extension prediction. \
+             Got: {:?}",
             cands.iter().take(20).collect::<Vec<_>>()
         );
     }

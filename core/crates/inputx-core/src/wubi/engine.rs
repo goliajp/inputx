@@ -76,6 +76,19 @@ impl WubiEngine {
         &self.candidates
     }
 
+    /// Scored candidates for the cross-engine merge. Re-queries the
+    /// dict via `lookup_with_scores` so the composite layer can sort
+    /// uniformly across wubi / pinyin / jp. Score formula:
+    /// `layer.base × pref + freq`, with the existing wubi-internal
+    /// promote rules (single-char-beats-phrase at full code, L0 pin)
+    /// folded in as score multipliers.
+    pub fn candidates_with_scores(&self) -> Vec<(String, f64)> {
+        if self.buffer.is_empty() {
+            return Vec::new();
+        }
+        table::lookup_with_scores(self.buffer_str())
+    }
+
     /// Feed one Wubi-relevant letter. Returns text to commit, if any
     /// (forced commit when buffer was already full, and/or auto-commit
     /// triggered by `AutoCommitPolicy`). May concatenate two commits

@@ -163,6 +163,87 @@ impl WubiDict {
         out
     }
 
+    /// Scored lookup: same ordering as `lookup_into` (layer / freq / promote
+    /// rules + L0 pin), but emits `(word, score)` tuples so the cross-engine
+    /// merge layer can do a single unified sort instead of hard-coding which
+    /// engine wins. Score reflects:
+    ///   * layer.base() × layer_prefs   (jianma1 = 1e6, …)
+    ///   * + freq                       (corpus weight)
+    ///   * × 100.0                      if full-code single-char promotion fires
+    ///                                  (see lookup_into doc for the rule)
+    ///   * × 1000.0                     if the candidate is L0-pinned
+    ///                                  (must dominate any natural score)
+    ///
+    /// The post-multipliers keep wubi simcodes and L0 pins on top across
+    /// the cross-engine merge.
+    pub fn lookup_with_scores_into(&self, code: &str, out: &mut Vec<(String, f64)>) {
+        out.clear();
+        let lower = code.to_ascii_lowercase();
+        let mut prefix = lower.clone().into_bytes();
+        let prefix_len = prefix.len();
+        prefix.push(0u8);
+        let mut upper = prefix.clone();
+        let last = upper.len() - 1;
+        upper[last] = 0x01;
+
+        let prefs = self
+            .l0
+            .read()
+            .map(|g| g.layer_prefs)
+            .unwrap_or(DEFAULT_LAYER_PREFS);
+
+        let full_code = prefix_len == 4;
+        // Tuple: (word, score, is_single, freq).
+        let mut scratch: Vec<(String, f64, bool, u64)> = Vec::with_capacity(8);
+        let mut max_phrase_freq: u64 = 0;
+        let mut stream = self
+            .map
+            .range()
+            .ge(prefix.as_slice())
+            .lt(upper.as_slice())
+            .into_stream();
+        while let Some((key, value)) = stream.next() {
+            if key.len() <= prefix_len + 1 {
+                continue;
+            }
+            let word_bytes = &key[prefix_len + 1..];
+            if let Ok(s) = core::str::from_utf8(word_bytes) {
+                let (layer, freq) = unpack(value);
+                let base = layer.base() as f64;
+                let pref = prefs[layer.as_index()];
+                let is_single = s.chars().count() == 1;
+                if !is_single && freq > max_phrase_freq {
+                    max_phrase_freq = freq;
+                }
+                scratch.push((s.to_string(), base * pref + freq as f64, is_single, freq));
+            }
+        }
+
+        // Apply full-code single-char promote (lifts qualifying single
+        // chars above the same-code phrases) and L0 pin (lifts the pinned
+        // word above natural sort).
+        let pinned: Option<String> = self.l0.read().ok().and_then(|g| g.pins.get(&lower).cloned());
+        for e in scratch.iter_mut() {
+            let promote = full_code && e.2 && e.3 > max_phrase_freq;
+            if promote {
+                e.1 *= 100.0;
+            }
+            if let Some(p) = &pinned
+                && &e.0 == p
+            {
+                e.1 *= 1000.0;
+            }
+        }
+        scratch.sort_by(|a, b| {
+            b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        out.reserve(scratch.len());
+        for (w, score, _, _) in scratch.drain(..) {
+            out.push((w, score));
+        }
+    }
+
     /// Same as [`Self::lookup`] but writes into a caller-owned buffer.
     /// `out` is cleared (capacity preserved) on entry.
     ///

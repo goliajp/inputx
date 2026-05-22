@@ -36,82 +36,44 @@ pub fn dispatch(
     japanese: Option<&JapaneseAdapter>,
 ) -> Vec<Candidate> {
     let (jp_kanji, jp_kana) = match japanese {
-        Some(j) => (j.kanji_candidates(), j.kana_candidates()),
+        Some(j) => split_jp_scored(j),
         None => (vec![], vec![]),
     };
     match mode {
-        Mode::WubiOnly => merge(wubi.candidates().to_vec(), jp_kanji, vec![], jp_kana),
-        Mode::PinyinOnly => merge(vec![], jp_kanji, pinyin.candidates().to_vec(), jp_kana),
-        Mode::JapaneseOnly => merge(vec![], jp_kanji, vec![], jp_kana),
+        Mode::WubiOnly => merge(wubi.candidates_with_scores(), vec![], jp_kanji, jp_kana),
+        Mode::PinyinOnly => merge(vec![], pinyin.candidates_with_scores(), jp_kanji, jp_kana),
+        Mode::JapaneseOnly => merge(vec![], vec![], jp_kanji, jp_kana),
         Mode::Mixed => {
             let z_prefix = pinyin.buffer_str().starts_with('z');
             let wubi_cands = if z_prefix {
                 vec![]
             } else {
-                wubi.candidates().to_vec()
+                wubi.candidates_with_scores()
             };
-            let pinyin_cands = pinyin.candidates().to_vec();
-            if pinyin.buffer_str().len() > wubi.buffer_str().len()
-                && !pinyin_cands.is_empty()
-            {
-                merge_pinyin_first(wubi_cands, pinyin_cands, jp_kanji, jp_kana)
-            } else {
-                merge(wubi_cands, jp_kanji, pinyin_cands, jp_kana)
-            }
+            merge(wubi_cands, pinyin.candidates_with_scores(), jp_kanji, jp_kana)
         }
     }
 }
 
-/// Merge but with pinyin candidates listed before wubi (still attributing
-/// each to its source). Used when pinyin buffer outpaced wubi (collision
-/// scenarios from the 5+ char input path). JP kanji still ride near the
-/// top; JP kana still reserved at the tail. Ordering:
-///   1. JP kanji (high conviction)
-///   2. Pinyin (it outpaced wubi — user's clearly committed to pinyin path)
-///   3. Wubi (leftover)
-///   4. JP kana (low-conviction tail reserve)
-fn merge_pinyin_first(
-    wubi: Vec<String>,
-    pinyin: Vec<String>,
-    jp_kanji: Vec<String>,
-    jp_kana: Vec<String>,
-) -> Vec<Candidate> {
-    use crate::composite::merge::{Candidate, JP_KANA_RESERVE, MAX_PER_INPUT, Source};
-    let total_hint =
-        (wubi.len() + pinyin.len() + jp_kanji.len() + jp_kana.len()).min(MAX_PER_INPUT);
-    let mut out = Vec::with_capacity(total_hint);
-    let mut seen = std::collections::HashSet::with_capacity(total_hint);
-    let kana_reserve = jp_kana.len().min(JP_KANA_RESERVE);
-    let main_cap = MAX_PER_INPUT.saturating_sub(kana_reserve);
-    // Pinyin-first special case: user's pinyin buffer outpaced wubi
-    // (collision recovery from 5+ char overflow). Pinyin leads here
-    // because the user is clearly committed to that path. JP kanji
-    // and wubi follow. JP kana stays at the tail reserve.
-    for p in pinyin {
-        if out.len() >= main_cap { break; }
-        if seen.insert(p.clone()) {
-            out.push(Candidate { word: p, source: Source::Pinyin });
+/// Split the JP adapter's scored candidates into (kanji, kana) buckets
+/// — the cross-engine merge takes them separately for clarity but
+/// scoring is uniform across both.
+fn split_jp_scored(
+    j: &JapaneseAdapter,
+) -> (Vec<(String, f64)>, Vec<(String, f64)>) {
+    let all = j.candidates_with_scores();
+    let kanji_set: std::collections::HashSet<String> =
+        j.kanji_candidates().into_iter().collect();
+    let mut kanji = Vec::new();
+    let mut kana = Vec::new();
+    for (w, s) in all {
+        if kanji_set.contains(&w) {
+            kanji.push((w, s));
+        } else {
+            kana.push((w, s));
         }
     }
-    for k in jp_kanji {
-        if out.len() >= main_cap { break; }
-        if seen.insert(k.clone()) {
-            out.push(Candidate { word: k, source: Source::Japanese });
-        }
-    }
-    for w in wubi {
-        if out.len() >= main_cap { break; }
-        if seen.insert(w.clone()) {
-            out.push(Candidate { word: w, source: Source::Wubi });
-        }
-    }
-    for k in jp_kana {
-        if out.len() >= MAX_PER_INPUT { break; }
-        if seen.insert(k.clone()) {
-            out.push(Candidate { word: k, source: Source::Japanese });
-        }
-    }
-    out
+    (kanji, kana)
 }
 
 #[cfg(test)]
@@ -175,20 +137,16 @@ mod tests {
     }
 
     #[test]
-    fn mixed_pinyin_first_when_pinyin_outgrew_wubi() {
-        // Collision recovery scenario: wubi buffer was reset (e.g., after
-        // 5-char overflow defuse) while pinyin kept accumulating. Pinyin
-        // should lead the candidate list.
-        let mut wubi = WubiEngine::new();
-        let mut pinyin = PinyinAdapter::new();
-        wubi_typed(&mut wubi, b"g"); // wubi has 1 char → 一
-        typed(&mut pinyin, b"shang"); // pinyin has 5 chars → 上, 商, …
-
-        let cands = dispatch(Mode::Mixed, &wubi, &pinyin, None);
-        assert_eq!(cands[0].source, Source::Pinyin);
-        // Common pinyin shang candidates should appear in top.
-        assert!(cands.iter().any(|c| c.word == "上"));
-    }
+    // (deleted) mixed_pinyin_first_when_pinyin_outgrew_wubi: the test
+    // constructed an artificial state where wubi has buf="g" while
+    // pinyin has buf="shang" — used to validate the now-removed
+    // pinyin-first heuristic. Under the unified-score merge, wubi `g`
+    // gives 一 (Jianma1, score ~1.04M) which legitimately tops a
+    // pinyin shang result (~500k) — that's the simcode hard floor
+    // working as designed. The real collision-recovery scenario
+    // (user types 5+ chars; wubi resets to a tail like "ng" with
+    // Auto-layer scores ~100k) is covered by score-based ordering
+    // without needing the heuristic.
 
     #[test]
     fn mixed_z_prefix_skips_wubi() {
