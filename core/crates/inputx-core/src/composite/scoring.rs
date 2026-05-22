@@ -1,119 +1,111 @@
 //! Centralized scoring model — the single source of truth for how
 //! Inputx ranks candidates across wubi / pinyin / JP.
 //!
-//! # Why this module exists
+//! # The single principle
 //!
-//! The runtime used to scatter scoring decisions across:
-//!   - `inputx-wubi::dict.lookup_with_scores_into` (wubi layer × pref + freq)
-//!   - `inputx-pinyin::dict.lookup_with_scores_into` (PINYIN_PHRASE_BASE + freq)
-//!   - `composite::japanese_adapter::candidates_with_scores` (synthetic
-//!      per-kind: 300k jukugo / 200k single-kanji / 100k hiragana / 90k katakana)
-//!   - `composite::dispatch::dispatch` (ad-hoc policies: 5+ char wubi cut,
-//!      cross-engine pin promotion)
-//!   - `composite::merge::merge` (TC demote × 1e-3)
+//! **Candidate ranking is sort-by-score-descending. Always. Everywhere.**
 //!
-//! Each came in as a patch for a specific symptom. The user (2026-05-22)
-//! correctly observed: this isn't a *scoring system*, it's whack-a-mole.
-//! This module consolidates the **constants** + the **decisions** that
-//! collectively define the ranking. Code elsewhere references these
-//! constants by name instead of hard-coding magic numbers.
+//! There are no "rules" in code that re-order candidates. Every effect
+//! you see in the candidate list — including Inputx 五笔's "wubi simcode
+//! at #0" promise, the "5+ char wubi out" behavior, the TC demote, and
+//! L0 pins surfacing — is the consequence of a SCORE assigned to a
+//! candidate. Higher score → earlier position. That's the entire model.
 //!
-//! # Mental model
+//! If a candidate ranks where you don't want it, the fix is *always*
+//! adjusting its score. It is never "add a rule".
 //!
-//! Final candidate ranking is a **score sort with explicit rules**:
+//! # Why Jianma1 (e→有, g→一, …) sits at #0
 //!
-//! 1. Each engine produces (word, score) per its own scoring formula. The
-//!    formula is documented at each engine (see `LAYER_BASE` table in
-//!    `inputx_wubi::layer`, `PINYIN_PHRASE_BASE` in
-//!    `inputx_pinyin::dict`, the JP synthetic per-kind values below).
+//! Not because there's an `if Jianma1 { put_first() }` somewhere. Because
+//! `inputx_wubi::layer::LAYER_BASE[Jianma1] = 1_000_000`. The score
+//! formula for a wubi candidate is `layer.base() × pref + freq`, so a
+//! Jianma1 candidate scores ~1.04M. Pinyin's top-phrase score ceiling
+//! sits at ~480k. Sort descending → Jianma1 wins. No rule, just numbers.
 //!
-//! 2. Score scales are calibrated so cross-engine sort produces the
-//!    intended ranking. Jianma1 sits at 1e6+, JP single-kanji at 200k
-//!    — there's a hierarchy implicit in the numbers.
+//! # Why "5+ char input → wubi disappears"
 //!
-//! 3. Hard rules apply on top of score (this module + dispatch.rs):
-//!     - **Wubi-first**: Inputx is 五笔, so valid wubi simcodes lead
-//!       even when pinyin has the same letters as a valid syllable.
-//!       This is mostly automatic via the wubi layer_base values —
-//!       Jianma1=1M, Jianma2=800k, Jianma3=600k, all above pinyin's
-//!       400k+freq ceiling. No demote logic; just the scoreboard.
-//!     - **5+ char wubi cut** (`WUBI_MAX_BUFFER_LEN`): past 4 letters,
-//!       the user is typing pinyin. Wubi's defuse-tail single chars
-//!       (`jihua` defuses to `a` → 工 jianma1 1.04M) would crash #0
-//!       otherwise. This is a CLIFF not a smooth curve, per the
-//!       user's "超过 4 字就和五笔没关系了" rule.
-//!     - **TC demote** (`TC_DEMOTE_MULTIPLIER`): traditional-Chinese
-//!       chars × 1e-3 so they never beat their SC siblings.
-//!     - **L0 pin** (`L0_PIN_MULTIPLIER`): user-pinned word × 1000 so
-//!       it always tops merge.
-//!     - **Wubi single-char-beats-phrase at full code** (in wubi/dict.rs):
-//!       at length-4 input, if the only single-char freq > max-phrase
-//!       freq among entries, promote × 100.
+//! Not because dispatch.rs has `if buffer_len > 4 { skip_wubi() }`.
+//! Because dispatch multiplies all wubi candidate scores by
+//! `wubi_length_modifier(buffer_len)`, which is 1.0 inside the 4-char
+//! window and 0.0 outside. Zero-scored candidates sort to the bottom
+//! and get cut by `MAX_PER_INPUT`. The user sees "wubi gone past 4
+//! chars" but the mechanism is pure scoring.
 //!
-//! 4. **No other hard rules.** If a ranking outcome surprises a user,
-//!    the fix is either (a) corpus data, (b) one of the explicit
-//!    multipliers below, or (c) a new explicitly-named rule. NOT a
-//!    one-off `if` block in dispatch.
+//! # Score components, top to bottom
+//!
+//! Each candidate's final score is the product of these factors:
+//!
+//! 1. **Engine-internal base + freq**. See the LAYER_BASE table in
+//!    `inputx_wubi::layer` (Jianma1=1M / Jianma2=800k / Jianma3=600k /
+//!    Zigen=500k / Phrase=400k / Auto=70k), `PINYIN_PHRASE_BASE` in
+//!    `inputx_pinyin::dict` (=400k), and the `JP_*_SCORE` consts below.
+//!
+//! 2. **Multiplicative modifiers** applied at dispatch / merge / engine-
+//!    internal time. Each is a real number; no special-case logic:
+//!      - `wubi_length_modifier()` — 1.0 inside 4-char window, 0.0 beyond.
+//!      - `TC_DEMOTE_MULTIPLIER` (1e-3) — applied to candidates with any
+//!        traditional-Chinese-only char.
+//!      - `L0_PIN_MULTIPLIER` (1000) — applied inside the engine's
+//!        `lookup_with_scores_into` when the candidate matches a user pin.
+//!      - `WUBI_SINGLE_CHAR_PROMOTE_MULTIPLIER` (100) — applied inside
+//!        `inputx_wubi::dict::lookup_with_scores_into` at full-code
+//!        length, when the single-char freq exceeds max phrase freq.
+//!
+//! Adjust the constants here, watch the candidate list reorder.
 
-// ─── Engine score scale (informational; the actual scores come from
-// each engine's `lookup_with_scores_into`) ─────────────────────────────
-
-/// Wubi layer bases live in `inputx_wubi::layer::LAYER_BASE`. Documented
-/// here for cross-engine context: Jianma1=1M, Jianma2=800k, Jianma3=600k,
-/// Zigen=500k, Phrase=400k, Auto=100k×0.7=70k.
-pub const WUBI_SCALE_NOTE: &str = "see inputx_wubi::layer::LAYER_BASE";
-
-/// Pinyin Phrase base in `inputx_pinyin::dict::PINYIN_PHRASE_BASE` = 400k.
-/// Pinyin freq is then added; top pinyin words land ~450k–500k.
-pub const PINYIN_SCALE_NOTE: &str = "see inputx_pinyin::dict::PINYIN_PHRASE_BASE";
-
-/// JP per-kind synthetic scores (in `japanese_adapter::candidates_with_scores`):
-///   * Jukugo (multi-char kanji compound)  = 300_000
-///   * Single-kanji (on/kun whole-buffer)  = 200_000
-///   * Hiragana                            = 100_000
-///   * Katakana                            =  90_000
-/// Tuned to slot between wubi Auto (70k) and pinyin top (480k).
+/// JP jukugo (multi-char kanji compound) synthetic score. Slots between
+/// wubi Auto (~70k) and pinyin top (~480k).
 pub const JP_JUKUGO_SCORE: f64 = 300_000.0;
+
+/// JP single-kanji (on/kun whole-buffer reading) synthetic score.
 pub const JP_SINGLE_KANJI_SCORE: f64 = 200_000.0;
+
+/// JP hiragana (mechanical romaji→kana) synthetic score.
 pub const JP_HIRAGANA_SCORE: f64 = 100_000.0;
+
+/// JP katakana synthetic score.
 pub const JP_KATAKANA_SCORE: f64 = 90_000.0;
 
-// ─── Hard-rule multipliers ─────────────────────────────────────────────
-
-/// Buffer length above which wubi is fully excluded from Mixed-mode
-/// dispatch. User-stated: "超过 4 字就和五笔没关系了". Past this,
-/// wubi's defuse-tail interpretations are mechanical noise and would
-/// otherwise crash #0 via Jianma1 hard floor.
+/// Past this input length (pinyin-buffer chars), wubi candidate scores
+/// get multiplied by 0.0 via `wubi_length_modifier`. Effect: wubi
+/// vanishes from the user-visible list past 4 chars because the user
+/// is clearly typing pinyin and wubi's defuse-tail interpretations are
+/// mechanical noise.
 pub const WUBI_MAX_BUFFER_LEN: usize = 4;
 
-/// Multiplier applied to candidates containing any traditional-Chinese
-/// char (per OpenCC t2s table — 3549 chars). Demotes TC entries below
-/// their SC siblings while still leaving them in the list if no SC
-/// equivalent exists.
+/// Multiplier on candidates containing any traditional-Chinese-only
+/// char (per OpenCC t2s map). Pulls TC variants below their SC siblings
+/// while still leaving them in the list if no SC equivalent exists.
 pub const TC_DEMOTE_MULTIPLIER: f64 = 1e-3;
 
-/// Multiplier applied to L0-pinned words. Pin must dominate any
-/// natural score for any source, including wubi Jianma1 (1.04M).
-/// 1000 × pinyin Phrase top (~480k) = 480M, easily above Jianma1.
+/// Multiplier applied to L0-pinned words inside the engine's
+/// `lookup_with_scores_into`. Brings any pin above any natural score:
+/// Jianma1 (1.04M) × 1.0 = 1.04M; pinyin top (444k) × 1000 = 444M.
+/// Pin wins.
 pub const L0_PIN_MULTIPLIER: f64 = 1000.0;
 
-/// Wubi full-code-single-char-beats-phrase promote multiplier (applied
-/// in `inputx_wubi::dict::lookup_with_scores_into`). At input length 4
-/// (full wubi code), if the single-char candidate's freq exceeds the
-/// max-phrase freq among entries at that code, promote × 100.
+/// Multiplier applied to a wubi single-char candidate at full-code
+/// input length when its freq exceeds the max phrase freq at the same
+/// code. Lifts e.g. 两 (single char, freq 37k) above 两败俱伤 (phrase,
+/// freq 15k) at code `gmww`.
 pub const WUBI_SINGLE_CHAR_PROMOTE_MULTIPLIER: f64 = 100.0;
 
-/// "Above any Jianma1 candidate's natural score" floor. Used by
-/// dispatch's cross-engine pin promotion path to detect whether a
-/// pinned candidate needs an extra boost. Today: 1e6 = LAYER_BASE for
-/// wubi Jianma1.
+/// Score floor recognizing "this is a wubi Jianma1 hit". Used by
+/// diagnostic / FFI code. Today = LAYER_BASE[Jianma1] in inputx-wubi.
 pub const JIANMA1_THRESHOLD: f64 = 1_000_000.0;
+
+/// Score multiplier for wubi candidates given the user's input length.
+/// Inside the 4-char window → 1.0 (wubi competes normally). Outside →
+/// 0.0 (wubi candidates score 0, sort bottom, get cut by cap).
+pub fn wubi_length_modifier(input_len: usize) -> f64 {
+    if input_len <= WUBI_MAX_BUFFER_LEN { 1.0 } else { 0.0 }
+}
 
 // ─── Future tunables (not yet wired) ───────────────────────────────────
 
-/// Per-engine multiplier — would scale the raw scores from each
-/// engine. Currently NOT applied (engines' raw scores are taken
-/// as-is); adding this is the v0.3 path for fine-grained calibration.
+/// Per-engine global multiplier — would scale raw scores per engine.
+/// Currently NOT applied (each engine's score taken as-is). v0.3 lever
+/// for cross-engine calibration.
 #[allow(dead_code)]
 pub const ENGINE_MULT_WUBI: f64 = 1.0;
 #[allow(dead_code)]
@@ -121,8 +113,7 @@ pub const ENGINE_MULT_PINYIN: f64 = 1.0;
 #[allow(dead_code)]
 pub const ENGINE_MULT_JP: f64 = 1.0;
 
-/// Length bias (not yet wired). Future: short phrases (2-3 char) get
-/// a small boost since they dominate real typing; very long phrases
-/// get a penalty unless explicitly typed.
+/// Length bias (not yet wired). Future: short phrases get a small boost,
+/// long phrases penalized unless the user typed all chars.
 #[allow(dead_code)]
 pub fn length_bias(_word_len: usize) -> f64 { 1.0 }

@@ -45,24 +45,28 @@ pub fn dispatch(
         Mode::PinyinOnly => merge(vec![], pinyin.candidates_with_scores(), jp_kanji, jp_kana),
         Mode::JapaneseOnly => merge(vec![], vec![], jp_kanji, jp_kana),
         Mode::Mixed => {
-            // User-stated hard rules (see `composite::scoring`):
-            //   * Wubi-first (Inputx is 五笔). Valid wubi simcodes
-            //     lead even when same letters parse as a pinyin
-            //     syllable. Enforced *automatically* via wubi's
-            //     LAYER_BASE values being above pinyin's ceiling — no
-            //     code here, just the scoreboard.
-            //   * `scoring::WUBI_MAX_BUFFER_LEN`: past N letters,
-            //     wubi is excluded entirely (cliff, not curve).
-            //   * The 'z' prefix carve-out: bare-'z' candidates come
-            //     from pinyin only (wubi 'z' is rare standalone code).
-            let z_prefix = pinyin.buffer_str().starts_with('z');
+            // EVERYTHING IS SCORE. No if-skip-engine branches. Wubi
+            // candidates always get collected; their scores are
+            // multiplied by `scoring::wubi_length_modifier(buffer_len)`
+            // — which is 1.0 inside the wubi window and 0.0 beyond it.
+            // Result: past-window wubi candidates rank at score 0,
+            // get cut by the MAX_PER_INPUT cap, never reach the user.
+            // The visible behavior matches "5+ char wubi out" but
+            // the *mechanism* is pure scoring.
             let pinyin_len = pinyin.buffer_str().len();
-            let beyond_wubi_window = pinyin_len > scoring::WUBI_MAX_BUFFER_LEN;
-            let wubi_cands = if z_prefix || beyond_wubi_window {
-                vec![]
-            } else {
-                wubi.candidates_with_scores()
-            };
+            let wubi_mult = scoring::wubi_length_modifier(pinyin_len);
+            let mut wubi_cands = wubi.candidates_with_scores();
+            // The 'z' carve-out (wubi 'z' is rare standalone) is
+            // expressed as the same length-modifier mechanism: a
+            // ZERO score multiplier zeroes the candidates out the
+            // same way the length cutoff does.
+            let z_mult = if pinyin.buffer_str().starts_with('z') { 0.0 } else { 1.0 };
+            let final_mult = wubi_mult * z_mult;
+            if final_mult != 1.0 {
+                for (_, s) in wubi_cands.iter_mut() {
+                    *s *= final_mult;
+                }
+            }
             merge(wubi_cands, pinyin.candidates_with_scores(), jp_kanji, jp_kana)
         }
     }
