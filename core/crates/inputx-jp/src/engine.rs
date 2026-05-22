@@ -139,6 +139,15 @@ impl JapaneseEngine {
         // candidates immediately, fall back to kana via the lower
         // slots if none of the kanji matches intent.
 
+        // Sentence-level segmentation FIRST: try splitting buffer into
+        // (content-word prefix + particle/copula suffix). When both
+        // halves match the data tables, emit a composed candidate like
+        // "私は" for buffer "watashiwa". This is what makes JP feel
+        // like a real IME instead of a romaji→kana renderer.
+        for composed in compose_sentence(s) {
+            self.candidates.push(composed);
+        }
+
         // Jukugo + single-kanji come WITH freq from the data tables.
         // Sort each group by freq desc so within-group ordering reflects
         // commonality (高 freq 88 before 香 freq 35 even though both
@@ -181,6 +190,98 @@ impl JapaneseEngine {
             });
         }
     }
+}
+
+/// Particle / copula suffixes for sentence-level segmentation. Longer
+/// suffixes first so greedy prefix-stripping picks `dewanai` before
+/// `wa`. Each entry is (romaji_suffix, kana_form).
+///
+/// This is the minimum surface needed to make "私は" / "学校で" /
+/// "明日です" appear as direct conversions of `watashiwa` / `gakkoude`
+/// / `ashitadesu`. Without this, the user gets only mechanical kana
+/// (わたしわ — note the wa rendered as わ, not は) and has to
+/// manually compose.
+const SENTENCE_SUFFIXES: &[(&str, &str)] = &[
+    // longest first
+    ("dewanaikatta", "ではなかった"),
+    ("dewaarimasen", "ではありません"),
+    ("dewanaiyou", "ではないよう"),
+    ("dewanakatta", "ではなかった"),
+    ("dewanai", "ではない"),
+    ("deshita", "でした"),
+    ("dewashita", "ではした"),
+    ("deshou", "でしょう"),
+    ("darou", "だろう"),
+    ("datta", "だった"),
+    ("desu", "です"),
+    ("dewa", "では"),
+    ("kara", "から"),
+    ("made", "まで"),
+    ("yori", "より"),
+    ("nado", "など"),
+    ("toka", "とか"),
+    ("nimo", "にも"),
+    ("demo", "でも"),
+    ("masu", "ます"),
+    ("masen", "ません"),
+    ("mashita", "ました"),
+    ("mashou", "ましょう"),
+    ("wa", "は"),
+    ("ga", "が"),
+    ("wo", "を"),
+    ("ni", "に"),
+    ("de", "で"),
+    ("to", "と"),
+    ("mo", "も"),
+    ("no", "の"),
+    ("ka", "か"),
+    ("e", "へ"),
+    ("ya", "や"),
+];
+
+/// Try every (prefix, suffix) split of `buffer` where suffix is in
+/// `SENTENCE_SUFFIXES`. For each split, look up prefix in jukugo +
+/// single-kanji tables and emit a Candidate composing prefix-kanji +
+/// suffix-kana. Returns candidates sorted by content-word freq desc
+/// (the suffix doesn't have its own freq scale; we rank by the
+/// content word's frequency since that's what disambiguates).
+fn compose_sentence(buffer: &str) -> Vec<Candidate> {
+    let mut hits: Vec<(String, u32)> = Vec::new();
+    for (s_reading, s_kana) in SENTENCE_SUFFIXES {
+        if let Some(prefix) = buffer.strip_suffix(s_reading) {
+            if prefix.is_empty() {
+                continue;
+            }
+            // Look up prefix in jukugo
+            for (compound, freq) in jukugo::lookup_by_reading(prefix) {
+                hits.push((format!("{compound}{s_kana}"), freq));
+            }
+            // Look up prefix in kanji
+            for (ch, freq) in kanji::lookup_by_reading(prefix) {
+                hits.push((format!("{ch}{s_kana}"), freq));
+            }
+        }
+    }
+    // Dedup by word, keeping highest freq.
+    let mut best: std::collections::HashMap<String, u32> =
+        std::collections::HashMap::new();
+    for (w, f) in hits {
+        let entry = best.entry(w).or_insert(0);
+        if f > *entry { *entry = f; }
+    }
+    let mut sorted: Vec<(String, u32)> = best.into_iter().collect();
+    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted
+        .into_iter()
+        .map(|(word, freq)| Candidate {
+            word,
+            kind: KanaKind::Kanji,
+            // Slight penalty vs direct-jukugo match: composed sentences
+            // are heuristic-built, so their freq downscales to 0.8× of
+            // the content word's freq. Still beats pure-kana fallback.
+            freq: ((freq as f64) * 0.8) as u32,
+        })
+        .collect()
 }
 
 #[cfg(test)]
