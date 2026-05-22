@@ -34,8 +34,10 @@ final class CandidatePanel {
 
     init() {
         // Borderless floating panel — doesn't steal focus, sits above host.
+        // Compact width (≈2/3 of the original 220pt) since the verbose hint
+        // text was dropped; just numbered rows + word + page indicator now.
         let w = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 220, height: 320),
+            contentRect: NSRect(x: 0, y: 0, width: 150, height: 320),
             styleMask: [.nonactivatingPanel, .borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -248,10 +250,11 @@ final class CandidatePanel {
     }
 
     private func updateFooter() {
+        // Page indicator only — the key bindings are obvious from the
+        // numbered rows + arrow muscle memory. User explicitly asked to
+        // drop the verbose hint so the panel can stretch narrower.
         let totalPages = max(1, (current.count + Self.pageSize - 1) / Self.pageSize)
-        let pageDisplay = "\(pageIndex + 1)/\(totalPages) 页"
-        let hints = "  ↑↓选择  ←→翻页  1-9,0=10"
-        footer.stringValue = pageDisplay + hints
+        footer.stringValue = "\(pageIndex + 1)/\(totalPages) 页"
     }
 
     // ----------------------------------------------------------- positioning
@@ -337,7 +340,7 @@ private final class CandidateRow: NSView {
         w.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 22),
-            widthAnchor.constraint(greaterThanOrEqualToConstant: 200),
+            widthAnchor.constraint(greaterThanOrEqualToConstant: 130),
 
             bgView.topAnchor.constraint(equalTo: topAnchor, constant: 1),
             bgView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -1),
