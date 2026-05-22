@@ -1120,3 +1120,21 @@ mod cross_engine_pin {
     }
 }
 
+
+#[cfg(test)]
+mod jigao_coverage {
+    use super::*;
+    #[test]
+    fn jigao_produces_jigao_after_supplemental_dict() {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(crate::composite::Mode::PinyinOnly);
+        for cp in b"jigao" { sess.handle_key(*cp as u32, 0); }
+        let cands = sess.candidates();
+        assert!(
+            cands.iter().any(|w| w == "极高"),
+            "极高 must be in jigao candidates after supplemental dict add. Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+}

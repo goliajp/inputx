@@ -33,6 +33,13 @@ proptest = "1"
 # regressions; criterion is for tuning + reporting.
 criterion = "0.5"
 
+[features]
+# Force perfgate tests to run even under parallel `cargo test --release`.
+# Off by default (perfgate is `#[ignore]`); `scripts/perf_isolated.sh`
+# enables it AND adds `--test-threads=1` so CPU contention doesn't
+# poison single-sample timing.
+perfgate = []
+
 [[bench]]
 name = "composite"
 harness = false
