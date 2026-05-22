@@ -117,21 +117,27 @@ pub const JP_KANA_RESERVE: usize = 4;
 /// produce 我们, the higher-scored one wins position; if scores tie,
 /// the first one encountered (wubi by iteration order) wins both
 /// position and `Source::Wubi` tag.
-/// Strict TC-only characters that cannot rank above their simplified
-/// equivalents. User-reported (2026-05-22): `dmu` listed 頁 above 页 —
-/// "不允许" since Inputx's default target is Mainland Mandarin simplified
-/// text. Stopgap until the v0.2 pipeline rebuild folds OpenCC's full
-/// TS↔SC table into the FST data directly (SCORING.md §1.2). Score
-/// penalty is multiplicative × 1e-3 so TC candidates still surface at
-/// the tail when no SC equivalent exists, but never beat their SC
-/// siblings at the same input.
+/// Strict TC-only character set, derived from OpenCC's t2s mapping —
+/// every CJK char in [U+4E00, U+9FA0) whose TC form differs from its
+/// SC form (3549 entries). Built from the `data/tc_chars_demote.txt`
+/// file via `include_str!`.
 ///
-/// IMPORTANT: this list must contain ONLY characters whose simplified
-/// form is a *different* character. Shared chars (公 / 司 / 学 / 时
-/// — same glyph in both registers) must NEVER appear, or the demote
-/// fires on legitimately-simplified candidates like 公司 too. Each
-/// char below is paired with its SC counterpart in the comment for
-/// review.
+/// Score penalty is multiplicative × 1e-3 so TC candidates still
+/// surface at the tail when no SC equivalent exists, but never beat
+/// their SC siblings at the same input.
+///
+/// IMPORTANT: contains ONLY chars whose simplified form differs from
+/// the traditional form. Shared chars (公 / 司 / 学 / 时 — same glyph
+/// in both registers) are excluded by OpenCC's t2s definition (it
+/// only emits entries where input ≠ output).
+/// OpenCC t2s-derived (3549 chars). Single newline-separated string;
+/// the demote checker iterates char-by-char (line breaks ignored
+/// because the file is one-char-per-line).
+const TC_DEMOTE_FULL: &str = include_str!("../../data/tc_chars_demote.txt");
+
+/// Legacy hand-curated list — kept for reviewability + as backup if
+/// the OpenCC file is ever stripped. The full check uses TC_DEMOTE_FULL.
+#[allow(dead_code)]
 const TC_DEMOTE_CHARS: &str = concat!(
     "頁",  // 页
     "國",  // 国
@@ -305,8 +311,22 @@ const TC_DEMOTE_CHARS: &str = concat!(
     "懼",  // 惧
 );
 
+/// HashSet-backed TC check. Built once on first use from the 3549-char
+/// OpenCC-derived list. O(1) per char vs `&str::contains` which is O(N).
+fn tc_chars() -> &'static std::collections::HashSet<char> {
+    use std::sync::OnceLock;
+    static SET: OnceLock<std::collections::HashSet<char>> = OnceLock::new();
+    SET.get_or_init(|| {
+        TC_DEMOTE_FULL
+            .chars()
+            .filter(|&c| !c.is_whitespace())
+            .collect()
+    })
+}
+
 fn contains_demote_tc(word: &str) -> bool {
-    word.chars().any(|c| TC_DEMOTE_CHARS.contains(c))
+    let set = tc_chars();
+    word.chars().any(|c| set.contains(&c))
 }
 
 pub fn merge(
