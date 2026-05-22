@@ -347,6 +347,66 @@ impl PinyinDict {
         true
     }
 
+    /// Scored variant of `lookup_into`. Same ordering rules (freq desc,
+    /// L0 pin promoted to position 0) but emits `(word, score)` tuples
+    /// so the composite-layer merge can do unified cross-engine sort.
+    ///
+    /// Score formula:
+    ///   * base = `PINYIN_PHRASE_BASE` (≈ wubi Phrase layer base)
+    ///   * raw  = base + freq
+    ///   * pinned candidate: × 1000.0 (must dominate any natural score)
+    ///
+    /// The base placement deliberately matches wubi Phrase (~400k) so a
+    /// high-freq pinyin word competes fairly with wubi Phrase entries
+    /// at the same code, but stays below wubi Jianma simcodes (which
+    /// have base 600k–1M depending on layer).
+    pub fn lookup_with_scores_into(&self, pinyin: &str, out: &mut Vec<(String, f64)>) {
+        out.clear();
+        let lower = lower_str(pinyin);
+        let mut prefix = lower.clone().into_bytes();
+        let prefix_len = prefix.len();
+        prefix.push(0u8);
+        let mut upper = prefix.clone();
+        let last = upper.len() - 1;
+        upper[last] = 0x01;
+
+        const PINYIN_PHRASE_BASE: f64 = 400_000.0;
+
+        let mut scratch: Vec<(String, f64, u64)> = Vec::with_capacity(8);
+        let mut stream = self
+            .map
+            .range()
+            .ge(prefix.as_slice())
+            .lt(upper.as_slice())
+            .into_stream();
+        while let Some((key, value)) = stream.next() {
+            if key.len() <= prefix_len + 1 {
+                continue;
+            }
+            let word_bytes = &key[prefix_len + 1..];
+            if let Ok(s) = core::str::from_utf8(word_bytes) {
+                scratch.push((s.to_string(), PINYIN_PHRASE_BASE + value as f64, value));
+            }
+        }
+        // L0 pin: multiply pinned candidate's score so it tops the
+        // engine-internal sort AND the cross-engine merge layer.
+        let pinned: Option<String> = self.l0.read().ok().and_then(|g| g.pins.get(&lower).cloned());
+        if let Some(p) = &pinned {
+            for e in scratch.iter_mut() {
+                if &e.0 == p {
+                    e.1 *= 1000.0;
+                }
+            }
+        }
+        scratch.sort_by(|a, b| {
+            b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
+        });
+        out.reserve(scratch.len());
+        for (w, score, _) in scratch.drain(..) {
+            out.push((w, score));
+        }
+    }
+
     /// Look up the user-pinned word for a given pinyin code, if any.
     /// Composite hosts use this to apply cross-engine pin promotion —
     /// e.g. if the user pinned pinyin `jixu → 继续`, the merged

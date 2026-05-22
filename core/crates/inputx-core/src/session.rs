@@ -969,6 +969,55 @@ mod tests {
 }
 
 #[cfg(test)]
+mod prefix_completion_suppression {
+    use super::*;
+    /// User-reported polish (2026-05-22): typing `lianxiang` should produce
+    /// only 联想 (exact-reading match) in the immediate candidate list.
+    /// Earlier behavior pulled in 联想集团 / 联想起 / 联想到 via the pinyin
+    /// adapter's Path 3 prefix-completion scan — but those are
+    /// *predictions* (words whose pinyin EXTENDS lianxiang), not candidates
+    /// for the buffer the user just typed. Predictions belong in a
+    /// post-commit next-word list, not muddling the current candidate list.
+    #[test]
+    fn lianxiang_does_not_include_prefix_extension_words() {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(crate::composite::Mode::PinyinOnly);
+        for cp in b"lianxiang" { sess.handle_key(*cp as u32, 0); }
+        let cands = sess.candidates();
+        assert!(
+            cands.iter().any(|w| w == "联想"),
+            "expected 联想 present in lianxiang candidates. Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+        for noise in &["联想集团", "联想起", "联想到"] {
+            assert!(
+                !cands.iter().any(|w| w == noise),
+                "{} must not appear for exact lianxiang input — it's a \
+                 prefix-extension word. Got: {:?}",
+                noise,
+                cands.iter().take(10).collect::<Vec<_>>()
+            );
+        }
+    }
+
+    /// Counterpart: incomplete syllable should STILL get prefix completion
+    /// (otherwise user is stuck mid-syllable with nothing to commit).
+    #[test]
+    fn zho_partial_syllable_still_completes_via_prefix() {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(crate::composite::Mode::PinyinOnly);
+        for cp in b"zho" { sess.handle_key(*cp as u32, 0); }
+        let cands = sess.candidates();
+        assert!(
+            !cands.is_empty(),
+            "zho must still produce candidates via prefix completion"
+        );
+    }
+}
+
+#[cfg(test)]
 mod cross_engine_pin {
     use super::*;
     /// `jixu` is a natural code collision: wubi-3-char-phrase encoding
@@ -1004,3 +1053,4 @@ mod cross_engine_pin {
         );
     }
 }
+
