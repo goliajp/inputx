@@ -1,0 +1,107 @@
+/* Inputx Dev Inspector — system font, dark-friendly */
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  margin: 0;
+  background: #0f1419;
+  color: #d4d4d4;
+  font-size: 14px;
+  line-height: 1.5;
+}
+header {
+  background: #1a1f24;
+  border-bottom: 1px solid #2d3338;
+  padding: 12px 24px;
+}
+h1 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: #f0f0f0;
+}
+nav {
+  display: flex;
+  gap: 16px;
+}
+.tab {
+  color: #888;
+  text-decoration: none;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+}
+.tab.active {
+  color: #4fc3f7;
+  border-bottom-color: #4fc3f7;
+}
+main { padding: 16px 24px; }
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+.probe-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+.probe-controls input[type=text] {
+  flex: 1;
+  max-width: 360px;
+  font: inherit;
+  padding: 6px 10px;
+  border: 1px solid #2d3338;
+  background: #1a1f24;
+  color: #d4d4d4;
+  border-radius: 4px;
+}
+.probe-controls input[type=text]:focus {
+  outline: none;
+  border-color: #4fc3f7;
+}
+.probe-controls select {
+  font: inherit;
+  padding: 6px 10px;
+  background: #1a1f24;
+  color: #d4d4d4;
+  border: 1px solid #2d3338;
+  border-radius: 4px;
+}
+.probe-controls label { color: #888; }
+.hint { color: #666; font-size: 12px; }
+
+.probe-meta {
+  color: #888;
+  margin: 8px 0 16px 0;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+table {
+  width: 100%;
+  max-width: 720px;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid #2d3338;
+}
+th {
+  color: #888;
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: #1a1f24;
+}
+td { vertical-align: top; }
+tbody tr:hover { background: #1a1f24; }
+.src-Wubi { color: #ffb74d; }
+.src-Pinyin { color: #81c784; }
+.src-Japanese { color: #ff8a80; }
+.candidate-cell { font-size: 16px; }
+h2, h3 { font-weight: 500; }
+h2 { font-size: 15px; margin-top: 8px; }
+h3 { font-size: 13px; margin-top: 16px; color: #aaa; }
