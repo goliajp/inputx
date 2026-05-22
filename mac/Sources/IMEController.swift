@@ -156,6 +156,29 @@ final class InputxController: IMKInputController {
             return false
         }
 
+        // ---- Panel pagination via Tab / + / - -----------------------------
+        // Same effect as ← / → arrows, exposed under the keys the user
+        // already has muscle memory for. Tab = next page (Shift+Tab =
+        // previous), + = next, - = previous. Intercepts BEFORE Path B
+        // (locale punct) so the `+`/`-` keystrokes never reach the host
+        // when the panel is up.
+        if let panel = candidatePanel, panel.isVisible {
+            let shifted = event.modifierFlags.contains(.shift)
+            switch codepoint {
+            case 0x09: // Tab
+                if shifted { _ = panel.prevPage() } else { _ = panel.nextPage() }
+                return true
+            case 0x2B: // '+'
+                _ = panel.nextPage()
+                return true
+            case 0x2D: // '-'
+                _ = panel.prevPage()
+                return true
+            default:
+                break
+            }
+        }
+
         // ---- Path A0: Space → commit highlighted (not just #0) -----------
         // When the panel is visible and ↑/↓ has moved the highlight off #0,
         // Space commits the *highlighted* candidate. If highlight is on #0
