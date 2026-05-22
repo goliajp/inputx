@@ -34,10 +34,10 @@ final class CandidatePanel {
 
     init() {
         // Borderless floating panel — doesn't steal focus, sits above host.
-        // Compact width (≈2/3 of the original 220pt) since the verbose hint
-        // text was dropped; just numbered rows + word + page indicator now.
+        // Compact width (user-tuned 2x narrower than original 220pt) —
+        // numbered rows + word + page indicator only.
         let w = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 150, height: 320),
+            contentRect: NSRect(x: 0, y: 0, width: 110, height: 320),
             styleMask: [.nonactivatingPanel, .borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -340,7 +340,7 @@ private final class CandidateRow: NSView {
         w.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 22),
-            widthAnchor.constraint(greaterThanOrEqualToConstant: 130),
+            widthAnchor.constraint(greaterThanOrEqualToConstant: 90),
 
             bgView.topAnchor.constraint(equalTo: topAnchor, constant: 1),
             bgView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -1),
