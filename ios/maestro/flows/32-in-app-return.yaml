@@ -4,9 +4,14 @@ tags:
   - keyboard
   - in-app
 ---
-# Return mid-compose drops the inline preedit, inserts \n. We can't easily
-# assert a literal newline character via maestro, but absence of "kp" is
-# the key invariant.
+# Return mid-compose commits the preedit as raw ASCII (no newline added).
+# This is the v1.1.0-α1 semantic: pressing Return on an unresolved
+# preedit signals "I didn't mean Chinese, ship it as English" — same
+# spec the mac IMK side honors. The literal "kp" should remain visible
+# (it's the committed raw text in the host's text field), and the
+# preedit highlight should be gone — but we can't easily distinguish
+# "kp in preedit" from "kp in host text" via maestro accessibility, so
+# the post-return state just asserts presence of the same string.
 
 - launchApp
 - waitForAnimationToEnd
@@ -19,4 +24,5 @@ tags:
 
 - tapOn:
     id: "key-return"
-- assertNotVisible: "kp"
+# Preedit is escaped; "kp" remains as committed ASCII in the host field.
+- assertVisible: "kp"
