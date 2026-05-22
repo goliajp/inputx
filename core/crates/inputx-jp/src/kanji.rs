@@ -283,6 +283,7 @@ pub const KANJI_TABLE: &[KanjiEntry] = &[
     k('反', &["han", "hon", "tan", "soru"], 60),
     k('多', &["ta", "ooi"], 60),
     k('忠', &["chuu"], 60),
+    k('昨', &["saku"], 60),
     k('此', &["shi", "kono"], 60),
     k('水', &["sui", "mizu"], 60),
     k('浅', &["sen", "asai"], 60),
