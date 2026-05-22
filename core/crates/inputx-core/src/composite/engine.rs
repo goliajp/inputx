@@ -283,28 +283,23 @@ impl CompositeEngine {
         }
 
         if self.mode.allows_wubi() {
-            // Defuse wubi's hard 5th-letter cutoff in collision scenarios.
-            // wubi/engine.rs unconditionally force-commits + clears its
-            // buffer when buffer.len() reaches MAX_CODE_LEN (4) and the
-            // next byte arrives — independent of policy. In Mixed mode
-            // that turns "shang" into wubi-commit("櫖") + wubi("g")="一"
-            // (47f); for inputs like "beijing" the pinyin side has no
-            // exact-match candidates at "beij" yet (long-word prefix),
-            // so the original `!pinyin.candidates().is_empty()` guard
-            // didn't fire and "阴湿ing" leaked through. In Mixed mode,
-            // unconditionally clear wubi at 4 letters before the 5th
-            // arrives — pinyin is the primary path here, and policy-
-            // driven auto-commit still fires via `should_force_commit_wubi`
-            // for legit 4-letter wubi-unique codes that aren't pinyin
-            // prefixes.
-            if self.mode == Mode::Mixed && self.wubi.buffer_str().len() == 4 {
-                self.wubi.clear_all();
-            }
-            // Capture wubi's possible commit (hard cutoff or auto-commit)
-            // — composite previously discarded it, leaking committed text
-            // silently in WubiOnly mode + leaving Mixed-mode runs in
-            // inconsistent state when defuse didn't trigger.
-            if let Some(text) = self.wubi.handle_letter(byte) {
+            // User-stated policy (2026-05-22): in Mixed mode, wubi is
+            // out of the picture past 4 letters. "超过 4 字就和五笔没关系
+            // 了" — typing a long pinyin word should not defuse wubi
+            // into a tail-letter simcode (which then crashes the
+            // candidate list via Jianma1's 1M score floor). So: in
+            // Mixed mode, stop feeding wubi once its buffer is already
+            // 4 chars. Wubi state freezes; pinyin keeps growing; no
+            // defuse, no tail interpretation, no junk #0 candidate.
+            //
+            // WubiOnly mode keeps the original defuse behavior — there
+            // the user IS typing wubi codes, and the 4→reset cycle is
+            // the expected ergonomics.
+            if self.mode == Mode::Mixed && self.wubi.buffer_str().len() >= 4 {
+                // Skip wubi entirely for this byte. Pinyin already
+                // consumed it above; JP too. Move on.
+            } else if let Some(text) = self.wubi.handle_letter(byte) {
+                // WubiOnly defuse path or pre-4-char auto-commit fired.
                 self.pinyin.clear_all();
                 if let Some(j) = self.japanese.as_mut() { j.clear_all(); }
                 return Some(text);

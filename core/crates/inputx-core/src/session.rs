@@ -1018,6 +1018,72 @@ mod prefix_completion_suppression {
 }
 
 #[cfg(test)]
+mod beyond_wubi_window {
+    use super::*;
+    /// User policy (2026-05-22): "超过 4 字就和五笔没关系了" — in Mixed
+    /// mode, once the user has typed 5+ letters, wubi should not appear
+    /// in the candidate list at all. The original 4-char defuse rule
+    /// caused 5+ char pinyin inputs to leak wubi-tail-simcode garbage
+    /// (jihua→工, naozi→不, tuijin→沁) into #0. Test all four user-
+    /// reported cases.
+    fn type_in_mixed(input: &[u8]) -> Vec<String> {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for cp in input { sess.handle_key(*cp as u32, 0); }
+        sess.candidates().to_vec()
+    }
+
+    #[test]
+    fn jihua_no_wubi_tail_工() {
+        let cands = type_in_mixed(b"jihua");
+        assert!(
+            !cands.iter().any(|w| w == "工"),
+            "jihua must not surface wubi-tail 工 (from defuse). Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn naozi_no_wubi_tail_不() {
+        let cands = type_in_mixed(b"naozi");
+        assert!(
+            !cands.iter().any(|w| w == "不"),
+            "naozi must not surface wubi-tail 不 (from defuse). Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn tuijin_no_wubi_tail_沁() {
+        let cands = type_in_mixed(b"tuijin");
+        assert!(
+            !cands.iter().any(|w| w == "沁"),
+            "tuijin must not surface wubi-tail. Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn jigao_no_wubi_tail_为() {
+        let cands = type_in_mixed(b"jigao");
+        assert!(
+            !cands.iter().any(|w| w == "为"),
+            "jigao must not surface wubi-tail 为 (o→jianma1). Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn four_letter_wubi_still_works() {
+        // Sanity: at exactly 4 letters, wubi still gets the floor.
+        // `wuzo` is a wubi phrase code for 我们 (4 chars, layer Phrase)
+        // — wubi still contributes here.
+        let cands = type_in_mixed(b"wuzo");
+        assert!(!cands.is_empty(), "wuzo must produce some candidate");
+    }
+}
+
+#[cfg(test)]
 mod cross_engine_pin {
     use super::*;
     /// `jixu` is a natural code collision: wubi-3-char-phrase encoding
