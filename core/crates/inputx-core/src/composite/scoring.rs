@@ -53,18 +53,43 @@
 //!
 //! Adjust the constants here, watch the candidate list reorder.
 
-/// JP jukugo (multi-char kanji compound) synthetic score. Slots between
-/// wubi Auto (~70k) and pinyin top (~480k).
-pub const JP_JUKUGO_SCORE: f64 = 300_000.0;
+// ─── JP base scores ──────────────────────────────────────────────────────
+//
+// Each JP candidate carries a per-entry `freq` (0-100 from the kanji /
+// jukugo data tables). Final JP score = base + JP_FREQ_MULTIPLIER × freq.
+//
+// User-stated design rule (2026-05-23):
+//   * "日语基础权重分就不如五笔和拼音高" — JP base < wubi/pinyin base.
+//     Wubi Phrase base = 400k, pinyin Phrase base = 400k. JP bases sit
+//     BELOW these.
+//   * "日语高频要高于中文难检字和生僻词组" — JP high-freq must beat
+//     Chinese rare entries (wubi Auto ~70k, pinyin rare ~410k).
+//
+// Calibration: top JP jukugo (freq 100) lands at 200k + 100·3000 = 500k.
+// Mid-freq (50) at 350k. Low (10) at 230k. Top JP single-kanji (freq 100)
+// at 400k. The numbers can be tuned here; runtime updates immediately.
 
-/// JP single-kanji (on/kun whole-buffer reading) synthetic score.
-pub const JP_SINGLE_KANJI_SCORE: f64 = 200_000.0;
+/// JP jukugo (multi-char kanji compound) base score. Below wubi/pinyin
+/// Phrase base (400k) so default ordering favors Chinese; freq boost
+/// lets high-frequency jukugo (日本/今日/学校/会社) climb above rare
+/// Chinese candidates.
+pub const JP_JUKUGO_SCORE: f64 = 200_000.0;
 
-/// JP hiragana (mechanical romaji→kana) synthetic score.
-pub const JP_HIRAGANA_SCORE: f64 = 100_000.0;
+/// JP single-kanji base score. Below jukugo (single chars typically
+/// less specific than compounds), still below Chinese bases.
+pub const JP_SINGLE_KANJI_SCORE: f64 = 100_000.0;
 
-/// JP katakana synthetic score.
-pub const JP_KATAKANA_SCORE: f64 = 90_000.0;
+/// JP hiragana base — mechanical romaji→kana rendering, lowest tier.
+pub const JP_HIRAGANA_SCORE: f64 = 50_000.0;
+
+/// JP katakana base — slightly below hiragana (less common as the
+/// "default" kana rendering of romaji input).
+pub const JP_KATAKANA_SCORE: f64 = 40_000.0;
+
+/// Multiplier on the per-entry freq value. Calibrated so top JP entries
+/// (freq 100) land at base + 300k, lifting them above pinyin rare (~410k)
+/// while staying under pinyin top (~480k) and wubi simcodes (600k+).
+pub const JP_FREQ_MULTIPLIER: f64 = 3000.0;
 
 /// Past this input length (pinyin-buffer chars), wubi candidate scores
 /// get multiplied by 0.0 via `wubi_length_modifier`. Effect: wubi

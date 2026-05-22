@@ -22,6 +22,13 @@ use crate::romaji;
 pub struct Candidate {
     pub word: String,
     pub kind: KanaKind,
+    /// 0–100 frequency score. Higher = more common in modern JP. Used
+    /// by the composite-layer scoring (`japanese_adapter::candidates_with_scores`)
+    /// to lift high-frequency JP entries above rare Chinese candidates
+    /// per the user's design rule: JP-base < wubi/pinyin bases, but
+    /// JP-high-freq must beat 中文难检字 + 生僻词组. For kana entries
+    /// (mechanical romaji → kana rendering) freq is 0.
+    pub freq: u32,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -132,17 +139,28 @@ impl JapaneseEngine {
         // candidates immediately, fall back to kana via the lower
         // slots if none of the kanji matches intent.
 
-        for compound in jukugo::lookup_by_reading(s) {
+        // Jukugo + single-kanji come WITH freq from the data tables.
+        // Sort each group by freq desc so within-group ordering reflects
+        // commonality (高 freq 88 before 香 freq 35 even though both
+        // match "kou"). Cross-group ordering is then "jukugo, then
+        // single-kanji, then kana" — the high-conviction kinds first.
+        let mut jukugo_hits: Vec<(&str, u32)> = jukugo::lookup_by_reading(s).collect();
+        jukugo_hits.sort_by(|a, b| b.1.cmp(&a.1));
+        for (compound, freq) in jukugo_hits {
             self.candidates.push(Candidate {
                 word: compound.to_string(),
                 kind: KanaKind::Kanji,
+                freq,
             });
         }
 
-        for kanji_char in kanji::lookup_by_reading(s) {
+        let mut kanji_hits: Vec<(char, u32)> = kanji::lookup_by_reading(s).collect();
+        kanji_hits.sort_by(|a, b| b.1.cmp(&a.1));
+        for (kanji_char, freq) in kanji_hits {
             self.candidates.push(Candidate {
                 word: kanji_char.to_string(),
                 kind: KanaKind::Kanji,
+                freq,
             });
         }
 
@@ -151,6 +169,7 @@ impl JapaneseEngine {
             self.candidates.push(Candidate {
                 word: h.clone(),
                 kind: KanaKind::Hiragana,
+                freq: 0,
             });
         }
         let k = romaji::to_katakana(s);
@@ -158,6 +177,7 @@ impl JapaneseEngine {
             self.candidates.push(Candidate {
                 word: k,
                 kind: KanaKind::Katakana,
+                freq: 0,
             });
         }
     }

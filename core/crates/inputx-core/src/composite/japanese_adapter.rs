@@ -125,9 +125,14 @@ impl JapaneseAdapter {
         self.engine
             .candidates()
             .iter()
-            .enumerate()
-            .filter(|(_, c)| is_jp_clean(&c.word))
-            .map(|(i, c)| {
+            .filter(|c| is_jp_clean(&c.word))
+            .map(|c| {
+                // base = per-kind floor; freq-weighted add lifts high-freq
+                // JP above rare Chinese (per user rule: JP base < wubi/
+                // pinyin base, but JP-high-freq > 中文难检字/生僻词组).
+                // Top JP jukugo (freq 100) lands at 200k + 100*3000 = 500k,
+                // safely above pinyin rare (~410k) and wubi Auto (~70k),
+                // but below pinyin top (480k) and wubi simcodes (600k+).
                 let base = match c.kind {
                     KanaKind::Kanji => {
                         if c.word.chars().count() > 1 {
@@ -139,8 +144,8 @@ impl JapaneseAdapter {
                     KanaKind::Hiragana => scoring::JP_HIRAGANA_SCORE,
                     KanaKind::Katakana => scoring::JP_KATAKANA_SCORE,
                 };
-                let decay = 0.99f64.powi(i as i32);
-                (c.word.clone(), base * decay)
+                let score = base + scoring::JP_FREQ_MULTIPLIER * c.freq as f64;
+                (c.word.clone(), score)
             })
             .collect()
     }
