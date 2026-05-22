@@ -45,20 +45,36 @@ pub fn dispatch(
         Mode::JapaneseOnly => merge(vec![], vec![], jp_kanji, jp_kana),
         Mode::Mixed => {
             let z_prefix = pinyin.buffer_str().starts_with('z');
-            // User-stated policy (2026-05-22): 超过 4 字就和五笔没关系了.
-            // Past 4 input letters, wubi has no business here — the
-            // user is clearly typing pinyin. Wubi's defuse-tail
-            // simcode interpretations (jihua→工, naozi→不, tuijin→沁
-            // …) flood the #0 slot otherwise. Drop wubi candidates
-            // entirely once the pinyin buffer exceeds 4. (Composite
-            // engine also stops feeding wubi past 4, so wubi state
-            // stays frozen; this guard is defensive belt-and-braces.)
-            let beyond_wubi_window = pinyin.buffer_str().len() > 4;
-            let wubi_cands = if z_prefix || beyond_wubi_window {
+            // Policy 1 (2026-05-22): 超过 4 字就和五笔没关系了. Past 4
+            // input letters, wubi has no business here — the user is
+            // clearly typing pinyin. Wubi's defuse-tail simcode
+            // interpretations (jihua→工, naozi→不, tuijin→沁) flood
+            // the #0 slot otherwise.
+            let pinyin_len = pinyin.buffer_str().len();
+            let beyond_wubi_window = pinyin_len > 4;
+            let mut wubi_cands = if z_prefix || beyond_wubi_window {
                 vec![]
             } else {
                 wubi.candidates_with_scores()
             };
+
+            // Policy 2 (2026-05-22): wubi-2/3-letter-simcode vs pinyin-
+            // exact-syllable. When the user types `wo` / `ni` / `ta` /
+            // `de` / `shi` / `you`, they almost certainly mean the
+            // pinyin word (我/你/他/的/是/有) — even though wubi has a
+            // legitimate Jianma2/Jianma3 entry under the same letters
+            // (伙/悄/长/胡/椒/亦). Demote non-Jianma1 wubi by ×0.5 when
+            // pinyin has an exact-syllable hit; Jianma1 (score ≥ 1e6)
+            // is the only hard floor and stays untouched.
+            let pinyin_intentional = pinyin.has_exact_match();
+            if (2..=4).contains(&pinyin_len) && pinyin_intentional {
+                for (_, s) in wubi_cands.iter_mut() {
+                    if *s < 1_000_000.0 {
+                        *s *= 0.5;
+                    }
+                }
+            }
+
             merge(wubi_cands, pinyin.candidates_with_scores(), jp_kanji, jp_kana)
         }
     }
