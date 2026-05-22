@@ -223,27 +223,15 @@ impl CompositeEngine {
     /// Recompute and return the merged candidate list. Slice borrows
     /// internal storage; subsequent calls invalidate.
     ///
-    /// Cross-engine pin promotion runs as a final pass: if the user has
-    /// pinned a word for the current pinyin buffer (e.g. `jixu → 继续`),
-    /// that word moves to position 0 of the merged list — overriding
-    /// the wubi-first hard rule, because an explicit pin is the
-    /// strongest user-intent signal. Without this, wubi's natural-code
-    /// hits (曳光弹 happens to encode to `jixu` as a 3-char phrase)
-    /// would shadow the pinyin pin.
+    /// Returns the merged candidate list, sorted purely by score
+    /// (descending). L0 pins surface at #0 via the score multiplier
+    /// applied inside the engine adapter's `lookup_with_scores_into`
+    /// (see `scoring::L0_PIN_MULTIPLIER` = 1000×) — no post-pass
+    /// re-ordering exists or is needed.
     pub fn candidates(&mut self) -> &[Candidate] {
         self.cand_buf.clear();
         self.cand_buf
             .extend(dispatch(self.mode, &self.wubi, &self.pinyin, self.japanese.as_ref()));
-        // Pinyin pin promotion. (Wubi-internal pins are already at #0
-        // within the wubi candidates list — they fight cross-engine
-        // only with pinyin pins, which is what this pass handles.)
-        if let Some(pinned) = self.pinyin.pinned_word_for_buffer()
-            && let Some(idx) = self.cand_buf.iter().position(|c| c.word == pinned)
-            && idx > 0
-        {
-            let p = self.cand_buf.remove(idx);
-            self.cand_buf.insert(0, p);
-        }
         &self.cand_buf
     }
 
