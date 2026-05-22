@@ -106,6 +106,15 @@ final class CandidatePanel {
 
     /// Update content from the session's current candidate list. Hides
     /// the panel when there's nothing to show.
+    ///
+    /// Positioning policy: the panel anchors to the caret **only on the
+    /// transition from hidden → visible** (i.e., the start of each
+    /// preedit session). Subsequent refreshes within the same session
+    /// keep the same origin even as the row count grows/shrinks. This
+    /// prevents the visual drift the user reported: every refresh
+    /// recomputing `positionNear` would creep the panel downward as
+    /// IMK's `attributes(forCharacterIndex:)` reported subtly different
+    /// caret rects each call. Sticky positioning per session = stable.
     func refresh(session: InputxSession, client: AnyObject?) {
         lastClient = client
         let count = session.candidateCount
@@ -121,19 +130,17 @@ final class CandidatePanel {
                 words.append(w)
             }
         }
-        // Cap at 50 — same reasonable upper bound as before. UI shows
-        // 10 per page across at most 5 pages.
         let cap = 50
         if words.count > cap { words.removeLast(words.count - cap) }
         if words != current {
             current = words
-            // Reset paging on candidate-list change.
             pageIndex = 0
             selectedInPage = 0
         }
+        let firstShow = !window.isVisible
         rebuildRows()
-        positionNear(client: client)
-        if !window.isVisible {
+        if firstShow {
+            positionNear(client: client)
             window.orderFront(nil)
         }
     }
@@ -222,7 +229,6 @@ final class CandidatePanel {
     // ------------------------------------------------------------- UI build
 
     private func rebuildRows() {
-        // Remove old row views.
         for v in rowViews { stack.removeArrangedSubview(v); v.removeFromSuperview() }
         rowViews.removeAll()
 
@@ -236,10 +242,18 @@ final class CandidatePanel {
         }
         updateRowHighlight()
         updateFooter()
-        // Resize window to fit the new row count.
-        let h = max(36, 22 * CGFloat(rowViews.count) + 10 + 16)
+        // Resize the window. On macOS, NSWindow's origin is bottom-left,
+        // so naively setting `size.height = h` would extend the TOP edge
+        // upward (which makes the panel appear to crawl up the screen as
+        // candidate count grows / shrinks across pages). Compensate by
+        // shifting origin.y downward by the height delta — net effect:
+        // the visible TOP stays anchored where positionNear placed it,
+        // and the panel grows / shrinks toward the BOTTOM.
+        let newH = max(36, 22 * CGFloat(rowViews.count) + 10 + 16)
         var f = window.frame
-        f.size.height = h
+        let oldH = f.size.height
+        f.size.height = newH
+        f.origin.y += oldH - newH
         window.setFrame(f, display: true)
     }
 
