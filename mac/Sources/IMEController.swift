@@ -40,9 +40,10 @@ final class InputxController: IMKInputController {
     override init!(server: IMKServer!, delegate: Any!, client inputClient: Any!) {
         super.init(server: server, delegate: delegate, client: inputClient)
         applySettingsToSession()
-        if let server = server {
-            self.candidatePanel = CandidatePanel(server: server)
-        }
+        // Custom CandidatePanel (no IMKServer needed — see CandidatePanel.swift
+        // for why we dropped IMKCandidates in favor of a custom NSWindow).
+        _ = server
+        self.candidatePanel = CandidatePanel()
         // Pay the FST / 简拼-index cold-start cost up front so the first
         // measured keystroke doesn't take ~1-2 s.
         session.warmup()
@@ -129,16 +130,63 @@ final class InputxController: IMKInputController {
         else { return false }
         let codepoint = firstScalar.value
 
-        // Skip Apple PUA (arrow keys, function keys, F1-F19) so they don't
-        // get fed to the engine as bogus codepoints. The candidate panel
-        // intercepts its own arrow / page keys before this point.
+        // Apple PUA range for special keys (arrows, function keys). When
+        // the panel is visible, ↑ / ↓ / ← / → drive the panel; other PUA
+        // keys still pass through to the host. When the panel is hidden,
+        // all PUA passes through.
         if (0xF700...0xF8FF).contains(codepoint) {
+            if let panel = candidatePanel, panel.isVisible {
+                switch codepoint {
+                case 0xF700: // up arrow
+                    _ = panel.moveSelectionUp()
+                    return true
+                case 0xF701: // down arrow
+                    _ = panel.moveSelectionDown()
+                    return true
+                case 0xF702: // left arrow → previous page
+                    _ = panel.prevPage()
+                    return true
+                case 0xF703: // right arrow → next page
+                    _ = panel.nextPage()
+                    return true
+                default:
+                    break
+                }
+            }
             return false
         }
 
+        // ---- Path A0: Space → commit highlighted (not just #0) -----------
+        // When the panel is visible and ↑/↓ has moved the highlight off #0,
+        // Space commits the *highlighted* candidate. If highlight is on #0
+        // (panel just opened), this matches the legacy "Space = commit #0"
+        // semantic. Falls through if not composing.
+        if codepoint == 0x20,
+           let panel = candidatePanel, panel.isVisible,
+           let idx = panel.selectedAbsoluteIndex(),
+           idx > 0
+        {
+            let bufferBefore = session.preedit ?? ""
+            let candsBefore = panel.current
+            if let committed = session.commit(at: idx), !committed.isEmpty {
+                commitText(committed, to: sender)
+                PolishLog.recordIfMiss(
+                    buffer: bufferBefore,
+                    candidates: candsBefore,
+                    pickedIdx: idx,
+                    pickedWord: committed,
+                    engineMode: inputxSettings.engineMode.rawValue,
+                    japaneseEnabled: inputxSettings.japaneseEnabled
+                )
+            }
+            panel.hide()
+            updatePreedit(client: sender)
+            return true
+        }
+
         // ---- Path A: number-key candidate commit ---------------------------
-        // When the panel is up, 1-9 picks the corresponding candidate
-        // without touching the engine state machine.
+        // When the panel is up, 1-9 + 0 picks the corresponding candidate
+        // (0 → 10th slot) without touching the engine state machine.
         if let panel = candidatePanel, panel.isVisible,
            let idx = panel.candidateIndex(forNumberKey: codepoint) {
             let bufferBefore = session.preedit ?? ""
@@ -332,33 +380,12 @@ final class InputxController: IMKInputController {
         )
     }
 
-    // MARK: - IMKit candidate selection callbacks ----------------------------
-
-    override func candidateSelected(_ candidateString: NSAttributedString!) {
-        // User clicked / arrow-key-enter'd a candidate in the panel. We get
-        // back the string, not the index — so find it.
-        guard let panel = candidatePanel,
-              let pickedWord = candidateString?.string,
-              let idx = panel.current.firstIndex(of: pickedWord)
-        else { return }
-        let bufferBefore = session.preedit ?? ""
-        let candsBefore = panel.current
-        if let committed = session.commit(at: idx), !committed.isEmpty {
-            commitText(committed, to: client())
-            PolishLog.recordIfMiss(
-                buffer: bufferBefore,
-                candidates: candsBefore,
-                pickedIdx: idx,
-                pickedWord: committed,
-                engineMode: inputxSettings.engineMode.rawValue,
-                japaneseEnabled: inputxSettings.japaneseEnabled
-            )
-        }
-        panel.hide()
-        updatePreedit(client: client())
-    }
-
     // MARK: - Helpers --------------------------------------------------------
+    //
+    // (The legacy `candidateSelected(...)` override is gone — IMKCandidates'
+    // selection callback isn't used by our custom CandidatePanel. Selection +
+    // commit is driven directly from `handle()` via Space / arrows / number
+    // keys.)
 
     private func applySettingsToSession() {
         session.setEngineMode(inputxSettings.engineMode)
