@@ -1138,3 +1138,23 @@ mod jigao_coverage {
         );
     }
 }
+
+#[cfg(test)]
+mod jiazai_ranking {
+    use super::*;
+    #[test]
+    fn jiazai_jiazai_outranks_jiazai() {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(crate::composite::Mode::PinyinOnly);
+        for cp in b"jiazai" { sess.handle_key(*cp as u32, 0); }
+        let cands = sess.candidates();
+        let pos = |w: &str| cands.iter().position(|c| c == w);
+        let p_load = pos("加载");
+        let p_at = pos("加在");
+        assert!(p_load.is_some(), "加载 must be present. Got: {:?}", cands.iter().take(5).collect::<Vec<_>>());
+        if let (Some(load), Some(at)) = (p_load, p_at) {
+            assert!(load < at, "加载 (pos {}) must outrank 加在 (pos {})", load, at);
+        }
+    }
+}
