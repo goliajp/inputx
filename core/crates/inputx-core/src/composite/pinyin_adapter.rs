@@ -105,6 +105,16 @@ impl PinyinAdapter {
         &self.candidates
     }
 
+    /// `true` iff the current candidate list includes at least one
+    /// candidate from Path 1 (exact-syllable lookup) — i.e., the user's
+    /// buffer parses as one or more valid pinyin syllables AND there's
+    /// a corpus entry at that exact reading. Used by the composite
+    /// dispatch to demote wubi-defused tail candidates when pinyin
+    /// clearly has the right answer (see dispatch.rs).
+    pub fn has_exact_match(&self) -> bool {
+        self.has_non_speculative_candidate
+    }
+
     /// Scored variant of `candidates()`. Returns the current candidate
     /// list paired with each entry's unified score (see
     /// `inputx_pinyin::PinyinDict::lookup_with_scores_into` for the score

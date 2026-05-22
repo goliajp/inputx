@@ -45,7 +45,16 @@ pub fn dispatch(
         Mode::JapaneseOnly => merge(vec![], vec![], jp_kanji, jp_kana),
         Mode::Mixed => {
             let z_prefix = pinyin.buffer_str().starts_with('z');
-            let wubi_cands = if z_prefix {
+            // User-stated policy (2026-05-22): 超过 4 字就和五笔没关系了.
+            // Past 4 input letters, wubi has no business here — the
+            // user is clearly typing pinyin. Wubi's defuse-tail
+            // simcode interpretations (jihua→工, naozi→不, tuijin→沁
+            // …) flood the #0 slot otherwise. Drop wubi candidates
+            // entirely once the pinyin buffer exceeds 4. (Composite
+            // engine also stops feeding wubi past 4, so wubi state
+            // stays frozen; this guard is defensive belt-and-braces.)
+            let beyond_wubi_window = pinyin.buffer_str().len() > 4;
+            let wubi_cands = if z_prefix || beyond_wubi_window {
                 vec![]
             } else {
                 wubi.candidates_with_scores()
