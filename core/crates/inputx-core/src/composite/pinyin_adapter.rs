@@ -95,6 +95,12 @@ impl PinyinAdapter {
         // pays a ~1-2s OneLock::get_or_init build). After this, any
         // 简拼 lookup is O(1) HashMap hit.
         let _ = initials_index(&self.engine);
+        // Pre-warm the single-letter prefix cache for the heavy hitters
+        // (`z` ~50k entries, `h` ~30k, `s` and `j` are the next biggest).
+        // First-keystroke cost otherwise: 4-7ms scan; cached: microseconds.
+        for c in ['z', 'h', 's', 'j', 'x', 'c', 'q', 'b', 'p', 'm'] {
+            let _ = single_letter_cache(&self.engine, c);
+        }
     }
 
     pub fn buffer_str(&self) -> &str {
@@ -358,6 +364,25 @@ fn push_prefix_top_k(
     if k == 0 {
         return;
     }
+    // Single-letter prefix cache. Bare 1-letter prefixes like `z` (~50k
+    // entries) and `h` (~30k) dominate perfgate worst-case; pre-compute
+    // top-K-by-freq for each of the 26 single letters once at warmup
+    // (or lazy on first miss), then subsequent queries are a cache hit
+    // — microseconds instead of milliseconds.
+    if prefix.len() == 1 {
+        if let Some(c) = prefix.chars().next()
+            && c.is_ascii_lowercase()
+        {
+            let cached = single_letter_cache(engine, c);
+            for word in cached.iter().take(k) {
+                if seen.insert(word.clone()) {
+                    out.push(word.clone());
+                }
+            }
+            return;
+        }
+    }
+
     // Entry tuple: (freq, Reverse(word)). The Reverse on word makes lex-asc
     // the tiebreaker (smaller word wins ties). Wrapped in outer Reverse so
     // BinaryHeap behaves as a min-heap (top = smallest freq, ready to evict).
@@ -400,6 +425,55 @@ fn push_prefix_top_k(
             out.push(word);
         }
     }
+}
+
+/// Single-letter prefix cache: 26 entries, each holding the top-30 words
+/// by freq for that prefix. Built lazily on first miss; subsequent
+/// queries are O(1) HashMap lookup + slice clone. Warmup pre-touches
+/// `h` and `z` so the cold-path cost is paid up front during
+/// `Session::warmup`.
+fn single_letter_cache(engine: &PinyinEngine, letter: char) -> Arc<Vec<String>> {
+    use std::sync::Mutex;
+    static CACHE: OnceLock<Mutex<HashMap<char, Arc<Vec<String>>>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::with_capacity(26)));
+    {
+        let g = cache.lock().expect("single_letter_cache mutex poisoned");
+        if let Some(arc) = g.get(&letter) {
+            return arc.clone();
+        }
+    }
+    // Cache miss — compute, then store.
+    let computed = compute_single_letter_top_k(engine, letter, 30);
+    let arc = Arc::new(computed);
+    let mut g = cache.lock().expect("single_letter_cache mutex poisoned");
+    g.entry(letter).or_insert_with(|| arc.clone()).clone()
+}
+
+fn compute_single_letter_top_k(
+    engine: &PinyinEngine,
+    letter: char,
+    k: usize,
+) -> Vec<String> {
+    let prefix = letter.to_string();
+    type Entry = Reverse<(u64, Reverse<String>)>;
+    let mut heap: BinaryHeap<Entry> = BinaryHeap::with_capacity(k + 1);
+    engine
+        .dict()
+        .prefix_for_each_raw(&prefix, |_pinyin_bytes, word_bytes, freq| {
+            if heap.len() == k {
+                let min_freq = heap.peek().expect("heap full").0.0;
+                if freq <= min_freq { return; }
+                heap.pop();
+            }
+            let Ok(word) = std::str::from_utf8(word_bytes) else { return; };
+            heap.push(Reverse((freq, Reverse(word.to_owned()))));
+        });
+    let mut drained: Vec<(u64, String)> = heap
+        .into_iter()
+        .map(|Reverse((freq, Reverse(word)))| (freq, word))
+        .collect();
+    drained.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
+    drained.into_iter().map(|(_, w)| w).collect()
 }
 
 // ----------------------------------------------------------------------
