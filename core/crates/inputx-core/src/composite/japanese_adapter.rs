@@ -121,6 +121,7 @@ impl JapaneseAdapter {
     /// rolled into next pipeline run.
     pub fn candidates_with_scores(&self) -> Vec<(String, f64)> {
         use inputx_jp::KanaKind;
+        use crate::composite::scoring;
         self.engine
             .candidates()
             .iter()
@@ -130,13 +131,13 @@ impl JapaneseAdapter {
                 let base = match c.kind {
                     KanaKind::Kanji => {
                         if c.word.chars().count() > 1 {
-                            300_000.0
+                            scoring::JP_JUKUGO_SCORE
                         } else {
-                            200_000.0
+                            scoring::JP_SINGLE_KANJI_SCORE
                         }
                     }
-                    KanaKind::Hiragana => 100_000.0,
-                    KanaKind::Katakana => 90_000.0,
+                    KanaKind::Hiragana => scoring::JP_HIRAGANA_SCORE,
+                    KanaKind::Katakana => scoring::JP_KATAKANA_SCORE,
                 };
                 let decay = 0.99f64.powi(i as i32);
                 (c.word.clone(), base * decay)

@@ -7,6 +7,7 @@ use super::japanese_adapter::JapaneseAdapter;
 use super::merge::{Candidate, merge};
 use super::mode::Mode;
 use super::pinyin_adapter::PinyinAdapter;
+use super::scoring;
 use crate::wubi::WubiEngine;
 
 /// Compute the merged candidate list for the current state.
@@ -44,37 +45,24 @@ pub fn dispatch(
         Mode::PinyinOnly => merge(vec![], pinyin.candidates_with_scores(), jp_kanji, jp_kana),
         Mode::JapaneseOnly => merge(vec![], vec![], jp_kanji, jp_kana),
         Mode::Mixed => {
+            // User-stated hard rules (see `composite::scoring`):
+            //   * Wubi-first (Inputx is 五笔). Valid wubi simcodes
+            //     lead even when same letters parse as a pinyin
+            //     syllable. Enforced *automatically* via wubi's
+            //     LAYER_BASE values being above pinyin's ceiling — no
+            //     code here, just the scoreboard.
+            //   * `scoring::WUBI_MAX_BUFFER_LEN`: past N letters,
+            //     wubi is excluded entirely (cliff, not curve).
+            //   * The 'z' prefix carve-out: bare-'z' candidates come
+            //     from pinyin only (wubi 'z' is rare standalone code).
             let z_prefix = pinyin.buffer_str().starts_with('z');
-            // Policy 1 (2026-05-22): 超过 4 字就和五笔没关系了. Past 4
-            // input letters, wubi has no business here — the user is
-            // clearly typing pinyin. Wubi's defuse-tail simcode
-            // interpretations (jihua→工, naozi→不, tuijin→沁) flood
-            // the #0 slot otherwise.
             let pinyin_len = pinyin.buffer_str().len();
-            let beyond_wubi_window = pinyin_len > 4;
-            let mut wubi_cands = if z_prefix || beyond_wubi_window {
+            let beyond_wubi_window = pinyin_len > scoring::WUBI_MAX_BUFFER_LEN;
+            let wubi_cands = if z_prefix || beyond_wubi_window {
                 vec![]
             } else {
                 wubi.candidates_with_scores()
             };
-
-            // Policy 2 (2026-05-22): wubi-2/3-letter-simcode vs pinyin-
-            // exact-syllable. When the user types `wo` / `ni` / `ta` /
-            // `de` / `shi` / `you`, they almost certainly mean the
-            // pinyin word (我/你/他/的/是/有) — even though wubi has a
-            // legitimate Jianma2/Jianma3 entry under the same letters
-            // (伙/悄/长/胡/椒/亦). Demote non-Jianma1 wubi by ×0.5 when
-            // pinyin has an exact-syllable hit; Jianma1 (score ≥ 1e6)
-            // is the only hard floor and stays untouched.
-            let pinyin_intentional = pinyin.has_exact_match();
-            if (2..=4).contains(&pinyin_len) && pinyin_intentional {
-                for (_, s) in wubi_cands.iter_mut() {
-                    if *s < 1_000_000.0 {
-                        *s *= 0.5;
-                    }
-                }
-            }
-
             merge(wubi_cands, pinyin.candidates_with_scores(), jp_kanji, jp_kana)
         }
     }

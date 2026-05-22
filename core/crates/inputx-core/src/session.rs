@@ -1018,33 +1018,30 @@ mod prefix_completion_suppression {
 }
 
 #[cfg(test)]
-mod wubi_jianma2_3_vs_pinyin_exact {
+mod wubi_simcode_priority {
     use super::*;
-    /// 2-letter input audit (2026-05-22): user types common pinyin syllables
-    /// (wo/ni/ta/de/shi/you) and expects 我/你/他/的/是/有 at #0. Earlier
-    /// behavior had wubi Jianma2/Jianma3 simcodes (伙/悄/长/胡/椒/亦) taking
-    /// #0 because their base scores (800k/600k) sat above pinyin's
-    /// Phrase-base (400k + freq ~480k). The dispatch's "Policy 2" — demote
-    /// non-Jianma1 wubi by ×0.5 when pinyin has an exact-syllable match —
-    /// flips these cleanly.
-    fn pinyin_top(input: &[u8]) -> String {
+    /// Inputx is a 五笔 IME first. Valid wubi 简码 (Jianma1/2/3) take #0
+    /// even when the same letters happen to be a valid pinyin syllable.
+    /// 伙 is the wubi 二级简码 for "wo" — pressing space commits 伙, not
+    /// pinyin 我. Pinyin candidates still appear in the list for users
+    /// who want them, just not at #0. (User correction 2026-05-22: a
+    /// brief "Policy 2" demote was reverted because it demoted wubi
+    /// simcodes to position 13 — broke the brand promise.)
+    fn top(input: &[u8]) -> String {
         let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         for cp in input { sess.handle_key(*cp as u32, 0); }
         sess.candidates().first().cloned().unwrap_or_default()
     }
-    #[test] fn wo_pinyin_我() { assert_eq!(pinyin_top(b"wo"), "我"); }
-    #[test] fn ni_pinyin_你() { assert_eq!(pinyin_top(b"ni"), "你"); }
-    #[test] fn ta_pinyin_他() { assert_eq!(pinyin_top(b"ta"), "他"); }
-    #[test] fn de_pinyin_的() { assert_eq!(pinyin_top(b"de"), "的"); }
-    #[test] fn shi_pinyin_是() { assert_eq!(pinyin_top(b"shi"), "是"); }
-    #[test] fn you_pinyin_有() { assert_eq!(pinyin_top(b"you"), "有"); }
-    // Negative case: 1-letter Jianma1 still dominates (no pinyin exact at len 1).
-    #[test]
-    fn single_letter_jianma1_still_wins() {
-        assert_eq!(pinyin_top(b"e"), "有");
-        assert_eq!(pinyin_top(b"g"), "一");
-    }
+    #[test] fn wo_wubi_伙()  { assert_eq!(top(b"wo"),  "伙"); }
+    #[test] fn ni_wubi_悄()  { assert_eq!(top(b"ni"),  "悄"); }
+    #[test] fn ta_wubi_长()  { assert_eq!(top(b"ta"),  "长"); }
+    #[test] fn de_wubi_胡()  { assert_eq!(top(b"de"),  "胡"); }
+    #[test] fn shi_wubi_椒() { assert_eq!(top(b"shi"), "椒"); }
+    #[test] fn you_wubi_亦() { assert_eq!(top(b"you"), "亦"); }
+    // Jianma1 (1-letter) keeps its hard floor too.
+    #[test] fn e_wubi_有() { assert_eq!(top(b"e"), "有"); }
+    #[test] fn g_wubi_一() { assert_eq!(top(b"g"), "一"); }
 }
 
 #[cfg(test)]

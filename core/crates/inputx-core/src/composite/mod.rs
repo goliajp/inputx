@@ -17,6 +17,7 @@ pub(crate) mod l0_json;
 mod merge;
 mod mode;
 mod pinyin_adapter;
+pub mod scoring;
 
 pub use engine::CompositeEngine;
 pub use japanese_adapter::JapaneseAdapter;
