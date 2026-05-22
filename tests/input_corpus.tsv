@@ -1,0 +1,67 @@
+# Inputx polish corpus — regression-grade (input, expected_top) tuples.
+#
+# Format (TSV, 4 fields):
+#   code \t expected_top \t engine_hint \t source_note
+#
+# - code: the buffer string the user types.
+# - expected_top: the candidate that MUST appear at position 0.
+# - engine_hint: wubi / pinyin / japanese-only / mixed (informational).
+# - source_note: where this case came from (polish-log id, user report, manual).
+#
+# Pipeline `07_validate/gate1_regression_corpus.py` runs each row
+# against the engine; failures abort the build.
+#
+# Grow this file by:
+#   1. Reviewing polish-log entries for repeat misses.
+#   2. Manual user reports (this file's where they land).
+#   3. The wubi-86 canonical 简码 list — every Jianma1/Jianma2 entry.
+#
+# Format note: cases with `LLM` engine_hint were resolved via Claude
+# annotation — they reflect editorial judgment, not pure freq.
+
+# --- 五笔一级简码 (jianma1, 26 codes) — non-negotiable. ---
+e	有	wubi	jianma1-86-standard
+g	一	wubi	jianma1-86-standard
+f	地	wubi	jianma1-86-standard
+d	在	wubi	jianma1-86-standard
+s	要	wubi	jianma1-86-standard
+a	工	wubi	jianma1-86-standard
+h	上	wubi	jianma1-86-standard
+j	是	wubi	jianma1-86-standard
+k	中	wubi	jianma1-86-standard
+l	国	wubi	jianma1-86-standard
+m	同	wubi	jianma1-86-standard
+t	和	wubi	jianma1-86-standard
+r	的	wubi	jianma1-86-standard
+w	人	wubi	jianma1-86-standard
+q	我	wubi	jianma1-86-standard
+y	主	wubi	jianma1-86-standard
+u	产	wubi	jianma1-86-standard
+i	不	wubi	jianma1-86-standard
+o	为	wubi	jianma1-86-standard
+p	这	wubi	jianma1-86-standard
+n	民	wubi	jianma1-86-standard
+b	了	wubi	jianma1-86-standard
+v	发	wubi	jianma1-86-standard
+c	以	wubi	jianma1-86-standard
+x	经	wubi	jianma1-86-standard
+z	之	wubi	jianma1-86-standard
+
+# --- common pinyin words (regression for user-reported phrase-quality issues) ---
+jixu	继续	pinyin	user-report-2026-05-22 ghost-of-曳光弹
+kaoqian	靠前	pinyin	user-report-2026-05-22 missing-from-dict
+women	我们	pinyin	high-freq-staple
+nihao	你好	pinyin	high-freq-staple
+zhongguo	中国	pinyin	high-freq-staple
+
+# --- wubi 二级简码 spot-checks ---
+go	来	wubi	jianma2-86-standard
+gh	下	wubi	jianma2-86-standard
+
+# --- JP single-kanji + jukugo (when japaneseEnabled is ON) ---
+kou	高	japanese-only	jp-jianma-equivalent
+nihon	日本	japanese-only	jukugo
+watashi	私	japanese-only	jp-kun-yomi
+
+# --- wcng → 公司 (post-pin-fix; was 鹟 due to L0 pollution) ---
+wcng	公司	wubi	user-report-2026-05-22 fixed-by-bd21f1b

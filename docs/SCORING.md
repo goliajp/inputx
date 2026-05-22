@@ -1,166 +1,486 @@
-# Candidate Scoring System
+# Candidate Scoring System — Design Doc v2
 
-The polish-quality target for Inputx v0.2+. Replaces today's layered
-hard-rule merge (wubi → JP kanji → pinyin → JP kana) with a unified,
-data-driven score that all engines feed into.
+This is the **operational** spec for Inputx's candidate ranking
+quality. The runtime side is one piece; the bigger piece is the
+**static-DB build pipeline** — how raw corpora become the weights
+that ship inside `pinyin.fst` / `wubi.fst`. We treat that pipeline
+as a serious software project with the four dimensions the user
+called out: 来源 / 处理 / 更新 / 退出.
 
-## TL;DR
+The "the DB is static, quality requirements are very high" framing
+means we accept a heavy *offline* compute / curation cost in
+exchange for fast deterministic runtime — no LLM in the keystroke
+path, no per-user cloud calls, no telemetry-driven mutation of the
+shipped dict. Quality moves through versioned data drops.
+
+The runtime ranking model is the simple counterpart: every
+candidate carries a `score`, the merge sorts by `score`, wubi 简码
+gets a hard floor (Inputx-五笔 brand). Everything else is the
+numbers from the build pipeline doing the work.
+
+---
+
+## 0. Sogou as the reference — what they actually do
+
+Sogou Pinyin is the de-facto quality bar for Chinese IMEs. From
+public engineering blog posts, papers, and reverse-engineering
+write-ups, the techniques worth borrowing:
+
+### 0.1 Data scale advantage
+
+Sogou's search-engine parent gives them the web. They harvest:
+- Page titles, anchor text, query logs → modern-vocabulary freq.
+- 微博 stream → 网络新词 detection (a new word appears in 1M tweets
+  in a day → trending → auto-promote).
+- News archives → formal-register baseline.
+
+**We can't crawl at that scale.** Practical substitutes:
+- Wikipedia (zh, ja) full dumps — modern formal Chinese + JP.
+- Common Crawl filtered Chinese subset (license-aware).
+- Open news archives (清华新闻语料, 人民日报历年).
+- jieba's bundled dict (already in inputx-pinyin).
+- Leipzig Corpora Collection (already in inputx-pinyin).
+- Wiktionary phrase lists.
+
+Not the same scale, but ~70% coverage of common vocabulary, which
+is the bulk of the typing flow.
+
+### 0.2 Cell library (细胞词库) model
+
+Sogou ships **per-domain dicts** users opt into — 医学 / 法律 /
+游戏 / 编程. Each domain has its own freq table, layered over the
+base. The IME blends by detected context.
+
+For Inputx v2+, **per-user opt-in domain dicts** is the right pattern.
+Bundle a few core domain libs in-binary:
+- 计算机 / 互联网 (programming terminology)
+- 二次元 / ACG (specific phrases)
+- 学术 (academic vocabulary)
+
+Each is a small TSV layered on top of base weights.
+
+### 0.3 N-gram language model + maxent
+
+Sogou's ranking uses a **maxent / log-linear** model combining
+- unigram freq
+- bigram context (prev word)
+- trigram for longer sentences
+- character n-gram for OOV
+- positional priors (sentence-initial vs mid)
+
+Their ranking score for "given input → produce output sequence":
+```
+score(W | input) = Σ λᵢ × featureᵢ(W, input, context)
+```
+where features include `log P(wᵢ | wᵢ₋₁)`, length bonus, character-
+class bonus, etc.
+
+**For us (v0.2-v0.4)** — start with unigram, layer in bigram via the
+build pipeline, add positional priors at runtime. Maxent / log-linear
+is a v0.5+ target requiring labeled training data we don't have yet.
+
+### 0.4 User-behavior feedback
+
+Sogou logs (with user consent) which candidate the user picks at
+each input. Aggregated across all users, this becomes the dominant
+freq signal — orders of magnitude richer than corpus freq alone.
+
+**Our analog**: PolishLog telemetry (already shipping on macOS).
+Local-only, user opts in to "submit" by sending the jsonl to us.
+No cloud collection without consent. v0.3 target: a Settings →
+"contribute polish data" button that uploads a sanitized hash of
+the jsonl when user explicitly clicks.
+
+### 0.5 Fuzzy / smart correction
+
+Sogou auto-corrects: `shanhgai → 上海`, `nih → 你好`. Their fuzzy
+table is huge and tuned per common typo pattern.
+
+**Our analog** — inputx-pinyin already has a `FuzzyConfig` for the
+canonical pairs (z/zh, c/ch, …). Coverage is fine for v0.2; the
+typo-correction layer is v0.4+.
+
+### 0.6 Cloud candidates
+
+Sogou's "云候选" runs a server-side n-gram lookup for queries the
+local dict can't answer. We **don't do this** — Inputx is privacy-
+preserving and offline. The static DB has to be good enough.
+
+---
+
+## 1. The four dimensions
+
+### 1.1 来源 — Data sources
+
+Every weight in our final `weights.tsv` traces back to one of these.
+Each source is versioned (date + checksum) so reproducibility is
+guaranteed.
+
+| Source | Type | License | Use |
+|---|---|---|---|
+| **Wikipedia zh dump** | full-text | CC-BY-SA | unigram + bigram freq, common vocab |
+| **Wikipedia ja dump** | full-text | CC-BY-SA | JP kanji + jukugo freq |
+| **jieba dict** | (word, freq) pairs | MIT | phrase segmentation baseline |
+| **Leipzig zh corpus** | sentence-tokenized | CC-BY | modern-Chinese unigram |
+| **Unihan database** | char-level metadata | Unicode | readings (on-yomi / pinyin), variants |
+| **现代汉语常用字表** | char list | public | which chars are "common" baseline |
+| **常用漢字表 (JP)** | char list | public | which kanji are in the JP base set |
+| **OpenCC** | TC↔SC variant maps | Apache | TC/JP-shinjitai ↔ SC bridging |
+| **KANJIDIC2** | kanji readings + glosses | EDRDG-PD | JP on/kun readings |
+| **Custom — Inputx user picks** | per-user telemetry | local-only | PolishLog jsonl, opt-in upload |
+| **Custom — LLM annotations** | (code, expected #1) tuples | curated | resolve ambiguous ranking |
+
+What we *deliberately don't use*:
+- Search-engine query logs (don't have access, privacy concerns).
+- Cloud-fetched modern-trending words (offline IME principle).
+- Proprietary dicts (Sogou's, Baidu's, etc.).
+
+### 1.2 处理 — Processing pipeline
+
+Each source is independently extracted, normalized, then merged.
+Pipeline is in `tools/scoring/`:
 
 ```
-score(c) = ENGINE_MULT[c.engine] × LAYER_FLOOR[c.layer] × normalized_freq(c) × LENGTH_BIAS(c) × (1 + L0_BOOST(c))
+tools/scoring/
+  ├── 01_fetch/           # download corpora (versioned URLs + checksums)
+  ├── 02_extract/         # corpus → (word, freq) tables per source
+  ├── 03_normalize/       # cross-source freq normalization (log-rank)
+  ├── 04_layer_assign/    # assign LAYER (Jianma1/2/3/Zigen/Phrase/Auto)
+  ├── 05_merge/           # combine sources into unified weights.tsv
+  ├── 06_llm_annotate/    # batch LLM rerank for ambiguous codes
+  ├── 07_validate/        # run weights against test corpus + polish-log
+  ├── 08_pack/            # weights.tsv → FST artifacts
+  └── README.md
 ```
 
-Sort all candidates by `score` desc. The **only hard rule** is wubi
-一级简码 / 二级简码 — Inputx is *Inputx 五笔*, those entries get a
-score floor that no other source can beat. Everything else is
-quantitative.
+Each step is a separate script. Resumable / cacheable. Output of
+step N is the input of step N+1.
 
-## Why we're doing this
+#### 03_normalize — cross-source freq
 
-Today (Phase 0) hard-codes layered merge order. Symptoms:
+Each source has its own freq scale (Wikipedia in absolute counts,
+Leipzig in normalized per-million, jieba in arbitrary integers).
+We normalize each to log-rank within source, then weighted-average:
 
-- **Phrase-quality regressions** (jixu → 曳光弹 at #1 even though
-  继续 has 5× the corpus freq) — pinyin's prefix completion path
-  pulls in low-relevance long-prefix matches whose score isn't
-  truly compared to the higher-freq exact-match entries.
-- **JP-vs-Chinese miscalibration** — JP kanji match for `e`
-  (会 reading "e") wins over wubi `e → 有` (一级简码) when JP layer
-  is placed above wubi.
-- **Coverage gaps** (kaoqian → 靠前 not in dict at all) — data-layer
-  problem, but symptom is felt through the ranking layer.
-- **User can't tune** — no single dial moves toward "better feel";
-  every fix requires a code edit.
+```python
+score[word] = Σ_src α[src] × log_rank(word, src)
+```
 
-Sogou / Microsoft IME / Apple IME all do **unified scoring** with
-engine-specific multipliers + corpus-derived frequency + user-
-learning weighting. We follow that model — code-first, statistical,
-LLM only for boundary cases.
+α weights chosen by validation against polish-log + LLM annotation
+set. Default α favors Wikipedia (most diverse, modern register).
 
-## Reference: Sogou-style techniques (from public papers / blog posts)
+#### 04_layer_assign — Wubi layer floors
 
-- **N-gram language model**: phrase prob `P(中国) = freq(中国) /
-  total_phrase_count`, smoothed via add-k or Kneser-Ney. Our wubi /
-  pinyin dicts already approximate this via per-entry freq, but
-  scales differ per corpus.
-- **Cross-corpus normalization**: 微博 / 新闻 / 维基 freq tables
-  combined with interpolation weights `α_weibo × P_weibo(w) + α_news
-  × P_news(w) + α_wiki × P_wiki(w)`. Inputx currently uses Leipzig +
-  jieba; v0.2 should consider adding a modern-web corpus.
-- **Length bias**: short phrases (2–3 chars) get a slight boost since
-  they're most-common in real typing; very long phrases get penalty
-  unless explicitly typed.
-- **简拼 (initials-only) handling**: separate score class — initials
-  matches always rank below exact matches, but above prefix
-  completion. We have a Path 2 for this; needs explicit scoring
-  rather than just "added after Path 1".
-- **Prefix completion noise**: pinyin's Path 3 (FST prefix scan)
-  pulls long-prefix entries that share a prefix but aren't what
-  the user typed. Sogou uses a freq cutoff + a "user is mid-syllable"
-  vs "user is done" gate. We should explicitly de-rank these.
-- **User-learning (L0) weight cap**: Sogou's user dict only floats
-  a candidate up by a bounded amount, never strictly to #0, to
-  avoid muscle-memory contamination from accidental picks. Our
-  L0-pin-to-#0 is too aggressive (the `wcng → 鹟` accidental pin
-  observed during JP-plugin landing).
+Wubi has a strict structural hierarchy: Jianma1 > Jianma2 > Jianma3
+> Zigen > Phrase > Auto. This is the only HARD RULE in scoring —
+all other priorities are quantitative. The 04 step takes the
+canonical 86-standard simcodes list (`data/jianma*.txt`) and forces
+those entries into the Jianma layer with floor scores that no other
+source can beat.
 
-## Unified score formula
+This is also where we *filter pollution*: when wubi phrase data
+contains an entry whose 4-letter code is a high-freq pinyin word
+(e.g., wubi `jixu 曳光弹` colliding with pinyin `jixu 继续`), we
+demote the wubi phrase to Auto layer or remove it entirely. The
+collision detection is automatic — compare wubi-Phrase codes
+against the top-N pinyin readings.
+
+#### 06_llm_annotate — see §3
+
+#### 07_validate — quality gates (see §4 退出机制)
+
+### 1.3 更新 — Update / versioning / distribution
+
+Static DB → versioned data drops, not OTA.
+
+**Schema**:
+```
+weights.tsv:
+  # version: 2026.05.22
+  # source-versions:
+  #   wikipedia-zh: 20260501
+  #   jieba: 0.42
+  #   unihan: 15.1
+  #   ...
+  # built-at: 2026-05-22T08:00:00Z
+  # llm-annotations: 142
+  <code>\t<word>\t<layer>\t<unified_score>
+```
+
+**Distribution paths**:
+1. **In-binary** (default) — `weights.tsv` baked into the FST shipped
+   with the Inputx.app bundle. Updated via app upgrade.
+2. **Side-loadable** (future, v0.4+) — user drops a newer
+   `weights.tsv` into `~/Library/Application Support/Inputx/`
+   override directory. IME reads override at load. Lets us push
+   data improvements without a full app release.
+3. **Per-user override** — L0 pins always layer on top.
+
+**Update cadence**: monthly for first 6 months, then quarterly. Each
+release ships full pipeline run logs + diff against previous version
+(which codes' top changed).
+
+### 1.4 退出 — QA gates + rollback
+
+A weights drop ships only if it passes ALL of:
+
+#### Gate 1 — Regression corpus
+- 70+ test rows in `tests/input_corpus.tsv` (curated golden examples).
+- Each row: `<code>\t<expected_top>\t<source>\t<notes>`.
+- Cases from polish-log + manual review. Expanded over time.
+- 100% pass required.
+
+#### Gate 2 — Stability budget
+- Run new weights against last release's polish-log batch.
+- For inputs where user picked #0 (right answer per previous):
+  - Required: new weights also pick #0 for ≥95% of those inputs.
+- Prevents regressions: a new corpus that introduces 5% rank flips
+  on previously-right cases is rejected.
+
+#### Gate 3 — Coverage delta
+- Count of (code, word) pairs in new vs old.
+- Tolerance: +∞ growth OK (new vocab welcome), -1% maximum shrinkage
+  (no silent coverage loss).
+
+#### Gate 4 — LLM judge eval
+- Sample 200 random (code, top-3) tuples from new weights.
+- LLM judges "is top-1 the most likely user intent given code?"
+  on a 0-3 scale.
+- Mean ≥ 2.3 required (calibrated against current baseline).
+
+#### Rollback
+- Each release is a single TSV file. Reverting = restore previous
+  TSV from the versioned artifact store.
+- In-app "Reset to factory dict" option clears overrides + L0.
+
+---
+
+## 2. Runtime side — unified score
+
+Once the static DB is built, the runtime is straightforward:
 
 ```rust
-score(c) =
-    ENGINE_MULT[c.engine]               // wubi 1.3, pinyin 1.0, jp_kanji 0.85, jp_kana 0.3
-  * LAYER_FLOOR[c.layer]                // jianma1: 10x, jianma2: 3x, jianma3: 1.5x, zigen: 2x, phrase: 1x, auto: 0.5x
-  * (1.0 + LOG_FREQ(c) / LOG_FREQ_MAX)  // 0..2 from log-normalized corpus freq
-  * LENGTH_BIAS(c)                      // 1.05 for 2-char phrase, 1.0 base, 0.9 for 5+ char
-  * (1.0 + L0_BOOST(c))                 // capped at +0.5 from user pin / pick counts
+struct ScoredCandidate {
+    word: String,
+    source: Source,    // Wubi / Pinyin / Japanese
+    score: f64,        // unified, comparable across sources
+}
 ```
 
-`ENGINE_MULT` values are user-tunable in `Settings → 高级`. Default
-chosen to satisfy "Inputx 五笔 is wubi-first" while letting pinyin
-exact matches beat low-conviction JP suggestions.
+Each engine produces `Vec<ScoredCandidate>` per-keystroke. Merge:
 
-## Wubi 简码 hard floor
-
-The single non-quantitative rule. When `c.engine == Wubi` AND
-`c.layer ∈ { Jianma1, Jianma2, Jianma3 }`, `score(c)` is multiplied
-by 1e6 — guaranteeing top-N position for the canonical wubi
-shortcuts (`e → 有`, `go → 来`, etc.) regardless of any other
-engine's score.
-
-The floor is layered (jianma1 > jianma2 > jianma3) so simcodes
-within wubi still order correctly, but they all dominate non-
-simcode entries from any source.
-
-## Corpus rebuild pipeline (v0.2 scope)
-
-```
-tools/build_unified_scores.py
-  ├─ load: jieba word freq, Leipzig corpus stats, Unihan readings
-  ├─ for each engine:
-  │    compute log-normalized freq per (code, word) pair
-  │    bucket into LAYER_FLOOR via existing layer assignments
-  ├─ cross-corpus interpolation per engine
-  ├─ write: weights_unified.tsv
-  └─ regenerate FST/PHF artifacts
+```rust
+let all: Vec<ScoredCandidate> = wubi_cands.into_iter()
+    .chain(pinyin_cands)
+    .chain(jp_cands)
+    .collect();
+all.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
 ```
 
-Reproducible, deterministic. Re-run after corpus updates.
+### Score formula
 
-## LLM-assisted edge-case tuning
-
-LLM is **not on the runtime hot path**. Two offline uses:
-
-1. **Ambiguous-case annotation**: given (code, top-10 candidates),
-   LLM ranks "most likely user intent" for queries where corpus
-   freq is too close to discriminate (e.g., 几许 vs 急需 for jixu).
-   Output: a small TSV of (code → preferred-word) overrides applied
-   as a final L0-pin-equivalent boost during build.
-2. **Validation against polish-log**: parse PolishLog jsonl (mac
-   IME captures user's non-#0 picks), LLM groups patterns
-   ("repeated `kaoqian → 靠前` misses"), suggests data fixes.
-
-Both phases are batch jobs; humans review the LLM output before it
-lands in the build. No LLM call at IME runtime.
-
-## Validation: polish-log driven
-
-Every user pick of a non-#0 candidate writes a jsonl row to
-`~/Library/Containers/jp.golia.inputmethod.wubi/Data/Library/Application Support/Inputx/polish-log.jsonl`
-(macOS) / App Group container (iOS). Schema:
-
-```json
-{ "ts": "2026-05-22T08:15:23.456Z",
-  "buffer": "jixu",
-  "candidates": ["曳光弹", "继续", "急需", ...],
-  "pickedIdx": 1,
-  "pickedWord": "继续",
-  "engineMode": 0,
-  "japaneseEnabled": true }
+```
+score(c) = engine_mult[c.source]
+        × layer_floor(c.source, c.layer)     // Wubi 简码 = 1e6 floor
+        × normalized_freq(c)                  // [1, 2] from build-time
+        × length_bias(c)                      // 0.9–1.05
+        × (1 + l0_boost(c))                   // [1, 1.5] from user pins
 ```
 
-Aggregated polish-log entries become regression tests:
-`tests/input_corpus.tsv` rows (`code \t expected_top \t why`) that
-the engine must satisfy. Adding a row + fixing the engine to pass
-it = one polish-loop cycle.
+Default constants (tunable):
+```
+engine_mult = { Wubi: 1.0, Pinyin: 1.0, Japanese: 0.85 }
+layer_floor (Wubi) = { Jianma1: 1e6, Jianma2: 1e5, Jianma3: 1e4,
+                       Zigen: 1000, Phrase: 100, Auto: 50 }
+layer_floor (Pinyin) = derived from phrase length + corpus freq
+layer_floor (Japanese) = { Jukugo: 1000, SingleKanji: 800, Kana: 100 }
+length_bias = 1.0 for 2-3 char, 0.95 for 4 char, 0.9 for 5+
+l0_boost = 0.5 × tanh(pick_count / 5)  // capped, soft promotion
+```
 
-## Phasing
+All weights live in the engine-internal score, which is built into
+the FST value (already the case for wubi/pinyin via packed u64).
+JP synthesizes at runtime from KanaKind.
 
-- **Phase 0 (done)** — layered hard-rule merge: wubi → JP kanji →
-  pinyin → JP kana. Wubi 简码 implicitly top via layer_base. JP
-  rank-boost reverted. PolishLog telemetry live.
-- **Phase 1** — expose per-candidate `score: f64` from each engine.
-  `merge()` sorts by score. Wubi 简码 hard floor explicit. No data
-  changes yet — re-uses existing weights.
-- **Phase 2** — corpus rebuild pipeline. Cross-corpus normalization.
-  Modern-web freq table.
-- **Phase 3** — LLM-assisted boundary tuning. Validation via
-  polish-log corpus.
-- **Phase 4** — user-facing ENGINE_MULT sliders in Settings → 高级
-  (power users only; defaults stay tuned by us).
+### Wubi 简码 hard rule — the only structural override
 
-## Out of scope
+Because we are "Inputx 五笔", Wubi Jianma1/2/3 candidates are
+**guaranteed top** by virtue of `layer_floor` reaching 1e6 — no
+Pinyin Phrase or JP Kanji score can mathematically beat them. This
+is the brand promise encoded in score.
 
-- Runtime LLM calls (latency + privacy + reproducibility).
-- N-gram > unigram modeling (jukugo+phrase coverage already gives
-  context; bigram modeling is a v0.4 stretch).
-- Auto-discovery of new compound words from user typing (the
-  manual data pipeline is the source of truth).
+### Cross-engine L0 pin
+
+Already implemented (commit `bd21f1b`): the pinned word for the
+current buffer overrides natural score → position 0. Survives
+unified-score merge.
+
+---
+
+## 3. LLM integration — offline batch annotation
+
+LLM is **not** in the runtime hot path. It runs at build time, in
+the `06_llm_annotate` pipeline step.
+
+### When the LLM gets called
+
+Build pipeline emits a list of **ambiguous codes** — codes where
+the top-2 candidates have scores within 5% of each other. These
+are the "judgment calls" the corpus alone can't settle.
+
+Example for `jixu` (one of the ones the user flagged):
+```
+jixu: 继续 (score 44k), 急需 (28k), 积蓄 (26k), 亟需 (18k)
+```
+继续 is clear winner; not ambiguous. Skip.
+
+For something tighter:
+```
+yiwei: 以为 (score 25k), 一位 (24k), 一味 (23k)
+```
+3-way tie. Send to LLM.
+
+### What we send
+
+```
+prompt:
+  You are calibrating a Chinese pinyin IME's candidate ranking.
+  For the input "yiwei", which of these is most likely what a
+  user intended?
+  
+  Options:
+  A. 以为 (think / believe)
+  B. 一位 (one [classifier])
+  C. 一味 (single-mindedly)
+  
+  Consider modern Chinese usage frequency, register, and
+  context-free typing patterns.
+  
+  Output JSON: {"top": "A", "confidence": 0.0-1.0, "reason": "..."}
+```
+
+### What we get back
+
+```
+{"top": "A", "confidence": 0.75, "reason": "..."}
+```
+
+Stored as an override:
+```
+tools/scoring/llm_overrides.tsv:
+  yiwei \t 以为 \t 0.75 \t llm-claude-opus-4-7-2026-05-22 \t 以为 most common
+```
+
+### Pipeline integration
+
+Step `06_llm_annotate`:
+1. Read step-5 output (unified weights).
+2. Find ambiguous codes (top-2 score gap < 5%).
+3. Batch call Claude API (parallel, ~100 codes/min with caching).
+4. Parse responses → `llm_overrides.tsv`.
+5. Apply overrides as score boost: +50% to the LLM-preferred top.
+
+### Reproducibility
+
+- LLM model + prompt version pinned per pipeline run.
+- All API responses cached (so re-running build is deterministic).
+- Human review pass before promotion (`07_validate` shows diffs).
+
+### Cost / scale
+
+Estimate: 10,000 ambiguous codes × ~$0.001 per Claude call (with
+prompt caching) ≈ $10 per full rebuild. Affordable.
+
+### What LLM is *not* for
+
+- Runtime decisions (latency, privacy, reproducibility).
+- Long-form generation (this is classification, not generation).
+- Replacing the corpus pipeline (LLM tunes the EDGE cases the
+  corpus can't resolve — it's not the primary data source).
+
+---
+
+## 4. Phasing
+
+### Phase 0 — done ✅
+- Layered hard-rule merge (wubi → JP kanji → pinyin → JP kana).
+- L0 pin cross-engine promotion.
+- PolishLog telemetry.
+- This design doc.
+
+### Phase 1 — runtime unified score (next 1-2 days)
+- Add `score: f64` to `Candidate` struct.
+- Each adapter produces scored candidates.
+- merge.rs sorts by score.
+- Wubi simcode floor enforced via layer_floor constants.
+- Tests for known cases (jixu/yama/nihon/wcng).
+
+### Phase 2 — tools/scoring/ pipeline scaffold (1-2 days)
+- Python scripts for steps 01–08.
+- Initially: just re-derive existing weights, validate identity.
+- Pipeline runs end-to-end with sample corpora.
+
+### Phase 3 — first real rebuild (1 week)
+- Run pipeline with full corpora.
+- Diff against shipped weights.
+- Manual review of top-100 changes.
+- Ship v2026.05.x with rebuilt weights.
+
+### Phase 4 — LLM annotation (1 week)
+- Implement `06_llm_annotate` step.
+- Run on top-5k ambiguous codes.
+- Manual review of LLM outputs (sample 100).
+- Ship v2026.06.x with LLM-tuned weights.
+
+### Phase 5 — telemetry-driven tuning (ongoing)
+- Aggregate PolishLog (opt-in upload).
+- Each release ships a "fixes from your reports" section in
+  release notes.
+
+### Phase 6 — cell libraries (v0.4+)
+- Bundle 3-4 domain dicts (computing, ACG, academic).
+- Settings → "Enable cell libraries" toggle.
+
+### Phase 7 — bigram (v0.5+)
+- Train bigram on Wikipedia.
+- Runtime: context-aware ranking using prev-committed word.
+
+---
+
+## 5. Polish-log corpus as ground truth
+
+The user-collected polish-log entries become **the** test corpus
+over time. Each non-#0 pick is a signal: "the IME's #1 was wrong
+for this input, the user picked X instead".
+
+Aggregation: codes with the most repeat picks (say, 5+ users all
+pick the same non-#0 word for the same code) graduate into
+`tests/input_corpus.tsv` as required-pass cases.
+
+This closes the loop: real-world misses → curated corpus → fix in
+next pipeline run → regression test pinned.
+
+---
+
+## Decisions explicitly deferred to v0.5+
+
+These were considered and intentionally *not* in scope for v0.2-v0.4:
+
+- **N-gram bigram/trigram modeling.** Adds latency + memory + data
+  pipeline complexity. Unigram + corpus coverage gets us 80% of
+  the way there; bigram is the last 20% and not worth it yet.
+- **Auto-discovery of new compound words from user typing.** Risk
+  of muscle-memory mistakes becoming permanent dict entries.
+- **Cloud sync of L0 pins.** Privacy / offline-IME principle.
+- **Predictive sentence-level autocomplete.** Different IME genre.
+- **Speech input.** Out of scope.
+
+---
+
+## See also
+
+- `tests/input_corpus.tsv` — regression test cases (lives in repo).
+- `mac/Sources/PolishLog.swift` — user-facing telemetry impl.
+- `tools/scoring/README.md` — pipeline operator's guide.
+- `core/crates/inputx-wubi/src/layer.rs` — wubi layer base values.
+- `core/crates/inputx-core/src/composite/merge.rs` — runtime merge.
