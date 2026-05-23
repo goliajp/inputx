@@ -55,8 +55,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             exit(1)
         }
         server = IMKServer(name: kConnectionName, bundleIdentifier: bundleID)
-        // Menubar status item is the only user-facing settings surface —
-        // there's no container app on macOS.
+        // Settings entry points (in order of discoverability):
+        //   1. Click the active input source in the macOS menu bar (the
+        //      one labelled "入 Inputx 五笔") — IMKInputController.menu()
+        //      override on `InputxController` injects "Inputx 设置…" as
+        //      the first item there.
+        //   2. NSStatusItem in the menu bar (`MenubarSettings`) — visible
+        //      when the user doesn't have menu-bar auto-hide on.
+        //
+        // We deliberately do NOT auto-open the Settings window from
+        // `applicationShouldHandleReopen` / `applicationOpenUntitledFile`
+        // because macOS dispatches those events during LaunchServices /
+        // IMK activation cycles too, which means every `launchctl bootout
+        // + bootstrap` (every dev reinstall, every system reboot) was
+        // popping the window. The IMK-menu entry covers the discoverability
+        // need without the side-effect.
         menubar = MenubarSettings()
     }
 }

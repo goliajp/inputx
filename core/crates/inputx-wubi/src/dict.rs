@@ -163,6 +163,87 @@ impl WubiDict {
         out
     }
 
+    /// Scored lookup: same ordering as `lookup_into` (layer / freq / promote
+    /// rules + L0 pin), but emits `(word, score)` tuples so the cross-engine
+    /// merge layer can do a single unified sort instead of hard-coding which
+    /// engine wins. Score reflects:
+    ///   * layer.base() × layer_prefs   (jianma1 = 1e6, …)
+    ///   * + freq                       (corpus weight)
+    ///   * × 100.0                      if full-code single-char promotion fires
+    ///                                  (see lookup_into doc for the rule)
+    ///   * × 1000.0                     if the candidate is L0-pinned
+    ///                                  (must dominate any natural score)
+    ///
+    /// The post-multipliers keep wubi simcodes and L0 pins on top across
+    /// the cross-engine merge.
+    pub fn lookup_with_scores_into(&self, code: &str, out: &mut Vec<(String, f64)>) {
+        out.clear();
+        let lower = code.to_ascii_lowercase();
+        let mut prefix = lower.clone().into_bytes();
+        let prefix_len = prefix.len();
+        prefix.push(0u8);
+        let mut upper = prefix.clone();
+        let last = upper.len() - 1;
+        upper[last] = 0x01;
+
+        let prefs = self
+            .l0
+            .read()
+            .map(|g| g.layer_prefs)
+            .unwrap_or(DEFAULT_LAYER_PREFS);
+
+        let full_code = prefix_len == 4;
+        // Tuple: (word, score, is_single, freq).
+        let mut scratch: Vec<(String, f64, bool, u64)> = Vec::with_capacity(8);
+        let mut max_phrase_freq: u64 = 0;
+        let mut stream = self
+            .map
+            .range()
+            .ge(prefix.as_slice())
+            .lt(upper.as_slice())
+            .into_stream();
+        while let Some((key, value)) = stream.next() {
+            if key.len() <= prefix_len + 1 {
+                continue;
+            }
+            let word_bytes = &key[prefix_len + 1..];
+            if let Ok(s) = core::str::from_utf8(word_bytes) {
+                let (layer, freq) = unpack(value);
+                let base = layer.base() as f64;
+                let pref = prefs[layer.as_index()];
+                let is_single = s.chars().count() == 1;
+                if !is_single && freq > max_phrase_freq {
+                    max_phrase_freq = freq;
+                }
+                scratch.push((s.to_string(), base * pref + freq as f64, is_single, freq));
+            }
+        }
+
+        // Apply full-code single-char promote (lifts qualifying single
+        // chars above the same-code phrases) and L0 pin (lifts the pinned
+        // word above natural sort).
+        let pinned: Option<String> = self.l0.read().ok().and_then(|g| g.pins.get(&lower).cloned());
+        for e in scratch.iter_mut() {
+            let promote = full_code && e.2 && e.3 > max_phrase_freq;
+            if promote {
+                e.1 *= 100.0;
+            }
+            if let Some(p) = &pinned
+                && &e.0 == p
+            {
+                e.1 *= 1000.0;
+            }
+        }
+        scratch.sort_by(|a, b| {
+            b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        out.reserve(scratch.len());
+        for (w, score, _, _) in scratch.drain(..) {
+            out.push((w, score));
+        }
+    }
+
     /// Same as [`Self::lookup`] but writes into a caller-owned buffer.
     /// `out` is cleared (capacity preserved) on entry.
     ///
@@ -192,7 +273,34 @@ impl WubiDict {
             .unwrap_or(DEFAULT_LAYER_PREFS);
 
         // Score during the FST scan; reuse a small scratch Vec.
-        let mut scratch: Vec<(String, f64)> = Vec::with_capacity(8);
+        // Tuple: (word, score, is_single_char, freq, is_phrase).
+        //
+        // The wubi-86 "full-code single-char wins" rule applied here:
+        // at a fully-typed 4-letter code, a single-char entry whose
+        // corpus frequency *exceeds the highest phrase frequency at
+        // the same code* gets promoted above all phrases. Otherwise
+        // the standard score ordering (layer_base × pref + freq) wins.
+        //
+        // Why this shape (relative freq comparison, not absolute):
+        //
+        //   - gmww 两 (Auto, freq 37372) vs 两败俱伤 (Phrase, freq 15272):
+        //     37372 > 15272 → 两 promoted. ✓
+        //
+        //   - wcng 鹟 (Auto, freq 5961) vs 公司 (Phrase, freq 42817):
+        //     5961 < 42817 → 鹟 stays at its natural Auto score (low),
+        //     公司 wins on layer_base alone. ✓
+        //
+        //   - khlg 䟧 (Auto, freq 0) vs 中国 (Phrase, freq 44985):
+        //     0 < 44985 → 䟧 stays low, 中国 wins. ✓
+        //
+        // The earlier absolute-`freq > 0` gate worked for gmww but
+        // wrongly promoted any uncommon-but-corpus-present single char
+        // over a popular phrase (the wcng case the user just flagged).
+        let full_code = prefix_len == 4;
+        let mut scratch: Vec<(String, f64, bool, u64)> = Vec::with_capacity(8);
+        // Track the highest phrase frequency at this code so the
+        // promote decision can be made after the FST scan.
+        let mut max_phrase_freq: u64 = 0;
         let mut stream = self
             .map
             .range()
@@ -208,13 +316,33 @@ impl WubiDict {
                 let (layer, freq) = unpack(value);
                 let base = layer.base() as f64;
                 let pref = prefs[layer.as_index()];
-                scratch.push((s.to_string(), base * pref + freq as f64));
+                let is_single = s.chars().count() == 1;
+                if !is_single && freq > max_phrase_freq {
+                    max_phrase_freq = freq;
+                }
+                scratch.push((
+                    s.to_string(),
+                    base * pref + freq as f64,
+                    is_single,
+                    freq,
+                ));
             }
         }
-        scratch.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        scratch.sort_by(|a, b| {
+            let a_promote = full_code && a.2 && a.3 > max_phrase_freq;
+            let b_promote = full_code && b.2 && b.3 > max_phrase_freq;
+            if a_promote != b_promote {
+                return if a_promote {
+                    std::cmp::Ordering::Less
+                } else {
+                    std::cmp::Ordering::Greater
+                };
+            }
+            b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         out.reserve(scratch.len());
-        for (w, _) in scratch.drain(..) {
+        for (w, _, _, _) in scratch.drain(..) {
             out.push(w);
         }
 

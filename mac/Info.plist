@@ -19,9 +19,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.1</string>
+    <string>1.1.0</string>
     <key>CFBundleVersion</key>
-    <string>2</string>
+    <string>3</string>
     <key>CFBundleSignature</key>
     <string>INPX</string>
     <key>CFBundleSupportedPlatforms</key>
@@ -54,21 +54,31 @@
     <false/>
 
     <!-- App icon. CFBundleIconFile (legacy) + CFBundleIconName (modern)
-         both point to the same .icns; build.sh generates it from the menu
-         TIFF via `sips -s format icns`. -->
+         both point to the same .icns. MUST be a real multi-resolution .icns
+         (16/32/64/128/256/512 + @2x) built via `iconutil -c icns iconset/`.
+         A 1-resolution legacy `il32` blob (e.g. from `sips -s format icns`)
+         makes host apps SIGTRAP on input-source switch — TextInputUIMacHelper
+         CFReleases NULL from IconRef resolution. See Resources/inputx_app_icon.icns. -->
     <key>CFBundleIconFile</key>
     <string>inputx_app_icon</string>
     <key>CFBundleIconName</key>
     <string>inputx_app_icon</string>
 
-    <!-- IMK server wiring. InputMethodConnectionName is the Mach service
-         name the IMK server registers; the matching entitlement is in
-         Inputx.entitlements. -->
+    <!-- IMK server wiring. macOS 26 requires 4 controller-class keys, not the
+         2 the 2007 IMK Programming Guide documents. Missing `DataSourceClass`
+         or `SessionController` => imklaunchagent silently refuses to launch
+         the binary on input-source switch, so the IMK Mach service never
+         exists and host apps can't connect. ConnectionName matches the
+         entitlement in Inputx.entitlements. -->
     <key>InputMethodConnectionName</key>
     <string>jp.golia.inputmethod.wubi_Connection</string>
     <key>InputMethodServerControllerClass</key>
     <string>InputxController</string>
     <key>InputMethodServerDelegateClass</key>
+    <string>InputxController</string>
+    <key>InputMethodServerDataSourceClass</key>
+    <string>InputxController</string>
+    <key>InputMethodSessionController</key>
     <string>InputxController</string>
 
     <!-- Top-level TIS umbrella source: bundle-level TIS entry separate

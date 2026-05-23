@@ -7,10 +7,11 @@ members = [
     "crates/inputx-wubi-wasm",
     "crates/inputx-pinyin",
     "crates/inputx-pinyin-wasm",
+    "crates/inputx-jp",
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "1.1.0"
 edition = "2024"
 rust-version = "1.85"
 
@@ -24,11 +25,19 @@ rust-version = "1.85"
 # from the registry. `package = "inputx-X"` rename keeps the historical
 # `use wubi::...` / `use golia_pinyin::...` import paths stable.
 [workspace.dependencies]
-wubi = { package = "inputx-wubi", version = "1.0", path = "crates/inputx-wubi" }
-golia-pinyin = { package = "inputx-pinyin", version = "1.0", path = "crates/inputx-pinyin" }
+wubi = { package = "inputx-wubi", version = "1.1", path = "crates/inputx-wubi" }
+golia-pinyin = { package = "inputx-pinyin", version = "1.1", path = "crates/inputx-pinyin" }
 
 [profile.release]
-lto = true
+# Was `lto = true` (fat LTO). Switched to "off" because fat LTO embeds
+# LLVM 22 bitcode into the staticlib's .o files, and Xcode 26's older
+# LLVM `ld` silently drops some FFI symbols at iOS link time
+# (`_inputx_session_set_input_mode` was the canary). See
+# core/.cargo/config.toml for the embed-bitcode=no rustflag that makes
+# this opt-out actual. The pair (`lto = "off"` + `embed-bitcode = no`)
+# is what produces pure Mach-O .o files that Xcode's ld consumes
+# without trying to parse bitcode.
+lto = "off"
 codegen-units = 1
 strip = "symbols"
 panic = "abort"

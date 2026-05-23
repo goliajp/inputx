@@ -39,6 +39,18 @@ cp -R "$APP_SRC" "$APP_DST"
 # its display cache after our new bundle entered TIS.
 killall TextInputMenuAgent 2>/dev/null || true
 
+# Install + (re)load the user LaunchAgent that keeps the IME binary always
+# running. Without this, macOS 26's imklaunchagent silently refuses to launch
+# our binary when a host app requests the IME service, and typing produces
+# nothing even though the picker shows us as selectable. See
+# LaunchAgent.plist.template and docs/macos-ime-recipe-2026.md §Investigation 6.
+LA_DST="$HOME/Library/LaunchAgents/jp.golia.inputmethod.wubi.plist"
+mkdir -p "$(dirname "$LA_DST")"
+sed "s|__APP_PATH__|$APP_DST|g" "$(dirname "$0")/Resources/LaunchAgent.plist.template" > "$LA_DST"
+launchctl bootout "gui/$(id -u)/jp.golia.inputmethod.wubi" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$LA_DST"
+echo "[install] LaunchAgent loaded — binary will auto-start at login + restart on crash"
+
 # Unregister the build/ source bundle from LaunchServices so the csstore
 # doesn't shadow the install with a stale entry. See _purge_ls.sh.
 if [ "${KEEP_BUILD_APP:-0}" != "1" ]; then
@@ -50,7 +62,11 @@ fi
 cat <<EOF
 
 Installed. Next steps:
-  1. System Settings → Keyboard → Text Input → Edit → +
-  2. Add: 简体中文 → Inputx 五笔
-  3. Approve the third-party IME prompt
+  1. First-time only: System Settings → Keyboard → 文本输入 → Edit
+     → + → 简体中文 → Inputx 五笔 → 添加, then approve the
+     third-party IME permission popup.
+  2. If you've installed before and Inputx 五笔 has fallen out of the
+     menu-bar input switcher (AppleEnabledInputSources cleared for
+     unclear reasons), run mac/scripts/reenable.sh to restore it
+     without going back through the System Settings UI.
 EOF

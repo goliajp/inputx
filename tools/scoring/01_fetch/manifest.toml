@@ -1,0 +1,51 @@
+# Pinned corpus versions feeding the scoring pipeline. Bump entries
+# here + re-run `make rebuild` to roll a new weights drop. Each entry
+# includes a sha256 of the downloaded artifact so re-fetches are
+# verified before extraction proceeds.
+#
+# Update protocol:
+#   1. Bump version (and sha256) of one or more sources.
+#   2. `make 01-fetch`  — downloads + verifies.
+#   3. `make rebuild`   — full pipeline. Slow.
+#   4. Review `reports/build-<new-version>.html` (07 validate output).
+#   5. If gates pass + diff looks sane → commit + tag release.
+#
+# A copy of this file is stamped into the final weights.tsv header so
+# every release is traceable to a specific corpus state.
+
+[wikipedia-zh]
+version = "20260501"
+url = "https://dumps.wikimedia.org/zhwiki/20260501/zhwiki-20260501-pages-articles.xml.bz2"
+sha256 = "TODO-SET-WHEN-FETCHED"
+
+[wikipedia-ja]
+version = "20260501"
+url = "https://dumps.wikimedia.org/jawiki/20260501/jawiki-20260501-pages-articles.xml.bz2"
+sha256 = "TODO-SET-WHEN-FETCHED"
+
+[jieba]
+version = "0.42.1"
+url = "https://pypi.org/packages/source/j/jieba/jieba-0.42.1.tar.gz"
+sha256 = "TODO-SET-WHEN-FETCHED"
+
+[leipzig-zh]
+version = "2024"
+url = "https://downloads.wortschatz-leipzig.de/corpora/zho_news_2020_1M.tar.gz"
+sha256 = "TODO-SET-WHEN-FETCHED"
+note = "Modern Chinese news corpus, 1M sentences"
+
+[unihan]
+version = "15.1"
+url = "https://www.unicode.org/Public/15.1.0/ucd/Unihan.zip"
+sha256 = "TODO-SET-WHEN-FETCHED"
+
+[kanjidic2]
+version = "2024-05"
+url = "https://www.edrdg.org/kanjidic/kanjidic2.xml.gz"
+sha256 = "TODO-SET-WHEN-FETCHED"
+license = "EDRDG / public domain"
+
+# Phase 2+ candidates (not yet wired):
+# [opencc]
+# [wiktionary-zh]
+# [common-crawl-zh]

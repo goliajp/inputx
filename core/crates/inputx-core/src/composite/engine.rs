@@ -19,6 +19,7 @@
 //! sees committed text, then a fresh empty buffer).
 
 use super::dispatch::dispatch;
+use super::japanese_adapter::JapaneseAdapter;
 use super::merge::Candidate;
 use super::mode::Mode;
 use super::pinyin_adapter::PinyinAdapter;
@@ -27,6 +28,18 @@ use crate::wubi::{AutoCommitPolicy, WubiEngine};
 pub struct CompositeEngine {
     wubi: WubiEngine,
     pinyin: PinyinAdapter,
+    /// Lazy JP plugin — `Some` iff JP is currently active (either
+    /// `Mode::JapaneseOnly` OR `enable_japanese=true` in another mode).
+    /// `None` means JP is fully off and the keystroke path skips it
+    /// entirely — zero cost on the hot path when the user doesn't want
+    /// Japanese. The lifecycle is managed by `set_mode` and
+    /// `set_japanese_enabled`, which (re)allocate / drop this as needed.
+    japanese: Option<JapaneseAdapter>,
+    /// User-facing toggle, default false. Independent of `mode`:
+    /// JP attaches as an "enhancement" to Mixed/Wubi/Pinyin when true,
+    /// or is the lone engine when `mode == JapaneseOnly` (in which case
+    /// this flag is effectively forced true).
+    enable_japanese: bool,
     mode: Mode,
     /// User-facing auto-commit policy. CompositeEngine owns the actual
     /// decision (sub-engine wubi is always set to `Never` so it can't
@@ -54,6 +67,8 @@ impl CompositeEngine {
         Self {
             wubi,
             pinyin: PinyinAdapter::new(),
+            japanese: None,
+            enable_japanese: false,
             mode: Mode::default(),
             user_policy: AutoCommitPolicy::default(),
             cand_buf: Vec::with_capacity(16),
@@ -64,11 +79,51 @@ impl CompositeEngine {
         self.mode
     }
 
+    pub fn japanese_enabled(&self) -> bool {
+        self.enable_japanese
+    }
+
+    /// Toggle the JP plugin's "enhancement" attachment. No effect when
+    /// `mode == JapaneseOnly` (JP is forced on there regardless). Clears
+    /// the JP buffer when turning off so a re-enable doesn't pick up
+    /// stale state. (Re)allocates the adapter as needed.
+    pub fn set_japanese_enabled(&mut self, on: bool) {
+        if self.enable_japanese == on {
+            return;
+        }
+        self.enable_japanese = on;
+        self.sync_japanese_adapter();
+    }
+
+    /// Should the JP plugin currently participate? `JapaneseOnly` forces
+    /// it on regardless of the toggle; other modes consult the toggle.
+    fn japanese_active(&self) -> bool {
+        self.mode.forces_japanese() || self.enable_japanese
+    }
+
+    /// Bring the `japanese` field into agreement with `japanese_active()`:
+    /// allocate on first use, drop when turning fully off. Drops on
+    /// disable also so that future re-enables start fresh — JP doesn't
+    /// have per-session learning yet so this is safe.
+    fn sync_japanese_adapter(&mut self) {
+        let need = self.japanese_active();
+        match (need, self.japanese.is_some()) {
+            (true, false) => self.japanese = Some(JapaneseAdapter::new()),
+            (false, true) => self.japanese = None,
+            _ => {}
+        }
+    }
+
     /// Set the engine mode. Clears the buffer of any engine the new mode
     /// disallows — otherwise a Mixed→WubiOnly mid-compose flip leaves the
     /// pinyin buffer dangling (still flagged composing, but `preedit()`
     /// reads only the wubi buffer), which the UI sees as "composing but
     /// blank candidate bar". (Caught by proptest fuzz, fuzz_engine_never_*.)
+    ///
+    /// On a transition to `JapaneseOnly`, both Chinese sub-engines are
+    /// cleared and the JP adapter is brought online (if not already).
+    /// On a transition AWAY from `JapaneseOnly` with `enable_japanese=false`,
+    /// the JP adapter is dropped — its buffer would otherwise dangle.
     pub fn set_mode(&mut self, mode: Mode) {
         if !mode.allows_wubi() && self.wubi.is_composing() {
             self.wubi.escape();
@@ -77,6 +132,7 @@ impl CompositeEngine {
             self.pinyin.escape();
         }
         self.mode = mode;
+        self.sync_japanese_adapter();
     }
 
     pub fn set_auto_commit_policy(&mut self, p: AutoCommitPolicy) {
@@ -95,30 +151,64 @@ impl CompositeEngine {
         // candidates would render for it anyway). set_mode() clears
         // these on mode flips, but this guard belt-and-suspenders any
         // future code path that mutates buffers directly.
-        (self.mode.allows_wubi()   && self.wubi.is_composing())
-        || (self.mode.allows_pinyin() && self.pinyin.is_composing())
+        if self.mode.is_japanese_only() {
+            return self.japanese.as_ref().is_some_and(|j| j.is_composing());
+        }
+        (self.mode.allows_wubi() && self.wubi.is_composing())
+            || (self.mode.allows_pinyin() && self.pinyin.is_composing())
+            || (self.enable_japanese
+                && self.japanese.as_ref().is_some_and(|j| j.is_composing()))
     }
 
     /// The active preedit string. In Mixed mode prefers pinyin's longer
     /// buffer if it diverges (e.g., > 4 chars after wubi force-commits);
-    /// callers that want the raw wubi buffer can inspect via
-    /// `wubi_buffer_str`. iOS preedit display normally just wants
-    /// "what the user has typed since last commit".
+    /// in JapaneseOnly mode the JP buffer is used. Callers that want a
+    /// raw per-engine buffer can use `wubi_buffer_str` / `pinyin_buffer_str`.
     pub fn preedit(&self) -> &str {
+        if self.mode.is_japanese_only() {
+            return self.japanese.as_ref().map(|j| j.buffer_str()).unwrap_or("");
+        }
         if !self.mode.allows_pinyin() {
-            self.wubi.buffer_str()
-        } else if !self.mode.allows_wubi() {
-            self.pinyin.buffer_str()
-        } else {
-            // Mixed — prefer pinyin (it captures the full input across
-            // wubi force-commits). But fall back to wubi if pinyin's
-            // buffer happens to be empty (e.g., entered Mixed from
-            // WubiOnly after some keystrokes — wubi has state, pinyin
-            // does not). Otherwise is_composing()==true but preedit()
-            // is empty, which the UI renders as "ghost compose".
-            // (Caught by proptest fuzz on [SetMode(WubiOnly), Letter(a), SetMode(Mixed)].)
+            // WubiOnly — wubi is the primary buffer. If JP is also on
+            // ("enhancement"), prefer wubi (it represents the deliberate
+            // CJK intent); only fall back to JP buffer when wubi is empty.
+            let w = self.wubi.buffer_str();
+            if !w.is_empty() {
+                return w;
+            }
+            if let Some(j) = self.japanese.as_ref() {
+                let jp = j.buffer_str();
+                if !jp.is_empty() {
+                    return jp;
+                }
+            }
+            return w;
+        }
+        if !self.mode.allows_wubi() {
+            // PinyinOnly path.
             let p = self.pinyin.buffer_str();
-            if !p.is_empty() { p } else { self.wubi.buffer_str() }
+            if !p.is_empty() {
+                return p;
+            }
+            if let Some(j) = self.japanese.as_ref() {
+                let jp = j.buffer_str();
+                if !jp.is_empty() {
+                    return jp;
+                }
+            }
+            return p;
+        }
+        // Mixed — prefer pinyin (it captures the full input across
+        // wubi force-commits). But fall back to wubi if pinyin's buffer
+        // happens to be empty (e.g., entered Mixed from WubiOnly after
+        // some keystrokes — wubi has state, pinyin does not). JP buffer
+        // mirrors pinyin (same letter-by-letter feed) so it doesn't
+        // need a separate fallback here.
+        let p = self.pinyin.buffer_str();
+        if !p.is_empty() {
+            p
+        } else {
+            self.wubi.buffer_str()
         }
     }
 
@@ -132,10 +222,16 @@ impl CompositeEngine {
 
     /// Recompute and return the merged candidate list. Slice borrows
     /// internal storage; subsequent calls invalidate.
+    ///
+    /// Returns the merged candidate list, sorted purely by score
+    /// (descending). L0 pins surface at #0 via the score multiplier
+    /// applied inside the engine adapter's `lookup_with_scores_into`
+    /// (see `scoring::L0_PIN_MULTIPLIER` = 1000×) — no post-pass
+    /// re-ordering exists or is needed.
     pub fn candidates(&mut self) -> &[Candidate] {
         self.cand_buf.clear();
         self.cand_buf
-            .extend(dispatch(self.mode, &self.wubi, &self.pinyin));
+            .extend(dispatch(self.mode, &self.wubi, &self.pinyin, self.japanese.as_ref()));
         &self.cand_buf
     }
 
@@ -150,6 +246,16 @@ impl CompositeEngine {
     /// `user_policy` (sub-engine wubi never auto-commits on its own —
     /// see `new()`).
     pub fn handle_letter(&mut self, byte: u8) -> Option<String> {
+        // JapaneseOnly short-circuits the Chinese engines entirely.
+        if self.mode.is_japanese_only() {
+            if let Some(j) = self.japanese.as_mut() {
+                j.handle_letter(byte);
+            }
+            // JP has no policy-driven force-commit and no ASCII-fallback
+            // path (the user typing romaji is their own ASCII intent).
+            return None;
+        }
+
         // Pinyin first — captures every byte without auto-committing,
         // and seeds `pinyin.candidates()` so the wubi-veto logic below
         // sees the *post-byte* pinyin state.
@@ -157,41 +263,45 @@ impl CompositeEngine {
             self.pinyin.handle_letter(byte);
         }
 
-        if self.mode.allows_wubi() {
-            // Defuse wubi's hard 5th-letter cutoff in collision scenarios.
-            // wubi/engine.rs unconditionally force-commits + clears its
-            // buffer when buffer.len() reaches MAX_CODE_LEN (4) and the
-            // next byte arrives — independent of policy. In Mixed mode
-            // that turns "shang" into wubi-commit("櫖") + wubi("g")="一"
-            // (47f); for inputs like "beijing" the pinyin side has no
-            // exact-match candidates at "beij" yet (long-word prefix),
-            // so the original `!pinyin.candidates().is_empty()` guard
-            // didn't fire and "阴湿ing" leaked through. In Mixed mode,
-            // unconditionally clear wubi at 4 letters before the 5th
-            // arrives — pinyin is the primary path here, and policy-
-            // driven auto-commit still fires via `should_force_commit_wubi`
-            // for legit 4-letter wubi-unique codes that aren't pinyin
-            // prefixes.
-            if self.mode == Mode::Mixed && self.wubi.buffer_str().len() == 4 {
-                self.wubi.clear_all();
+        // JP attaches in parallel as an enhancement source.
+        if self.enable_japanese {
+            if let Some(j) = self.japanese.as_mut() {
+                j.handle_letter(byte);
             }
-            // Capture wubi's possible commit (hard cutoff or auto-commit)
-            // — composite previously discarded it, leaking committed text
-            // silently in WubiOnly mode + leaving Mixed-mode runs in
-            // inconsistent state when defuse didn't trigger.
-            if let Some(text) = self.wubi.handle_letter(byte) {
+        }
+
+        if self.mode.allows_wubi() {
+            // User-stated policy (2026-05-22): in Mixed mode, wubi is
+            // out of the picture past 4 letters. "超过 4 字就和五笔没关系
+            // 了" — typing a long pinyin word should not defuse wubi
+            // into a tail-letter simcode (which then crashes the
+            // candidate list via Jianma1's 1M score floor). So: in
+            // Mixed mode, stop feeding wubi once its buffer is already
+            // 4 chars. Wubi state freezes; pinyin keeps growing; no
+            // defuse, no tail interpretation, no junk #0 candidate.
+            //
+            // WubiOnly mode keeps the original defuse behavior — there
+            // the user IS typing wubi codes, and the 4→reset cycle is
+            // the expected ergonomics.
+            if self.mode == Mode::Mixed && self.wubi.buffer_str().len() >= 4 {
+                // Skip wubi entirely for this byte. Pinyin already
+                // consumed it above; JP too. Move on.
+            } else if let Some(text) = self.wubi.handle_letter(byte) {
+                // WubiOnly defuse path or pre-4-char auto-commit fired.
                 self.pinyin.clear_all();
+                if let Some(j) = self.japanese.as_mut() { j.clear_all(); }
                 return Some(text);
             }
         }
 
         if self.should_force_commit_wubi() {
             // Take the wubi top candidate as the committed text, then
-            // clear both sub-engines so the next keystroke starts fresh.
+            // clear all sub-engines so the next keystroke starts fresh.
             if let Some(text) = self.wubi.candidates().first().cloned() {
                 let idx = self.wubi_index_for(&text).unwrap_or(0);
                 self.wubi.commit_index(idx);
                 self.pinyin.clear_all();
+                if let Some(j) = self.japanese.as_mut() { j.clear_all(); }
                 return Some(text);
             }
         }
@@ -208,38 +318,47 @@ impl CompositeEngine {
         // so at 5+ chars wubi sees only the tail — its prefix matches
         // are misleading and don't represent the user's intent.
         // Pinyin runs continuously, so its emptiness is the reliable
-        // "not a Chinese word" signal.
+        // "not a Chinese word" signal. JP intentionally does NOT veto
+        // the fallback — the user typing in romaji that doesn't form
+        // CJK is the same English-intent signal whether JP is on or off.
         if self.preedit().len() >= Self::ASCII_FALLBACK_THRESHOLD
             && self.is_pure_garbage()
         {
             let raw = self.preedit().to_string();
             self.wubi.clear_all();
             self.pinyin.clear_all();
+            if let Some(j) = self.japanese.as_mut() { j.clear_all(); }
             return Some(raw);
         }
 
         None
     }
 
-    /// True iff the current input has NO chance of matching any
-    /// Chinese word. We only consult pinyin because:
-    ///   - At ASCII_FALLBACK_THRESHOLD (5+) chars in Mixed mode, the
-    ///     wubi buffer has necessarily been reset (wubi codes max at
-    ///     4 chars) — its `candidates()` reflects only the post-reset
-    ///     tail and doesn't represent user intent.
-    ///   - In PinyinOnly mode wubi is dormant.
-    ///   - In WubiOnly mode the wubi engine commits natively on the
-    ///     5th char before this check is reached.
+    /// True iff the current input has NO chance of matching any word
+    /// in any active engine. Drives the ASCII-fallback (auto-uppercase-
+    /// the-raw-buffer) at THRESHOLD chars.
     ///
-    /// We use pinyin `has_future_match` (dict prefix lookup) rather than
-    /// `candidates().is_empty()` because pinyin candidates briefly empty
-    /// mid-syllable for long words (e.g. `zhongg` between `zhong` and
-    /// `zhongguo`) while the dict prefix still resolves.
+    /// Engines consulted:
+    ///   - **Pinyin** via `has_future_match` (dict prefix lookup) —
+    ///     pinyin candidates briefly empty mid-syllable for long words
+    ///     (e.g. `zhongg` between `zhong` and `zhongguo`) while the
+    ///     dict prefix still resolves, so `is_empty` is too eager.
+    ///   - **JP plugin** — when active, the user could still be typing
+    ///     a multi-syllable JP word (`watashi` mid-typing at `watas`
+    ///     would otherwise ASCII-fall at length 5 before the user
+    ///     finishes the word). Treat JP-active as a categorical "no
+    ///     ASCII fallback" — the user opted into JP and accepts that
+    ///     typing English in mixed-mode requires the JP toggle off.
     fn is_pure_garbage(&self) -> bool {
         if !self.mode.allows_pinyin() {
             // WubiOnly path. wubi commits natively at 5 chars so we
             // shouldn't normally reach here; fall back to false to be
             // safe.
+            return false;
+        }
+        if self.japanese.is_some() {
+            // JP plugin active — give the user room to finish a romaji
+            // word that's longer than the 5-char ASCII-fallback budget.
             return false;
         }
         !self.pinyin.has_future_match()
@@ -301,22 +420,44 @@ impl CompositeEngine {
 
     pub fn backspace(&mut self) -> bool {
         let mut consumed = false;
+        if self.mode.is_japanese_only() {
+            if let Some(j) = self.japanese.as_mut() {
+                consumed |= j.backspace();
+            }
+            return consumed;
+        }
         if self.mode.allows_wubi() {
             consumed |= self.wubi.backspace();
         }
         if self.mode.allows_pinyin() {
             consumed |= self.pinyin.backspace();
         }
+        if self.enable_japanese {
+            if let Some(j) = self.japanese.as_mut() {
+                consumed |= j.backspace();
+            }
+        }
         consumed
     }
 
     pub fn escape(&mut self) -> bool {
         let mut consumed = false;
+        if self.mode.is_japanese_only() {
+            if let Some(j) = self.japanese.as_mut() {
+                consumed |= j.escape();
+            }
+            return consumed;
+        }
         if self.mode.allows_wubi() {
             consumed |= self.wubi.escape();
         }
         if self.mode.allows_pinyin() {
             consumed |= self.pinyin.escape();
+        }
+        if self.enable_japanese {
+            if let Some(j) = self.japanese.as_mut() {
+                consumed |= j.escape();
+            }
         }
         consumed
     }
@@ -342,6 +483,9 @@ impl CompositeEngine {
     pub fn clear_all(&mut self) {
         self.wubi.clear_all();
         self.pinyin.clear_all();
+        if let Some(j) = self.japanese.as_mut() {
+            j.clear_all();
+        }
         self.cand_buf.clear();
     }
 
@@ -352,7 +496,7 @@ impl CompositeEngine {
         if self.cand_buf.is_empty() {
             // Refresh once — caller may not have invoked candidates() yet.
             self.cand_buf
-                .extend(dispatch(self.mode, &self.wubi, &self.pinyin));
+                .extend(dispatch(self.mode, &self.wubi, &self.pinyin, self.japanese.as_ref()));
         }
         let cand = self.cand_buf.get(index).cloned()?;
         match cand.source {
@@ -362,14 +506,25 @@ impl CompositeEngine {
             super::merge::Source::Pinyin => {
                 self.pinyin.commit_index(self.pinyin_index_for(&cand.word)?);
             }
+            super::merge::Source::Japanese => {
+                if let Some(j) = self.japanese.as_mut() {
+                    let idx = j.candidates().iter().position(|w| w == &cand.word);
+                    if let Some(i) = idx {
+                        j.commit_index(i);
+                    }
+                }
+            }
         }
-        // Either commit clears one engine; clear the other so the
-        // session state is consistent.
+        // Whichever engine handled the commit, clear all so session
+        // state is consistent (next keystroke starts fresh).
         if self.mode.allows_wubi() {
             self.wubi.clear_all();
         }
         if self.mode.allows_pinyin() {
             self.pinyin.clear_all();
+        }
+        if let Some(j) = self.japanese.as_mut() {
+            j.clear_all();
         }
         self.cand_buf.clear();
         Some(cand.word)
@@ -452,12 +607,12 @@ mod tests {
     #[test]
     fn mixed_mode_wubi_letters_show_both_when_pinyin_matches() {
         let mut e = CompositeEngine::new();
-        e.set_auto_commit_policy(AutoCommitPolicy::Never); // don't force-commit
-        typed(&mut e, b"yi"); // wubi: '一' (or other), pinyin: 一/以/已/...
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        typed(&mut e, b"yi"); // wubi: 2-letter simcode; pinyin: 一/以/已/...
         let cands = e.candidates().to_vec();
-        // Wubi candidate should be at position 0 (wubi-first per merge).
+        // Inputx is 五笔 IME first — wubi candidate at #0. Pinyin
+        // contributes additional candidates further down the list.
         assert_eq!(cands[0].source, Source::Wubi);
-        // Pinyin contributes additional candidates further down.
         assert!(cands.iter().any(|c| c.source == Source::Pinyin));
     }
 
@@ -499,6 +654,95 @@ mod tests {
             e.set_mode(m);
             assert_eq!(e.mode(), m);
         }
+    }
+
+    // ----- v1.2.0-α1 JP plugin integration tests -----------------------
+
+    #[test]
+    fn japanese_disabled_no_jp_candidates() {
+        // Default state: enable_japanese = false in Mixed → only wubi/pinyin.
+        let mut e = CompositeEngine::new();
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        typed(&mut e, b"ka");
+        let cands = e.candidates().to_vec();
+        assert!(
+            cands.iter().all(|c| c.source != Source::Japanese),
+            "expected no JP candidates with toggle off, got {:?}", cands
+        );
+    }
+
+    #[test]
+    fn japanese_enabled_appends_jp_candidates_in_mixed() {
+        let mut e = CompositeEngine::new();
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        typed(&mut e, b"ka");
+        let cands = e.candidates().to_vec();
+        // か (hiragana) must appear with Source::Japanese.
+        assert!(
+            cands.iter().any(|c| c.word == "か" && c.source == Source::Japanese),
+            "expected か as JP candidate, got {:?}", cands
+        );
+        // Wubi/pinyin candidates (if any) must precede JP — strict ranking.
+        let first_jp = cands.iter().position(|c| c.source == Source::Japanese)
+            .expect("expected at least one JP candidate");
+        for (i, c) in cands.iter().enumerate() {
+            if i < first_jp {
+                assert_ne!(c.source, Source::Japanese,
+                    "JP candidate appeared before non-JP at index {}", i);
+            }
+        }
+    }
+
+    #[test]
+    fn japanese_only_mode_silences_wubi_pinyin() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::JapaneseOnly);
+        typed(&mut e, b"ka");
+        let cands = e.candidates().to_vec();
+        assert!(!cands.is_empty(), "expected JP candidates in JapaneseOnly mode");
+        assert!(
+            cands.iter().all(|c| c.source == Source::Japanese),
+            "JapaneseOnly mode should yield only JP candidates, got {:?}", cands
+        );
+    }
+
+    #[test]
+    fn japanese_only_high_kou_finds_kanji() {
+        // The user's framing example: typing "kou" should surface 高 in
+        // JapaneseOnly mode (kanji subset is codepoint-identical with CN
+        // simplified per the inputx-jp curation).
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::JapaneseOnly);
+        typed(&mut e, b"kou");
+        let cands = e.candidates().to_vec();
+        assert!(
+            cands.iter().any(|c| c.word == "高" && c.source == Source::Japanese),
+            "expected 高 in JapaneseOnly candidates for 'kou', got {:?}", cands
+        );
+    }
+
+    #[test]
+    fn japanese_only_clear_returns_to_idle() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::JapaneseOnly);
+        typed(&mut e, b"abc");
+        assert!(e.is_composing());
+        e.escape();
+        assert!(!e.is_composing());
+        assert_eq!(e.preedit(), "");
+    }
+
+    #[test]
+    fn switch_to_japanese_only_clears_chinese_buffers() {
+        let mut e = CompositeEngine::new();
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        typed(&mut e, b"khlg"); // wubi mid-compose
+        assert!(e.is_composing());
+        e.set_mode(Mode::JapaneseOnly);
+        // Chinese buffers cleared by set_mode; JP buffer fresh.
+        assert!(!e.is_composing(),
+            "JapaneseOnly transition should clear Chinese composing state");
     }
 
     #[test]

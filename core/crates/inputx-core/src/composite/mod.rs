@@ -12,12 +12,15 @@
 
 mod dispatch;
 mod engine;
+mod japanese_adapter;
 pub(crate) mod l0_json;
 mod merge;
 mod mode;
 mod pinyin_adapter;
+pub mod scoring;
 
 pub use engine::CompositeEngine;
+pub use japanese_adapter::JapaneseAdapter;
 pub use merge::{Candidate, Source};
 pub use mode::Mode;
 pub use pinyin_adapter::PinyinAdapter;

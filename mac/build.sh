@@ -53,6 +53,9 @@ SWIFT_SOURCES=(
     Sources/IMEController.swift
     Sources/CandidatePanel.swift
     Sources/MenubarSettings.swift
+    Sources/InputModeToast.swift
+    Sources/SettingsWindow.swift
+    Sources/PolishLog.swift
 )
 # swiftc refuses cross-arch .swiftmodule loads, so compile each arch
 # against the matching-arch SPM bin-path's Modules/ directory.
@@ -80,11 +83,12 @@ lipo -info "$APP_DIR/Contents/MacOS/$APP_NAME"
 
 # ----- Bundle resources -----
 cp Info.plist "$APP_DIR/Contents/Info.plist"
+# `Resources/inputx_app_icon.icns` is a pre-built multi-resolution .icns
+# (16/32/64/128/256/512 + @2x) made via `iconutil -c icns iconset/`.
+# Do NOT regenerate from the TIFF via `sips -s format icns` — that produces
+# a 1-resolution legacy `il32` blob that crashes host apps on input-source
+# switch. See mac/Info.plist comment on CFBundleIconFile for details.
 cp -R Resources/. "$APP_DIR/Contents/Resources/"
-# Convert the menu-bar TIFF into an .icns for CFBundleIconFile /
-# CFBundleIconName. Single-resolution is sufficient for an IME icon.
-sips -s format icns Resources/inputx_menu_icon.tiff \
-    --out "$APP_DIR/Contents/Resources/inputx_app_icon.icns" >/dev/null
 printf "APPLINPX" > "$APP_DIR/Contents/PkgInfo"
 
 # ----- Codesign -----
