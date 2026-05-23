@@ -17,6 +17,12 @@ import InputxKit
 final class CandidatePanel {
     /// All candidates from the engine (not just current page).
     private(set) var current: [String] = []
+    /// `true` when the panel is showing 联想 (next-word predictions)
+    /// instead of regular keystroke-driven candidates. Controls
+    /// whether number-key commits route through `session.commit(at:)`
+    /// (regular) or `session.commitPrediction(at:)` (prediction).
+    /// Set by `showPredictions`, cleared by `hide` / `refresh`.
+    private(set) var isPredictionMode: Bool = false
     /// 0-based current page.
     private var pageIndex: Int = 0
     /// 0-based selected index within the current page (0…pageSize-1).
@@ -143,6 +149,10 @@ final class CandidatePanel {
     /// caret rects each call. Sticky positioning per session = stable.
     func refresh(session: InputxSession, client: AnyObject?) {
         lastClient = client
+        // Refresh always exits prediction mode — predictions only show
+        // when there's NO buffer; a normal refresh means buffer changed
+        // and we're back to regular keystroke-driven candidates.
+        isPredictionMode = false
         let count = session.candidateCount
         guard count > 0, let preedit = session.preedit, !preedit.isEmpty else {
             hide()
@@ -173,9 +183,40 @@ final class CandidatePanel {
 
     func hide() {
         current.removeAll(keepingCapacity: true)
+        isPredictionMode = false
         pageIndex = 0
         selectedInPage = 0
         if window.isVisible { window.orderOut(nil) }
+    }
+
+    /// Show the panel populated with 联想 (next-word) predictions
+    /// instead of buffer-driven candidates. Surfaced after every CJK
+    /// commit when `session.predictionCount > 0`. Visual presentation
+    /// is identical to the regular panel — same numbering, same anchor
+    /// — so the user picks via the same muscle memory (1-9 / 0).
+    /// Number-key commit at this point routes through
+    /// `session.commitPrediction(at:)` instead of `commit(at:)`, which
+    /// triggers a fresh round of predictions (chained 联想 / Sogou
+    /// 句串).
+    func showPredictions(words: [String], client: AnyObject?) {
+        if words.isEmpty {
+            hide()
+            return
+        }
+        lastClient = client
+        let cap = 50
+        var picked = words
+        if picked.count > cap { picked.removeLast(picked.count - cap) }
+        current = picked
+        isPredictionMode = true
+        pageIndex = 0
+        selectedInPage = 0
+        let firstShow = !window.isVisible
+        rebuildRows()
+        if firstShow {
+            positionNear(client: client)
+            window.orderFront(nil)
+        }
     }
 
     var isVisible: Bool { !current.isEmpty }

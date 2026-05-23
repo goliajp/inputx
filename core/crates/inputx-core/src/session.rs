@@ -291,6 +291,22 @@ impl Session {
         self.composite.predicted_candidates().len()
     }
 
+    /// Commit a prediction by index. Returns the committed text on
+    /// success (and triggers a fresh round of predictions internally,
+    /// keyed off the just-committed word — chained 联想). Returns
+    /// `None` for out-of-range index.
+    ///
+    /// Unlike `commit_index`, this is a "soft" commit — there's no
+    /// buffer to drain, so no per-engine L0 pick is recorded. The
+    /// prediction list is fully derived from `last_committed_word` +
+    /// the static bigram corpus.
+    pub fn commit_prediction(&mut self, index: usize) -> Option<String> {
+        let preds = self.composite.predicted_candidates();
+        let word = preds.get(index).map(|c| c.word.clone())?;
+        let committed = self.composite.commit_prediction_word(&word);
+        Some(committed)
+    }
+
     /// Source byte for the candidate at `index` — 0 = Wubi, 1 = Pinyin.
     /// Returns `None` if the index is out of range.
     pub fn candidate_source(&self, index: usize) -> Option<u8> {

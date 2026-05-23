@@ -128,6 +128,31 @@ public final class InputxSession {
         return String(cString: cstr)
     }
 
+    // MARK: - Predictions (联想)
+
+    /// Number of next-word predictions available after the most-recent
+    /// CJK commit. 0 if no predictions are active (cold session, last
+    /// commit was non-CJK, mode forbids pinyin predictions, etc.).
+    public var predictionCount: Int {
+        return Int(inputx_session_prediction_count(handle))
+    }
+
+    /// Predicted next-word at `index`, or `nil` for out-of-range.
+    public func prediction(at index: Int) -> String? {
+        guard let cstr = inputx_session_prediction(handle, UInt(index)) else { return nil }
+        defer { inputx_string_free(cstr) }
+        return String(cString: cstr)
+    }
+
+    /// Commit a prediction by index. Triggers a fresh round of
+    /// predictions internally (chained 联想). Returns the committed
+    /// text or `nil` for out-of-range index.
+    public func commitPrediction(at index: Int) -> String? {
+        guard let cstr = inputx_session_commit_prediction(handle, UInt(index)) else { return nil }
+        defer { inputx_string_free(cstr) }
+        return String(cString: cstr)
+    }
+
     /// Drop the composition without committing (Escape).
     public func clear() {
         inputx_session_clear(handle)
