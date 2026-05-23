@@ -56,6 +56,12 @@ pub struct CompositeEngine {
     /// commits set this back to `None` because they don't seed
     /// meaningful Chinese-word context.
     last_committed_word: Option<String>,
+    /// Next-word predictions (联想) computed after every CJK commit,
+    /// read by the host's UI via `predicted_candidates()`. Empty until
+    /// the first CJK commit and after `clear_all` / non-CJK commits.
+    /// Distinct from `cand_buf` so the host can choose whether to keep
+    /// the panel visible post-commit (showing predictions) vs hide it.
+    prediction_buf: Vec<Candidate>,
 }
 
 impl Default for CompositeEngine {
@@ -81,6 +87,7 @@ impl CompositeEngine {
             user_policy: AutoCommitPolicy::default(),
             cand_buf: Vec::with_capacity(16),
             last_committed_word: None,
+            prediction_buf: Vec::with_capacity(10),
         }
     }
 
@@ -509,6 +516,7 @@ impl CompositeEngine {
             j.clear_all();
         }
         self.cand_buf.clear();
+        self.prediction_buf.clear();
         // Treat clear_all as a full session boundary: drop the bigram
         // context too. Use cases (set_mode, set_input_mode En→Cjk
         // restore, explicit clear) all imply "lose continuity".
@@ -519,11 +527,59 @@ impl CompositeEngine {
     /// a pure-CJK Chinese word (kana / Latin commits don't inform the
     /// Chinese-corpus bigram table). Auto-commit / force-commit paths
     /// (above in `handle_letter`) call this; user-driven `commit_index`
-    /// does it inline.
+    /// does it inline. Also triggers a fresh `predicted_candidates`
+    /// computation so the host can show next-word predictions in the
+    /// candidate panel immediately after commit.
     fn update_bigram_context(&mut self, committed: &str) {
         if committed.chars().any(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)) {
             self.last_committed_word = Some(committed.to_string());
+            self.refresh_predictions();
         }
+    }
+
+    /// Rebuild `prediction_buf` from `last_committed_word` via the
+    /// pinyin dict's `predict_next_words`. Predictions are the 联想
+    /// (next-word) feature: after committing a CJK word, the panel can
+    /// show predicted continuations without the user typing anything.
+    ///
+    /// Bypassed in modes that don't allow pinyin (e.g. WubiOnly) — the
+    /// bigram table is corpus-Chinese; predictions in pure-wubi mode
+    /// would be off-channel.
+    fn refresh_predictions(&mut self) {
+        self.prediction_buf.clear();
+        if !self.mode.allows_pinyin() {
+            return;
+        }
+        let Some(prev) = self.last_committed_word.as_deref() else { return };
+        const PREDICTION_LIMIT: usize = 10;
+        let raw = self.pinyin.engine().dict()
+            .predict_next_words(prev, PREDICTION_LIMIT);
+        // Score gradient: top prediction at 200k, decay 5k per slot.
+        // This puts them above pinyin's NON_EXACT_FLOOR (1k) and below
+        // a typical exact-match top (~480k), so when the host renders
+        // them as the only candidates (post-commit, no buffer yet),
+        // they appear in count-desc order with no risk of mixing into
+        // an ongoing buffer's candidate list.
+        for (i, (word, _count)) in raw.into_iter().enumerate() {
+            self.prediction_buf.push(Candidate {
+                word,
+                source: super::merge::Source::Pinyin,
+                score: 200_000.0 - (i as f64) * 5_000.0,
+            });
+        }
+    }
+
+    /// Predicted next-word candidates after the most recent CJK commit.
+    /// Empty when:
+    ///   * No prior commit in this session.
+    ///   * Mode is JapaneseOnly / WubiOnly (predictions are corpus-
+    ///     Chinese, off-channel for those modes).
+    ///   * The prev word has no bigram followers (very rare word).
+    ///
+    /// Host UI uses this to decide whether to keep the candidate panel
+    /// visible after commit (showing predictions) instead of hiding it.
+    pub fn predicted_candidates(&self) -> &[Candidate] {
+        &self.prediction_buf
     }
 
     /// Commit candidate at index. Records the pick to the source engine's
@@ -570,13 +626,13 @@ impl CompositeEngine {
             j.clear_all();
         }
         self.cand_buf.clear();
-        // Update bigram context for the NEXT keystroke's candidate
-        // ranking. Only seed it from pure-CJK commits (a Japanese kana
-        // commit or an English raw commit doesn't give meaningful prev
-        // context for the Chinese-corpus bigram table).
-        if cand.word.chars().any(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)) {
-            self.last_committed_word = Some(cand.word.clone());
-        }
+        // Update bigram context AND refresh predictions for the host's
+        // 联想 panel. Only seeded from pure-CJK commits (kana / Latin
+        // commits aren't meaningful prev context for the Chinese-corpus
+        // bigram table). Routes through `update_bigram_context` which
+        // also calls `refresh_predictions` — single code path so the
+        // prediction buffer is always in sync with last_committed.
+        self.update_bigram_context(&cand.word);
         Some(cand.word)
     }
 
@@ -1284,6 +1340,57 @@ mod tests {
             assert!(!consumed, "backspace from empty should not consume");
             assert!(!e.is_composing());
             assert!(e.preedit().is_empty());
+        }
+    }
+
+    // -----------------------------------------------------------------
+    // 联想 — predicted_candidates surface
+    // -----------------------------------------------------------------
+
+    #[test]
+    fn predictions_empty_before_any_commit() {
+        let e = CompositeEngine::new();
+        assert!(e.predicted_candidates().is_empty(),
+            "no predictions until first CJK commit");
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn predictions_populated_after_cjk_commit() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::PinyinOnly);
+        for b in b"jintian" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let jintian_idx = cands.iter()
+            .position(|c| c.word == "今天")
+            .expect("expected 今天 in jintian candidates");
+        let committed = e.commit_index(jintian_idx);
+        assert_eq!(committed.as_deref(), Some("今天"));
+        let preds = e.predicted_candidates();
+        assert!(!preds.is_empty(),
+            "expected predictions populated after committing 今天");
+        // Top predictions for 今天 should include common followers
+        // — sanity check that the data path works, not pin specific words.
+        let words: Vec<&str> = preds.iter().map(|c| c.word.as_str()).collect();
+        let has_common = ["的", "是", "在", "我", "我们"]
+            .iter().any(|w| words.contains(w));
+        assert!(has_common,
+            "expected at least one of 的/是/在/我/我们 in 今天 predictions; got {words:?}");
+    }
+
+    #[test]
+    fn predictions_cleared_on_clear_all() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::PinyinOnly);
+        for b in b"wo" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        if let Some(idx) = cands.iter().position(|c| c.word == "我") {
+            let _ = e.commit_index(idx);
+            // After CJK commit (when bigrams available) predictions may
+            // be non-empty. Then clear_all should wipe them.
+            e.clear_all();
+            assert!(e.predicted_candidates().is_empty(),
+                "clear_all should wipe predictions");
         }
     }
 

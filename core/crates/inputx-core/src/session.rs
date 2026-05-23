@@ -275,6 +275,22 @@ impl Session {
         self.cand_cache.len()
     }
 
+    /// Next-word predictions (联想) computed after the most-recent
+    /// CJK commit. Empty until first CJK commit and after `clear`.
+    /// Host UI uses this to decide whether to keep the candidate
+    /// panel visible post-commit, showing predictions as the user's
+    /// likely next pick (Sogou-style 联想 panel).
+    pub fn predictions(&self) -> Vec<String> {
+        self.composite.predicted_candidates()
+            .iter()
+            .map(|c| c.word.clone())
+            .collect()
+    }
+
+    pub fn prediction_count(&self) -> usize {
+        self.composite.predicted_candidates().len()
+    }
+
     /// Source byte for the candidate at `index` — 0 = Wubi, 1 = Pinyin.
     /// Returns `None` if the index is out of range.
     pub fn candidate_source(&self, index: usize) -> Option<u8> {
