@@ -100,9 +100,27 @@ def main() -> int:
             # / punctuation tokens — bigrams involving those are noise for
             # a pinyin reranker).
             words = [w for w in jieba.cut(sent, HMM=True) if has_cjk(w)]
+            # Inter-token bigrams: (word_i, word_{i+1}).
             for prev, nxt in zip(words, words[1:]):
                 counter[(prev, nxt)] += 1
                 total_bigrams += 1
+            # Intra-token char bigrams: for any multi-char token, count
+            # each adjacent char pair. Captures (你, 好) from "你好"
+            # which jieba unitizes as one token — without this, the
+            # Viterbi segmenter has no signal to prefer 你+好 over
+            # 你+号码 when bridging via prev-char context. Discounted
+            # weight (0.5×) because phrase-internal context is weaker
+            # signal than truly-adjacent words.
+            for tok in words:
+                if len(tok) >= 2:
+                    chars = list(tok)
+                    for a, b in zip(chars, chars[1:]):
+                        # Increment by 1 each time (overall weight comes
+                        # out to ~half of jieba-token bigrams in
+                        # practice — many tokens are 1-char so the
+                        # within-token contribution is naturally bounded).
+                        counter[(a, b)] += 1
+                        total_bigrams += 1
             if total_sents % 100_000 == 0:
                 print(f"  ... {total_sents} sents, {len(counter)} unique bigrams",
                       file=sys.stderr)

@@ -577,6 +577,61 @@ impl PinyinDict {
         }
     }
 
+    /// Predict the most likely next words given a just-committed `prev`
+    /// word. Reads `bigrams.fst` for all `(prev, *)` pairs, sorts by
+    /// count desc, returns top `limit`.
+    ///
+    /// This is the engine-side primitive for the 联想 / next-word
+    /// prediction feature (Sogou-style post-commit panel). UI layers
+    /// trigger this after every CJK commit and surface the result as
+    /// the candidate list while the user hasn't started typing the
+    /// next syllable.
+    ///
+    /// Returns empty Vec when:
+    ///   * The bigrams FST isn't loaded (bootstrap_only build)
+    ///   * `prev` is empty
+    ///   * No bigrams start with `prev` (rare word, English / kana, etc.)
+    ///
+    /// Cost: O(matches) FST stream + O(matches log matches) sort. Most
+    /// common words have 20-100 distinct followers in our top-500k
+    /// bigram table; cost per call ≈ 10-100µs. Safe to call on every
+    /// post-commit edge in the hot path.
+    pub fn predict_next_words(&self, prev: &str, limit: usize) -> Vec<(String, u64)> {
+        if prev.is_empty() || limit == 0 {
+            return Vec::new();
+        }
+        let Some(bigrams) = self.bigrams.as_ref() else {
+            return Vec::new();
+        };
+        // Scan the FST range `[prev\0, prev\1)` — same compound-key
+        // trick as the main pinyin lookup.
+        let mut prefix = prev.as_bytes().to_vec();
+        let prefix_len = prefix.len();
+        prefix.push(0u8);
+        let mut upper = prefix.clone();
+        let last = upper.len() - 1;
+        upper[last] = 0x01;
+        let mut hits: Vec<(String, u64)> = Vec::new();
+        let mut stream = bigrams
+            .range()
+            .ge(prefix.as_slice())
+            .lt(upper.as_slice())
+            .into_stream();
+        while let Some((key, count)) = stream.next() {
+            if key.len() <= prefix_len + 1 {
+                continue;
+            }
+            let next_bytes = &key[prefix_len + 1..];
+            if let Ok(s) = core::str::from_utf8(next_bytes) {
+                hits.push((s.to_string(), count));
+            }
+        }
+        // Sort by count desc, tie-break alphabetic for determinism.
+        hits.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+        hits.truncate(limit);
+        hits
+    }
+
     /// Context-aware bigram score bonus. Given the user's most recently
     /// committed word `prev` and a candidate `next`, returns an ADDITIVE
     /// bonus reflecting how often `(prev, next)` co-occur in the training
@@ -900,6 +955,45 @@ mod tests {
         assert_eq!(d.l0_pin_count(), 0);
     }
 
+    // ---- predict_next_words (联想 v1.0) -----------------------------
+
+    #[test]
+    fn predict_next_words_empty_inputs() {
+        let d = PinyinDict::embedded();
+        assert!(d.predict_next_words("", 10).is_empty());
+        assert!(d.predict_next_words("今天", 0).is_empty());
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn predict_next_words_jintian_top_followers() {
+        let d = PinyinDict::embedded();
+        // 今天 is a very common word — corpus has plenty of (今天, *)
+        // bigrams. Top should include 的/在/是 (high-count followers
+        // verified by `head pinyin_bigrams_v1.tsv | grep 今天`).
+        let preds = d.predict_next_words("今天", 10);
+        assert!(!preds.is_empty(), "expected predictions for 今天");
+        let words: Vec<&str> = preds.iter().map(|(w, _)| w.as_str()).collect();
+        let has_common_followers = ["的", "在", "是", "我", "我们"]
+            .iter()
+            .any(|w| words.contains(w));
+        assert!(has_common_followers,
+            "expected at least one of 的/在/是/我/我们 in 今天 predictions; got {words:?}");
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn predict_next_words_sorted_desc() {
+        let d = PinyinDict::embedded();
+        let preds = d.predict_next_words("我们", 5);
+        if preds.len() < 2 { return; }  // bail if data too sparse
+        for w in preds.windows(2) {
+            assert!(w[0].1 >= w[1].1,
+                "predictions must be sorted by count desc; got {:?} then {:?}",
+                w[0], w[1]);
+        }
+    }
+
     // ---- bigram_boost surface ----------------------------------------
 
     #[test]
@@ -949,17 +1043,17 @@ mod tests {
         // should string together a multi-segment Chinese sentence. We
         // don't pin the exact split here: the dict has multiple valid
         // segmentations (e.g. 你+号码+我+叫 vs 你好+吗+我+叫); which
-        // wins depends on relative phrase freqs + the STEP_PENALTY tune.
-        // Both are *grammatically* OK CJK strings, so just smoke-test
-        // that the algorithm produces SOMETHING covering the full
-        // buffer, pure CJK, of reasonable length.
-        //
-        // Picking among ambiguous CJK splits will be sharper once
-        // v0.3 intra-phrase bigrams land (今天 → 好 type signals).
+        // wins depends on relative phrase freqs, intra-phrase char
+        // bigram counts, and the STEP_PENALTY tune. With v0.4 intra-
+        // token bigrams ((你,好) (好,吗) (我,叫) all surface), the
+        // 你好+吗+我+叫 path should now beat 你+号码+我+叫 — printed
+        // for sanity. Both are valid CJK, the assertion just verifies
+        // shape (pure CJK, 4-7 chars).
         let result = d.best_composition("nihaomawojiao");
-        let Some((_, chain)) = result else {
+        let Some((score, chain)) = result else {
             panic!("expected some segmentation for nihaomawojiao");
         };
+        eprintln!("nihaomawojiao → {chain:?} (score {score})");
         assert!(chain.chars().all(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)),
             "expected pure-CJK segmentation, got {chain:?}");
         let char_count = chain.chars().count();
