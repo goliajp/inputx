@@ -283,21 +283,30 @@ final class CandidatePanel {
         updateFooter()
 
         // Window sizing + positioning. With 10 slots always populated,
-        // newH is constant and the panel never visually flexes. But we
-        // still recompute origin.y from `anchorY` (not from
-        // window.frame.origin.y) on every refresh — Auto Layout can
-        // mutate origin.y between calls, and reading the post-AL value
-        // would drift the anchored edge. `contentMinSize == contentMaxSize`
-        // also blocks AL from inflating height past newH.
-        let newH = 22 * CGFloat(Self.pageSize) + 10 + 16  // = 246
+        // the *AL-intrinsic* height of the content is constant — but it
+        // is NOT what we'd naively compute (22*10 + footer + insets).
+        // The actual AL value depends on stack spacings + edgeInsets +
+        // footer intrinsic font height + stack→footer gap. Compute it
+        // by asking Auto Layout for the contentView's fitting size after
+        // a layout pass. Then position the panel from anchorY using that
+        // real height.
+        //
+        // We can't use a hard-coded estimate (`22*10+10+16=246` was
+        // wrong by 12pt — AL settles at 258). And `contentMinSize` /
+        // `contentMaxSize` don't clamp post-setFrame AL reflow, so
+        // setting frame to a too-small height causes AL to inflate AND
+        // shift origin.y to keep the panel's TOP edge in place — drifting
+        // the anchored BOTTOM down by the inflation delta on every
+        // refresh. User-reported "第二个字符输入还是会下偏" 2026-05-23.
+        window.contentView?.layoutSubtreeIfNeeded()
+        let actualH = window.contentView?.fittingSize.height
+            ?? (22 * CGFloat(Self.pageSize) + 10 + 16)
         var f = window.frame
-        f.size.height = newH
+        f.size.height = actualH
         switch anchorEdge {
-        case .top:    f.origin.y = anchorY - newH  // pin TOP, grow downward
-        case .bottom: f.origin.y = anchorY         // pin BOTTOM, grow upward
+        case .top:    f.origin.y = anchorY - actualH  // pin TOP, grow downward
+        case .bottom: f.origin.y = anchorY            // pin BOTTOM, grow upward
         }
-        window.contentMinSize = NSSize(width: f.size.width, height: newH)
-        window.contentMaxSize = NSSize(width: f.size.width, height: newH)
         window.setFrame(f, display: true)
     }
 
@@ -367,7 +376,14 @@ final class CandidatePanel {
         // pure function of caret-vs-screen geometry and stays stable.
         let maxPanelH = 22 * CGFloat(Self.pageSize) + 10 + 16  // 10 rows + footer + padding
 
-        var originX = caret.minX
+        // Shift the panel left by the internal content padding so the
+        // number column (the "1" digit) visually aligns with the caret X,
+        // not the panel's outer left edge. Internal layout: panel.left
+        // → 8pt stack inset → 6pt numberLabel leading → "1" glyph. So
+        // 14pt offset lands the number under the caret, matching the
+        // system pinyin IME's appearance.
+        let contentLeftPadding: CGFloat = 8
+        var originX = caret.minX - contentLeftPadding
         let originY: CGFloat
         let edge: AnchorEdge
         let pinnedY: CGFloat  // the screen-Y of the edge we'll hold stable
