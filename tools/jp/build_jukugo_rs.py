@@ -7,42 +7,54 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-TSV = ROOT / "tools/scoring/data/supplemental/jp_jukugo_v1.tsv"
+SUPP_DIR = ROOT / "tools/scoring/data/supplemental"
+# Source TSVs (deterministic order: jukugo first so it wins identity ties at
+# parity, counters/extras layered on top via highest-freq selection below).
+SOURCES = [
+    SUPP_DIR / "jp_jukugo_v1.tsv",
+    SUPP_DIR / "jp_counters_v1.tsv",
+]
 OUT = ROOT / "core/crates/inputx-jp/src/jukugo.rs"
 
 
 def main() -> int:
-    seen: set[tuple[str, str]] = set()
-    rows: list[tuple[str, str, int]] = []
+    # Key on (reading, word). When the same pair appears in multiple TSVs we
+    # keep the highest freq — lets counter file be regenerated independently
+    # without worrying about freq regressions from low-baseline rows.
+    best: dict[tuple[str, str], int] = {}
     skipped = 0
-    with TSV.open() as f:
-        for line in f:
-            line = line.rstrip("\n").strip()
-            if not line or line.startswith("#"):
-                continue
-            parts = line.split("\t")
-            if len(parts) != 3:
-                skipped += 1
-                continue
-            word, reading, freq_s = parts
-            word = word.strip()
-            reading = reading.strip().lower()
-            if not word or not reading:
-                skipped += 1
-                continue
-            if not all(c.isascii() and c.isalpha() for c in reading):
-                skipped += 1
-                continue
-            try:
-                freq = int(freq_s)
-            except ValueError:
-                skipped += 1
-                continue
-            key = (reading, word)
-            if key in seen:
-                continue
-            seen.add(key)
-            rows.append((reading, word, freq))
+    for tsv in SOURCES:
+        if not tsv.exists():
+            print(f"warning: source missing: {tsv}", file=sys.stderr)
+            continue
+        with tsv.open() as f:
+            for line in f:
+                line = line.rstrip("\n").strip()
+                if not line or line.startswith("#"):
+                    continue
+                parts = line.split("\t")
+                if len(parts) != 3:
+                    skipped += 1
+                    continue
+                word, reading, freq_s = parts
+                word = word.strip()
+                reading = reading.strip().lower()
+                if not word or not reading:
+                    skipped += 1
+                    continue
+                if not all(c.isascii() and c.isalpha() for c in reading):
+                    skipped += 1
+                    continue
+                try:
+                    freq = int(freq_s)
+                except ValueError:
+                    skipped += 1
+                    continue
+                key = (reading, word)
+                cur = best.get(key)
+                if cur is None or freq > cur:
+                    best[key] = freq
+    rows = [(reading, word, freq) for (reading, word), freq in best.items()]
     rows.sort(key=lambda r: (-r[2], r[0], r[1]))
     print(f"kept {len(rows)} rows, skipped {skipped}", file=sys.stderr)
 

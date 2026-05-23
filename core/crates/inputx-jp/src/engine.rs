@@ -383,32 +383,36 @@ mod tests {
             e.handle_letter(*b);
         }
         let cands = e.candidates();
-        // First should be hiragana of "kou" → こう
-        assert_eq!(cands[0].word, "こう");
-        assert_eq!(cands[0].kind, KanaKind::Hiragana);
         // 高 must appear in the kanji portion.
         assert!(
             cands.iter().any(|c| c.word == "高" && c.kind == KanaKind::Kanji),
             "expected 高 in candidates for 'kou', got {:?}",
             cands
         );
+        // Hiragana fallback こう must always be available.
+        assert!(
+            cands.iter().any(|c| c.word == "こう" && c.kind == KanaKind::Hiragana),
+            "expected こう (hiragana) in candidates for 'kou', got {:?}",
+            cands
+        );
     }
 
     #[test]
-    fn multi_syllable_no_kanji() {
-        // 'nihon' isn't a single-kanji on-yomi; the engine should produce
-        // only the kana renderings (compound conversion is not v0.1 scope).
+    fn multi_syllable_finds_jukugo() {
+        // 'nihon' is a high-freq jukugo (日本); kanji form should appear
+        // alongside the kana renderings.
         let mut e = JapaneseEngine::new();
         for b in b"nihon" {
             e.handle_letter(*b);
         }
         let cands = e.candidates();
+        assert!(
+            cands.iter().any(|c| c.word == "日本" && c.kind == KanaKind::Kanji),
+            "expected 日本 (kanji jukugo) for 'nihon', got {:?}",
+            cands
+        );
         assert!(cands.iter().any(|c| c.word == "にほん"));
         assert!(cands.iter().any(|c| c.word == "ニホン"));
-        assert!(
-            !cands.iter().any(|c| c.kind == KanaKind::Kanji),
-            "no kanji expected for multi-syllable 'nihon', got {:?}", cands
-        );
     }
 
     #[test]
@@ -467,5 +471,100 @@ mod tests {
         assert!(!e.handle_letter(b'5'));
         assert!(!e.handle_letter(b' '));
         assert_eq!(e.preedit(), "");
+    }
+
+    /// Counter-word coverage — the Round-8 additions. Each input should
+    /// produce the corresponding counter-word kanji *as a direct jukugo
+    /// hit* (not via sentence segmentation), which means it has to be in
+    /// the jukugo table after the counters TSV is merged.
+    #[test]
+    fn counter_words_round8() {
+        let cases: &[(&[u8], &str)] = &[
+            (b"ikko", "一個"),
+            (b"hitori", "一人"),
+            (b"futari", "二人"),
+            (b"sannin", "三人"),
+            (b"yonin", "四人"),
+            (b"mikka", "三日"),
+            (b"yokka", "四日"),
+            (b"tsuitachi", "一日"),
+            (b"futsuka", "二日"),
+            (b"ippon", "一本"),
+            (b"sanbon", "三本"),
+            (b"ichimai", "一枚"),
+            (b"sanbiki", "三匹"),
+            (b"ittou", "一頭"),
+            (b"ikkai", "一回"),
+            (b"isshuukan", "一週間"),
+            (b"ikkagetsu", "ヶ月"), // checks the ヶ月 suffix (一ヶ月 below)
+            (b"yoji", "四時"),
+            (b"kuji", "九時"),
+            (b"ippun", "一分"),
+            (b"juppun", "十分"),
+            (b"ippai", "一杯"),
+            (b"issatsu", "一冊"),
+            (b"hitotsu", "一つ"),
+            (b"mittsu", "三つ"),
+            (b"daiichi", "第一"),
+            (b"hatachi", "二十歳"),
+        ];
+        for (input, expected_substr) in cases {
+            let mut e = JapaneseEngine::new();
+            for b in *input {
+                e.handle_letter(*b);
+            }
+            let cands = e.candidates();
+            assert!(
+                cands.iter().any(|c| c.word.contains(expected_substr)),
+                "expected a candidate containing `{}` for input `{}`, got {:?}",
+                expected_substr,
+                std::str::from_utf8(input).unwrap(),
+                cands.iter().map(|c| &c.word).collect::<Vec<_>>()
+            );
+        }
+    }
+
+    /// The full kanji form (一ヶ月) should appear specifically, not only the
+    /// suffix — the test above accepts substring "ヶ月" so it doesn't
+    /// false-pass on bare suffix; verify the leading 一 explicitly here.
+    #[test]
+    fn ikkagetsu_renders_full_kanji() {
+        let mut e = JapaneseEngine::new();
+        for b in b"ikkagetsu" {
+            e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        assert!(
+            cands.iter().any(|c| c.word == "一ヶ月"),
+            "expected `一ヶ月` for `ikkagetsu`, got {:?}",
+            cands.iter().map(|c| &c.word).collect::<Vec<_>>()
+        );
+    }
+
+    /// Counter words must rank ABOVE the bare kana renderings — typing
+    /// `hitori` should surface 一人 at the top, not the hiragana ひとり as
+    /// candidate #0. Without this, the polish round is invisible to users
+    /// who hit Space (which commits #0).
+    #[test]
+    fn counter_word_outranks_kana() {
+        let mut e = JapaneseEngine::new();
+        for b in b"hitori" {
+            e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let one_person_idx = cands.iter().position(|c| c.word == "一人");
+        let hiragana_idx = cands.iter().position(|c| c.word == "ひとり");
+        assert!(
+            one_person_idx.is_some(),
+            "no `一人` candidate for `hitori`, got {:?}",
+            cands.iter().map(|c| &c.word).collect::<Vec<_>>()
+        );
+        if let (Some(o), Some(h)) = (one_person_idx, hiragana_idx) {
+            assert!(
+                o < h,
+                "`一人` (#{o}) should rank above `ひとり` (#{h}), got {:?}",
+                cands.iter().map(|c| &c.word).collect::<Vec<_>>()
+            );
+        }
     }
 }
