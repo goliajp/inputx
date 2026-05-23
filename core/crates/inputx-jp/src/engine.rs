@@ -173,12 +173,20 @@ impl JapaneseEngine {
             });
         }
 
+        // Hiragana / katakana fallback. Freq drives where these land in
+        // the cross-engine merge (composite::japanese_adapter uses
+        // `base + freq * multiplier`). Short buffers (1-2 chars) get
+        // high freq — typing `e` or `ka` should surface `え` / `か` in
+        // the visible top, not bury them under every pinyin variant.
+        // Long buffers get lower freq — for `konnichi`, the user
+        // probably wants `今日` not `こんにち`.
+        let kana_freq: u32 = if s.len() <= 2 { 100 } else { 30 };
         let h = romaji::to_hiragana(s);
         if !h.is_empty() && h != s {
             self.candidates.push(Candidate {
                 word: h.clone(),
                 kind: KanaKind::Hiragana,
-                freq: 0,
+                freq: kana_freq,
             });
         }
         let k = romaji::to_katakana(s);
@@ -186,7 +194,7 @@ impl JapaneseEngine {
             self.candidates.push(Candidate {
                 word: k,
                 kind: KanaKind::Katakana,
-                freq: 0,
+                freq: kana_freq,
             });
         }
     }
