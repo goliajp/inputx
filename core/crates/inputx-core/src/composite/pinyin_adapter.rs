@@ -388,6 +388,15 @@ impl PinyinAdapter {
         // its 2-char consonant cluster gets looked up in the 简拼 index.
         //
         // Results marked as fuzzy so they rank below true exact matches.
+        //
+        // NOTE: does NOT set `has_non_speculative_candidate`. Path 1c is
+        // a speculative typo-correction guess, not "user is actively
+        // typing pinyin". Setting the flag would leak this speculation
+        // into downstream cross-engine demotion (the v0.5 pinyin-intent
+        // wubi-Phrase demote), causing legitimate wubi candidates at
+        // clearly-wubi-shaped input like `xlab` (wubi 细节) to get
+        // demoted below speculative xl-initials pinyin matches (向量
+        // etc.). User-reported 2026-05-24.
         if !self.has_non_speculative_candidate
             && self.buffer.len() >= 4
             && !self.engine.dict().prefix_exists(&self.buffer)
@@ -403,7 +412,6 @@ impl PinyinAdapter {
                     if seen.insert(w.clone()) {
                         self.candidates.push(w.clone());
                         self.fuzzy_candidates.insert(w.clone());
-                        self.has_non_speculative_candidate = true;
                     }
                 }
             }
@@ -420,6 +428,12 @@ impl PinyinAdapter {
         // Skipped when Path 1 already returned a non-speculative match
         // (the user got the spelling right, no need to spray fuzzy
         // alternates) — preserves the "exact wins" rule.
+        //
+        // NOTE: does NOT set `has_non_speculative_candidate`. Fuzzy
+        // variants are speculative (the user may have meant something
+        // entirely different); letting them drive cross-engine
+        // demotion would crowd out legitimate wubi entries at
+        // wubi-shaped buffers. Path 1c carries the same caveat.
         if !self.has_non_speculative_candidate {
             for variant in fuzzy_buffer_variants(&self.buffer) {
                 if variant == self.buffer {
@@ -431,7 +445,6 @@ impl PinyinAdapter {
                     if seen.insert(w.clone()) {
                         self.candidates.push(w.clone());
                         self.fuzzy_candidates.insert(w);
-                        self.has_non_speculative_candidate = true;
                     }
                 }
             }

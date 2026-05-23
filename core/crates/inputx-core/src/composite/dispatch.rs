@@ -240,6 +240,33 @@ mod tests {
     }
 
     #[test]
+    fn mixed_xlab_wubi_phrase_not_demoted_by_speculative_initials() {
+        // User-reported 2026-05-24: `xlab` (wubi Phrase code for 细节)
+        // was being drowned out by `向量/心理/训练/...` because pinyin
+        // Path 1c (typo-shaped initials fallback) was matching "xl"
+        // initials AND incorrectly setting has_non_speculative_candidate,
+        // which then triggered the v0.5 wubi-Phrase layer demote on
+        // legitimate wubi 细节 (Phrase × 0.5).
+        //
+        // Production composite engine auto-commits 细节 at 4 chars
+        // (unique@4 policy), so we can't inspect xlab's candidate list
+        // directly — instead verify the underlying invariant: pinyin
+        // Path 1c speculation must NOT mark has_non_speculative, so
+        // the wubi layer-demote stays off and wubi simcodes lead.
+        let mut pinyin = PinyinAdapter::new();
+        typed(&mut pinyin, b"xlab");
+        // Path 1c should fire (xl is a valid 简拼 prefix for many
+        // phrases) and populate candidates, BUT must not set
+        // has_non_speculative_candidate (that's Path 1's job for
+        // genuine exact matches).
+        assert!(!pinyin.candidates().is_empty(),
+            "Path 1c should populate xlab with xl-initials phrases");
+        assert!(!pinyin.has_non_speculative_candidate(),
+            "Path 1c is speculative — must not set has_non_speculative \
+             (regression would re-trigger wubi-Phrase demote on xlab)");
+    }
+
+    #[test]
     fn mixed_huo_jianma2_wubi_still_leads() {
         // The 伙-rule sanity check. 伙 is a Jianma2 wubi simcode at
         // `wo` (hypothetically — the actual code may differ; pick any

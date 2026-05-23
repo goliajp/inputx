@@ -55,3 +55,8 @@ core/include/inputx_core.h
 .DS_Store
 *.swp
 *~
+
+# Local data backups from scoring polish scripts (kept on disk for
+# manual recovery, not part of repo)
+*.pretrad-backup
+*.preoverlap-backup
