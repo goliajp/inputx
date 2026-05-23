@@ -541,6 +541,55 @@ mod tests {
         );
     }
 
+    /// Brand / chain / SNS / IT-platform coverage — the Round-9 wrap-up
+    /// to land Inputx at "basically on par with Simeji" on the data side.
+    /// Each input must surface the corresponding form somewhere in the
+    /// candidate list.
+    #[test]
+    fn brands_round9() {
+        let cases: &[(&[u8], &str)] = &[
+            (b"sutaba", "スタバ"),
+            (b"yunikuro", "ユニクロ"),
+            (b"amazon", "アマゾン"),
+            (b"sebun", "セブン"),
+            (b"famima", "ファミマ"),
+            (b"rouson", "ローソン"),
+            (b"donki", "ドンキ"),
+            (b"toyota", "トヨタ"),
+            (b"sonii", "ソニー"),
+            (b"nintendou", "任天堂"),
+            (b"yuuchuubu", "ユーチューブ"),
+            (b"insuta", "インスタ"),
+            (b"tikkutokku", "ティックトック"),
+            (b"merukari", "メルカリ"),
+            (b"peipei", "ペイペイ"),
+            (b"rain", "ライン"),
+            (b"netofuri", "ネトフリ"),
+            (b"shinkansen", "新幹線"),
+            (b"makku", "マック"),
+            (b"yoshinoya", "吉野家"),
+            (b"sukiya", "すき家"),
+            (b"ichiran", "一蘭"),
+            (b"jiburi", "ジブリ"),
+            (b"pokemon", "ポケモン"),
+            (b"suika", "スイカ"),
+        ];
+        for (input, expected) in cases {
+            let mut e = JapaneseEngine::new();
+            for b in *input {
+                e.handle_letter(*b);
+            }
+            let cands = e.candidates();
+            assert!(
+                cands.iter().any(|c| c.word == *expected),
+                "expected `{}` for `{}`, got {:?}",
+                expected,
+                std::str::from_utf8(input).unwrap(),
+                cands.iter().map(|c| &c.word).collect::<Vec<_>>()
+            );
+        }
+    }
+
     /// Counter words must rank ABOVE the bare kana renderings — typing
     /// `hitori` should surface 一人 at the top, not the hiragana ひとり as
     /// candidate #0. Without this, the polish round is invisible to users
