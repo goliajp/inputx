@@ -56,6 +56,11 @@ pub struct CompositeEngine {
     /// commits set this back to `None` because they don't seed
     /// meaningful Chinese-word context.
     last_committed_word: Option<String>,
+    /// The word committed BEFORE `last_committed_word`. Used together
+    /// with `last_committed_word` as the (prev_prev, prev) context for
+    /// trigram-based next-word prediction (`predict_next_words_context`).
+    /// Same CJK-only seeding rule.
+    second_last_committed_word: Option<String>,
     /// Next-word predictions (联想) computed after every CJK commit,
     /// read by the host's UI via `predicted_candidates()`. Empty until
     /// the first CJK commit and after `clear_all` / non-CJK commits.
@@ -87,6 +92,7 @@ impl CompositeEngine {
             user_policy: AutoCommitPolicy::default(),
             cand_buf: Vec::with_capacity(16),
             last_committed_word: None,
+            second_last_committed_word: None,
             prediction_buf: Vec::with_capacity(10),
         }
     }
@@ -352,11 +358,13 @@ impl CompositeEngine {
             self.wubi.clear_all();
             self.pinyin.clear_all();
             if let Some(j) = self.japanese.as_mut() { j.clear_all(); }
-            // ASCII raw fallback isn't a Chinese word — drop bigram
-            // context. Whatever Chinese word was last committed no
-            // longer informs the next CJK input through this English
-            // interruption.
+            // ASCII raw fallback isn't a Chinese word — drop the full
+            // bigram / trigram context. Whatever Chinese was committed
+            // before no longer informs the next CJK input across this
+            // English interruption.
             self.last_committed_word = None;
+            self.second_last_committed_word = None;
+            self.prediction_buf.clear();
             return Some(raw);
         }
 
@@ -517,10 +525,11 @@ impl CompositeEngine {
         }
         self.cand_buf.clear();
         self.prediction_buf.clear();
-        // Treat clear_all as a full session boundary: drop the bigram
-        // context too. Use cases (set_mode, set_input_mode En→Cjk
+        // Treat clear_all as a full session boundary: drop the bigram /
+        // trigram context. Use cases (set_mode, set_input_mode En→Cjk
         // restore, explicit clear) all imply "lose continuity".
         self.last_committed_word = None;
+        self.second_last_committed_word = None;
     }
 
     /// Seed bigram context from a just-committed word, but only if it's
@@ -532,6 +541,11 @@ impl CompositeEngine {
     /// candidate panel immediately after commit.
     fn update_bigram_context(&mut self, committed: &str) {
         if committed.chars().any(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)) {
+            // Shift the 2-word window: current `last` becomes the new
+            // `second_last`, then put this commit as the new `last`.
+            // The (second_last, last) pair feeds trigram-based
+            // `predict_next_words_context` for sharper 联想.
+            self.second_last_committed_word = self.last_committed_word.take();
             self.last_committed_word = Some(committed.to_string());
             self.refresh_predictions();
         }
@@ -552,8 +566,18 @@ impl CompositeEngine {
         }
         let Some(prev) = self.last_committed_word.as_deref() else { return };
         const PREDICTION_LIMIT: usize = 10;
-        let raw = self.pinyin.engine().dict()
-            .predict_next_words(prev, PREDICTION_LIMIT);
+        // Trigram-with-bigram-backoff: when both (second_last, last)
+        // are CJK words, use trigram context for sharper picks; falls
+        // back to bigram when trigram has no hits OR when this is the
+        // very first commit of the session (no second_last yet).
+        // Without this trigram step, prediction chains tend to "接龙
+        // 到死" — each greedy bigram hop is locally optimal but the
+        // chain isn't a sentence (user-reported 今天的是在年).
+        let raw = self.pinyin.engine().dict().predict_next_words_context(
+            self.second_last_committed_word.as_deref(),
+            prev,
+            PREDICTION_LIMIT,
+        );
         // Score gradient: top prediction at 200k, decay 5k per slot.
         // This puts them above pinyin's NON_EXACT_FLOOR (1k) and below
         // a typical exact-match top (~480k), so when the host renders
