@@ -49,6 +49,12 @@ pub struct PinyinAdapter {
     /// default pick when the user types something long-and-pinyin-shaped
     /// like `nihaomawojiao`.
     composed_sentence: Option<String>,
+    /// Candidates that came from fuzzy-pinyin expansion (z↔zh, c↔ch,
+    /// s↔sh, etc. on the buffer prefix). Tracked so
+    /// `candidates_with_scores` can apply a score discount — a fuzzy
+    /// match is plausibly what the user meant but shouldn't beat an
+    /// exact match in mixed lists.
+    fuzzy_candidates: HashSet<String>,
 }
 
 impl Default for PinyinAdapter {
@@ -65,6 +71,7 @@ impl PinyinAdapter {
             candidates: Vec::with_capacity(16),
             has_non_speculative_candidate: false,
             composed_sentence: None,
+            fuzzy_candidates: HashSet::new(),
         }
     }
 
@@ -178,9 +185,24 @@ impl PinyinAdapter {
         // below wubi simcodes (~600k-1M) so simcodes can still take
         // priority when both engines have a strong claim.
         const COMPOSED_SCORE: f64 = 500_000.0;
+        // Fuzzy-match discount: a candidate that only matched after
+        // initial-prefix fuzzy expansion (z↔zh, etc.) loses 30% of its
+        // score. Still better than nothing, but clear loser to any
+        // exact match for the same buffer.
+        const FUZZY_DISCOUNT: f64 = 0.7;
+        // Fuzzy candidates need a synthetic base if they have no exact
+        // dict entry at the typed buffer — they DO have an entry at the
+        // fuzzy-variant buffer (`zhongguo` for typed `zongguo`), but
+        // exact_map (built from `lookup_with_scores_into(self.buffer)`)
+        // only sees the typed-buffer entries. Give them a mid-tier base.
+        const FUZZY_BASE: f64 = 350_000.0;
         for (i, w) in self.candidates.iter().enumerate() {
-            let base = if Some(w.as_str()) == self.composed_sentence.as_deref() {
+            let is_composed = Some(w.as_str()) == self.composed_sentence.as_deref();
+            let is_fuzzy = self.fuzzy_candidates.contains(w);
+            let base = if is_composed {
                 COMPOSED_SCORE
+            } else if is_fuzzy {
+                FUZZY_BASE * FUZZY_DISCOUNT
             } else {
                 exact_map.get(w).copied()
                     .unwrap_or(NON_EXACT_FLOOR * 0.99f64.powi(i as i32))
@@ -295,11 +317,23 @@ impl PinyinAdapter {
         self.candidates.clear();
         self.has_non_speculative_candidate = false;
         self.composed_sentence = None;
+        self.fuzzy_candidates.clear();
         if self.buffer.is_empty() {
             return;
         }
 
-        // Path 0 (Viterbi composition): for LONG buffers (>= 8 bytes),
+        // Path 0a (repeated-letter expansion): the user typing 3+ copies
+        // of the same letter is a Sogou-style request for the
+        // corresponding interjection repeated N times. `hhhhhh` →
+        // 哈哈哈哈哈哈. Done BEFORE Viterbi composition so this short-
+        // circuits the more expensive DP for an obvious case. Reuses
+        // the `composed_sentence` slot — same injection mechanism
+        // (insert at #0, high score in `candidates_with_scores`).
+        if let Some(expanded) = try_repeated_letter_expansion(&self.buffer) {
+            self.composed_sentence = Some(expanded);
+        }
+
+        // Path 0b (Viterbi composition): for LONG buffers (>= 8 bytes),
         // try to segment the whole input into a sequence of dict-matched
         // phrases. When it works, the composed string surfaces at the
         // top of the candidate list (see `candidates_with_scores`).
@@ -332,6 +366,66 @@ impl PinyinAdapter {
             if seen.insert(w.clone()) {
                 self.candidates.push(w);
                 self.has_non_speculative_candidate = true;
+            }
+        }
+
+        // Path 1c (typo-shaped initials fallback): catches missing-vowel
+        // typos like `pyin` (intended pinyin → expected 拼音).
+        //
+        // Gate: only triggers when the buffer is *not* a valid pinyin
+        // prefix of any dict entry (`prefix_exists` = false). Mid-typing
+        // sequences like `zhon` (en route to `zhong*`) are valid prefixes
+        // and stay on the normal Path-3 prefix-completion track. A
+        // genuine typo like `pyin` has no prefix match, falls here, and
+        // its 2-char consonant cluster gets looked up in the 简拼 index.
+        //
+        // Results marked as fuzzy so they rank below true exact matches.
+        if !self.has_non_speculative_candidate
+            && self.buffer.len() >= 4
+            && !self.engine.dict().prefix_exists(&self.buffer)
+        {
+            let consonant_prefix: String = self.buffer.chars()
+                .take_while(|c| !matches!(*c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v'))
+                .collect();
+            let suffix_len = self.buffer.len() - consonant_prefix.len();
+            if consonant_prefix.len() == 2 && suffix_len >= 2
+                && let Some(matches) = initials_index(&self.engine).get(&consonant_prefix)
+            {
+                for w in matches.iter().take(50) {
+                    if seen.insert(w.clone()) {
+                        self.candidates.push(w.clone());
+                        self.fuzzy_candidates.insert(w.clone());
+                        self.has_non_speculative_candidate = true;
+                    }
+                }
+            }
+        }
+
+        // Path 1b (fuzzy pinyin): southern-dialect-tolerant initial swaps
+        // on the buffer (z↔zh, c↔ch, s↔sh, n↔l, f↔h, r↔l, in↔ing,
+        // en↔eng, an↔ang). Common Sogou behavior: type `zongguo` →
+        // surface `中国` at a score discount. We expand the buffer's
+        // initial syllable through the FuzzyConfig and look up each
+        // variant, marking results as fuzzy so `candidates_with_scores`
+        // can demote them.
+        //
+        // Skipped when Path 1 already returned a non-speculative match
+        // (the user got the spelling right, no need to spray fuzzy
+        // alternates) — preserves the "exact wins" rule.
+        if !self.has_non_speculative_candidate {
+            for variant in fuzzy_buffer_variants(&self.buffer) {
+                if variant == self.buffer {
+                    continue;
+                }
+                let mut alt_buf: Vec<String> = Vec::new();
+                self.engine.dict().lookup_into(&variant, &mut alt_buf);
+                for w in alt_buf {
+                    if seen.insert(w.clone()) {
+                        self.candidates.push(w.clone());
+                        self.fuzzy_candidates.insert(w);
+                        self.has_non_speculative_candidate = true;
+                    }
+                }
             }
         }
 
@@ -409,6 +503,94 @@ impl PinyinAdapter {
             self.candidates.insert(0, sentence);
         }
     }
+}
+
+/// Fuzzy-pinyin buffer variants: produce alternate spellings by
+/// swapping the buffer's initial-prefix consonants per common
+/// dialect-tolerant rules (z↔zh, c↔ch, s↔sh, n↔l, f↔h, r↔l) and
+/// final-prefix vowel groups (in↔ing, en↔eng, an↔ang). Returns the
+/// original buffer + each variant; caller is responsible for skipping
+/// the original when iterating.
+///
+/// Single-rule application (no cascade): `zin` produces `zhin` and
+/// `zing`, not `zhing`. Good enough for typing tolerance; cascades
+/// would explode the candidate list.
+fn fuzzy_buffer_variants(buffer: &str) -> Vec<String> {
+    let mut out = Vec::with_capacity(8);
+    out.push(buffer.to_string());
+    let initial_swaps: &[(&str, &str)] = &[
+        ("zh", "z"), ("z", "zh"),
+        ("ch", "c"), ("c", "ch"),
+        ("sh", "s"), ("s", "sh"),
+        ("n", "l"), ("l", "n"),
+        ("f", "h"), ("h", "f"),
+        ("r", "l"),
+    ];
+    for (from, to) in initial_swaps {
+        if let Some(rest) = buffer.strip_prefix(from) {
+            let mut alt = String::with_capacity(buffer.len() + 1);
+            alt.push_str(to);
+            alt.push_str(rest);
+            if !out.contains(&alt) {
+                out.push(alt);
+            }
+        }
+    }
+    // Final-prefix vowel-group swaps: `xin` ↔ `xing`, etc. Apply on the
+    // FIRST syllable only (won't catch all positions but covers the
+    // common case of single-syllable input where the user typed `zin`
+    // wanting `zing`).
+    let final_swaps: &[(&str, &str)] = &[
+        ("ing", "in"), ("in", "ing"),
+        ("eng", "en"), ("en", "eng"),
+        ("ang", "an"), ("an", "ang"),
+    ];
+    for (from, to) in final_swaps {
+        if let Some(stem) = buffer.strip_suffix(from) {
+            if !stem.is_empty() {
+                let mut alt = String::with_capacity(buffer.len() + 1);
+                alt.push_str(stem);
+                alt.push_str(to);
+                if !out.contains(&alt) {
+                    out.push(alt);
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Repeated-letter expansion: when the input is 3+ copies of the same
+/// ASCII letter, return the corresponding interjection / laughter
+/// character repeated the same number of times. Sogou-style:
+///   * `hhh` / `hhhhh` → `哈哈哈` / `哈哈哈哈哈`
+///   * `aaa` → `啊啊啊`
+///   * `ooo` → `哦哦哦`
+///   * `eee` → `诶诶诶`
+///   * `mmm` → `嗯嗯嗯`
+///
+/// Returns `None` for mixed input, fewer than 3 letters, or letters not
+/// in the mapping (most consonants aren't standalone interjections).
+fn try_repeated_letter_expansion(buffer: &str) -> Option<String> {
+    if buffer.len() < 3 {
+        return None;
+    }
+    let bytes = buffer.as_bytes();
+    let first = bytes[0];
+    if !bytes.iter().all(|&b| b == first) {
+        return None;
+    }
+    let ch = match first {
+        b'h' => '哈',
+        b'a' => '啊',
+        b'o' => '哦',
+        b'e' => '诶',
+        b'm' => '嗯',
+        b'n' => '嗯',
+        b'w' => '呜',
+        _ => return None,
+    };
+    Some(std::iter::repeat(ch).take(bytes.len()).collect())
 }
 
 /// Scan `engine.dict()` for entries whose pinyin starts with `prefix`, pick
@@ -739,6 +921,51 @@ mod tests {
         // Composed candidate should be at #0 of the candidate list.
         assert_eq!(a.candidates().first().cloned(), Some(composed),
             "composed sentence should be at top of candidates");
+    }
+
+    #[test]
+    fn repeat_letter_expands_to_interjection_chain() {
+        let mut a = PinyinAdapter::new();
+        for b in b"hhhhh" { a.handle_letter(*b); }
+        assert_eq!(a.candidates().first().cloned(), Some("哈哈哈哈哈".to_string()),
+            "hhhhh should produce 哈哈哈哈哈 at #0; got {:?}", a.candidates());
+
+        let mut a = PinyinAdapter::new();
+        for b in b"aaaa" { a.handle_letter(*b); }
+        assert_eq!(a.candidates().first().cloned(), Some("啊啊啊啊".to_string()));
+    }
+
+    #[test]
+    fn repeat_letter_below_threshold_no_expansion() {
+        let mut a = PinyinAdapter::new();
+        for b in b"hh" { a.handle_letter(*b); }
+        // hh is < 3 chars — falls through to 简拼 path (lookup "hh" in
+        // initials). The auto-laughter expansion shouldn't fire.
+        assert_ne!(a.candidates().first().map(String::as_str), Some("哈哈"));
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn fuzzy_zongguo_surfaces_zhongguo() {
+        let mut a = PinyinAdapter::new();
+        for b in b"zongguo" { a.handle_letter(*b); }
+        // zongguo → no exact match, but fuzzy z→zh expansion finds 中国
+        // via the zhongguo dict entry. Should appear somewhere in
+        // candidates (not necessarily #0 since wubi/non-fuzzy may take
+        // priority in mixed mode — here we just verify presence).
+        assert!(a.candidates().iter().any(|w| w == "中国"),
+            "fuzzy z→zh should surface 中国 for zongguo; got {:?}", a.candidates());
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn typo_pyin_surfaces_pinyin_via_initials() {
+        let mut a = PinyinAdapter::new();
+        for b in b"pyin" { a.handle_letter(*b); }
+        // pyin = missing-vowel typo for pinyin. Path 1c picks up
+        // consonant prefix "py" and queries initials_index → 拼音 etc.
+        assert!(a.candidates().iter().any(|w| w == "拼音"),
+            "py initials should surface 拼音 for typo pyin; got {:?}", a.candidates());
     }
 
     #[test]

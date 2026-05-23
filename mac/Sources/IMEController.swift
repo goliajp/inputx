@@ -168,7 +168,9 @@ final class InputxController: IMKInputController {
             case 0x09: // Tab
                 if shifted { _ = panel.prevPage() } else { _ = panel.nextPage() }
                 return true
-            case 0x2B: // '+'
+            case 0x2B, 0x3D: // '+' or '=' (= is what's actually printed
+                             // without shift on the same key; user expects
+                             // either to page forward)
                 _ = panel.nextPage()
                 return true
             case 0x2D: // '-'
