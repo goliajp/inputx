@@ -33,8 +33,13 @@ sleep 1
 ./install.sh 2>&1 | grep '\[install\]'
 
 # 4. Bootstrap the LaunchAgent — re-starts the binary cleanly.
+#    Fully silent: `bootstrap` is noisy on re-load ("Bootstrap failed: 5:
+#    Input/output error" when the plist is still considered loaded by the
+#    domain). Step 5 below is the source of truth for "did it actually
+#    start", so swallow all bootstrap output here; the user only sees
+#    the green/red verification line.
 launchctl bootstrap "gui/$UID" "$HOME/Library/LaunchAgents/jp.golia.inputmethod.wubi.plist" \
-  2>&1 | grep -v '^$' || true
+  >/dev/null 2>&1 || true
 sleep 1
 
 # 5. Verify it's running.
