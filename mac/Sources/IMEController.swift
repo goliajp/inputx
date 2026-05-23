@@ -143,7 +143,17 @@ final class InputxController: IMKInputController {
         // (including return / backspace / cmd-combos) directly. We still
         // observed shiftDown above so a subsequent single-shift toggle is
         // detectable; everything else is a pure passthrough.
+        //
+        // Defensive: if a 联想 prediction panel is up at the moment we
+        // enter EN mode, hide it. Predictions are a CJK-mode feature and
+        // would otherwise stay visible across the mode boundary while
+        // the user types EN letters that this controller doesn't see —
+        // producing the user-observed "stale prediction shows next to
+        // unrelated typing" bug.
         if session.inputMode == .en {
+            if let panel = candidatePanel, panel.isVisible, panel.isPredictionMode {
+                panel.hide()
+            }
             return false
         }
 
