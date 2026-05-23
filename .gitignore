@@ -38,9 +38,18 @@ core/include/inputx_core.h
 .maestro/
 **/.maestro/
 
-# Claude workspace — internal planning/working docs, never published
-.claude/
-**/.claude/
+# Claude workspace — internal planning/working docs, never published.
+# Use `.claude/*` (not `.claude/`) so the directory itself isn't excluded;
+# git refuses to re-include children of an excluded parent directory, so
+# the `!` allowlist for skills/ below would otherwise be a no-op.
+.claude/*
+**/.claude/*
+# Exception: skills are repo-shared (versioned with the code that
+# invokes them). Personal/transient .claude content stays ignored.
+!.claude/skills/
+!.claude/skills/**
+!**/.claude/skills/
+!**/.claude/skills/**
 
 # macOS / editor cruft
 .DS_Store
