@@ -79,12 +79,18 @@ pub const JP_JUKUGO_SCORE: f64 = 200_000.0;
 /// less specific than compounds), still below Chinese bases.
 pub const JP_SINGLE_KANJI_SCORE: f64 = 100_000.0;
 
-/// JP hiragana base — mechanical romaji→kana rendering, lowest tier.
-pub const JP_HIRAGANA_SCORE: f64 = 50_000.0;
+/// JP hiragana base — mechanical romaji→kana rendering. Bumped from 50k
+/// to 200k 2026-05-23 after the え-disappeared-after-jukugo-cleanup
+/// regression: with the old 50k floor + freq=0 fallback, plain hiragana
+/// `え` for input "e" scored 50k, way below any pinyin candidate, and
+/// never made the visible top-10. Now with 200k + per-kind freq below,
+/// short-input hiragana lands competitive with pinyin top but still
+/// below it (user rule: JP base < wubi/pinyin base = 400k).
+pub const JP_HIRAGANA_SCORE: f64 = 200_000.0;
 
 /// JP katakana base — slightly below hiragana (less common as the
 /// "default" kana rendering of romaji input).
-pub const JP_KATAKANA_SCORE: f64 = 40_000.0;
+pub const JP_KATAKANA_SCORE: f64 = 150_000.0;
 
 /// Multiplier on the per-entry freq value. Calibrated so top JP entries
 /// (freq 100) land at base + 300k, lifting them above pinyin rare (~410k)
