@@ -281,6 +281,34 @@ fn compose_sentence(buffer: &str) -> Vec<Candidate> {
         hits.push((word, freq));
     }
 
+    // 1-segment WITH bare content tail (no final particle/copula).
+    // Handles "watashinonihon": (私+の) + 日本 where the right half is
+    // a bare content word, no suffix. Look up every split where left
+    // is a 1-seg compose AND right is directly a kanji/jukugo entry.
+    for split in 2..buffer.len() {
+        let left = &buffer[..split];
+        let right = &buffer[split..];
+        let lefts = compose_one_segment(left);
+        if lefts.is_empty() {
+            continue;
+        }
+        // Right: direct jukugo or kanji lookup (no particle suffix).
+        let mut right_hits: Vec<(String, u32)> = Vec::new();
+        for (compound, freq) in jukugo::lookup_by_reading(right) {
+            right_hits.push((compound.to_string(), freq));
+        }
+        for (ch, freq) in kanji::lookup_by_reading(right) {
+            right_hits.push((ch.to_string(), freq));
+        }
+        for (lw, lf) in &lefts {
+            for (rw, rf) in &right_hits {
+                let combined = format!("{lw}{rw}");
+                let combined_freq = ((*lf.min(rf) as f64) * 0.65) as u32;
+                hits.push((combined, combined_freq));
+            }
+        }
+    }
+
     // 2-segment: walk every split point. Only proceed when both halves
     // produce SOMETHING — bails early on barren splits to keep cost
     // bounded for nonsense input.
