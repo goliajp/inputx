@@ -1,63 +1,124 @@
 #!/usr/bin/env bash
-# Silent re-install + LaunchAgent re-bootstrap + (if needed) re-enable
-# the input source. Use after rebuild, OR after the user accidentally
-# clicks something in System Settings that removes Inputx from the
-# active input list.
+# Silent re-install: rebuild → bundle swap → LaunchAgent re-bootstrap →
+# reenable. Does NOT call `install.sh` (which runs `Inputx install` →
+# TISRegisterInputSource + TISEnableInputSource → macOS treats it as a
+# fresh IME registration and re-prompts TCC "允许 'Inputx' 启用..."
+# every single time).
+#
+# Bundle id stays jp.golia.inputmethod.wubi across rebuilds, so TIS
+# already knows the bundle and TCC already has the permission grant.
+# All we need on re-install:
+#   - swap the .app at ~/Library/Input Methods/Inputx.app
+#   - replace the LaunchAgent plist + re-bootstrap
+#   - re-add the wubi mode to AppleEnabledInputSources if it fell out
+#     (via scripts/reenable.sh — defaults-write path, no TCC popup)
 #
 # What's silent:
 #   * No GUI dialogs.
-#   * Only essential one-line confirmations to stdout.
-#   * If the bundle is already enabled, no re-enable step (idempotent).
+#   * Build / install / bootstrap output captured to a temp log and NOT
+#     shown — successful runs only print two `[reinstall] ✓` lines.
+#   * On failure the captured log is dumped to stderr for debugging.
 #
 # What can't be made silent (macOS limitation):
-#   * The very first install (or a true Remove→Add) requires the user
-#     to confirm the addition through System Settings → 文本输入. Once
-#     done, TCC remembers and subsequent re-adds via this script bypass
-#     the prompt (see `scripts/reenable.sh` for the mechanism).
+#   * The very FIRST install (before TCC has ever seen this bundle id)
+#     must go through `./install.sh` → System Settings → 文本输入 →
+#     Add → approve the third-party IME popup. Once TCC has remembered,
+#     `reinstall.sh` is silent forever.
 
 set -uo pipefail
 cd "$(dirname "$0")"
 
-# 1. Build if requested (skip when --no-build given).
+LOG=$(mktemp -t inputx-reinstall.XXXXXX)
+trap 'rm -f "$LOG"' EXIT
+
+fail() {
+  echo "[reinstall] ✗ $1" >&2
+  echo "--- captured output ---" >&2
+  cat "$LOG" >&2
+  exit 1
+}
+
+APP_NAME="Inputx"
+APP_SRC="$(cd .. && pwd)/build/$APP_NAME.app"
+APP_DST="$HOME/Library/Input Methods/$APP_NAME.app"
+LA_DST="$HOME/Library/LaunchAgents/jp.golia.inputmethod.wubi.plist"
+
+# 1. Build if requested.
 if [ "${1:-}" != "--no-build" ]; then
-  sccache --stop-server >/dev/null 2>&1 || true
-  RUSTC_WRAPPER= ./build.sh 2>&1 | grep '\[build\]' | tail -3
+  sccache --stop-server >>"$LOG" 2>&1 || true
+  if ! RUSTC_WRAPPER= ./build.sh >>"$LOG" 2>&1; then
+    fail "build failed"
+  fi
 fi
 
-# 2. Stop any running instance + the LaunchAgent.
-launchctl bootout "gui/$UID/jp.golia.inputmethod.wubi" >/dev/null 2>&1 || true
-pkill -9 -f "Inputx.app/Contents/MacOS/Inputx" >/dev/null 2>&1 || true
+if [ ! -d "$APP_SRC" ]; then
+  fail "no build at $APP_SRC — run with build (no --no-build) first"
+fi
+
+# 2. Stop the running binary + the LaunchAgent.
+launchctl bootout "gui/$UID/jp.golia.inputmethod.wubi" >>"$LOG" 2>&1 || true
+pkill -9 -f "Inputx.app/Contents/MacOS/Inputx" >>"$LOG" 2>&1 || true
 sleep 1
 
-# 3. Copy the built bundle into ~/Library/Input Methods/.
-./install.sh 2>&1 | grep '\[install\]'
+# 3. Swap bundle in place. NO `Inputx install` (which would re-trigger
+#    TCC popup via TISRegisterInputSource / TISEnableInputSource).
+mkdir -p "$(dirname "$APP_DST")"
+if [ -d "$APP_DST" ]; then
+  if [ -w "$APP_DST" ] && [ -w "$APP_DST/Contents" ]; then
+    if ! rm -rf "$APP_DST" >>"$LOG" 2>&1; then
+      fail "rm old bundle"
+    fi
+  else
+    if ! osascript -e "do shell script \"rm -rf '$APP_DST'\" with administrator privileges" >>"$LOG" 2>&1; then
+      fail "rm root-owned old bundle"
+    fi
+  fi
+fi
+if ! cp -R "$APP_SRC" "$APP_DST" >>"$LOG" 2>&1; then
+  fail "cp new bundle"
+fi
 
-# 4. Bootstrap the LaunchAgent — re-starts the binary cleanly.
-#    Fully silent: `bootstrap` is noisy on re-load ("Bootstrap failed: 5:
-#    Input/output error" when the plist is still considered loaded by the
-#    domain). Step 5 below is the source of truth for "did it actually
-#    start", so swallow all bootstrap output here; the user only sees
-#    the green/red verification line.
-launchctl bootstrap "gui/$UID" "$HOME/Library/LaunchAgents/jp.golia.inputmethod.wubi.plist" \
-  >/dev/null 2>&1 || true
+# 3b. Purge the loose build/ .app from LaunchServices and disk. Without
+#     this, LS auto-registers the $HOME-resident bundle and may shadow
+#     the install at /Library/Input Methods/ — picker silently hides
+#     our IME. See feedback_ls_multi_version_pollution.
+if [ "${KEEP_BUILD_APP:-0}" != "1" ]; then
+  # shellcheck source=./_purge_ls.sh
+  source ./_purge_ls.sh
+  purge_ls_app "$APP_SRC" >>"$LOG" 2>&1 || true
+fi
+
+# 4. Restart TextInputMenuAgent so the menu-bar picker re-reads the new
+#    bundle (display name, icon, mode list). TIS itself doesn't need a
+#    re-register here — bundle id unchanged.
+killall TextInputMenuAgent >>"$LOG" 2>&1 || true
+
+# 5. (Re)install the LaunchAgent plist and bootstrap. Bootstrap is noisy
+#    on re-load ("Bootstrap failed: 5: I/O error") when the domain still
+#    considers the plist loaded — fully silenced; step 6 is the source
+#    of truth for "is it running."
+mkdir -p "$(dirname "$LA_DST")"
+sed "s|__APP_PATH__|$APP_DST|g" Resources/LaunchAgent.plist.template > "$LA_DST" 2>>"$LOG"
+launchctl bootstrap "gui/$UID" "$LA_DST" >>"$LOG" 2>&1 || true
 sleep 1
 
-# 5. Verify it's running.
+# 6. Verify the binary is running.
 if pgrep -f "Inputx.app/Contents/MacOS/Inputx" >/dev/null; then
   PID=$(pgrep -f "Inputx.app/Contents/MacOS/Inputx" | head -1)
   echo "[reinstall] ✓ Inputx running (PID $PID)"
 else
-  echo "[reinstall] ✗ Inputx not started — check 'log show --predicate \"process == \\\"Inputx\\\"\"'"
-  exit 1
+  fail "Inputx not started — check 'log show --predicate \"process == \\\"Inputx\\\"\"'"
 fi
 
-# 6. Verify input source is enabled. If not, programmatic re-add
-#    (works because TCC remembers prior approval).
+# 7. Verify input source is enabled. If not, restore via reenable.sh
+#    (defaults-write path on AppleEnabledInputSources — no TCC popup).
 ENABLED=$(defaults read com.apple.HIToolbox AppleEnabledInputSources 2>/dev/null \
            | grep -c "jp.golia.inputmethod.wubi" || true)
 if [ "$ENABLED" -gt 0 ]; then
   echo "[reinstall] ✓ enabled in input source list"
 else
-  echo "[reinstall] input source missing — running reenable.sh"
-  ./scripts/reenable.sh 2>&1 | tail -5
+  if ! ./scripts/reenable.sh >>"$LOG" 2>&1; then
+    fail "input source missing AND reenable failed"
+  fi
+  echo "[reinstall] ✓ re-added to input source list"
 fi

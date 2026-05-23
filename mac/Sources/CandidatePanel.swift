@@ -32,6 +32,32 @@ final class CandidatePanel {
     private var rowViews: [CandidateRow] = []
     private weak var lastClient: AnyObject?
 
+    /// Which edge of the panel stays put when the row count changes
+    /// (page flip, candidate-set refresh):
+    ///
+    /// * `.top` — panel sits *below* the caret (the common case). The
+    ///   panel's TOP edge is anchored where `positionNear` placed it,
+    ///   and it grows / shrinks downward.
+    /// * `.bottom` — panel sits *above* the caret (when the host input
+    ///   field is near the bottom of the screen and there's no room
+    ///   below). The panel's BOTTOM edge stays anchored just above the
+    ///   caret, and it grows / shrinks upward.
+    ///
+    /// Without this, flipped-above panels grow into the caret when more
+    /// candidates arrive — user-reported bug 2026-05-23.
+    private enum AnchorEdge { case top, bottom }
+    private var anchorEdge: AnchorEdge = .top
+
+    /// The screen-space Y of the anchored edge — `.top` mode pins the
+    /// panel's TOP at this Y, `.bottom` mode pins the panel's BOTTOM
+    /// here. Tracked explicitly because `window.frame.origin.y` is NOT
+    /// stable between `setFrame` calls — Auto Layout (stack + footer
+    /// constraints) reflows after each setFrame and can mutate origin.y
+    /// behind our back. Reading `window.frame` next refresh returns a
+    /// shifted value, so any anchor-keeping math based on that drifts.
+    /// `anchorY` is set by `positionNear` and never touched by AL.
+    private var anchorY: CGFloat = 0
+
     init() {
         // Borderless floating panel — doesn't steal focus, sits above host.
         // Compact width (user-tuned 2x narrower than original 220pt) —
@@ -232,28 +258,55 @@ final class CandidatePanel {
         for v in rowViews { stack.removeArrangedSubview(v); v.removeFromSuperview() }
         rowViews.removeAll()
 
+        // Always populate ALL 10 slots, even when the current page has
+        // fewer candidates (last page, short candidate set). Empty slots
+        // get empty label + empty word — they still occupy a standard-
+        // height row, so the panel's total height is constant regardless
+        // of candidate count.
+        //
+        // Without this, the stack collapses to (rowCount × rowHeight) and
+        // the panel visually shrinks / its unanchored edge slides as
+        // candidates flex across pages or keystrokes. The empty label
+        // ("" not "5"/"0"/etc.) also keeps the unused 1-9/0 numerals from
+        // showing in slots that have no candidate.
         let start = pageIndex * Self.pageSize
-        let end = min(start + Self.pageSize, current.count)
-        for (i, idx) in (start..<end).enumerated() {
-            let label = (i == Self.pageSize - 1) ? "0" : String(i + 1)
-            let row = CandidateRow(numberLabel: label, word: current[idx])
+        for i in 0..<Self.pageSize {
+            let absIdx = start + i
+            let hasWord = absIdx < current.count
+            let label = hasWord ? ((i == Self.pageSize - 1) ? "0" : String(i + 1)) : ""
+            let word = hasWord ? current[absIdx] : ""
+            let row = CandidateRow(numberLabel: label, word: word)
             stack.addArrangedSubview(row)
             rowViews.append(row)
         }
         updateRowHighlight()
         updateFooter()
-        // Resize the window. On macOS, NSWindow's origin is bottom-left,
-        // so naively setting `size.height = h` would extend the TOP edge
-        // upward (which makes the panel appear to crawl up the screen as
-        // candidate count grows / shrinks across pages). Compensate by
-        // shifting origin.y downward by the height delta — net effect:
-        // the visible TOP stays anchored where positionNear placed it,
-        // and the panel grows / shrinks toward the BOTTOM.
-        let newH = max(36, 22 * CGFloat(rowViews.count) + 10 + 16)
+
+        // Window sizing + positioning. With 10 slots always populated,
+        // the *AL-intrinsic* height of the content is constant — but it
+        // is NOT what we'd naively compute (22*10 + footer + insets).
+        // The actual AL value depends on stack spacings + edgeInsets +
+        // footer intrinsic font height + stack→footer gap. Compute it
+        // by asking Auto Layout for the contentView's fitting size after
+        // a layout pass. Then position the panel from anchorY using that
+        // real height.
+        //
+        // We can't use a hard-coded estimate (`22*10+10+16=246` was
+        // wrong by 12pt — AL settles at 258). And `contentMinSize` /
+        // `contentMaxSize` don't clamp post-setFrame AL reflow, so
+        // setting frame to a too-small height causes AL to inflate AND
+        // shift origin.y to keep the panel's TOP edge in place — drifting
+        // the anchored BOTTOM down by the inflation delta on every
+        // refresh. User-reported "第二个字符输入还是会下偏" 2026-05-23.
+        window.contentView?.layoutSubtreeIfNeeded()
+        let actualH = window.contentView?.fittingSize.height
+            ?? (22 * CGFloat(Self.pageSize) + 10 + 16)
         var f = window.frame
-        let oldH = f.size.height
-        f.size.height = newH
-        f.origin.y += oldH - newH
+        f.size.height = actualH
+        switch anchorEdge {
+        case .top:    f.origin.y = anchorY - actualH  // pin TOP, grow downward
+        case .bottom: f.origin.y = anchorY            // pin BOTTOM, grow upward
+        }
         window.setFrame(f, display: true)
     }
 
@@ -273,7 +326,14 @@ final class CandidatePanel {
 
     // ----------------------------------------------------------- positioning
 
-    /// Anchor the window's top-left just below the client's caret.
+    /// Place the panel relative to the caret and pick the stable anchor
+    /// edge (`anchorEdge`) that `rebuildRows` should hold during
+    /// subsequent page flips.
+    ///
+    /// Default: panel sits below the caret (TOP-anchored). If there's
+    /// no room below — host input field is near the bottom of the
+    /// screen — flip above the caret and switch to BOTTOM-anchored so
+    /// page-flips don't extend the panel downward into the caret.
     private func positionNear(client: AnyObject?) {
         // IMK client typically conforms to NSTextInput / IMKTextInput; both
         // surfaces expose `attributesForCharacterIndex:lineHeightRectangle:`
@@ -296,18 +356,63 @@ final class CandidatePanel {
             }
         }
         var f = window.frame
-        // Bottom-left of caret rect → top-left of window (below caret).
-        let originX = caret.minX
-        let originY = caret.minY - f.size.height - 4
-        f.origin = NSPoint(x: originX, y: originY)
-        // Clamp to screen.
-        if let screen = NSScreen.main {
-            let s = screen.visibleFrame
-            f.origin.x = min(max(s.minX, f.origin.x), s.maxX - f.size.width)
-            if f.origin.y < s.minY {
-                f.origin.y = caret.maxY + 4   // flip above caret
+        let currentH = f.size.height
+
+        // CRITICAL: pick the screen the caret actually sits on — NOT
+        // NSScreen.main, which is the *primary* display. On multi-monitor
+        // setups when the host app is on a secondary screen, NSScreen.main's
+        // visibleFrame.minY is wrong and the flip-above-caret check fires
+        // on the wrong screen.
+        let caretCenter = NSPoint(x: caret.midX, y: caret.midY)
+        let screen = NSScreen.screens.first { $0.frame.contains(caretCenter) }
+            ?? NSScreen.main
+
+        // Worst-case panel height: a fully-filled page. The flip decision
+        // MUST use this — not `currentH` — because currentH shrinks/grows
+        // with the actual candidate count, and basing the flip on the
+        // transient height makes `edge` oscillate between `.top` and
+        // `.bottom` from one keystroke to the next (verified via NSLog
+        // 2026-05-23). With a max-height check, the flip decision is a
+        // pure function of caret-vs-screen geometry and stays stable.
+        let maxPanelH = 22 * CGFloat(Self.pageSize) + 10 + 16  // 10 rows + footer + padding
+
+        // Shift the panel left by the internal content padding so the
+        // number column (the "1" digit) visually aligns with the caret X,
+        // not the panel's outer left edge. Internal layout: panel.left
+        // → 8pt stack inset → 6pt numberLabel leading → "1" glyph. So
+        // 14pt offset lands the number under the caret, matching the
+        // system pinyin IME's appearance.
+        let contentLeftPadding: CGFloat = 8
+        var originX = caret.minX - contentLeftPadding
+        let originY: CGFloat
+        let edge: AnchorEdge
+        let pinnedY: CGFloat  // the screen-Y of the edge we'll hold stable
+
+        if let s = screen?.visibleFrame {
+            originX = min(max(s.minX, originX), s.maxX - f.size.width)
+            let topModeBottomY = caret.minY - maxPanelH - 4
+            if topModeBottomY < s.minY {
+                // A max-height panel wouldn't fit below the caret — flip
+                // above. Pin the panel's BOTTOM edge just above the caret.
+                edge = .bottom
+                pinnedY = caret.maxY + 4
+                originY = pinnedY
+            } else {
+                // Room enough for any size below — pin the TOP edge just
+                // below the caret. Panel grows downward as candidate
+                // count grows; bottom moves, top stays.
+                edge = .top
+                pinnedY = caret.minY - 4
+                originY = pinnedY - currentH
             }
+        } else {
+            edge = .top
+            pinnedY = caret.minY - 4
+            originY = pinnedY - currentH
         }
+        f.origin = NSPoint(x: originX, y: originY)
+        anchorEdge = edge
+        anchorY = pinnedY
         window.setFrame(f, display: true)
     }
 }
