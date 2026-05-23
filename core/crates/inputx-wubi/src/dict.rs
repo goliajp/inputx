@@ -177,6 +177,28 @@ impl WubiDict {
     /// The post-multipliers keep wubi simcodes and L0 pins on top across
     /// the cross-engine merge.
     pub fn lookup_with_scores_into(&self, code: &str, out: &mut Vec<(String, f64)>) {
+        let mut layered = Vec::with_capacity(out.capacity());
+        self.lookup_with_layer_into(code, &mut layered);
+        out.clear();
+        out.reserve(layered.len());
+        for (w, score, _layer) in layered.drain(..) {
+            out.push((w, score));
+        }
+    }
+
+    /// Layer-aware scored lookup: identical to `lookup_with_scores_into`
+    /// but each candidate also carries its origin `Layer`. The composite
+    /// engine uses the layer tag to make context-aware ranking decisions
+    /// — e.g. demoting low-confidence Auto / Phrase entries at short
+    /// pinyin-shaped input while keeping high-confidence Jianma1/2/3 +
+    /// Zigen simcodes at full strength (the 伙 vs 嶙 distinction —
+    /// 伙 is Jianma2 wubi-simcode and must lead at #0 for its code,
+    /// 嶙 is typically Auto-layer and should not displace pinyin top).
+    pub fn lookup_with_layer_into(
+        &self,
+        code: &str,
+        out: &mut Vec<(String, f64, Layer)>,
+    ) {
         out.clear();
         let lower = code.to_ascii_lowercase();
         let mut prefix = lower.clone().into_bytes();
@@ -193,8 +215,8 @@ impl WubiDict {
             .unwrap_or(DEFAULT_LAYER_PREFS);
 
         let full_code = prefix_len == 4;
-        // Tuple: (word, score, is_single, freq).
-        let mut scratch: Vec<(String, f64, bool, u64)> = Vec::with_capacity(8);
+        // Tuple: (word, score, is_single, freq, layer).
+        let mut scratch: Vec<(String, f64, bool, u64, Layer)> = Vec::with_capacity(8);
         let mut max_phrase_freq: u64 = 0;
         let mut stream = self
             .map
@@ -215,7 +237,7 @@ impl WubiDict {
                 if !is_single && freq > max_phrase_freq {
                     max_phrase_freq = freq;
                 }
-                scratch.push((s.to_string(), base * pref + freq as f64, is_single, freq));
+                scratch.push((s.to_string(), base * pref + freq as f64, is_single, freq, layer));
             }
         }
 
@@ -239,8 +261,8 @@ impl WubiDict {
         });
 
         out.reserve(scratch.len());
-        for (w, score, _, _) in scratch.drain(..) {
-            out.push((w, score));
+        for (w, score, _, _, layer) in scratch.drain(..) {
+            out.push((w, score, layer));
         }
     }
 
