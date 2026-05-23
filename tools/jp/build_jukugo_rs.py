@@ -13,6 +13,7 @@ SUPP_DIR = ROOT / "tools/scoring/data/supplemental"
 SOURCES = [
     SUPP_DIR / "jp_jukugo_v1.tsv",
     SUPP_DIR / "jp_counters_v1.tsv",
+    SUPP_DIR / "jp_brands_v1.tsv",
 ]
 OUT = ROOT / "core/crates/inputx-jp/src/jukugo.rs"
 
@@ -43,6 +44,16 @@ def main() -> int:
                     skipped += 1
                     continue
                 if not all(c.isascii() and c.isalpha() for c in reading):
+                    skipped += 1
+                    continue
+                # Word must contain at least one non-ASCII-alpha char (CJK,
+                # kana, full-width, or punct). Pure-ASCII words would be
+                # silently dropped at the composite layer by
+                # `japanese_adapter::is_jp_clean` (which filters out any
+                # candidate containing ASCII letters, to avoid romaji-state
+                # leakage). Keeping them here would inflate the table with
+                # entries that can never surface.
+                if all(c.isascii() and c.isalpha() for c in word):
                     skipped += 1
                     continue
                 try:
