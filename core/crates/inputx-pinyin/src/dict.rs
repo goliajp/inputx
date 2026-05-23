@@ -432,6 +432,151 @@ impl PinyinDict {
         }
     }
 
+    /// Viterbi-style sentence-level segmentation for long pinyin buffers.
+    ///
+    /// Given an input like `nihaomawojiao`, splits it into the best
+    /// sequence of dict-matched syllable groups and returns the composed
+    /// Chinese string (e.g. `你好吗我叫`) paired with the total path score.
+    /// Returns `None` if no valid all-buffer-covering segmentation exists
+    /// (e.g. garbage input that contains no dictionary matches at any
+    /// substring), or for short buffers where regular phrase lookup
+    /// already covers the case.
+    ///
+    /// Algorithm: standard DP. `dp[i]` = the best path reaching position
+    /// `i` from `0`, represented as (cumulative_score, prev_pos, word).
+    /// For each `i`, we try every cut point `j ∈ [i-MAX_SYL, i)` where
+    /// the segment `buffer[j..i]` is a valid dict-matched chunk; the
+    /// per-step score is `dict_score + bigram_boost(prev_word, word)`.
+    /// `MAX_SYL = 6` covers the longest pinyin syllables (zhuang/chuang/
+    /// shuang); the segment lookup naturally also catches multi-syllable
+    /// phrases up to 6 chars (zhongguo / women / etc.).
+    ///
+    /// Complexity: O(n × MAX_SYL × avg_lookup_size). For n=20 that's
+    /// ~120 dict lookups — well under the per-keystroke budget.
+    ///
+    /// Returns `None` when:
+    ///   * Buffer is shorter than `MIN_LEN` (4) — regular lookup is fine.
+    ///   * Buffer is longer than `MAX_LEN` (30) — bail out, user is
+    ///     probably mashing keys, not typing a coherent sentence.
+    ///   * No path covers the full buffer (some segment had no dict hits).
+    pub fn best_composition(&self, buffer: &str) -> Option<(f64, String)> {
+        const MIN_LEN: usize = 4;
+        const MAX_LEN: usize = 30;
+        // Per-segment max byte length. Pinyin syllables are ≤6 chars
+        // (zhuang/chuang/shuang), but dict entries can be multi-syllable
+        // PHRASES — `zhongguo` is 8 chars but a single lexeme 中国;
+        // `zhonghuarenmingongheguo` is 23 chars (中华人民共和国). A
+        // syllable-length cap was wrong (8>6 → never tried as 1 step →
+        // forced into multi-segment paths like 中+國). Allow up to a
+        // generous phrase length so any reasonable dict phrase has a
+        // chance to be picked in one go.
+        const MAX_SYL: usize = 24;
+        // Per-segment fixed cost. Subtracted from each segment's freq so
+        // longer phrases (one segment covering more pinyin) consistently
+        // outscore the same span split into multiple single-char hits.
+        //
+        // Calibration: raw freq for 你 is ~63k, 好 ~58k, 你好 ~35k. With
+        // STEP_PENALTY=100k, the phrase 你好 scores 35k-100k=-65k vs
+        // the two-char split scoring (63k+58k)-200k=-79k. Phrase wins
+        // by 14k — comfortable margin.
+        const STEP_PENALTY: f64 = 100_000.0;
+        // Bigram bonus calibration. Reuse the standard bigram_boost
+        // (max 50k); plenty to break ties between same-segment-count
+        // paths but doesn't overpower the STEP_PENALTY preference for
+        // longer segments.
+        let buf = buffer.as_bytes();
+        let n = buf.len();
+        if !(MIN_LEN..=MAX_LEN).contains(&n) {
+            return None;
+        }
+        // Pinyin is always ASCII, so byte indexing is safe.
+        // dp[i] = (best_cumulative_score, prev_position, chosen_word_at_this_step)
+        // dp[0] is the start sentinel with empty chosen word.
+        let mut dp: Vec<Option<(f64, usize, String)>> = vec![None; n + 1];
+        dp[0] = Some((0.0, 0, String::new()));
+
+        let mut scratch: Vec<(String, u64)> = Vec::new();
+        for i in 1..=n {
+            let lo = i.saturating_sub(MAX_SYL);
+            for j in lo..i {
+                let prev_entry = match dp[j].as_ref() {
+                    Some(p) => p.clone(),
+                    None => continue,
+                };
+                let seg = match core::str::from_utf8(&buf[j..i]) {
+                    Ok(s) => s,
+                    Err(_) => continue,
+                };
+                self.lookup_raw_into(seg, &mut scratch);
+                if scratch.is_empty() {
+                    continue;
+                }
+                for (word, raw_freq) in scratch.iter() {
+                    let prev_word_opt = if prev_entry.2.is_empty() {
+                        None
+                    } else {
+                        Some(prev_entry.2.as_str())
+                    };
+                    let bonus = self.bigram_boost(prev_word_opt, word);
+                    let step_score = (*raw_freq as f64) + bonus - STEP_PENALTY;
+                    let total = prev_entry.0 + step_score;
+                    let dp_better = match dp[i].as_ref() {
+                        None => true,
+                        Some(cur) => total > cur.0,
+                    };
+                    if dp_better {
+                        dp[i] = Some((total, j, word.clone()));
+                    }
+                }
+            }
+        }
+
+        let final_entry = dp[n].as_ref()?;
+        let final_score = final_entry.0;
+        // Reconstruct word chain by walking back.
+        let mut chain: Vec<String> = Vec::new();
+        let mut pos = n;
+        while pos > 0 {
+            let entry = dp[pos].as_ref()?;
+            chain.push(entry.2.clone());
+            pos = entry.1;
+        }
+        chain.reverse();
+        Some((final_score, chain.concat()))
+    }
+
+    /// Raw (word, freq) lookup — like `lookup_with_scores_into` but
+    /// returns the FST's raw u64 freq value instead of the
+    /// PINYIN_PHRASE_BASE-shifted f64 score. Used by Viterbi
+    /// (`best_composition`) where pre-baked bases would bias the
+    /// segmentation toward single-char paths (each segment carrying its
+    /// own 400k base inflates many-segment paths).
+    fn lookup_raw_into(&self, pinyin: &str, out: &mut Vec<(String, u64)>) {
+        out.clear();
+        let lower = pinyin.to_ascii_lowercase();
+        let mut prefix = lower.into_bytes();
+        let prefix_len = prefix.len();
+        prefix.push(0u8);
+        let mut upper = prefix.clone();
+        let last = upper.len() - 1;
+        upper[last] = 0x01;
+        let mut stream = self
+            .map
+            .range()
+            .ge(prefix.as_slice())
+            .lt(upper.as_slice())
+            .into_stream();
+        while let Some((key, value)) = stream.next() {
+            if key.len() <= prefix_len + 1 {
+                continue;
+            }
+            let word_bytes = &key[prefix_len + 1..];
+            if let Ok(s) = core::str::from_utf8(word_bytes) {
+                out.push((s.to_string(), value));
+            }
+        }
+    }
+
     /// Context-aware bigram score bonus. Given the user's most recently
     /// committed word `prev` and a candidate `next`, returns an ADDITIVE
     /// bonus reflecting how often `(prev, next)` co-occur in the training
@@ -773,6 +918,53 @@ mod tests {
         assert_eq!(d.bigram_boost(Some("今天"), ""), 0.0);
         // Garbage pair — exceedingly unlikely to appear in the corpus.
         assert_eq!(d.bigram_boost(Some("锟斤拷"), "烫烫烫"), 0.0);
+    }
+
+    // ---- best_composition (Viterbi) ----------------------------------
+
+    #[test]
+    fn best_composition_too_short_returns_none() {
+        let d = PinyinDict::embedded();
+        // < MIN_LEN (4) → None
+        assert!(d.best_composition("").is_none());
+        assert!(d.best_composition("ni").is_none());
+        assert!(d.best_composition("nih").is_none());
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn best_composition_nihao_keeps_phrase() {
+        let d = PinyinDict::embedded();
+        // 你好 is a known phrase with high freq; the segmenter should
+        // prefer the one-segment lookup over splitting into 你+好.
+        let (_, chain) = d.best_composition("nihao").expect("hit");
+        assert_eq!(chain, "你好", "want 你好 as single phrase, got {chain:?}");
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn best_composition_nihaomawojiao_segments() {
+        let d = PinyinDict::embedded();
+        // Long buffer that has no single-phrase match — the segmenter
+        // should string together a multi-segment Chinese sentence. We
+        // don't pin the exact split here: the dict has multiple valid
+        // segmentations (e.g. 你+号码+我+叫 vs 你好+吗+我+叫); which
+        // wins depends on relative phrase freqs + the STEP_PENALTY tune.
+        // Both are *grammatically* OK CJK strings, so just smoke-test
+        // that the algorithm produces SOMETHING covering the full
+        // buffer, pure CJK, of reasonable length.
+        //
+        // Picking among ambiguous CJK splits will be sharper once
+        // v0.3 intra-phrase bigrams land (今天 → 好 type signals).
+        let result = d.best_composition("nihaomawojiao");
+        let Some((_, chain)) = result else {
+            panic!("expected some segmentation for nihaomawojiao");
+        };
+        assert!(chain.chars().all(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)),
+            "expected pure-CJK segmentation, got {chain:?}");
+        let char_count = chain.chars().count();
+        assert!((4..=7).contains(&char_count),
+            "expected 4-7 CJK chars, got {char_count} in {chain:?}");
     }
 
     #[cfg(not(feature = "bootstrap_only"))]

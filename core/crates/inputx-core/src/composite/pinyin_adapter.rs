@@ -41,6 +41,14 @@ pub struct PinyinAdapter {
     /// letter wubi 简码 commits like `g → 一` because `g` always has
     /// prefix matches in the pinyin dict.
     has_non_speculative_candidate: bool,
+    /// Viterbi-derived sentence composition for long buffers (>= 6 chars).
+    /// `Some(word)` when `PinyinDict::best_composition` returned a
+    /// segmentation covering the whole buffer; `None` for short buffers
+    /// or no-valid-cover cases. Surfaced at the top of `candidates_with_
+    /// scores` with a fixed high score so the composed sentence is the
+    /// default pick when the user types something long-and-pinyin-shaped
+    /// like `nihaomawojiao`.
+    composed_sentence: Option<String>,
 }
 
 impl Default for PinyinAdapter {
@@ -56,6 +64,7 @@ impl PinyinAdapter {
             buffer: String::with_capacity(16),
             candidates: Vec::with_capacity(16),
             has_non_speculative_candidate: false,
+            composed_sentence: None,
         }
     }
 
@@ -163,9 +172,19 @@ impl PinyinAdapter {
         // Decay non-exact entries by position so the original within-
         // path ordering is preserved at the bottom of the merged list.
         let dict = self.engine.dict();
+        // Composed-sentence score: chosen to sit just above a typical
+        // top single-phrase score (~480k = 400k base + ~80k freq) so
+        // the Viterbi result wins #0 for long buffers, but stays well
+        // below wubi simcodes (~600k-1M) so simcodes can still take
+        // priority when both engines have a strong claim.
+        const COMPOSED_SCORE: f64 = 500_000.0;
         for (i, w) in self.candidates.iter().enumerate() {
-            let base = exact_map.get(w).copied()
-                .unwrap_or(NON_EXACT_FLOOR * 0.99f64.powi(i as i32));
+            let base = if Some(w.as_str()) == self.composed_sentence.as_deref() {
+                COMPOSED_SCORE
+            } else {
+                exact_map.get(w).copied()
+                    .unwrap_or(NON_EXACT_FLOOR * 0.99f64.powi(i as i32))
+            };
             let bigram_bonus = dict.bigram_boost(prev_committed, w);
             scored.push((w.clone(), base + bigram_bonus));
         }
@@ -275,8 +294,30 @@ impl PinyinAdapter {
     fn refresh_candidates(&mut self) {
         self.candidates.clear();
         self.has_non_speculative_candidate = false;
+        self.composed_sentence = None;
         if self.buffer.is_empty() {
             return;
+        }
+
+        // Path 0 (Viterbi composition): for LONG buffers (>= 8 bytes),
+        // try to segment the whole input into a sequence of dict-matched
+        // phrases. When it works, the composed string surfaces at the
+        // top of the candidate list (see `candidates_with_scores`).
+        //
+        // 8 is the threshold for two reasons:
+        //   1. Under 8, normal exact-phrase + prefix lookup already
+        //      cover everything (e.g. nihao→你好 directly).
+        //   2. Short Viterbi compositions can construct strings that
+        //      LOOK like real dict words but at the wrong pinyin —
+        //      e.g. `nuanhe` (6 chars) composes 暖+和 → "暖和", but
+        //      the actual word 暖和 has pinyin "nuanhuo", not "nuanhe".
+        //      Pushing this composition to #0 would be a wrong-reading
+        //      false positive. Threshold 8 sidesteps this entirely:
+        //      no real ambiguous short composition reaches it.
+        if self.buffer.len() >= 8
+            && let Some((_, sentence)) = self.engine.dict().best_composition(&self.buffer)
+        {
+            self.composed_sentence = Some(sentence);
         }
 
         // Path 1: exact-syllable lookup (含 fuzzy / tone-strip / heteronym
@@ -352,6 +393,20 @@ impl PinyinAdapter {
         // Path 4: rare-CJK filter (same as wubi/table.rs).
         if !crate::wubi::show_rare() {
             self.candidates.retain(|w| crate::wubi::is_displayable(w));
+        }
+
+        // Inject the Viterbi composed sentence at the FRONT of the
+        // candidate list (computed at the very top of this method).
+        // The composed string is given a fixed high score in
+        // `candidates_with_scores` so it surfaces as #0 even though
+        // its multi-segment word doesn't have a freq entry of its own.
+        // Done AFTER all other paths so it doesn't get filtered out
+        // by Path 4's rare-CJK retain (composed strings are by
+        // construction common-char only).
+        if let Some(sentence) = self.composed_sentence.clone()
+            && !self.candidates.iter().any(|w| w == &sentence)
+        {
+            self.candidates.insert(0, sentence);
         }
     }
 }
@@ -665,6 +720,37 @@ mod tests {
             a.handle_letter(*b);
         }
         assert_eq!(a.candidates().first().map(String::as_str), Some("中国"));
+    }
+
+    #[test]
+    fn viterbi_kicks_in_for_long_buffer() {
+        let mut a = PinyinAdapter::new();
+        // 13-byte buffer — well past the 8-byte threshold for Viterbi.
+        for b in b"nihaomawojiao" {
+            a.handle_letter(*b);
+        }
+        // Composed should be set, and surface at the top of candidates.
+        let composed = a.composed_sentence.clone();
+        assert!(composed.is_some(),
+            "expected Viterbi composition for long buffer; got None");
+        let composed = composed.unwrap();
+        assert!(composed.chars().all(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)),
+            "expected pure-CJK composed sentence, got {composed:?}");
+        // Composed candidate should be at #0 of the candidate list.
+        assert_eq!(a.candidates().first().cloned(), Some(composed),
+            "composed sentence should be at top of candidates");
+    }
+
+    #[test]
+    fn viterbi_skips_short_buffer() {
+        let mut a = PinyinAdapter::new();
+        // 6-byte buffer — under the 8-byte threshold. No Viterbi run.
+        for b in b"nuanhe" {
+            a.handle_letter(*b);
+        }
+        assert!(a.composed_sentence.is_none(),
+            "Viterbi shouldn't fire for short buffer (avoids wrong-reading
+             false-positive compositions like 暖+和 → 暖和)");
     }
 
     #[test]
