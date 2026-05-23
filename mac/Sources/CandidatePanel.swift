@@ -152,6 +152,11 @@ final class CandidatePanel {
         // Refresh always exits prediction mode — predictions only show
         // when there's NO buffer; a normal refresh means buffer changed
         // and we're back to regular keystroke-driven candidates.
+        // Capture transition so we can reposition the panel: the post-
+        // prediction → new-typing path means the host's caret moved
+        // (commit advanced it), and the new composing session should
+        // anchor at the FRESH caret, not the stale prediction anchor.
+        let wasPrediction = isPredictionMode
         isPredictionMode = false
         let count = session.candidateCount
         guard count > 0, let preedit = session.preedit, !preedit.isEmpty else {
@@ -173,11 +178,15 @@ final class CandidatePanel {
             pageIndex = 0
             selectedInPage = 0
         }
+        // Reposition when transitioning out of prediction mode — the
+        // caret moved while predictions were on (commit advanced it),
+        // so the new typing session must anchor at the fresh caret.
         let firstShow = !window.isVisible
+        let needsReposition = firstShow || wasPrediction
         rebuildRows()
-        if firstShow {
+        if needsReposition {
             positionNear(client: client)
-            window.orderFront(nil)
+            if !window.isVisible { window.orderFront(nil) }
         }
     }
 
@@ -211,12 +220,14 @@ final class CandidatePanel {
         isPredictionMode = true
         pageIndex = 0
         selectedInPage = 0
-        let firstShow = !window.isVisible
         rebuildRows()
-        if firstShow {
-            positionNear(client: client)
-            window.orderFront(nil)
-        }
+        // ALWAYS reposition for predictions — each commit advances the
+        // host's caret (the just-committed word shifts everything right),
+        // so chained predictions must follow the new caret instead of
+        // sticking at the original anchor. This is the
+        // post-commit equivalent of "fresh session = fresh position".
+        positionNear(client: client)
+        if !window.isVisible { window.orderFront(nil) }
     }
 
     var isVisible: Bool { !current.isEmpty }
