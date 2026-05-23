@@ -35,6 +35,7 @@ pub fn dispatch(
     wubi: &WubiEngine,
     pinyin: &PinyinAdapter,
     japanese: Option<&JapaneseAdapter>,
+    prev_committed: Option<&str>,
 ) -> Vec<Candidate> {
     let (jp_kanji, jp_kana) = match japanese {
         Some(j) => split_jp_scored(j),
@@ -42,7 +43,7 @@ pub fn dispatch(
     };
     match mode {
         Mode::WubiOnly => merge(wubi.candidates_with_scores(), vec![], jp_kanji, jp_kana),
-        Mode::PinyinOnly => merge(vec![], pinyin.candidates_with_scores(), jp_kanji, jp_kana),
+        Mode::PinyinOnly => merge(vec![], pinyin.candidates_with_scores(prev_committed), jp_kanji, jp_kana),
         Mode::JapaneseOnly => merge(vec![], vec![], jp_kanji, jp_kana),
         Mode::Mixed => {
             // EVERYTHING IS SCORE. No if-skip-engine branches. Wubi
@@ -67,7 +68,7 @@ pub fn dispatch(
                     *s *= final_mult;
                 }
             }
-            merge(wubi_cands, pinyin.candidates_with_scores(), jp_kanji, jp_kana)
+            merge(wubi_cands, pinyin.candidates_with_scores(prev_committed), jp_kanji, jp_kana)
         }
     }
 }
@@ -117,7 +118,7 @@ mod tests {
         wubi_typed(&mut wubi, b"gggg"); // wubi has candidates
         typed(&mut pinyin, b"women"); // pinyin too
 
-        let cands = dispatch(Mode::PinyinOnly, &wubi, &pinyin, None);
+        let cands = dispatch(Mode::PinyinOnly, &wubi, &pinyin, None, None);
         assert!(cands.iter().all(|c| c.source == Source::Pinyin));
         assert!(cands.iter().any(|c| c.word == "我们"));
     }
@@ -129,7 +130,7 @@ mod tests {
         wubi_typed(&mut wubi, b"g"); // 'g' = 一级简码 → 一
         typed(&mut pinyin, b"yi");
 
-        let cands = dispatch(Mode::WubiOnly, &wubi, &pinyin, None);
+        let cands = dispatch(Mode::WubiOnly, &wubi, &pinyin, None, None);
         assert!(cands.iter().all(|c| c.source == Source::Wubi));
         assert_eq!(cands.first().map(|c| c.word.as_str()), Some("一"));
     }
@@ -144,7 +145,7 @@ mod tests {
         wubi_typed(&mut wubi, b"a"); // wubi 1-char buffer (may have no cands)
         typed(&mut pinyin, b"a"); // pinyin "a" → 啊/吖/etc.
 
-        let cands = dispatch(Mode::Mixed, &wubi, &pinyin, None);
+        let cands = dispatch(Mode::Mixed, &wubi, &pinyin, None, None);
         // With equal buffer lengths, default wubi-first ordering is used.
         // Pinyin candidates should be present in the merged list.
         assert!(
@@ -173,7 +174,7 @@ mod tests {
         // empty even at the engine level. Pinyin gets the full input.
         typed(&mut pinyin, b"zhongguo");
 
-        let cands = dispatch(Mode::Mixed, &wubi, &pinyin, None);
+        let cands = dispatch(Mode::Mixed, &wubi, &pinyin, None, None);
         assert!(cands.iter().all(|c| c.source == Source::Pinyin));
         assert_eq!(cands.first().map(|c| c.word.as_str()), Some("中国"));
     }

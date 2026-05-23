@@ -132,4 +132,9 @@ name = "pinyin-build-fst"
 path = "tools/build_fst.rs"
 required-features = ["tools"]
 
+[[bin]]
+name = "pinyin-build-bigrams-fst"
+path = "tools/build_bigrams_fst.rs"
+required-features = ["tools"]
+
 # `[[bench]]` blocks land in v0.2 once data is dense enough to bench.

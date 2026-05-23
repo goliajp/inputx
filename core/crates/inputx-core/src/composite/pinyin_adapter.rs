@@ -124,15 +124,27 @@ impl PinyinAdapter {
     /// Scored variant of `candidates()`. Returns the current candidate
     /// list paired with each entry's unified score (see
     /// `inputx_pinyin::PinyinDict::lookup_with_scores_into` for the score
-    /// formula).
+    /// formula), optionally enriched with a context-aware bigram bonus.
+    ///
+    /// `prev_committed` is the user's most-recently-committed word in
+    /// this session (composite-layer state — adapter is stateless re:
+    /// session). When `Some`, each candidate's score gets a positive
+    /// additive bonus from `PinyinDict::bigram_boost(prev, candidate)`,
+    /// which lifts candidates that frequently follow `prev` in the
+    /// training corpus (e.g. after committing 今天, candidates 是/的/
+    /// 我们 jump because of high bigram counts).
     ///
     /// Implementation: re-scores the existing `self.candidates` Vec.
     /// Path 1 (exact lookup) is scored via the dict's
     /// `lookup_with_scores_into`. Paths 2/3 (initials + prefix
     /// completion) inject candidates that wouldn't otherwise have a
     /// freq; for those we default to a low score so the cross-engine
-    /// sort puts them below exact matches.
-    pub fn candidates_with_scores(&self) -> Vec<(String, f64)> {
+    /// sort puts them below exact matches. Bigram bonus applies to all
+    /// candidates (exact + non-exact).
+    pub fn candidates_with_scores(
+        &self,
+        prev_committed: Option<&str>,
+    ) -> Vec<(String, f64)> {
         if self.candidates.is_empty() || self.buffer.is_empty() {
             return Vec::new();
         }
@@ -150,10 +162,12 @@ impl PinyinAdapter {
         const NON_EXACT_FLOOR: f64 = 1000.0;
         // Decay non-exact entries by position so the original within-
         // path ordering is preserved at the bottom of the merged list.
+        let dict = self.engine.dict();
         for (i, w) in self.candidates.iter().enumerate() {
-            let s = exact_map.get(w).copied()
+            let base = exact_map.get(w).copied()
                 .unwrap_or(NON_EXACT_FLOOR * 0.99f64.powi(i as i32));
-            scored.push((w.clone(), s));
+            let bigram_bonus = dict.bigram_boost(prev_committed, w);
+            scored.push((w.clone(), base + bigram_bonus));
         }
         scored
     }
