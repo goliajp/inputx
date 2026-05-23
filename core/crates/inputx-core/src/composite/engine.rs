@@ -48,6 +48,14 @@ pub struct CompositeEngine {
     user_policy: AutoCommitPolicy,
     /// Reused candidate buffer to avoid per-keystroke alloc.
     cand_buf: Vec<Candidate>,
+    /// The most-recently-committed word from this session, used as the
+    /// `prev` argument to `PinyinDict::bigram_boost`. `None` on first
+    /// keystroke of a session and after `clear_all`. Updated by
+    /// `commit_index` (and by any other commit path — auto-commit, ASCII
+    /// fallback). Pure CJK candidates only; ASCII-fallback / English
+    /// commits set this back to `None` because they don't seed
+    /// meaningful Chinese-word context.
+    last_committed_word: Option<String>,
 }
 
 impl Default for CompositeEngine {
@@ -72,6 +80,7 @@ impl CompositeEngine {
             mode: Mode::default(),
             user_policy: AutoCommitPolicy::default(),
             cand_buf: Vec::with_capacity(16),
+            last_committed_word: None,
         }
     }
 
@@ -231,7 +240,13 @@ impl CompositeEngine {
     pub fn candidates(&mut self) -> &[Candidate] {
         self.cand_buf.clear();
         self.cand_buf
-            .extend(dispatch(self.mode, &self.wubi, &self.pinyin, self.japanese.as_ref()));
+            .extend(dispatch(
+                self.mode,
+                &self.wubi,
+                &self.pinyin,
+                self.japanese.as_ref(),
+                self.last_committed_word.as_deref(),
+            ));
         &self.cand_buf
     }
 
@@ -290,6 +305,7 @@ impl CompositeEngine {
                 // WubiOnly defuse path or pre-4-char auto-commit fired.
                 self.pinyin.clear_all();
                 if let Some(j) = self.japanese.as_mut() { j.clear_all(); }
+                self.update_bigram_context(&text);
                 return Some(text);
             }
         }
@@ -302,6 +318,7 @@ impl CompositeEngine {
                 self.wubi.commit_index(idx);
                 self.pinyin.clear_all();
                 if let Some(j) = self.japanese.as_mut() { j.clear_all(); }
+                self.update_bigram_context(&text);
                 return Some(text);
             }
         }
@@ -328,6 +345,11 @@ impl CompositeEngine {
             self.wubi.clear_all();
             self.pinyin.clear_all();
             if let Some(j) = self.japanese.as_mut() { j.clear_all(); }
+            // ASCII raw fallback isn't a Chinese word — drop bigram
+            // context. Whatever Chinese word was last committed no
+            // longer informs the next CJK input through this English
+            // interruption.
+            self.last_committed_word = None;
             return Some(raw);
         }
 
@@ -487,6 +509,21 @@ impl CompositeEngine {
             j.clear_all();
         }
         self.cand_buf.clear();
+        // Treat clear_all as a full session boundary: drop the bigram
+        // context too. Use cases (set_mode, set_input_mode En→Cjk
+        // restore, explicit clear) all imply "lose continuity".
+        self.last_committed_word = None;
+    }
+
+    /// Seed bigram context from a just-committed word, but only if it's
+    /// a pure-CJK Chinese word (kana / Latin commits don't inform the
+    /// Chinese-corpus bigram table). Auto-commit / force-commit paths
+    /// (above in `handle_letter`) call this; user-driven `commit_index`
+    /// does it inline.
+    fn update_bigram_context(&mut self, committed: &str) {
+        if committed.chars().any(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)) {
+            self.last_committed_word = Some(committed.to_string());
+        }
     }
 
     /// Commit candidate at index. Records the pick to the source engine's
@@ -496,7 +533,13 @@ impl CompositeEngine {
         if self.cand_buf.is_empty() {
             // Refresh once — caller may not have invoked candidates() yet.
             self.cand_buf
-                .extend(dispatch(self.mode, &self.wubi, &self.pinyin, self.japanese.as_ref()));
+                .extend(dispatch(
+                    self.mode,
+                    &self.wubi,
+                    &self.pinyin,
+                    self.japanese.as_ref(),
+                    self.last_committed_word.as_deref(),
+                ));
         }
         let cand = self.cand_buf.get(index).cloned()?;
         match cand.source {
@@ -527,6 +570,13 @@ impl CompositeEngine {
             j.clear_all();
         }
         self.cand_buf.clear();
+        // Update bigram context for the NEXT keystroke's candidate
+        // ranking. Only seed it from pure-CJK commits (a Japanese kana
+        // commit or an English raw commit doesn't give meaningful prev
+        // context for the Chinese-corpus bigram table).
+        if cand.word.chars().any(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)) {
+            self.last_committed_word = Some(cand.word.clone());
+        }
         Some(cand.word)
     }
 
