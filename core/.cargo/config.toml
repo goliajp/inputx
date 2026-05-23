@@ -1,0 +1,26 @@
+# Disable embedded LLVM bitcode in the staticlib outputs.
+#
+# Rust 1.95+ ships LLVM 22, whose bitcode uses newer attribute kinds
+# (e.g. kind 105) that Xcode 26's older LLVM linker can't read. When
+# bitcode is embedded in our staticlib .o files, iOS-side `ld` silently
+# fails to resolve some FFI symbols even though `nm` shows them defined:
+# `_inputx_session_set_input_mode` was the canary — defined `T` in the
+# .o yet "undefined symbol" at link time, while neighbours like
+# `_inputx_session_warmup` (whose bitcode happened not to trip the same
+# attribute) linked fine.
+#
+# `-C embed-bitcode=no` tells rustc to emit plain Mach-O .o files only,
+# which Xcode's ld consumes without trying to parse bitcode. Cargo
+# `lto = true` in the workspace profile still applies — LTO happens
+# inside rustc at staticlib creation and produces a single merged .o
+# either way; this flag only suppresses the bitcode-along-for-the-ride
+# bytes that downstream consumers don't need.
+#
+# Workspace-scoped so all members (FFI surface + wubi/pinyin) get the
+# same treatment. Mac (Sonoma → 15) ld appears to tolerate the newer
+# bitcode so mac builds worked silently before this hit iOS; this
+# config is a no-op on mac builds because Xcode's mac toolchain ignores
+# embedded bitcode when the consumer is a Mach-O static archive link.
+
+[build]
+rustflags = ["-C", "embed-bitcode=no"]

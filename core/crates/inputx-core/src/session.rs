@@ -5,6 +5,7 @@
 //! `export_l0_json`) are additive.
 
 use crate::composite::{Candidate, CompositeEngine, Mode, Source, l0_json};
+use crate::input_mode::InputMode;
 use crate::locale::punct::SmartQuoteState;
 use crate::wubi::{self, AutoCommitPolicy, L0Snapshot};
 
@@ -15,6 +16,9 @@ const CP_BACKSPACE: u32 = 0x08;
 const CP_DEL_FORWARD: u32 = 0x7F;
 const CP_ESCAPE: u32 = 0x1B;
 const CP_SPACE: u32 = b' ' as u32;
+const CP_RETURN_CR: u32 = 0x0D;
+const CP_RETURN_LF: u32 = 0x0A;
+const CP_TAB: u32 = 0x09;
 
 pub struct Session {
     composite: CompositeEngine,
@@ -33,6 +37,11 @@ pub struct Session {
     /// `clear()` so a fresh document context starts assuming the next
     /// quote is opening.
     smart_quote: SmartQuoteState,
+    /// Top-level input mode (CJK vs EN). Orthogonal to engine `Mode`
+    /// (which is `WubiOnly`/`PinyinOnly`/`Mixed` *within* Cjk). In EN
+    /// mode `handle_key` returns false unconditionally so the host
+    /// receives ASCII directly — no IME-side preedit / buffering.
+    input_mode: InputMode,
 }
 
 impl Default for Session {
@@ -49,6 +58,7 @@ impl Session {
             source_cache: Vec::with_capacity(16),
             pending_commit: None,
             smart_quote: SmartQuoteState::new(),
+            input_mode: InputMode::Cjk,
         }
     }
 
@@ -85,7 +95,7 @@ impl Session {
         self.composite.auto_commit_policy()
     }
 
-    /// Current engine mode (Mixed / WubiOnly / PinyinOnly).
+    /// Current engine mode (Mixed / WubiOnly / PinyinOnly / JapaneseOnly).
     pub fn mode(&self) -> Mode {
         self.composite.mode()
     }
@@ -99,8 +109,60 @@ impl Session {
         self.refresh_caches();
     }
 
-    /// Process a keystroke. Returns `true` if the IME consumed it.
+    /// JP plugin "enhancement" toggle. Independent of `mode`:
+    /// - In Mixed / WubiOnly / PinyinOnly: when on, JP candidates are
+    ///   appended after the Chinese candidates.
+    /// - In JapaneseOnly: this flag is implicitly true and the toggle
+    ///   here is a no-op (mode forces JP to run).
+    pub fn japanese_enabled(&self) -> bool {
+        self.composite.japanese_enabled()
+    }
+
+    pub fn set_japanese_enabled(&mut self, on: bool) {
+        self.composite.set_japanese_enabled(on);
+        self.refresh_caches();
+    }
+
+    /// Current top-level input mode (Cjk / En).
+    pub fn input_mode(&self) -> InputMode {
+        self.input_mode
+    }
+
+    /// Switch top-level input mode. On **Cjk → En** any in-flight CJK
+    /// preedit is committed as **raw ASCII** (the wubi/pinyin letters the
+    /// user typed) — user toggling to EN with codes still composing is
+    /// signaling "this wasn't supposed to be CJK, ship it as English".
+    /// Same semantic as pressing return in CJK with a non-empty preedit.
+    /// **En → Cjk** has nothing to drain (EN mode doesn't buffer — see
+    /// `handle_key`). No-op when target equals current mode.
+    pub fn set_input_mode(&mut self, m: InputMode) {
+        if m == self.input_mode {
+            return;
+        }
+        if self.input_mode == InputMode::Cjk && self.composite.is_composing() {
+            let raw = self.composite.preedit().to_string();
+            self.composite.escape();
+            self.refresh_caches();
+            if !raw.is_empty() {
+                self.append_pending(raw);
+            }
+        }
+        self.input_mode = m;
+    }
+
+    /// Process a keystroke. Returns `true` if the IME consumed it. In
+    /// `InputMode::En` always returns `false` — the IME steps aside and
+    /// the host receives the raw ASCII keystroke. Host adapters may
+    /// short-circuit this call entirely when in EN mode for efficiency;
+    /// the returned `false` is the canonical answer either way.
     pub fn handle_key(&mut self, codepoint: u32, modifiers: u32) -> bool {
+        match self.input_mode {
+            InputMode::Cjk => self.handle_key_cjk(codepoint, modifiers),
+            InputMode::En => false,
+        }
+    }
+
+    fn handle_key_cjk(&mut self, codepoint: u32, modifiers: u32) -> bool {
         if modifiers & (MOD_CTRL | MOD_CMD) != 0 {
             return false;
         }
@@ -140,6 +202,33 @@ impl Session {
                 }
                 consumed
             }
+            CP_RETURN_CR | CP_RETURN_LF => {
+                // Return while composing = "I didn't want this to be CJK".
+                // Commit the raw ASCII codes the user typed, clear preedit,
+                // swallow the event (no \n to host — the user only wanted
+                // to escape composing). Return when not composing falls
+                // through to passthrough so plain Enter still produces \n.
+                if !self.composite.is_composing() {
+                    return false;
+                }
+                let raw = self.composite.preedit().to_string();
+                self.composite.escape();
+                self.refresh_caches();
+                if !raw.is_empty() {
+                    self.append_pending(raw);
+                }
+                true
+            }
+            CP_TAB => {
+                // Tab is reserved for future candidate page navigation.
+                // While composing: swallow silently — no state change, no
+                // commit, no \t to host. The default branch would otherwise
+                // force-commit the top candidate and pass \t through, which
+                // is the wrong UX (user expects tab to be a no-op or page
+                // candidates, never a "commit + tab" combo). Not composing:
+                // passthrough so plain tab still inserts a tab character.
+                self.composite.is_composing()
+            }
             cp if (b'0' as u32..=b'9' as u32).contains(&cp) => {
                 if !self.composite.is_composing() {
                     return false;
@@ -171,7 +260,11 @@ impl Session {
     }
 
     pub fn preedit(&self) -> &str {
-        self.composite.preedit()
+        match self.input_mode {
+            InputMode::Cjk => self.composite.preedit(),
+            // EN mode has no IME-side preedit — host owns the text.
+            InputMode::En => "",
+        }
     }
 
     pub fn candidates(&self) -> &[String] {
@@ -205,6 +298,8 @@ impl Session {
         self.pending_commit = None;
         // Reset smart-quote alternator — fresh context.
         self.smart_quote.reset();
+        // Return to default CJK mode.
+        self.input_mode = InputMode::Cjk;
     }
 
     /// Snapshot the WUBI dictionary's L0 layer (process-global; pins +
@@ -222,8 +317,10 @@ impl Session {
     }
 
     /// JSON export per-engine for App-Group persistence (item 45).
-    /// `engine_kind`: 0 = Wubi, 1 = Pinyin.
-    /// Returns `None` for unrecognized engine_kind.
+    /// `engine_kind`: 0 = Wubi, 1 = Pinyin, 2 = Japanese.
+    /// Returns `None` for unrecognized engine_kind, OR for Japanese
+    /// (the JP plugin doesn't ship per-user L0 in v0.1 — no pin counters,
+    /// no freq learning, so there's nothing to persist).
     pub fn export_l0_json(&self, engine_kind: u8) -> Option<String> {
         match Source::from_u8(engine_kind)? {
             Source::Wubi => Some(l0_json::wubi_to_json(&wubi::export_l0())),
@@ -231,11 +328,13 @@ impl Session {
                 .composite
                 .pinyin_export_l0()
                 .map(|snap| l0_json::pinyin_to_json(&snap)),
+            Source::Japanese => None,
         }
     }
 
     /// Restore L0 from JSON for the given engine. Returns count of accepted
-    /// pins, or 0 on parse error / unrecognized engine.
+    /// pins, or 0 on parse error / unrecognized engine. Japanese always
+    /// returns 0 — no L0 to restore (see `export_l0_json` doc).
     pub fn import_l0_json(&self, engine_kind: u8, json: &str) -> usize {
         let Some(kind) = Source::from_u8(engine_kind) else {
             return 0;
@@ -255,6 +354,7 @@ impl Session {
                     0
                 }
             }
+            Source::Japanese => 0,
         }
     }
 
@@ -415,6 +515,87 @@ mod tests {
     }
 
     #[test]
+    fn jixu_top_pinyin_candidate_is_jixu_continue() {
+        // Regression for the user-reported 曳光弹-at-#0 confusion. The
+        // weights data has `jixu 继续 44652` as the highest-freq entry
+        // and 曳光弹 isn't under the `jixu` key at all (its reading is
+        // `yeguangdan`). If this test ever fails, the pinyin engine
+        // has acquired a fuzzy / heteronym path that's pulling
+        // 曳光弹 into jixu candidates and needs to be traced.
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(crate::composite::Mode::PinyinOnly);
+        for cp in b"jixu" {
+            sess.handle_key(*cp as u32, 0);
+        }
+        let cands = sess.candidates();
+        assert!(!cands.is_empty());
+        // 继续 must be in the top 3 (allowing some flex for noise).
+        let top3: Vec<&str> = cands.iter().take(3).map(String::as_str).collect();
+        assert!(
+            top3.contains(&"继续"),
+            "expected 继续 in top-3 for jixu, got {:?}",
+            top3
+        );
+        // 曳光弹 absolutely must not appear (yeguangdan isn't jixu).
+        assert!(
+            !cands.iter().any(|w| w == "曳光弹"),
+            "曳光弹 must not appear for jixu — its reading is yeguangdan. Got candidates: {:?}",
+            &cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn wcng_top_candidate_is_phrase_gongsi_not_rare_single_char() {
+        // Regression for the dual of gmww — at full code, when the
+        // single-char's freq is LOWER than the phrase's, the phrase
+        // wins. Pre-fix, the absolute-`freq > 0` rule promoted ANY
+        // single-char with corpus presence (鹟 freq 5961) above the
+        // phrase, even when the phrase had far higher actual frequency
+        // (公司 freq 42817). The corrected rule compares freqs.
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for cp in b"wcng" {
+            sess.handle_key(*cp as u32, 0);
+        }
+        let cands = sess.candidates();
+        assert!(!cands.is_empty());
+        assert_eq!(
+            cands.first().map(String::as_str),
+            Some("公司"),
+            "wcng top candidate should be 公司, got {:?}",
+            cands.first()
+        );
+    }
+
+    #[test]
+    fn gmww_top_candidate_is_single_char_liang_not_phrase() {
+        // Regression: at a fully-typed 4-letter wubi code, the canonical
+        // single-char answer must rank above any phrase sharing the code.
+        // Pre-fix, 两 (Auto layer, base ~100k) lost to 两败俱伤 (Phrase
+        // layer, base ~400k) at gmww. The full-code single-char-wins
+        // rule in `inputx_wubi::dict::lookup_into` corrects this.
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for cp in b"gmww" {
+            sess.handle_key(*cp as u32, 0);
+        }
+        let cands = sess.candidates();
+        assert!(!cands.is_empty(), "expected gmww candidates");
+        assert_eq!(
+            cands.first().map(String::as_str),
+            Some("两"),
+            "gmww top candidate should be 两 (single char), got {:?}",
+            cands.first()
+        );
+        // 两败俱伤 should still appear, just not at #1.
+        assert!(
+            cands.iter().any(|w| w == "两败俱伤"),
+            "phrase 两败俱伤 should still appear in gmww candidates"
+        );
+    }
+
+    #[test]
     fn item_47_mixed_pinyin_input_gives_pinyin_candidate() {
         // Manual probe per ROADMAP item 47: `zhongguo` → 中国 (Source::Pinyin).
         let mut sess = s();
@@ -486,5 +667,521 @@ mod tests {
         let sess = s();
         assert_eq!(sess.import_l0_json(0, "not json"), 0);
         assert_eq!(sess.import_l0_json(1, "{also not"), 0);
+    }
+
+    // ------------------------------------------------------------------
+    // v1.1.0 InputMode (Cjk / En) — EN mode is pure passthrough
+    // ------------------------------------------------------------------
+
+    const CP_RETURN: u32 = 0x0D;
+
+    #[test]
+    fn input_mode_default_is_cjk() {
+        let sess = s();
+        assert_eq!(sess.input_mode(), InputMode::Cjk);
+    }
+
+    #[test]
+    fn set_input_mode_toggles() {
+        let mut sess = s();
+        sess.set_input_mode(InputMode::En);
+        assert_eq!(sess.input_mode(), InputMode::En);
+        sess.set_input_mode(InputMode::Cjk);
+        assert_eq!(sess.input_mode(), InputMode::Cjk);
+    }
+
+    #[test]
+    fn set_input_mode_same_is_noop() {
+        let mut sess = s();
+        sess.set_input_mode(InputMode::Cjk);
+        assert_eq!(sess.input_mode(), InputMode::Cjk);
+        assert!(sess.take_pending_commit().is_none());
+    }
+
+    #[test]
+    fn en_mode_consumes_no_keys() {
+        // Every keystroke variety should pass straight through to the host:
+        // letters, digits, punct, space, return, backspace, escape, ctrl/cmd.
+        let mut sess = s();
+        sess.set_input_mode(InputMode::En);
+        for cp in b"hello world! 12,3.45" {
+            assert!(!sess.handle_key(*cp as u32, 0), "letter/digit/punct should passthrough");
+        }
+        assert!(!sess.handle_key(CP_RETURN, 0));
+        assert!(!sess.handle_key(CP_BACKSPACE, 0));
+        assert!(!sess.handle_key(CP_ESCAPE, 0));
+        assert!(!sess.handle_key(b'c' as u32, MOD_CMD));
+        assert!(!sess.handle_key(b'a' as u32, MOD_CTRL));
+    }
+
+    #[test]
+    fn en_mode_has_no_preedit_or_candidates() {
+        // Engine never runs in EN — preedit empty, no candidates, no commits.
+        let mut sess = s();
+        sess.set_input_mode(InputMode::En);
+        for cp in b"khlg" {
+            sess.handle_key(*cp as u32, 0);
+        }
+        assert!(sess.preedit().is_empty());
+        assert_eq!(sess.candidate_count(), 0);
+        assert!(sess.take_pending_commit().is_none());
+    }
+
+    #[test]
+    fn cjk_to_en_with_preedit_commits_raw_ascii() {
+        // User types "jeg" in CJK, then toggles to EN. The preedit
+        // letters ship as English (user signaled "not CJK after all").
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.handle_key(b'j' as u32, 0);
+        sess.handle_key(b'e' as u32, 0);
+        sess.handle_key(b'g' as u32, 0);
+        assert_eq!(sess.preedit(), "jeg");
+        sess.set_input_mode(InputMode::En);
+        assert_eq!(sess.take_pending_commit().as_deref(), Some("jeg"));
+        assert!(sess.preedit().is_empty());
+        assert_eq!(sess.candidate_count(), 0);
+        assert_eq!(sess.input_mode(), InputMode::En);
+    }
+
+    #[test]
+    fn cjk_to_en_without_preedit_just_switches() {
+        // No in-flight composing → toggle is a pure state flip.
+        let mut sess = s();
+        sess.set_input_mode(InputMode::En);
+        assert!(sess.take_pending_commit().is_none());
+        assert_eq!(sess.input_mode(), InputMode::En);
+    }
+
+    #[test]
+    fn cjk_return_with_preedit_commits_raw_ascii() {
+        // Return in CJK while composing ships the raw codes as ASCII
+        // and swallows the event (no \n to host).
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.handle_key(b'h' as u32, 0);
+        sess.handle_key(b'u' as u32, 0);
+        sess.handle_key(b'i' as u32, 0);
+        sess.handle_key(b'l' as u32, 0);
+        assert_eq!(sess.preedit(), "huil");
+        assert!(sess.handle_key(CP_RETURN, 0));
+        assert_eq!(sess.take_pending_commit().as_deref(), Some("huil"));
+        assert!(sess.preedit().is_empty());
+        assert_eq!(sess.candidate_count(), 0);
+    }
+
+    #[test]
+    fn cjk_return_without_preedit_passes_through() {
+        // Plain return with no composing → engine doesn't consume it
+        // so the host receives the \n normally.
+        let mut sess = s();
+        assert!(!sess.handle_key(CP_RETURN, 0));
+        assert!(sess.take_pending_commit().is_none());
+    }
+
+    #[test]
+    fn cjk_tab_with_preedit_is_swallowed() {
+        // Tab while composing must not leak to the host (no \t in the
+        // text field) and must not disturb preedit. Reserved for future
+        // candidate page navigation.
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for cp in b"jeg" {
+            sess.handle_key(*cp as u32, 0);
+        }
+        let preedit_before = sess.preedit().to_string();
+        let cands_before = sess.candidate_count();
+        assert!(sess.handle_key(0x09, 0));
+        assert!(sess.take_pending_commit().is_none());
+        assert_eq!(sess.preedit(), preedit_before);
+        assert_eq!(sess.candidate_count(), cands_before);
+    }
+
+    #[test]
+    fn cjk_tab_without_preedit_passes_through() {
+        // Plain tab with no composing → engine doesn't consume so the
+        // host receives \t as a tab character.
+        let mut sess = s();
+        assert!(!sess.handle_key(0x09, 0));
+        assert!(sess.take_pending_commit().is_none());
+    }
+
+    #[test]
+    fn en_to_cjk_is_pure_state_flip_no_commit() {
+        // EN→Cjk has nothing to drain (EN doesn't buffer). Just flips state.
+        let mut sess = s();
+        sess.set_input_mode(InputMode::En);
+        for cp in b"hel" {
+            sess.handle_key(*cp as u32, 0);
+        }
+        sess.set_input_mode(InputMode::Cjk);
+        assert!(sess.take_pending_commit().is_none());
+        assert!(sess.preedit().is_empty());
+        assert_eq!(sess.input_mode(), InputMode::Cjk);
+    }
+
+    #[test]
+    fn clear_resets_input_mode() {
+        let mut sess = s();
+        sess.set_input_mode(InputMode::En);
+        sess.clear();
+        assert_eq!(sess.input_mode(), InputMode::Cjk);
+        assert!(sess.preedit().is_empty());
+        assert!(sess.take_pending_commit().is_none());
+    }
+
+    // ------------------------------------------------------------------
+    // Proptest: arbitrary op sequences keep session invariants
+    // ------------------------------------------------------------------
+    //
+    //   - any op sequence followed by clear() leaves a default session
+    //   - any op sequence followed by 2 full mode-toggle cycles ends in
+    //     a clean idle CJK session (no preedit, no cand, no commit)
+    //
+    // The second one is the mode-switch-doesn't-leak invariant
+    // ([[proptest-engine-invariants]] caught the analogous bug at the
+    // composite/engine layer — this is the Session-layer counterpart).
+    // EN mode is pure passthrough (`handle_key` returns false), so EN
+    // keystrokes can't leak buffers — but the Cjk→En transition still
+    // has to escape an in-flight composing buffer.
+
+    use proptest::prelude::*;
+
+    #[derive(Clone, Debug)]
+    enum SessionOp {
+        Letter(u8),
+        Digit(u8),
+        Space,
+        Return,
+        Backspace,
+        Escape,
+        SetCjk,
+        SetEn,
+    }
+
+    fn op_strategy() -> impl Strategy<Value = SessionOp> {
+        prop_oneof![
+            10 => (b'a'..=b'z').prop_map(SessionOp::Letter),
+            2 => (b'0'..=b'9').prop_map(SessionOp::Digit),
+            2 => Just(SessionOp::Space),
+            2 => Just(SessionOp::Return),
+            1 => Just(SessionOp::Backspace),
+            1 => Just(SessionOp::Escape),
+            2 => Just(SessionOp::SetCjk),
+            2 => Just(SessionOp::SetEn),
+        ]
+    }
+
+    fn apply(sess: &mut Session, op: &SessionOp) {
+        match op {
+            SessionOp::Letter(b) | SessionOp::Digit(b) => {
+                sess.handle_key(*b as u32, 0);
+            }
+            SessionOp::Space => {
+                sess.handle_key(CP_SPACE, 0);
+            }
+            SessionOp::Return => {
+                sess.handle_key(CP_RETURN, 0);
+            }
+            SessionOp::Backspace => {
+                sess.handle_key(CP_BACKSPACE, 0);
+            }
+            SessionOp::Escape => {
+                sess.handle_key(CP_ESCAPE, 0);
+            }
+            SessionOp::SetCjk => sess.set_input_mode(InputMode::Cjk),
+            SessionOp::SetEn => sess.set_input_mode(InputMode::En),
+        }
+        let _ = sess.take_pending_commit();
+    }
+
+    fn check_invariants(sess: &Session, after: &str) {
+        // INV-A: EN mode is dormant — no candidates, no preedit.
+        if sess.input_mode() == InputMode::En {
+            assert_eq!(
+                sess.candidate_count(),
+                0,
+                "INV-A violated after {after}: EN has {} candidates",
+                sess.candidate_count()
+            );
+            assert!(
+                sess.preedit().is_empty(),
+                "INV-A violated after {after}: EN preedit is non-empty: {:?}",
+                sess.preedit()
+            );
+        }
+        // INV-B: CJK preedit is ASCII lowercase wubi codes only.
+        if sess.input_mode() == InputMode::Cjk {
+            for b in sess.preedit().bytes() {
+                assert!(
+                    b.is_ascii_lowercase(),
+                    "INV-B violated after {after}: CJK preedit byte {b:#x}"
+                );
+            }
+        }
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig {
+            cases: 128,
+            .. ProptestConfig::default()
+        })]
+
+        #[test]
+        fn fuzz_session_invariants_hold_then_clear_resets(
+            ops in proptest::collection::vec(op_strategy(), 1..64)
+        ) {
+            let mut sess = Session::new();
+            for (i, op) in ops.iter().enumerate() {
+                apply(&mut sess, op);
+                check_invariants(&sess, &format!("op#{i}={:?}", op));
+            }
+            sess.clear();
+            prop_assert_eq!(sess.input_mode(), InputMode::Cjk);
+            prop_assert!(sess.preedit().is_empty(),
+                "post-clear preedit leaked: {:?}", sess.preedit());
+            prop_assert!(sess.take_pending_commit().is_none());
+            prop_assert_eq!(sess.candidate_count(), 0);
+        }
+
+        #[test]
+        fn fuzz_input_mode_double_toggle_drains_buffers(
+            ops in proptest::collection::vec(op_strategy(), 0..32)
+        ) {
+            let mut sess = Session::new();
+            for op in &ops {
+                apply(&mut sess, op);
+            }
+            // Two full mode-cycles. After this, the CJK composing buffer
+            // (escape()d on each Cjk→En) must be empty. EN→Cjk has nothing
+            // to drain since EN doesn't buffer.
+            sess.set_input_mode(InputMode::En);
+            sess.set_input_mode(InputMode::Cjk);
+            sess.set_input_mode(InputMode::En);
+            sess.set_input_mode(InputMode::Cjk);
+            let _ = sess.take_pending_commit();
+            prop_assert_eq!(sess.input_mode(), InputMode::Cjk);
+            prop_assert!(sess.preedit().is_empty(),
+                "preedit leaked after double-toggle: {:?}", sess.preedit());
+            prop_assert_eq!(sess.candidate_count(), 0);
+        }
+    }
+}
+
+#[cfg(test)]
+mod prefix_completion_suppression {
+    use super::*;
+    /// User-reported polish (2026-05-22): typing `lianxiang` should produce
+    /// only 联想 (exact-reading match) in the immediate candidate list.
+    /// Earlier behavior pulled in 联想集团 / 联想起 / 联想到 via the pinyin
+    /// adapter's Path 3 prefix-completion scan — but those are
+    /// *predictions* (words whose pinyin EXTENDS lianxiang), not candidates
+    /// for the buffer the user just typed. Predictions belong in a
+    /// post-commit next-word list, not muddling the current candidate list.
+    #[test]
+    fn lianxiang_does_not_include_prefix_extension_words() {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(crate::composite::Mode::PinyinOnly);
+        for cp in b"lianxiang" { sess.handle_key(*cp as u32, 0); }
+        let cands = sess.candidates();
+        assert!(
+            cands.iter().any(|w| w == "联想"),
+            "expected 联想 present in lianxiang candidates. Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+        for noise in &["联想集团", "联想起", "联想到"] {
+            assert!(
+                !cands.iter().any(|w| w == noise),
+                "{} must not appear for exact lianxiang input — it's a \
+                 prefix-extension word. Got: {:?}",
+                noise,
+                cands.iter().take(10).collect::<Vec<_>>()
+            );
+        }
+    }
+
+    /// Counterpart: incomplete syllable should STILL get prefix completion
+    /// (otherwise user is stuck mid-syllable with nothing to commit).
+    #[test]
+    fn zho_partial_syllable_still_completes_via_prefix() {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(crate::composite::Mode::PinyinOnly);
+        for cp in b"zho" { sess.handle_key(*cp as u32, 0); }
+        let cands = sess.candidates();
+        assert!(
+            !cands.is_empty(),
+            "zho must still produce candidates via prefix completion"
+        );
+    }
+}
+
+#[cfg(test)]
+mod wubi_simcode_priority {
+    use super::*;
+    /// Inputx is a 五笔 IME first. Valid wubi 简码 (Jianma1/2/3) take #0
+    /// even when the same letters happen to be a valid pinyin syllable.
+    /// 伙 is the wubi 二级简码 for "wo" — pressing space commits 伙, not
+    /// pinyin 我. Pinyin candidates still appear in the list for users
+    /// who want them, just not at #0. (User correction 2026-05-22: a
+    /// brief "Policy 2" demote was reverted because it demoted wubi
+    /// simcodes to position 13 — broke the brand promise.)
+    fn top(input: &[u8]) -> String {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for cp in input { sess.handle_key(*cp as u32, 0); }
+        sess.candidates().first().cloned().unwrap_or_default()
+    }
+    #[test] fn wo_wubi_伙()  { assert_eq!(top(b"wo"),  "伙"); }
+    #[test] fn ni_wubi_悄()  { assert_eq!(top(b"ni"),  "悄"); }
+    #[test] fn ta_wubi_长()  { assert_eq!(top(b"ta"),  "长"); }
+    #[test] fn de_wubi_胡()  { assert_eq!(top(b"de"),  "胡"); }
+    #[test] fn shi_wubi_椒() { assert_eq!(top(b"shi"), "椒"); }
+    #[test] fn you_wubi_亦() { assert_eq!(top(b"you"), "亦"); }
+    // Jianma1 (1-letter) keeps its hard floor too.
+    #[test] fn e_wubi_有() { assert_eq!(top(b"e"), "有"); }
+    #[test] fn g_wubi_一() { assert_eq!(top(b"g"), "一"); }
+}
+
+#[cfg(test)]
+mod beyond_wubi_window {
+    use super::*;
+    /// User policy (2026-05-22): "超过 4 字就和五笔没关系了" — in Mixed
+    /// mode, once the user has typed 5+ letters, wubi should not appear
+    /// in the candidate list at all. The original 4-char defuse rule
+    /// caused 5+ char pinyin inputs to leak wubi-tail-simcode garbage
+    /// (jihua→工, naozi→不, tuijin→沁) into #0. Test all four user-
+    /// reported cases.
+    fn type_in_mixed(input: &[u8]) -> Vec<String> {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for cp in input { sess.handle_key(*cp as u32, 0); }
+        sess.candidates().to_vec()
+    }
+
+    #[test]
+    fn jihua_no_wubi_tail_工() {
+        let cands = type_in_mixed(b"jihua");
+        assert!(
+            !cands.iter().any(|w| w == "工"),
+            "jihua must not surface wubi-tail 工 (from defuse). Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn naozi_no_wubi_tail_不() {
+        let cands = type_in_mixed(b"naozi");
+        assert!(
+            !cands.iter().any(|w| w == "不"),
+            "naozi must not surface wubi-tail 不 (from defuse). Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn tuijin_no_wubi_tail_沁() {
+        let cands = type_in_mixed(b"tuijin");
+        assert!(
+            !cands.iter().any(|w| w == "沁"),
+            "tuijin must not surface wubi-tail. Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn jigao_no_wubi_tail_为() {
+        let cands = type_in_mixed(b"jigao");
+        assert!(
+            !cands.iter().any(|w| w == "为"),
+            "jigao must not surface wubi-tail 为 (o→jianma1). Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn four_letter_wubi_still_works() {
+        // Sanity: at exactly 4 letters, wubi still gets the floor.
+        // `wuzo` is a wubi phrase code for 我们 (4 chars, layer Phrase)
+        // — wubi still contributes here.
+        let cands = type_in_mixed(b"wuzo");
+        assert!(!cands.is_empty(), "wuzo must produce some candidate");
+    }
+}
+
+#[cfg(test)]
+mod cross_engine_pin {
+    use super::*;
+    /// `jixu` is a natural code collision: wubi-3-char-phrase encoding
+    /// for 曳光弹 (曳=j..., 光=i..., 弹=xu...) equals the pinyin
+    /// reading for 继续 / 急需 / etc. In Mixed mode with the wubi-first
+    /// merge rule, 曳光弹 takes #0 even though 继续 has 6× the corpus
+    /// freq. The user has a L0 pin `jixu → 继续` recorded over time,
+    /// and the composite engine's pin-promotion pass must surface that
+    /// pin across the engine boundary — wubi's structural priority
+    /// loses to an explicit user pin.
+    #[test]
+    fn pinyin_pin_promotes_across_engine_in_mixed_mode() {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        // Import a pinyin L0 with the jixu→继续 pin (mirrors what loads
+        // at runtime from ~/Library/.../pinyin_l0.json).
+        let pin_json = r#"{
+            "version": 1,
+            "engine": "pinyin",
+            "pins": [["jixu", "继续"]],
+            "pick_counts": []
+        }"#;
+        let n = sess.import_l0_json(1, pin_json);
+        assert_eq!(n, 1, "L0 import should accept the pin");
+
+        for cp in b"jixu" { sess.handle_key(*cp as u32, 0); }
+        let cands = sess.candidates();
+        assert_eq!(
+            cands.first().map(String::as_str),
+            Some("继续"),
+            "expected 继续 at #0 via pinyin pin promotion. Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+}
+
+
+#[cfg(test)]
+mod jigao_coverage {
+    use super::*;
+    #[test]
+    fn jigao_produces_jigao_after_supplemental_dict() {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(crate::composite::Mode::PinyinOnly);
+        for cp in b"jigao" { sess.handle_key(*cp as u32, 0); }
+        let cands = sess.candidates();
+        assert!(
+            cands.iter().any(|w| w == "极高"),
+            "极高 must be in jigao candidates after supplemental dict add. Got: {:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+}
+
+#[cfg(test)]
+mod jiazai_ranking {
+    use super::*;
+    #[test]
+    fn jiazai_jiazai_outranks_jiazai() {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(crate::composite::Mode::PinyinOnly);
+        for cp in b"jiazai" { sess.handle_key(*cp as u32, 0); }
+        let cands = sess.candidates();
+        let pos = |w: &str| cands.iter().position(|c| c == w);
+        let p_load = pos("加载");
+        let p_at = pos("加在");
+        assert!(p_load.is_some(), "加载 must be present. Got: {:?}", cands.iter().take(5).collect::<Vec<_>>());
+        if let (Some(load), Some(at)) = (p_load, p_at) {
+            assert!(load < at, "加载 (pos {}) must outrank 加在 (pos {})", load, at);
+        }
     }
 }

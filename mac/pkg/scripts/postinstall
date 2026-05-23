@@ -25,4 +25,22 @@ USER_TMP=$(/bin/launchctl asuser "$CONSOLE_UID" /usr/bin/getconf DARWIN_USER_CAC
 
 /usr/bin/killall TextInputMenuAgent 2>/dev/null || true
 
+# Install + bootstrap the user LaunchAgent that keeps the IME binary always
+# running. macOS 26's imklaunchagent silently refuses to launch our binary
+# on demand, so the IMK Mach service never appears and typing produces
+# nothing. The LaunchAgent bypasses that by always running the binary, which
+# self-registers the service. See ../../LaunchAgent.plist.template for the
+# rationale and ../../docs/macos-ime-recipe-2026.md §Investigation 6 for
+# the full story.
+USER_HOME=$(/usr/bin/dscl . -read "/Users/$CONSOLE_USER" NFSHomeDirectory | awk '{print $2}')
+LA_DST="$USER_HOME/Library/LaunchAgents/jp.golia.inputmethod.wubi.plist"
+LA_SRC="$APP/Contents/Resources/LaunchAgent.plist.template"
+if [ -f "$LA_SRC" ]; then
+    /bin/mkdir -p "$(dirname "$LA_DST")"
+    /usr/bin/sed "s|__APP_PATH__|$APP|g" "$LA_SRC" > "$LA_DST"
+    /usr/sbin/chown "$CONSOLE_USER:staff" "$LA_DST"
+    /bin/launchctl asuser "$CONSOLE_UID" /bin/launchctl bootout "gui/$CONSOLE_UID/jp.golia.inputmethod.wubi" 2>/dev/null || true
+    /bin/launchctl asuser "$CONSOLE_UID" /bin/launchctl bootstrap "gui/$CONSOLE_UID" "$LA_DST"
+fi
+
 exit 0

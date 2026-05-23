@@ -3,7 +3,7 @@
 # sources:
 #   - data/readings_unihan.tsv (single chars, Unicode License v3)
 #   - data/phrases_composed.tsv (jieba MIT × Unihan readings)
-#   - data/heteronyms_curated.tsv (canonical bias for 105 phrases)
+#   - data/heteronyms_curated.tsv (canonical bias for 205 phrases)
 # conflict resolution: heteronyms > composed > unihan (disjoint namespaces; no actual collision)
 㐀	qiu
 㐁	tian
@@ -140865,7 +140865,7 @@
 弹壳	danke
 弹头	dantou
 弹夹	danjia	tanjia
-弹奏	danzou	tanzou
+弹奏	tanzou
 弹奏乐器	danzouleqi	danzouyueqi	tanzouleqi	tanzouyueqi
 弹奏出	danzouchu	tanzouchu
 弹奏着	danzouzhao	danzouzhe	danzouzhuo	tanzouzhao	tanzouzhe	tanzouzhuo
@@ -184490,7 +184490,7 @@
 朝闻夕改	zhaowenxigai
 朝闻夕死	zhaowenxisi
 朝闻道夕	chaowendaoxi	zhaowendaoxi
-朝阳	chaoyang	zhaoyang
+朝阳	chaoyang
 朝阳丹凤	chaoyangdanfeng
 朝阳产业	chaoyangchanye	zhaoyangchanye
 朝阳区	chaoyangqu
@@ -294774,7 +294774,7 @@
 行藏	xingcang
 行藏用舍	xingcangyongshe
 行血	hangxie	hangxue	xingxie	xingxue
-行行	hanghang	hangxing	xinghang	xingxing
+行行	hanghang
 行行出状元	hanghangchuzhuangyuan
 行行好	hanghanghao	hangxinghao	xinghanghao	xingxinghao
 行行色色	hanghangsese	hangxingsese	xinghangsese	xingxingsese
@@ -318513,7 +318513,7 @@
 还望	haiwang	huanwang
 还本付息	haibenfuxi	huanbenfuxi
 还朴反古	huanpufangu
-还款	haikuan
+还款	huankuan
 还款期	haikuanqi	huankuanqi
 还款法	haikuanfa	huankuanfa
 还款额	haikuane	huankuane
@@ -328144,7 +328144,7 @@
 重兵	zhongbing
 重兵把守	chongbingbashou	zhongbingbashou
 重典	zhongdian
-重写	chongxie	zhongxie
+重写	chongxie
 重农主义	chongnongzhuyi	zhongnongzhuyi
 重出	chongchu
 重出江湖	chongchujianghu	zhongchujianghu
@@ -328197,7 +328197,7 @@
 重启动	chongqidong	zhongqidong
 重吸收	chongxishou	zhongxishou
 重味	chongwei	zhongwei
-重命名	chongmingming	zhongmingming
+重命名	chongmingming
 重唱	chongchang
 重商主义	chongshangzhuyi	zhongshangzhuyi
 重回	chonghui	zhonghui
@@ -328525,7 +328525,7 @@
 重罚	zhongfa
 重罪	zhongzui
 重罪轻判	chongzuiqingpan	zhongzuiqingpan
-重置	chongzhi	zhongzhi
+重置	chongzhi
 重置成本	chongzhichengben	zhongzhichengben
 重置费用	chongzhifeiyong	zhongzhifeiyong
 重考	chongkao	zhongkao
@@ -328579,7 +328579,7 @@
 重设键	chongshejian	zhongshejian
 重访	chongfang	zhongfang
 重译	chongyi
-重试	chongshi	zhongshi
+重试	chongshi
 重话	zhonghua
 重读	chongdu
 重谢	chongxie	zhongxie

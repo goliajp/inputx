@@ -17,16 +17,52 @@ final class MenubarSettings {
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            // U+5165 "入" — visual mnemonic for "input method".
+            // U+5165 "入" — visual mnemonic for CJK input. Flipped to "A"
+            // while the controller is in EN mode (see `handleModeChanged`).
             button.title = "入"
             button.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
         }
         statusItem.menu = menu
         rebuildMenu()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleInputModeChanged(_:)),
+            name: .inputxInputModeChanged,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    /// Update the status-item title to reflect the current CJK / EN mode.
+    /// Posted by `InputxController.toggleInputMode`.
+    @objc private func handleInputModeChanged(_ note: Notification) {
+        guard let raw = note.userInfo?["mode"] as? UInt8,
+              let mode = InputxInputMode(rawValue: raw)
+        else { return }
+        if let button = statusItem.button {
+            button.title = (mode == .cjk) ? "入" : "A"
+        }
     }
 
     private func rebuildMenu() {
         menu.removeAllItems()
+
+        // First-class "open settings" entry — opens the SwiftUI window
+        // where every toggle is laid out at once. Promotes discoverability
+        // since two "入" glyphs (Apple's system input switcher + our
+        // NSStatusItem) currently look identical and confuse users.
+        let openSettings = NSMenuItem(
+            title: "Inputx 设置…",
+            action: #selector(openSettings),
+            keyEquivalent: ","
+        )
+        openSettings.target = self
+        openSettings.keyEquivalentModifierMask = [.command]
+        menu.addItem(openSettings)
+        menu.addItem(.separator())
 
         // Engine mode picker
         let modeHeader = NSMenuItem(title: "输入方案", action: nil, keyEquivalent: "")
@@ -35,7 +71,18 @@ final class MenubarSettings {
         addModeItem("混合（五笔为主，拼音兜底）", mode: .mixed)
         addModeItem("仅五笔", mode: .wubiOnly)
         addModeItem("仅拼音", mode: .pinyinOnly)
+        addModeItem("仅日语", mode: .japaneseOnly)
         menu.addItem(.separator())
+
+        // Japanese plugin attachment toggle. Visible only when the engine
+        // mode is a Chinese mode — under `.japaneseOnly` the toggle is
+        // implicit and the menu line would just be confusing.
+        if inputxSettings.engineMode != .japaneseOnly {
+            addToggle("日本語拡張（候補に平仮名・片仮名・漢字を追加）",
+                      isOn: inputxSettings.japaneseEnabled,
+                      selector: #selector(toggleJapanese))
+            menu.addItem(.separator())
+        }
 
         // Auto-commit policy
         let policyHeader = NSMenuItem(title: "自动上屏", action: nil, keyEquivalent: "")
@@ -59,11 +106,12 @@ final class MenubarSettings {
                   selector: #selector(toggleRareChars))
         menu.addItem(.separator())
 
-        // L0 user-learning actions
+        // L0 user-learning actions + polish-log
         let l0Header = NSMenuItem(title: "学习记录 (L0)", action: nil, keyEquivalent: "")
         l0Header.isEnabled = false
         menu.addItem(l0Header)
         menu.addItem(menuItem("打开数据目录…", selector: #selector(revealL0Dir)))
+        menu.addItem(menuItem("打开 polish 日志（非首位选取记录）", selector: #selector(revealPolishLog)))
         menu.addItem(menuItem("重置（清空所有学习）", selector: #selector(resetL0)))
         menu.addItem(.separator())
 
@@ -109,32 +157,54 @@ final class MenubarSettings {
 
     // MARK: - Actions --------------------------------------------------------
 
+    @objc private func openSettings() {
+        SettingsWindowController.shared.show()
+    }
+
     @objc private func pickMode(_ sender: NSMenuItem) {
         guard let mode = InputxEngineMode(rawValue: UInt8(sender.tag)) else { return }
         inputxSettings.engineMode = mode
         rebuildMenu()
+        broadcastSettingsChanged()
     }
 
     @objc private func pickPolicy(_ sender: NSMenuItem) {
         guard let p = InputxAutoCommitPolicy(rawValue: UInt32(sender.tag)) else { return }
         inputxSettings.autoCommitPolicy = p
         rebuildMenu()
+        broadcastSettingsChanged()
     }
 
     @objc private func toggleCjkPunct() {
         inputxSettings.useCjkPunct.toggle()
         rebuildMenu()
+        broadcastSettingsChanged()
     }
 
     @objc private func toggleFullWidth() {
         inputxSettings.useFullWidth.toggle()
         rebuildMenu()
+        broadcastSettingsChanged()
     }
 
     @objc private func toggleRareChars() {
         inputxSettings.showRareChars.toggle()
         InputxRareChars.enabled = inputxSettings.showRareChars
         rebuildMenu()
+        broadcastSettingsChanged()
+    }
+
+    @objc private func toggleJapanese() {
+        inputxSettings.japaneseEnabled.toggle()
+        rebuildMenu()
+        broadcastSettingsChanged()
+    }
+
+    private func broadcastSettingsChanged() {
+        NotificationCenter.default.post(
+            name: .inputxSettingsChanged,
+            object: nil
+        )
     }
 
     @objc private func revealL0Dir() {
@@ -146,6 +216,10 @@ final class MenubarSettings {
         try? FileManager.default.createDirectory(at: url,
                                                   withIntermediateDirectories: true)
         NSWorkspace.shared.open(url)
+    }
+
+    @objc private func revealPolishLog() {
+        NSWorkspace.shared.activateFileViewerSelecting([PolishLog.url])
     }
 
     @objc private func resetL0() {

@@ -6,7 +6,9 @@ mod table;
 pub use engine::{AutoCommitPolicy, WubiEngine};
 /// L0 persistence — re-exported for host wiring (Session also exposes them
 /// as instance methods for cleaner call sites).
-pub use table::{export_l0, import_l0, is_displayable, set_show_rare, show_rare, warmup};
+pub use table::{
+    export_l0, import_l0, is_displayable, lookup_with_scores, set_show_rare, show_rare, warmup,
+};
 /// Re-export of the wubi snapshot type so hosts can build/destructure it
 /// without depending on the `wubi` crate directly.
 pub use wubi::L0Snapshot;

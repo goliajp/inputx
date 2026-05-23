@@ -10,7 +10,7 @@
 use core::ffi::{CStr, c_char};
 use std::ffi::CString;
 
-use inputx_core::{AutoCommitPolicy, EngineMode, Session};
+use inputx_core::{AutoCommitPolicy, EngineMode, InputMode, Session};
 
 /// Opaque handle to a Inputx IME session.
 pub struct InputxSession {
@@ -254,6 +254,7 @@ pub extern "C" fn inputx_get_show_rare_chars() -> u8 {
 ///   0 = Mixed (wubi primary + pinyin fallback)
 ///   1 = WubiOnly
 ///   2 = PinyinOnly
+///   3 = JapaneseOnly (standalone JP plugin; wubi/pinyin dormant)
 /// Returns `1` if accepted, `0` if `mode` was out of range or session NULL
 /// (state unchanged in either case).
 ///
@@ -286,12 +287,94 @@ pub unsafe extern "C" fn inputx_session_get_engine_mode(session: *const InputxSe
     }
 }
 
+/// Set the top-level input mode (orthogonal to engine mode).
+///   0 = Cjk (default — CJK composing pipeline)
+///   1 = En  (pure passthrough: `inputx_session_key_event` returns 0;
+///            host receives ASCII directly, no IME preedit)
+/// Returns `1` if accepted, `0` if `mode` was out of range or session NULL
+/// (state unchanged in either case).
+///
+/// Cjk → En with in-flight composing commits the raw ASCII codes the
+/// user typed (same semantic as pressing return in CJK with a non-empty
+/// preedit). En → Cjk has nothing to drain — EN doesn't buffer.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_set_input_mode(session: *mut InputxSession, mode: u8) -> u8 {
+    let Some(s) = (unsafe { session.as_mut() }) else {
+        return 0;
+    };
+    match InputMode::from_u8(mode) {
+        Some(m) => {
+            s.inner.set_input_mode(m);
+            1
+        }
+        None => 0,
+    }
+}
+
+/// Returns the current input mode (0=Cjk / 1=En). Returns 0 (Cjk) if
+/// session is NULL — same as the default.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_get_input_mode(session: *const InputxSession) -> u8 {
+    match unsafe { session.as_ref() } {
+        Some(s) => s.inner.input_mode().as_u8(),
+        None => InputMode::default().as_u8(),
+    }
+}
+
+/// Toggle the JP plugin's "enhancement" attachment. `on` is interpreted
+/// as boolean: `0` = off, anything else = on. Returns `1` if the call
+/// reached the engine, `0` if `session` was NULL.
+///
+/// Independent of `inputx_session_set_engine_mode` — the JP plugin can
+/// attach to any Chinese mode (Mixed / WubiOnly / PinyinOnly) as a
+/// supplementary source, or run standalone via `engine_mode = 3`
+/// (`JapaneseOnly`). When `engine_mode = JapaneseOnly`, this toggle is
+/// implicitly true and explicit `set_japanese_enabled(0)` has no effect.
+///
+/// Default after `inputx_session_new` is OFF.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_set_japanese_enabled(
+    session: *mut InputxSession,
+    on: u8,
+) -> u8 {
+    let Some(s) = (unsafe { session.as_mut() }) else {
+        return 0;
+    };
+    s.inner.set_japanese_enabled(on != 0);
+    1
+}
+
+/// Read the JP-plugin enhancement toggle: returns `1` if on, `0` if off
+/// or `session` is NULL.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_get_japanese_enabled(
+    session: *const InputxSession,
+) -> u8 {
+    match unsafe { session.as_ref() } {
+        Some(s) => if s.inner.japanese_enabled() { 1 } else { 0 },
+        None => 0,
+    }
+}
+
 /// Source byte for the candidate at `index`:
 ///   0 = Wubi
 ///   1 = Pinyin
+///   2 = Japanese
 /// Returns `255` (sentinel) if `index` is out of range or session is NULL.
-/// 255 is chosen because it's outside the 0..=1 valid range and unsigned-
-/// safe; iOS bridge treats anything > 1 as "unknown" → no W/P dot.
+/// 255 is chosen because it's outside the valid range and unsigned-safe;
+/// iOS bridge treats anything > 2 as "unknown" → no source dot.
 ///
 /// # Safety
 /// `session` must be valid (or NULL).

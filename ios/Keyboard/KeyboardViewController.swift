@@ -86,22 +86,34 @@ final class KeyboardViewController: UIInputViewController {
         let engineMode = InputxEngineMode(rawValue: modeRaw) ?? .mixed
         session.setEngineMode(engineMode)
 
-        // Item 73 — read auto-commit policy from settings (default 3 =
-        // OnFourCodesIfUnique). Missing key returns 0 (Never), so seed an
-        // explicit default the first time we read it.
+        // JP plugin "enhancement" toggle. Independent of engineMode.
+        // Default ON (v1.2.0-α2) — see InputxSettings.registerDefaults().
+        // First-install: persist the explicit default so SwiftUI's
+        // Settings picker reflects the live state.
+        let jpKey = "japaneseEnabled"
+        let jpHas = inputxSharedDefaults.object(forKey: jpKey) != nil
+        let japaneseEnabled = jpHas
+            ? inputxSharedDefaults.bool(forKey: jpKey)
+            : true
+        session.setJapaneseEnabled(japaneseEnabled)
+        if !jpHas {
+            inputxSharedDefaults.set(true, forKey: jpKey)
+        }
+
+        // Item 73 — read auto-commit policy from settings. Default = 0
+        // (Never): user has the final say on every commit. See
+        // InputxSettings.registerDefaults() rationale.
         let policyKey = "autoCommitPolicy"
         let hasKey = inputxSharedDefaults.object(forKey: policyKey) != nil
         let policyRaw = UInt32(
             clamping: hasKey
                 ? inputxSharedDefaults.integer(forKey: policyKey)
-                : 3
+                : 0
         )
-        let policy = InputxAutoCommitPolicy(rawValue: policyRaw) ?? .onFourCodesIfUnique
+        let policy = InputxAutoCommitPolicy(rawValue: policyRaw) ?? .never
         session.setAutoCommitPolicy(policy)
         if !hasKey {
-            // First-install: persist the actual default so the SwiftUI
-            // settings picker reads the right value.
-            inputxSharedDefaults.set(3, forKey: policyKey)
+            inputxSharedDefaults.set(0, forKey: policyKey)
         }
 
         // Item 77 — restore L0 from App Group container so user-trained
@@ -681,13 +693,22 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func handleReturn() {
-        // Drop any inline preedit first (we don't commit it on return —
-        // keeps behavior predictable for power users), then insert newline.
-        let oldPreedit = session.preedit ?? ""
+        // Route through the engine first: when there's an in-flight CJK
+        // preedit, the engine's CP_RETURN arm commits the raw wubi/pinyin
+        // letters as ASCII and swallows the \r ("not CJK after all" —
+        // same semantic shared with the mac IME). With no composing, the
+        // engine declines and we insert the newline normally.
         UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.6)
+        let oldPreedit = session.preedit ?? ""
+        let consumed = session.handleKey(codepoint: 0x0D, modifiers: [])
         eraseHostText(oldPreedit.count)
-        inputxProxy.insertText("\n")
-        session.clear()
+        if consumed {
+            if let text = session.takeCommit(), !text.isEmpty {
+                inputxProxy.insertText(text)
+            }
+        } else {
+            inputxProxy.insertText("\n")
+        }
         refreshFromSession()
         evaluateAutoCaps()
     }

@@ -3,80 +3,94 @@
 //! Decides which sub-engines run for a given input + mode, and how their
 //! candidate lists combine into the merged output.
 
+use super::japanese_adapter::JapaneseAdapter;
 use super::merge::{Candidate, merge};
 use super::mode::Mode;
 use super::pinyin_adapter::PinyinAdapter;
+use super::scoring;
 use crate::wubi::WubiEngine;
 
 /// Compute the merged candidate list for the current state.
 ///
-/// - `Mode::WubiOnly` — wubi candidates tagged Source::Wubi.
-/// - `Mode::PinyinOnly` — pinyin candidates tagged Source::Pinyin.
-/// - `Mode::Mixed` — both engines' candidates merged. Default order is
-///   wubi-first (deliberate codes before pinyin guesses). Two reorderings:
-///   (a) pinyin buffer starts with `z` AND wubi buffer is empty → pinyin
-///   only (`z` isn't a wubi 字根 letter); (b) pinyin buffer is *longer*
-///   than the wubi buffer → pinyin-first. (b) catches the collision case
-///   where the user's input has overflowed wubi's 4-code window: the user
-///   is committed to pinyin (e.g., shang, wangle), so the wubi reset-
-///   leftover (e.g., wubi buffer "g" → 一) shouldn't dominate.
-pub fn dispatch(mode: Mode, wubi: &WubiEngine, pinyin: &PinyinAdapter) -> Vec<Candidate> {
+/// - `Mode::WubiOnly` — wubi candidates first; JP appended if enabled.
+/// - `Mode::PinyinOnly` — pinyin first; JP appended if enabled.
+/// - `Mode::Mixed` — wubi + pinyin merged (existing ranking rules below);
+///   JP appended at the end if enabled.
+/// - `Mode::JapaneseOnly` — JP candidates only (wubi/pinyin ignored).
+///
+/// For `Mode::Mixed`, ranking rules are:
+///   (a) pinyin buffer starts with `z` AND wubi buffer is empty → wubi
+///       contributes nothing (`z` isn't a wubi 字根 letter);
+///   (b) pinyin buffer is *longer* than the wubi buffer → pinyin-first.
+///       Catches the collision case where the user's input overflowed
+///       wubi's 4-code window: the user is committed to pinyin
+///       (e.g., shang, wangle), so the wubi reset-leftover shouldn't
+///       dominate.
+///
+/// `japanese` is passed as `Option`: `None` when JP is disabled (the
+/// composite engine never even constructed an adapter), `Some` when on
+/// (Mixed/WubiOnly/PinyinOnly + enable_japanese, or JapaneseOnly).
+pub fn dispatch(
+    mode: Mode,
+    wubi: &WubiEngine,
+    pinyin: &PinyinAdapter,
+    japanese: Option<&JapaneseAdapter>,
+) -> Vec<Candidate> {
+    let (jp_kanji, jp_kana) = match japanese {
+        Some(j) => split_jp_scored(j),
+        None => (vec![], vec![]),
+    };
     match mode {
-        Mode::WubiOnly => merge(wubi.candidates().to_vec(), vec![]),
-        Mode::PinyinOnly => merge(vec![], pinyin.candidates().to_vec()),
+        Mode::WubiOnly => merge(wubi.candidates_with_scores(), vec![], jp_kanji, jp_kana),
+        Mode::PinyinOnly => merge(vec![], pinyin.candidates_with_scores(), jp_kanji, jp_kana),
+        Mode::JapaneseOnly => merge(vec![], vec![], jp_kanji, jp_kana),
         Mode::Mixed => {
-            let z_prefix = pinyin.buffer_str().starts_with('z');
-            let wubi_cands = if z_prefix {
-                vec![]
-            } else {
-                wubi.candidates().to_vec()
-            };
-            let pinyin_cands = pinyin.candidates().to_vec();
-            // Pinyin-first when the pinyin buffer outgrew the wubi buffer.
-            // This means either wubi was reset / cleared mid-input or the
-            // user crossed wubi's 4-char limit — in both cases the pinyin
-            // buffer is the more-faithful representation of intent.
-            if pinyin.buffer_str().len() > wubi.buffer_str().len()
-                && !pinyin_cands.is_empty()
-            {
-                merge_pinyin_first(wubi_cands, pinyin_cands)
-            } else {
-                merge(wubi_cands, pinyin_cands)
+            // EVERYTHING IS SCORE. No if-skip-engine branches. Wubi
+            // candidates always get collected; their scores are
+            // multiplied by `scoring::wubi_length_modifier(buffer_len)`
+            // — which is 1.0 inside the wubi window and 0.0 beyond it.
+            // Result: past-window wubi candidates rank at score 0,
+            // get cut by the MAX_PER_INPUT cap, never reach the user.
+            // The visible behavior matches "5+ char wubi out" but
+            // the *mechanism* is pure scoring.
+            let pinyin_len = pinyin.buffer_str().len();
+            let wubi_mult = scoring::wubi_length_modifier(pinyin_len);
+            let mut wubi_cands = wubi.candidates_with_scores();
+            // The 'z' carve-out (wubi 'z' is rare standalone) is
+            // expressed as the same length-modifier mechanism: a
+            // ZERO score multiplier zeroes the candidates out the
+            // same way the length cutoff does.
+            let z_mult = if pinyin.buffer_str().starts_with('z') { 0.0 } else { 1.0 };
+            let final_mult = wubi_mult * z_mult;
+            if final_mult != 1.0 {
+                for (_, s) in wubi_cands.iter_mut() {
+                    *s *= final_mult;
+                }
             }
+            merge(wubi_cands, pinyin.candidates_with_scores(), jp_kanji, jp_kana)
         }
     }
 }
 
-/// Merge but with pinyin candidates listed before wubi (still attributing
-/// each to its source). Used when pinyin buffer outpaced wubi (collision
-/// scenarios from the 5+ char input path).
-fn merge_pinyin_first(wubi: Vec<String>, pinyin: Vec<String>) -> Vec<Candidate> {
-    use crate::composite::merge::{Candidate, MAX_PER_INPUT, Source};
-    let mut out = Vec::with_capacity((wubi.len() + pinyin.len()).min(MAX_PER_INPUT));
-    let mut seen = std::collections::HashSet::with_capacity(out.capacity());
-    for p in pinyin {
-        if out.len() >= MAX_PER_INPUT {
-            break;
-        }
-        if seen.insert(p.clone()) {
-            out.push(Candidate {
-                word: p,
-                source: Source::Pinyin,
-            });
-        }
-    }
-    for w in wubi {
-        if out.len() >= MAX_PER_INPUT {
-            break;
-        }
-        if seen.insert(w.clone()) {
-            out.push(Candidate {
-                word: w,
-                source: Source::Wubi,
-            });
+/// Split the JP adapter's scored candidates into (kanji, kana) buckets
+/// — the cross-engine merge takes them separately for clarity but
+/// scoring is uniform across both.
+fn split_jp_scored(
+    j: &JapaneseAdapter,
+) -> (Vec<(String, f64)>, Vec<(String, f64)>) {
+    let all = j.candidates_with_scores();
+    let kanji_set: std::collections::HashSet<String> =
+        j.kanji_candidates().into_iter().collect();
+    let mut kanji = Vec::new();
+    let mut kana = Vec::new();
+    for (w, s) in all {
+        if kanji_set.contains(&w) {
+            kanji.push((w, s));
+        } else {
+            kana.push((w, s));
         }
     }
-    out
+    (kanji, kana)
 }
 
 #[cfg(test)]
@@ -103,7 +117,7 @@ mod tests {
         wubi_typed(&mut wubi, b"gggg"); // wubi has candidates
         typed(&mut pinyin, b"women"); // pinyin too
 
-        let cands = dispatch(Mode::PinyinOnly, &wubi, &pinyin);
+        let cands = dispatch(Mode::PinyinOnly, &wubi, &pinyin, None);
         assert!(cands.iter().all(|c| c.source == Source::Pinyin));
         assert!(cands.iter().any(|c| c.word == "我们"));
     }
@@ -115,7 +129,7 @@ mod tests {
         wubi_typed(&mut wubi, b"g"); // 'g' = 一级简码 → 一
         typed(&mut pinyin, b"yi");
 
-        let cands = dispatch(Mode::WubiOnly, &wubi, &pinyin);
+        let cands = dispatch(Mode::WubiOnly, &wubi, &pinyin, None);
         assert!(cands.iter().all(|c| c.source == Source::Wubi));
         assert_eq!(cands.first().map(|c| c.word.as_str()), Some("一"));
     }
@@ -130,7 +144,7 @@ mod tests {
         wubi_typed(&mut wubi, b"a"); // wubi 1-char buffer (may have no cands)
         typed(&mut pinyin, b"a"); // pinyin "a" → 啊/吖/etc.
 
-        let cands = dispatch(Mode::Mixed, &wubi, &pinyin);
+        let cands = dispatch(Mode::Mixed, &wubi, &pinyin, None);
         // With equal buffer lengths, default wubi-first ordering is used.
         // Pinyin candidates should be present in the merged list.
         assert!(
@@ -140,20 +154,16 @@ mod tests {
     }
 
     #[test]
-    fn mixed_pinyin_first_when_pinyin_outgrew_wubi() {
-        // Collision recovery scenario: wubi buffer was reset (e.g., after
-        // 5-char overflow defuse) while pinyin kept accumulating. Pinyin
-        // should lead the candidate list.
-        let mut wubi = WubiEngine::new();
-        let mut pinyin = PinyinAdapter::new();
-        wubi_typed(&mut wubi, b"g"); // wubi has 1 char → 一
-        typed(&mut pinyin, b"shang"); // pinyin has 5 chars → 上, 商, …
-
-        let cands = dispatch(Mode::Mixed, &wubi, &pinyin);
-        assert_eq!(cands[0].source, Source::Pinyin);
-        // Common pinyin shang candidates should appear in top.
-        assert!(cands.iter().any(|c| c.word == "上"));
-    }
+    // (deleted) mixed_pinyin_first_when_pinyin_outgrew_wubi: the test
+    // constructed an artificial state where wubi has buf="g" while
+    // pinyin has buf="shang" — used to validate the now-removed
+    // pinyin-first heuristic. Under the unified-score merge, wubi `g`
+    // gives 一 (Jianma1, score ~1.04M) which legitimately tops a
+    // pinyin shang result (~500k) — that's the simcode hard floor
+    // working as designed. The real collision-recovery scenario
+    // (user types 5+ chars; wubi resets to a tail like "ng" with
+    // Auto-layer scores ~100k) is covered by score-based ordering
+    // without needing the heuristic.
 
     #[test]
     fn mixed_z_prefix_skips_wubi() {
@@ -163,7 +173,7 @@ mod tests {
         // empty even at the engine level. Pinyin gets the full input.
         typed(&mut pinyin, b"zhongguo");
 
-        let cands = dispatch(Mode::Mixed, &wubi, &pinyin);
+        let cands = dispatch(Mode::Mixed, &wubi, &pinyin, None);
         assert!(cands.iter().all(|c| c.source == Source::Pinyin));
         assert_eq!(cands.first().map(|c| c.word.as_str()), Some("中国"));
     }
