@@ -35,9 +35,44 @@ try:
 except ImportError:
     raise SystemExit("pip3 install --user --break-system-packages jieba")
 
+try:
+    from opencc import OpenCC
+    _t2s = OpenCC("t2s")
+except ImportError:
+    raise SystemExit(
+        "pip3 install --user --break-system-packages opencc-python-reimplemented"
+    )
+
+def to_simplified(s: str) -> str:
+    """Pipe a string through OpenCC traditional→simplified.
+
+    Why: Leipzig zho_wikipedia_2018_1M contains mixed simplified/traditional
+    content (zh.wikipedia is bilingual). Without t2s, bigrams like
+    (是, 於) and (是, 于) BOTH exist in the FST, and `predict_next_words("是")`
+    returns 於 as a top hit (user-reported 2026-05-24 — predictions
+    panel showed 1於 2于 3此 ... in a simplified-mode session).
+    Converting at extraction time means the FST has SIMPLIFIED-ONLY
+    keys/values, so traditional forms can never leak into predictions
+    regardless of user mode (we always simplify; mode only affects
+    candidate-side display, not corpus content).
+    """
+    return _t2s.convert(s)
+
 ROOT = Path(__file__).resolve().parent.parent.parent
 CACHE = ROOT / "core/crates/inputx-pinyin/data/corpus/cache"
-OUT = ROOT / "tools/scoring/data/supplemental/pinyin_bigrams_v1.tsv"
+# TWO output files (separation matters — see v1.0 联想 design):
+#   inter: word-token-to-word-token bigrams (truly adjacent in corpus
+#          after jieba). USED BY predict_next_words for next-word
+#          predictions. Required to avoid prediction chains spawning
+#          from intra-phrase char pairs (椒→粉 etc.) that aren't
+#          real sentence continuations.
+#   intra: char-pair bigrams within a multi-char token (你好 → (你, 好)).
+#          USED BY Viterbi composition (bigram_boost) to help segment
+#          long buffers into known phrases. Has zero value for
+#          predictions — it's "what chars co-occur inside one word",
+#          not "what word follows what word".
+OUT_INTER = ROOT / "tools/scoring/data/supplemental/pinyin_bigrams_inter_v1.tsv"
+OUT_INTRA = ROOT / "tools/scoring/data/supplemental/pinyin_bigrams_intra_v1.tsv"
 
 # Leipzig tarballs contain a directory like `zho_wikipedia_2018_1M/`
 # with several files; the one we want is `*-sentences.txt`. Each line:
@@ -82,9 +117,11 @@ def main() -> int:
     args = ap.parse_args()
 
     jieba.initialize()
-    counter: Counter[tuple[str, str]] = Counter()
+    counter_inter: Counter[tuple[str, str]] = Counter()
+    counter_intra: Counter[tuple[str, str]] = Counter()
     total_sents = 0
-    total_bigrams = 0
+    total_inter = 0
+    total_intra = 0
 
     for src in SOURCES:
         path = CACHE / src
@@ -96,53 +133,56 @@ def main() -> int:
               file=sys.stderr)
         for sent in iter_sentences(path):
             total_sents += 1
-            # jieba segment; filter to CJK-only words (drop English / digits
-            # / punctuation tokens — bigrams involving those are noise for
-            # a pinyin reranker).
-            words = [w for w in jieba.cut(sent, HMM=True) if has_cjk(w)]
-            # Inter-token bigrams: (word_i, word_{i+1}).
+            # 1) t2s simplify FIRST — drops traditional variants before
+            #    they ever enter the bigram counter (see to_simplified).
+            # 2) jieba segment on the simplified sentence.
+            sent_simp = to_simplified(sent)
+            words = [w for w in jieba.cut(sent_simp, HMM=True) if has_cjk(w)]
+            # Inter-token bigrams (predict_next_words input): truly
+            # adjacent tokens — real "what word follows what word"
+            # signal. Prediction chains can ONLY be built from this set;
+            # see header comment for the rationale.
             for prev, nxt in zip(words, words[1:]):
-                counter[(prev, nxt)] += 1
-                total_bigrams += 1
-            # Intra-token char bigrams: for any multi-char token, count
-            # each adjacent char pair. Captures (你, 好) from "你好"
-            # which jieba unitizes as one token — without this, the
-            # Viterbi segmenter has no signal to prefer 你+好 over
-            # 你+号码 when bridging via prev-char context. Discounted
-            # weight (0.5×) because phrase-internal context is weaker
-            # signal than truly-adjacent words.
+                counter_inter[(prev, nxt)] += 1
+                total_inter += 1
+            # Intra-token char bigrams (Viterbi composition input):
+            # adjacent chars inside one multi-char jieba token. Captures
+            # (你, 好) from "你好". Helps Viterbi segment a long buffer
+            # into known phrases, but has zero meaning as a next-word
+            # prediction — kept STRICTLY separate from inter.
             for tok in words:
                 if len(tok) >= 2:
                     chars = list(tok)
                     for a, b in zip(chars, chars[1:]):
-                        # Increment by 1 each time (overall weight comes
-                        # out to ~half of jieba-token bigrams in
-                        # practice — many tokens are 1-char so the
-                        # within-token contribution is naturally bounded).
-                        counter[(a, b)] += 1
-                        total_bigrams += 1
+                        counter_intra[(a, b)] += 1
+                        total_intra += 1
             if total_sents % 100_000 == 0:
-                print(f"  ... {total_sents} sents, {len(counter)} unique bigrams",
+                print(f"  ... {total_sents} sents, "
+                      f"inter={len(counter_inter)} intra={len(counter_intra)}",
                       file=sys.stderr)
 
-    print(f"[bigrams] total: {total_sents} sents, {total_bigrams} bigram-occurrences, "
-          f"{len(counter)} unique", file=sys.stderr)
+    print(f"[bigrams] total sents={total_sents} inter-occ={total_inter} "
+          f"intra-occ={total_intra}", file=sys.stderr)
+    print(f"[bigrams] unique inter={len(counter_inter)} intra={len(counter_intra)}",
+          file=sys.stderr)
 
-    # Filter + sort.
-    filtered = [(p, n, c) for (p, n), c in counter.items() if c >= args.min_count]
-    filtered.sort(key=lambda x: (-x[2], x[0], x[1]))
-    filtered = filtered[: args.top]
+    def write_file(out_path: Path, counter: Counter, label: str):
+        filtered = [(p, n, c) for (p, n), c in counter.items() if c >= args.min_count]
+        filtered.sort(key=lambda x: (-x[2], x[0], x[1]))
+        filtered = filtered[: args.top]
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        with out_path.open("w") as f:
+            f.write(f"# Pinyin word bigrams ({label}) — by build_pinyin_bigrams.py\n")
+            f.write(f"# source: {', '.join(SOURCES)}\n")
+            f.write(f"# stats: kept {len(filtered)} / {len(counter)} unique "
+                    f"(min_count={args.min_count}, top={args.top})\n")
+            f.write("# format: prev\\tnext\\tcount\n")
+            for p, n, c in filtered:
+                f.write(f"{p}\t{n}\t{c}\n")
+        print(f"[bigrams] wrote {out_path} ({len(filtered)} rows)", file=sys.stderr)
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    with OUT.open("w") as f:
-        f.write("# Pinyin word bigrams — generated by build_pinyin_bigrams.py\n")
-        f.write(f"# source: {', '.join(SOURCES)}\n")
-        f.write(f"# stats: kept {len(filtered)} / {len(counter)} unique "
-                f"(min_count={args.min_count}, top={args.top})\n")
-        f.write("# format: prev\\tnext\\tcount\n")
-        for p, n, c in filtered:
-            f.write(f"{p}\t{n}\t{c}\n")
-    print(f"[bigrams] wrote {OUT} ({len(filtered)} rows)", file=sys.stderr)
+    write_file(OUT_INTER, counter_inter, "inter-token")
+    write_file(OUT_INTRA, counter_intra, "intra-token char-pair")
     return 0
 
 

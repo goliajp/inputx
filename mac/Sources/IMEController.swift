@@ -182,6 +182,27 @@ final class InputxController: IMKInputController {
                 updatePreedit(client: sender)
                 return true
             }
+            // Punctuation / symbol → dismiss panel but DON'T consume —
+            // let Path B map the punct (',' → '，' etc.) and commit it
+            // normally. Predictions are only meaningful while the user
+            // is in a "continuing this sentence" stance; punctuation
+            // signals clause/phrase boundary, so the post-commit panel
+            // is stale and just clutters the screen.
+            // Excludes +/-/= (pagination keys) — those technically
+            // satisfy isAsciiPunctKey but are reserved for panel
+            // navigation by the block ~50 lines below; hiding here
+            // would break their pagination semantics in prediction
+            // mode. They naturally never reach Path B for punct
+            // mapping because the pagination block consumes them.
+            if codepoint < 0x80
+                && isAsciiPunctKey(codepoint)
+                && codepoint != 0x2B   // '+'
+                && codepoint != 0x2D   // '-'
+                && codepoint != 0x3D   // '='
+            {
+                panel.hide()
+                // fall through; Path B below applies locale mapping.
+            }
         }
 
         // Apple PUA range for special keys (arrows, function keys). When
