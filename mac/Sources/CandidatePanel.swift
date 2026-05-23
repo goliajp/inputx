@@ -32,6 +32,22 @@ final class CandidatePanel {
     private var rowViews: [CandidateRow] = []
     private weak var lastClient: AnyObject?
 
+    /// Which edge of the panel stays put when the row count changes
+    /// (page flip, candidate-set refresh):
+    ///
+    /// * `.top` — panel sits *below* the caret (the common case). The
+    ///   panel's TOP edge is anchored where `positionNear` placed it,
+    ///   and it grows / shrinks downward.
+    /// * `.bottom` — panel sits *above* the caret (when the host input
+    ///   field is near the bottom of the screen and there's no room
+    ///   below). The panel's BOTTOM edge stays anchored just above the
+    ///   caret, and it grows / shrinks upward.
+    ///
+    /// Without this, flipped-above panels grow into the caret when more
+    /// candidates arrive — user-reported bug 2026-05-23.
+    private enum AnchorEdge { case top, bottom }
+    private var anchorEdge: AnchorEdge = .top
+
     init() {
         // Borderless floating panel — doesn't steal focus, sits above host.
         // Compact width (user-tuned 2x narrower than original 220pt) —
@@ -242,18 +258,29 @@ final class CandidatePanel {
         }
         updateRowHighlight()
         updateFooter()
-        // Resize the window. On macOS, NSWindow's origin is bottom-left,
-        // so naively setting `size.height = h` would extend the TOP edge
-        // upward (which makes the panel appear to crawl up the screen as
-        // candidate count grows / shrinks across pages). Compensate by
-        // shifting origin.y downward by the height delta — net effect:
-        // the visible TOP stays anchored where positionNear placed it,
-        // and the panel grows / shrinks toward the BOTTOM.
+        // Resize the window. NSWindow's origin is bottom-left, so a naive
+        // height change moves only the TOP edge — visually the panel
+        // would crawl up or down the screen as the row count flexes
+        // across pages. The fix: hold whichever edge `positionNear`
+        // committed to (see `anchorEdge`).
+        //
+        //   anchorEdge == .top    → keep TOP put; shift origin.y so the
+        //                            top edge doesn't move; panel grows
+        //                            downward into the screen below.
+        //   anchorEdge == .bottom → keep BOTTOM put; leave origin.y
+        //                            alone; panel grows upward away from
+        //                            the caret (which is below the panel
+        //                            in this mode).
         let newH = max(36, 22 * CGFloat(rowViews.count) + 10 + 16)
         var f = window.frame
         let oldH = f.size.height
         f.size.height = newH
-        f.origin.y += oldH - newH
+        switch anchorEdge {
+        case .top:
+            f.origin.y += oldH - newH
+        case .bottom:
+            break
+        }
         window.setFrame(f, display: true)
     }
 
@@ -273,7 +300,14 @@ final class CandidatePanel {
 
     // ----------------------------------------------------------- positioning
 
-    /// Anchor the window's top-left just below the client's caret.
+    /// Place the panel relative to the caret and pick the stable anchor
+    /// edge (`anchorEdge`) that `rebuildRows` should hold during
+    /// subsequent page flips.
+    ///
+    /// Default: panel sits below the caret (TOP-anchored). If there's
+    /// no room below — host input field is near the bottom of the
+    /// screen — flip above the caret and switch to BOTTOM-anchored so
+    /// page-flips don't extend the panel downward into the caret.
     private func positionNear(client: AnyObject?) {
         // IMK client typically conforms to NSTextInput / IMKTextInput; both
         // surfaces expose `attributesForCharacterIndex:lineHeightRectangle:`
@@ -296,18 +330,23 @@ final class CandidatePanel {
             }
         }
         var f = window.frame
-        // Bottom-left of caret rect → top-left of window (below caret).
-        let originX = caret.minX
-        let originY = caret.minY - f.size.height - 4
-        f.origin = NSPoint(x: originX, y: originY)
-        // Clamp to screen.
+        // Try below caret first (TOP-anchored mode).
+        var originX = caret.minX
+        var originY = caret.minY - f.size.height - 4
+        var edge: AnchorEdge = .top
         if let screen = NSScreen.main {
             let s = screen.visibleFrame
-            f.origin.x = min(max(s.minX, f.origin.x), s.maxX - f.size.width)
-            if f.origin.y < s.minY {
-                f.origin.y = caret.maxY + 4   // flip above caret
+            originX = min(max(s.minX, originX), s.maxX - f.size.width)
+            if originY < s.minY {
+                // No room below — flip above and switch to BOTTOM anchor
+                // so future page-flips grow the panel UP away from the
+                // caret, not DOWN into it.
+                originY = caret.maxY + 4
+                edge = .bottom
             }
         }
+        f.origin = NSPoint(x: originX, y: originY)
+        anchorEdge = edge
         window.setFrame(f, display: true)
     }
 }
