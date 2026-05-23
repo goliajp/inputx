@@ -239,47 +239,98 @@ const SENTENCE_SUFFIXES: &[(&str, &str)] = &[
     ("ya", "や"),
 ];
 
-/// Try every (prefix, suffix) split of `buffer` where suffix is in
-/// `SENTENCE_SUFFIXES`. For each split, look up prefix in jukugo +
-/// single-kanji tables and emit a Candidate composing prefix-kanji +
-/// suffix-kana. Returns candidates sorted by content-word freq desc
-/// (the suffix doesn't have its own freq scale; we rank by the
-/// content word's frequency since that's what disambiguates).
-fn compose_sentence(buffer: &str) -> Vec<Candidate> {
-    let mut hits: Vec<(String, u32)> = Vec::new();
+/// Single-segment compose: (content_word, particle/copula_suffix).
+/// Returns (composed_word_string, content_freq) pairs.
+///
+/// For `watashiwa`: prefix=`watashi`, suffix=`wa` → 私+は.
+/// For `nihondesu`:  prefix=`nihon`,   suffix=`desu` → 日本+です.
+fn compose_one_segment(buffer: &str) -> Vec<(String, u32)> {
+    let mut out: Vec<(String, u32)> = Vec::new();
     for (s_reading, s_kana) in SENTENCE_SUFFIXES {
         if let Some(prefix) = buffer.strip_suffix(s_reading) {
             if prefix.is_empty() {
                 continue;
             }
-            // Look up prefix in jukugo
             for (compound, freq) in jukugo::lookup_by_reading(prefix) {
-                hits.push((format!("{compound}{s_kana}"), freq));
+                out.push((format!("{compound}{s_kana}"), freq));
             }
-            // Look up prefix in kanji
             for (ch, freq) in kanji::lookup_by_reading(prefix) {
-                hits.push((format!("{ch}{s_kana}"), freq));
+                out.push((format!("{ch}{s_kana}"), freq));
             }
         }
     }
+    out
+}
+
+/// Try every (prefix, suffix) split of `buffer`. Returns sentence
+/// candidates from both 1-segment and 2-segment compositions:
+///
+///   * 1-segment: (content + particle/copula). Handles "watashiwa".
+///   * 2-segment: split buffer at every position; left → 1seg, right →
+///     1seg; concatenate. Handles "watashiwagakuseidesu" → 私は + 学生
+///     です = 私は学生です.
+///
+/// Capped at 30 results; freq for multi-segment compositions is min
+/// of segment freqs × 0.7 (multi-segment penalty so single-word direct
+/// matches still rank higher when present).
+fn compose_sentence(buffer: &str) -> Vec<Candidate> {
+    let mut hits: Vec<(String, u32)> = Vec::new();
+
+    // 1-segment
+    for (word, freq) in compose_one_segment(buffer) {
+        hits.push((word, freq));
+    }
+
+    // 2-segment: walk every split point. Only proceed when both halves
+    // produce SOMETHING — bails early on barren splits to keep cost
+    // bounded for nonsense input.
+    if buffer.len() >= 4 {
+        // Skip first/last few chars — single-letter halves can't form
+        // a meaningful (content + particle) composition.
+        for split in 2..buffer.len() - 1 {
+            let left = &buffer[..split];
+            let right = &buffer[split..];
+            let lefts = compose_one_segment(left);
+            if lefts.is_empty() {
+                continue;
+            }
+            let rights = compose_one_segment(right);
+            if rights.is_empty() {
+                continue;
+            }
+            for (lw, lf) in &lefts {
+                for (rw, rf) in &rights {
+                    let combined = format!("{lw}{rw}");
+                    let combined_freq =
+                        ((*lf.min(rf) as f64) * 0.7) as u32;
+                    hits.push((combined, combined_freq));
+                }
+            }
+        }
+    }
+
     // Dedup by word, keeping highest freq.
     let mut best: std::collections::HashMap<String, u32> =
         std::collections::HashMap::new();
     for (w, f) in hits {
         let entry = best.entry(w).or_insert(0);
-        if f > *entry { *entry = f; }
+        if f > *entry {
+            *entry = f;
+        }
     }
     let mut sorted: Vec<(String, u32)> = best.into_iter().collect();
     sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted.truncate(30);
     sorted
         .into_iter()
         .map(|(word, freq)| Candidate {
             word,
             kind: KanaKind::Kanji,
-            // Slight penalty vs direct-jukugo match: composed sentences
-            // are heuristic-built, so their freq downscales to 0.8× of
-            // the content word's freq. Still beats pure-kana fallback.
-            freq: ((freq as f64) * 0.8) as u32,
+            // Composed candidates already include their own penalty
+            // (0.7 for multi-seg, raw for 1-seg). Apply a final 0.85
+            // mild penalty here so a direct-jukugo whole-buffer match
+            // (no compose, raw freq from data) still wins ties.
+            freq: ((freq as f64) * 0.85) as u32,
         })
         .collect()
 }
