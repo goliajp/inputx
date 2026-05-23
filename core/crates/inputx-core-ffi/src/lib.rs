@@ -177,6 +177,27 @@ pub unsafe extern "C" fn inputx_session_prediction(
     }
 }
 
+/// Commit a prediction by index. Returns the committed text (caller frees
+/// via `inputx_string_free`), or NULL if out of range. Triggers a fresh
+/// round of predictions internally (chained 联想). Doesn't record an
+/// engine L0 pick — predictions are buffer-less commits.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_commit_prediction(
+    session: *mut InputxSession,
+    index: usize,
+) -> *mut c_char {
+    let Some(s) = (unsafe { session.as_mut() }) else {
+        return core::ptr::null_mut();
+    };
+    match s.inner.commit_prediction(index) {
+        Some(text) => dup_to_cstring(&text),
+        None => core::ptr::null_mut(),
+    }
+}
+
 /// Manually commit the candidate at `index`. Returns the committed text as a
 /// heap-allocated UTF-8 C string (caller frees via `inputx_string_free`), or
 /// NULL if `index` is out of range. On success the session's composing state

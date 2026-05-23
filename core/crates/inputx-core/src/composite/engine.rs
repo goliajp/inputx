@@ -582,6 +582,22 @@ impl CompositeEngine {
         &self.prediction_buf
     }
 
+    /// Commit a word that came from `predicted_candidates`. Unlike
+    /// `commit_index` this does NOT consult `cand_buf` (predictions live
+    /// in their own buffer) and does NOT record a pick to any engine's
+    /// L0 (there's no buffer-context to learn from). It DOES update
+    /// `last_committed_word` so a subsequent round of predictions fires
+    /// from this newly-committed word — chained 联想 in the Sogou
+    /// style. Returns the word for the host to deliver as committed
+    /// text.
+    pub fn commit_prediction_word(&mut self, word: &str) -> String {
+        let owned = word.to_string();
+        // Same CJK guard as the regular commit path — only seed bigram
+        // context from real Chinese words.
+        self.update_bigram_context(&owned);
+        owned
+    }
+
     /// Commit candidate at index. Records the pick to the source engine's
     /// L0 layer (per item 28: each engine has its own L0 — same word can
     /// have different per-engine ranking).

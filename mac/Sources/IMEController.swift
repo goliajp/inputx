@@ -107,6 +107,28 @@ final class InputxController: IMKInputController {
         )
     }
 
+    /// After any commit, surface the engine's next-word predictions
+    /// (联想) in the candidate panel instead of just hiding it. When
+    /// `session.predictionCount == 0` this hides the panel as before.
+    /// Called from every commit path — manual number-key, space-commit,
+    /// auto-commit drain, mode-toggle drain, etc.
+    private func showPredictionsOrHide(client sender: Any!) {
+        if session.predictionCount > 0 {
+            var words: [String] = []
+            for i in 0..<session.predictionCount {
+                if let w = session.prediction(at: i) {
+                    words.append(w)
+                }
+            }
+            candidatePanel?.showPredictions(
+                words: words,
+                client: sender as AnyObject?
+            )
+        } else {
+            candidatePanel?.hide()
+        }
+    }
+
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard let event = event else { return false }
 
@@ -129,6 +151,28 @@ final class InputxController: IMKInputController {
               let firstScalar = chars.unicodeScalars.first
         else { return false }
         let codepoint = firstScalar.value
+
+        // Prediction-mode dismissals. When the panel is showing 联想
+        // predictions (post-commit) and the user presses a key that
+        // semantically means "I'm done / I don't want a prediction",
+        // hide the panel. Letter keys naturally dismiss via Path C's
+        // refresh; Esc / Backspace need explicit handling because they
+        // wouldn't otherwise reach a panel-refresh call.
+        if let panel = candidatePanel, panel.isPredictionMode, panel.isVisible {
+            // Esc → dismiss + consume (don't propagate to host).
+            if codepoint == 0x1B {
+                panel.hide()
+                updatePreedit(client: sender)
+                return true
+            }
+            // Backspace / forward-delete → dismiss + consume (no buffer
+            // to delete; the user pressed it to back out of predictions).
+            if codepoint == 0x08 || codepoint == 0x7F {
+                panel.hide()
+                updatePreedit(client: sender)
+                return true
+            }
+        }
 
         // Apple PUA range for special keys (arrows, function keys). When
         // the panel is visible, ↑ / ↓ / ← / → drive the panel; other PUA
@@ -191,6 +235,17 @@ final class InputxController: IMKInputController {
            let idx = panel.selectedAbsoluteIndex(),
            idx > 0
         {
+            // Same prediction-mode split as Path A: space commits the
+            // highlighted prediction via `commitPrediction(at:)` so the
+            // chained-联想 loop continues.
+            if panel.isPredictionMode {
+                if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
+                    commitText(committed, to: sender)
+                }
+                showPredictionsOrHide(client: sender)
+                updatePreedit(client: sender)
+                return true
+            }
             let bufferBefore = session.preedit ?? ""
             let candsBefore = panel.current
             if let committed = session.commit(at: idx), !committed.isEmpty {
@@ -204,7 +259,7 @@ final class InputxController: IMKInputController {
                     japaneseEnabled: inputxSettings.japaneseEnabled
                 )
             }
-            panel.hide()
+            showPredictionsOrHide(client: sender)
             updatePreedit(client: sender)
             return true
         }
@@ -214,6 +269,19 @@ final class InputxController: IMKInputController {
         // (0 → 10th slot) without touching the engine state machine.
         if let panel = candidatePanel, panel.isVisible,
            let idx = panel.candidateIndex(forNumberKey: codepoint) {
+            // Route based on whether the panel is showing predictions
+            // (post-commit 联想) or regular buffer-driven candidates.
+            // Predictions commit through `commitPrediction(at:)` which
+            // triggers a fresh round of predictions internally (chained
+            // 联想 — Sogou 句串 style).
+            if panel.isPredictionMode {
+                if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
+                    commitText(committed, to: sender)
+                }
+                showPredictionsOrHide(client: sender)
+                updatePreedit(client: sender)
+                return true
+            }
             let bufferBefore = session.preedit ?? ""
             let candsBefore = panel.current
             if let committed = session.commit(at: idx), !committed.isEmpty {
@@ -228,7 +296,7 @@ final class InputxController: IMKInputController {
                     japaneseEnabled: inputxSettings.japaneseEnabled
                 )
             }
-            panel.hide()
+            showPredictionsOrHide(client: sender)
             updatePreedit(client: sender)
             return true
         }
@@ -257,7 +325,7 @@ final class InputxController: IMKInputController {
                 if let top = session.commit(at: 0), !top.isEmpty {
                     commitText(top, to: sender)
                 }
-                candidatePanel?.hide()
+                showPredictionsOrHide(client: sender)
                 updatePreedit(client: sender)
                 // Fall through — punct is now in "not composing" state.
             }
@@ -285,11 +353,22 @@ final class InputxController: IMKInputController {
         }
 
         // Drain pending commit (auto-commit / 5th-letter force / unique match).
-        if let committed = session.takeCommit(), !committed.isEmpty {
+        let drained = session.takeCommit()
+        if let committed = drained, !committed.isEmpty {
             commitText(committed, to: sender)
         }
         updatePreedit(client: sender)
-        candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+        // If the engine still has a preedit/candidates (user is mid-
+        // composing), refresh normally. If the engine just drained a
+        // commit and is now idle, show predictions in the panel
+        // instead of leaving it empty.
+        if session.isComposing {
+            candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+        } else if drained != nil {
+            showPredictionsOrHide(client: sender)
+        } else {
+            candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+        }
         return true
     }
 
