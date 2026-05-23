@@ -15,7 +15,7 @@
 #     done, TCC remembers and subsequent re-adds via this script bypass
 #     the prompt (see `scripts/reenable.sh` for the mechanism).
 
-set -euo pipefail
+set -uo pipefail
 cd "$(dirname "$0")"
 
 # 1. Build if requested (skip when --no-build given).
