@@ -123,6 +123,14 @@ impl PinyinAdapter {
         &self.buffer
     }
 
+    /// Direct access to the underlying engine — used by the composite
+    /// layer to call into PinyinDict methods (bigram_boost,
+    /// predict_next_words, etc.) that the adapter doesn't otherwise
+    /// proxy.
+    pub fn engine(&self) -> &PinyinEngine {
+        &self.engine
+    }
+
     pub fn candidates(&self) -> &[String] {
         &self.candidates
     }
