@@ -225,27 +225,35 @@ final class InputxController: IMKInputController {
             }
         }
 
+        // ---- Path A0a: Space commits the prediction in 联想 mode -------
+        // Standard Sogou / 智能ABC behavior: when the candidate panel
+        // is showing 联想 predictions, Space commits the highlighted
+        // prediction (default: #0). The arrow-driven `idx > 0` carve-
+        // out doesn't apply here — in prediction mode every Space is a
+        // "commit and continue" gesture. Letter input dismisses
+        // predictions (Path C / refresh); Esc / Backspace dismiss
+        // explicitly (handled above).
+        if codepoint == 0x20,
+           let panel = candidatePanel, panel.isVisible, panel.isPredictionMode {
+            let idx = panel.selectedAbsoluteIndex() ?? 0
+            if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
+                commitText(committed, to: sender)
+            }
+            showPredictionsOrHide(client: sender)
+            updatePreedit(client: sender)
+            return true
+        }
+
         // ---- Path A0: Space → commit highlighted (not just #0) -----------
         // When the panel is visible and ↑/↓ has moved the highlight off #0,
         // Space commits the *highlighted* candidate. If highlight is on #0
         // (panel just opened), this matches the legacy "Space = commit #0"
-        // semantic. Falls through if not composing.
+        // semantic via Path C below. Falls through if not composing.
         if codepoint == 0x20,
            let panel = candidatePanel, panel.isVisible,
            let idx = panel.selectedAbsoluteIndex(),
            idx > 0
         {
-            // Same prediction-mode split as Path A: space commits the
-            // highlighted prediction via `commitPrediction(at:)` so the
-            // chained-联想 loop continues.
-            if panel.isPredictionMode {
-                if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
-                    commitText(committed, to: sender)
-                }
-                showPredictionsOrHide(client: sender)
-                updatePreedit(client: sender)
-                return true
-            }
             let bufferBefore = session.preedit ?? ""
             let candsBefore = panel.current
             if let committed = session.commit(at: idx), !committed.isEmpty {
