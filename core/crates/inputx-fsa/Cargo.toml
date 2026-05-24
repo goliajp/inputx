@@ -1,0 +1,21 @@
+[package]
+name = "inputx-fsa"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Minimal acyclic finite-state automaton — a compact, zero-dependency ordered byte-key → u64 map with prefix/range scan. Built for the Inputx IME's dictionaries (clean-room replacement for the `fst` crate's read+build path)."
+authors = ["GOLIA K.K."]
+repository = "https://github.com/goliajp/inputx"
+homepage = "https://github.com/goliajp/inputx"
+keywords = ["fst", "dawg", "trie", "map", "perfect-hash"]
+categories = ["data-structures", "compression", "no-std"]
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+# Zero dependencies. That is the entire point of this crate.
+
+[dev-dependencies]
+proptest = "1"
