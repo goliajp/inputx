@@ -34,11 +34,9 @@ name = "golia_pinyin"
 crate-type = ["rlib", "cdylib", "staticlib"]
 
 [dependencies]
-# `macros` feature pulls in the `phf_set!` / `phf_map!` codegen macros used
-# by `syllable.rs`. Wubi avoids this feature by generating PHF tables in
-# build.rs; pinyin's syllable inventory is small + static enough that the
-# macro path is simpler and adds no measurable build-time cost.
-phf = { version = "0.11", default-features = false, features = ["macros"] }
+# `syllable.rs` validates Mandarin syllables via a plain sorted slice +
+# linear membership (zero-dep, replaces the former phf::Set — see
+# .claude/PLAN-self-built-fsa.md A2).
 fst = { version = "0.4", default-features = false }
 
 # tools-only deps (gated behind `tools` feature)
