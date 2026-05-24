@@ -15,6 +15,26 @@ use std::sync::{Arc, OnceLock};
 
 use golia_pinyin::PinyinEngine;
 
+use crate::rules::builtin::RepeatedLetterExpansion;
+use crate::rules::candidate::{CandidateRule, CandidateRuleEngine, RuleCandidate};
+use crate::rules::{Context, ContextFlags};
+use super::mode::Mode;
+
+/// Lazily-built CandidateRuleEngine carrying v3.0.2-migrated rules.
+/// Lives behind OnceLock so the priority sort runs once per process.
+/// Currently has only `RepeatedLetterExpansion`; subsequent v3.0.2.x
+/// commits register more rules here as they're migrated.
+static CANDIDATE_RULE_ENGINE: OnceLock<CandidateRuleEngine> = OnceLock::new();
+
+fn candidate_rule_engine() -> &'static CandidateRuleEngine {
+    CANDIDATE_RULE_ENGINE.get_or_init(|| {
+        let rules: Vec<Arc<dyn CandidateRule>> = vec![
+            Arc::new(RepeatedLetterExpansion),
+        ];
+        CandidateRuleEngine::new(rules)
+    })
+}
+
 /// Process-global initials index for 简拼 (first-letter abbreviation)
 /// lookup, e.g., `hhh → 哈哈哈, 好好好, …`. Built lazily on first miss
 /// of full-pinyin lookup. Shared across all `PinyinAdapter` instances
@@ -64,6 +84,39 @@ impl Default for PinyinAdapter {
 }
 
 impl PinyinAdapter {
+    /// Build a snapshot Context for the rule engine. Cheap (one
+    /// String clone of the buffer + 6 booleans). Called once per
+    /// refresh_candidates invocation.
+    ///
+    /// Mode is fixed to `Mixed` here because the rule engine treats
+    /// `Context::mode` as a hint for mode-gated rules; the actual
+    /// per-mode routing happens in `dispatch::dispatch`. The adapter
+    /// itself doesn't know which composite mode it's running under,
+    /// so Mixed is the "all rules eligible" placeholder. Once the
+    /// engine registry grows mode-specific rules, this signature
+    /// will gain a `mode: Mode` parameter from the caller.
+    fn build_rule_context(&self) -> Context {
+        let has_vowel = self.buffer.chars()
+            .any(|c| matches!(c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v'));
+        let starts_with_z = self.buffer.starts_with('z');
+        let buffer_len = self.buffer.len();
+        let has_ns = self.has_non_speculative_candidate;
+        Context {
+            mode: Mode::Mixed,
+            buffer: self.buffer.clone(),
+            prev_committed: None, // future rules may want this
+            second_prev_committed: None,
+            flags: ContextFlags {
+                has_vowel,
+                has_non_speculative_pinyin: has_ns,
+                pinyin_intent: buffer_len > 0 && buffer_len <= 4
+                    && has_vowel && has_ns,
+                starts_with_z,
+                buffer_len,
+            },
+        }
+    }
+
     pub fn new() -> Self {
         Self {
             engine: PinyinEngine::new(),
@@ -330,15 +383,21 @@ impl PinyinAdapter {
             return;
         }
 
-        // Path 0a (repeated-letter expansion): the user typing 3+ copies
-        // of the same letter is a Sogou-style request for the
-        // corresponding interjection repeated N times. `hhhhhh` →
-        // 哈哈哈哈哈哈. Done BEFORE Viterbi composition so this short-
-        // circuits the more expensive DP for an obvious case. Reuses
-        // the `composed_sentence` slot — same injection mechanism
-        // (insert at #0, high score in `candidates_with_scores`).
-        if let Some(expanded) = try_repeated_letter_expansion(&self.buffer) {
-            self.composed_sentence = Some(expanded);
+        // Path 0a (v3.0.2b: migrated to rule-engine).
+        // RepeatedLetterExpansion in rules/builtin/repeated_letter.rs.
+        // Engine output is read here and placed into the existing
+        // composed_sentence slot — keeps every other path's logic
+        // unchanged. Once all 7 pinyin paths migrate, composed_sentence
+        // and self.candidates will both be rule-engine outputs.
+        {
+            let ctx = self.build_rule_context();
+            let mut rule_cands: Vec<RuleCandidate> = Vec::new();
+            let _trace = candidate_rule_engine().run(&ctx, &mut rule_cands);
+            if let Some(c) = rule_cands.into_iter()
+                .find(|c| c.source == "repeated-letter")
+            {
+                self.composed_sentence = Some(c.word);
+            }
         }
 
         // Path 0b (Viterbi composition): for LONG buffers (>= 8 bytes),
@@ -581,38 +640,10 @@ fn fuzzy_buffer_variants(buffer: &str) -> Vec<String> {
     out
 }
 
-/// Repeated-letter expansion: when the input is 3+ copies of the same
-/// ASCII letter, return the corresponding interjection / laughter
-/// character repeated the same number of times. Sogou-style:
-///   * `hhh` / `hhhhh` → `哈哈哈` / `哈哈哈哈哈`
-///   * `aaa` → `啊啊啊`
-///   * `ooo` → `哦哦哦`
-///   * `eee` → `诶诶诶`
-///   * `mmm` → `嗯嗯嗯`
-///
-/// Returns `None` for mixed input, fewer than 3 letters, or letters not
-/// in the mapping (most consonants aren't standalone interjections).
-fn try_repeated_letter_expansion(buffer: &str) -> Option<String> {
-    if buffer.len() < 3 {
-        return None;
-    }
-    let bytes = buffer.as_bytes();
-    let first = bytes[0];
-    if !bytes.iter().all(|&b| b == first) {
-        return None;
-    }
-    let ch = match first {
-        b'h' => '哈',
-        b'a' => '啊',
-        b'o' => '哦',
-        b'e' => '诶',
-        b'm' => '嗯',
-        b'n' => '嗯',
-        b'w' => '呜',
-        _ => return None,
-    };
-    Some(std::iter::repeat(ch).take(bytes.len()).collect())
-}
+// Repeated-letter expansion: migrated to rules/builtin/repeated_letter.rs
+// (v3.0.2b, 2026-05-24). The CandidateRule impl there is the single
+// source of truth; refresh_candidates above invokes it via the global
+// CANDIDATE_RULE_ENGINE. Inline function deleted.
 
 /// Scan `engine.dict()` for entries whose pinyin starts with `prefix`, pick
 /// the top `k` by frequency (excluding anything already in `seen`), and push
