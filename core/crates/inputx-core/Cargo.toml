@@ -47,3 +47,7 @@ harness = false
 [[bin]]
 name = "inputx-probe"
 path = "src/bin/inputx_probe.rs"
+
+[[bin]]
+name = "inputx-trace"
+path = "src/bin/inputx_trace.rs"
