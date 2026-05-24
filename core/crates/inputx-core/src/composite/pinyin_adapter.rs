@@ -19,6 +19,7 @@ use crate::rules::builtin::RepeatedLetterExpansion;
 use crate::rules::candidate::{CandidateRule, CandidateRuleEngine, RuleCandidate};
 use crate::rules::{Context, ContextFlags};
 use super::mode::Mode;
+use super::scoring;
 
 /// Lazily-built CandidateRuleEngine carrying v3.0.2-migrated rules.
 /// Lives behind OnceLock so the priority sort runs once per process.
@@ -825,22 +826,33 @@ fn compute_single_letter_top_k(
     k: usize,
 ) -> Vec<String> {
     let prefix = letter.to_string();
+    // Entry key is the *length-biased* freq (raw freq × scoring::length_bias)
+    // so single chars lead multi-char phrases for a bare letter. See
+    // `scoring::length_bias` for the rationale (user: "单字评分要更高").
     type Entry = Reverse<(u64, Reverse<String>)>;
     let mut heap: BinaryHeap<Entry> = BinaryHeap::with_capacity(k + 1);
     engine
         .dict()
         .prefix_for_each_raw(&prefix, |_pinyin_bytes, word_bytes, freq| {
-            if heap.len() == k {
-                let min_freq = heap.peek().expect("heap full").0.0;
-                if freq <= min_freq { return; }
-                heap.pop();
+            // Cheap pre-check survives the length bias: the bias is ≤ 1.0,
+            // so adjusted ≤ raw freq. If raw freq can't beat the heap min
+            // (already an adjusted value), the adjusted score can't either
+            // — skip before the utf8 decode + char count.
+            if heap.len() == k && freq <= heap.peek().expect("heap full").0.0 {
+                return;
             }
             let Ok(word) = std::str::from_utf8(word_bytes) else { return; };
-            heap.push(Reverse((freq, Reverse(word.to_owned()))));
+            let adj = (freq as f64 * scoring::length_bias(word.chars().count())) as u64;
+            if heap.len() == k {
+                let min_adj = heap.peek().expect("heap full").0.0;
+                if adj <= min_adj { return; }
+                heap.pop();
+            }
+            heap.push(Reverse((adj, Reverse(word.to_owned()))));
         });
     let mut drained: Vec<(u64, String)> = heap
         .into_iter()
-        .map(|Reverse((freq, Reverse(word)))| (freq, word))
+        .map(|Reverse((adj, Reverse(word)))| (adj, word))
         .collect();
     drained.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
     drained.into_iter().map(|(_, w)| w).collect()

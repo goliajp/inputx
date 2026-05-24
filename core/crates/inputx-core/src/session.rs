@@ -417,6 +417,39 @@ mod tests {
     }
 
     #[test]
+    fn q_bare_letter_single_chars_lead_phrases() {
+        // User 2026-05-24: "单个字的评分也肯定要更高，现在 q 这列表根本
+        // 不能看" — typing a bare letter `q` showed multi-char phrases
+        // (前端/请问/权限/企业微信/前端工程师) buried single chars
+        // (去/起/前) via raw corpus freq. Fix: `scoring::length_bias`
+        // in `compute_single_letter_top_k` favors single chars for
+        // bare-letter prefix completion. wubi Jianma1 (q→我) stays #0.
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.handle_key(b'q' as u32, 0);
+        let cands = sess.candidates();
+        assert!(!cands.is_empty(), "expected q candidates");
+        // Every Pinyin-source candidate in the top 10 must be a single
+        // char — no phrase may interleave among the leading single chars.
+        for (i, w) in cands.iter().take(10).enumerate() {
+            if sess.candidate_source(i) == Some(1) {
+                assert_eq!(
+                    w.chars().count(),
+                    1,
+                    "q top-10 pinyin candidate #{i} {w:?} should be a single \
+                     char; phrases must rank below single chars for a bare letter"
+                );
+            }
+        }
+        // Sanity: a common single char surfaces high (去 is q-prefix common).
+        let qu_pos = cands.iter().position(|w| w == "去");
+        assert!(
+            qu_pos.is_some_and(|p| p <= 5),
+            "去 should rank in the top few for bare q, got {qu_pos:?}"
+        );
+    }
+
+    #[test]
     fn typing_g_with_unique_policy_auto_commits_yi() {
         let mut sess = s();
         sess.set_auto_commit_policy(AutoCommitPolicy::OnUniqueMatch);
