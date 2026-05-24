@@ -240,6 +240,30 @@ mod tests {
     }
 
     #[test]
+    fn wubi_only_tjvs_yields_fuza() {
+        // User-reported 2026-05-24: tjvs (wubi phrase code for 复杂)
+        // didn't surface 复杂 in their typing. phrases.txt has the
+        // entry at line 45800 (`tjvs\t复杂`). This test verifies the
+        // wubi engine DOES return 复杂 in its candidate list.
+        //
+        // Default wubi policy auto-commits 复杂 at exactly 4 chars
+        // (unique@4) BEFORE we get to inspect candidates — so the user
+        // sees the commit but the panel never shows. That's expected
+        // behavior, not a missing-entry bug. Test uses policy=Never
+        // to keep the candidate list around for inspection.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::WubiOnly);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"tjvs" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        assert!(cands.iter().any(|c| c.word == "复杂"),
+            "expected 复杂 in tjvs candidates; got top10={:?}",
+            cands.iter().take(10).map(|c| &c.word).collect::<Vec<_>>());
+    }
+
+    #[test]
     fn mixed_xlab_wubi_phrase_not_demoted_by_speculative_initials() {
         // User-reported 2026-05-24: `xlab` (wubi Phrase code for 细节)
         // was being drowned out by `向量/心理/训练/...` because pinyin
