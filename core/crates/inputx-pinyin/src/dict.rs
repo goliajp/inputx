@@ -222,13 +222,14 @@ impl PinyinDict {
         out.clear();
 
         let lower = pinyin.to_ascii_lowercase();
-        // Dict.get returns items already freq-desc (then item-asc), matching
-        // the old `sort_by_key(Reverse(freq))` stable order — no re-sort.
-        for (word, _freq) in self.map.get(lower.as_bytes()) {
-            if let Ok(s) = String::from_utf8(word) {
-                out.push(s);
+        // Dict items come freq-desc (then item-asc), matching the old
+        // `sort_by_key(Reverse(freq))` stable order — no re-sort. Streamed
+        // (no intermediate Vec / per-item copy).
+        self.map.get_for_each(lower.as_bytes(), |word, _freq| {
+            if let Ok(s) = core::str::from_utf8(word) {
+                out.push(s.to_string());
             }
-        }
+        });
 
         // L0 pin: pull to position 0 if present.
         if let Ok(l0) = self.l0.read()
@@ -399,11 +400,11 @@ impl PinyinDict {
         const PINYIN_PHRASE_BASE: f64 = 400_000.0;
 
         let mut scratch: Vec<(String, f64)> = Vec::with_capacity(8);
-        for (word, freq) in self.map.get(lower.as_bytes()) {
-            if let Ok(s) = String::from_utf8(word) {
-                scratch.push((s, PINYIN_PHRASE_BASE + freq as f64));
+        self.map.get_for_each(lower.as_bytes(), |word, freq| {
+            if let Ok(s) = core::str::from_utf8(word) {
+                scratch.push((s.to_string(), PINYIN_PHRASE_BASE + freq as f64));
             }
-        }
+        });
         // L0 pin: multiply pinned candidate's score so it tops the
         // engine-internal sort AND the cross-engine merge layer.
         let pinned: Option<String> = self.l0.read().ok().and_then(|g| g.pins.get(&lower).cloned());
@@ -545,11 +546,11 @@ impl PinyinDict {
     fn lookup_raw_into(&self, pinyin: &str, out: &mut Vec<(String, u64)>) {
         out.clear();
         let lower = pinyin.to_ascii_lowercase();
-        for (word, freq) in self.map.get(lower.as_bytes()) {
-            if let Ok(s) = String::from_utf8(word) {
-                out.push((s, freq));
+        self.map.get_for_each(lower.as_bytes(), |word, freq| {
+            if let Ok(s) = core::str::from_utf8(word) {
+                out.push((s.to_string(), freq));
             }
-        }
+        });
     }
 
     /// Predict the most likely next words given a just-committed `prev`

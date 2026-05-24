@@ -210,8 +210,8 @@ impl WubiDict {
         // Tuple: (word, score, is_single, freq, layer).
         let mut scratch: Vec<(String, f64, bool, u64, Layer)> = Vec::with_capacity(8);
         let mut max_phrase_freq: u64 = 0;
-        for (word, value) in self.map.get(lower.as_bytes()) {
-            if let Ok(s) = core::str::from_utf8(&word) {
+        self.map.get_for_each(lower.as_bytes(), |word, value| {
+            if let Ok(s) = core::str::from_utf8(word) {
                 let (layer, freq) = unpack(value);
                 let base = layer.base() as f64;
                 let pref = prefs[layer.as_index()];
@@ -221,7 +221,7 @@ impl WubiDict {
                 }
                 scratch.push((s.to_string(), base * pref + freq as f64, is_single, freq, layer));
             }
-        }
+        });
 
         // Apply full-code single-char promote (lifts qualifying single
         // chars above the same-code phrases) and L0 pin (lifts the pinned
@@ -298,8 +298,8 @@ impl WubiDict {
         // Track the highest phrase frequency at this code so the
         // promote decision can be made after the scan.
         let mut max_phrase_freq: u64 = 0;
-        for (word, value) in self.map.get(lower.as_bytes()) {
-            if let Ok(s) = core::str::from_utf8(&word) {
+        self.map.get_for_each(lower.as_bytes(), |word, value| {
+            if let Ok(s) = core::str::from_utf8(word) {
                 let (layer, freq) = unpack(value);
                 let base = layer.base() as f64;
                 let pref = prefs[layer.as_index()];
@@ -314,7 +314,7 @@ impl WubiDict {
                     freq,
                 ));
             }
-        }
+        });
         scratch.sort_by(|a, b| {
             let a_promote = full_code && a.2 && a.3 > max_phrase_freq;
             let b_promote = full_code && b.2 && b.3 > max_phrase_freq;
@@ -352,12 +352,12 @@ impl WubiDict {
     pub fn lookup_with_meta(&self, code: &str) -> Vec<(String, Layer, u64)> {
         let lower = code.to_ascii_lowercase();
         let mut results = Vec::new();
-        for (word, value) in self.map.get(lower.as_bytes()) {
-            if let Ok(s) = core::str::from_utf8(&word) {
+        self.map.get_for_each(lower.as_bytes(), |word, value| {
+            if let Ok(s) = core::str::from_utf8(word) {
                 let (layer, freq) = unpack(value);
                 results.push((s.to_string(), layer, freq));
             }
-        }
+        });
         results
     }
 
