@@ -236,10 +236,19 @@ fn post_order(root: u32, canon: &[CanonState]) -> Vec<u32> {
     order
 }
 
-/// Format v2 — compact: states are byte-offset addressed (no offset table),
-/// transition targets are back-deltas, and counts/deltas/arities are LEB128.
+/// Format v3 — compact, byte-offset addressed (no offset table). Per state:
+/// a flags byte (bit0 = final, bit1 = single-transition), then transitions.
+///
+/// - **Single-transition** node (bit1 set) → `[flags, label, delta]`. The
+///   target's right-language count is *omitted*: with one outgoing edge the
+///   ordinal walk never skips it, so its count is never read. These nodes are
+///   the vast majority (unique-word suffix chains), so dropping `ntrans` + the
+///   count here is the bulk of the size win.
+/// - **Otherwise** (0 or ≥2 transitions) → `[flags, ntrans, (label, delta,
+///   count)×ntrans]` (all LEB128).
+///
 /// Header: magic4 · ver1 · width1 · value_count u32 · root_off u32 ·
-/// state_count u32  (= 18 bytes). States blob follows; values tail.
+/// state_count u32 (= 18 bytes). States blob follows; values tail.
 fn serialize(canon: &[CanonState], num: &[u64], root: u32, values: &[u64]) -> Vec<u8> {
     let width = value_width(values);
     let order = post_order(root, canon);
@@ -250,21 +259,28 @@ fn serialize(canon: &[CanonState], num: &[u64], root: u32, values: &[u64]) -> Ve
         let off = blob.len() as u32;
         state_off[s as usize] = off;
         let st = &canon[s as usize];
-        blob.push(u8::from(st.final_)); // bit0 = final
-        write_uvarint(&mut blob, st.trans.len() as u64);
-        for &(label, target) in &st.trans {
-            // target was written earlier (post-order) → offset known, < off.
-            let toff = state_off[target as usize];
+        if st.trans.len() == 1 {
+            // single-transition fast form (no ntrans, no count)
+            let (label, target) = st.trans[0];
+            blob.push(u8::from(st.final_) | 0b10); // bit1 = single
             blob.push(label);
-            write_uvarint(&mut blob, u64::from(off - toff)); // back-delta
-            write_uvarint(&mut blob, num[target as usize]);
+            write_uvarint(&mut blob, u64::from(off - state_off[target as usize]));
+        } else {
+            blob.push(u8::from(st.final_)); // bit1 = 0 → multi/leaf form
+            write_uvarint(&mut blob, st.trans.len() as u64);
+            for &(label, target) in &st.trans {
+                // target written earlier (post-order) → offset known, < off.
+                blob.push(label);
+                write_uvarint(&mut blob, u64::from(off - state_off[target as usize]));
+                write_uvarint(&mut blob, num[target as usize]);
+            }
         }
     }
     let root_off = state_off[root as usize];
 
     let mut out: Vec<u8> = Vec::with_capacity(18 + blob.len() + values.len() * width as usize);
     out.extend_from_slice(b"IXFA");
-    out.push(2); // version
+    out.push(3); // version
     out.push(width);
     out.extend_from_slice(&(values.len() as u32).to_le_bytes());
     out.extend_from_slice(&root_off.to_le_bytes());
