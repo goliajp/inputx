@@ -315,4 +315,89 @@ mod tests {
             }
         }
     }
+
+    // ─── Robustness + wide-byte coverage ─────────────────────────────────
+
+    #[test]
+    fn rejects_bad_buffers() {
+        assert!(matches!(Fsa::new(&b""[..]), Err(FsaError::Truncated)));
+        assert!(matches!(
+            Fsa::new(&b"XXXX..............."[..]),
+            Err(FsaError::BadMagic)
+        ));
+        let mut bad = b"IXFA".to_vec();
+        bad.push(99); // version
+        bad.extend(std::iter::repeat_n(0u8, 20));
+        assert!(matches!(
+            Fsa::new(bad.as_slice()),
+            Err(FsaError::BadVersion(99))
+        ));
+    }
+
+    #[test]
+    fn keys_with_zero_and_high_bytes() {
+        // Keys are arbitrary bytes — 0x00 / 0xFF carry no special meaning.
+        let bytes = build(&[
+            (b"\x00", 1),
+            (b"\x00\xff", 2),
+            (b"\xff", 3),
+            (b"a\x00b", 4),
+        ]);
+        let fsa = Fsa::new(bytes).unwrap();
+        assert_eq!(fsa.get(b"\x00"), Some(1));
+        assert_eq!(fsa.get(b"\x00\xff"), Some(2));
+        assert_eq!(fsa.get(b"\xff"), Some(3));
+        assert_eq!(fsa.get(b"a\x00b"), Some(4));
+        assert_eq!(fsa.get(b"\x00\x00"), None);
+        assert_eq!(fsa.prefix(b"\x00").len(), 2);
+    }
+
+    #[test]
+    fn wide_alphabet_single_state() {
+        // A root with all 256 labels exercises the u16 n_trans path.
+        let pairs: Vec<(Vec<u8>, u64)> = (0u16..256).map(|b| (vec![b as u8], u64::from(b))).collect();
+        let mut bld = Builder::new();
+        for (k, v) in &pairs {
+            bld.insert(k, *v);
+        }
+        let fsa = Fsa::new(bld.finish()).unwrap();
+        assert_eq!(fsa.len(), 256);
+        for (k, v) in &pairs {
+            assert_eq!(fsa.get(k), Some(*v));
+        }
+    }
+
+    fn wide_key() -> impl Strategy<Value = Vec<u8>> {
+        proptest::collection::vec(any::<u8>(), 0..5)
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig { cases: 200, ..ProptestConfig::default() })]
+
+        /// Full-byte-range keys (0x00 / 0xFF included) — get + prefix match oracle.
+        #[test]
+        fn diff_wide_bytes(
+            entries in proptest::collection::vec((wide_key(), any::<u64>()), 0..48),
+            probes in proptest::collection::vec(wide_key(), 0..24),
+        ) {
+            let mut oracle: BTreeMap<Vec<u8>, u64> = BTreeMap::new();
+            for (k, v) in &entries { oracle.insert(k.clone(), *v); }
+            let mut b = Builder::new();
+            for (k, v) in &entries { b.insert(k, *v); }
+            let fsa = Fsa::new(b.finish()).unwrap();
+            for (k, v) in &oracle { prop_assert_eq!(fsa.get(k), Some(*v)); }
+            for p in &probes {
+                let want: Vec<(Vec<u8>, u64)> = oracle.iter()
+                    .filter(|(k, _)| k.starts_with(p))
+                    .map(|(k, v)| (k.clone(), *v)).collect();
+                prop_assert_eq!(fsa.prefix(p), want);
+            }
+        }
+
+        /// `Fsa::new` never panics on arbitrary input — Ok or Err, never crash.
+        #[test]
+        fn new_no_panic(bytes in proptest::collection::vec(any::<u8>(), 0..128)) {
+            let _ = Fsa::new(bytes.as_slice());
+        }
+    }
 }

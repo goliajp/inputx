@@ -19,3 +19,11 @@ crate-type = ["rlib"]
 
 [dev-dependencies]
 proptest = "1"
+# Bench-only: criterion for measurement, fst as the comparison baseline
+# (the very crate inputx-fsa replaces — kept dev-only to quantify the win).
+criterion = "0.5"
+fst = { version = "0.4", default-features = false }
+
+[[bench]]
+name = "compare"
+harness = false
