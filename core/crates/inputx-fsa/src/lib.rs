@@ -34,6 +34,25 @@
 //!          target's right-language size (for the ordinal/rank walk).
 //! values:  [value_width bytes; value_count]   (tail of the buffer)
 //! ```
+//!
+//! # Example
+//!
+//! ```
+//! use inputx_fsa::{Builder, Fsa};
+//!
+//! let mut b = Builder::new();
+//! b.insert(b"apple", 1);
+//! b.insert(b"apply", 2);
+//! b.insert(b"banana", 3);
+//! let fsa = Fsa::new(b.finish()).unwrap();
+//!
+//! assert_eq!(fsa.get(b"apple"), Some(1));
+//! assert_eq!(fsa.get(b"grape"), None);
+//!
+//! // lazy, composable prefix scan
+//! let app: Vec<_> = fsa.range(b"app").collect();
+//! assert_eq!(app, vec![(b"apple".to_vec(), 1), (b"apply".to_vec(), 2)]);
+//! ```
 
 #![forbid(unsafe_code)]
 #![cfg_attr(not(feature = "std"), no_std)]
