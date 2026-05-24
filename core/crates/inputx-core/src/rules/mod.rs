@@ -61,6 +61,7 @@ use crate::composite::Mode;
 pub mod candidate;
 pub mod prediction;
 pub mod commit;
+pub mod builtin;
 
 /// Snapshot of the IME state a rule sees when deciding whether/how to
 /// fire. Read-only — rules don't mutate this; effect routes via the
