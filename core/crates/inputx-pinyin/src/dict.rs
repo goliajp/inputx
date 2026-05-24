@@ -1297,6 +1297,75 @@ mod tests {
 
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
+    fn perfgate_predict_next_words_under_budget() {
+        // v1.3 联想 "只能是好处不能是负担" — predictions run on every
+        // commit (post-commit panel refresh). If slow, every space-
+        // commit lags noticeably. Budget is much tighter than the main
+        // refresh_candidates perfgate (8ms) because the algorithm is
+        // a pure FST range query — no jieba, no fuzzy, no Viterbi.
+        //
+        // Worst cases first:
+        //   - 的 has the most bigram followers in the corpus (it's
+        //     literally the most common Chinese particle).
+        //   - 我 is a top-3 follower-seed too.
+        //   - "锟斤拷"-style absent context: must return empty quickly
+        //     (no wasted scan).
+        // Plus a chained-prediction probe: trigram path with no
+        // bigram fallback (v1.3 conservative-mode).
+        let d = PinyinDict::embedded();
+        const ITER: usize = 30;
+        const MIN_BUDGET_NS: u128 = 2_000_000; // 2 ms uncontended
+        const MAX_BUDGET_NS: u128 = 5_000_000; // 5 ms p95 (well under 16ms frame)
+
+        let probes: &[(Option<&str>, &str, usize, &str)] = &[
+            // (prev_prev, prev, limit, label)
+            (None, "的", 10, "cold-bigram-的"),
+            (None, "我", 10, "cold-bigram-我"),
+            (None, "今天", 10, "cold-bigram-今天"),
+            (Some("今天"), "的", 10, "chained-trigram-今天-的"),
+            (Some("锟斤拷"), "无关词", 10, "chained-empty-fast-bailout"),
+            (None, "的", 50, "cold-bigram-的-limit50"),
+        ];
+
+        let mut all_passed = true;
+        for (prev_prev, prev, limit, label) in probes {
+            let mut times: Vec<u128> = Vec::with_capacity(ITER);
+            for _ in 0..ITER {
+                let start = std::time::Instant::now();
+                let _ = d.predict_next_words_context(*prev_prev, prev, *limit);
+                times.push(start.elapsed().as_nanos());
+            }
+            times.sort_unstable();
+            let min = times[0];
+            let p50 = times[times.len() / 2];
+            let p95 = times[(times.len() * 95) / 100];
+            let max = *times.last().unwrap();
+            eprintln!(
+                "perfgate-predict {label:>30}: min={:>5.2}ms p50={:>5.2}ms p95={:>5.2}ms max={:>5.2}ms",
+                min as f64 / 1_000_000.0,
+                p50 as f64 / 1_000_000.0,
+                p95 as f64 / 1_000_000.0,
+                max as f64 / 1_000_000.0,
+            );
+            if !cfg!(debug_assertions) {
+                if min > MIN_BUDGET_NS {
+                    eprintln!("  ^^ FAIL: min {:.2}ms exceeds {}ms uncontended budget",
+                        min as f64 / 1_000_000.0, MIN_BUDGET_NS / 1_000_000);
+                    all_passed = false;
+                }
+                if p95 > MAX_BUDGET_NS {
+                    eprintln!("  ^^ FAIL: p95 {:.2}ms exceeds {}ms",
+                        p95 as f64 / 1_000_000.0, MAX_BUDGET_NS / 1_000_000);
+                    all_passed = false;
+                }
+            }
+        }
+        assert!(all_passed || cfg!(debug_assertions),
+            "perfgate-predict failed — see eprintln above");
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
     fn bigram_boost_positive_for_common_pair() {
         let d = PinyinDict::embedded();
         // 今天的 / 今天是 / 今天在 are all top bigrams in the extracted
