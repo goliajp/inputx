@@ -6,7 +6,6 @@
 //! - trigrams (inter) → two-level `Dict` (`trigrams.dict`, (a\0b)→[(c,count)]).
 //!   predict only ever scans `(a\0b, *)`, never point-gets, so the two-level
 //!   layout is the natural fit AND ~2 MB smaller than flat (15.55→13.47 MB).
-//! - trigrams_intra → flat `Fsa` (reserved/unused at runtime; tiny).
 //!
 //!     cargo run --features tools --release --bin pinyin-build-ngrams-fsa
 
@@ -114,5 +113,4 @@ fn main() {
     pack_fsa(&sup.join("pinyin_bigrams_inter_v1.tsv"), &data.join("bigrams.fsa"));
     pack_fsa(&sup.join("pinyin_bigrams_intra_v1.tsv"), &data.join("bigrams_intra.fsa"));
     pack_dict(&sup.join("pinyin_trigrams_inter_v1.tsv"), &data.join("trigrams.dict"));
-    pack_fsa(&sup.join("pinyin_trigrams_intra_v1.tsv"), &data.join("trigrams_intra.fsa"));
 }

@@ -79,13 +79,6 @@ const TRIGRAMS_BYTES: &[u8] = include_bytes!("../data/trigrams.dict");
 #[cfg(feature = "bootstrap_only")]
 const TRIGRAMS_BYTES: &[u8] = &[];
 
-/// Intra-token char-trigram FST. Reserved for future Viterbi
-/// 3-char-phrase scoring; predict_* never reads it.
-#[cfg(not(feature = "bootstrap_only"))]
-const TRIGRAMS_INTRA_BYTES: &[u8] = include_bytes!("../data/trigrams_intra.fsa");
-
-#[cfg(feature = "bootstrap_only")]
-const TRIGRAMS_INTRA_BYTES: &[u8] = &[];
 
 /// The pinyin dictionary: an embedded FST plus a mutable L0 layer for
 /// per-user preference learning.
@@ -106,9 +99,6 @@ pub struct PinyinDict {
     /// predict only scans (a\0b, *), so two-level is the natural + smaller
     /// fit (~2 MB under the flat Fsa). Source of context-aware predictions.
     trigrams: Option<Dict<&'static [u8]>>,
-    /// Intra-token char-trigram FST. Reserved (future use).
-    #[allow(dead_code)]
-    trigrams_intra: Option<Fsa<&'static [u8]>>,
     l0: RwLock<L0Inner>,
     /// Per-char max freq across ALL its pinyin readings (lazy init).
     /// Built once on first access by scanning the entire FST. Used by
@@ -144,7 +134,6 @@ impl PinyinDict {
             bigrams: load_optional(BIGRAMS_BYTES, "bigrams"),
             bigrams_intra: load_optional(BIGRAMS_INTRA_BYTES, "bigrams_intra"),
             trigrams: load_optional_dict(TRIGRAMS_BYTES, "trigrams"),
-            trigrams_intra: load_optional(TRIGRAMS_INTRA_BYTES, "trigrams_intra"),
             l0: RwLock::new(L0Inner::new()),
             char_max_freq: OnceLock::new(),
         }
