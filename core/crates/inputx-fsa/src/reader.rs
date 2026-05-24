@@ -9,6 +9,8 @@
 //! count. A transition stores `label`, a LEB128 back-delta to the target,
 //! and (multi-node only) the target's LEB128 right-language count.
 
+use alloc::vec::Vec;
+
 const HEADER_LEN: usize = 18; // magic4 + ver1 + width1 + value_count4 + root_off4 + state_count4
 
 /// Error parsing an FSA buffer.

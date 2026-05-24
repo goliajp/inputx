@@ -10,7 +10,15 @@
 //! Values are kept out of the automaton (it stays a pure key recognizer)
 //! and emitted as a fixed-width array indexed by each key's sorted rank.
 
-use std::collections::HashMap;
+use alloc::vec;
+use alloc::vec::Vec;
+
+// Hash-cons register for state minimization. HashMap (O(1)) when `std` is
+// on; a BTreeMap keeps the builder available in no_std builds.
+#[cfg(feature = "std")]
+use std::collections::HashMap as Register;
+#[cfg(not(feature = "std"))]
+use alloc::collections::BTreeMap as Register;
 
 /// Accumulates (key, value) pairs and serializes a minimal FSA.
 #[derive(Default)]
@@ -63,7 +71,7 @@ impl Builder {
         }
 
         // ── Phase 2: minimize (hash-cons, post-order) ──────────────────
-        let mut register: HashMap<StateKey, u32> = HashMap::new();
+        let mut register: Register<StateKey, u32> = Register::new();
         let mut canon: Vec<CanonState> = Vec::new();
         let root = minimize(0, &trie, &mut register, &mut canon);
 
@@ -155,7 +163,7 @@ type StateKey = (bool, Vec<(u8, u32)>);
 fn minimize(
     node: u32,
     trie: &[TrieNode],
-    register: &mut HashMap<StateKey, u32>,
+    register: &mut Register<StateKey, u32>,
     canon: &mut Vec<CanonState>,
 ) -> u32 {
     let kids = trie[node as usize].children.collect_sorted();

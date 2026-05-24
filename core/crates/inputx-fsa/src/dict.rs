@@ -15,6 +15,8 @@
 //! Blob record (per code, addressed by the automaton's u64 value = byte
 //! offset): `n_items uvarint · [item_len uvarint · item_bytes · value uvarint]×n`.
 
+use alloc::vec::Vec;
+
 use crate::builder::{write_uvarint, Builder};
 use crate::reader::{rd_u32, rd_uvarint, Fsa, FsaError};
 
