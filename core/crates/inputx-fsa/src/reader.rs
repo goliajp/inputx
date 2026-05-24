@@ -2,9 +2,13 @@
 //! `iter` over the embedded bytes with no decompression step. Generic over
 //! the byte container `D: AsRef<[u8]>` so the same reader works on a
 //! `Vec<u8>`, a `&[u8]`, or a future memory-mapped file.
+//!
+//! Format v2 (see `builder::serialize`): states are byte-offset addressed
+//! (no offset table); a transition stores `label`, a LEB128 back-delta to
+//! the target state, and the target's LEB128 right-language count (for the
+//! ordinal walk).
 
-const HEADER_LEN: usize = 18; // magic4 + ver1 + width1 + state_count4 + value_count4 + root4
-const TRANS_LEN: usize = 9; // label1 + target4 + num4
+const HEADER_LEN: usize = 18; // magic4 + ver1 + width1 + value_count4 + root_off4 + state_count4
 
 /// Error parsing an FSA buffer.
 #[derive(Debug, PartialEq, Eq)]
@@ -18,20 +22,33 @@ pub enum FsaError {
 pub struct Fsa<D> {
     data: D,
     value_width: usize,
-    state_count: u32,
     value_count: u32,
-    root: u32,
+    state_count: u32,
+    root_rel: u32,
     blob_start: usize,
     values_start: usize,
 }
 
 #[inline]
-fn rd_u16(b: &[u8], at: usize) -> u16 {
-    u16::from_le_bytes([b[at], b[at + 1]])
-}
-#[inline]
 fn rd_u32(b: &[u8], at: usize) -> u32 {
     u32::from_le_bytes([b[at], b[at + 1], b[at + 2], b[at + 3]])
+}
+
+/// Read an unsigned LEB128 starting at `*p`, advancing `*p` past it.
+#[inline]
+fn rd_uvarint(b: &[u8], p: &mut usize) -> u64 {
+    let mut v = 0u64;
+    let mut shift = 0u32;
+    loop {
+        let byte = b[*p];
+        *p += 1;
+        v |= u64::from(byte & 0x7f) << shift;
+        if byte & 0x80 == 0 {
+            break;
+        }
+        shift += 7;
+    }
+    v
 }
 
 impl<D: AsRef<[u8]>> Fsa<D> {
@@ -43,28 +60,25 @@ impl<D: AsRef<[u8]>> Fsa<D> {
         if &b[0..4] != b"IXFA" {
             return Err(FsaError::BadMagic);
         }
-        if b[4] != 1 {
+        if b[4] != 2 {
             return Err(FsaError::BadVersion(b[4]));
         }
         let value_width = b[5] as usize;
-        let state_count = rd_u32(b, 6);
-        let value_count = rd_u32(b, 10);
-        let root = rd_u32(b, 14);
-        let blob_start = HEADER_LEN + state_count as usize * 4;
+        let value_count = rd_u32(b, 6);
+        let root_rel = rd_u32(b, 10);
+        let state_count = rd_u32(b, 14);
+        let blob_start = HEADER_LEN;
         let values_len = value_count as usize * value_width;
-        if b.len() < blob_start || b.len() < values_len {
+        if b.len() < blob_start + values_len {
             return Err(FsaError::Truncated);
         }
         let values_start = b.len() - values_len;
-        if values_start < blob_start {
-            return Err(FsaError::Truncated);
-        }
         Ok(Self {
             data,
             value_width,
-            state_count,
             value_count,
-            root,
+            state_count,
+            root_rel,
             blob_start,
             values_start,
         })
@@ -79,10 +93,9 @@ impl<D: AsRef<[u8]>> Fsa<D> {
         self.value_count == 0
     }
 
-    #[inline]
-    fn state_offset(&self, id: u32) -> usize {
-        let b = self.data.as_ref();
-        self.blob_start + rd_u32(b, HEADER_LEN + id as usize * 4) as usize
+    /// Total number of states in the automaton (diagnostics).
+    pub fn state_count(&self) -> u32 {
+        self.state_count
     }
 
     #[inline]
@@ -96,38 +109,51 @@ impl<D: AsRef<[u8]>> Fsa<D> {
         v
     }
 
-    /// Look up `key`. Returns its value if present.
+    #[inline]
+    fn is_final(&self, rel: u32) -> bool {
+        self.data.as_ref()[self.blob_start + rel as usize] & 1 != 0
+    }
+
+    /// Walk one state: from state at `rel`, take `byte`. Returns the target
+    /// state's relative offset, adding to `ord` the rank contribution of
+    /// everything that sorts before that branch. `None` if no such transition.
+    #[inline]
+    fn step(&self, rel: u32, byte: u8, ord: &mut u64) -> Option<u32> {
+        let b = self.data.as_ref();
+        let mut p = self.blob_start + rel as usize;
+        let final_ = b[p] & 1 != 0;
+        p += 1;
+        if final_ {
+            *ord += 1; // the (shorter) word ending here sorts first
+        }
+        let ntrans = rd_uvarint(b, &mut p);
+        for _ in 0..ntrans {
+            let label = b[p];
+            p += 1;
+            let delta = rd_uvarint(b, &mut p);
+            let numt = rd_uvarint(b, &mut p);
+            if label < byte {
+                *ord += numt;
+            } else if label == byte {
+                return Some(rel - delta as u32);
+            } else {
+                break; // label-sorted
+            }
+        }
+        None
+    }
+
+    /// Look up `key`.
     pub fn get(&self, key: &[u8]) -> Option<u64> {
         if self.value_count == 0 {
             return None;
         }
-        let b = self.data.as_ref();
-        let mut state = self.root;
-        let mut ord: u64 = 0;
+        let mut rel = self.root_rel;
+        let mut ord = 0u64;
         for &byte in key {
-            let so = self.state_offset(state);
-            if b[so] & 1 != 0 {
-                ord += 1; // the (shorter) word ending here sorts before our continuation
-            }
-            let ntrans = rd_u16(b, so + 1) as usize;
-            let trans = so + 3;
-            let mut next = None;
-            for t in 0..ntrans {
-                let rec = trans + t * TRANS_LEN;
-                let label = b[rec];
-                if label < byte {
-                    ord += rd_u32(b, rec + 5) as u64; // skip all keys under this branch
-                } else if label == byte {
-                    next = Some(rd_u32(b, rec + 1));
-                    break;
-                } else {
-                    break; // transitions are label-sorted
-                }
-            }
-            state = next?;
+            rel = self.step(rel, byte, &mut ord)?;
         }
-        let so = self.state_offset(state);
-        if b[so] & 1 != 0 {
+        if self.is_final(rel) {
             Some(self.read_value(ord))
         } else {
             None
@@ -139,16 +165,15 @@ impl<D: AsRef<[u8]>> Fsa<D> {
         self.walk_to(prefix).is_some()
     }
 
-    /// All (key, value) pairs whose key starts with `prefix`, in sorted
-    /// order. An empty prefix yields the whole map.
+    /// All (key, value) pairs whose key starts with `prefix`, sorted.
     pub fn prefix(&self, prefix: &[u8]) -> Vec<(Vec<u8>, u64)> {
-        let Some((state, ord)) = self.walk_to(prefix) else {
+        let Some((rel, ord)) = self.walk_to(prefix) else {
             return Vec::new();
         };
         let mut out = Vec::new();
         let mut cur = prefix.to_vec();
         let mut ord = ord;
-        self.collect(state, &mut cur, &mut ord, &mut out);
+        self.collect(rel, &mut cur, &mut ord, &mut out);
         out
     }
 
@@ -157,65 +182,39 @@ impl<D: AsRef<[u8]>> Fsa<D> {
         self.prefix(b"")
     }
 
-    /// Walk `prefix` from the root, accumulating the number of keys that sort
-    /// strictly before the prefix's subtree. Returns `(state, ord)` at the
-    /// node reached, or `None` if no key has this prefix.
     fn walk_to(&self, prefix: &[u8]) -> Option<(u32, u64)> {
         if self.value_count == 0 {
             return None;
         }
-        let b = self.data.as_ref();
-        let mut state = self.root;
-        let mut ord: u64 = 0;
+        let mut rel = self.root_rel;
+        let mut ord = 0u64;
         for &byte in prefix {
-            let so = self.state_offset(state);
-            if b[so] & 1 != 0 {
-                ord += 1;
-            }
-            let ntrans = rd_u16(b, so + 1) as usize;
-            let trans = so + 3;
-            let mut next = None;
-            for t in 0..ntrans {
-                let rec = trans + t * TRANS_LEN;
-                let label = b[rec];
-                if label < byte {
-                    ord += rd_u32(b, rec + 5) as u64;
-                } else if label == byte {
-                    next = Some(rd_u32(b, rec + 1));
-                    break;
-                } else {
-                    break;
-                }
-            }
-            state = next?;
+            rel = self.step(rel, byte, &mut ord)?;
         }
-        Some((state, ord))
+        Some((rel, ord))
     }
 
-    /// Depth-first, label-sorted traversal from `state`, appending each
-    /// accepted (key, value) and advancing `ord`. Recursion depth is bounded
-    /// by key length.
-    fn collect(&self, state: u32, cur: &mut Vec<u8>, ord: &mut u64, out: &mut Vec<(Vec<u8>, u64)>) {
+    /// DFS in label-sorted order from `rel`, appending accepted (key, value)
+    /// pairs and advancing `ord`. Recursion depth ≤ longest key.
+    fn collect(&self, rel: u32, cur: &mut Vec<u8>, ord: &mut u64, out: &mut Vec<(Vec<u8>, u64)>) {
         let b = self.data.as_ref();
-        let so = self.state_offset(state);
-        if b[so] & 1 != 0 {
+        let mut p = self.blob_start + rel as usize;
+        let final_ = b[p] & 1 != 0;
+        p += 1;
+        if final_ {
             out.push((cur.clone(), self.read_value(*ord)));
             *ord += 1;
         }
-        let ntrans = rd_u16(b, so + 1) as usize;
-        let trans = so + 3;
-        for t in 0..ntrans {
-            let rec = trans + t * TRANS_LEN;
-            let label = b[rec];
-            let target = rd_u32(b, rec + 1);
+        let ntrans = rd_uvarint(b, &mut p);
+        for _ in 0..ntrans {
+            let label = b[p];
+            p += 1;
+            let delta = rd_uvarint(b, &mut p);
+            let _num = rd_uvarint(b, &mut p);
+            let target = rel - delta as u32;
             cur.push(label);
             self.collect(target, cur, ord, out);
             cur.pop();
         }
-    }
-
-    /// Total number of states in the automaton (diagnostics).
-    pub fn state_count(&self) -> u32 {
-        self.state_count
     }
 }
