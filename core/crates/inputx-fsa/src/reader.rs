@@ -3,10 +3,11 @@
 //! the byte container `D: AsRef<[u8]>` so the same reader works on a
 //! `Vec<u8>`, a `&[u8]`, or a future memory-mapped file.
 //!
-//! Format v2 (see `builder::serialize`): states are byte-offset addressed
-//! (no offset table); a transition stores `label`, a LEB128 back-delta to
-//! the target state, and the target's LEB128 right-language count (for the
-//! ordinal walk).
+//! Format v3 (see `builder::serialize`): states are byte-offset addressed
+//! (no offset table). A flags byte (bit0=final, bit1=single-transition)
+//! precedes the transitions; single-transition nodes drop the arity + the
+//! count. A transition stores `label`, a LEB128 back-delta to the target,
+//! and (multi-node only) the target's LEB128 right-language count.
 
 const HEADER_LEN: usize = 18; // magic4 + ver1 + width1 + value_count4 + root_off4 + state_count4
 

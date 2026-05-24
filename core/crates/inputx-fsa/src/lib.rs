@@ -19,14 +19,20 @@
 //! that ordinal. This is the "numbered MA-FSA / minimal perfect hash"
 //! construction.
 //!
-//! # Format (v1, little-endian)
+//! # Format (v3, little-endian)
 //!
 //! ```text
-//! magic "IXFA" (4) · version u8 · value_width u8 (1|2|4|8)
-//! state_count u32 · value_count u32 · root u32
-//! offsets:  [u32; state_count]   (byte offset of each state within the states blob)
-//! states:   per state → final u8(bit0) · n_trans u16 · [label u8, target u32, num u32]×n
-//! values:   [value_width bytes; value_count]   (always the tail of the buffer)
+//! magic "IXFA" (4) · version u8(=3) · value_width u8 (1|2|4|8)
+//! value_count u32 · root_off u32 · state_count u32        (18-byte header)
+//! states:  byte-offset addressed (no offset table), post-order so every
+//!          target precedes its source. Per state, a flags byte:
+//!            bit0 = final, bit1 = single-transition.
+//!          · single  → [flags, label u8, delta uvarint]   (count omitted)
+//!          · multi   → [flags, n uvarint, (label u8, delta uvarint,
+//!                       count uvarint) × n]
+//!          `delta` is a back-distance to the target state; `count` is the
+//!          target's right-language size (for the ordinal/rank walk).
+//! values:  [value_width bytes; value_count]   (tail of the buffer)
 //! ```
 
 #![forbid(unsafe_code)]
