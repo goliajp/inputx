@@ -1071,6 +1071,15 @@ mod wubi_simcode_priority {
     #[test] fn de_wubi_胡()  { assert_eq!(top(b"de"),  "胡"); }
     #[test] fn shi_wubi_椒() { assert_eq!(top(b"shi"), "椒"); }
     #[test] fn you_wubi_亦() { assert_eq!(top(b"you"), "亦"); }
+    // User-confirmed via runtime (2026-05-24): Jianma2 common-char
+    // entries also must lead via Session path (same flow the Mac IME
+    // uses). Adding these pins more of the user-stated invariant so
+    // a regression at the Session layer can't slip past wubi_simcode_
+    // priority's protect list silently.
+    #[test] fn ce_wubi_能() { assert_eq!(top(b"ce"), "能"); }
+    #[test] fn yi_wubi_就() { assert_eq!(top(b"yi"), "就"); }
+    #[test] fn ge_wubi_表() { assert_eq!(top(b"ge"), "表"); }
+    #[test] fn da_wubi_左() { assert_eq!(top(b"da"), "左"); }
     // Jianma1 (1-letter) keeps its hard floor too.
     #[test] fn e_wubi_有() { assert_eq!(top(b"e"), "有"); }
     #[test] fn g_wubi_一() { assert_eq!(top(b"g"), "一"); }
