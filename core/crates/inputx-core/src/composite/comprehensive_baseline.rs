@@ -343,6 +343,42 @@ mod tests {
         }
     }
 
+    /// JapaneseOnly mode — user exclusively typing Japanese. Pinyin
+    /// and wubi engines stay dormant. Top candidates must be JP
+    /// (kanji / kana). Smoke coverage only — JP scoring details
+    /// covered by inputx-jp's own test suite.
+    #[test]
+    fn japanese_only_mode_produces_jp_candidates() {
+        let cases: &[&str] = &[
+            "konnichiwa",  // こんにちは / 今日は etc.
+            "arigatou",    // ありがとう / 有難う
+            "watashi",     // 私 / わたし
+            "ohayou",      // おはよう
+        ];
+        let mut failures = Vec::new();
+        for input in cases {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::JapaneseOnly);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            for b in input.bytes() { let _ = e.handle_letter(b); }
+            let cands = e.candidates();
+            if cands.is_empty() {
+                failures.push(format!("  {input}: zero candidates in JapaneseOnly"));
+                continue;
+            }
+            // Top should be JP source.
+            let top = &cands[0];
+            if !matches!(top.source, crate::composite::Source::Japanese) {
+                failures.push(format!(
+                    "  {input}: top source = {:?}, expected Japanese", top.source));
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} JapaneseOnly cases failed:\n{}",
+                failures.len(), failures.join("\n"));
+        }
+    }
+
     #[test]
     fn jp_enabled_pinyin_top_still_leads_via_pinyin_only_mode() {
         // Note: we use PinyinOnly mode for the assertion (wubi
@@ -492,6 +528,28 @@ mod tests {
             // Additional 3-letter sample.
         ];
         run("jianma3_ext", cases, mixed_top, mixed_top10);
+    }
+
+    /// ASCII fallback positive — pure-garbage 5+ chars must commit
+    /// as raw ASCII (no Chinese candidates can possibly form).
+    /// Verifies the has_future_match Viterbi-viability tier (v1.5d)
+    /// doesn't keep buffers alive that have NO valid pinyin start.
+    #[test]
+    fn ascii_fallback_fires_for_pure_garbage() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::PinyinOnly);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        let mut last_commit: Option<String> = None;
+        for b in b"qwxzy" {
+            if let Some(c) = e.handle_letter(*b) {
+                last_commit = Some(c);
+            }
+        }
+        // Either the 5th byte triggered ASCII fallback (Some commit
+        // returned), OR engine accumulated and we should check the
+        // commit drain.
+        assert_eq!(last_commit.as_deref(), Some("qwxzy"),
+            "expected ASCII fallback to commit 'qwxzy' as raw ASCII");
     }
 
     #[test]
