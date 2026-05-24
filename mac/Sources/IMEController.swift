@@ -160,7 +160,26 @@ final class InputxController: IMKInputController {
         guard let chars = event.charactersIgnoringModifiers,
               let firstScalar = chars.unicodeScalars.first
         else { return false }
-        let codepoint = firstScalar.value
+        var codepoint = firstScalar.value
+
+        // Shift+digit re-anchor (user-reported 2026-05-24: shift+1 was
+        // committing candidate #1 instead of inserting '!').
+        // `charactersIgnoringModifiers` returns the digit (0-9) even when
+        // shift is held — but on US/JP/etc keyboards shift+digit produces
+        // a symbol (!@#$%^&*()). Without this remap, Path A would route
+        // shift+1 as candidate-pick #1 and the symbol the user actually
+        // typed would be dropped on the floor.
+        //
+        // Scope: only affects digit codepoints. Shift+letter (uppercase)
+        // and shift+other-punct paths are unchanged — both already
+        // produce a sensible codepoint via the unmodified char and
+        // engine canonicalization handles case.
+        if event.modifierFlags.contains(.shift),
+           (0x30...0x39).contains(codepoint),
+           let typed = event.characters,
+           let typedScalar = typed.unicodeScalars.first {
+            codepoint = typedScalar.value
+        }
 
         // Prediction-mode dismissals. When the panel is showing 联想
         // predictions (post-commit) and the user presses a key that
