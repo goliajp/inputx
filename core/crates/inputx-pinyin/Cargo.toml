@@ -34,13 +34,9 @@ name = "golia_pinyin"
 crate-type = ["rlib", "cdylib", "staticlib"]
 
 [dependencies]
-# Self-built zero-dep index (replaces fst — see .claude/PLAN-self-built-fsa.md
-# Stage B). `fst` stays during the transition until dict.rs is fully swapped.
+# Self-built zero-dependency index — fully replaces fst on the pinyin read
+# path (main dict = Dict, n-grams = Fsa). See .claude/PLAN-self-built-fsa.md.
 inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
-# `syllable.rs` validates Mandarin syllables via a plain sorted slice +
-# linear membership (zero-dep, replaces the former phf::Set — see
-# .claude/PLAN-self-built-fsa.md A2).
-fst = { version = "0.4", default-features = false }
 
 # tools-only deps (gated behind `tools` feature)
 ureq = { version = "2", optional = true }
@@ -64,7 +60,7 @@ tar = { version = "0.4", optional = true, default-features = false }
 encoding_rs = { version = "0.8", optional = true }
 
 [build-dependencies]
-fst = { version = "0.4", default-features = false }
+inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 
 [dev-dependencies]
 proptest = "1"
@@ -136,21 +132,6 @@ required-features = ["tools"]
 [[bin]]
 name = "pinyin-build-ngrams-fsa"
 path = "tools/build_ngrams_fsa.rs"
-required-features = ["tools"]
-
-[[bin]]
-name = "pinyin-build-fst"
-path = "tools/build_fst.rs"
-required-features = ["tools"]
-
-[[bin]]
-name = "pinyin-build-bigrams-fst"
-path = "tools/build_bigrams_fst.rs"
-required-features = ["tools"]
-
-[[bin]]
-name = "pinyin-build-trigrams-fst"
-path = "tools/build_trigrams_fst.rs"
 required-features = ["tools"]
 
 # `[[bench]]` blocks land in v0.2 once data is dense enough to bench.
