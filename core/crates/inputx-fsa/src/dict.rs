@@ -152,12 +152,13 @@ impl<D: AsRef<[u8]>> Dict<D> {
         };
         let b = self.data.as_ref();
         let mut p = self.blob_lo + off as usize;
-        let n = rd_uvarint(b, &mut p) as usize;
+        let Some(n) = rd_uvarint(b, &mut p) else { return };
         for _ in 0..n {
-            let len = rd_uvarint(b, &mut p) as usize;
-            let item = &b[p..p + len];
-            p += len;
-            let val = rd_uvarint(b, &mut p);
+            let Some(len) = rd_uvarint(b, &mut p).map(|l| l as usize) else { return };
+            let Some(end) = p.checked_add(len) else { return };
+            let Some(item) = b.get(p..end) else { return };
+            p = end;
+            let Some(val) = rd_uvarint(b, &mut p) else { return };
             visit(item, val);
         }
     }
@@ -187,12 +188,13 @@ impl<D: AsRef<[u8]>> Dict<D> {
         let blob_lo = self.blob_lo;
         fsa.prefix_for_each(prefix, |code, off| {
             let mut p = blob_lo + off as usize;
-            let n = rd_uvarint(b, &mut p) as usize;
+            let Some(n) = rd_uvarint(b, &mut p) else { return };
             for _ in 0..n {
-                let len = rd_uvarint(b, &mut p) as usize;
-                let item = &b[p..p + len];
-                p += len;
-                let val = rd_uvarint(b, &mut p);
+                let Some(len) = rd_uvarint(b, &mut p).map(|l| l as usize) else { return };
+                let Some(end) = p.checked_add(len) else { return };
+                let Some(item) = b.get(p..end) else { return };
+                p = end;
+                let Some(val) = rd_uvarint(b, &mut p) else { return };
                 visit(code, item, val);
             }
         });
