@@ -151,12 +151,31 @@ impl<D: AsRef<[u8]>> Dict<D> {
     /// codes in sorted order, items in stored order within each code.
     pub fn prefix(&self, prefix: &[u8]) -> Vec<(Vec<u8>, Vec<u8>, u64)> {
         let mut out = Vec::new();
-        for (code, off) in self.fsa().prefix(prefix) {
-            for (item, val) in self.read_record(off as usize) {
-                out.push((code.clone(), item, val));
-            }
-        }
+        self.prefix_for_each(prefix, |code, item, val| {
+            out.push((code.to_vec(), item.to_vec(), val))
+        });
         out
+    }
+
+    /// Streaming variant of [`prefix`](Self::prefix): invoke `visit(code,
+    /// item, value)` per item without materializing the result — the hot
+    /// path (a bare-letter code prefix can match tens of thousands of items).
+    /// The `code` and `item` slices are valid only for the call.
+    pub fn prefix_for_each<F: FnMut(&[u8], &[u8], u64)>(&self, prefix: &[u8], mut visit: F) {
+        let fsa = self.fsa();
+        let b = self.data.as_ref();
+        let blob_lo = self.blob_lo;
+        fsa.prefix_for_each(prefix, |code, off| {
+            let mut p = blob_lo + off as usize;
+            let n = rd_uvarint(b, &mut p) as usize;
+            for _ in 0..n {
+                let len = rd_uvarint(b, &mut p) as usize;
+                let item = &b[p..p + len];
+                p += len;
+                let val = rd_uvarint(b, &mut p);
+                visit(code, item, val);
+            }
+        });
     }
 
     fn read_record(&self, off: usize) -> Vec<(Vec<u8>, u64)> {
