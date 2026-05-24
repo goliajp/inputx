@@ -319,6 +319,21 @@ impl PinyinAdapter {
                 return true;
             }
         }
+        // Third-tier: Viterbi viability for medium+ buffers. If a
+        // prefix of the buffer can be segmented by best_composition,
+        // user is mid-typing a long composable string. Catches cases
+        // where intermediate prefix isn't an exact dict-pinyin match
+        // (e.g. "nihaomaw" — no dict word at that exact pinyin, but
+        // "nihaoma" composes 你好吗 and the trailing "w" starts 我).
+        // Threshold 6 = Viterbi's effective MIN_LEN floor + headroom.
+        if self.buffer.len() >= 6 {
+            for trim in 0..=3.min(self.buffer.len() - 4) {
+                let shorter = &self.buffer[..self.buffer.len() - trim];
+                if self.engine.dict().best_composition(shorter).is_some() {
+                    return true;
+                }
+            }
+        }
         false
     }
 

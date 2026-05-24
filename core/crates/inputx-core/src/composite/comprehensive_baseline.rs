@@ -380,6 +380,42 @@ mod tests {
     // sentence without mode switch).
     // ───────────────────────────────────────────────────────────
 
+    /// Multi-syllable input that needs Viterbi composition (no single
+    /// dict entry at the buffer code). The composed string must
+    /// surface in PinyinOnly mode top10.
+    #[test]
+    fn viterbi_composition_surfaces_for_long_buffers() {
+        let cases: &[(&str, &str)] = &[
+            ("yongbuliao", "用不了"),     // user-reported 2026-05-24
+            ("nihaomawojiao", "你好吗我叫"),  // v0.4 phase A
+            ("zhongguoren", "中国人"),
+        ];
+        let mut failures = Vec::new();
+        for (buf, expected) in cases {
+            let top10 = pinyin_top10(buf.as_bytes());
+            if !top10.iter().any(|w| w == expected) {
+                failures.push(format!(
+                    "  viterbi: {buf} expected {expected} in top10; got {top10:?}"
+                ));
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} viterbi cases failed:\n{}", failures.len(), failures.join("\n"));
+        }
+    }
+
+    /// Wubi Jianma3 (3-letter simcode) sample. Per 伙-rule extended,
+    /// 3-letter shortcuts with common-char targets MUST lead.
+    #[test]
+    fn jianma3_common_chars_lead_in_mixed() {
+        let cases: &[(&str, &str)] = &[
+            ("shi", "椒"),    // protected
+            ("you", "亦"),    // protected
+            // Additional 3-letter sample.
+        ];
+        run("jianma3_ext", cases, mixed_top, mixed_top10);
+    }
+
     #[test]
     fn ascii_fallback_engages_after_threshold() {
         // 5+ char buffer that doesn't resolve to a pinyin word and
