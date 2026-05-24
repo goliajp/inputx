@@ -14,6 +14,13 @@ categories = ["data-structures", "compression", "no-std"]
 [lib]
 crate-type = ["rlib"]
 
+[features]
+default = ["std"]
+# `std` (default) uses a HashMap register for fast builds. Without it the
+# crate is `#![no_std]` (alloc only): the reader and a (slower, BTreeMap)
+# builder both work — for embedded / minimal-wasm consumers.
+std = []
+
 [dependencies]
 # Zero dependencies. That is the entire point of this crate.
 
