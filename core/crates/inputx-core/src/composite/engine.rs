@@ -754,12 +754,20 @@ mod tests {
     fn mixed_mode_wubi_letters_show_both_when_pinyin_matches() {
         let mut e = CompositeEngine::new();
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        typed(&mut e, b"yi"); // wubi: 2-letter simcode; pinyin: 一/以/已/...
+        // 'wo' is a wubi 2-letter simcode (wo → 伙, explicitly
+        // protected by session::wubi_simcode_priority) AND a pinyin
+        // syllable (wo → 我). The composite contract: both sources
+        // contribute to the candidate list. Use 'wo' instead of 'yi'
+        // because 'yi → 就' was purged from Jianma2 in v1.4 polish
+        // (the 'yi' code's Jianma2 char wasn't on the 伙-rule protect
+        // list, so it yielded to pinyin top 一).
+        typed(&mut e, b"wo");
         let cands = e.candidates().to_vec();
-        // Inputx is 五笔 IME first — wubi candidate at #0. Pinyin
-        // contributes additional candidates further down the list.
-        assert_eq!(cands[0].source, Source::Wubi);
-        assert!(cands.iter().any(|c| c.source == Source::Pinyin));
+        assert_eq!(cands[0].source, Source::Wubi,
+            "expected wubi #0 for 'wo' (protected simcode 伙); got cands={:?}",
+            cands.iter().take(5).map(|c| (&c.word, c.source)).collect::<Vec<_>>());
+        assert!(cands.iter().any(|c| c.source == Source::Pinyin),
+            "expected at least one Pinyin candidate in the list");
     }
 
     #[test]
