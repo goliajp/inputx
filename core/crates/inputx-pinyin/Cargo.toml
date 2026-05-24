@@ -34,6 +34,9 @@ name = "golia_pinyin"
 crate-type = ["rlib", "cdylib", "staticlib"]
 
 [dependencies]
+# Self-built zero-dep index (replaces fst — see .claude/PLAN-self-built-fsa.md
+# Stage B). `fst` stays during the transition until dict.rs is fully swapped.
+inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 # `syllable.rs` validates Mandarin syllables via a plain sorted slice +
 # linear membership (zero-dep, replaces the former phf::Set — see
 # .claude/PLAN-self-built-fsa.md A2).
@@ -123,6 +126,11 @@ required-features = ["tools"]
 [[bin]]
 name = "pinyin-build-weights"
 path = "tools/build_weights.rs"
+required-features = ["tools"]
+
+[[bin]]
+name = "pinyin-build-dict"
+path = "tools/build_dict.rs"
 required-features = ["tools"]
 
 [[bin]]
