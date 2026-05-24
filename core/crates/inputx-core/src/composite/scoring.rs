@@ -116,17 +116,21 @@ pub const TC_DEMOTE_MULTIPLIER: f64 = 1e-3;
 /// Multiplier applied to L0-pinned words inside the engine's
 /// `lookup_with_scores_into`. Brings any pin above any natural score:
 /// Jianma1 (1.04M) × 1.0 = 1.04M; pinyin top (444k) × 1000 = 444M.
-/// Pin wins.
+/// Pin wins. (Constant kept for documentation + future external
+/// callers; current pin path uses the literal `1000.0` in dict.rs.)
+#[allow(dead_code)]
 pub const L0_PIN_MULTIPLIER: f64 = 1000.0;
 
 /// Multiplier applied to a wubi single-char candidate at full-code
 /// input length when its freq exceeds the max phrase freq at the same
-/// code. Lifts e.g. 两 (single char, freq 37k) above 两败俱伤 (phrase,
-/// freq 15k) at code `gmww`.
+/// code. Documentation constant; promotion currently lives inside
+/// wubi engine's own scoring.
+#[allow(dead_code)]
 pub const WUBI_SINGLE_CHAR_PROMOTE_MULTIPLIER: f64 = 100.0;
 
 /// Score floor recognizing "this is a wubi Jianma1 hit". Used by
 /// diagnostic / FFI code. Today = LAYER_BASE[Jianma1] in inputx-wubi.
+#[allow(dead_code)]
 pub const JIANMA1_THRESHOLD: f64 = 1_000_000.0;
 
 /// Score multiplier for wubi candidates given the user's input length.
