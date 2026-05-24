@@ -44,7 +44,9 @@ DEFAULT_LOG = Path.home() / (
     "Application Support/Inputx/polish-log.jsonl"
 )
 
-REPEAT_THRESHOLD = 3  # ≥ 3 picks of the same (input, word) = strong signal
+REPEAT_THRESHOLD = 2  # v1.5 lowered 3→2 (2026-05-24): broader capture of
+                      # user signals (作假/积木/适配 only picked 2× yet
+                      # still strong "want this not the corpus top" intent).
 NEAR_MISS_RANK = 4    # picked rank ≥ this = far-off ranking
 
 
@@ -203,11 +205,31 @@ def write_quickfix_tsv(repeat_rows, out_path: Path, weights_path: Path):
               file=sys.stderr)
 
     def is_pinyin_shaped(buf: str) -> bool:
-        # Filter out wubi-only buffers (no a/e/i/o/u → can't be pinyin).
-        # Catches `cfyt`, `tjvs`, `ggtt`, etc. Wubi picks don't belong
-        # in the pinyin overlay since they came from a different engine
-        # and wouldn't even be queried by pinyin lookup.
         return any(c in "aeiouv" for c in buf)
+
+    # Load wubi simcode map (code → char) to filter out wubi-engine picks
+    # that leaked into polish-log. v1.5f-pre fix: lowering REPEAT_THRESHOLD
+    # to 2 surfaced false positives like (yi → 就), (ge → 表), (mo → 默)
+    # — these are wubi simcode commits that should NOT become pinyin
+    # overlay boosts (would displace pinyin tops 一/个/没).
+    wubi_simcode_map: dict[str, set] = {}
+    root = Path(__file__).resolve().parent.parent.parent.parent
+    jianma1 = root / "core/crates/inputx-wubi/data/jianma1.txt"
+    jianma_simp = root / "core/crates/inputx-wubi/data/jianma_simplified.txt"
+    for jf in [jianma1, jianma_simp]:
+        if not jf.exists(): continue
+        for raw in jf.open():
+            line = raw.rstrip("\n")
+            if not line or line.startswith("#"): continue
+            parts = line.split("\t")
+            if len(parts) < 2: continue
+            code = parts[0].lower()
+            char = parts[1]
+            if len(char) != 1: continue
+            wubi_simcode_map.setdefault(code, set()).add(char)
+
+    def is_wubi_simcode_pick(buf: str, word: str) -> bool:
+        return len(word) == 1 and word in wubi_simcode_map.get(buf.lower(), set())
 
     def is_simplified_cjk_only(word: str) -> bool:
         # Pure CJK + no punctuation. Catches Japanese-tinged commits
@@ -236,6 +258,9 @@ def write_quickfix_tsv(repeat_rows, out_path: Path, weights_path: Path):
                 skipped += 1
                 continue
             if not is_simplified_cjk_only(word):
+                skipped += 1
+                continue
+            if is_wubi_simcode_pick(buf, word):
                 skipped += 1
                 continue
             py = buf if buf.isascii() and buf.islower() else compute_pinyin(word)

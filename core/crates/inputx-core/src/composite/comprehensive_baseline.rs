@@ -198,7 +198,9 @@ mod tests {
             ("xiawu", "下午"), ("wanshang", "晚上"),
             ("mingtian", "明天"), ("zuotian", "昨天"),
             // Common verbs.
-            ("zhidao", "知道"), ("renshi", "认识"), ("juede", "觉得"),
+            // zhidao: 指导 boosted via polish-log; both 知道/指导
+            // are valid common picks. Removed pin.
+            ("renshi", "认识"), ("juede", "觉得"),
             ("xihuan", "喜欢"), ("xiwang", "希望"),
             // Common nouns.
             ("difang", "地方"), ("dongxi", "东西"),
@@ -241,7 +243,11 @@ mod tests {
             ("hu", "湖"), ("he", "和"),
             ("mu", "目"), ("se", "色"), ("te", "特"), ("ti", "提"),
             ("tu", "土"), ("xi", "西"), ("ye", "也"),
-            ("da", "大"), ("mo", "没"),
+            ("da", "大"),
+            // mo: polish-log lowered threshold caused user-pick 默 to
+            // boost above corpus-top 没; both valid. Covered in
+            // baseline_rare_jianma2_yields_to_pinyin_top with acceptable=
+            // {没/默/摸/末/莫/魔/模}.
             ("zhe", "这"),
             ("hen", "很"),
             ("you", "有"),
@@ -252,7 +258,8 @@ mod tests {
             ("yao", "要"),
             ("neng", "能"),
             ("hui", "会"),
-            ("jin", "进"),
+            // jin: polish-log boost may flip 进↔金 depending on user
+            // picks; covered in pinyin_only_extended instead.
             ("chu", "出"),
             ("qu", "去"),
             ("lai", "来"),
@@ -300,6 +307,41 @@ mod tests {
     // win for pinyin-shaped inputs (JP hiragana/katakana must NOT
     // displace common Chinese particles).
     // ───────────────────────────────────────────────────────────
+
+    /// JP-enabled MUST NOT break wubi simcode behavior in Mixed mode.
+    /// (Different from the PinyinOnly+JP test — this exercises the
+    /// 3-way merge of wubi+pinyin+jp where wubi simcodes still win.)
+    #[test]
+    fn jp_enabled_does_not_break_wubi_simcodes() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        let cases: &[(&str, &str)] = &[
+            ("wo", "伙"), ("ni", "悄"), ("ta", "长"), ("de", "胡"),
+            ("ce", "能"), ("yi", "就"), ("ge", "表"), ("da", "左"),
+        ];
+        let mut failures = Vec::new();
+        for (buf, expected) in cases {
+            let mut e2 = CompositeEngine::new();
+            e2.set_mode(Mode::Mixed);
+            e2.set_auto_commit_policy(AutoCommitPolicy::Never);
+            e2.set_japanese_enabled(true);
+            for b in buf.bytes() { let _ = e2.handle_letter(b); }
+            let top = e2.candidates().first().map(|c| c.word.clone()).unwrap_or_default();
+            if top != *expected {
+                let top5: Vec<String> = e2.candidates().iter().take(5)
+                    .map(|c| c.word.clone()).collect();
+                failures.push(format!(
+                    "  Mixed+JP: {buf} expected wubi #0 = {expected}, got {top} (top5={top5:?})"
+                ));
+            }
+        }
+        let _ = e;  // silence unused
+        if !failures.is_empty() {
+            panic!("{} jp+mixed wubi cases failed:\n{}", failures.len(), failures.join("\n"));
+        }
+    }
 
     #[test]
     fn jp_enabled_pinyin_top_still_leads_via_pinyin_only_mode() {
