@@ -74,7 +74,7 @@ const BIGRAMS_INTRA_BYTES: &[u8] = &[];
 /// distinct jieba tokens. Used by `predict_next_words_context` for
 /// sentence-level coherent next-word prediction.
 #[cfg(not(feature = "bootstrap_only"))]
-const TRIGRAMS_BYTES: &[u8] = include_bytes!("../data/trigrams.fsa");
+const TRIGRAMS_BYTES: &[u8] = include_bytes!("../data/trigrams.dict");
 
 #[cfg(feature = "bootstrap_only")]
 const TRIGRAMS_BYTES: &[u8] = &[];
@@ -102,8 +102,10 @@ pub struct PinyinDict {
     /// Intra-token char-bigram FST (chars inside one phrase). Helps
     /// Viterbi prefer known phrases. NEVER used for predictions.
     bigrams_intra: Option<Fsa<&'static [u8]>>,
-    /// Inter-token trigram FST. Source of context-aware predictions.
-    trigrams: Option<Fsa<&'static [u8]>>,
+    /// Inter-token trigram index. Two-level Dict (a\0b) → [(c, count)] —
+    /// predict only scans (a\0b, *), so two-level is the natural + smaller
+    /// fit (~2 MB under the flat Fsa). Source of context-aware predictions.
+    trigrams: Option<Dict<&'static [u8]>>,
     /// Intra-token char-trigram FST. Reserved (future use).
     #[allow(dead_code)]
     trigrams_intra: Option<Fsa<&'static [u8]>>,
@@ -130,11 +132,18 @@ impl PinyinDict {
                 Some(Fsa::new(bytes).unwrap_or_else(|_| panic!("invalid embedded {label} fsa")))
             }
         }
+        fn load_optional_dict(bytes: &'static [u8], label: &str) -> Option<Dict<&'static [u8]>> {
+            if bytes.is_empty() {
+                None
+            } else {
+                Some(Dict::new(bytes).unwrap_or_else(|_| panic!("invalid embedded {label} dict")))
+            }
+        }
         Self {
             map: Dict::new(DICT_BYTES).expect("invalid embedded pinyin dict"),
             bigrams: load_optional(BIGRAMS_BYTES, "bigrams"),
             bigrams_intra: load_optional(BIGRAMS_INTRA_BYTES, "bigrams_intra"),
-            trigrams: load_optional(TRIGRAMS_BYTES, "trigrams"),
+            trigrams: load_optional_dict(TRIGRAMS_BYTES, "trigrams"),
             trigrams_intra: load_optional(TRIGRAMS_INTRA_BYTES, "trigrams_intra"),
             l0: RwLock::new(L0Inner::new()),
             char_max_freq: OnceLock::new(),
@@ -651,21 +660,16 @@ impl PinyinDict {
         let Some(trigrams) = self.trigrams.as_ref() else {
             return Vec::new();
         };
-        let mut prefix = prev_prev.as_bytes().to_vec();
-        prefix.push(0u8);
-        prefix.extend_from_slice(prev.as_bytes());
-        prefix.push(0u8);
-        let prefix_len = prefix.len();
+        // Two-level: code = prev_prev\0prev, items = the c words for (a,b).
+        let mut code = prev_prev.as_bytes().to_vec();
+        code.push(0u8);
+        code.extend_from_slice(prev.as_bytes());
         let mut hits: Vec<(String, u64)> = Vec::new();
-        trigrams.prefix_for_each(&prefix, |key, count| {
+        trigrams.get_for_each(&code, |c_bytes, count| {
             if count < MIN_TRIGRAM_COUNT {
                 return;
             }
-            let next_bytes = &key[prefix_len..];
-            if next_bytes.is_empty() {
-                return;
-            }
-            if let Ok(s) = core::str::from_utf8(next_bytes) {
+            if let Ok(s) = core::str::from_utf8(c_bytes) {
                 hits.push((s.to_string(), count));
             }
         });
