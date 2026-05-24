@@ -751,7 +751,13 @@ impl PinyinDict {
         prev: &str,
         limit: usize,
     ) -> Vec<(String, u64)> {
-        const MIN_TRIGRAM_COUNT: u64 = 5;
+        // v1.5 bumped 5→50 (2026-05-24): user still saw chains form
+        // ("年人在年月日的比赛中获得了…") even with strict trigram-only
+        // at count 5. The corpus has many low-count noise trigrams that
+        // matched user behavior even though semantically wrong. Higher
+        // threshold = only really established 3-word patterns generate
+        // predictions.
+        const MIN_TRIGRAM_COUNT: u64 = 50;
         if prev.is_empty() || limit == 0 {
             return Vec::new();
         }

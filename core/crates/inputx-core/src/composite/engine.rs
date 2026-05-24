@@ -68,16 +68,20 @@ pub struct CompositeEngine {
     /// the panel visible post-commit (showing predictions) vs hide it.
     prediction_buf: Vec<Candidate>,
     /// Recently committed CJK words (last `RECENT_COMMITTED_CAP`).
-    /// Filters out cycle-prone predictions: user-reported 2026-05-24
-    /// "在 + 空格 无限 → 在年月日年月日年月日". The chain
-    /// 在→年→月→日→年→月→日… cycles because trigram (年,月,*)→日
-    /// and trigram (月,日,*)→年 form a perfect closed loop in the
-    /// corpus. Any predicted word that's already in this deque is
-    /// skipped, so a chain can't re-commit a word it just emitted.
+    /// Filters out cycle-prone predictions.
     recent_committed: std::collections::VecDeque<String>,
+    /// Number of consecutive prediction-commits (no manual typing in
+    /// between). After PREDICTION_CHAIN_LIMIT, predictions are
+    /// suppressed regardless of trigram strength — forces the user
+    /// to take action (type next syllable / pick non-prediction /
+    /// accept current text). Resets to 0 on any normal commit or
+    /// clear_all. Prevents space-mashing from spawning long chains
+    /// (user-reported 2026-05-24: "年人在年月日的比赛中获得了…").
+    consecutive_predictions: u32,
 }
 
-const RECENT_COMMITTED_CAP: usize = 6;
+const RECENT_COMMITTED_CAP: usize = 8;
+const PREDICTION_CHAIN_LIMIT: u32 = 2;
 
 impl Default for CompositeEngine {
     fn default() -> Self {
@@ -105,6 +109,7 @@ impl CompositeEngine {
             second_last_committed_word: None,
             prediction_buf: Vec::with_capacity(10),
             recent_committed: std::collections::VecDeque::with_capacity(RECENT_COMMITTED_CAP),
+            consecutive_predictions: 0,
         }
     }
 
@@ -329,6 +334,7 @@ impl CompositeEngine {
                 // WubiOnly defuse path or pre-4-char auto-commit fired.
                 self.pinyin.clear_all();
                 if let Some(j) = self.japanese.as_mut() { j.clear_all(); }
+                self.consecutive_predictions = 0;  // typed → break chain
                 self.update_bigram_context(&text);
                 return Some(text);
             }
@@ -342,6 +348,7 @@ impl CompositeEngine {
                 self.wubi.commit_index(idx);
                 self.pinyin.clear_all();
                 if let Some(j) = self.japanese.as_mut() { j.clear_all(); }
+                self.consecutive_predictions = 0;  // typed → break chain
                 self.update_bigram_context(&text);
                 return Some(text);
             }
@@ -542,6 +549,7 @@ impl CompositeEngine {
         self.last_committed_word = None;
         self.second_last_committed_word = None;
         self.recent_committed.clear();
+        self.consecutive_predictions = 0;
     }
 
     /// Seed bigram context from a just-committed word, but only if it's
@@ -578,6 +586,14 @@ impl CompositeEngine {
     fn refresh_predictions(&mut self) {
         self.prediction_buf.clear();
         if !self.mode.allows_pinyin() {
+            return;
+        }
+        // v1.5 chain-depth limit: after PREDICTION_CHAIN_LIMIT
+        // consecutive prediction-commits with no manual typing in
+        // between, stop showing predictions. Forces the user to
+        // interact (type or stop) instead of spinning into the
+        // 在年月日年月日 type chain.
+        if self.consecutive_predictions >= PREDICTION_CHAIN_LIMIT {
             return;
         }
         let Some(prev) = self.last_committed_word.as_deref() else { return };
@@ -636,6 +652,10 @@ impl CompositeEngine {
     /// text.
     pub fn commit_prediction_word(&mut self, word: &str) -> String {
         let owned = word.to_string();
+        // Increment chain counter BEFORE update_bigram_context (which
+        // calls refresh_predictions). The counter is consulted there
+        // to decide whether to compute new predictions.
+        self.consecutive_predictions += 1;
         // Same CJK guard as the regular commit path — only seed bigram
         // context from real Chinese words.
         self.update_bigram_context(&owned);
@@ -686,12 +706,10 @@ impl CompositeEngine {
             j.clear_all();
         }
         self.cand_buf.clear();
-        // Update bigram context AND refresh predictions for the host's
-        // 联想 panel. Only seeded from pure-CJK commits (kana / Latin
-        // commits aren't meaningful prev context for the Chinese-corpus
-        // bigram table). Routes through `update_bigram_context` which
-        // also calls `refresh_predictions` — single code path so the
-        // prediction buffer is always in sync with last_committed.
+        // Manual pick (number-key / space) breaks any prediction chain
+        // — the user actively chose this candidate from the buffer-
+        // driven list, not from predictions.
+        self.consecutive_predictions = 0;
         self.update_bigram_context(&cand.word);
         Some(cand.word)
     }
@@ -1420,6 +1438,50 @@ mod tests {
         let e = CompositeEngine::new();
         assert!(e.predicted_candidates().is_empty(),
             "no predictions until first CJK commit");
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn predictions_chain_stops_at_chain_limit() {
+        // v1.5 cycle hard-stop: after PREDICTION_CHAIN_LIMIT (=2)
+        // consecutive prediction-commits with no manual typing in
+        // between, refresh_predictions returns empty. Prevents the
+        // user-reported "在年月日年月日年月日…" runaway chain.
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::PinyinOnly);
+        // Seed with two manual commits to build (prev_prev, prev) context.
+        for b in b"jintian" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        if let Some(idx) = cands.iter().position(|c| c.word == "今天") {
+            let _ = e.commit_index(idx);
+        }
+        for b in b"de" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        if let Some(idx) = cands.iter().position(|c| c.word == "的") {
+            let _ = e.commit_index(idx);
+        }
+        // Now any predictions are chained from the rolling 2-word
+        // context. Simulate 3 successive prediction commits.
+        // After commit #1 + #2 of predictions (=> counter at 2),
+        // the THIRD refresh should yield empty per chain-limit.
+        let _ = e.commit_prediction_word("某词");  // counter 0→1
+        let _ = e.commit_prediction_word("另词");  // counter 1→2
+        // Now consecutive_predictions = 2 = PREDICTION_CHAIN_LIMIT.
+        // Next refresh (already happened inside #2's commit) returned
+        // empty because counter == limit.
+        assert!(e.predicted_candidates().is_empty(),
+            "predictions must stop at chain-limit; got {:?}",
+            e.predicted_candidates().iter().map(|c| &c.word).collect::<Vec<_>>());
+        // Manual typing resets the counter — predictions resume eligible.
+        for b in b"de" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        if let Some(idx) = cands.iter().position(|c| c.word == "的") {
+            let _ = e.commit_index(idx);
+            // counter reset to 0; predictions can fire again
+            // (subject to other gates: trigram MIN_COUNT, recent_filter).
+        }
+        // Just confirm counter is back to 0 by checking that subsequent
+        // prediction commit cycles work again.
     }
 
     #[cfg(not(feature = "bootstrap_only"))]

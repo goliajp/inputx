@@ -22,6 +22,9 @@ pub mod scoring;
 // 用 tdd 保障的). Pure test module; no production code.
 #[cfg(test)]
 mod baseline_quality_test;
+// Comprehensive baseline — 200+ cases per user 10h autorun directive.
+#[cfg(test)]
+mod comprehensive_baseline;
 
 pub use engine::CompositeEngine;
 pub use japanese_adapter::JapaneseAdapter;
