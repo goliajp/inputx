@@ -128,15 +128,26 @@ mod tests {
 
     #[test]
     fn jianma2_common_chars_lead_in_mixed() {
+        // ALL Jianma2 single-char entries whose char freq >= 30k AND
+        // the code is pinyin-shaped (has vowel). Each MUST lead at
+        // its code in Mixed mode (Inputx is 五笔 IME first; common-
+        // char simcodes are user's daily shortcuts). Auto-generated
+        // from jianma_simplified.txt + weights.tsv freq lookup; if
+        // a new wubi simcode is added or freq shifts, this list is
+        // re-generated from python audit.
         let cases: &[(&str, &str)] = &[
-            // The 4 user-explicit + protected ones (covered in
-            // session::wubi_simcode_priority too; here for crowd-coverage).
-            ("ce", "能"), ("yi", "就"), ("ge", "表"), ("da", "左"),
-            ("wo", "伙"), ("ni", "悄"), ("ta", "长"), ("de", "胡"),
-            // Plus a sample of other common Jianma2 chars (freq ≥ 20k).
-            // Reading jianma_simplified.txt for chars with freq verified
-            // to clear the 20k floor.
-            // (More rows can be added as the user reports / confirms.)
+            ("gi", "不"), ("vb", "好"), ("yi", "就"), ("sv", "要"),
+            ("yu", "说"), ("go", "来"), ("ce", "能"), ("im", "没"),
+            ("et", "用"), ("pe", "家"), ("ih", "小"), ("wu", "们"),
+            ("ue", "前"), ("ra", "找"), ("wv", "分"), ("uk", "部"),
+            ("if", "法"), ("ga", "开"), ("iv", "当"), ("na", "民"),
+            ("ip", "学"), ("ey", "及"), ("ep", "爱"), ("ua", "并"),
+            ("vk", "如"), ("ta", "长"), ("wa", "代"), ("kv", "哪"),
+            ("ya", "度"), ("ak", "或"),
+            // Plus original 4 user-explicit (covered in wubi_simcode_priority
+            // too; here for crowd-coverage).
+            ("ge", "表"), ("da", "左"),
+            ("wo", "伙"), ("ni", "悄"), ("de", "胡"),
         ];
         run("jianma2", cases, mixed_top, mixed_top10);
     }
@@ -145,6 +156,37 @@ mod tests {
     // PinyinOnly common single-syllable — universal top picks.
     // No wubi competition.
     // ───────────────────────────────────────────────────────────
+
+    /// Extended common 2-3 char pinyin compounds — wider coverage
+    /// than the multi_syllable test. Real everyday words.
+    #[test]
+    fn pinyin_only_extended_common_words() {
+        let cases: &[(&str, &str)] = &[
+            // Pronouns + family + people.
+            ("nimen", "你们"), ("tamen", "他们"), ("zanmen", "咱们"),
+            ("mama", "妈妈"), ("baba", "爸爸"), ("gege", "哥哥"),
+            ("jiejie", "姐姐"), ("didi", "弟弟"), ("meimei", "妹妹"),
+            // Time.
+            ("zaoshang", "早上"), ("shangwu", "上午"),
+            ("xiawu", "下午"), ("wanshang", "晚上"),
+            ("mingtian", "明天"), ("zuotian", "昨天"),
+            // Common verbs.
+            ("zhidao", "知道"), ("renshi", "认识"), ("juede", "觉得"),
+            ("xihuan", "喜欢"), ("xiwang", "希望"),
+            // Common nouns.
+            ("difang", "地方"), ("dongxi", "东西"),
+            ("wenti", "问题"), ("yisi", "意思"),
+            // Common adjectives.
+            ("piaoliang", "漂亮"), ("zhongyao", "重要"),
+            // Daily.
+            ("chifan", "吃饭"), ("zuofan", "做饭"),
+            ("shuijiao", "睡觉"),
+            // Modern.
+            ("shouji", "手机"), ("diannao", "电脑"),
+            ("wangluo", "网络"), ("yidong", "移动"),
+        ];
+        run("ext_common", cases, pinyin_top, pinyin_top10);
+    }
 
     #[test]
     fn pinyin_only_top_common_single_syllable() {
