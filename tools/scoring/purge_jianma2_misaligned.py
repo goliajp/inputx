@@ -49,7 +49,20 @@ PROTECTED: set[tuple[str, str]] = {
     ("shi", "椒"), ("you", "亦"),
 }
 
-FREQ_THRESHOLD = 40000
+# v2 policy (2026-05-24, after user pushback on bulk purge):
+# Per user clarification "五笔的二级简码是有可能被很高频的拼音超过，但
+# 二级简码的常用词应该评分非常高":
+#   - Wubi char that IS commonly used (high own-freq) → keep Jianma2 lead
+#   - Wubi char that's rare AND pinyin top is much more common → yield
+# Distinguish via RATIO between pinyin top and wubi-char own freq:
+#   ratio = pinyin_top_at_code / wubi_char_max_own_freq
+# Delete when ratio >= PURGE_RATIO. Empirically:
+#   - di → 砂: 65535/29690 = 2.21 → delete (砂 yields to 的)
+#   - mo → 嶙: 38617/15513 = 2.49 → delete (嶙 yields to 默/没)
+#   - da → 左: 54144/40827 = 1.33 → KEEP (左 holds its slot)
+#   - ge → 表: 55799/47145 = 1.18 → KEEP (表 beats 个)
+PURGE_RATIO = 1.5
+PINYIN_TOP_MIN = 40000   # also require pinyin top to be confidently common
 
 
 def main() -> int:
@@ -117,10 +130,23 @@ def main() -> int:
                 kept_lines.append(line)
                 continue
             top_char, top_freq = top[0]
-            if top_freq < FREQ_THRESHOLD:
+            if top_freq < PINYIN_TOP_MIN:
                 kept_lines.append(line)
                 continue
             if wubi_char == top_char:
+                kept_lines.append(line)
+                continue
+            # Wubi char's own max freq across ALL its pinyin readings.
+            wubi_char_freq = 0
+            for entries in pinyin_to_chars.values():
+                for w, f in entries:
+                    if w == wubi_char and f > wubi_char_freq:
+                        wubi_char_freq = f
+            # Ratio test: only purge when pinyin top dominates by 1.5×+
+            # over the wubi char's own freq (i.e. the wubi char is
+            # relatively rare). Common chars (左/表/能) stay even if
+            # pinyin top is higher.
+            if wubi_char_freq > 0 and top_freq < wubi_char_freq * PURGE_RATIO:
                 kept_lines.append(line)
                 continue
             # All conditions met → delete this Jianma2 entry.
