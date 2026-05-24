@@ -134,11 +134,31 @@ impl<D: AsRef<[u8]>> Dict<D> {
     }
 
     /// Items for an exact `code`, in stored (value-desc) order. Empty if the
-    /// code is absent.
+    /// code is absent. Allocates a `Vec`; hot paths should prefer the
+    /// allocation-free [`get_for_each`](Self::get_for_each).
     pub fn get(&self, code: &[u8]) -> Vec<(Vec<u8>, u64)> {
-        match self.fsa().get(code) {
-            Some(off) => self.read_record(off as usize),
-            None => Vec::new(),
+        let mut out = Vec::new();
+        self.get_for_each(code, |item, val| out.push((item.to_vec(), val)));
+        out
+    }
+
+    /// Streaming variant of [`get`](Self::get): invoke `visit(item, value)`
+    /// for each item of an exact `code` with no result allocation and no
+    /// per-item copy (the `item` slice is valid only for the call). This is
+    /// the per-keystroke entry the IME dict layer should use.
+    pub fn get_for_each<F: FnMut(&[u8], u64)>(&self, code: &[u8], mut visit: F) {
+        let Some(off) = self.fsa().get(code) else {
+            return;
+        };
+        let b = self.data.as_ref();
+        let mut p = self.blob_lo + off as usize;
+        let n = rd_uvarint(b, &mut p) as usize;
+        for _ in 0..n {
+            let len = rd_uvarint(b, &mut p) as usize;
+            let item = &b[p..p + len];
+            p += len;
+            let val = rd_uvarint(b, &mut p);
+            visit(item, val);
         }
     }
 
@@ -178,20 +198,6 @@ impl<D: AsRef<[u8]>> Dict<D> {
         });
     }
 
-    fn read_record(&self, off: usize) -> Vec<(Vec<u8>, u64)> {
-        let b = self.data.as_ref();
-        let mut p = self.blob_lo + off;
-        let n = rd_uvarint(b, &mut p) as usize;
-        let mut out = Vec::with_capacity(n);
-        for _ in 0..n {
-            let len = rd_uvarint(b, &mut p) as usize;
-            let item = b[p..p + len].to_vec();
-            p += len;
-            let val = rd_uvarint(b, &mut p);
-            out.push((item, val));
-        }
-        out
-    }
 }
 
 #[cfg(test)]
@@ -220,6 +226,22 @@ mod tests {
         assert_eq!(pre[0].0, b"wo");
         assert!(dict.contains_prefix(b"wom"));
         assert!(!dict.contains_prefix(b"x"));
+    }
+
+    #[test]
+    fn edge_cases() {
+        let mut b = DictBuilder::new();
+        // code + item containing 0x00 / 0xFF; value at width boundaries.
+        b.insert(b"a\x00b", b"\xff\x00", 0);
+        b.insert(b"a\x00b", b"item2", u64::MAX);
+        b.insert(b"", b"empty-code", 65_536); // empty code is a valid key
+        let dict = Dict::new(b.finish()).unwrap();
+        let wo = dict.get(b"a\x00b");
+        assert_eq!(wo.len(), 2);
+        // value-desc: u64::MAX item first
+        assert_eq!(wo[0], (b"item2".to_vec(), u64::MAX));
+        assert_eq!(wo[1], (b"\xff\x00".to_vec(), 0));
+        assert_eq!(dict.get(b""), vec![(b"empty-code".to_vec(), 65_536)]);
     }
 
     use proptest::prelude::*;
@@ -262,6 +284,10 @@ mod tests {
             prop_assert_eq!(dict.len(), oracle.len() as u64);
             for (c, items) in &oracle {
                 prop_assert_eq!(&dict.get(c), items, "get {:?}", c);
+                // get_for_each must yield exactly what get returns.
+                let mut streamed: Vec<(Vec<u8>, u64)> = Vec::new();
+                dict.get_for_each(c, |it, v| streamed.push((it.to_vec(), v)));
+                prop_assert_eq!(&streamed, items, "get_for_each {:?}", c);
             }
             for p in &probes {
                 let want: Vec<(Vec<u8>, Vec<u8>, u64)> = oracle
