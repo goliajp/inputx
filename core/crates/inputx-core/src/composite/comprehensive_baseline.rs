@@ -305,9 +305,18 @@ mod tests {
 
     #[test]
     fn rare_jianma2_chars_yield_to_pinyin_top() {
+        // Auto-discovered from jianma_simplified.txt + char freq:
+        // Jianma2 codes where target char freq < 20k (rare) AND code
+        // has vowel (pinyin-shaped) AND pinyin top at code is common.
+        // These wubi simcodes should yield to the more-common pinyin
+        // top via the char-prominence demote (CHAR_PROMINENT_FLOOR=20k).
         let cases: &[(&str, &[&str])] = &[
-            // mo Jianma2 = 嶙 (freq 15k, rare).
+            // mo Jianma2 = 嶙 (freq 15k) → yield to 没/默 etc.
             ("mo", &["没", "默", "摸", "末", "莫", "魔", "模"]),
+            // cu Jianma2 = 骈 (freq 19k) → yield to 促 (37k).
+            ("cu", &["促", "粗", "簇"]),
+            // ao Jianma2 = 蒌 (freq 8k) → yield to 奥 (39k).
+            ("ao", &["奥", "傲", "凹", "鏊"]),
         ];
         run_acceptable("rare_jianma2", cases, mixed_top, mixed_top10);
     }
