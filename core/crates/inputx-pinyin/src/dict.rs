@@ -23,7 +23,7 @@
 //!   - `export_l0` / `import_l0` round-trip the L0 state for host-side
 //!     persistence (no `serde` dep on the lib).
 
-use std::sync::RwLock;
+use std::sync::{OnceLock, RwLock};
 
 use fst::{IntoStreamer, Map, Streamer};
 
@@ -108,6 +108,14 @@ pub struct PinyinDict {
     #[allow(dead_code)]
     trigrams_intra: Option<Map<&'static [u8]>>,
     l0: RwLock<L0Inner>,
+    /// Per-char max freq across ALL its pinyin readings (lazy init).
+    /// Built once on first access by scanning the entire FST. Used by
+    /// the composite layer to detect "wubi Jianma2 simcode char that
+    /// is itself rare" (e.g. 嶙 freq 15k) vs "common-char simcode
+    /// (e.g. 左 freq 41k, 能 freq 56k)" — score-driven yield to
+    /// pinyin top for rare-char simcodes, no hardcoded special-case
+    /// lists in dispatch.
+    char_max_freq: OnceLock<std::collections::HashMap<char, u64>>,
 }
 
 impl PinyinDict {
@@ -129,7 +137,45 @@ impl PinyinDict {
             trigrams: load_optional(TRIGRAMS_BYTES, "trigrams"),
             trigrams_intra: load_optional(TRIGRAMS_INTRA_BYTES, "trigrams_intra"),
             l0: RwLock::new(L0Inner::new()),
+            char_max_freq: OnceLock::new(),
         }
+    }
+
+    /// Max freq across all pinyin readings of single-char `c`. Returns
+    /// 0 for characters not in the dict OR for non-single-char strings.
+    ///
+    /// Lazy: scans the entire FST on first call and caches the result
+    /// (HashMap<char, u64>). Subsequent calls are O(1) hash lookup.
+    ///
+    /// Used by composite/dispatch to score-driven-demote wubi Jianma2
+    /// entries whose target char is rare (e.g. 嶙 freq 15k yields to
+    /// pinyin 默 freq 36k at code 'mo'). NO hardcoded protected list
+    /// — the user's principle: "完全走评分候选，一行 hardcode 都不允
+    /// 许有". Common chars (左/表/能/伙) naturally retain their Jianma2
+    /// lead because their own freq is high; rare chars (嶙) lose.
+    pub fn char_max_freq(&self, c: char) -> u64 {
+        self.build_char_freq_cache().get(&c).copied().unwrap_or(0)
+    }
+
+    fn build_char_freq_cache(&self) -> &std::collections::HashMap<char, u64> {
+        self.char_max_freq.get_or_init(|| {
+            let mut cache = std::collections::HashMap::with_capacity(8192);
+            let mut stream = self.map.stream();
+            while let Some((key, freq)) = stream.next() {
+                let Some(sep) = key.iter().position(|b| *b == 0u8) else { continue };
+                let word_bytes = &key[sep + 1..];
+                let Ok(word) = core::str::from_utf8(word_bytes) else { continue };
+                // Only track single-char entries — multi-char phrases'
+                // own freq doesn't tell us how common the constituent
+                // chars are individually.
+                let mut chars = word.chars();
+                let Some(c) = chars.next() else { continue };
+                if chars.next().is_some() { continue; }
+                let entry = cache.entry(c).or_insert(0);
+                if freq > *entry { *entry = freq; }
+            }
+            cache
+        })
     }
 
     /// Number of L0 pinned pinyins.
@@ -679,48 +725,44 @@ impl PinyinDict {
         hits
     }
 
-    /// Context-aware next-word prediction. v1.3 conservative-mode policy:
+    /// Context-aware next-word prediction (v1.4 strict trigram-only).
     ///
-    ///   * `prev_prev = None` (cold session, first prediction after a
-    ///     fresh commit): allow bigram-based predictions, with the
-    ///     count threshold enforced by `predict_next_words`.
-    ///   * `prev_prev = Some` (chained — user just took a prediction):
-    ///     REQUIRE trigram. If (prev_prev, prev, *) has no trigram
-    ///     hits, return empty. NO bigram backoff.
+    /// User-reported failure mode 2026-05-24: typing `在` then pressing
+    /// space repeatedly gave "在年月日年月日年月日…" — perfect bigram
+    /// chain cycle. User: "在 本来就没道理联想 '年'，一开始就是错的".
+    /// The single-context bigram signal is too noisy: bigram (在, 年)
+    /// exists in corpus only because of phrases like "在2024年" but
+    /// year-prediction has no semantic basis for "user just typed 在".
     ///
-    /// The asymmetry exists because chained predictions are the failure
-    /// mode the user reported (椒粉碎机构编制工程师范学校长室内 —
-    /// every link locally OK, chain globally nonsense). Greedy bigram
-    /// makes any (prev, *) follower viable so the chain never stops.
-    /// Requiring trigram for chains means the chain can only extend
-    /// while (prev_prev, prev) is a real corpus pattern; once the
-    /// sentence wanders off-corpus the panel goes empty and the user
-    /// is naturally prompted to type the next syllable instead.
+    /// New policy: predictions REQUIRE BOTH (prev_prev, prev) AND a
+    /// trigram hit with `count >= MIN_TRIGRAM_COUNT`. NO bigram path
+    /// at all — bigram (prev, *) data alone is too weak a signal for
+    /// next-word prediction. Cold-start (prev_prev=None) → empty
+    /// (user types next word manually).
     ///
-    /// Cold-start (`prev_prev = None`) keeps the bigram path so users
-    /// still see something after the very first commit; only chained
-    /// continuations are gated.
+    /// Effects:
+    ///   - 在 alone → no predictions (need a second word for context).
+    ///   - 我们 + 一起 → trigram (我们,一起,*) returns 走/去/吃饭/... if
+    ///     count high enough. Confidence > noise.
+    ///   - Chain (今天,的,*) → 标准/位置/规模/... when count high.
     pub fn predict_next_words_context(
         &self,
         prev_prev: Option<&str>,
         prev: &str,
         limit: usize,
     ) -> Vec<(String, u64)> {
+        const MIN_TRIGRAM_COUNT: u64 = 5;
         if prev.is_empty() || limit == 0 {
             return Vec::new();
         }
-        // Cold start: no prev_prev → bigram-only path (with the same
-        // MIN_PREDICTION_COUNT threshold enforced inside predict_next_words).
-        let Some(prev_prev) = prev_prev else {
-            return self.predict_next_words(prev, limit);
-        };
-        // Chained: require trigram FST + non-empty trigram hits.
-        let Some(trigrams) = self.trigrams.as_ref() else {
-            return Vec::new();
-        };
+        // Strict: need BOTH prev_prev AND trigram FST.
+        let Some(prev_prev) = prev_prev else { return Vec::new() };
         if prev_prev.is_empty() {
             return Vec::new();
         }
+        let Some(trigrams) = self.trigrams.as_ref() else {
+            return Vec::new();
+        };
         let mut prefix = prev_prev.as_bytes().to_vec();
         prefix.push(0u8);
         prefix.extend_from_slice(prev.as_bytes());
@@ -736,6 +778,9 @@ impl PinyinDict {
             .lt(upper.as_slice())
             .into_stream();
         while let Some((key, count)) = stream.next() {
+            if count < MIN_TRIGRAM_COUNT {
+                continue;
+            }
             if key.len() <= prefix_len + 1 {
                 continue;
             }
@@ -1216,17 +1261,16 @@ mod tests {
 
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
-    fn predict_next_words_context_cold_start_uses_bigram() {
-        // Cold start (prev_prev = None) — first commit in a fresh
-        // session has nothing to trigram-condition on, so we ALLOW
-        // the bigram path (subject to MIN_PREDICTION_COUNT). Without
-        // this, user gets zero predictions after the very first commit
-        // which kills the feature for normal sessions.
+    fn predict_next_words_context_cold_start_returns_empty() {
+        // v1.4 strict-trigram policy (2026-05-24): cold start
+        // (prev_prev = None) returns EMPTY — no bigram fallback.
+        // User rule: "联想是附加的好处，没有足够的证据就不要联想".
+        // Single bigram signal is too noisy to predict from.
         let d = PinyinDict::embedded();
         let cold = d.predict_next_words_context(None, "我们", 5);
-        let bare = d.predict_next_words("我们", 5);
-        assert_eq!(cold, bare,
-            "cold-start path should match pure bigram for the same prev");
+        assert!(cold.is_empty(),
+            "cold start (no prev_prev) must return empty under v1.4 strict; \
+             got {cold:?}");
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
