@@ -152,7 +152,26 @@ pub const ENGINE_MULT_PINYIN: f64 = 1.0;
 #[allow(dead_code)]
 pub const ENGINE_MULT_JP: f64 = 1.0;
 
-/// Length bias (not yet wired). Future: short phrases get a small boost,
-/// long phrases penalized unless the user typed all chars.
-#[allow(dead_code)]
-pub fn length_bias(_word_len: usize) -> f64 { 1.0 }
+/// Length bias for **prefix-completion** ranking (bare letter / partial
+/// syllable, e.g. `q`). At a single-syllable EXACT code the dict already
+/// returns only single chars, so this never touches those. But a bare
+/// prefix can complete to a single char OR a multi-char phrase, and raw
+/// corpus freq buries common single chars (去/起) under tech-corpus
+/// phrases (前端/前端工程师/企业微信). This multiplier favors shorter
+/// candidates so single chars lead — while staying multiplicative, so a
+/// phrase whose freq is high enough can still climb back (user rule
+/// 2026-05-24: "单个字的评分肯定要更高", with the implicit "除非多字词频
+/// 率远高"). 1.0 for a single char; sharp decay past that.
+///
+/// Scoped deliberately to `compute_single_letter_top_k` only — NOT to
+/// multi-letter prefix completion (`zho` → 中国), where the user is
+/// mid-syllable toward a phrase and phrases are the desired result.
+pub fn length_bias(word_len: usize) -> f64 {
+    match word_len {
+        0 | 1 => 1.0,
+        2 => 0.18,
+        3 => 0.10,
+        4 => 0.07,
+        _ => 0.05,
+    }
+}
