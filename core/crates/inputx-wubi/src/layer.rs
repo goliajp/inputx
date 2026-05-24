@@ -100,20 +100,28 @@ impl Layer {
     }
 }
 
-const FREQ_MASK: u64 = 0x00FF_FFFF_FFFF_FFFF;
+/// Bits reserved for `freq_score` in the packed value. The corpus pipeline
+/// caps freq at `max_freq_score` (65535 = 16 bits); 20 gives headroom.
+/// Layer sits ABOVE freq so a larger packed u64 still means higher priority
+/// (layer desc, then freq desc) — the invariant the build-time merge and the
+/// inputx-fsa Dict's value-desc item order both rely on. Keeping the packed
+/// value small (≤ ~2^23 vs the old ~2^58) is what lets the LEB128 value
+/// encoding shrink from ~9 bytes to ~4 (zerodep E1).
+const FREQ_BITS: u32 = 20;
+const FREQ_MASK: u64 = (1 << FREQ_BITS) - 1;
 
 /// Pack `(layer, freq_score)` into a single u64 FST value. `freq_score`
-/// must fit in 56 bits; higher bits are silently truncated.
+/// must fit in [`FREQ_BITS`] bits; higher bits are silently truncated.
 #[allow(dead_code)] // used by build.rs and at runtime; build_weights.rs doesn't pack
 pub const fn pack(layer: Layer, freq_score: u64) -> u64 {
-    ((layer as u64) << 56) | (freq_score & FREQ_MASK)
+    ((layer as u64) << FREQ_BITS) | (freq_score & FREQ_MASK)
 }
 
 /// Reverse of [`pack`]. Unknown layer bytes fall back to [`Layer::Auto`]
 /// (lowest priority) — preferable to panicking on a corrupt FST.
 #[allow(dead_code)] // runtime-only; build.rs only uses pack
 pub const fn unpack(packed: u64) -> (Layer, u64) {
-    let layer_byte = (packed >> 56) as u8;
+    let layer_byte = (packed >> FREQ_BITS) as u8;
     let freq = packed & FREQ_MASK;
     let layer = match Layer::from_u8(layer_byte) {
         Some(l) => l,
