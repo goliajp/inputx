@@ -7,3 +7,5 @@
 cc 5057fd003ccfda8cea295e0707c79f8c676e355c9e227283f20dbe9138e52fe8 # shrinks to ops = [Letter(97)]
 cc cb2c5ab9156a3705129b0c1238bdc10cebc155c27144ed0ae3f02c13b2292c1f # shrinks to ops = [Letter(97), Letter(97), Letter(109), Letter(98), SetMode(WubiOnly), Letter(97), Backspace]
 cc e0ec50dfb2cb535b1148ccab7b2ed2b6b0fb3b6afbbd68a8de0ad601e8495989 # shrinks to ops = [SetMode(WubiOnly), Letter(97), SetMode(Mixed)]
+cc cc638f88a21a226676096f22ea747110ab911cfe9ccee98c35db88f5c2e329e9 # shrinks to ops = [SetMode(WubiOnly), Letter(97), SetMode(Mixed), Letter(97), Backspace]
+cc 157459ce24c7f2f6f4465f4f498278db7b9900fba3cacf7af75bed498387e578 # shrinks to ops = [SetMode(PinyinOnly), Letter(97), SetMode(Mixed), Letter(97), Backspace, SetMode(WubiOnly)]

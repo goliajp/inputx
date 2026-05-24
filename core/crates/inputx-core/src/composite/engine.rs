@@ -481,6 +481,38 @@ impl CompositeEngine {
             }
             return consumed;
         }
+        // Mixed mode: pinyin's buffer is the canonical input (it receives
+        // every byte; wubi freezes at 4 chars — see handle_letter). Popping
+        // the two engines independently desyncs them — wubi ends up tracking
+        // a different substring than pinyin (`pinyinggg` then surfaced wubi
+        // 王/珏 under a pinyin preedit, user-reported 2026-05-25). So pop
+        // pinyin, then RE-DERIVE wubi from pinyin's post-pop buffer. JP, like
+        // pinyin, receives every byte, so a plain pop keeps it in sync.
+        if self.mode.allows_wubi() && self.mode.allows_pinyin() {
+            // Resync only when wubi is FROZEN at its 4-char cap while pinyin
+            // has grown past it — then wubi is a truncated prefix of pinyin
+            // and popping it independently leaves the two tracking different
+            // substrings (the `pinyinggg` desync, 2026-05-25). In every other
+            // case keep the in-step pop: normal ≤4 typing (they move together)
+            // and mode-switch inheritance (PinyinOnly→Mixed leaves pinyin >
+            // wubi but wubi is NOT frozen; WubiOnly→Mixed leaves wubi ≥ pinyin)
+            // — re-deriving there would wrongly wipe a buffer's own content.
+            // The `>= 4` guard means this never fires below the freeze point.
+            let wubi_is_frozen_prefix = self.wubi.buffer_str().len() >= 4
+                && self.pinyin.buffer_str().len() > self.wubi.buffer_str().len();
+            consumed |= self.pinyin.backspace();
+            if wubi_is_frozen_prefix {
+                self.resync_wubi_to_pinyin();
+            } else {
+                consumed |= self.wubi.backspace();
+            }
+            if self.enable_japanese {
+                if let Some(j) = self.japanese.as_mut() {
+                    consumed |= j.backspace();
+                }
+            }
+            return consumed;
+        }
         if self.mode.allows_wubi() {
             consumed |= self.wubi.backspace();
         }
@@ -493,6 +525,24 @@ impl CompositeEngine {
             }
         }
         consumed
+    }
+
+    /// Re-derive the wubi sub-engine buffer from pinyin's (the canonical
+    /// input in Mixed mode), replaying the same "freeze at 4 chars" rule
+    /// `handle_letter` applies. Guarantees `wubi_buffer == first-≤4 chars of
+    /// pinyin_buffer`, so editing (backspace) can't leave the two engines
+    /// tracking different substrings. wubi's sub-engine policy is always
+    /// `Never` (see `new()`), so these replayed `handle_letter` calls cannot
+    /// auto-commit. Pinyin is ASCII, so byte iteration is char-safe.
+    fn resync_wubi_to_pinyin(&mut self) {
+        self.wubi.clear_all();
+        let pbuf = self.pinyin.buffer_str().to_string();
+        for b in pbuf.bytes() {
+            if self.wubi.buffer_str().len() >= 4 {
+                break;
+            }
+            let _ = self.wubi.handle_letter(b);
+        }
     }
 
     pub fn escape(&mut self) -> bool {
@@ -816,6 +866,33 @@ mod tests {
         assert!(e.backspace());
         assert_eq!(e.pinyin_buffer_str(), "ab");
         assert_eq!(e.wubi_buffer_str(), "ab");
+    }
+
+    #[test]
+    fn mixed_backspace_keeps_wubi_synced_to_pinyin() {
+        // Regression for user-reported 2026-05-25 desync: in Mixed mode wubi
+        // freezes at 4 chars while pinyin tracks the full input. Popping the
+        // two engines independently on backspace makes them track DIFFERENT
+        // substrings — `pinyinggg` then showed wubi 王/珏 under a pinyin
+        // preedit. Invariant: wubi_buf == first-≤4 chars of pinyin_buf, and
+        // backspace+retype must equal typing the net string fresh.
+        let mut e = CompositeEngine::new();
+        typed(&mut e, b"pinyinggg");
+        assert_eq!(e.pinyin_buffer_str(), "pinyinggg");
+        assert_eq!(e.wubi_buffer_str(), "piny", "wubi frozen at first 4 chars");
+
+        for _ in 0..3 { e.backspace(); }
+        assert_eq!(e.pinyin_buffer_str(), "pinyin");
+        assert_eq!(e.wubi_buffer_str(), "piny",
+            "after backspace wubi must re-derive to first-4 of pinyin (bug left it 'p')");
+
+        // Edit-then-retype must converge to the same state as typing fresh.
+        typed(&mut e, b"ggg");
+        let mut fresh = CompositeEngine::new();
+        typed(&mut fresh, b"pinyinggg");
+        assert_eq!(e.pinyin_buffer_str(), fresh.pinyin_buffer_str());
+        assert_eq!(e.wubi_buffer_str(), fresh.wubi_buffer_str(),
+            "backspace+retype must match fresh-typed state (no desync, no '清零')");
     }
 
     #[test]
