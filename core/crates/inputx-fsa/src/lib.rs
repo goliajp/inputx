@@ -268,6 +268,112 @@ mod tests {
         }
     }
 
+    /// Size probe: flat Fsa vs two-level Dict for the n-gram tables, to
+    /// decide whether two-level recovers the trigram size. Ignored.
+    /// Run: `cargo test -p inputx-fsa --release ngram_twolevel -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn ngram_twolevel_size() {
+        let base = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../tools/scoring/data/supplemental/"
+        );
+        for (file, nkeys) in [
+            ("pinyin_bigrams_inter_v1.tsv", 2usize),
+            ("pinyin_trigrams_inter_v1.tsv", 3usize),
+        ] {
+            let Ok(text) = std::fs::read_to_string(format!("{base}{file}")) else {
+                eprintln!("[ngram] {file}: missing");
+                continue;
+            };
+            let mut flat = Builder::new();
+            let mut two = DictBuilder::new();
+            let mut n = 0;
+            for line in text.lines() {
+                if line.starts_with('#') || line.is_empty() {
+                    continue;
+                }
+                let cols: Vec<&str> = line.split('\t').collect();
+                if cols.len() < nkeys + 1 {
+                    continue;
+                }
+                let count: u64 = cols[nkeys].parse().unwrap_or(0);
+                if count == 0 {
+                    continue;
+                }
+                // flat: cols[0..nkeys] joined by \0
+                let mut key = Vec::new();
+                for (i, c) in cols[..nkeys].iter().enumerate() {
+                    if i > 0 {
+                        key.push(0);
+                    }
+                    key.extend_from_slice(c.as_bytes());
+                }
+                flat.insert(&key, count);
+                // two-level: code = cols[0..nkeys-1] joined by \0, item = cols[nkeys-1]
+                let mut code = Vec::new();
+                for (i, c) in cols[..nkeys - 1].iter().enumerate() {
+                    if i > 0 {
+                        code.push(0);
+                    }
+                    code.extend_from_slice(c.as_bytes());
+                }
+                two.insert(&code, cols[nkeys - 1].as_bytes(), count);
+                n += 1;
+            }
+            let f = flat.finish().len();
+            let t = two.finish().len();
+            eprintln!(
+                "[ngram] {file}: {n} entries  flat {:.2}MB  two-level {:.2}MB",
+                f as f64 / 1_048_576.0,
+                t as f64 / 1_048_576.0
+            );
+        }
+    }
+
+    /// Perf regression gate (run in release): `get` and a prefix scan must
+    /// stay well under budget. Generous thresholds (~4x measured) so it
+    /// flags real regressions, not scheduling jitter. Ignored by default;
+    /// run: `cargo test -p inputx-fsa --release perfgate -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn perfgate_get_prefix_under_budget() {
+        let mut b = DictBuilder::new();
+        for i in 0..20_000u32 {
+            let code = format!("code{i:05}");
+            for j in 0..5u32 {
+                b.insert(
+                    code.as_bytes(),
+                    format!("word{i}_{j}").as_bytes(),
+                    u64::from(i * 10 + j),
+                );
+            }
+        }
+        let dict = Dict::new(b.finish()).unwrap();
+        let codes: Vec<String> = (0..1000).map(|i| format!("code{:05}", (i * 19) % 20_000)).collect();
+
+        let iters = 50;
+        let t = std::time::Instant::now();
+        for _ in 0..iters {
+            for c in &codes {
+                std::hint::black_box(dict.get(c.as_bytes()));
+            }
+        }
+        let per_get = t.elapsed().as_nanos() as f64 / (iters * codes.len()) as f64;
+        eprintln!("[perfgate] get = {per_get:.0} ns/op");
+        assert!(per_get < 20_000.0, "get regressed: {per_get:.0} ns/op (budget 20µs)");
+
+        let t = std::time::Instant::now();
+        for _ in 0..iters {
+            let mut n = 0u64;
+            dict.prefix_for_each(b"code0", |_, _, v| n = n.wrapping_add(v));
+            std::hint::black_box(n);
+        }
+        let per_pref = t.elapsed().as_nanos() as f64 / iters as f64;
+        eprintln!("[perfgate] prefix(code0* = 5000 items) = {per_pref:.0} ns/op");
+        assert!(per_pref < 5_000_000.0, "prefix regressed: {per_pref:.0} ns (budget 5ms)");
+    }
+
     use proptest::prelude::*;
 
     fn key_strategy() -> impl Strategy<Value = Vec<u8>> {
