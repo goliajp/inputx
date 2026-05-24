@@ -382,6 +382,34 @@ mod tests {
     // ───────────────────────────────────────────────────────────
 
     #[test]
+    fn smoke_user_chinese_phrase_yongbuliao_works() {
+        // User-typed 2026-05-24 "xianzai yongbuliao le" (现在用不了了)
+        // signaling IME unusable. Sanity: each segment must give the
+        // expected Chinese in PinyinOnly mode.
+        let cases: &[(&str, &str)] = &[
+            ("xianzai", "现在"),
+            ("yongbuliao", "用不了"),
+            ("le", "了"),
+        ];
+        let mut failures = Vec::new();
+        for (buf, expected) in cases {
+            let actual = pinyin_top(buf.as_bytes());
+            // Accept exact match OR expected being in top5 (for compound
+            // queries the exact match may not be #0).
+            let top5 = pinyin_top10(buf.as_bytes());
+            let top5_s: Vec<&str> = top5.iter().take(5).map(|s| s.as_str()).collect();
+            if actual != *expected && !top5_s.contains(expected) {
+                failures.push(format!(
+                    "  {buf} expected {expected} in top5; got {actual} (top5={top5_s:?})"
+                ));
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} smoke cases failed:\n{}", failures.len(), failures.join("\n"));
+        }
+    }
+
+    #[test]
     fn no_traditional_in_top5_for_common_pinyin() {
         // List of (pinyin, traditional_blocklist) — traditional forms
         // must NOT appear in top 5 PinyinOnly candidates.

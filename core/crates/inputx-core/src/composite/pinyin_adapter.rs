@@ -297,10 +297,29 @@ impl PinyinAdapter {
         if self.buffer.is_empty() {
             return false;
         }
-        // `prefix_exists` is O(log n) seek + first-item check — vs the old
-        // `prefix(...)` which allocated a full Vec<(String, String)> for
-        // every match just to take `.is_empty()`. Hot per-keystroke path.
-        self.engine.dict().prefix_exists(&self.buffer)
+        // First-tier: exact prefix match in pinyin dict.
+        if self.engine.dict().prefix_exists(&self.buffer) {
+            return true;
+        }
+        // Second-tier: handle mid-typing of multi-syllable inputs.
+        // User 2026-05-24 `yongbuliao → no candidates`: at intermediate
+        // state "yongbul", dict has no entry with pinyin "yongbul*"
+        // (final 'l' starts next syllable). Trim trailing 1-4 chars
+        // AND require the SUFFIX to be a valid pinyin syllable PREFIX
+        // (e.g. 'l' starts li/la/le; 'wxzy' doesn't start anything).
+        // This distinguishes "user mid-typing yong+bu+l[iao]" (alive)
+        // from "user typing garbage qwxzy" (dead).
+        for trim in 1..=4.min(self.buffer.len() - 1) {
+            let shorter = &self.buffer[..self.buffer.len() - trim];
+            let suffix = &self.buffer[self.buffer.len() - trim..];
+            if !suffix_could_start_syllable(suffix, golia_pinyin::is_valid_syllable) {
+                continue;
+            }
+            if self.engine.dict().prefix_exists(shorter) {
+                return true;
+            }
+        }
+        false
     }
 
     /// Append one ASCII alphabetic byte. Non-alpha bytes are silently
@@ -418,7 +437,11 @@ impl PinyinAdapter {
         if self.buffer.len() >= 8
             && let Some((_, sentence)) = self.engine.dict().best_composition(&self.buffer)
         {
-            self.composed_sentence = Some(sentence);
+            self.composed_sentence = Some(sentence.clone());
+            // Push into candidates immediately so it surfaces even when
+            // Path 1/2/3 all return empty for this long buffer
+            // (user-reported "yongbuliao → no candidates" 2026-05-24).
+            self.candidates.push(sentence);
         }
 
         // Path 1: exact-syllable lookup (含 fuzzy / tone-strip / heteronym
@@ -638,6 +661,35 @@ fn fuzzy_buffer_variants(buffer: &str) -> Vec<String> {
         }
     }
     out
+}
+
+/// Does `suffix` look like the START of some valid pinyin syllable?
+/// Used by `has_future_match` to distinguish "user mid-typing yong+bu+l"
+/// (l starts li/la/le → return true) from "user typing garbage qwxzy"
+/// (no valid syllable starts qw → return false).
+///
+/// Heuristic: try concatenating suffix with 0/1/2/3 trailing chars
+/// (any ASCII alpha) and see if any forms a valid syllable. Cheap
+/// since we only iterate suffix len * 26^N which is bounded.
+fn suffix_could_start_syllable(
+    suffix: &str,
+    is_valid: impl Fn(&str) -> bool,
+) -> bool {
+    // suffix itself a valid syllable?
+    if is_valid(suffix) { return true; }
+    // suffix + 1 trailing char forms valid? (l + i = li)
+    for c1 in b'a'..=b'z' {
+        let mut test = suffix.to_string();
+        test.push(c1 as char);
+        if is_valid(&test) { return true; }
+        // + another char (li + a = lia? no; li + n = lin yes)
+        for c2 in b'a'..=b'z' {
+            let mut test2 = test.clone();
+            test2.push(c2 as char);
+            if is_valid(&test2) { return true; }
+        }
+    }
+    false
 }
 
 // Repeated-letter expansion: migrated to rules/builtin/repeated_letter.rs
