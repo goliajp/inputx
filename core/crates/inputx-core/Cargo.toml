@@ -36,6 +36,12 @@ criterion = "0.5"
 # enables it AND adds `--test-threads=1` so CPU contention doesn't
 # poison single-sample timing.
 perfgate = []
+# Forward golia-pinyin's tiny ~125-entry bootstrap dict. Several tests here
+# (baselines, fuzzy/prediction quality) need the FULL pinyin dict and are
+# `#[cfg(not(feature = "bootstrap_only"))]` so they skip under it. Without
+# this declaration that cfg referenced an undeclared feature — always-false,
+# so the gates were dead and `--features bootstrap_only` errored.
+bootstrap_only = ["golia-pinyin/bootstrap_only"]
 
 [[bench]]
 name = "composite"
