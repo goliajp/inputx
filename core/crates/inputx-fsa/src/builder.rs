@@ -10,7 +10,7 @@
 //! Values are kept out of the automaton (it stays a pure key recognizer)
 //! and emitted as a fixed-width array indexed by each key's sorted rank.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 /// Accumulates (key, value) pairs and serializes a minimal FSA.
 #[derive(Default)]
@@ -49,8 +49,8 @@ impl Builder {
         for (key, _) in &self.pairs {
             let mut cur = 0u32;
             for &b in key {
-                cur = match trie[cur as usize].children.get(&b) {
-                    Some(&n) => n,
+                cur = match trie[cur as usize].children.get(b) {
+                    Some(n) => n,
                     None => {
                         let n = trie.len() as u32;
                         trie.push(TrieNode::default());
@@ -80,8 +80,66 @@ impl Builder {
 
 #[derive(Default)]
 struct TrieNode {
-    children: BTreeMap<u8, u32>,
+    children: Children,
     final_: bool,
+}
+
+/// Compact trie children. Most trie nodes (deep suffix chains over unique
+/// words) have 0 or 1 child — `None`/`One` keep those heap-allocation-free,
+/// which is the bulk of the build-time memory win over a per-node B-tree map.
+enum Children {
+    None,
+    One(u8, u32),
+    Many(Vec<(u8, u32)>), // sorted by label
+}
+
+impl Default for Children {
+    fn default() -> Self {
+        Children::None
+    }
+}
+
+impl Children {
+    fn get(&self, b: u8) -> Option<u32> {
+        match self {
+            Children::None => None,
+            Children::One(k, v) => (*k == b).then_some(*v),
+            Children::Many(m) => m.binary_search_by_key(&b, |&(k, _)| k).ok().map(|i| m[i].1),
+        }
+    }
+
+    fn insert(&mut self, b: u8, child: u32) {
+        match self {
+            Children::None => *self = Children::One(b, child),
+            Children::One(k, v) => {
+                if *k == b {
+                    *v = child;
+                } else {
+                    let pair = (*k, *v);
+                    let m = if *k < b {
+                        vec![pair, (b, child)]
+                    } else {
+                        vec![(b, child), pair]
+                    };
+                    *self = Children::Many(m);
+                }
+            }
+            Children::Many(m) => match m.binary_search_by_key(&b, |&(k, _)| k) {
+                Ok(i) => m[i].1 = child,
+                Err(i) => m.insert(i, (b, child)),
+            },
+        }
+    }
+
+    /// Sorted (label, child) pairs. Allocates — used once per node in the
+    /// minimize pass, not during the memory-heavy trie build.
+    fn collect_sorted(&self) -> Vec<(u8, u32)> {
+        match self {
+            Children::None => Vec::new(),
+            Children::One(k, v) => vec![(*k, *v)],
+            Children::Many(m) => m.clone(),
+        }
+    }
 }
 
 struct CanonState {
@@ -100,8 +158,9 @@ fn minimize(
     register: &mut HashMap<StateKey, u32>,
     canon: &mut Vec<CanonState>,
 ) -> u32 {
-    let mut trans = Vec::with_capacity(trie[node as usize].children.len());
-    for (&label, &child) in &trie[node as usize].children {
+    let kids = trie[node as usize].children.collect_sorted();
+    let mut trans = Vec::with_capacity(kids.len());
+    for (label, child) in kids {
         let cid = minimize(child, trie, register, canon);
         trans.push((label, cid));
     }
