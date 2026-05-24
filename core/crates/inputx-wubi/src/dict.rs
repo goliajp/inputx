@@ -25,11 +25,11 @@
 use std::collections::HashMap;
 use std::sync::RwLock;
 
-use fst::{IntoStreamer, Map, Streamer};
+use inputx_fsa::Dict;
 
 use crate::layer::{DEFAULT_LAYER_PREFS, LAYER_COUNT, Layer, unpack};
 
-const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/wubi86.fst"));
+const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/wubi86.dict"));
 
 /// Number of consecutive picks of the same `(code, word)` required before
 /// L0 auto-pins it. Defaults to 3; can be overridden at build time via the
@@ -107,7 +107,7 @@ impl L0Inner {
 /// mutability via `RwLock` lets a single shared instance feed every
 /// concurrent IME / WASM session without exposing the lock to the caller.
 pub struct WubiDict {
-    map: Map<&'static [u8]>,
+    map: Dict<&'static [u8]>,
     l0: RwLock<L0Inner>,
 }
 
@@ -117,22 +117,20 @@ impl WubiDict {
     /// the instance and reuse it for the program lifetime.
     pub fn embedded() -> Self {
         Self {
-            map: Map::new(DICT_BYTES).expect("invalid embedded FST"),
+            map: Dict::new(DICT_BYTES).expect("invalid embedded wubi dict"),
             l0: RwLock::new(L0Inner::new()),
         }
     }
 
-    /// Total number of FST entries (one per `(code, word)` pair). Not the
-    /// number of unique characters or codes.
+    /// Number of distinct codes in the dictionary. (The two-level `Dict`
+    /// counts codes, not total (code, word) pairs.)
     pub fn len(&self) -> usize {
-        self.map.len()
+        self.map.len() as usize
     }
 
-    /// `true` iff the FST has zero entries. Always `false` for the embedded
-    /// build; useful as a future-proofing check if the dict source becomes
-    /// configurable.
+    /// `true` iff the dictionary has zero codes.
     pub fn is_empty(&self) -> bool {
-        self.map.len() == 0
+        self.map.is_empty()
     }
 
     /// Number of L0 pinned codes.
@@ -201,12 +199,6 @@ impl WubiDict {
     ) {
         out.clear();
         let lower = code.to_ascii_lowercase();
-        let mut prefix = lower.clone().into_bytes();
-        let prefix_len = prefix.len();
-        prefix.push(0u8);
-        let mut upper = prefix.clone();
-        let last = upper.len() - 1;
-        upper[last] = 0x01;
 
         let prefs = self
             .l0
@@ -214,22 +206,12 @@ impl WubiDict {
             .map(|g| g.layer_prefs)
             .unwrap_or(DEFAULT_LAYER_PREFS);
 
-        let full_code = prefix_len == 4;
+        let full_code = lower.len() == 4;
         // Tuple: (word, score, is_single, freq, layer).
         let mut scratch: Vec<(String, f64, bool, u64, Layer)> = Vec::with_capacity(8);
         let mut max_phrase_freq: u64 = 0;
-        let mut stream = self
-            .map
-            .range()
-            .ge(prefix.as_slice())
-            .lt(upper.as_slice())
-            .into_stream();
-        while let Some((key, value)) = stream.next() {
-            if key.len() <= prefix_len + 1 {
-                continue;
-            }
-            let word_bytes = &key[prefix_len + 1..];
-            if let Ok(s) = core::str::from_utf8(word_bytes) {
+        for (word, value) in self.map.get(lower.as_bytes()) {
+            if let Ok(s) = core::str::from_utf8(&word) {
                 let (layer, freq) = unpack(value);
                 let base = layer.base() as f64;
                 let pref = prefs[layer.as_index()];
@@ -278,15 +260,8 @@ impl WubiDict {
     pub fn lookup_into(&self, code: &str, out: &mut Vec<String>) {
         out.clear();
 
-        // Inline lookup_with_meta to avoid the intermediate Vec allocation.
         let lower = code.to_ascii_lowercase();
-        let mut prefix = lower.into_bytes();
-        let prefix_len = prefix.len();
-        prefix.push(0u8);
-
-        let mut upper = prefix.clone();
-        let last = upper.len() - 1;
-        upper[last] = 0x01;
+        let prefix_len = lower.len();
 
         let prefs = self
             .l0
@@ -321,20 +296,10 @@ impl WubiDict {
         let full_code = prefix_len == 4;
         let mut scratch: Vec<(String, f64, bool, u64)> = Vec::with_capacity(8);
         // Track the highest phrase frequency at this code so the
-        // promote decision can be made after the FST scan.
+        // promote decision can be made after the scan.
         let mut max_phrase_freq: u64 = 0;
-        let mut stream = self
-            .map
-            .range()
-            .ge(prefix.as_slice())
-            .lt(upper.as_slice())
-            .into_stream();
-        while let Some((key, value)) = stream.next() {
-            if key.len() <= prefix_len + 1 {
-                continue;
-            }
-            let word_bytes = &key[prefix_len + 1..];
-            if let Ok(s) = core::str::from_utf8(word_bytes) {
+        for (word, value) in self.map.get(lower.as_bytes()) {
+            if let Ok(s) = core::str::from_utf8(&word) {
                 let (layer, freq) = unpack(value);
                 let base = layer.base() as f64;
                 let pref = prefs[layer.as_index()];
@@ -386,28 +351,9 @@ impl WubiDict {
     /// own ranking can start from this.
     pub fn lookup_with_meta(&self, code: &str) -> Vec<(String, Layer, u64)> {
         let lower = code.to_ascii_lowercase();
-        let mut prefix = lower.into_bytes();
-        let prefix_len = prefix.len();
-        prefix.push(0u8);
-
-        let mut upper = prefix.clone();
-        let last = upper.len() - 1;
-        upper[last] = 0x01;
-
-        let mut stream = self
-            .map
-            .range()
-            .ge(prefix.as_slice())
-            .lt(upper.as_slice())
-            .into_stream();
-
         let mut results = Vec::new();
-        while let Some((key, value)) = stream.next() {
-            if key.len() <= prefix_len + 1 {
-                continue;
-            }
-            let word_bytes = &key[prefix_len + 1..];
-            if let Ok(s) = core::str::from_utf8(word_bytes) {
+        for (word, value) in self.map.get(lower.as_bytes()) {
+            if let Ok(s) = core::str::from_utf8(&word) {
                 let (layer, freq) = unpack(value);
                 results.push((s.to_string(), layer, freq));
             }
@@ -420,8 +366,6 @@ impl WubiDict {
     /// they're per-code and don't generalize across a prefix scan.
     pub fn prefix(&self, prefix: &str) -> Vec<(String, String)> {
         let lower = prefix.to_ascii_lowercase();
-        let lo = lower.as_bytes().to_vec();
-        let hi = bump_last(&lo);
 
         let prefs = self
             .l0
@@ -429,20 +373,8 @@ impl WubiDict {
             .map(|g| g.layer_prefs)
             .unwrap_or(DEFAULT_LAYER_PREFS);
 
-        let mut stream = self
-            .map
-            .range()
-            .ge(lo.as_slice())
-            .lt(hi.as_slice())
-            .into_stream();
-
         let mut results: Vec<(String, String, f64)> = Vec::new();
-        while let Some((key, value)) = stream.next() {
-            let Some(sep) = key.iter().position(|b| *b == 0u8) else {
-                continue;
-            };
-            let (code_bytes, rest) = key.split_at(sep);
-            let word_bytes = &rest[1..];
+        self.map.prefix_for_each(lower.as_bytes(), |code_bytes, word_bytes, value| {
             if let (Ok(code), Ok(word)) = (
                 core::str::from_utf8(code_bytes),
                 core::str::from_utf8(word_bytes),
@@ -451,7 +383,7 @@ impl WubiDict {
                 let score = layer.base() as f64 * prefs[layer.as_index()] + freq as f64;
                 results.push((code.to_string(), word.to_string(), score));
             }
-        }
+        });
         results.sort_by(|a, b| {
             b.2.partial_cmp(&a.2)
                 .unwrap_or(std::cmp::Ordering::Equal)
@@ -602,18 +534,6 @@ impl WubiDict {
             .iter()
             .any(|(w, _, _)| w == word)
     }
-}
-
-fn bump_last(bytes: &[u8]) -> Vec<u8> {
-    let mut v = bytes.to_vec();
-    if let Some(last) = v.last_mut() {
-        if *last < 0xFF {
-            *last += 1;
-            return v;
-        }
-    }
-    v.push(0xFF);
-    v
 }
 
 #[cfg(test)]
