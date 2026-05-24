@@ -25,7 +25,7 @@
 
 use std::sync::{OnceLock, RwLock};
 
-use fst::{IntoStreamer, Map, Streamer};
+use inputx_fsa::{Dict, Fsa};
 
 use crate::ranking::{L0Inner, L0Snapshot, PROMOTE_THRESHOLD};
 
@@ -39,10 +39,10 @@ use crate::ranking::{L0Inner, L0Snapshot, PROMOTE_THRESHOLD};
 // crates.io's size cap by letting us exclude the heavy intermediate TSV
 // files (weights.tsv 23 MB, readings.tsv 13 MB, etc.) from the package.
 #[cfg(not(feature = "bootstrap_only"))]
-const DICT_BYTES: &[u8] = include_bytes!("../data/pinyin.fst");
+const DICT_BYTES: &[u8] = include_bytes!("../data/pinyin.dict");
 
 #[cfg(feature = "bootstrap_only")]
-const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/bootstrap.fst"));
+const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/bootstrap.dict"));
 
 /// Inter-token word-bigram FST (v1.3 联想-conservative split):
 /// keys = `<prev_word>\0<next_word>` where both ends are distinct jieba
@@ -51,7 +51,7 @@ const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/bootstrap.fs
 /// "what word followed what word" patterns, not character pairs from
 /// within a single phrase.
 #[cfg(not(feature = "bootstrap_only"))]
-const BIGRAMS_BYTES: &[u8] = include_bytes!("../data/bigrams.fst");
+const BIGRAMS_BYTES: &[u8] = include_bytes!("../data/bigrams.fsa");
 
 #[cfg(feature = "bootstrap_only")]
 const BIGRAMS_BYTES: &[u8] = &[];
@@ -65,7 +65,7 @@ const BIGRAMS_BYTES: &[u8] = &[];
 /// like 椒→粉→碎→机构 that look superficially plausible but are
 /// globally nonsense).
 #[cfg(not(feature = "bootstrap_only"))]
-const BIGRAMS_INTRA_BYTES: &[u8] = include_bytes!("../data/bigrams_intra.fst");
+const BIGRAMS_INTRA_BYTES: &[u8] = include_bytes!("../data/bigrams_intra.fsa");
 
 #[cfg(feature = "bootstrap_only")]
 const BIGRAMS_INTRA_BYTES: &[u8] = &[];
@@ -74,7 +74,7 @@ const BIGRAMS_INTRA_BYTES: &[u8] = &[];
 /// distinct jieba tokens. Used by `predict_next_words_context` for
 /// sentence-level coherent next-word prediction.
 #[cfg(not(feature = "bootstrap_only"))]
-const TRIGRAMS_BYTES: &[u8] = include_bytes!("../data/trigrams.fst");
+const TRIGRAMS_BYTES: &[u8] = include_bytes!("../data/trigrams.fsa");
 
 #[cfg(feature = "bootstrap_only")]
 const TRIGRAMS_BYTES: &[u8] = &[];
@@ -82,7 +82,7 @@ const TRIGRAMS_BYTES: &[u8] = &[];
 /// Intra-token char-trigram FST. Reserved for future Viterbi
 /// 3-char-phrase scoring; predict_* never reads it.
 #[cfg(not(feature = "bootstrap_only"))]
-const TRIGRAMS_INTRA_BYTES: &[u8] = include_bytes!("../data/trigrams_intra.fst");
+const TRIGRAMS_INTRA_BYTES: &[u8] = include_bytes!("../data/trigrams_intra.fsa");
 
 #[cfg(feature = "bootstrap_only")]
 const TRIGRAMS_INTRA_BYTES: &[u8] = &[];
@@ -95,18 +95,18 @@ const TRIGRAMS_INTRA_BYTES: &[u8] = &[];
 /// `RwLock` lets a single shared instance feed every concurrent IME /
 /// WASM session without exposing the lock to the caller.
 pub struct PinyinDict {
-    map: Map<&'static [u8]>,
+    map: Dict<&'static [u8]>,
     /// Inter-token bigram FST (truly adjacent jieba tokens). Source of
     /// next-word predictions. `None` in bootstrap_only.
-    bigrams: Option<Map<&'static [u8]>>,
+    bigrams: Option<Fsa<&'static [u8]>>,
     /// Intra-token char-bigram FST (chars inside one phrase). Helps
     /// Viterbi prefer known phrases. NEVER used for predictions.
-    bigrams_intra: Option<Map<&'static [u8]>>,
+    bigrams_intra: Option<Fsa<&'static [u8]>>,
     /// Inter-token trigram FST. Source of context-aware predictions.
-    trigrams: Option<Map<&'static [u8]>>,
+    trigrams: Option<Fsa<&'static [u8]>>,
     /// Intra-token char-trigram FST. Reserved (future use).
     #[allow(dead_code)]
-    trigrams_intra: Option<Map<&'static [u8]>>,
+    trigrams_intra: Option<Fsa<&'static [u8]>>,
     l0: RwLock<L0Inner>,
     /// Per-char max freq across ALL its pinyin readings (lazy init).
     /// Built once on first access by scanning the entire FST. Used by
@@ -123,15 +123,15 @@ impl PinyinDict {
     /// and initializes an empty L0). Callers should still cache the
     /// instance and reuse it for the program lifetime.
     pub fn embedded() -> Self {
-        fn load_optional(bytes: &'static [u8], label: &str) -> Option<Map<&'static [u8]>> {
+        fn load_optional(bytes: &'static [u8], label: &str) -> Option<Fsa<&'static [u8]>> {
             if bytes.is_empty() {
                 None
             } else {
-                Some(Map::new(bytes).unwrap_or_else(|_| panic!("invalid embedded {label} FST")))
+                Some(Fsa::new(bytes).unwrap_or_else(|_| panic!("invalid embedded {label} fsa")))
             }
         }
         Self {
-            map: Map::new(DICT_BYTES).expect("invalid embedded pinyin FST"),
+            map: Dict::new(DICT_BYTES).expect("invalid embedded pinyin dict"),
             bigrams: load_optional(BIGRAMS_BYTES, "bigrams"),
             bigrams_intra: load_optional(BIGRAMS_INTRA_BYTES, "bigrams_intra"),
             trigrams: load_optional(TRIGRAMS_BYTES, "trigrams"),
@@ -160,20 +160,19 @@ impl PinyinDict {
     fn build_char_freq_cache(&self) -> &std::collections::HashMap<char, u64> {
         self.char_max_freq.get_or_init(|| {
             let mut cache = std::collections::HashMap::with_capacity(8192);
-            let mut stream = self.map.stream();
-            while let Some((key, freq)) = stream.next() {
-                let Some(sep) = key.iter().position(|b| *b == 0u8) else { continue };
-                let word_bytes = &key[sep + 1..];
-                let Ok(word) = core::str::from_utf8(word_bytes) else { continue };
+            // Item bytes ARE the word (two-level Dict keeps words out of the
+            // automaton), so no \0-split needed.
+            self.map.prefix_for_each(b"", |_code, word_bytes, freq| {
+                let Ok(word) = core::str::from_utf8(word_bytes) else { return };
                 // Only track single-char entries — multi-char phrases'
                 // own freq doesn't tell us how common the constituent
                 // chars are individually.
                 let mut chars = word.chars();
-                let Some(c) = chars.next() else { continue };
-                if chars.next().is_some() { continue; }
+                let Some(c) = chars.next() else { return };
+                if chars.next().is_some() { return; }
                 let entry = cache.entry(c).or_insert(0);
                 if freq > *entry { *entry = freq; }
-            }
+            });
             cache
         })
     }
@@ -188,15 +187,15 @@ impl PinyinDict {
         self.l0.read().map(|g| g.pick_counts.len()).unwrap_or(0)
     }
 
-    /// Total number of (pinyin, word) entries in the FST. Not the number of
-    /// distinct pinyin strings.
+    /// Number of distinct pinyin codes in the dictionary. (The two-level
+    /// `Dict` counts codes, not total (pinyin, word) pairs.)
     pub fn len(&self) -> usize {
-        self.map.len()
+        self.map.len() as usize
     }
 
     /// `true` iff the dictionary is empty.
     pub fn is_empty(&self) -> bool {
-        self.map.len() == 0
+        self.map.is_empty()
     }
 
     /// All words exactly matching `pinyin`, ordered by frequency desc, then
@@ -223,36 +222,12 @@ impl PinyinDict {
         out.clear();
 
         let lower = pinyin.to_ascii_lowercase();
-        let mut prefix = lower.into_bytes();
-        let prefix_len = prefix.len();
-        prefix.push(0u8);
-
-        let mut upper = prefix.clone();
-        let last = upper.len() - 1;
-        upper[last] = 0x01;
-
-        // Score during scan; reuse small scratch buffer.
-        let mut scratch: Vec<(String, u64)> = Vec::with_capacity(8);
-        let mut stream = self
-            .map
-            .range()
-            .ge(prefix.as_slice())
-            .lt(upper.as_slice())
-            .into_stream();
-        while let Some((key, value)) = stream.next() {
-            if key.len() <= prefix_len + 1 {
-                continue;
+        // Dict.get returns items already freq-desc (then item-asc), matching
+        // the old `sort_by_key(Reverse(freq))` stable order — no re-sort.
+        for (word, _freq) in self.map.get(lower.as_bytes()) {
+            if let Ok(s) = String::from_utf8(word) {
+                out.push(s);
             }
-            let word_bytes = &key[prefix_len + 1..];
-            if let Ok(s) = core::str::from_utf8(word_bytes) {
-                scratch.push((s.to_string(), value));
-            }
-        }
-        scratch.sort_by_key(|s| std::cmp::Reverse(s.1));
-
-        out.reserve(scratch.len());
-        for (w, _) in scratch.drain(..) {
-            out.push(w);
         }
 
         // L0 pin: pull to position 0 if present.
@@ -273,46 +248,22 @@ impl PinyinDict {
     /// otherwise allocate tens of thousands of `(String, String)` pairs
     /// only to throw them away.
     pub fn prefix_exists(&self, prefix: &str) -> bool {
-        let lower = prefix.to_ascii_lowercase();
-        let lo = lower.into_bytes();
-        let hi = bump_last(&lo);
-        let mut stream = self
-            .map
-            .range()
-            .ge(lo.as_slice())
-            .lt(hi.as_slice())
-            .into_stream();
-        stream.next().is_some()
+        self.map
+            .contains_prefix(prefix.to_ascii_lowercase().as_bytes())
     }
 
     /// All `(pinyin, word)` pairs with pinyin starting with `prefix`. Ordered
     /// by (pinyin asc, word asc) — useful for prefix completion suggestions.
     pub fn prefix(&self, prefix: &str) -> Vec<(String, String)> {
         let lower = prefix.to_ascii_lowercase();
-        let lo = lower.into_bytes();
-        let hi = bump_last(&lo);
-
-        let mut stream = self
-            .map
-            .range()
-            .ge(lo.as_slice())
-            .lt(hi.as_slice())
-            .into_stream();
-
         let mut results: Vec<(String, String)> = Vec::new();
-        while let Some((key, _value)) = stream.next() {
-            let Some(sep) = key.iter().position(|b| *b == 0u8) else {
-                continue;
-            };
-            let (pinyin_bytes, rest) = key.split_at(sep);
-            let word_bytes = &rest[1..];
-            if let (Ok(pinyin), Ok(word)) = (
-                core::str::from_utf8(pinyin_bytes),
-                core::str::from_utf8(word_bytes),
-            ) {
+        self.map.prefix_for_each(lower.as_bytes(), |code, word, _freq| {
+            if let (Ok(pinyin), Ok(word)) =
+                (core::str::from_utf8(code), core::str::from_utf8(word))
+            {
                 results.push((pinyin.to_string(), word.to_string()));
             }
-        }
+        });
         results.sort();
         results
     }
@@ -353,24 +304,10 @@ impl PinyinDict {
         F: FnMut(&[u8], &[u8], u64),
     {
         let lower = prefix.to_ascii_lowercase();
-        let lo = lower.into_bytes();
-        let hi = bump_last(&lo);
-
-        let mut stream = self
-            .map
-            .range()
-            .ge(lo.as_slice())
-            .lt(hi.as_slice())
-            .into_stream();
-
-        while let Some((key, value)) = stream.next() {
-            let Some(sep) = key.iter().position(|b| *b == 0u8) else {
-                continue;
-            };
-            let (pinyin_bytes, rest) = key.split_at(sep);
-            let word_bytes = &rest[1..];
-            visit(pinyin_bytes, word_bytes, value);
-        }
+        self.map
+            .prefix_for_each(lower.as_bytes(), |code, word, value| {
+                visit(code, word, value);
+            });
     }
 
     /// All `(pinyin, word, freq_score)` triples with pinyin starting with
@@ -385,30 +322,14 @@ impl PinyinDict {
     /// which is ~5MB / ~50ms on short prefixes like `"z"`.
     pub fn prefix_with_freq(&self, prefix: &str) -> Vec<(String, String, u64)> {
         let lower = prefix.to_ascii_lowercase();
-        let lo = lower.into_bytes();
-        let hi = bump_last(&lo);
-
-        let mut stream = self
-            .map
-            .range()
-            .ge(lo.as_slice())
-            .lt(hi.as_slice())
-            .into_stream();
-
         let mut results: Vec<(String, String, u64)> = Vec::new();
-        while let Some((key, value)) = stream.next() {
-            let Some(sep) = key.iter().position(|b| *b == 0u8) else {
-                continue;
-            };
-            let (pinyin_bytes, rest) = key.split_at(sep);
-            let word_bytes = &rest[1..];
-            if let (Ok(pinyin), Ok(word)) = (
-                core::str::from_utf8(pinyin_bytes),
-                core::str::from_utf8(word_bytes),
-            ) {
+        self.map.prefix_for_each(lower.as_bytes(), |code, word, value| {
+            if let (Ok(pinyin), Ok(word)) =
+                (core::str::from_utf8(code), core::str::from_utf8(word))
+            {
                 results.push((pinyin.to_string(), word.to_string(), value));
             }
-        }
+        });
         results
     }
 
@@ -474,29 +395,13 @@ impl PinyinDict {
     pub fn lookup_with_scores_into(&self, pinyin: &str, out: &mut Vec<(String, f64)>) {
         out.clear();
         let lower = lower_str(pinyin);
-        let mut prefix = lower.clone().into_bytes();
-        let prefix_len = prefix.len();
-        prefix.push(0u8);
-        let mut upper = prefix.clone();
-        let last = upper.len() - 1;
-        upper[last] = 0x01;
 
         const PINYIN_PHRASE_BASE: f64 = 400_000.0;
 
-        let mut scratch: Vec<(String, f64, u64)> = Vec::with_capacity(8);
-        let mut stream = self
-            .map
-            .range()
-            .ge(prefix.as_slice())
-            .lt(upper.as_slice())
-            .into_stream();
-        while let Some((key, value)) = stream.next() {
-            if key.len() <= prefix_len + 1 {
-                continue;
-            }
-            let word_bytes = &key[prefix_len + 1..];
-            if let Ok(s) = core::str::from_utf8(word_bytes) {
-                scratch.push((s.to_string(), PINYIN_PHRASE_BASE + value as f64, value));
+        let mut scratch: Vec<(String, f64)> = Vec::with_capacity(8);
+        for (word, freq) in self.map.get(lower.as_bytes()) {
+            if let Ok(s) = String::from_utf8(word) {
+                scratch.push((s, PINYIN_PHRASE_BASE + freq as f64));
             }
         }
         // L0 pin: multiply pinned candidate's score so it tops the
@@ -513,7 +418,7 @@ impl PinyinDict {
             b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
         });
         out.reserve(scratch.len());
-        for (w, score, _) in scratch.drain(..) {
+        for (w, score) in scratch.drain(..) {
             out.push((w, score));
         }
     }
@@ -640,25 +545,9 @@ impl PinyinDict {
     fn lookup_raw_into(&self, pinyin: &str, out: &mut Vec<(String, u64)>) {
         out.clear();
         let lower = pinyin.to_ascii_lowercase();
-        let mut prefix = lower.into_bytes();
-        let prefix_len = prefix.len();
-        prefix.push(0u8);
-        let mut upper = prefix.clone();
-        let last = upper.len() - 1;
-        upper[last] = 0x01;
-        let mut stream = self
-            .map
-            .range()
-            .ge(prefix.as_slice())
-            .lt(upper.as_slice())
-            .into_stream();
-        while let Some((key, value)) = stream.next() {
-            if key.len() <= prefix_len + 1 {
-                continue;
-            }
-            let word_bytes = &key[prefix_len + 1..];
-            if let Ok(s) = core::str::from_utf8(word_bytes) {
-                out.push((s.to_string(), value));
+        for (word, freq) in self.map.get(lower.as_bytes()) {
+            if let Ok(s) = String::from_utf8(word) {
+                out.push((s, freq));
             }
         }
     }
@@ -697,29 +586,21 @@ impl PinyinDict {
             return Vec::new();
         };
         let mut prefix = prev.as_bytes().to_vec();
-        let prefix_len = prefix.len();
         prefix.push(0u8);
-        let mut upper = prefix.clone();
-        let last = upper.len() - 1;
-        upper[last] = 0x01;
+        let prefix_len = prefix.len();
         let mut hits: Vec<(String, u64)> = Vec::new();
-        let mut stream = bigrams
-            .range()
-            .ge(prefix.as_slice())
-            .lt(upper.as_slice())
-            .into_stream();
-        while let Some((key, count)) = stream.next() {
+        bigrams.prefix_for_each(&prefix, |key, count| {
             if count < MIN_PREDICTION_COUNT {
-                continue;
+                return;
             }
-            if key.len() <= prefix_len + 1 {
-                continue;
+            let next_bytes = &key[prefix_len..];
+            if next_bytes.is_empty() {
+                return;
             }
-            let next_bytes = &key[prefix_len + 1..];
             if let Ok(s) = core::str::from_utf8(next_bytes) {
                 hits.push((s.to_string(), count));
             }
-        }
+        });
         hits.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
         hits.truncate(limit);
         hits
@@ -772,29 +653,21 @@ impl PinyinDict {
         let mut prefix = prev_prev.as_bytes().to_vec();
         prefix.push(0u8);
         prefix.extend_from_slice(prev.as_bytes());
-        let prefix_len = prefix.len();
         prefix.push(0u8);
-        let mut upper = prefix.clone();
-        let last = upper.len() - 1;
-        upper[last] = 0x01;
+        let prefix_len = prefix.len();
         let mut hits: Vec<(String, u64)> = Vec::new();
-        let mut stream = trigrams
-            .range()
-            .ge(prefix.as_slice())
-            .lt(upper.as_slice())
-            .into_stream();
-        while let Some((key, count)) = stream.next() {
+        trigrams.prefix_for_each(&prefix, |key, count| {
             if count < MIN_TRIGRAM_COUNT {
-                continue;
+                return;
             }
-            if key.len() <= prefix_len + 1 {
-                continue;
+            let next_bytes = &key[prefix_len..];
+            if next_bytes.is_empty() {
+                return;
             }
-            let next_bytes = &key[prefix_len + 1..];
             if let Ok(s) = core::str::from_utf8(next_bytes) {
                 hits.push((s.to_string(), count));
             }
-        }
+        });
         hits.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
         hits.truncate(limit);
         hits
@@ -928,67 +801,9 @@ fn lower_str(s: &str) -> String {
     s.to_ascii_lowercase()
 }
 
-fn bump_last(bytes: &[u8]) -> Vec<u8> {
-    let mut v = bytes.to_vec();
-    if let Some(last) = v.last_mut() {
-        if *last < 0xFF {
-            *last += 1;
-            return v;
-        }
-    }
-    v.push(0xFF);
-    v
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// Differential proof that `data/pinyin.dict` (inputx-fsa two-level)
-    /// carries byte-for-byte the same (pinyin, word) → freq mapping as the
-    /// shipped `data/pinyin.fst`. Ignored by default (loads both full
-    /// indexes). Run after regenerating either:
-    ///   cargo test -p inputx-pinyin --release dict_matches_fst -- --ignored --nocapture
-    #[test]
-    #[ignore]
-    fn dict_matches_fst() {
-        use std::collections::BTreeMap;
-        // Reference: the shipped fst.
-        let fst = fst::Map::new(DICT_BYTES).expect("pinyin.fst");
-        let mut from_fst: BTreeMap<(String, String), u64> = BTreeMap::new();
-        let mut s = fst.stream();
-        while let Some((key, v)) = <fst::map::Stream<'_> as fst::Streamer>::next(&mut s) {
-            let sep = key.iter().position(|b| *b == 0u8).unwrap();
-            let py = std::str::from_utf8(&key[..sep]).unwrap().to_string();
-            let w = std::str::from_utf8(&key[sep + 1..]).unwrap().to_string();
-            from_fst.insert((py, w), v);
-        }
-
-        // Candidate: the new two-level dict.
-        let bytes = std::fs::read(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/data/pinyin.dict"
-        ))
-        .expect("pinyin.dict — run pinyin-build-dict");
-        let dict = inputx_fsa::Dict::new(bytes.as_slice()).expect("valid pinyin.dict");
-        let mut from_dict: BTreeMap<(String, String), u64> = BTreeMap::new();
-        for (code, word, val) in dict.prefix(b"") {
-            from_dict.insert((
-                String::from_utf8(code).unwrap(),
-                String::from_utf8(word).unwrap(),
-            ), val);
-        }
-
-        assert_eq!(
-            from_dict.len(),
-            from_fst.len(),
-            "entry count differs: dict {} vs fst {}",
-            from_dict.len(),
-            from_fst.len()
-        );
-        assert!(from_dict == from_fst, "dict↔fst mapping mismatch");
-        eprintln!("[dict_matches_fst] {} entries identical ✓", from_dict.len());
-    }
 
     #[test]
     fn embedded_loads() {
