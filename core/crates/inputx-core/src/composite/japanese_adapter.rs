@@ -86,6 +86,7 @@ impl JapaneseAdapter {
             .collect()
     }
 
+    #[allow(dead_code)]
     pub fn kana_candidates(&self) -> Vec<String> {
         use inputx_jp::KanaKind;
         self.engine

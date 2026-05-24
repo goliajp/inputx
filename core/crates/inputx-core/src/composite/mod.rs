@@ -27,7 +27,9 @@ mod baseline_quality_test;
 mod comprehensive_baseline;
 
 pub use engine::CompositeEngine;
-pub use japanese_adapter::JapaneseAdapter;
+// JapaneseAdapter is internal to composite; sub-modules import via
+// `super::japanese_adapter::JapaneseAdapter` directly. No external
+// caller needs it via composite:: path.
 pub use merge::{Candidate, Source};
 pub use mode::Mode;
 pub use pinyin_adapter::PinyinAdapter;
