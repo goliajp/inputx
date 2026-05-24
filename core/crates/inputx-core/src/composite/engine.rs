@@ -904,6 +904,29 @@ mod tests {
         assert!(!e.is_composing());
     }
 
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn composed_fallback_outranks_jp_kana() {
+        // user-report 2026-05-25: in Mixed+JP, `kaopu` ranked the mechanical
+        // kana かおぷ (JP_HIRAGANA_SCORE 150k) ABOVE 靠谱 (Path 5 composition,
+        // was NON_EXACT_FLOOR ~1k). A word composed from real single chars
+        // must outrank a kana transliteration. COMPOSED_FALLBACK_SCORE (250k)
+        // now sits above kana but below real dict words.
+        let mut e = CompositeEngine::new();
+        e.set_japanese_enabled(true);
+        typed(&mut e, b"kaopu");
+        let cands = e.candidates().to_vec();
+        let kao = cands.iter().position(|c| c.word == "靠谱");
+        assert!(kao.is_some(), "靠谱 should be present in Mixed+JP; got {:?}",
+            cands.iter().map(|c| (&c.word, c.source)).collect::<Vec<_>>());
+        if let Some(jp) = cands.iter().position(|c| c.source == Source::Japanese) {
+            assert!(kao.unwrap() < jp,
+                "靠谱(#{}) must outrank mechanical JP kana(#{}); got {:?}",
+                kao.unwrap(), jp,
+                cands.iter().map(|c| (&c.word, c.source)).collect::<Vec<_>>());
+        }
+    }
+
     #[test]
     fn commit_pinyin_source_routes_to_pinyin_engine() {
         let mut e = CompositeEngine::new();

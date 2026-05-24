@@ -109,10 +109,13 @@ impl JapaneseAdapter {
     /// kanji-with-readings tables), so we synthesize per-kind scores
     /// chosen to slot into the cross-engine ranking:
     ///
-    ///   * Jukugo (whole-buffer compound match)       → 300_000
-    ///   * Single-kanji (whole-buffer on/kun reading) → 200_000
-    ///   * Hiragana (mechanical kana rendering)        → 100_000
-    ///   * Katakana                                    →  90_000
+    ///   * Single-kanji (whole-buffer on/kun reading) → scoring::JP_SINGLE_KANJI_SCORE
+    ///   * Hiragana (mechanical kana rendering)        → scoring::JP_HIRAGANA_SCORE
+    ///   * Katakana                                    → scoring::JP_KATAKANA_SCORE
+    /// plus scoring::JP_FREQ_MULTIPLIER × freq (mechanical kana renders carry
+    /// freq 0). scoring.rs is the source of truth — values currently are
+    /// single-kanji 100k, hiragana 150k, katakana 110k (do NOT hardcode copies
+    /// here; this comment drifted once and mislabeled hiragana as 100k).
     ///
     /// These sit *below* a typical pinyin top-phrase score (~445k =
     /// 400k base + 45k freq) so pinyin-resolvable inputs still rank

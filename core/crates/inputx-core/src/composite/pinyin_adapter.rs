@@ -76,6 +76,13 @@ pub struct PinyinAdapter {
     /// match is plausibly what the user meant but shouldn't beat an
     /// exact match in mixed lists.
     fuzzy_candidates: HashSet<String>,
+    /// The Path 5 last-resort Viterbi composition (short non-lexeme buffer
+    /// with no other candidate — e.g. `kaopu`→靠谱). `Some` only when that
+    /// fallback fired. Scored in `candidates_with_scores` at
+    /// `COMPOSED_FALLBACK_SCORE` — above mechanical JP kana but below a real
+    /// dict word — so a composed-from-real-chars word outranks かおぷ-style
+    /// kana transliterations in Mixed+JP, yet never beats a true match.
+    fallback_composition: Option<String>,
 }
 
 impl Default for PinyinAdapter {
@@ -126,6 +133,7 @@ impl PinyinAdapter {
             has_non_speculative_candidate: false,
             composed_sentence: None,
             fuzzy_candidates: HashSet::new(),
+            fallback_composition: None,
         }
     }
 
@@ -247,6 +255,16 @@ impl PinyinAdapter {
         // below wubi simcodes (~600k-1M) so simcodes can still take
         // priority when both engines have a strong claim.
         const COMPOSED_SCORE: f64 = 500_000.0;
+        // Path 5 last-resort composition (kaopu→靠谱). Sits ABOVE mechanical
+        // JP kana (scoring::JP_HIRAGANA_SCORE = 150k, katakana 110k, +freq×3k
+        // — but mechanical renders carry freq 0) so a word composed from real
+        // single chars beats a かおぷ-style transliteration in Mixed+JP, while
+        // staying BELOW any real pinyin dict word (~445k), wubi 简码 (600k–1M)
+        // and the long-buffer COMPOSED_SCORE. Path 5 only fires when pinyin
+        // itself is empty, so this never leapfrogs a real pinyin candidate.
+        // Real common words (靠谱/榨干) belong IN the dict (coverage —
+        // dict-pipeline T0); once there they score as real words, above this.
+        const COMPOSED_FALLBACK_SCORE: f64 = 250_000.0;
         // Fuzzy-match discount: a candidate that only matched after
         // initial-prefix fuzzy expansion (z↔zh, etc.) loses 30% of its
         // score. Still better than nothing, but clear loser to any
@@ -260,9 +278,12 @@ impl PinyinAdapter {
         const FUZZY_BASE: f64 = 350_000.0;
         for (i, w) in self.candidates.iter().enumerate() {
             let is_composed = Some(w.as_str()) == self.composed_sentence.as_deref();
+            let is_fallback = Some(w.as_str()) == self.fallback_composition.as_deref();
             let is_fuzzy = self.fuzzy_candidates.contains(w);
             let base = if is_composed {
                 COMPOSED_SCORE
+            } else if is_fallback {
+                COMPOSED_FALLBACK_SCORE
             } else if is_fuzzy {
                 FUZZY_BASE * FUZZY_DISCOUNT
             } else {
@@ -414,6 +435,7 @@ impl PinyinAdapter {
         self.has_non_speculative_candidate = false;
         self.composed_sentence = None;
         self.fuzzy_candidates.clear();
+        self.fallback_composition = None;
         if self.buffer.is_empty() {
             return;
         }
@@ -636,6 +658,13 @@ impl PinyinAdapter {
         if self.candidates.is_empty()
             && let Some((_, sentence)) = self.engine.dict().best_composition(&self.buffer)
         {
+            // Mark it so candidates_with_scores can rank it above mechanical
+            // JP kana (a composed-from-real-chars word beats a かおぷ-style
+            // transliteration) yet below any real dict word. NOTE: the proper
+            // home for common words like 靠谱/榨干 is the dict itself
+            // (coverage — dict-pipeline T0); this is only the safety net
+            // until the rebuild adds them.
+            self.fallback_composition = Some(sentence.clone());
             self.candidates.push(sentence);
         }
     }
