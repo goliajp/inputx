@@ -224,9 +224,26 @@ impl<D: AsRef<[u8]>> Fsa<D> {
         }
     }
 
-    /// All (key, value) pairs in sorted order.
-    pub fn iter(&self) -> Vec<(Vec<u8>, u64)> {
-        self.prefix(b"")
+    /// Lazy iterator over all (key, value) pairs in sorted order.
+    pub fn iter(&self) -> FsaIter<'_, D> {
+        self.range(b"")
+    }
+
+    /// Lazy iterator over (key, value) pairs whose key starts with `prefix`,
+    /// in sorted order. Unlike [`prefix`](Self::prefix) it allocates no result
+    /// vector and supports early termination (`.take`, `.find`, `break`).
+    pub fn range(&self, prefix: &[u8]) -> FsaIter<'_, D> {
+        let (to_enter, ord) = match self.walk_to(prefix) {
+            Some((rel, ord)) => (Some(rel), ord),
+            None => (None, 0),
+        };
+        FsaIter {
+            fsa: self,
+            stack: Vec::new(),
+            cur: prefix.to_vec(),
+            ord,
+            to_enter,
+        }
     }
 
     fn walk_to(&self, prefix: &[u8]) -> Option<(u32, u64)> {
@@ -285,6 +302,79 @@ impl<D: AsRef<[u8]>> Fsa<D> {
                 self.visit_subtree(target, cur, ord, visit);
                 cur.pop();
             }
+        }
+    }
+}
+
+/// One state being expanded on the iterator's explicit DFS stack.
+struct IterFrame {
+    rel: u32,
+    p: usize,        // byte cursor: next transition record to read
+    remaining: u64,  // transitions left in this state
+    base_len: usize, // `cur.len()` at this state (truncate target between children)
+    single: bool,    // single-transition form (no per-edge count)
+}
+
+/// Lazy, allocation-light iterator over an [`Fsa`]'s (key, value) pairs in
+/// sorted order — see [`Fsa::iter`] / [`Fsa::range`]. Pre-order DFS via an
+/// explicit stack (depth = key length), so it composes with the `Iterator`
+/// adapters and stops early without walking the whole automaton. On a corrupt
+/// buffer it simply ends (consistent with the bounds-safe reader).
+pub struct FsaIter<'a, D> {
+    fsa: &'a Fsa<D>,
+    stack: Vec<IterFrame>,
+    cur: Vec<u8>,
+    ord: u64,
+    to_enter: Option<u32>,
+}
+
+impl<D: AsRef<[u8]>> Iterator for FsaIter<'_, D> {
+    type Item = (Vec<u8>, u64);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let b = self.fsa.data.as_ref();
+        loop {
+            if let Some(rel) = self.to_enter.take() {
+                // Enter a state: push its frame; if final, yield its key now.
+                let mut p = self.fsa.blob_start + rel as usize;
+                let flags = *b.get(p)?;
+                p += 1;
+                let single = flags & 0b10 != 0;
+                let final_ = flags & 1 != 0;
+                let remaining = if single { 1 } else { rd_uvarint(b, &mut p)? };
+                self.stack.push(IterFrame {
+                    rel,
+                    p,
+                    remaining,
+                    base_len: self.cur.len(),
+                    single,
+                });
+                if final_ {
+                    let v = self.fsa.read_value(self.ord);
+                    self.ord += 1;
+                    return Some((self.cur.clone(), v));
+                }
+                continue;
+            }
+            let frame = self.stack.last_mut()?;
+            // Drop the previous child's label before taking the next edge.
+            self.cur.truncate(frame.base_len);
+            if frame.remaining == 0 {
+                self.stack.pop();
+                continue;
+            }
+            let mut p = frame.p;
+            let label = *b.get(p)?;
+            p += 1;
+            let delta = rd_uvarint(b, &mut p)?;
+            if !frame.single {
+                rd_uvarint(b, &mut p)?; // skip the count
+            }
+            frame.p = p;
+            frame.remaining -= 1;
+            let target = decode_target(frame.rel, delta)?;
+            self.cur.push(label);
+            self.to_enter = Some(target);
         }
     }
 }

@@ -46,7 +46,7 @@ mod reader;
 
 pub use builder::Builder;
 pub use dict::{Dict, DictBuilder};
-pub use reader::{Fsa, FsaError};
+pub use reader::{Fsa, FsaError, FsaIter};
 
 #[cfg(test)]
 mod tests {
@@ -106,6 +106,23 @@ mod tests {
         assert_eq!(fsa.get(b"ration"), Some(2));
         assert_eq!(fsa.get(b"station"), Some(3));
         assert_eq!(fsa.get(b"ation"), None);
+    }
+
+    #[test]
+    fn lazy_iter() {
+        let bytes = build(&[(b"a", 1), (b"ab", 2), (b"ac", 3), (b"b", 4)]);
+        let fsa = Fsa::new(bytes).unwrap();
+        // lazy iter == eager prefix(b"")
+        assert_eq!(fsa.iter().collect::<Vec<_>>(), fsa.prefix(b""));
+        // range == prefix; early termination via take
+        assert_eq!(fsa.range(b"a").collect::<Vec<_>>(), fsa.prefix(b"a"));
+        assert_eq!(
+            fsa.range(b"a").take(2).collect::<Vec<_>>(),
+            vec![(b"a".to_vec(), 1), (b"ab".to_vec(), 2)]
+        );
+        // composes + stops early without walking the rest
+        assert_eq!(fsa.iter().find(|(k, _)| k == b"ac"), Some((b"ac".to_vec(), 3)));
+        assert_eq!(fsa.range(b"z").next(), None);
     }
 
     #[test]
@@ -410,6 +427,9 @@ mod tests {
             let fsa = Fsa::new(b.finish()).unwrap();
 
             prop_assert_eq!(fsa.len(), oracle.len() as u64);
+
+            // lazy iter yields exactly the eager prefix(b"") sequence.
+            prop_assert_eq!(fsa.iter().collect::<Vec<_>>(), fsa.prefix(b""));
 
             // get matches on every oracle key + random probes.
             for (k, v) in &oracle {
