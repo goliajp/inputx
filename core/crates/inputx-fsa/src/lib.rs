@@ -32,9 +32,11 @@
 #![forbid(unsafe_code)]
 
 mod builder;
+mod dict;
 mod reader;
 
 pub use builder::Builder;
+pub use dict::{Dict, DictBuilder};
 pub use reader::{Fsa, FsaError};
 
 #[cfg(test)]
@@ -181,6 +183,89 @@ mod tests {
             assert_eq!(fsa.get(k), Some(*v), "get mismatch for {k:?}");
         }
         assert_eq!(fsa.len(), oracle.len() as u64);
+    }
+
+    /// Size probe for the two-level (code → word-list blob) design on real
+    /// pinyin data. Ignored by default.
+    /// Run: `cargo test -p inputx-fsa --release real_pinyin_twolevel -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn real_pinyin_twolevel_size() {
+        fn uvarint(out: &mut Vec<u8>, mut v: u64) {
+            loop {
+                let mut byte = (v & 0x7f) as u8;
+                v >>= 7;
+                if v != 0 {
+                    byte |= 0x80;
+                }
+                out.push(byte);
+                if v == 0 {
+                    break;
+                }
+            }
+        }
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../inputx-pinyin/data/weights/weights.tsv"
+        );
+        let text = std::fs::read_to_string(path).expect("weights.tsv");
+        // Measure on both the full set and the shipped set (MIN_FREQ=100,
+        // what pinyin-build-fst actually ships → the fair 4.54MB comparison).
+        for &min_freq in &[0u64, 100] {
+            let mut groups: BTreeMap<String, Vec<(String, u64)>> = BTreeMap::new();
+            let mut n_entries = 0usize;
+            for line in text.lines() {
+                if line.starts_with('#') || line.is_empty() {
+                    continue;
+                }
+                let mut it = line.split('\t');
+                let (Some(py), Some(word), Some(freq)) = (it.next(), it.next(), it.next()) else {
+                    continue;
+                };
+                let freq: u64 = freq.parse().unwrap_or(0);
+                if freq < min_freq {
+                    continue;
+                }
+                groups
+                    .entry(py.to_string())
+                    .or_default()
+                    .push((word.to_string(), freq));
+                n_entries += 1;
+            }
+            // two-level: code → word-list blob
+            let mut blob: Vec<u8> = Vec::new();
+            let mut b = Builder::new();
+            for (code, words) in &groups {
+                b.insert(code.as_bytes(), blob.len() as u64);
+                uvarint(&mut blob, words.len() as u64);
+                for (w, f) in words {
+                    uvarint(&mut blob, w.len() as u64);
+                    blob.extend_from_slice(w.as_bytes());
+                    uvarint(&mut blob, *f);
+                }
+            }
+            let fsa_bytes = b.finish();
+            let total = fsa_bytes.len() + blob.len();
+            // single-level: code\0word → freq (for comparison)
+            let mut sb = Builder::new();
+            for (code, words) in &groups {
+                for (w, f) in words {
+                    let mut key = code.as_bytes().to_vec();
+                    key.push(0);
+                    key.extend_from_slice(w.as_bytes());
+                    sb.insert(&key, *f);
+                }
+            }
+            let single = sb.finish().len();
+            eprintln!(
+                "[min_freq={min_freq}] {n_entries} entries / {} codes  |  two-level {:.2}MB (fsa {:.2}+blob {:.2})  |  single-level {:.2}MB  |  baseline fst 4.54MB",
+                groups.len(),
+                total as f64 / 1_048_576.0,
+                fsa_bytes.len() as f64 / 1_048_576.0,
+                blob.len() as f64 / 1_048_576.0,
+                single as f64 / 1_048_576.0
+            );
+        }
     }
 
     use proptest::prelude::*;
