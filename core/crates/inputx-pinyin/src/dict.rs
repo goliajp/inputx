@@ -944,6 +944,52 @@ fn bump_last(bytes: &[u8]) -> Vec<u8> {
 mod tests {
     use super::*;
 
+    /// Differential proof that `data/pinyin.dict` (inputx-fsa two-level)
+    /// carries byte-for-byte the same (pinyin, word) → freq mapping as the
+    /// shipped `data/pinyin.fst`. Ignored by default (loads both full
+    /// indexes). Run after regenerating either:
+    ///   cargo test -p inputx-pinyin --release dict_matches_fst -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn dict_matches_fst() {
+        use std::collections::BTreeMap;
+        // Reference: the shipped fst.
+        let fst = fst::Map::new(DICT_BYTES).expect("pinyin.fst");
+        let mut from_fst: BTreeMap<(String, String), u64> = BTreeMap::new();
+        let mut s = fst.stream();
+        while let Some((key, v)) = <fst::map::Stream<'_> as fst::Streamer>::next(&mut s) {
+            let sep = key.iter().position(|b| *b == 0u8).unwrap();
+            let py = std::str::from_utf8(&key[..sep]).unwrap().to_string();
+            let w = std::str::from_utf8(&key[sep + 1..]).unwrap().to_string();
+            from_fst.insert((py, w), v);
+        }
+
+        // Candidate: the new two-level dict.
+        let bytes = std::fs::read(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/data/pinyin.dict"
+        ))
+        .expect("pinyin.dict — run pinyin-build-dict");
+        let dict = inputx_fsa::Dict::new(bytes.as_slice()).expect("valid pinyin.dict");
+        let mut from_dict: BTreeMap<(String, String), u64> = BTreeMap::new();
+        for (code, word, val) in dict.prefix(b"") {
+            from_dict.insert((
+                String::from_utf8(code).unwrap(),
+                String::from_utf8(word).unwrap(),
+            ), val);
+        }
+
+        assert_eq!(
+            from_dict.len(),
+            from_fst.len(),
+            "entry count differs: dict {} vs fst {}",
+            from_dict.len(),
+            from_fst.len()
+        );
+        assert!(from_dict == from_fst, "dict↔fst mapping mismatch");
+        eprintln!("[dict_matches_fst] {} entries identical ✓", from_dict.len());
+    }
+
     #[test]
     fn embedded_loads() {
         let d = PinyinDict::embedded();
