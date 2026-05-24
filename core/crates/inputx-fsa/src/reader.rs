@@ -35,21 +35,31 @@ pub(crate) fn rd_u32(b: &[u8], at: usize) -> u32 {
 }
 
 /// Read an unsigned LEB128 starting at `*p`, advancing `*p` past it.
+/// Bounds-safe: returns `None` if the varint runs off the end of `b` or
+/// is malformed (>10 bytes), so a corrupt buffer degrades instead of
+/// panicking.
 #[inline]
-pub(crate) fn rd_uvarint(b: &[u8], p: &mut usize) -> u64 {
+pub(crate) fn rd_uvarint(b: &[u8], p: &mut usize) -> Option<u64> {
     let mut v = 0u64;
     let mut shift = 0u32;
     loop {
-        let byte = b[*p];
+        let byte = *b.get(*p)?;
         *p += 1;
         v |= u64::from(byte & 0x7f) << shift;
         if byte & 0x80 == 0 {
-            break;
+            return Some(v);
         }
         shift += 7;
+        if shift >= 64 {
+            return None; // malformed: varint too long
+        }
     }
-    v
 }
+
+/// Max key length walked during a prefix DFS. Valid IME keys are tiny; this
+/// only bounds recursion depth so a corrupt/cyclic buffer can't overflow the
+/// stack (defense for untrusted input).
+const MAX_WALK_DEPTH: usize = 4096;
 
 impl<D: AsRef<[u8]>> Fsa<D> {
     pub fn new(data: D) -> Result<Self, FsaError> {
@@ -104,38 +114,43 @@ impl<D: AsRef<[u8]>> Fsa<D> {
         let at = self.values_start + ord as usize * self.value_width;
         let mut v = 0u64;
         for i in 0..self.value_width {
-            v |= (b[at + i] as u64) << (8 * i);
+            v |= u64::from(b.get(at + i).copied().unwrap_or(0)) << (8 * i);
         }
         v
     }
 
     #[inline]
     fn is_final(&self, rel: u32) -> bool {
-        self.data.as_ref()[self.blob_start + rel as usize] & 1 != 0
+        self.data
+            .as_ref()
+            .get(self.blob_start + rel as usize)
+            .is_some_and(|x| x & 1 != 0)
     }
 
     /// Walk one state: from state at `rel`, take `byte`. Returns the target
     /// state's relative offset, adding to `ord` the rank contribution of
-    /// everything that sorts before that branch. `None` if no such transition.
+    /// everything that sorts before that branch. `None` if no such transition
+    /// (or on any out-of-bounds read — a corrupt buffer degrades to "no
+    /// match" rather than panicking).
     #[inline]
     fn step(&self, rel: u32, byte: u8, ord: &mut u64) -> Option<u32> {
         let b = self.data.as_ref();
         let mut p = self.blob_start + rel as usize;
-        let final_ = b[p] & 1 != 0;
+        let final_ = (*b.get(p)?) & 1 != 0;
         p += 1;
         if final_ {
             *ord += 1; // the (shorter) word ending here sorts first
         }
-        let ntrans = rd_uvarint(b, &mut p);
+        let ntrans = rd_uvarint(b, &mut p)?;
         for _ in 0..ntrans {
-            let label = b[p];
+            let label = *b.get(p)?;
             p += 1;
-            let delta = rd_uvarint(b, &mut p);
-            let numt = rd_uvarint(b, &mut p);
+            let delta = rd_uvarint(b, &mut p)?;
+            let numt = rd_uvarint(b, &mut p)?;
             if label < byte {
                 *ord += numt;
             } else if label == byte {
-                return Some(rel - delta as u32);
+                return rel.checked_sub(u32::try_from(delta).ok()?);
             } else {
                 break; // label-sorted
             }
@@ -211,21 +226,34 @@ impl<D: AsRef<[u8]>> Fsa<D> {
         ord: &mut u64,
         visit: &mut F,
     ) {
+        // Depth guard: bounds recursion on a corrupt/cyclic buffer.
+        if cur.len() > MAX_WALK_DEPTH {
+            return;
+        }
         let b = self.data.as_ref();
         let mut p = self.blob_start + rel as usize;
-        let final_ = b[p] & 1 != 0;
+        let Some(&fb) = b.get(p) else { return };
+        let final_ = fb & 1 != 0;
         p += 1;
         if final_ {
             visit(cur, self.read_value(*ord));
             *ord += 1;
         }
-        let ntrans = rd_uvarint(b, &mut p);
+        let Some(ntrans) = rd_uvarint(b, &mut p) else { return };
         for _ in 0..ntrans {
-            let label = b[p];
+            let Some(&label) = b.get(p) else { return };
             p += 1;
-            let delta = rd_uvarint(b, &mut p);
-            let _num = rd_uvarint(b, &mut p);
-            let target = rel - delta as u32;
+            let Some(delta) = rd_uvarint(b, &mut p) else { return };
+            let Some(_num) = rd_uvarint(b, &mut p) else { return };
+            // target must be a strictly-earlier state (delta ≥ 1) — also
+            // prevents a 0-delta self-loop on corrupt input.
+            let Some(target) = u32::try_from(delta)
+                .ok()
+                .filter(|&d| d > 0)
+                .and_then(|d| rel.checked_sub(d))
+            else {
+                return;
+            };
             cur.push(label);
             self.visit_subtree(target, cur, ord, visit);
             cur.pop();

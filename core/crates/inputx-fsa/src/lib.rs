@@ -505,5 +505,51 @@ mod tests {
         fn new_no_panic(bytes in proptest::collection::vec(any::<u8>(), 0..128)) {
             let _ = Fsa::new(bytes.as_slice());
         }
+
+        /// Corrupt-buffer robustness: take a VALID Fsa/Dict, flip arbitrary
+        /// bytes (header or body), then new + get + prefix must never panic —
+        /// at worst Err on new, or graceful empty/None results. This is the
+        /// untrusted-input contract for the published crate.
+        #[test]
+        fn fuzz_mutated_buffer_no_panic(
+            muts in proptest::collection::vec((any::<usize>(), any::<u8>()), 0..40),
+            probe in proptest::collection::vec(any::<u8>(), 0..6),
+        ) {
+            // ── Fsa ──
+            let mut fb = Builder::new();
+            for i in 0..60u32 {
+                fb.insert(format!("key{i:03}").as_bytes(), u64::from(i) * 7);
+            }
+            let mut bytes = fb.finish();
+            for (idx, val) in &muts {
+                if !bytes.is_empty() {
+                    let i = idx % bytes.len();
+                    bytes[i] = *val;
+                }
+            }
+            if let Ok(fsa) = Fsa::new(bytes.as_slice()) {
+                let _ = fsa.get(&probe);
+                let _ = fsa.contains_prefix(&probe);
+                let _ = fsa.prefix(&probe); // walk + visit_subtree
+            }
+
+            // ── Dict ──
+            let mut db = DictBuilder::new();
+            for i in 0..60u32 {
+                db.insert(format!("c{}", i % 12).as_bytes(), format!("item{i}").as_bytes(), u64::from(i));
+            }
+            let mut dbytes = db.finish();
+            for (idx, val) in &muts {
+                if !dbytes.is_empty() {
+                    let i = idx % dbytes.len();
+                    dbytes[i] = *val;
+                }
+            }
+            if let Ok(dict) = Dict::new(dbytes.as_slice()) {
+                let _ = dict.get(&probe);
+                let _ = dict.prefix(&probe);
+                dict.get_for_each(&probe, |_, _| {});
+            }
+        }
     }
 }
