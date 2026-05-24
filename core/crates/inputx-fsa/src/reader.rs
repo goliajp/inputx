@@ -30,13 +30,13 @@ pub struct Fsa<D> {
 }
 
 #[inline]
-fn rd_u32(b: &[u8], at: usize) -> u32 {
+pub(crate) fn rd_u32(b: &[u8], at: usize) -> u32 {
     u32::from_le_bytes([b[at], b[at + 1], b[at + 2], b[at + 3]])
 }
 
 /// Read an unsigned LEB128 starting at `*p`, advancing `*p` past it.
 #[inline]
-fn rd_uvarint(b: &[u8], p: &mut usize) -> u64 {
+pub(crate) fn rd_uvarint(b: &[u8], p: &mut usize) -> u64 {
     let mut v = 0u64;
     let mut shift = 0u32;
     loop {

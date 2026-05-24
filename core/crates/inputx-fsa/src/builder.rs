@@ -143,7 +143,7 @@ fn value_width(values: &[u64]) -> u8 {
 }
 
 /// Unsigned LEB128.
-fn write_uvarint(out: &mut Vec<u8>, mut v: u64) {
+pub(crate) fn write_uvarint(out: &mut Vec<u8>, mut v: u64) {
     loop {
         let mut byte = (v & 0x7f) as u8;
         v >>= 7;
