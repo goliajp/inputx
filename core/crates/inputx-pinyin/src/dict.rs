@@ -1115,6 +1115,20 @@ mod tests {
 
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
+    fn lookup_queshi_quexi_polish_log_promoted() {
+        // User polish-log shows queshi → 缺失 picked 4× even though
+        // base 确实 (42104) > base 缺失 (25090). v1.4 update to
+        // aggregate_polish_log.py auto-tunes quickfix boost to beat
+        // top peer + MARGIN → 缺失 should now lead at queshi.
+        let d = PinyinDict::embedded();
+        let cands = d.lookup("queshi");
+        assert_eq!(cands.first().map(String::as_str), Some("缺失"),
+            "expected 缺失 #1 (was 确实 before polish-log auto-tune); top5={:?}",
+            cands.iter().take(5).collect::<Vec<_>>());
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
     fn lookup_traditional_dropped_after_strip() {
         // User-reported 2026-05-24: prediction panel surfaced 於 / 國 /
         // 來 etc. in a simplified-mode session. Root cause was the

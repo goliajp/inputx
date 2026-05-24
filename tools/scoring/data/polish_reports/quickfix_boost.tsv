@@ -1,19 +1,22 @@
 # repeat-miss-driven quickfix (review before applying)
 # format: pinyin\tword\tfreq\t(original_count)
-jixu	积蓄	165000
-jixu	继续	55000
-jixu	急需	50000
-rongyu	冗余	50000
-youshi	优势	50000
-bushu	部署	45000
-dan	单	45000
-go	来	45000
-shiye	视野	45000
-dibu	底部	40000
-fanye	翻页	40000
-jiagou	架构	40000
-jiaofu	交付	40000
-jizhi	极致	40000
-maoding	锚定	40000
-pingfen	评分	40000
-queshi	缺失	40000
+# boost auto-tuned to beat top peer at same pinyin under MAX overlay semantics
+jixu	积蓄	166366	# n=28 base=26366 peer=44652
+jixu	急需	58032	# n=6 base=28032 peer=44652
+jixu	继续	74652	# n=6 base=44652 peer=28032
+youshi	优势	75000	# n=5 base=50000 peer=38542
+rongyu	冗余	50000	# n=5 base=16889 peer=33654
+go	来	45000	# n=4 base=0 peer=0
+dan	单	61782	# n=4 base=41782 peer=52646
+bushu	部署	53133	# n=4 base=33133 peer=35000
+shiye	视野	48177	# n=4 base=28177 peer=37292
+queshi	缺失	47104	# n=4 base=25090 peer=42104
+pingfen	评分	55000	# n=3 base=40000 peer=26002
+jizhi	极致	40000	# n=3 base=23713 peer=32501
+fanye	翻页	55000	# n=3 base=40000 peer=12912
+jiagou	架构	40000	# n=3 base=24954 peer=28000
+jiaofu	交付	41892	# n=3 base=26892 peer=27454
+jishi	及时	49078	# n=3 base=34078 peer=40014
+maoding	锚定	40000	# n=3 base=11582 peer=15410
+dibu	底部	43322	# n=3 base=28322 peer=30385
+zhineng	智能	46694	# n=3 base=31694 peer=39376
