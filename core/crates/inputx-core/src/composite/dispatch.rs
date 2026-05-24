@@ -310,6 +310,29 @@ mod tests {
     // RARE-char Jianma2 only (purge_jianma2_misaligned.py uses ratio).
 
     #[test]
+    fn debug_ce_yi_runtime() {
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::{WubiEngine, AutoCommitPolicy};
+        for input in &["ce", "yi", "ge", "da"] {
+            let mut w = WubiEngine::new();
+            w.set_policy(AutoCommitPolicy::Never);
+            for b in input.bytes() { let _ = w.handle_letter(b); }
+            eprintln!("\nwubi '{}' candidates_with_layer:", input);
+            for (word, score, layer) in w.candidates_with_layer().iter().take(3) {
+                eprintln!("  {} score={} layer={:?}", word, score, layer);
+            }
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::Mixed);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            for b in input.bytes() { let _ = e.handle_letter(b); }
+            eprintln!("MIXED '{}' top5:", input);
+            for (i, c) in e.candidates().iter().take(5).enumerate() {
+                eprintln!("  #{}: {} (src={:?}, score={})", i, c.word, c.source, c.score);
+            }
+        }
+    }
+
+    #[test]
     fn wubi_only_tjvs_yields_fuza() {
         // User-reported 2026-05-24: tjvs (wubi phrase code for 复杂)
         // didn't surface 复杂 in their typing. phrases.txt has the
