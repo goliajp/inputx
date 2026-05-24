@@ -3,7 +3,7 @@
 use proptest::prelude::*;
 
 use wubi::Layer;
-use wubi::layer::{pack, unpack};
+use wubi::layer::{MAX_FREQ_SCORE, pack, unpack};
 
 fn layer_strategy() -> impl Strategy<Value = Layer> {
     prop_oneof![
@@ -16,14 +16,15 @@ fn layer_strategy() -> impl Strategy<Value = Layer> {
     ]
 }
 
-const FREQ_MASK: u64 = 0x00FF_FFFF_FFFF_FFFF;
-
 proptest! {
-    /// `unpack(pack(l, f)) == (l, f)` for any valid `f` (≤ 56 bits).
+    /// `unpack(pack(l, f)) == (l, f)` for any `f` in the valid domain
+    /// `[0, MAX_FREQ_SCORE]`. (Imports the bound from the crate so it can't
+    /// drift out of sync with `FREQ_BITS` — a hardcoded copy is exactly what
+    /// silently broke after the E1 56→20 change.)
     #[test]
     fn pack_unpack_roundtrip(
         layer in layer_strategy(),
-        freq in 0u64..=FREQ_MASK,
+        freq in 0u64..=MAX_FREQ_SCORE,
     ) {
         let p = pack(layer, freq);
         let (l_out, f_out) = unpack(p);
@@ -36,8 +37,8 @@ proptest! {
     /// merge step.
     #[test]
     fn higher_priority_layer_dominates_freq(
-        f1 in 0u64..=FREQ_MASK,
-        f2 in 0u64..=FREQ_MASK,
+        f1 in 0u64..=MAX_FREQ_SCORE,
+        f2 in 0u64..=MAX_FREQ_SCORE,
     ) {
         // Auto + max freq must still be < Phrase + 0 freq, etc.
         prop_assert!(pack(Layer::Phrase, f2) > pack(Layer::Auto, f1));
@@ -51,8 +52,8 @@ proptest! {
     #[test]
     fn within_layer_freq_orders(
         layer in layer_strategy(),
-        a in 0u64..=FREQ_MASK,
-        b in 0u64..=FREQ_MASK,
+        a in 0u64..=MAX_FREQ_SCORE,
+        b in 0u64..=MAX_FREQ_SCORE,
     ) {
         if a < b {
             prop_assert!(pack(layer, a) < pack(layer, b));
@@ -61,5 +62,24 @@ proptest! {
         } else {
             prop_assert_eq!(pack(layer, a), pack(layer, b));
         }
+    }
+
+    /// Out-of-domain freq saturates to `MAX_FREQ_SCORE` (never wraps): it
+    /// stays inside its layer and ranks at the top of it, and the packed value
+    /// is monotonic non-decreasing in freq across the whole `u64` range — so a
+    /// pathological huge freq can never invert priority.
+    #[test]
+    fn over_range_freq_saturates_and_stays_monotonic(
+        layer in layer_strategy(),
+        over in (MAX_FREQ_SCORE + 1)..=u64::MAX,
+        any in any::<u64>(),
+    ) {
+        let (l, f) = unpack(pack(layer, over));
+        prop_assert_eq!(l, layer);
+        prop_assert_eq!(f, MAX_FREQ_SCORE);
+        // monotone non-decreasing: a ≤ b ⟹ pack(a) ≤ pack(b)
+        let lo = any.min(over);
+        let hi = any.max(over);
+        prop_assert!(pack(layer, lo) <= pack(layer, hi));
     }
 }

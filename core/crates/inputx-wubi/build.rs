@@ -1,9 +1,12 @@
-//! Build-time codegen for wubi:
-//! - `phf::Map<char, u8>` for 字根 → letter (`zigen.phf.rs`)
-//! - `phf::Map<u8, char>` for 一级简码 (`jianma1.phf.rs`)
-//! - `wubi86.fst` — pre-built FST containing all encoded dictionary entries
+//! Build-time codegen for wubi (zero external deps — see
+//! `.claude/PLAN-self-built-fsa.md`; phf/fst both replaced):
+//! - sorted `&[(char, u8)]` for 字根 → letter (`zigen.phf.rs`, legacy name;
+//!   binary-search lookup, replaces the former `phf::Map`)
+//! - sorted `&[(u8, char)]` for 一级简码 (`jianma1.phf.rs`, legacy name)
+//! - `wubi86.dict` — pre-built `inputx-fsa` two-level `Dict` of all encoded
+//!   dictionary entries (code → ranked words)
 //!
-//! The FST is built by running the encoder algorithmically over `seed.txt`
+//! The dict is built by running the encoder algorithmically over `seed.txt`
 //! (`#[path = "src/codec.rs"]` shares the algorithm with the runtime).
 
 #[path = "src/codec.rs"]
