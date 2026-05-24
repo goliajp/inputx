@@ -18,6 +18,10 @@ mod merge;
 mod mode;
 mod pinyin_adapter;
 pub mod scoring;
+// Candidate-quality TDD baseline (user 2026-05-24: 候选质量是非常容易
+// 用 tdd 保障的). Pure test module; no production code.
+#[cfg(test)]
+mod baseline_quality_test;
 
 pub use engine::CompositeEngine;
 pub use japanese_adapter::JapaneseAdapter;

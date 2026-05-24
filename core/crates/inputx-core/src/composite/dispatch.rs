@@ -110,6 +110,16 @@ pub fn dispatch(
                 }
             } else { 1.0 };
             let phrase_demote = if pinyin_intent { 0.5 } else { 1.0 };
+            // NOTE: Jianma2 is NOT demoted here. The 伙-rule (see
+            // session::wubi_simcode_priority tests) protects an explicit
+            // set of Jianma2 entries (wo→伙, ni→悄, ta→长, de→胡 etc.)
+            // that the user relies on as 2-letter wubi shortcuts even
+            // when the same letters spell a valid pinyin syllable.
+            // Algorithmically there's no good way to distinguish these
+            // protected entries from rare-char Jianma2 occupations like
+            // `mo → 嶙` or `da → 左` — both are "char's pinyin ≠ wubi
+            // code". So we fix the latter via data deletion in
+            // jianma_simplified.txt rather than runtime demote.
             let mut wubi_cands: Vec<(String, f64)> = wubi
                 .candidates_with_layer()
                 .into_iter()
@@ -291,6 +301,40 @@ mod tests {
             "expected one of {acceptable:?} at #0 for mo; got top10={:?}",
             cands.iter().take(10).map(|c| &c.word).collect::<Vec<_>>());
         assert_ne!(top, "嶙", "rare wubi 嶙 must not lead pinyin 'mo'");
+    }
+
+    #[test]
+    fn debug_di_top() {
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"di" { let _ = e.handle_letter(*b); }
+        eprintln!("di Mixed top10: {:?}", e.candidates().iter().take(10)
+            .map(|c| (&c.word, c.score)).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn mixed_da_pinyin_leads_over_jianma2_zuo() {
+        // Polish-log near-miss: `da → 搭` picked rank 4, top1 was 左
+        // (Jianma2 simcode). 左's pinyin is 'zuo', not 'da' — it just
+        // occupies the wubi 'da' 2-letter slot. Under v1.4 polish
+        // jianma2_demote (×0.7 in pinyin_intent), pinyin 大/打/达
+        // should lead 'da'. 左 still visible at lower rank for wubi
+        // users who actually want it (typing 'da' as wubi shortcut).
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"da" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top = cands.first().map(|c| c.word.as_str()).unwrap_or("");
+        let acceptable = ["大", "打", "达", "搭", "答"];
+        assert!(acceptable.contains(&top),
+            "expected one of {acceptable:?} at #0 for da; got top10={:?}",
+            cands.iter().take(10).map(|c| &c.word).collect::<Vec<_>>());
     }
 
     #[test]
