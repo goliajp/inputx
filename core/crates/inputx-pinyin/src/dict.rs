@@ -29,11 +29,12 @@ use inputx_fsa::{Dict, Fsa};
 
 use crate::ranking::{L0Inner, L0Snapshot, PROMOTE_THRESHOLD};
 
-// Default = full pinyin dict from the committed `data/pinyin.fst` (15 MB,
-// pre-built by `tools/build_fst.rs` from `data/weights/weights.tsv` —
-// maintainer regenerates after data changes; see workspace ROADMAP item 23).
-// `bootstrap_only` feature swaps to the tiny ~125-entry bootstrap FST built
-// at compile time from `data/bootstrap.tsv` (1.7 KB).
+// Default = full pinyin dict from the committed `data/pinyin.dict` (3.9 MB,
+// an `inputx-fsa` two-level Dict pre-built by `tools/build_dict.rs` from
+// `data/weights/weights.tsv` — maintainer regenerates after data changes;
+// see workspace ROADMAP item 23). `bootstrap_only` feature swaps to the tiny
+// ~125-entry bootstrap dict built at compile time from `data/bootstrap.tsv`
+// (1.7 KB).
 //
 // Why pre-built vs build.rs-generated: keeps the published crate under
 // crates.io's size cap by letting us exclude the heavy intermediate TSV
