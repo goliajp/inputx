@@ -53,6 +53,11 @@ kaoqian	靠前	pinyin	user-report-2026-05-22 missing-from-dict
 women	我们	pinyin	high-freq-staple
 nihao	你好	pinyin	high-freq-staple
 zhongguo	中国	pinyin	high-freq-staple
+kaopu	靠谱	pinyin	user-report-2026-05-25 was-zero-candidates; fixed-by-path5-viterbi d78ec45
+zhagan	榨干	pinyin	user-report-2026-05-25 coverage-gap (not in any source incl jieba); FAILING until rebuild adds it
+# Pollution NEGATIVE case (not expressible as expected_top — filter requirement
+# for 04_layer_assign / CP3): `maodund` must NOT surface 矛盾的特 (corpus
+# fragment of 矛盾的特殊性, leaked past MIN_FREQ at freq 2895). user-report-2026-05-25.
 
 # --- wubi 二级简码 spot-checks ---
 go	来	wubi	jianma2-86-standard
