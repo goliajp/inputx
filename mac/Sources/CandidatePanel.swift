@@ -351,13 +351,29 @@ final class CandidatePanel {
         // the anchored BOTTOM down by the inflation delta on every
         // refresh. User-reported "第二个字符输入还是会下偏" 2026-05-23.
         window.contentView?.layoutSubtreeIfNeeded()
-        let actualH = window.contentView?.fittingSize.height
-            ?? (22 * CGFloat(Self.pageSize) + 10 + 16)
+        let fitting = window.contentView?.fittingSize
+            ?? NSSize(width: 110, height: 22 * CGFloat(Self.pageSize) + 10 + 16)
+        // v1.5 width-aware (user 2026-05-24: "字数超过 3 个，候选列表
+        // 应该要变宽"). NSTextField .byTruncatingTail was hiding long
+        // candidates at fixed 110pt width. Now panel auto-widens to fit
+        // the longest candidate, clamped [110, MAX_PANEL_WIDTH] to keep
+        // it from spanning the screen.
+        let MIN_WIDTH: CGFloat = 110
+        let MAX_WIDTH: CGFloat = 360
+        let actualW = max(MIN_WIDTH, min(MAX_WIDTH, fitting.width))
+        let actualH = fitting.height
         var f = window.frame
+        let widthChanged = abs(f.size.width - actualW) > 0.5
+        f.size.width = actualW
         f.size.height = actualH
         switch anchorEdge {
-        case .top:    f.origin.y = anchorY - actualH  // pin TOP, grow downward
-        case .bottom: f.origin.y = anchorY            // pin BOTTOM, grow upward
+        case .top:    f.origin.y = anchorY - actualH
+        case .bottom: f.origin.y = anchorY
+        }
+        // Width changed → re-clamp originX so the panel doesn't fall
+        // off the screen right edge (extends leftward when needed).
+        if widthChanged, let s = NSScreen.screens.first(where: { $0.frame.contains(NSPoint(x: f.origin.x, y: f.origin.y)) })?.visibleFrame {
+            f.origin.x = min(max(s.minX, f.origin.x), s.maxX - f.size.width)
         }
         window.setFrame(f, display: true)
     }
