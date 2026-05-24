@@ -82,18 +82,42 @@ pub fn dispatch(
 
             // Pull layer-aware candidates so we can demote per-layer
             // when pinyin_intent fires.
+            // v1.4 polish (2026-05-24): Auto-layer demote scales with
+            // buffer length. The shorter the pinyin buffer, the more
+            // unambiguously the user is typing pinyin (1-2 letters
+            // have lots of pinyin word matches, almost certainly not
+            // a wubi 4-key search). Auto layer (rare 字根-decomp chars
+            // like 嶙) should drop hard for short buffers.
+            //
+            // Polish-log near-miss `mo → 默 rank 10-11, top1=嶙` was
+            // the trigger: the previous flat ×0.1 wasn't enough — Auto
+            // 嶙 with LAYER_BASE ~5M ended up at 500k, still above
+            // pinyin 没 at ~440k. Length-scaled demote (1→×0.01,
+            // 2→×0.05, 3→×0.10, 4→×0.20) puts 嶙 firmly below pinyin
+            // for short buffers while preserving Phrase entries
+            // (multi-char phrase codes are MUCH less ambiguous so
+            // their ×0.5 demote stays).
+            //
+            // Jianma simcodes (1/2/3) + Zigen stay at ×1.0 — 伙-rule:
+            // "我们是五笔输入法，你这样把'伙'这个正牌五笔输入都干到 13 位
+            // 去了肯定不行". Simcodes are NOT in Auto/Phrase.
+            let auto_demote = if pinyin_intent {
+                match pinyin_len {
+                    1 => 0.01,
+                    2 => 0.05,
+                    3 => 0.10,
+                    _ => 0.20,
+                }
+            } else { 1.0 };
+            let phrase_demote = if pinyin_intent { 0.5 } else { 1.0 };
             let mut wubi_cands: Vec<(String, f64)> = wubi
                 .candidates_with_layer()
                 .into_iter()
                 .map(|(w, score, layer)| {
-                    let layer_demote = if pinyin_intent {
-                        match layer {
-                            wubi::Layer::Auto => 0.1,      // rare chars: way down
-                            wubi::Layer::Phrase => 0.5,    // phrase entries: half
-                            _ => 1.0,                       // Jianma1/2/3 + Zigen: keep
-                        }
-                    } else {
-                        1.0
+                    let layer_demote = match layer {
+                        wubi::Layer::Auto => auto_demote,
+                        wubi::Layer::Phrase => phrase_demote,
+                        _ => 1.0,
                     };
                     (w, score * layer_demote)
                 })
@@ -237,6 +261,36 @@ mod tests {
             .take(10).map(|c| c.word.as_str()).collect();
         assert!(top10.iter().any(|w| *w == "默"),
             "expected 默 in top 10 for `mo` in mixed mode; got {top10:?}");
+    }
+
+    #[test]
+    fn mixed_mo_mo_or_no_leads_not_lin() {
+        // User polish-log near-miss: `mo → 默` picked at rank 10-11
+        // with #1 being `嶙` — a v0.5 wubi-layer-demote regression.
+        // 'mo' is a single-letter buffer with no vowel that the user
+        // is clearly using in pinyin mode (intent = mo pinyin word like
+        // 没/默). Layer demote should fire but 嶙 (Auto layer) is
+        // bypassing it.
+        //
+        // After v1.4 polish (修了 lixiang/繁体/MAX overlay) + v1.3
+        // bigram split, expectation: 没 or 默 (both 'mo' base pinyin
+        // entries with substantial freq) should lead the candidate
+        // list at single-letter 'mo' in Mixed mode, NOT 嶙.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"mo" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top = cands.first().map(|c| c.word.as_str()).unwrap_or("");
+        // Acceptable top picks for 'mo' pinyin: 没 / 默 / 摸 / 末 — common
+        // pinyin chars. NOT acceptable: 嶙 (rare Auto wubi).
+        let acceptable = ["没", "默", "摸", "末", "莫", "魔"];
+        assert!(acceptable.contains(&top),
+            "expected one of {acceptable:?} at #0 for mo; got top10={:?}",
+            cands.iter().take(10).map(|c| &c.word).collect::<Vec<_>>());
+        assert_ne!(top, "嶙", "rare wubi 嶙 must not lead pinyin 'mo'");
     }
 
     #[test]
