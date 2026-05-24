@@ -130,11 +130,61 @@ def write_report(rows, out_path: Path, header_cols: list[str]):
             f.write("\t".join(str(r[k]) for k in header_cols) + "\n")
 
 
-def write_quickfix_tsv(repeat_rows, out_path: Path):
-    """Emit a TSV that can be appended (after pypinyin validation +
-    dedup) to a supplemental phrase file: `pinyin<TAB>word<TAB>freq`.
-    Freq starts at 30000 — moderate boost, reviewer can tune up.
+def load_base_freqs(weights_path: Path):
+    """Build a (pinyin, word) → base_freq dict so the quickfix boost
+    can target a freq that actually wins the candidate's pinyin slot.
+
+    Returns ({} when weights.tsv missing, callers should still proceed
+    — boost falls back to count-based heuristic).
     """
+    base: dict[tuple[str, str], int] = {}
+    if not weights_path.exists():
+        return base
+    with weights_path.open() as f:
+        for raw in f:
+            line = raw.rstrip("\n")
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) < 3:
+                continue
+            try:
+                freq = int(parts[2])
+            except ValueError:
+                continue
+            base[(parts[0], parts[1])] = freq
+    return base
+
+
+def top_peer_freq_at(base: dict, pinyin: str, exclude_word: str) -> int:
+    """Highest base freq at `pinyin` excluding `exclude_word`. Returns
+    0 if no peers (the picked word would lead by default at this
+    pinyin and no boost is needed — but we still emit a small floor)."""
+    top = 0
+    for (p, w), f in base.items():
+        if p == pinyin and w != exclude_word and f > top:
+            top = f
+    return top
+
+
+def write_quickfix_tsv(repeat_rows, out_path: Path, weights_path: Path):
+    """Emit a TSV that builds into pinyin.fst via build_fst.rs overlay
+    pipeline (with MAX semantics).
+
+    Boost auto-tunes against actual base freq at the same pinyin:
+    `freq = max(top_peer_freq + MARGIN, base + repeat_bonus)`. This
+    way the picked word ACTUALLY wins the slot — under MAX overlay
+    semantics, just setting freq=40000 isn't enough when 确实 (base
+    42104) sits next to 缺失 (base 25090) at `queshi`. We need to
+    publish a freq that beats 确实, otherwise the user-corrected
+    `queshi → 缺失` keeps losing.
+
+    MARGIN = 5000 gives the picked word a clear lead without
+    discarding the peers entirely (peers remain visible at rank 2+).
+    """
+    MARGIN = 5000
+    REPEAT_BONUS_PER_PICK = 5000  # historical compat
+
     out_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         from pypinyin import pinyin, Style
@@ -142,25 +192,63 @@ def write_quickfix_tsv(repeat_rows, out_path: Path):
             p[0] for p in pinyin(w, style=Style.NORMAL, heteronym=False)
         )
     except ImportError:
-        # Without pypinyin the operator has to fill the pinyin column
-        # by hand. Mark with `???`.
         compute_pinyin = lambda w: "???"
 
+    base = load_base_freqs(weights_path)
+    if base:
+        print(f"[aggregate] loaded {len(base)} (pinyin,word) base freqs for auto-tune",
+              file=sys.stderr)
+    else:
+        print(f"[aggregate] WARNING: no weights.tsv — boost uses count-only heuristic",
+              file=sys.stderr)
+
+    def is_pinyin_shaped(buf: str) -> bool:
+        # Filter out wubi-only buffers (no a/e/i/o/u → can't be pinyin).
+        # Catches `cfyt`, `tjvs`, `ggtt`, etc. Wubi picks don't belong
+        # in the pinyin overlay since they came from a different engine
+        # and wouldn't even be queried by pinyin lookup.
+        return any(c in "aeiouv" for c in buf)
+
+    def is_simplified_cjk_only(word: str) -> bool:
+        # Pure CJK + no punctuation. Catches Japanese-tinged commits
+        # like `え？` (mixed kana + fullwidth punct) that leaked into
+        # pinyin polish-log via the unified commit path.
+        if not word:
+            return False
+        for c in word:
+            cp = ord(c)
+            # CJK Unified Ideographs basic block.
+            if 0x4E00 <= cp <= 0x9FFF:
+                continue
+            return False
+        return True
+
+    skipped = 0
     with out_path.open("w") as f:
         f.write("# repeat-miss-driven quickfix (review before applying)\n")
         f.write("# format: pinyin\\tword\\tfreq\\t(original_count)\n")
+        f.write("# boost auto-tuned to beat top peer at same pinyin under MAX overlay semantics\n")
         for r in repeat_rows:
             buf = r["buffer"]
             word = r["preferred"]
             n = r["count"]
-            # Use the buffer string verbatim as the "pinyin code" if it
-            # looks pinyin-shaped; otherwise compute from word.
-            # User picks via candidate panel are stored with the actual
-            # typed buffer in the log — that IS the code we want.
+            if not is_pinyin_shaped(buf):
+                skipped += 1
+                continue
+            if not is_simplified_cjk_only(word):
+                skipped += 1
+                continue
             py = buf if buf.isascii() and buf.islower() else compute_pinyin(word)
-            # Boost amount scales with repeat count: 25k base + 5k per repeat.
-            freq = 25000 + 5000 * n
-            f.write(f"{py}\t{word}\t{freq}\t# n={n}\n")
+            # Compute target freq to actually win the slot.
+            this_base = base.get((py, word), 0)
+            peer_top = top_peer_freq_at(base, py, word) if base else 0
+            target_to_win = peer_top + MARGIN if peer_top > 0 else 0
+            count_based = 25000 + REPEAT_BONUS_PER_PICK * n
+            freq = max(target_to_win, count_based, this_base + REPEAT_BONUS_PER_PICK * n)
+            f.write(f"{py}\t{word}\t{freq}\t# n={n} base={this_base} peer={peer_top}\n")
+    if skipped:
+        print(f"[aggregate] skipped {skipped} non-pinyin / non-CJK rows from quickfix",
+              file=sys.stderr)
 
 
 def main() -> int:
@@ -181,7 +269,9 @@ def main() -> int:
                  ["buffer", "preferred", "count", "avg_picked_idx"])
     write_report(r_near, a.out_dir / "near_miss_bigger_rank.tsv",
                  ["buffer", "picked", "picked_idx", "top3"])
-    write_quickfix_tsv(r_repeat, a.out_dir / "quickfix_boost.tsv")
+    weights_path = (Path(__file__).resolve().parent.parent.parent.parent
+                    / "core/crates/inputx-pinyin/data/weights/weights.tsv")
+    write_quickfix_tsv(r_repeat, a.out_dir / "quickfix_boost.tsv", weights_path)
 
     print(f"[aggregate] wrote {len(r_repeat)} repeat-miss rows")
     print(f"[aggregate] wrote {len(r_near)} near-miss-bigger-rank rows")
