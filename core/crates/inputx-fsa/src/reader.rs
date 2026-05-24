@@ -167,14 +167,22 @@ impl<D: AsRef<[u8]>> Fsa<D> {
 
     /// All (key, value) pairs whose key starts with `prefix`, sorted.
     pub fn prefix(&self, prefix: &[u8]) -> Vec<(Vec<u8>, u64)> {
-        let Some((rel, ord)) = self.walk_to(prefix) else {
-            return Vec::new();
-        };
         let mut out = Vec::new();
-        let mut cur = prefix.to_vec();
-        let mut ord = ord;
-        self.collect(rel, &mut cur, &mut ord, &mut out);
+        self.prefix_for_each(prefix, |k, v| out.push((k.to_vec(), v)));
         out
+    }
+
+    /// Streaming variant: invoke `visit(key, value)` for every (key, value)
+    /// whose key starts with `prefix`, in sorted order, without allocating a
+    /// result vector. The `key` slice is valid only for the call. This is the
+    /// hot-path entry — a bare-letter prefix can match tens of thousands of
+    /// keys, and materializing them all would dominate cost.
+    pub fn prefix_for_each<F: FnMut(&[u8], u64)>(&self, prefix: &[u8], mut visit: F) {
+        if let Some((rel, ord)) = self.walk_to(prefix) {
+            let mut cur = prefix.to_vec();
+            let mut ord = ord;
+            self.visit_subtree(rel, &mut cur, &mut ord, &mut visit);
+        }
     }
 
     /// All (key, value) pairs in sorted order.
@@ -194,15 +202,21 @@ impl<D: AsRef<[u8]>> Fsa<D> {
         Some((rel, ord))
     }
 
-    /// DFS in label-sorted order from `rel`, appending accepted (key, value)
-    /// pairs and advancing `ord`. Recursion depth ≤ longest key.
-    fn collect(&self, rel: u32, cur: &mut Vec<u8>, ord: &mut u64, out: &mut Vec<(Vec<u8>, u64)>) {
+    /// DFS in label-sorted order from `rel`, invoking `visit(key, value)` for
+    /// each accepted key and advancing `ord`. Recursion depth ≤ longest key.
+    fn visit_subtree<F: FnMut(&[u8], u64)>(
+        &self,
+        rel: u32,
+        cur: &mut Vec<u8>,
+        ord: &mut u64,
+        visit: &mut F,
+    ) {
         let b = self.data.as_ref();
         let mut p = self.blob_start + rel as usize;
         let final_ = b[p] & 1 != 0;
         p += 1;
         if final_ {
-            out.push((cur.clone(), self.read_value(*ord)));
+            visit(cur, self.read_value(*ord));
             *ord += 1;
         }
         let ntrans = rd_uvarint(b, &mut p);
@@ -213,7 +227,7 @@ impl<D: AsRef<[u8]>> Fsa<D> {
             let _num = rd_uvarint(b, &mut p);
             let target = rel - delta as u32;
             cur.push(label);
-            self.collect(target, cur, ord, out);
+            self.visit_subtree(target, cur, ord, visit);
             cur.pop();
         }
     }
