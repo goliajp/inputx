@@ -364,16 +364,19 @@ fn build_fst(
         phrases_added += 1;
     }
 
-    let fst_path = out_dir.join("wubi86.fst");
-    let file = fs::File::create(&fst_path).expect("create fst output");
-    let mut builder = fst::MapBuilder::new(file).expect("MapBuilder::new");
+    // Emit a two-level inputx-fsa Dict (code → [(word, packed)]) instead of
+    // a flat fst. The packed value = (layer<<56)|freq, so Dict's value-desc
+    // item ordering is exactly the wubi layer-then-freq priority order.
+    let dict_path = out_dir.join("wubi86.dict");
+    let mut builder = inputx_fsa::DictBuilder::new();
     for (key, val) in &entries {
-        builder.insert(key, *val).expect("FST insert");
+        let sep = key.iter().position(|b| *b == 0u8).expect("code\\0word key");
+        builder.insert(&key[..sep], &key[sep + 1..], *val);
     }
-    builder.finish().expect("FST finish");
+    fs::write(&dict_path, builder.finish()).expect("write wubi86.dict");
 
     println!(
-        "cargo:warning=wubi: FST wrote {} entries (jianma1: {}, seed: {}, auto: {}/skip {}, jianma2: {}, jianma3: {}, phrases: {})",
+        "cargo:warning=wubi: dict wrote {} entries (jianma1: {}, seed: {}, auto: {}/skip {}, jianma2: {}, jianma3: {}, phrases: {})",
         entries.len(),
         jianma1.len(),
         seed_chars.len(),

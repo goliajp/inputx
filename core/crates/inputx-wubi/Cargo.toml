@@ -29,7 +29,9 @@ tools = [
 ]
 
 [dependencies]
-fst = { version = "0.4", default-features = false }
+# Self-built zero-dependency index — replaces fst (two-level Dict: code →
+# [(word, packed layer|freq)]). See .claude/PLAN-self-built-fsa.md.
+inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 
 # tools-only deps (gated behind `tools` feature)
 ureq = { version = "2", optional = true }
@@ -49,7 +51,7 @@ tar = { version = "0.4", optional = true, default-features = false }
 encoding_rs = { version = "0.8", optional = true }
 
 [build-dependencies]
-fst = { version = "0.4", default-features = false }
+inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 
 [dev-dependencies]
 criterion = "0.5"
