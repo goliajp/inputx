@@ -142,33 +142,74 @@ fn value_width(values: &[u64]) -> u8 {
     }
 }
 
-fn serialize(canon: &[CanonState], num: &[u64], root: u32, values: &[u64]) -> Vec<u8> {
-    let width = value_width(values);
-
-    // States blob + per-state offsets (relative to blob start).
-    let mut blob: Vec<u8> = Vec::new();
-    let mut offsets: Vec<u32> = Vec::with_capacity(canon.len());
-    for st in canon {
-        offsets.push(blob.len() as u32);
-        blob.push(u8::from(st.final_)); // bit0 = final
-        blob.extend_from_slice(&(st.trans.len() as u16).to_le_bytes());
-        for &(label, target) in &st.trans {
-            blob.push(label);
-            blob.extend_from_slice(&target.to_le_bytes());
-            blob.extend_from_slice(&(num[target as usize] as u32).to_le_bytes());
+/// Unsigned LEB128.
+fn write_uvarint(out: &mut Vec<u8>, mut v: u64) {
+    loop {
+        let mut byte = (v & 0x7f) as u8;
+        v >>= 7;
+        if v != 0 {
+            byte |= 0x80;
+        }
+        out.push(byte);
+        if v == 0 {
+            break;
         }
     }
+}
 
-    let mut out: Vec<u8> = Vec::with_capacity(18 + offsets.len() * 4 + blob.len() + values.len() * width as usize);
-    out.extend_from_slice(b"IXFA");
-    out.push(1); // version
-    out.push(width);
-    out.extend_from_slice(&(canon.len() as u32).to_le_bytes());
-    out.extend_from_slice(&(values.len() as u32).to_le_bytes());
-    out.extend_from_slice(&root.to_le_bytes());
-    for off in &offsets {
-        out.extend_from_slice(&off.to_le_bytes());
+/// Post-order over the DAG from `root`: every state appears after all its
+/// targets, so a state's transition target offsets are already known when
+/// it is written. Recursion depth is bounded by the longest key.
+fn post_order(root: u32, canon: &[CanonState]) -> Vec<u32> {
+    fn dfs(s: u32, canon: &[CanonState], visited: &mut [bool], order: &mut Vec<u32>) {
+        if visited[s as usize] {
+            return;
+        }
+        visited[s as usize] = true;
+        for &(_, c) in &canon[s as usize].trans {
+            dfs(c, canon, visited, order);
+        }
+        order.push(s);
     }
+    let mut visited = vec![false; canon.len()];
+    let mut order = Vec::with_capacity(canon.len());
+    dfs(root, canon, &mut visited, &mut order);
+    order
+}
+
+/// Format v2 — compact: states are byte-offset addressed (no offset table),
+/// transition targets are back-deltas, and counts/deltas/arities are LEB128.
+/// Header: magic4 · ver1 · width1 · value_count u32 · root_off u32 ·
+/// state_count u32  (= 18 bytes). States blob follows; values tail.
+fn serialize(canon: &[CanonState], num: &[u64], root: u32, values: &[u64]) -> Vec<u8> {
+    let width = value_width(values);
+    let order = post_order(root, canon);
+
+    let mut state_off = vec![u32::MAX; canon.len()];
+    let mut blob: Vec<u8> = Vec::new();
+    for &s in &order {
+        let off = blob.len() as u32;
+        state_off[s as usize] = off;
+        let st = &canon[s as usize];
+        blob.push(u8::from(st.final_)); // bit0 = final
+        write_uvarint(&mut blob, st.trans.len() as u64);
+        for &(label, target) in &st.trans {
+            // target was written earlier (post-order) → offset known, < off.
+            let toff = state_off[target as usize];
+            blob.push(label);
+            write_uvarint(&mut blob, u64::from(off - toff)); // back-delta
+            write_uvarint(&mut blob, num[target as usize]);
+        }
+    }
+    let root_off = state_off[root as usize];
+
+    let mut out: Vec<u8> = Vec::with_capacity(18 + blob.len() + values.len() * width as usize);
+    out.extend_from_slice(b"IXFA");
+    out.push(2); // version
+    out.push(width);
+    out.extend_from_slice(&(values.len() as u32).to_le_bytes());
+    out.extend_from_slice(&root_off.to_le_bytes());
+    out.extend_from_slice(&(canon.len() as u32).to_le_bytes());
     out.extend_from_slice(&blob);
     for &v in values {
         out.extend_from_slice(&v.to_le_bytes()[..width as usize]);
