@@ -621,6 +621,23 @@ impl PinyinAdapter {
         {
             self.candidates.insert(0, sentence);
         }
+
+        // Path 5 (last-resort Viterbi for SHORT buffers): if every path
+        // above produced nothing — the buffer is not a lexeme, not a
+        // prefix of one, and not a 简拼/typo/fuzzy hit — compose it from
+        // single-char dict entries so it isn't a dead end. User-reported
+        // 2026-05-25: `kaopu`→靠谱, `woyao`→我要, `taikexi`→太可惜 all
+        // returned ZERO candidates because Viterbi (the only path that
+        // composes 靠+谱) was gated to >=8 bytes in Path 0b. Gated on
+        // `is_empty()` so it CANNOT reorder any buffer that already has
+        // candidates: `nuanhe` keeps 滦河 and never surfaces the
+        // wrong-reading composition 暖(nuan)+和(he)→暖和. (Long empty
+        // buffers were already covered by Path 0b above.)
+        if self.candidates.is_empty()
+            && let Some((_, sentence)) = self.engine.dict().best_composition(&self.buffer)
+        {
+            self.candidates.push(sentence);
+        }
     }
 }
 
@@ -1100,15 +1117,50 @@ mod tests {
     }
 
     #[test]
-    fn viterbi_skips_short_buffer() {
+    fn viterbi_short_buffer_never_claims_top() {
         let mut a = PinyinAdapter::new();
-        // 6-byte buffer — under the 8-byte threshold. No Viterbi run.
+        // 6-byte buffer — under the 8-byte threshold. Path 0b's #0
+        // injection (composed_sentence) must stay off for short buffers,
+        // so a wrong-reading composition like 暖(nuan)+和(he)→暖和 can
+        // never win the top slot (暖和 is really "nuanhuo").
         for b in b"nuanhe" {
             a.handle_letter(*b);
         }
         assert!(a.composed_sentence.is_none(),
-            "Viterbi shouldn't fire for short buffer (avoids wrong-reading
-             false-positive compositions like 暖+和 → 暖和)");
+            "composed_sentence (#0 boost) must not fire for short buffers");
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn nuanhe_keeps_real_match_not_wrong_reading_composition() {
+        // nuanhe is NOT empty (滦河 via n→l fuzzy), so the Path 5
+        // last-resort fallback must NOT fire — the wrong-reading
+        // composition 暖和 must not even appear, let alone outrank 滦河.
+        let mut a = PinyinAdapter::new();
+        for b in b"nuanhe" { a.handle_letter(*b); }
+        assert!(!a.candidates().is_empty(), "nuanhe should have candidates");
+        assert_ne!(a.candidates().first().map(String::as_str), Some("暖和"),
+            "wrong-reading 暖和 must not be #0 for nuanhe; got {:?}", a.candidates());
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn short_non_lexeme_composes_instead_of_empty() {
+        // Regression for user-reported 2026-05-25: short multi-syllable
+        // inputs that aren't a dict lexeme and aren't a prefix of one
+        // returned ZERO candidates. Path 5 composes them from single-char
+        // dict entries (靠+谱, 我+要, 太+可+惜) as a last resort.
+        for (buf, want) in [
+            (&b"kaopu"[..], "靠谱"),
+            (&b"woyao"[..], "我要"),
+            (&b"taikexi"[..], "太可惜"),
+        ] {
+            let mut a = PinyinAdapter::new();
+            for b in buf { a.handle_letter(*b); }
+            assert!(a.candidates().iter().any(|w| w == want),
+                "{} should compose {want} (was empty before Path 5); got {:?}",
+                core::str::from_utf8(buf).unwrap(), a.candidates());
+        }
     }
 
     #[test]
