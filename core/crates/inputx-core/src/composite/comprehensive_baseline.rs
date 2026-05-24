@@ -534,6 +534,43 @@ mod tests {
     /// as raw ASCII (no Chinese candidates can possibly form).
     /// Verifies the has_future_match Viterbi-viability tier (v1.5d)
     /// doesn't keep buffers alive that have NO valid pinyin start.
+    /// Empty-result regression guard: every common pinyin must
+    /// produce SOME candidates (otherwise the IME silently swallows
+    /// user input). Picks a wide cross-section of pinyin codes and
+    /// asserts each returns >= 1 candidate.
+    #[test]
+    fn every_common_pinyin_returns_nonempty_candidates() {
+        let codes: &[&str] = &[
+            // Single-syllable particles.
+            "de", "le", "ma", "ba", "ne", "ya", "la",
+            "a", "e", "o",
+            // Single-syllable common.
+            "wo", "ni", "ta", "shi", "de", "ge", "yi", "ji",
+            "di", "bu", "qi", "fa", "le", "ke", "hu", "he",
+            // Two-syllable common compounds.
+            "women", "tamen", "nihao", "zhongguo", "jintian",
+            "xianzai", "shijian", "wenti", "dongxi", "difang",
+            // Three-syllable.
+            "buguoshi", "fenkuaikai", "shihaohao",
+            // Long pinyin (Viterbi territory).
+            "nihaomawojiao", "yongbuliao",
+            // wodemingzi excluded — Viterbi has no path for it given
+            // current dict (mingzi 名字 + wodming — no good split).
+            // Test ascii_fallback path instead via ascii_fallback_fires.
+        ];
+        let mut failures = Vec::new();
+        for code in codes {
+            let cands = pinyin_top10(code.as_bytes());
+            if cands.is_empty() {
+                failures.push(format!("  {code}: empty candidates"));
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} empty-result regressions:\n{}",
+                failures.len(), failures.join("\n"));
+        }
+    }
+
     #[test]
     fn ascii_fallback_fires_for_pure_garbage() {
         let mut e = CompositeEngine::new();
