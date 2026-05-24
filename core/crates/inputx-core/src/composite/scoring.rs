@@ -79,22 +79,26 @@ pub const JP_JUKUGO_SCORE: f64 = 200_000.0;
 /// less specific than compounds), still below Chinese bases.
 pub const JP_SINGLE_KANJI_SCORE: f64 = 100_000.0;
 
-/// JP hiragana base — mechanical romaji→kana rendering. Bumped from 50k
-/// to 200k 2026-05-23 after the え-disappeared-after-jukugo-cleanup
-/// regression: with the old 50k floor + freq=0 fallback, plain hiragana
-/// `え` for input "e" scored 50k, way below any pinyin candidate, and
-/// never made the visible top-10. Now with 200k + per-kind freq below,
-/// short-input hiragana lands competitive with pinyin top but still
-/// below it (user rule: JP base < wubi/pinyin base = 400k).
-pub const JP_HIRAGANA_SCORE: f64 = 200_000.0;
+/// JP hiragana base — mechanical romaji→kana rendering.
+/// Tuned 2026-05-24 from 200k → 150k after user-reported `di → ぢ #1
+/// over 的`: at base 200k + freq 100·3000 = 500k, top hiragana beat
+/// pinyin top 的 (465k). New target: top hiragana = 150k + 300k = 450k,
+/// just under pinyin top, preserving user rule "JP top > Chinese rare,
+/// JP top < Chinese top". `え` at 'e' (low freq) lands at 150k, still
+/// visible mid-list (rank 3-6 typical), so the え-recovery regression
+/// stays fixed without overpowering pinyin.
+pub const JP_HIRAGANA_SCORE: f64 = 150_000.0;
 
-/// JP katakana base — slightly below hiragana (less common as the
-/// "default" kana rendering of romaji input).
-pub const JP_KATAKANA_SCORE: f64 = 150_000.0;
+/// JP katakana base — below hiragana (less common as the default romaji
+/// rendering). Tuned 150k → 110k for the same reason as hiragana:
+/// top katakana = 110k + 300k = 410k, comfortably under pinyin top.
+pub const JP_KATAKANA_SCORE: f64 = 110_000.0;
 
 /// Multiplier on the per-entry freq value. Calibrated so top JP entries
-/// (freq 100) land at base + 300k, lifting them above pinyin rare (~410k)
-/// while staying under pinyin top (~480k) and wubi simcodes (600k+).
+/// (freq 100) land at base + 300k. Combined with the tuned bases above,
+/// top hiragana = 450k, top katakana = 410k — both below pinyin top
+/// (~465k for common particles like 的/了/是) while staying above
+/// pinyin rare (~410k+) so confident JP picks aren't drowned out.
 pub const JP_FREQ_MULTIPLIER: f64 = 3000.0;
 
 /// Past this input length (pinyin-buffer chars), wubi candidate scores

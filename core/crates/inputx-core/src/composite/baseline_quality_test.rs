@@ -34,6 +34,15 @@ mod tests {
         e.candidates().iter().take(10).map(|c| c.word.clone()).collect()
     }
 
+    fn mixed_top_with_jp(buffer: &[u8]) -> Vec<String> {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in buffer { let _ = e.handle_letter(*b); }
+        e.candidates().iter().take(10).map(|c| c.word.clone()).collect()
+    }
+
     /// Run a list of (buffer, expected_top) baseline assertions. Failure
     /// prints ALL failed rows + their actual top-10 for easy triage.
     fn assert_baseline(cases: &[(&str, &str)]) {
@@ -155,5 +164,43 @@ mod tests {
             ("suoyi", "所以"),
         ];
         assert_baseline(cases);
+    }
+
+    /// Mixed mode WITH Japanese enabled — common pinyin tops must
+    /// still lead. JP hiragana/katakana surface in the list (usually
+    /// rank 3-6) but must never displace top Chinese particles.
+    ///
+    /// User-reported 2026-05-24: `di → ぢ #1` because hiragana base
+    /// (200k) + freq (100·3000) = 500k beat 的 (465k). Scoring rebalance:
+    /// hiragana base 200k→150k, katakana 150k→110k.
+    #[test]
+    fn baseline_jp_enabled_pinyin_top_still_leads() {
+        let cases: &[(&str, &str)] = &[
+            ("di", "的"),       // was leading ぢ before JP base tune
+            ("le", "了"),
+            ("ma", "吗"),
+            ("ba", "吧"),
+            ("ne", "呢"),
+            ("zhongguo", "中国"),
+            ("women", "我们"),
+            ("nihao", "你好"),
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for (buf, expected) in cases {
+            let top10 = mixed_top_with_jp(buf.as_bytes());
+            let actual = top10.first().cloned().unwrap_or_default();
+            if actual != *expected {
+                failures.push(format!(
+                    "  (JP=on) {buf:<10} expected #0 = {expected}, got {actual}  (top10={top10:?})"
+                ));
+            }
+        }
+        if !failures.is_empty() {
+            panic!(
+                "{} baseline-quality JP-enabled cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
+        }
     }
 }
