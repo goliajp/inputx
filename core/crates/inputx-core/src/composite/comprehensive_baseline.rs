@@ -159,6 +159,33 @@ mod tests {
 
     /// Extended common 2-3 char pinyin compounds — wider coverage
     /// than the multi_syllable test. Real everyday words.
+    /// Auto-baseline: every pinyin code where #1 single-char freq is
+    /// >= 20k AND >= 1.3x the #2 freq. These are "clear winners" —
+    /// scoring should never put another char at #0 here in PinyinOnly
+    /// mode. Generated 2026-05-24 from weights.tsv. Rebuild via
+    /// python audit if data shifts.
+    #[test]
+    fn pinyin_only_auto_clear_winners() {
+        let cases: &[(&str, &str)] = &[
+            ("wo", "我"), ("le", "了"), ("liao", "了"), ("jiu", "就"),
+            ("yao", "要"), ("shuo", "说"), ("hen", "很"), ("lai", "来"),
+            ("dou", "都"), ("zan", "赞"), ("rang", "让"), ("kan", "看"),
+            ("zhen", "真"), ("yong", "用"), ("duo", "多"), ("xia", "下"),
+            ("ne", "呢"), ("bie", "别"), ("zou", "走"), ("cong", "从"),
+            ("ri", "日"), ("geng", "更"), ("kai", "开"), ("ben", "本"),
+            ("min", "民"), ("wai", "外"), ("te", "特"), ("nv", "女"),
+            ("nei", "内"), ("niu", "牛"), ("chan", "产"), ("qun", "群"),
+            ("ka", "卡"), ("pu", "普"), ("zhua", "抓"), ("ha", "哈"),
+            ("zeng", "增"), ("mang", "忙"), ("piao", "票"), ("cang", "藏"),
+            ("zhun", "准"), ("zhui", "追"), ("tuan", "团"), ("leng", "冷"),
+            ("diu", "丢"), ("rui", "瑞"), ("fou", "否"), ("ken", "肯"),
+            ("niang", "娘"), ("zen", "怎"), ("shun", "顺"), ("ca", "擦"),
+            ("mie", "灭"), ("nuan", "暖"),
+            ("keng", "坑"), ("ang", "昂"),
+        ];
+        run("auto_clear", cases, pinyin_top, pinyin_top10);
+    }
+
     #[test]
     fn pinyin_only_extended_common_words() {
         let cases: &[(&str, &str)] = &[
