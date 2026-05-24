@@ -134,6 +134,11 @@ path = "tools/build_dict.rs"
 required-features = ["tools"]
 
 [[bin]]
+name = "pinyin-build-ngrams-fsa"
+path = "tools/build_ngrams_fsa.rs"
+required-features = ["tools"]
+
+[[bin]]
 name = "pinyin-build-fst"
 path = "tools/build_fst.rs"
 required-features = ["tools"]
