@@ -1602,9 +1602,14 @@ mod tests {
         const MAX_BUDGET_NS: u128 = 16_000_000; // 16 ms (one frame @ 60Hz)
 
         // Worst cases first (short prefix → biggest scan).
+        // v1.5d adds long-pinyin probes that exercise the Viterbi
+        // viability tier in has_future_match (8+ chars → ASCII
+        // fallback check calls best_composition on up to 4 prefixes).
         let probes: &[&str] = &[
             "z", "zh", "zho", "zhon", "zhong", "zhongguo", "wo", "women", "ni", "nihao", "h",
             "hh", "hhh",
+            // Long-pinyin Viterbi-viability hot path.
+            "nihaoma", "nihaomawoj", "nihaomawojiao", "yongbuliao",
         ];
 
         let mut all_passed = true;
