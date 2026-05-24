@@ -3,7 +3,8 @@
 This is the **operational** spec for Inputx's candidate ranking
 quality. The runtime side is one piece; the bigger piece is the
 **static-DB build pipeline** — how raw corpora become the weights
-that ship inside `pinyin.fst` / `wubi.fst`. We treat that pipeline
+that ship inside `pinyin.dict` / `wubi86.dict` (self-built `inputx-fsa`
+two-level `Dict`, not the `fst` crate — 0-dep migration). We treat that pipeline
 as a serious software project with the four dimensions the user
 called out: 来源 / 处理 / 更新 / 退出.
 
@@ -149,7 +150,7 @@ tools/scoring/
   ├── 05_merge/           # combine sources into unified weights.tsv
   ├── 06_llm_annotate/    # batch LLM rerank for ambiguous codes
   ├── 07_validate/        # run weights against test corpus + polish-log
-  ├── 08_pack/            # weights.tsv → FST artifacts
+  ├── 08_pack/            # weights.tsv → .dict/.fsa artifacts (inputx-fsa)
   └── README.md
 ```
 
@@ -208,7 +209,7 @@ weights.tsv:
 ```
 
 **Distribution paths**:
-1. **In-binary** (default) — `weights.tsv` baked into the FST shipped
+1. **In-binary** (default) — `weights.tsv` baked into the `.dict` shipped
    with the Inputx.app bundle. Updated via app upgrade.
 2. **Side-loadable** (future, v0.4+) — user drops a newer
    `weights.tsv` into `~/Library/Application Support/Inputx/`
@@ -299,7 +300,7 @@ l0_boost = 0.5 × tanh(pick_count / 5)  // capped, soft promotion
 ```
 
 All weights live in the engine-internal score, which is built into
-the FST value (already the case for wubi/pinyin via packed u64).
+the index value (already the case for wubi/pinyin via packed u64).
 JP synthesizes at runtime from KanaKind.
 
 ### Wubi 简码 hard rule — the only structural override
