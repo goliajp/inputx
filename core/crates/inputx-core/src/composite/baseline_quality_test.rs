@@ -118,6 +118,40 @@ mod tests {
         assert_baseline_mixed(cases);
     }
 
+    /// Wubi Mixed mode where Jianma2 target char is RARE — the
+    /// char-prominence demote must let common pinyin top win.
+    ///
+    /// User 2026-05-24: "五笔的二级简码是有可能被很高频的拼音超过，
+    /// 因为 moq 才是嶙应该排第一地方". 嶙's pinyin freq is 15513
+    /// (below CHAR_PROMINENT_FLOOR=20000) so its Jianma2 score is
+    /// scaled to ~0.3x → ~245k, below pinyin top 没/默 ~450k.
+    /// Pure score-driven; no hardcoded "嶙" check anywhere.
+    #[test]
+    fn baseline_rare_jianma2_yields_to_pinyin_top() {
+        let cases: &[(&str, &[&str])] = &[
+            // mo Jianma2 = 嶙 (freq 15k, rare). Pinyin tops 没/默/模/莫
+            // should win. Acceptable #0 = any common 'mo' pinyin char.
+            ("mo", &["没", "默", "摸", "末", "莫", "魔", "模"]),
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for (buf, acceptable) in cases {
+            let top10 = mixed_top(buf.as_bytes());
+            let actual = top10.first().cloned().unwrap_or_default();
+            if !acceptable.contains(&actual.as_str()) {
+                failures.push(format!(
+                    "  {buf:<10} expected one of {acceptable:?} at #0, got {actual}  (top10={top10:?})"
+                ));
+            }
+        }
+        if !failures.is_empty() {
+            panic!(
+                "{} rare-Jianma2 yield cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
+        }
+    }
+
     /// PinyinOnly mode: no wubi competition, so pinyin top must lead
     /// at every common single-syllable code. This is the user's
     /// "pure pinyin intent" experience — locks in scoring polish.

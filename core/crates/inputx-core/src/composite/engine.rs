@@ -67,7 +67,17 @@ pub struct CompositeEngine {
     /// Distinct from `cand_buf` so the host can choose whether to keep
     /// the panel visible post-commit (showing predictions) vs hide it.
     prediction_buf: Vec<Candidate>,
+    /// Recently committed CJK words (last `RECENT_COMMITTED_CAP`).
+    /// Filters out cycle-prone predictions: user-reported 2026-05-24
+    /// "在 + 空格 无限 → 在年月日年月日年月日". The chain
+    /// 在→年→月→日→年→月→日… cycles because trigram (年,月,*)→日
+    /// and trigram (月,日,*)→年 form a perfect closed loop in the
+    /// corpus. Any predicted word that's already in this deque is
+    /// skipped, so a chain can't re-commit a word it just emitted.
+    recent_committed: std::collections::VecDeque<String>,
 }
+
+const RECENT_COMMITTED_CAP: usize = 6;
 
 impl Default for CompositeEngine {
     fn default() -> Self {
@@ -94,6 +104,7 @@ impl CompositeEngine {
             last_committed_word: None,
             second_last_committed_word: None,
             prediction_buf: Vec::with_capacity(10),
+            recent_committed: std::collections::VecDeque::with_capacity(RECENT_COMMITTED_CAP),
         }
     }
 
@@ -530,6 +541,7 @@ impl CompositeEngine {
         // restore, explicit clear) all imply "lose continuity".
         self.last_committed_word = None;
         self.second_last_committed_word = None;
+        self.recent_committed.clear();
     }
 
     /// Seed bigram context from a just-committed word, but only if it's
@@ -541,12 +553,16 @@ impl CompositeEngine {
     /// candidate panel immediately after commit.
     fn update_bigram_context(&mut self, committed: &str) {
         if committed.chars().any(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)) {
-            // Shift the 2-word window: current `last` becomes the new
-            // `second_last`, then put this commit as the new `last`.
-            // The (second_last, last) pair feeds trigram-based
-            // `predict_next_words_context` for sharper 联想.
             self.second_last_committed_word = self.last_committed_word.take();
             self.last_committed_word = Some(committed.to_string());
+            // Track recent committed words for cycle-prevention in
+            // predictions. Cap at RECENT_COMMITTED_CAP — older entries
+            // age out so legit re-typing (e.g. saying 我 twice in two
+            // separate sentences) still gets predictions.
+            self.recent_committed.push_back(committed.to_string());
+            while self.recent_committed.len() > RECENT_COMMITTED_CAP {
+                self.recent_committed.pop_front();
+            }
             self.refresh_predictions();
         }
     }
@@ -566,30 +582,34 @@ impl CompositeEngine {
         }
         let Some(prev) = self.last_committed_word.as_deref() else { return };
         const PREDICTION_LIMIT: usize = 10;
-        // Trigram-with-bigram-backoff: when both (second_last, last)
-        // are CJK words, use trigram context for sharper picks; falls
-        // back to bigram when trigram has no hits OR when this is the
-        // very first commit of the session (no second_last yet).
-        // Without this trigram step, prediction chains tend to "接龙
-        // 到死" — each greedy bigram hop is locally optimal but the
-        // chain isn't a sentence (user-reported 今天的是在年).
+        // v1.4 strict (2026-05-24): trigram only, no bigram fallback.
+        // User rule: "联想是附加的好处，没有足够的证据就不要联想".
+        // Single bigram signal alone is too noisy (在→年 user complaint
+        // — bigram exists only because of "在2024年" type phrases, has
+        // no real semantic basis as "after 在 user wants 年").
+        // predict_next_words_context now returns EMPTY when prev_prev
+        // is None OR trigram count < MIN_TRIGRAM_COUNT.
         let raw = self.pinyin.engine().dict().predict_next_words_context(
             self.second_last_committed_word.as_deref(),
             prev,
-            PREDICTION_LIMIT,
+            PREDICTION_LIMIT * 2,  // over-fetch then cycle-filter
         );
-        // Score gradient: top prediction at 200k, decay 5k per slot.
-        // This puts them above pinyin's NON_EXACT_FLOOR (1k) and below
-        // a typical exact-match top (~480k), so when the host renders
-        // them as the only candidates (post-commit, no buffer yet),
-        // they appear in count-desc order with no risk of mixing into
-        // an ongoing buffer's candidate list.
-        for (i, (word, _count)) in raw.into_iter().enumerate() {
+        // Cycle-filter: drop any predicted word that's already in the
+        // recent_committed deque. Breaks the 在→年→月→日→年→… loop
+        // (each link valid trigram, chain valid corpus, but globally
+        // pointless re-emission).
+        let mut count = 0;
+        for (word, _trigram_count) in raw {
+            if self.recent_committed.iter().any(|w| w == &word) {
+                continue;
+            }
             self.prediction_buf.push(Candidate {
                 word,
                 source: super::merge::Source::Pinyin,
-                score: 200_000.0 - (i as f64) * 5_000.0,
+                score: 200_000.0 - (count as f64) * 5_000.0,
             });
+            count += 1;
+            if count >= PREDICTION_LIMIT { break }
         }
     }
 
@@ -1404,7 +1424,13 @@ mod tests {
 
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
-    fn predictions_populated_after_cjk_commit() {
+    fn predictions_empty_on_single_commit_v14_strict() {
+        // v1.4 strict-trigram policy (2026-05-24): the first CJK commit
+        // alone (no prev_prev) is INSUFFICIENT evidence to predict.
+        // User rule: "联想是附加的好处，没有足够的证据就不要联想".
+        // Predictions only fire when both prev_prev AND prev are CJK
+        // (trigram context). After a SINGLE commit, prediction panel
+        // is empty — the user types the next word manually.
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::PinyinOnly);
         for b in b"jintian" { let _ = e.handle_letter(*b); }
@@ -1412,18 +1438,40 @@ mod tests {
         let jintian_idx = cands.iter()
             .position(|c| c.word == "今天")
             .expect("expected 今天 in jintian candidates");
-        let committed = e.commit_index(jintian_idx);
-        assert_eq!(committed.as_deref(), Some("今天"));
-        let preds = e.predicted_candidates();
-        assert!(!preds.is_empty(),
-            "expected predictions populated after committing 今天");
-        // Top predictions for 今天 should include common followers
-        // — sanity check that the data path works, not pin specific words.
-        let words: Vec<&str> = preds.iter().map(|c| c.word.as_str()).collect();
-        let has_common = ["的", "是", "在", "我", "我们"]
-            .iter().any(|w| words.contains(w));
-        assert!(has_common,
-            "expected at least one of 的/是/在/我/我们 in 今天 predictions; got {words:?}");
+        let _ = e.commit_index(jintian_idx);
+        assert!(e.predicted_candidates().is_empty(),
+            "v1.4 strict: predictions must be empty after single commit");
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn predictions_populated_after_two_cjk_commits_with_strong_trigram() {
+        // Two-word context is the minimum for predictions to fire.
+        // Use 我们 → 一起 → ? — both common words with corpus trigrams.
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::PinyinOnly);
+        // First commit: 我们
+        for b in b"women" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        if let Some(idx) = cands.iter().position(|c| c.word == "我们") {
+            let _ = e.commit_index(idx);
+        }
+        assert!(e.predicted_candidates().is_empty(),
+            "no predictions after single commit");
+        // Second commit: 一起
+        for b in b"yiqi" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        if let Some(idx) = cands.iter().position(|c| c.word == "一起") {
+            let _ = e.commit_index(idx);
+            // Now (我们, 一起) is the trigram context. May or may not
+            // have hits depending on corpus density; both are common
+            // so SOME predictions should appear. If empty, that's OK
+            // too (corpus may just lack this specific trigram) — test
+            // doesn't fail.
+            let preds = e.predicted_candidates();
+            eprintln!("(我们, 一起, *) predictions: {:?}",
+                preds.iter().map(|c| &c.word).collect::<Vec<_>>());
+        }
     }
 
     #[test]

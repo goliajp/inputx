@@ -110,16 +110,29 @@ pub fn dispatch(
                 }
             } else { 1.0 };
             let phrase_demote = if pinyin_intent { 0.5 } else { 1.0 };
-            // NOTE: Jianma2 is NOT demoted here. The 伙-rule (see
-            // session::wubi_simcode_priority tests) protects an explicit
-            // set of Jianma2 entries (wo→伙, ni→悄, ta→长, de→胡 etc.)
-            // that the user relies on as 2-letter wubi shortcuts even
-            // when the same letters spell a valid pinyin syllable.
-            // Algorithmically there's no good way to distinguish these
-            // protected entries from rare-char Jianma2 occupations like
-            // `mo → 嶙` or `da → 左` — both are "char's pinyin ≠ wubi
-            // code". So we fix the latter via data deletion in
-            // jianma_simplified.txt rather than runtime demote.
+            // v1.4 score-driven Jianma2 demote (user 2026-05-24:
+            // "完全走评分候选，一行 hardcode 都不允许有"). For
+            // single-char Jianma2/3 entries, scale score by the char's
+            // own pinyin freq:
+            //   common char (≥CHAR_PROMINENT) → 1.0 (full lead, beats pinyin)
+            //   rare char (<CHAR_PROMINENT)   → 0.3 (drops to ~250k, yields)
+            // No hardcoded protect list — common chars retain lead via
+            // freq (左 41k, 表 47k, 能 56k, 就 57k, 伙 35k, 悄 27k,
+            // 椒 29k, 胡 38k, 长 47k, 亦 43k all clear 20k floor); rare
+            // chars (嶙 15k) drop and let pinyin top through.
+            const CHAR_PROMINENT_FLOOR: u64 = 20_000;
+            const RARE_CHAR_DEMOTE: f64 = 0.3;
+            let pinyin_dict = pinyin.engine().dict();
+            let char_demote = |word: &str, layer: wubi::Layer| -> f64 {
+                if !matches!(layer, wubi::Layer::Jianma2 | wubi::Layer::Jianma3) {
+                    return 1.0;
+                }
+                let mut chars = word.chars();
+                let Some(c) = chars.next() else { return 1.0 };
+                if chars.next().is_some() { return 1.0; }  // multi-char Jianma3 phrase
+                let freq = pinyin_dict.char_max_freq(c);
+                if freq >= CHAR_PROMINENT_FLOOR { 1.0 } else { RARE_CHAR_DEMOTE }
+            };
             let mut wubi_cands: Vec<(String, f64)> = wubi
                 .candidates_with_layer()
                 .into_iter()
@@ -129,7 +142,8 @@ pub fn dispatch(
                         wubi::Layer::Phrase => phrase_demote,
                         _ => 1.0,
                     };
-                    (w, score * layer_demote)
+                    let cd = char_demote(&w, layer);
+                    (w, score * layer_demote * cd)
                 })
                 .collect();
             let final_mult = wubi_mult * z_mult;
