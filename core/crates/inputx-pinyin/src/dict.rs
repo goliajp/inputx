@@ -773,11 +773,24 @@ impl PinyinDict {
         if prev.is_empty() || next.is_empty() {
             return 0.0;
         }
-        let Some(bigrams) = self.bigrams.as_ref() else { return 0.0 };
         let mut key = prev.as_bytes().to_vec();
         key.push(0u8);
         key.extend_from_slice(next.as_bytes());
-        let Some(count) = bigrams.get(&key) else { return 0.0 };
+        // Sum counts across inter + intra (v1.3 split). Viterbi
+        // composition wants both signals: inter says "(prev, next) are
+        // adjacent words in real sentences", intra says "(prev, next)
+        // co-occur as adjacent chars inside a known phrase like 你好".
+        // Without summing, Viterbi would lose the intra signal entirely
+        // after the split — which is precisely what v0.4 Phase A added
+        // to make 你好 win as one segment.
+        let count_inter = self.bigrams.as_ref()
+            .and_then(|m| m.get(&key)).unwrap_or(0);
+        let count_intra = self.bigrams_intra.as_ref()
+            .and_then(|m| m.get(&key)).unwrap_or(0);
+        let count = count_inter + count_intra;
+        if count == 0 {
+            return 0.0;
+        }
         let scaled = ((count as f64) + 1.0).ln() / (BIGRAM_REF + 1.0).ln();
         BIGRAM_BOOST_MAX * scaled.min(1.0)
     }
