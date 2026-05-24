@@ -2,7 +2,7 @@
 name = "inputx-jp"
 version = "1.1.1"
 edition = "2024"
-rust-version = "1.85"
+rust-version.workspace = true
 license = "MIT OR Apache-2.0"
 description = "Japanese input engine plugin for the Inputx IME — romaji → hiragana/katakana + kanji-matched-with-Simplified-Chinese candidates. Pluggable: can run standalone or attach as an enhancement to the wubi/pinyin pipeline."
 authors = ["GOLIA K.K."]

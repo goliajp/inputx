@@ -2,7 +2,7 @@
 name = "inputx-wubi-wasm"
 version = "1.1.1"
 edition = "2024"
-rust-version = "1.85"
+rust-version.workspace = true
 license = "MIT OR Apache-2.0"
 description = "WASM bindings for inputx-wubi — Wubi 86 encoder + dictionary, browser/Node ready. Powers the Inputx IME web surface."
 authors = ["GOLIA K.K."]
