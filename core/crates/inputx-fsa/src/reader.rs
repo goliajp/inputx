@@ -61,6 +61,16 @@ pub(crate) fn rd_uvarint(b: &[u8], p: &mut usize) -> Option<u64> {
 /// stack (defense for untrusted input).
 const MAX_WALK_DEPTH: usize = 4096;
 
+/// Resolve a transition's back-delta to a target rel-offset: must be `> 0`
+/// (strictly earlier — no self-loop) and not underflow. `None` on corrupt.
+#[inline]
+fn decode_target(rel: u32, delta: u64) -> Option<u32> {
+    u32::try_from(delta)
+        .ok()
+        .filter(|&d| d > 0)
+        .and_then(|d| rel.checked_sub(d))
+}
+
 impl<D: AsRef<[u8]>> Fsa<D> {
     pub fn new(data: D) -> Result<Self, FsaError> {
         let b = data.as_ref();
@@ -70,7 +80,7 @@ impl<D: AsRef<[u8]>> Fsa<D> {
         if &b[0..4] != b"IXFA" {
             return Err(FsaError::BadMagic);
         }
-        if b[4] != 2 {
+        if b[4] != 3 {
             return Err(FsaError::BadVersion(b[4]));
         }
         let value_width = b[5] as usize;
@@ -136,10 +146,21 @@ impl<D: AsRef<[u8]>> Fsa<D> {
     fn step(&self, rel: u32, byte: u8, ord: &mut u64) -> Option<u32> {
         let b = self.data.as_ref();
         let mut p = self.blob_start + rel as usize;
-        let final_ = (*b.get(p)?) & 1 != 0;
+        let flags = *b.get(p)?;
         p += 1;
-        if final_ {
-            *ord += 1; // the (shorter) word ending here sorts first
+        if flags & 1 != 0 {
+            *ord += 1; // final: the (shorter) word ending here sorts first
+        }
+        if flags & 0b10 != 0 {
+            // single-transition form: [flags, label, delta], no count.
+            let label = *b.get(p)?;
+            p += 1;
+            let delta = rd_uvarint(b, &mut p)?;
+            // Only one edge: take it iff it matches; its count is never needed.
+            if label == byte {
+                return rel.checked_sub(u32::try_from(delta).ok()?);
+            }
+            return None;
         }
         let ntrans = rd_uvarint(b, &mut p)?;
         for _ in 0..ntrans {
@@ -232,12 +253,23 @@ impl<D: AsRef<[u8]>> Fsa<D> {
         }
         let b = self.data.as_ref();
         let mut p = self.blob_start + rel as usize;
-        let Some(&fb) = b.get(p) else { return };
-        let final_ = fb & 1 != 0;
+        let Some(&flags) = b.get(p) else { return };
         p += 1;
-        if final_ {
+        if flags & 1 != 0 {
             visit(cur, self.read_value(*ord));
             *ord += 1;
+        }
+        if flags & 0b10 != 0 {
+            // single-transition form: [flags, label, delta], no count.
+            let Some(&label) = b.get(p) else { return };
+            p += 1;
+            let Some(delta) = rd_uvarint(b, &mut p) else { return };
+            if let Some(target) = decode_target(rel, delta) {
+                cur.push(label);
+                self.visit_subtree(target, cur, ord, visit);
+                cur.pop();
+            }
+            return;
         }
         let Some(ntrans) = rd_uvarint(b, &mut p) else { return };
         for _ in 0..ntrans {
@@ -245,18 +277,11 @@ impl<D: AsRef<[u8]>> Fsa<D> {
             p += 1;
             let Some(delta) = rd_uvarint(b, &mut p) else { return };
             let Some(_num) = rd_uvarint(b, &mut p) else { return };
-            // target must be a strictly-earlier state (delta ≥ 1) — also
-            // prevents a 0-delta self-loop on corrupt input.
-            let Some(target) = u32::try_from(delta)
-                .ok()
-                .filter(|&d| d > 0)
-                .and_then(|d| rel.checked_sub(d))
-            else {
-                return;
-            };
-            cur.push(label);
-            self.visit_subtree(target, cur, ord, visit);
-            cur.pop();
+            if let Some(target) = decode_target(rel, delta) {
+                cur.push(label);
+                self.visit_subtree(target, cur, ord, visit);
+                cur.pop();
+            }
         }
     }
 }
