@@ -91,10 +91,13 @@ def main() -> int:
     ap.add_argument("--min-freq", type=int, default=100,
                     help="only rows with freq >= this are filtered (build_dict "
                          "MIN_FREQ drops the rest); default 100")
-    ap.add_argument("--frag-protect", type=int, default=2000,
-                    help="rule ③ keeps function-frag words freq >= this (default 2000)")
-    ap.add_argument("--protect", type=int, default=8000,
-                    help="rule ④ keeps surname-names freq >= this (default 8000)")
+    # Thresholds calibrated for the CP3d-cutover HYBRID freq_score distribution
+    # (skews higher than per-source-log-count): 矛盾的特 3686 < frag 6000 < 办得好
+    # 8220; 侯总 9831 / 丁氏 7508 < ④ 15000 < 鹿晗 26402 / 李子 25353.
+    ap.add_argument("--frag-protect", type=int, default=6000,
+                    help="rule ③ keeps function-frag words freq >= this (default 6000)")
+    ap.add_argument("--protect", type=int, default=15000,
+                    help="rule ④ keeps surname-names freq >= this (default 15000)")
     ap.add_argument("--name-char-min", type=int, default=30,
                     help="char is a given-name char (rule ④) if count >= this")
     ap.add_argument("--report-samples", type=int, default=12)
