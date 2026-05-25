@@ -164,8 +164,16 @@ impl JapaneseAdapter {
         // EXCLUDES compose_sentence products (`c.composed`): those are
         // mechanical guesses, not real dictionary words, so they must not
         // count as a full-match signal nor receive the promote.
+        // Pure-kana check: a "jukugo" entry that is actually all kana (感叹/
+        // 寒暄 like えっ / ありがとう, present in the hand TSV) is NOT a real
+        // kanji compound.
+        let is_pure_kana = |w: &str| w.chars().all(|ch| ('\u{3040}'..='\u{30FF}').contains(&ch));
         let full_match = self.engine.candidates().iter().any(|c| {
-            !c.composed && c.kind == KanaKind::Kanji && c.word.chars().count() > 1 && c.freq > 0
+            !c.composed
+                && c.kind == KanaKind::Kanji
+                && c.word.chars().count() > 1
+                && c.freq > 0
+                && !is_pure_kana(&c.word)
         });
         let promote = if full_match { scoring::JP_FULL_MATCH_PROMOTE } else { 1.0 };
         self.engine
@@ -199,7 +207,14 @@ impl JapaneseAdapter {
                 // but below pinyin top (480k) and wubi simcodes (600k+).
                 let base = match c.kind {
                     KanaKind::Kanji => {
-                        if c.word.chars().count() > 1 {
+                        // A pure-kana "jukugo" (えっ / ありがとう — kana 感叹/
+                        // 寒暄 in the hand TSV) is not a real kanji compound;
+                        // it must not get the jukugo base. Drop it to the
+                        // single-kanji tier so えっ doesn't rank like a real
+                        // 熟语 (user 2026-05-26: えっ at #3 for single `e`).
+                        if is_pure_kana(&c.word) {
+                            scoring::JP_SINGLE_KANJI_SCORE
+                        } else if c.word.chars().count() > 1 {
                             scoring::JP_JUKUGO_SCORE
                         } else {
                             scoring::JP_SINGLE_KANJI_SCORE
