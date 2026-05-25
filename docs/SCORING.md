@@ -170,6 +170,25 @@ score[word] = Σ_src α[src] × log_rank(word, src)
 α weights chosen by validation against polish-log + LLM annotation
 set. Default α favors Wikipedia (most diverse, modern register).
 
+**Implementation note (CP3b, 2026-05-25):** the shipped pipeline uses
+**per-source log-COUNT**, not literal log-rank:
+
+```python
+score[word] = Σ_src α[src] × ln(1 + count(word, src)) / max_ln[src]
+```
+
+with α = corpus `manifest.weight`. Rationale, decided on gate1/coverage data:
+literal rank-based log-rank discards count magnitude, and on our current
+*homogeneous* occurrence-count sources (subtlex/news/wiki) that collapses the
+long tail — most words' freq_score trend to 0 and get cut by build_dict's
+MIN_FREQ (dict 22k vs 219k entries). log-count keeps the per-source scale-free
+property — the actual point of §03, which pays off for *heterogeneous* sources
+(absolute count vs per-million vs arbitrary ints) — while preserving magnitude,
+so coverage stays full AND gate1 improves (kaopu→靠谱 to #1). The literal rank
+form stays available as `03_normalize --mode per-source-log-rank` for when
+heterogeneous sources are added. `--mode sum-then-log` reproduces the CP2
+byte-identical build_weights baseline (counting-chain regression guard).
+
 #### 04_layer_assign — Wubi layer floors
 
 Wubi has a strict structural hierarchy: Jianma1 > Jianma2 > Jianma3

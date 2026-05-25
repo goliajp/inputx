@@ -44,23 +44,23 @@ $(MARK)/02.done: $(MARK)/01.done
 	$(PYTHON) 02_extract/run_all.py
 	@touch $@
 
-# CP2 note: build_weights normalizes with cross-source sum-then-log, not the
-# per-source log-rank SCORING.md ultimately calls for. To align byte-for-byte
-# against the bare build_weights baseline (the L4 identity target), 03
-# reproduces sum-then-log and emits merged/ directly. per-source log-rank is a
-# deliberate CP3+ evolution. See .claude/PLAN-dict-pipeline.md.
+# CP3b: default normalize is per-source-log-count (SCORING.md §03 intent —
+# per-source scale-free — but keeping count magnitude; chosen over literal
+# rank-based log-rank, which collapsed coverage). See .claude/PLAN-dict-pipeline.md.
 03-normalize: $(MARK)/03.done
 $(MARK)/03.done: $(MARK)/02.done
-	@echo "[03] CP2: reproduce build_weights sum-then-log -> merged/ (log-rank is CP3+)"
+	@echo "[03] CP3b: per-source-log-count normalize -> merged/"
 	$(PYTHON) 03_normalize/run_all.py
 	@touch $@
 
-# CP2 identity gate: pipeline merged/weights.tsv must byte-match the bare
-# build_weights baseline that `dump` wrote in 02.
+# CP2 identity gate (counting-chain regression): the sum-then-log mode must
+# still reproduce the bare build_weights baseline bit-for-bit. Builds to a
+# scratch path so it does not disturb the main per-source-log-count merged/.
 identity-check:
-	@diff -q $(DATA)/baseline/weights-bare.tsv $(DATA)/merged/weights.tsv \
-	    && echo "[identity] OK  merged == bare build_weights baseline" \
-	    || { echo "[identity] DRIFT — run 07_validate/diff_top100.py for details"; exit 1; }
+	@$(PYTHON) 03_normalize/run_all.py --mode sum-then-log --out $(DATA)/baseline/sum-then-log.tsv >/dev/null
+	@cmp $(DATA)/baseline/weights-bare.tsv $(DATA)/baseline/sum-then-log.tsv \
+	    && echo "[identity] OK  sum-then-log mode == bare build_weights baseline" \
+	    || { echo "[identity] DRIFT — counting chain no longer reproduces build_weights"; exit 1; }
 
 # CP3a engine-level gate: build a dict from pipeline weights (no overlay) into
 # baseline/, then run the input_corpus regression against it via probe (which
