@@ -372,6 +372,25 @@ mod tests {
     }
 
     #[test]
+    fn japanese_toukyouto_compose_suffix_leads_kana() {
+        // User insight 2026-05-26: 東京都 is 拼 (東京 + 都 admin suffix), not a
+        // dict word (mozc itself doesn't list it). The jukugo+KANJI_SUFFIXES
+        // compose path now produces 東京都, scored JP_COMPOSED_KANJI_SCORE
+        // (280k, a pure-kanji composed tier above the long-buffer kana
+        // fallbacks at 240k) so the kanji conversion leads in Japanese mode.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::JapaneseOnly);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"toukyouto" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("東京都"),
+            "東京都 (jukugo+都 compose) must lead toukyouto in JP mode; got {top:?}");
+    }
+
+    #[test]
     fn mixed_z_prefix_skips_wubi() {
         let wubi = WubiEngine::new();
         let mut pinyin = PinyinAdapter::new();

@@ -132,6 +132,22 @@ pub const JP_FULL_MATCH_PROMOTE: f64 = 1.3;
 /// composed sentence still beats a bare mechanical kana rendering.
 pub const JP_COMPOSED_SCORE: f64 = 130_000.0;
 
+/// Base score for a PURE-KANJI compose product — specifically the "jukugo +
+/// category-suffix kanji" path (東京+都 = 東京都, 大阪+府 = 大阪府). User
+/// insight 2026-05-26: 東京都 is "拼" (productive 词+后缀), not a dict word
+/// (mozc itself doesn't list it), so it's composed — but unlike a 私は /
+/// 時へ時 particle-compose (which carries kana) a pure-kanji admin compound
+/// is a high-confidence real reading the user wants AS the kanji conversion.
+/// Set ABOVE the long-buffer kana fallbacks (hiragana base 150k + kana_freq
+/// 30×3000 = 240k, katakana = 200k) so the kanji conversion 東京都 leads the
+/// kana in Japanese mode — the standard JP-IME workflow (type romaji, see
+/// kanji first, kana as fallback). Kept BELOW real Chinese (400k) and never
+/// promoted, so it can't pollute Chinese pinyin that happens to end in a
+/// suffix reading. (It can edge a very-low-freq real jukugo, freq<27 → <280k;
+/// acceptable — 東京都 is a legit reading.) Pure-kanji vs has-kana split is
+/// done by inspecting the word in japanese_adapter (no extra field).
+pub const JP_COMPOSED_KANJI_SCORE: f64 = 280_000.0;
+
 /// Past this input length (pinyin-buffer chars), wubi candidate scores
 /// get multiplied by 0.0 via `wubi_length_modifier`. Effect: wubi
 /// vanishes from the user-visible list past 4 chars because the user
