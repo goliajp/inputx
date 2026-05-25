@@ -163,7 +163,16 @@ pub fn dispatch(
                 })
                 .collect();
             let final_mult = wubi_mult * z_mult;
-            if final_mult != 1.0 {
+            if final_mult == 0.0 {
+                // Wubi fully suppressed (past the 4-char window, or 'z'-led
+                // where wubi isn't typing). Clear instead of pushing score-0
+                // entries — otherwise a suppressed wubi candidate (恋情 for
+                // the 9-char `yongzhong`, user-reported 2026-05-25) still
+                // leaks into the merged list at score 0. Dropping at the
+                // source is precise: it never touches legitimate low-score
+                // pinyin entries (whose floor can underflow toward 0).
+                wubi_cands.clear();
+            } else if final_mult != 1.0 {
                 for (_, s) in wubi_cands.iter_mut() {
                     *s *= final_mult;
                 }
@@ -312,6 +321,54 @@ mod tests {
             "jieji top-4 must be Chinese — no JP compose pollution; got {top4:?}");
         assert_eq!(cands.first().map(|c| c.word.as_str()), Some("阶级"),
             "阶级 should lead jieji; got {top4:?}");
+    }
+
+    #[test]
+    fn mixed_yongzhong_exact_phrase_beats_composition_no_zero_leak() {
+        // User-reported 2026-05-25: `yongzhong` ranked the forced 2-char
+        // composition 用中 (用+中, COMPOSED_SCORE 500k) above the exact dict
+        // word 臃肿 (420k); also a zeroed wubi candidate 恋情 (score 0, wubi
+        // suppressed past 4 chars) lingered. After: composition drops below
+        // the exact word when one exists (pinyin_adapter composed_base), and
+        // score-0 candidates are filtered in merge — 臃肿 leads, 恋情 gone.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"yongzhong" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("臃肿"),
+            "exact 臃肿 must beat composition 用中 for yongzhong; got {top:?}");
+        let yz = cands.iter().position(|c| c.word == "臃肿");
+        let yzh = cands.iter().position(|c| c.word == "用中");
+        if let (Some(e), Some(h)) = (yz, yzh) {
+            assert!(e < h, "用中 (composition) must rank below 臃肿 (exact); got {top:?}");
+        }
+        assert!(cands.iter().all(|c| c.score > 0.0),
+            "no score-0 (suppressed) candidate may appear; got {:?}",
+            cands.iter().map(|c| (c.word.as_str(), c.score)).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn mixed_jie_single_syllable_no_jp_compose_pollution() {
+        // User-reported 2026-05-25: single-syllable `jie` surfaced 1-segment
+        // compose junk 時へ / 事へ / 治へ at #1-4 over Chinese 接/结/解.
+        // Same composed-flag fix as jieji; verify the single-syllable path.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"jie" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top4: Vec<(&str, Source)> = cands.iter().take(4)
+            .map(|c| (c.word.as_str(), c.source)).collect();
+        assert!(top4.iter().all(|(_, s)| *s != Source::Japanese),
+            "jie top-4 must be Chinese — no JP compose pollution; got {top4:?}");
     }
 
     #[test]
