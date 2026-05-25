@@ -365,6 +365,9 @@ pub fn merge(
     let mut out: Vec<Candidate> = Vec::with_capacity(total_hint.min(MAX_PER_INPUT));
     for c in all {
         if out.len() >= MAX_PER_INPUT { break; }
+        // Pollution blacklist — scoring-independent backstop. Specific known-
+        // bad strings never surface no matter what any engine scored them.
+        if super::blacklist::is_blacklisted(&c.word) { continue; }
         if seen.insert(c.word.clone()) {
             out.push(c);
         }
