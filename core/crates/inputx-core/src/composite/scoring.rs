@@ -113,6 +113,20 @@ pub const WUBI_MAX_BUFFER_LEN: usize = 4;
 /// while still leaving them in the list if no SC equivalent exists.
 pub const TC_DEMOTE_MULTIPLIER: f64 = 1e-3;
 
+/// Wubi-first PROMOTE for a full-code (4-key) exact wubi **Phrase** hit
+/// when the user is simultaneously typing a valid pinyin word
+/// (`pinyin_intent`). User rule (2026-05-25, aiyi→东京): a *complete*
+/// wubi code is a high-confidence wubi-first signal that must beat a
+/// same-tier pinyin word even when the wubi entry's freq is somewhat
+/// lower. With Phrase base = 400k, ×1.2 → 480k, giving a full-code phrase
+/// roughly an 80k freq-equivalent head-start over a pinyin 二字词 (so a
+/// same-tier or modestly-lower-freq wubi phrase wins, while a *far* higher
+/// freq pinyin word can still climb back). Bounded deliberately below the
+/// Zigen base (500k) so this never reorders wubi's own internal layers
+/// (Jianma1/2/3 + Zigen still outrank a promoted Phrase). NOT applied to
+/// speculative short buffers (those keep the 0.5 demote) nor to Auto junk.
+pub const WUBI_FULL_CODE_PHRASE_PROMOTE: f64 = 1.2;
+
 /// Multiplier applied to L0-pinned words inside the engine's
 /// `lookup_with_scores_into`. Brings any pin above any natural score:
 /// Jianma1 (1.04M) × 1.0 = 1.04M; pinyin top (444k) × 1000 = 444M.
