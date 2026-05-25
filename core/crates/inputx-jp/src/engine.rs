@@ -29,6 +29,14 @@ pub struct Candidate {
     /// JP-high-freq must beat 中文难检字 + 生僻词组. For kana entries
     /// (mechanical romaji → kana rendering) freq is 0.
     pub freq: u32,
+    /// `true` for `compose_sentence` products — mechanical (content +
+    /// particle/copula) sentence guesses like 私は or, for non-Japanese
+    /// romaji, junk like 時へ時. These are LOW confidence: unlike a real
+    /// dictionary 熟語 (新宿) they must never be treated as jukugo nor
+    /// trigger the full-match promote, and must score below real Chinese
+    /// words so they don't pollute Chinese pinyin input. See
+    /// `japanese_adapter::candidates_with_scores`.
+    pub composed: bool,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -160,6 +168,7 @@ impl JapaneseEngine {
                 word: compound.to_string(),
                 kind: KanaKind::Kanji,
                 freq,
+                composed: false,
             });
         }
 
@@ -170,6 +179,7 @@ impl JapaneseEngine {
                 word: kanji_char.to_string(),
                 kind: KanaKind::Kanji,
                 freq,
+                composed: false,
             });
         }
 
@@ -187,6 +197,7 @@ impl JapaneseEngine {
                 word: h.clone(),
                 kind: KanaKind::Hiragana,
                 freq: kana_freq,
+                composed: false,
             });
         }
         let k = romaji::to_katakana(s);
@@ -195,6 +206,7 @@ impl JapaneseEngine {
                 word: k,
                 kind: KanaKind::Katakana,
                 freq: kana_freq,
+                composed: false,
             });
         }
     }
@@ -367,6 +379,7 @@ fn compose_sentence(buffer: &str) -> Vec<Candidate> {
             // mild penalty here so a direct-jukugo whole-buffer match
             // (no compose, raw freq from data) still wins ties.
             freq: ((freq as f64) * 0.85) as u32,
+            composed: true,
         })
         .collect()
 }

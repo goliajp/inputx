@@ -291,6 +291,30 @@ mod tests {
     }
 
     #[test]
+    fn mixed_jieji_no_jp_compose_pollution() {
+        // User-reported 2026-05-25: Chinese pinyin `jieji` (阶级/借给/接机)
+        // in Mixed+JP surfaced compose_sentence junk 時へ時 / 治へ治 at #1-4
+        // — they were tagged kind=Kanji so japanese_adapter treated them as
+        // jukugo AND they tripped the full-match promote. compose products
+        // now carry `composed=true`, score at JP_COMPOSED_SCORE (below real
+        // Chinese) and never promote, so real Chinese leads and junk sinks.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"jieji" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top4: Vec<(&str, Source)> = cands.iter().take(4)
+            .map(|c| (c.word.as_str(), c.source)).collect();
+        assert!(top4.iter().all(|(_, s)| *s != Source::Japanese),
+            "jieji top-4 must be Chinese — no JP compose pollution; got {top4:?}");
+        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("阶级"),
+            "阶级 should lead jieji; got {top4:?}");
+    }
+
+    #[test]
     fn mixed_z_prefix_skips_wubi() {
         let wubi = WubiEngine::new();
         let mut pinyin = PinyinAdapter::new();
