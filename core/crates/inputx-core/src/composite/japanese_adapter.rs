@@ -161,8 +161,11 @@ impl JapaneseAdapter {
         // that case the whole JP group is promoted so a high-freq jukugo
         // (新宿) beats the Chinese forced-composition fallback and kana
         // (esp. katakana) surfaces. See scoring::JP_FULL_MATCH_PROMOTE.
+        // EXCLUDES compose_sentence products (`c.composed`): those are
+        // mechanical guesses, not real dictionary words, so they must not
+        // count as a full-match signal nor receive the promote.
         let full_match = self.engine.candidates().iter().any(|c| {
-            c.kind == KanaKind::Kanji && c.word.chars().count() > 1 && c.freq > 0
+            !c.composed && c.kind == KanaKind::Kanji && c.word.chars().count() > 1 && c.freq > 0
         });
         let promote = if full_match { scoring::JP_FULL_MATCH_PROMOTE } else { 1.0 };
         self.engine
@@ -170,6 +173,14 @@ impl JapaneseAdapter {
             .iter()
             .filter(|c| is_jp_clean(&c.word))
             .map(|c| {
+                // compose_sentence products score at a flat low floor below
+                // real Chinese words (so 時へ時 never pollutes the top of
+                // jieji/jieshou) and are never promoted — see
+                // scoring::JP_COMPOSED_SCORE. They still surface when there
+                // is no Chinese competition (watashiwa→私は).
+                if c.composed {
+                    return (c.word.clone(), scoring::JP_COMPOSED_SCORE);
+                }
                 // base = per-kind floor; freq-weighted add lifts high-freq
                 // JP above rare Chinese (per user rule: JP base < wubi/
                 // pinyin base, but JP-high-freq > 中文难检字/生僻词组).

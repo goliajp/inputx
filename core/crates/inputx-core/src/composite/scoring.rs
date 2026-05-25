@@ -118,6 +118,20 @@ pub const JP_FREQ_MULTIPLIER: f64 = 3000.0;
 /// ⇒ wubi already zeroed by wubi_length_modifier; no simcode collision).
 pub const JP_FULL_MATCH_PROMOTE: f64 = 1.3;
 
+/// Base score for `compose_sentence` products (mechanical content+particle
+/// sentence guesses: 私は for watashiwa, but junk like 時へ時 for the
+/// Chinese pinyin `jieji`). User-reported 2026-05-25: these polluted the
+/// top of Chinese pinyin input (jieji/jieshou surfaced 時へ時 / 治へ上 at
+/// #1-4, worsened by treating them as jukugo + the full-match promote).
+/// They are LOW confidence — set well below the pinyin/wubi Phrase base
+/// (400k) so real Chinese words always lead, while still letting a
+/// composed guess surface when there is NO Chinese competition
+/// (watashiwa→私は). Never freq-scaled here and never promoted (the freq
+/// of a mechanical compose is unreliable); a flat floor keeps the whole
+/// compose group beneath real candidates. Above katakana (110k) so a
+/// composed sentence still beats a bare mechanical kana rendering.
+pub const JP_COMPOSED_SCORE: f64 = 130_000.0;
+
 /// Past this input length (pinyin-buffer chars), wubi candidate scores
 /// get multiplied by 0.0 via `wubi_length_modifier`. Effect: wubi
 /// vanishes from the user-visible list past 4 chars because the user
