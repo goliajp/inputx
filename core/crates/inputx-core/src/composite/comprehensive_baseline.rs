@@ -225,24 +225,28 @@ mod tests {
         let cases: &[(&str, &str)] = &[
             // Particles
             ("de", "的"), ("le", "了"), ("ma", "吗"), ("ba", "吧"),
-            ("ne", "呢"), ("ya", "呀"), ("la", "拉"), ("a", "啊"),
+            ("ne", "呢"), ("ya", "呀"), ("la", "啦"), ("a", "啊"),
             // Pronouns
             ("wo", "我"), ("ni", "你"), ("ta", "他"),
             // Common verbs
             ("kan", "看"), ("ting", "听"), ("zuo", "做"), ("shuo", "说"),
             ("hao", "好"), ("xiang", "想"),
-            ("xie", "些"), ("xue", "学"), ("xin", "新"), ("xing", "行"),
+            ("xie", "些"), ("xue", "学"), ("xin", "心"), ("xing", "行"),
             // Common nouns
             ("jia", "家"), ("ren", "人"), ("tian", "天"), ("yue", "月"),
             ("nian", "年"), ("ri", "日"),
             // Hot single-syllable words.
             ("di", "的"), ("bu", "不"), ("yi", "一"), ("ji", "给"),
-            ("qi", "其"), ("ge", "个"), ("du", "都"), ("na", "那"),
-            ("er", "而"), ("fa", "法"), ("ke", "可"),
+            // CP3d-cutover (2026-05-25): 起/发/图 are the colloquial-corpus top
+            // (lccc/subtlex via the hybrid normalizer), not the old sum-then-log
+            // wiki-leaning 其/法/土. per-source: 起552k≫其181k, 发496k≫法119k in
+            // LCCC. IME chat register → colloquial truth. User-approved update.
+            ("qi", "起"), ("ge", "个"), ("du", "都"), ("na", "那"),
+            ("er", "而"), ("fa", "发"), ("ke", "可"),
             ("an", "安"), ("ai", "爱"),
-            ("hu", "湖"), ("he", "和"),
+            ("hu", "护"), ("he", "和"),
             ("mu", "目"), ("se", "色"), ("te", "特"), ("ti", "提"),
-            ("tu", "土"), ("xi", "西"), ("ye", "也"),
+            ("tu", "图"), ("xi", "西"), ("ye", "也"),
             ("da", "大"),
             // mo: polish-log lowered threshold caused user-pick 默 to
             // boost above corpus-top 没; both valid. Covered in
@@ -267,7 +271,7 @@ mod tests {
             ("xia", "下"),
             ("li", "里"),
             ("zhi", "只"),
-            ("xin", "新"),
+            ("xin", "心"),
             ("shou", "手"),
             ("ren", "人"),
             ("zheng", "正"),

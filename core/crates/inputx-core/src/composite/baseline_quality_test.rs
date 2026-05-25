@@ -164,7 +164,7 @@ mod tests {
             ("ba", "吧"),
             ("ne", "呢"),
             ("ya", "呀"),
-            ("la", "拉"),
+            ("la", "啦"),   // CP3d-cutover: colloquial 啦 leads (hybrid normalizer)
             ("kan", "看"),
             ("ting", "听"),
             ("zuo", "做"),

@@ -158,6 +158,35 @@ def score_per_source_log_count(
     return score
 
 
+def score_hybrid(
+    per_source: dict[str, dict[str, int]],
+    weights: dict[str, float],
+    min_count: float,
+    beta: float = 0.5,
+) -> dict[str, float]:
+    """word → β·norm(sum-then-log) + (1-β)·norm(per-source-log-count).
+
+    CP3d-cutover hybrid (chosen 2026-05-25). Blends the two normalizers each
+    min-maxed to [0,1]:
+      - sum-then-log keeps CROSS-SOURCE MAGNITUDE so single-source formal words
+        (中国: wiki-only) stay prefix-competitive (中国 rk 15 vs log-count's 67);
+      - per-source-log-count keeps the per-source colloquial balance.
+    β=0.5 satisfies both the colloquial single-syllable invariants AND the
+    formal-word prefix floor — see 03_normalize/tune_weights.py. Now viable
+    because CP3c's LCCC corpus already lifts colloquial words (靠谱/给力) in the
+    sum-then-log half, removing the kaopu→#3 problem that drove CP3b to log-count.
+    """
+    s1 = score_sum_then_log(per_source, weights, min_count)
+    s2 = score_per_source_log_count(per_source, weights)
+    m1 = max(s1.values(), default=0.0) or 1.0
+    m2 = max(s2.values(), default=0.0) or 1.0
+    keys = set(s1) | set(s2)
+    return {
+        w: beta * s1.get(w, 0.0) / m1 + (1.0 - beta) * s2.get(w, 0.0) / m2
+        for w in keys
+    }
+
+
 def enumerate_entries(readings_path: Path) -> list[tuple[str, str]]:
     """(pinyin, word) pairs — mirrors enumerate_entries in build_weights.rs."""
     entries: list[tuple[str, str]] = []
@@ -181,10 +210,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="03_normalize — counts → weights.tsv")
     ap.add_argument(
         "--mode",
-        choices=["sum-then-log", "per-source-log-rank", "per-source-log-count"],
-        default="per-source-log-count",
-        help="normalization algorithm (default per-source-log-count = CP3b; "
-        "sum-then-log reproduces the CP2 identity baseline)",
+        choices=["sum-then-log", "per-source-log-rank", "per-source-log-count", "hybrid"],
+        default="hybrid",
+        help="normalization algorithm (default hybrid = CP3d-cutover: β=0.5 blend "
+        "of sum-then-log magnitude + per-source-log-count colloquial balance; "
+        "per-source-log-count = CP3b; sum-then-log = CP2 identity baseline)",
     )
     ap.add_argument(
         "--out",
@@ -212,8 +242,10 @@ def main() -> int:
         word_score = score_sum_then_log(per_source, weights, min_count)
     elif args.mode == "per-source-log-rank":
         word_score = score_per_source_log_rank(per_source, weights)
-    else:
+    elif args.mode == "per-source-log-count":
         word_score = score_per_source_log_count(per_source, weights)
+    else:  # hybrid (default, CP3d-cutover)
+        word_score = score_hybrid(per_source, weights, min_count)
 
     entries = enumerate_entries(root / READINGS_REL)
 

@@ -439,3 +439,13 @@ wudayu	无大语	40000
 xueyalaman	血压拉满	40000
 xueyashangsheng	血压上升	40000
 youdaoyun	有道云	40000
+# --- CP3d-cutover coverage floor (2026-05-25) ---
+# High-freq common words whose corpus signal is insufficient under the
+# designed-fresh hybrid weights (they relied on legacy hand-tuned ship-weights
+# freq that cutover retired). 加载 was edged out by 加在; 极高 vanished entirely
+# (no corpus/readings entry); 重要 fell below the Viterbi 中+要 composition.
+# This overlay floor restores correct ranking (overlay survives until CP6
+# sideload per PLAN's "retire = demote, not delete").
+jiazai	加载	60000
+jigao	极高	55000
+zhongyao	重要	65000
