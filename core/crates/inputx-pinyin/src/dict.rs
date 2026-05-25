@@ -130,8 +130,27 @@ impl PinyinDict {
                 Some(Dict::new(bytes).unwrap_or_else(|_| panic!("invalid embedded {label} dict")))
             }
         }
+        // dev/test escape hatch: INPUTX_PINYIN_DICT points at a dict file to
+        // load at runtime instead of the embedded bytes — lets gate1
+        // (07_validate/gate1_regression_corpus.py) validate a pipeline-built
+        // dict without rebuilding the binary. Box::leak supplies the 'static
+        // lifetime Dict needs; harmless in a short-lived probe. Not compiled
+        // for wasm (no fs/env there) — env unset everywhere else keeps the
+        // embedded-bytes behavior byte-for-byte unchanged.
+        #[cfg(not(target_arch = "wasm32"))]
+        let dict_bytes: &'static [u8] = match std::env::var_os("INPUTX_PINYIN_DICT") {
+            Some(path) => {
+                let data = std::fs::read(&path)
+                    .unwrap_or_else(|e| panic!("INPUTX_PINYIN_DICT {path:?}: {e}"));
+                Box::leak(data.into_boxed_slice())
+            }
+            None => DICT_BYTES,
+        };
+        #[cfg(target_arch = "wasm32")]
+        let dict_bytes: &'static [u8] = DICT_BYTES;
+
         Self {
-            map: Dict::new(DICT_BYTES).expect("invalid embedded pinyin dict"),
+            map: Dict::new(dict_bytes).expect("invalid pinyin dict"),
             bigrams: load_optional(BIGRAMS_BYTES, "bigrams"),
             bigrams_intra: load_optional(BIGRAMS_INTRA_BYTES, "bigrams_intra"),
             trigrams: load_optional_dict(TRIGRAMS_BYTES, "trigrams"),

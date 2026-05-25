@@ -14,8 +14,9 @@
 DATA := data
 MARK := $(DATA)/.markers
 PYTHON := python3
+ROOT := $(shell git rev-parse --show-toplevel)
 
-.PHONY: rebuild validate clean distclean diff-vs-shipped identity-check help
+.PHONY: rebuild validate clean distclean diff-vs-shipped identity-check gate1 help
 
 help:
 	@echo "Targets:"
@@ -60,6 +61,17 @@ identity-check:
 	@diff -q $(DATA)/baseline/weights-bare.tsv $(DATA)/merged/weights.tsv \
 	    && echo "[identity] OK  merged == bare build_weights baseline" \
 	    || { echo "[identity] DRIFT — run 07_validate/diff_top100.py for details"; exit 1; }
+
+# CP3a engine-level gate: build a dict from pipeline weights (no overlay) into
+# baseline/, then run the input_corpus regression against it via probe (which
+# loads it through INPUTX_PINYIN_DICT). Pass GATE1_ARGS=--baseline for a
+# report-only run. Does NOT touch the shipped data/pinyin.dict.
+gate1: $(DATA)/merged/weights.tsv
+	cd $(ROOT)/core && cargo run -q --release --features tools --bin pinyin-build-dict -- \
+	    --weights $(ROOT)/tools/scoring/$(DATA)/merged/weights.tsv \
+	    --out $(ROOT)/tools/scoring/$(DATA)/baseline/pipeline.dict --no-overlay
+	$(PYTHON) 07_validate/gate1_regression_corpus.py \
+	    --dict $(DATA)/baseline/pipeline.dict $(GATE1_ARGS)
 
 04-layer-assign: $(MARK)/04.done
 $(MARK)/04.done: $(MARK)/03.done
