@@ -173,13 +173,23 @@ impl JapaneseAdapter {
             .iter()
             .filter(|c| is_jp_clean(&c.word))
             .map(|c| {
-                // compose_sentence products score at a flat low floor below
-                // real Chinese words (so 時へ時 never pollutes the top of
-                // jieji/jieshou) and are never promoted — see
-                // scoring::JP_COMPOSED_SCORE. They still surface when there
-                // is no Chinese competition (watashiwa→私は).
+                // compose_sentence products score below real Chinese words
+                // (so 時へ時 never pollutes the top of jieji/jieshou) and are
+                // never promoted. Two tiers, split by whether the product is
+                // pure kanji: a "jukugo+suffix" compound like 東京都 is a
+                // high-confidence kanji conversion → JP_COMPOSED_KANJI_SCORE
+                // (above kana so it leads in JP mode); a particle-bearing
+                // compose like 時へ時 / 東京と (carries kana) stays at the low
+                // JP_COMPOSED_SCORE. Both still surface when there's no
+                // Chinese competition (watashiwa→私は) and neither promotes.
                 if c.composed {
-                    return (c.word.clone(), scoring::JP_COMPOSED_SCORE);
+                    let pure_kanji = c.word.chars().all(|ch| ('一'..='鿿').contains(&ch));
+                    let s = if pure_kanji {
+                        scoring::JP_COMPOSED_KANJI_SCORE
+                    } else {
+                        scoring::JP_COMPOSED_SCORE
+                    };
+                    return (c.word.clone(), s);
                 }
                 // base = per-kind floor; freq-weighted add lifts high-freq
                 // JP above rare Chinese (per user rule: JP base < wubi/

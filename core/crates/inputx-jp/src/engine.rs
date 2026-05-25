@@ -259,6 +259,19 @@ const SENTENCE_SUFFIXES: &[(&str, &str)] = &[
     ("ya", "や"),
 ];
 
+/// Productive category-suffix kanji for "jukugo + suffix" composition
+/// (東京+都 = 東京都, 大阪+府, 横浜+市, 新宿+区, 神奈川+県…). These admin /
+/// category endings are NOT exhaustively in the dict (東京都 isn't even in
+/// mozc — it's 拼 not 词), so we compose them. Whitelisted to keep the
+/// composition from emitting junk like 東京渡 (渡 also reads `to`). The
+/// prefix MUST be a real jukugo (see compose_sentence) so 都+市 single-kanji
+/// noise can't form. (reading_romaji, suffix_kanji).
+const KANJI_SUFFIXES: &[(&str, &str)] = &[
+    ("to", "都"), ("fu", "府"), ("ken", "県"), ("shi", "市"),
+    ("ku", "区"), ("chou", "町"), ("son", "村"), ("mura", "村"),
+    ("shima", "島"), ("gun", "郡"), ("jin", "人"), ("go", "語"),
+];
+
 /// Single-segment compose: (content_word, particle/copula_suffix).
 /// Returns (composed_word_string, content_freq) pairs.
 ///
@@ -299,6 +312,21 @@ fn compose_sentence(buffer: &str) -> Vec<Candidate> {
     // 1-segment
     for (word, freq) in compose_one_segment(buffer) {
         hits.push((word, freq));
+    }
+
+    // jukugo + category-suffix kanji (東京+都 = 東京都). Productive admin /
+    // category compounds the dict doesn't (and shouldn't) enumerate. Prefix
+    // MUST be a real jukugo so single-kanji noise (都+市) can't form; suffix
+    // is whitelisted (KANJI_SUFFIXES) so 東京渡-style junk can't form either.
+    for (sfx_read, sfx_kanji) in KANJI_SUFFIXES {
+        if let Some(prefix) = buffer.strip_suffix(sfx_read) {
+            if prefix.is_empty() {
+                continue;
+            }
+            for (compound, freq) in jukugo::lookup_by_reading(prefix) {
+                hits.push((format!("{compound}{sfx_kanji}"), freq));
+            }
+        }
     }
 
     // 1-segment WITH bare content tail (no final particle/copula).
