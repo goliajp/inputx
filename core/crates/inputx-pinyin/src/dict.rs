@@ -651,13 +651,18 @@ impl PinyinDict {
         prev: &str,
         limit: usize,
     ) -> Vec<(String, u64)> {
-        // v1.5 bumped 5→50 (2026-05-24): user still saw chains form
-        // ("年人在年月日的比赛中获得了…") even with strict trigram-only
-        // at count 5. The corpus has many low-count noise trigrams that
-        // matched user behavior even though semantically wrong. Higher
-        // threshold = only really established 3-word patterns generate
-        // predictions.
-        const MIN_TRIGRAM_COUNT: u64 = 50;
+        // History: 5→50 (2026-05-24) to kill noise chains ("年人在年月日
+        // 的比赛中…"); then 50→15 (2026-05-25) after measuring that 50 also
+        // killed almost all REAL predictions. Common pairs' trigram counts
+        // cluster in 15-50 (我们的→国家:40/生活:30/工作:19, 我是→一个:30/
+        // 谁:17, 一个人→在:49/都:47), so 50 fired only ~4/12 common pairs —
+        // mostly the 泛词 "的". 15 surfaces the established 3-word patterns
+        // while still cutting <15 noise (可以的→但:4, 我们一起→去:2). Chain
+        // risk stays low: the cycle-filter (recent_committed dedup) and the
+        // engine's PREDICTION_CHAIN_LIMIT hard-stop guard runaway chains
+        // independent of this threshold — both added AFTER the count=5 era,
+        // so 15-now is far safer than 5-then.
+        const MIN_TRIGRAM_COUNT: u64 = 15;
         if prev.is_empty() || limit == 0 {
             return Vec::new();
         }
@@ -1121,7 +1126,7 @@ mod tests {
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
     fn predict_next_words_context_uses_trigram_or_empty() {
-        // v1.5 strict-trigram with MIN_TRIGRAM_COUNT=50: trigram
+        // strict-trigram with MIN_TRIGRAM_COUNT=15 (was 50): trigram
         // (今天, 的, *) results may or may not clear the count
         // threshold depending on corpus density. The contract is just
         // "use trigram only, no bigram fallback" — empty is acceptable
@@ -1157,6 +1162,22 @@ mod tests {
         assert!(chained.is_empty(),
             "chained prediction with empty trigram must NOT backoff to bigram; \
              got {chained:?}");
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn predict_next_words_context_threshold_15_surfaces_real_predictions() {
+        // 2026-05-25: MIN_TRIGRAM_COUNT lowered 50→15 so established 3-word
+        // patterns predict again (50 fired only ~4/12 common pairs, mostly
+        // 泛词 "的"). (我们,的) has trigram followers 国家:40 / 生活:30 /
+        // 工作:19 — all clear 15, so predictions must now be non-empty, and
+        // every returned count must still be >= 15 (sub-15 noise stays cut).
+        let d = PinyinDict::embedded();
+        let r = d.predict_next_words_context(Some("我们"), "的", 10);
+        assert!(!r.is_empty(),
+            "我们的 should predict at threshold 15 (counts 40/30/19); got empty");
+        assert!(r.iter().all(|(_, c)| *c >= 15),
+            "every prediction must clear the 15 threshold; got {r:?}");
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
