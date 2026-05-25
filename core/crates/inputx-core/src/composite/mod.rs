@@ -10,6 +10,7 @@
 //! adds `set_engine_mode` / `get_engine_mode` / `candidate_source`
 //! getters.
 
+mod blacklist;
 mod dispatch;
 mod engine;
 mod japanese_adapter;
