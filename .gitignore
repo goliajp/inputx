@@ -71,6 +71,11 @@ tools/scoring/data/layers/
 tools/scoring/data/merged/
 tools/scoring/data/annotations/
 tools/scoring/data/baseline/
+tools/scoring/data/filtered/
 tools/scoring/data/.markers/
 # discover_new_words.py pass1 cache (char+bigram freqs) — large, regenerable
 tools/scoring/data/supplemental/.discover_cache_*.pkl
+# CP3d name-corpus download (wainshine/Chinese-Names-Corpus, 12 MB) — large,
+# regenerable via 03b_pollution/build_name_chars.py; derived char tables
+# (03b_pollution/name_chars.tsv, surnames.tsv) ARE committed.
+tools/scoring/data/cache/
