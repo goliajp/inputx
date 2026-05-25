@@ -155,6 +155,16 @@ impl JapaneseAdapter {
     pub fn candidates_with_scores(&self) -> Vec<(String, f64)> {
         use inputx_jp::KanaKind;
         use crate::composite::scoring;
+        // Full-match signal: a real full-buffer jukugo (multi-char kanji
+        // with freq > 0) means the entire romaji buffer maps to a genuine
+        // Japanese word — high-confidence "user is typing Japanese". In
+        // that case the whole JP group is promoted so a high-freq jukugo
+        // (新宿) beats the Chinese forced-composition fallback and kana
+        // (esp. katakana) surfaces. See scoring::JP_FULL_MATCH_PROMOTE.
+        let full_match = self.engine.candidates().iter().any(|c| {
+            c.kind == KanaKind::Kanji && c.word.chars().count() > 1 && c.freq > 0
+        });
+        let promote = if full_match { scoring::JP_FULL_MATCH_PROMOTE } else { 1.0 };
         self.engine
             .candidates()
             .iter()
@@ -177,7 +187,7 @@ impl JapaneseAdapter {
                     KanaKind::Hiragana => scoring::JP_HIRAGANA_SCORE,
                     KanaKind::Katakana => scoring::JP_KATAKANA_SCORE,
                 };
-                let score = base + scoring::JP_FREQ_MULTIPLIER * c.freq as f64;
+                let score = (base + scoring::JP_FREQ_MULTIPLIER * c.freq as f64) * promote;
                 (c.word.clone(), score)
             })
             .collect()

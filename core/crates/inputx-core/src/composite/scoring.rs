@@ -101,6 +101,23 @@ pub const JP_KATAKANA_SCORE: f64 = 110_000.0;
 /// pinyin rare (~410k+) so confident JP picks aren't drowned out.
 pub const JP_FREQ_MULTIPLIER: f64 = 3000.0;
 
+/// JP full-match PROMOTE — multiplier applied to *every* JP candidate's
+/// score when the buffer yields a real full-buffer 熟語 (multi-char kanji
+/// jukugo with freq > 0). A jukugo match means the *entire* romaji buffer
+/// maps to a genuine Japanese word — a high-confidence "the user is typing
+/// Japanese" signal, analogous to a full-code exact wubi hit. User rule
+/// 2026-05-25 (shinjuku→新宿): in that case JP must take precedence over a
+/// Chinese FORCED-composition fallback (the Viterbi 整句拼接 junk like
+/// 是嗯据库 at COMPOSED_SCORE=500k), and the kana forms (esp. katakana,
+/// base 110k) must surface into the visible window instead of drowning
+/// under pinyin non-exact noise (~244k). Calibration: top jukugo 新宿
+/// (464k) ×1.3 = 603k clears the 500k composition; katakana シンジュク
+/// (200k) ×1.3 = 260k clears the pinyin cluster. Only fires when a real
+/// jukugo is present, so plain pinyin input (no jukugo) is untouched.
+/// Bounded so it only matters for long romaji buffers (jukugo ≥ ~4 chars
+/// ⇒ wubi already zeroed by wubi_length_modifier; no simcode collision).
+pub const JP_FULL_MATCH_PROMOTE: f64 = 1.3;
+
 /// Past this input length (pinyin-buffer chars), wubi candidate scores
 /// get multiplied by 0.0 via `wubi_length_modifier`. Effect: wubi
 /// vanishes from the user-visible list past 4 chars because the user
