@@ -13,6 +13,12 @@
 //!              files. Exits 0 on byte-identical match, 1 on drift. Used by
 //!              CI to enforce the (manifest × rules × readings × script) →
 //!              weights.tsv determinism guarantee.
+//!   `dump`     Emit the tools/scoring CP2 pipeline inputs WITHOUT touching
+//!              the shipped weights.tsv: per-source unweighted (word,count)
+//!              tables under `tools/scoring/data/extracted/<src>/freq.tsv`
+//!              (= 02_extract) and a `baseline/weights-bare.tsv` identity
+//!              target that the Python 03_normalize must reproduce. Optional
+//!              arg overrides the output `data/` dir.
 //!
 //! Pipeline:
 //!   1. Enumerate every (pinyin, word) pair from `data/readings.tsv` (the
@@ -93,6 +99,7 @@ struct Entry {
 enum Mode {
     Generate,
     Verify,
+    Dump { out_dir: Option<PathBuf> },
 }
 
 fn parse_mode() -> Result<Mode, String> {
@@ -100,8 +107,12 @@ fn parse_mode() -> Result<Mode, String> {
     match args.next().as_deref() {
         None => Ok(Mode::Generate),
         Some("verify") | Some("--verify") => Ok(Mode::Verify),
+        Some("dump") | Some("--dump") => {
+            let out_dir = args.next().map(PathBuf::from);
+            Ok(Mode::Dump { out_dir })
+        }
         Some(other) => Err(format!(
-            "unknown argument `{other}` — expected (none) or `verify`"
+            "unknown argument `{other}` — expected (none), `verify`, or `dump [out_dir]`"
         )),
     }
 }
@@ -174,6 +185,27 @@ fn main() -> ExitCode {
         entries.len(),
         unique_words.len()
     );
+
+    // Dump mode: independent per-source extraction path for the tools/scoring
+    // pipeline (CP2). Writes per-source (word,count) tables plus a "bare"
+    // weights baseline, WITHOUT touching the shipped data/weights/weights.tsv.
+    // The baseline reuses the same normalize + render as Generate, and the
+    // accum it normalizes is rebuilt from the per-source counts by weighted
+    // sum — bit-identical to scan_corpora's accum because every term is an
+    // integer-valued f64 (so the sum is order-independent). Hence the baseline
+    // equals what Generate would emit: the identity target CP2's Python
+    // 03_normalize must reproduce.
+    if let Mode::Dump { out_dir } = &mode {
+        return run_dump(
+            out_dir.clone(),
+            &crate_dir,
+            &manifest,
+            &cache_dir,
+            &entries,
+            &unique_words,
+            &rules.normalization,
+        );
+    }
 
     // 3. Scan corpora.
     let raw_counts = scan_corpora(&manifest, &cache_dir, &unique_words);
@@ -257,6 +289,9 @@ fn main() -> ExitCode {
                 ExitCode::SUCCESS
             }
         }
+        // Dump is handled by the early return above (before scan_corpora), so
+        // it never reaches here — this arm only satisfies exhaustiveness.
+        Mode::Dump { .. } => unreachable!("dump mode returns before normalize"),
     }
 }
 
@@ -393,6 +428,164 @@ fn scan_corpora(
         );
     }
     accum
+}
+
+/// Per-source, **unweighted** word counts — the 02_extract product. Mirrors
+/// `scan_corpora`'s counting (same Aho-Corasick overlapping semantics for
+/// full-text corpora, same freq_list direct read) but keeps each source
+/// separate and does NOT multiply by manifest.weight (weighting happens at
+/// 03_normalize). BTreeMaps give deterministic source/word output order.
+fn scan_corpora_per_source(
+    manifest: &Manifest,
+    cache_dir: &Path,
+    unique_words: &[String],
+) -> BTreeMap<String, BTreeMap<String, u64>> {
+    let mut out: BTreeMap<String, BTreeMap<String, u64>> = BTreeMap::new();
+    if manifest.corpus.is_empty() || unique_words.is_empty() {
+        return out;
+    }
+
+    eprintln!(
+        "building Aho-Corasick over {} patterns…",
+        unique_words.len()
+    );
+    let ac = match AhoCorasickBuilder::new()
+        .match_kind(MatchKind::Standard)
+        .build(unique_words)
+    {
+        Ok(a) => a,
+        Err(e) => {
+            eprintln!("warning: aho-corasick build failed: {e}");
+            return out;
+        }
+    };
+    let unique_set: HashSet<&str> = unique_words.iter().map(|s| s.as_str()).collect();
+
+    for (id, spec) in &manifest.corpus {
+        let path = cache_dir.join(id);
+        if !path.exists() {
+            eprintln!(
+                "warning: {id}: cache file {} missing — run pinyin-fetch-corpus first",
+                path.display()
+            );
+            continue;
+        }
+        let mut counts: BTreeMap<String, u64> = BTreeMap::new();
+        match spec.format.as_str() {
+            "frequency_list" | "freq_list" => {
+                let src = match read_text_with_encoding(&path, spec.encoding.as_deref()) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        eprintln!("warning: {id}: {e}");
+                        continue;
+                    }
+                };
+                for raw in src.lines() {
+                    let line = raw.trim_end_matches(['\r', '\n']);
+                    if line.is_empty() || line.starts_with('#') {
+                        continue;
+                    }
+                    let mut parts = line.splitn(3, '\t');
+                    let (Some(word), Some(count)) = (parts.next(), parts.next()) else {
+                        continue;
+                    };
+                    let Ok(count) = count.parse::<u64>() else {
+                        continue; // header line or non-numeric column 1
+                    };
+                    if unique_set.contains(word) {
+                        *counts.entry(word.to_string()).or_insert(0) += count;
+                    }
+                }
+            }
+            _ => {
+                let text = match read_corpus(&path, &spec.format) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        eprintln!("warning: {id}: {e}");
+                        continue;
+                    }
+                };
+                let mut local_counts = vec![0u64; unique_words.len()];
+                for mat in ac.find_overlapping_iter(&text) {
+                    local_counts[mat.pattern().as_usize()] += 1;
+                }
+                for (i, c) in local_counts.iter().enumerate() {
+                    if *c > 0 {
+                        counts.insert(unique_words[i].clone(), *c);
+                    }
+                }
+            }
+        }
+        eprintln!(
+            "  {id} ({}): {} words with non-zero count",
+            spec.format,
+            counts.len()
+        );
+        out.insert(id.clone(), counts);
+    }
+    out
+}
+
+/// `dump` mode handler — writes 02_extract tables + the identity baseline.
+/// See the call site in `main` for why the rebuilt accum is bit-identical to
+/// `scan_corpora`'s.
+fn run_dump(
+    out_dir: Option<PathBuf>,
+    crate_dir: &Path,
+    manifest: &Manifest,
+    cache_dir: &Path,
+    entries: &[Entry],
+    unique_words: &[String],
+    norm: &Normalization,
+) -> ExitCode {
+    let data_dir = out_dir.unwrap_or_else(|| crate_dir.join("../../../tools/scoring/data"));
+    let extracted_dir = data_dir.join("extracted");
+    let baseline_dir = data_dir.join("baseline");
+
+    let per_source = scan_corpora_per_source(manifest, cache_dir, unique_words);
+    if per_source.is_empty() {
+        eprintln!("error: no corpora scanned (cache missing?) — nothing to dump");
+        return ExitCode::from(1);
+    }
+
+    // (a) Per-source extracted tables (word\tcount, word-sorted via BTreeMap).
+    use std::fmt::Write as _;
+    for (src, counts) in &per_source {
+        let mut s = String::with_capacity(counts.len() * 16);
+        s.push_str("# word\tcount  (unweighted per-source counts — 02_extract, CP2 pipeline)\n");
+        s.push_str("# generated by pinyin-build-weights -- dump. DO NOT EDIT BY HAND.\n");
+        for (word, count) in counts {
+            let _ = writeln!(s, "{word}\t{count}");
+        }
+        let path = extracted_dir.join(src).join("freq.tsv");
+        if let Err(e) = write_file(&path, &s) {
+            eprintln!("error: write {}: {e}", path.display());
+            return ExitCode::from(1);
+        }
+        eprintln!("wrote {} ({} words)", path.display(), counts.len());
+    }
+
+    // (b) Bare baseline: rebuild the weighted accum from per-source counts,
+    // then reuse normalize_global + render_weights_tsv. Integer-valued f64
+    // sums are order-independent ⇒ this accum equals scan_corpora's ⇒ the
+    // baseline equals Generate's weights.tsv — written to baseline/, never
+    // overwriting the shipped data/weights/weights.tsv.
+    let mut accum: HashMap<String, f64> = HashMap::new();
+    for (src, counts) in &per_source {
+        let weight = manifest.corpus.get(src).map(|c| c.weight).unwrap_or(1.0);
+        for (word, &count) in counts {
+            *accum.entry(word.clone()).or_insert(0.0) += (count as f64) * weight;
+        }
+    }
+    let scored = normalize_global(entries, &accum, norm);
+    let bare = render_weights_tsv(&scored);
+    let baseline_path = baseline_dir.join("weights-bare.tsv");
+    if let Err(e) = write_file(&baseline_path, &bare) {
+        eprintln!("error: write {}: {e}", baseline_path.display());
+        return ExitCode::from(1);
+    }
+    eprintln!("wrote {} ({} rows)", baseline_path.display(), scored.len());
+    ExitCode::SUCCESS
 }
 
 fn scan_freq_list(

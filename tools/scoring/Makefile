@@ -15,7 +15,7 @@ DATA := data
 MARK := $(DATA)/.markers
 PYTHON := python3
 
-.PHONY: rebuild validate clean distclean diff-vs-shipped help
+.PHONY: rebuild validate clean distclean diff-vs-shipped identity-check help
 
 help:
 	@echo "Targets:"
@@ -39,15 +39,27 @@ $(MARK)/01.done:
 
 02-extract: $(MARK)/02.done
 $(MARK)/02.done: $(MARK)/01.done
-	@echo "[02] extract (word, freq) per source"
+	@echo "[02] extract per-source (word,count) via build_weights dump (Rust counter)"
 	$(PYTHON) 02_extract/run_all.py
 	@touch $@
 
+# CP2 note: build_weights normalizes with cross-source sum-then-log, not the
+# per-source log-rank SCORING.md ultimately calls for. To align byte-for-byte
+# against the bare build_weights baseline (the L4 identity target), 03
+# reproduces sum-then-log and emits merged/ directly. per-source log-rank is a
+# deliberate CP3+ evolution. See .claude/PLAN-dict-pipeline.md.
 03-normalize: $(MARK)/03.done
 $(MARK)/03.done: $(MARK)/02.done
-	@echo "[03] log-rank normalize per source"
+	@echo "[03] CP2: reproduce build_weights sum-then-log -> merged/ (log-rank is CP3+)"
 	$(PYTHON) 03_normalize/run_all.py
 	@touch $@
+
+# CP2 identity gate: pipeline merged/weights.tsv must byte-match the bare
+# build_weights baseline that `dump` wrote in 02.
+identity-check:
+	@diff -q $(DATA)/baseline/weights-bare.tsv $(DATA)/merged/weights.tsv \
+	    && echo "[identity] OK  merged == bare build_weights baseline" \
+	    || { echo "[identity] DRIFT — run 07_validate/diff_top100.py for details"; exit 1; }
 
 04-layer-assign: $(MARK)/04.done
 $(MARK)/04.done: $(MARK)/03.done
@@ -86,7 +98,7 @@ validate:
 
 clean:
 	rm -rf $(DATA)/extracted $(DATA)/normalized $(DATA)/layers \
-	       $(DATA)/merged $(DATA)/annotations $(MARK)
+	       $(DATA)/merged $(DATA)/annotations $(DATA)/baseline $(MARK)
 
 distclean: clean
 	rm -rf $(DATA)/raw $(DATA)

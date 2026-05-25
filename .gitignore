@@ -62,3 +62,13 @@ core/include/inputx_core.h
 *.preoverlap-backup
 *.prejianma2-backup
 *.prelong-backup
+
+# Scoring pipeline intermediate data — regenerable from corpora; `make clean`
+# wipes these. Only data/supplemental + data/polish_reports stay tracked.
+tools/scoring/data/extracted/
+tools/scoring/data/normalized/
+tools/scoring/data/layers/
+tools/scoring/data/merged/
+tools/scoring/data/annotations/
+tools/scoring/data/baseline/
+tools/scoring/data/.markers/
