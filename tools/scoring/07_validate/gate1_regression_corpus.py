@@ -115,6 +115,10 @@ def main() -> int:
 
     passed: list[str] = []
     failed: list[tuple[str, str, str, list[str]]] = []
+    neg_passed: list[str] = []
+    neg_failed: list[tuple[str, str, str, list[str]]] = []
+    known_fail: list[tuple[str, str, str, list[str]]] = []  # ~ prefix, allowed
+    promoted: list[tuple[str, str]] = []                    # ~ but now passes
     for raw in corpus.read_text().splitlines():
         line = raw.rstrip("\r\n")
         if not line or line.startswith("#"):
@@ -125,6 +129,23 @@ def main() -> int:
         code, expected, hint = parts[0], parts[1], parts[2]
         mode = HINT_TO_MODE.get(hint, "mixed")
         cands = run_probe(probe, dict_path, code, mode)
+        if expected.startswith("!"):
+            # CP3d negative case: forbidden word must NOT appear among candidates
+            forbidden = expected[1:]
+            if forbidden not in cands:
+                neg_passed.append(code)
+            else:
+                neg_failed.append((code, forbidden, mode, cands[:5]))
+            continue
+        if expected.startswith("~"):
+            # known-allowed fail (CP3-out-of-scope): doesn't block the gate, but
+            # surface it if it starts passing so the ~ can be dropped (promoted).
+            want = expected[1:]
+            if want in cands[: args.depth]:
+                promoted.append((code, want))
+            else:
+                known_fail.append((code, want, mode, cands[:5]))
+            continue
         top = cands[: args.depth]
         if expected in top:
             passed.append(code)
@@ -132,16 +153,27 @@ def main() -> int:
             failed.append((code, expected, mode, cands[:5]))
 
     total = len(passed) + len(failed)
+    neg_total = len(neg_passed) + len(neg_failed)
     print(f"# gate1 — input_corpus regression  (dict: {dict_path})")
     print(f"# probe: {probe}")
-    print(f"# pass {len(passed)}/{total}  (depth {args.depth})")
-    if failed:
+    print(f"# pass {len(passed)}/{total} strict  (depth {args.depth})")
+    if neg_total:
+        print(f"# negatives {len(neg_passed)}/{neg_total} (forbidden word absent)")
+    if known_fail:
+        print(f"# known-fail {len(known_fail)} (CP3-out-of-scope, allowed): "
+              + " ".join(c for c, _, _, _ in known_fail))
+    if promoted:
+        print(f"# PROMOTE {len(promoted)} known-fail now PASS — drop the ~ prefix: "
+              + " ".join(c for c, _ in promoted))
+    if failed or neg_failed:
         print("#")
         print("code\texpected\tmode\tgot_top5")
         for code, expected, mode, got in failed:
             print(f"{code}\t{expected}\t{mode}\t{' '.join(got)}")
+        for code, forbidden, mode, got in neg_failed:
+            print(f"{code}\t!{forbidden} STILL PRESENT\t{mode}\t{' '.join(got)}")
 
-    if failed and not args.baseline:
+    if (failed or neg_failed) and not args.baseline:
         return 1
     return 0
 

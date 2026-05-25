@@ -62,13 +62,19 @@ identity-check:
 	    && echo "[identity] OK  sum-then-log mode == bare build_weights baseline" \
 	    || { echo "[identity] DRIFT — counting chain no longer reproduces build_weights"; exit 1; }
 
-# CP3a engine-level gate: build a dict from pipeline weights (no overlay) into
-# baseline/, then run the input_corpus regression against it via probe (which
-# loads it through INPUTX_PINYIN_DICT). Pass GATE1_ARGS=--baseline for a
-# report-only run. Does NOT touch the shipped data/pinyin.dict.
-gate1: $(DATA)/merged/weights.tsv
+# CP3d pollution filter: merged/ → filtered/ (rules ①super-long ②traditional
+# ③function-frag ④surname-name; see 03b_pollution/run_all.py). Rebuilds when the
+# merged weights, the filter, or the committed char tables change.
+$(DATA)/filtered/weights.tsv: $(DATA)/merged/weights.tsv 03b_pollution/run_all.py 03b_pollution/name_chars.tsv 03b_pollution/surnames.tsv
+	$(PYTHON) 03b_pollution/run_all.py
+
+# CP3a/CP3d engine-level gate: build a dict from the FILTERED pipeline weights
+# (no overlay) into baseline/, then run the input_corpus regression against it
+# via probe (which loads it through INPUTX_PINYIN_DICT). Pass GATE1_ARGS=--baseline
+# for a report-only run. Does NOT touch the shipped data/pinyin.dict.
+gate1: $(DATA)/filtered/weights.tsv
 	cd $(ROOT)/core && cargo run -q --release --features tools --bin pinyin-build-dict -- \
-	    --weights $(ROOT)/tools/scoring/$(DATA)/merged/weights.tsv \
+	    --weights $(ROOT)/tools/scoring/$(DATA)/filtered/weights.tsv \
 	    --out $(ROOT)/tools/scoring/$(DATA)/baseline/pipeline.dict --no-overlay
 	$(PYTHON) 07_validate/gate1_regression_corpus.py \
 	    --dict $(DATA)/baseline/pipeline.dict $(GATE1_ARGS)
