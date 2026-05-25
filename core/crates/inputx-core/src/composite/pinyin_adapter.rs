@@ -276,12 +276,30 @@ impl PinyinAdapter {
         // exact_map (built from `lookup_with_scores_into(self.buffer)`)
         // only sees the typed-buffer entries. Give them a mid-tier base.
         const FUZZY_BASE: f64 = 350_000.0;
+        // When an exact full-buffer dict word exists, a Viterbi forced
+        // segmentation (用中 for yongzhong) is LOWER confidence than the
+        // real phrase (臃肿) — drop the composition just below the lowest
+        // exact score so every real word leads. With NO exact word (long
+        // inputs like nihaomawojiao→你好吗我叫) keep the high COMPOSED_SCORE
+        // so the composition still wins #0. User-reported 2026-05-25:
+        // 用中 (composition 500k) wrongly beat 臃肿 (exact 420k).
+        let composed_base = if exact_map.is_empty() {
+            COMPOSED_SCORE
+        } else {
+            let min_exact = exact_map.values().copied().fold(f64::INFINITY, f64::min);
+            (min_exact - 1.0).min(COMPOSED_SCORE)
+        };
         for (i, w) in self.candidates.iter().enumerate() {
             let is_composed = Some(w.as_str()) == self.composed_sentence.as_deref();
             let is_fallback = Some(w.as_str()) == self.fallback_composition.as_deref();
             let is_fuzzy = self.fuzzy_candidates.contains(w);
             let base = if is_composed {
-                COMPOSED_SCORE
+                // A composition that coincides with a real exact dict word
+                // (zhongguo→中国, women→我们) keeps its real exact score — it
+                // is a genuine word, not forced junk. Only a segmentation
+                // that is NOT itself a dict word (用中 for yongzhong, 是嗯据库
+                // for shinjuku) drops to composed_base, below every exact word.
+                exact_map.get(w).copied().unwrap_or(composed_base)
             } else if is_fallback {
                 COMPOSED_FALLBACK_SCORE
             } else if is_fuzzy {
