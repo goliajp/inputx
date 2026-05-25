@@ -119,7 +119,9 @@ pub fn dispatch(
             //     must beat a same-tier pinyin word even at somewhat lower
             //     freq. 东京 raw 429241 already topped 爱意 424712, but the
             //     old flat ×0.5 buried it at 214k; the promote now gives a
-            //     structural ~80k freq-equivalent edge (×1.2 → 480k base).
+            //     structural ~40k freq-equivalent edge (×1.1; was 1.2 — see
+            //     mixed_jixu_* regression: 1.2's 80k edge wrongly flipped a
+            //     clearly-higher-freq pinyin word 继续 under 曳光弹).
             let full_code = pinyin_len == scoring::WUBI_MAX_BUFFER_LEN;
             let phrase_mult = if pinyin_intent {
                 if full_code { scoring::WUBI_FULL_CODE_PHRASE_PROMOTE } else { 0.5 }
@@ -413,6 +415,31 @@ mod tests {
     }
 
     #[test]
+    fn mixed_jixu_pinyin_word_beats_wubi_coincidence() {
+        // User-reported 2026-05-26 (REGRESSION — keep this as a permanent
+        // guard): `jixu` should give 继续 (common pinyin word), not 曳光弹
+        // (a rare wubi 3-char phrase that coincidentally encodes to jixu at
+        // full code). The full-code wubi-first promote (added for aiyi→东京)
+        // over-promoted it: 曳光弹 raw 407269 ×1.2 = 488722 beat 继续 474652.
+        // The promote is tuned to ×1.1 so it only edges out *same-freq* pinyin
+        // (aiyi: 东京 raw already > 爱意), never a clearly-higher-freq word
+        // (继续 leads 曳光弹 by ~67k raw).
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"jixu" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let jixu_cont = cands.iter().position(|c| c.word == "继续");
+        let yeguang = cands.iter().position(|c| c.word == "曳光弹");
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        assert!(jixu_cont.is_some(), "继续 missing from jixu candidates: {top:?}");
+        assert!(yeguang.map_or(true, |y| jixu_cont.unwrap() < y),
+            "继续 must rank above 曳光弹 (wubi coincidence) for jixu; got {top:?}");
+    }
+
+    #[test]
     fn mixed_z_prefix_skips_wubi() {
         let wubi = WubiEngine::new();
         let mut pinyin = PinyinAdapter::new();
@@ -431,7 +458,7 @@ mod tests {
         // (#1) above wubi 东京 (#2). 东京 is a full-code (4-key) exact wubi
         // phrase; the speculative Phrase ×0.5 demote buried its raw 429241
         // at 214620, below 爱意 424712. At full code the wubi hit is high-
-        // confidence and gets the wubi-first PROMOTE (×1.2), so 东京 leads.
+        // confidence and gets the wubi-first PROMOTE (×1.1), so 东京 leads.
         // See dispatch `full_code` / scoring::WUBI_FULL_CODE_PHRASE_PROMOTE.
         use crate::composite::engine::CompositeEngine;
         use crate::wubi::AutoCommitPolicy;
