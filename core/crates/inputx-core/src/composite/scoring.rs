@@ -118,6 +118,14 @@ pub const JP_FREQ_MULTIPLIER: f64 = 3000.0;
 /// ⇒ wubi already zeroed by wubi_length_modifier; no simcode collision).
 pub const JP_FULL_MATCH_PROMOTE: f64 = 1.3;
 
+/// Exponent on prefix-prediction proximity (typed_len / full_reading_len).
+/// A predicted candidate's freq contribution is scaled by `proximity^K`, so
+/// "almost done" (proximity→1) keeps most of the freq while "just started"
+/// (low proximity) is strongly damped — predictions rise as the user types
+/// closer to the word. K=3 (草案): 0.875→0.67, 0.5→0.125, 0.375→0.05. Tune
+/// in CP-A calibration. See PLAN-prefix-prediction.md §4.
+pub const PREDICT_PROXIMITY_K: f64 = 3.0;
+
 /// Base score for `compose_sentence` products (mechanical content+particle
 /// sentence guesses: 私は for watashiwa, but junk like 時へ時 for the
 /// Chinese pinyin `jieji`). User-reported 2026-05-25: these polluted the

@@ -24,6 +24,22 @@ pub fn lookup_by_reading(romaji: &str) -> impl Iterator<Item = (&'static str, u3
     })
 }
 
+/// Prefix-prediction lookup: jukugo whose reading STARTS WITH `romaji` but is
+/// longer (the user is mid-typing toward it — shinjuk → 新宿/しんじゅく). Yields
+/// `(kanji, freq, reading_len_bytes)` so the composite layer can score by
+/// proximity = typed_len / reading_len. Excludes exact matches (== reading),
+/// which `lookup_by_reading` already covers. Linear scan over JUKUGO_TABLE
+/// (~27k; ~27µs measured, same as exact lookup).
+pub fn lookup_by_reading_prefix(romaji: &str) -> impl Iterator<Item = (&'static str, u32, usize)> + '_ {
+    JUKUGO_TABLE.iter().filter_map(move |e| {
+        if e.reading.len() > romaji.len() && e.reading.starts_with(romaji) {
+            Some((e.kanji, e.freq, e.reading.len()))
+        } else {
+            None
+        }
+    })
+}
+
 #[rustfmt::skip]
 pub const JUKUGO_TABLE: &[JukugoEntry] = &[
     j("arigatou", "ありがとう", 100),
