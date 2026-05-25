@@ -109,7 +109,23 @@ pub fn dispatch(
                     _ => 0.20,
                 }
             } else { 1.0 };
-            let phrase_demote = if pinyin_intent { 0.5 } else { 1.0 };
+            // Phrase-layer multiplier under pinyin_intent:
+            //   * speculative short buffer (< 4 codes) → 0.5 demote. The
+            //     buffer is ambiguous; low-confidence Phrase candidates
+            //     shouldn't crowd out pinyin (see mixed_xlab_*).
+            //   * full-code exact hit (4 codes) → wubi-first PROMOTE. The
+            //     user typed a COMPLETE wubi code — high-confidence. Per
+            //     user rule 2026-05-25 (aiyi→东京) a full-code wubi phrase
+            //     must beat a same-tier pinyin word even at somewhat lower
+            //     freq. 东京 raw 429241 already topped 爱意 424712, but the
+            //     old flat ×0.5 buried it at 214k; the promote now gives a
+            //     structural ~80k freq-equivalent edge (×1.2 → 480k base).
+            let full_code = pinyin_len == scoring::WUBI_MAX_BUFFER_LEN;
+            let phrase_mult = if pinyin_intent {
+                if full_code { scoring::WUBI_FULL_CODE_PHRASE_PROMOTE } else { 0.5 }
+            } else {
+                1.0
+            };
             // v1.4 score-driven Jianma2 demote (user 2026-05-24:
             // "完全走评分候选，一行 hardcode 都不允许有"). For
             // single-char Jianma2/3 entries, scale score by the char's
@@ -139,7 +155,7 @@ pub fn dispatch(
                 .map(|(w, score, layer)| {
                     let layer_demote = match layer {
                         wubi::Layer::Auto => auto_demote,
-                        wubi::Layer::Phrase => phrase_demote,
+                        wubi::Layer::Phrase => phrase_mult,
                         _ => 1.0,
                     };
                     let cd = char_demote(&w, layer);
@@ -261,6 +277,31 @@ mod tests {
         let cands = dispatch(Mode::Mixed, &wubi, &pinyin, None, None);
         assert!(cands.iter().all(|c| c.source == Source::Pinyin));
         assert_eq!(cands.first().map(|c| c.word.as_str()), Some("中国"));
+    }
+
+    #[test]
+    fn mixed_aiyi_full_code_wubi_phrase_beats_pinyin() {
+        // User-reported 2026-05-25: typing `aiyi` in Mixed put pinyin 爱意
+        // (#1) above wubi 东京 (#2). 东京 is a full-code (4-key) exact wubi
+        // phrase; the speculative Phrase ×0.5 demote buried its raw 429241
+        // at 214620, below 爱意 424712. At full code the wubi hit is high-
+        // confidence and gets the wubi-first PROMOTE (×1.2), so 东京 leads.
+        // See dispatch `full_code` / scoring::WUBI_FULL_CODE_PHRASE_PROMOTE.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"aiyi" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("东京"),
+            "full-code wubi 东京 must lead aiyi in Mixed; got {top:?}");
+        let dj = cands.iter().find(|c| c.word == "东京").map(|c| c.score);
+        let ay = cands.iter().find(|c| c.word == "爱意").map(|c| c.score);
+        assert!(ay.is_some(), "爱意 missing from aiyi candidates: {top:?}");
+        assert!(dj.unwrap() > ay.unwrap(),
+            "promoted 东京 score {dj:?} must exceed 爱意 {ay:?}");
     }
 
     #[test]
