@@ -267,6 +267,30 @@ mod tests {
     // without needing the heuristic.
 
     #[test]
+    fn mixed_shinjuku_jp_full_match_beats_composition() {
+        // User-reported 2026-05-25: romaji `shinjuku` (新宿, high-freq jukugo)
+        // in Mixed+JP ranked Chinese forced-composition junk 是嗯据库 (#0,
+        // COMPOSED_SCORE 500k) above 新宿 (464k), and katakana シンジュク was
+        // buried below the pinyin non-exact cluster. A real full-buffer jukugo
+        // is high-confidence Japanese — JP_FULL_MATCH_PROMOTE (×1.3) lifts the
+        // whole JP group so 新宿 leads and katakana surfaces into the window.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"shinjuku" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(6).map(|c| c.word.as_str()).collect();
+        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("新宿"),
+            "新宿 (full-match jukugo) must lead shinjuku in Mixed+JP; got {top:?}");
+        let kata = cands.iter().position(|c| c.word == "シンジュク");
+        assert!(kata.is_some_and(|i| i < 10),
+            "katakana シンジュク must be visible (top 10); got idx {kata:?} in {top:?}");
+    }
+
+    #[test]
     fn mixed_z_prefix_skips_wubi() {
         let wubi = WubiEngine::new();
         let mut pinyin = PinyinAdapter::new();
