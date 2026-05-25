@@ -467,6 +467,31 @@ mod tests {
     }
 
     #[test]
+    fn jp_prefix_prediction_rises_with_proximity() {
+        // PLAN-prefix-prediction CP-A (user 2026-05-26 "我想做"): as the user
+        // types toward a jukugo it's predicted and rises with proximity.
+        // shin (far) → 新宿 present but low; shinjuk (差u) → 新宿 high;
+        // shinjuku (complete) → 新宿 #0 (exact full-match, not degraded).
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let idx_of = |buf: &[u8]| -> Option<usize> {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::Mixed);
+            e.set_japanese_enabled(true);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            for b in buf { let _ = e.handle_letter(*b); }
+            e.candidates().iter().position(|c| c.word == "新宿")
+        };
+        let shin = idx_of(b"shin");
+        let shinjuk = idx_of(b"shinjuk");
+        let shinjuku = idx_of(b"shinjuku");
+        assert_eq!(shinjuk, Some(0), "shinjuk should predict 新宿 at #0; got {shinjuk:?}");
+        assert_eq!(shinjuku, Some(0), "complete shinjuku → 新宿 #0; got {shinjuku:?}");
+        assert!(shin.map_or(true, |s| shinjuk.unwrap() < s),
+            "新宿 rises as buffer nears completion: shin {shin:?} vs shinjuk {shinjuk:?}");
+    }
+
+    #[test]
     fn mixed_z_prefix_skips_wubi() {
         let wubi = WubiEngine::new();
         let mut pinyin = PinyinAdapter::new();

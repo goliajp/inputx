@@ -37,6 +37,13 @@ pub struct Candidate {
     /// words so they don't pollute Chinese pinyin input. See
     /// `japanese_adapter::candidates_with_scores`.
     pub composed: bool,
+    /// Prefix-prediction proximity in thousandths: 1000 = the buffer is the
+    /// full reading (a normal/exact candidate); < 1000 = this is a PREDICTED
+    /// candidate whose reading the buffer is only a prefix of (shinjuk → 新宿
+    /// at 7/8 = 875). `japanese_adapter` decays the freq contribution by
+    /// `(proximity/1000)^K` and excludes < 1000 from the full-match promote
+    /// (the buffer isn't the complete word yet). See PLAN-prefix-prediction.md.
+    pub proximity_milli: u16,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -163,13 +170,39 @@ impl JapaneseEngine {
         // single-kanji, then kana" — the high-conviction kinds first.
         let mut jukugo_hits: Vec<(&str, u32)> = jukugo::lookup_by_reading(s).collect();
         jukugo_hits.sort_by(|a, b| b.1.cmp(&a.1));
+        let had_exact_jukugo = !jukugo_hits.is_empty();
         for (compound, freq) in jukugo_hits {
             self.candidates.push(Candidate {
                 word: compound.to_string(),
                 kind: KanaKind::Kanji,
                 freq,
                 composed: false,
+                proximity_milli: 1000,
             });
+        }
+
+        // Prefix PREDICTION (PLAN-prefix-prediction.md CP-A): the user is
+        // mid-typing toward a jukugo — shinjuk → 新宿 (しんじゅく). Fire only
+        // when there's NO exact jukugo (an exact match means the word is
+        // complete; adding its extensions would be noise — same principle as
+        // pinyin's lianxiang→联想), and only for buffers long enough that
+        // proximity carries signal. Each predicted candidate records its
+        // proximity so japanese_adapter can decay the freq by proximity^K and
+        // keep it below an exact/full match.
+        if !had_exact_jukugo && s.len() >= 3 {
+            let mut pred: Vec<(&str, u32, usize)> =
+                jukugo::lookup_by_reading_prefix(s).collect();
+            pred.sort_by(|a, b| b.1.cmp(&a.1));
+            for (kanji, freq, reading_len) in pred.into_iter().take(8) {
+                let proximity_milli = ((s.len() * 1000) / reading_len.max(1)) as u16;
+                self.candidates.push(Candidate {
+                    word: kanji.to_string(),
+                    kind: KanaKind::Kanji,
+                    freq,
+                    composed: false,
+                    proximity_milli,
+                });
+            }
         }
 
         let mut kanji_hits: Vec<(char, u32)> = kanji::lookup_by_reading(s).collect();
@@ -180,6 +213,7 @@ impl JapaneseEngine {
                 kind: KanaKind::Kanji,
                 freq,
                 composed: false,
+                proximity_milli: 1000,
             });
         }
 
@@ -198,6 +232,7 @@ impl JapaneseEngine {
                 kind: KanaKind::Hiragana,
                 freq: kana_freq,
                 composed: false,
+                proximity_milli: 1000,
             });
         }
         let k = romaji::to_katakana(s);
@@ -207,6 +242,7 @@ impl JapaneseEngine {
                 kind: KanaKind::Katakana,
                 freq: kana_freq,
                 composed: false,
+                proximity_milli: 1000,
             });
         }
     }
@@ -408,6 +444,7 @@ fn compose_sentence(buffer: &str) -> Vec<Candidate> {
             // (no compose, raw freq from data) still wins ties.
             freq: ((freq as f64) * 0.85) as u32,
             composed: true,
+            proximity_milli: 1000,
         })
         .collect()
 }

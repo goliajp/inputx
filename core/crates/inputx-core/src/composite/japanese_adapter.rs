@@ -170,6 +170,7 @@ impl JapaneseAdapter {
         let is_pure_kana = |w: &str| w.chars().all(|ch| ('\u{3040}'..='\u{30FF}').contains(&ch));
         let full_match = self.engine.candidates().iter().any(|c| {
             !c.composed
+                && c.proximity_milli >= 1000 // exact, not a prefix prediction
                 && c.kind == KanaKind::Kanji
                 && c.word.chars().count() > 1
                 && c.freq > 0
@@ -223,7 +224,17 @@ impl JapaneseAdapter {
                     KanaKind::Hiragana => scoring::JP_HIRAGANA_SCORE,
                     KanaKind::Katakana => scoring::JP_KATAKANA_SCORE,
                 };
-                let score = (base + scoring::JP_FREQ_MULTIPLIER * c.freq as f64) * promote;
+                // Prefix-prediction proximity decay: an exact candidate has
+                // proximity 1.0 (no change); a predicted one (shinjuk→新宿,
+                // 0.875) decays its freq contribution by proximity^K so it
+                // sits above simpdy noise but below the eventual full match,
+                // and rises as the user types closer. See PLAN-prefix-prediction.
+                let proximity = c.proximity_milli as f64 / 1000.0;
+                let freq_term = scoring::JP_FREQ_MULTIPLIER * c.freq as f64
+                    * proximity.powf(scoring::PREDICT_PROXIMITY_K);
+                // Predictions (proximity < 1) never ride the full-match promote.
+                let mult = if c.proximity_milli >= 1000 { promote } else { 1.0 };
+                let score = (base + freq_term) * mult;
                 (c.word.clone(), score)
             })
             .collect()
