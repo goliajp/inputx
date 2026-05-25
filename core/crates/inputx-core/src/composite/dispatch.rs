@@ -391,6 +391,28 @@ mod tests {
     }
 
     #[test]
+    fn mixed_single_e_kana_interjection_not_top() {
+        // User-reported 2026-05-26: single `e` ranked えっ (a pure-kana 感叹詞
+        // in the hand jukugo TSV, freq 82) at #3 — it was wrongly getting the
+        // jukugo base (200k→446k). A pure-kana "jukugo" is not a real kanji
+        // compound; it now drops to the single-kanji tier so えっ no longer
+        // outranks normal candidates. (新宿 / ありがとう unaffected — verified
+        // by their own paths; here we just guard えっ down.)
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.handle_letter(b'e');
+        let cands = e.candidates();
+        let pos = cands.iter().position(|c| c.word == "えっ");
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        assert!(pos.map_or(true, |p| p >= 5),
+            "えっ (kana interjection) must not rank top-5 for single `e`; got idx {pos:?}, top {top:?}");
+    }
+
+    #[test]
     fn mixed_z_prefix_skips_wubi() {
         let wubi = WubiEngine::new();
         let mut pinyin = PinyinAdapter::new();
