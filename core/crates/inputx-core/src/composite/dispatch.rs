@@ -440,6 +440,33 @@ mod tests {
     }
 
     #[test]
+    fn mixed_junk_composition_sinks_real_sentence_survives() {
+        // User-reported 2026-05-26: shinjuku (Japanese romaji) surfaced the
+        // Chinese forced-composition 是嗯据库 at #2 (fixed COMPOSED_SCORE 500k).
+        // A junk composition (per-char Viterbi path score below the floor) now
+        // drops to COMPOSED_LOW_QUALITY and sinks out of the window, while a
+        // real sentence keeps COMPOSED_SCORE and leads. Two-sided guard.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        // junk: 是嗯据库 must not be top-5 for shinjuku
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"shinjuku" { let _ = e.handle_letter(*b); }
+        let top5: Vec<&str> = e.candidates().iter().take(5).map(|c| c.word.as_str()).collect();
+        assert!(!top5.contains(&"是嗯据库"),
+            "junk composition 是嗯据库 must not be top-5 for shinjuku; got {top5:?}");
+        // real sentence survives: nihaomawojiao → 你好吗我叫 #1
+        let mut e2 = CompositeEngine::new();
+        e2.set_mode(Mode::Mixed);
+        e2.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"nihaomawojiao" { let _ = e2.handle_letter(*b); }
+        assert_eq!(e2.candidates().first().map(|c| c.word.as_str()), Some("你好吗我叫"),
+            "real composed sentence must still lead nihaomawojiao");
+    }
+
+    #[test]
     fn mixed_z_prefix_skips_wubi() {
         let wubi = WubiEngine::new();
         let mut pinyin = PinyinAdapter::new();
