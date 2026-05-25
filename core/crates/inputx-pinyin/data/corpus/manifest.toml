@@ -76,3 +76,11 @@ weight      = 3.0
 license     = "CC-BY 4.0"
 description = "Leipzig Corpora — 100K Chinese news sentences (2020); secondary signal for modern (post-2018) news vocabulary"
 format      = "tar_gz"
+
+[corpus.zho_lccc_base]
+url         = "https://huggingface.co/datasets/silver/lccc/resolve/main/lccc_base_train.jsonl.gz"
+sha256      = "2162e0ed923fba62329cabf7e1493fbe59248afc94a62508e4abdea61e624627"
+weight      = 3.0
+license     = "MIT"
+description = "LCCC-base (Large-scale Cleaned Chinese Conversation, thu-coai, 2020) — 6.8M Weibo/social-media dialogues (32.8M utterances, ~232M chars). Modern colloquial signal closest to the IME's primary register (chat). Fills the post-2010 colloquial gap that SUBTLEX-CH (2010 subtitles) and wiki/news (written) miss: 搞定/给力/吐槽 etc. jump from two-digit to thousands of occurrences. We redistribute only the irreversible derived word-frequency statistics, never the source text — same posture as SUBTLEX-CH (subtitle-derived freq table). jieba-tokenized utterances are de-spaced at scan time so Aho-Corasick matches multi-char words."
+format      = "jsonl_dialog"

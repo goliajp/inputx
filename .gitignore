@@ -72,3 +72,5 @@ tools/scoring/data/merged/
 tools/scoring/data/annotations/
 tools/scoring/data/baseline/
 tools/scoring/data/.markers/
+# discover_new_words.py pass1 cache (char+bigram freqs) — large, regenerable
+tools/scoring/data/supplemental/.discover_cache_*.pkl

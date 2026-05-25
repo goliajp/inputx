@@ -123,6 +123,7 @@ guaranteed.
 | **Wikipedia ja dump** | full-text | CC-BY-SA | JP kanji + jukugo freq |
 | **jieba dict** | (word, freq) pairs | MIT | phrase segmentation baseline |
 | **Leipzig zh corpus** | sentence-tokenized | CC-BY | modern-Chinese unigram |
+| **LCCC-base** | dialogue full-text | MIT | modern colloquial / network vocab (微博 chat) — CP3c |
 | **Unihan database** | char-level metadata | Unicode | readings (on-yomi / pinyin), variants |
 | **现代汉语常用字表** | char list | public | which chars are "common" baseline |
 | **常用漢字表 (JP)** | char list | public | which kanji are in the JP base set |
@@ -130,6 +131,19 @@ guaranteed.
 | **KANJIDIC2** | kanji readings + glosses | EDRDG-PD | JP on/kun readings |
 | **Custom — Inputx user picks** | per-user telemetry | local-only | PolishLog jsonl, opt-in upload |
 | **Custom — LLM annotations** | (code, expected #1) tuples | curated | resolve ambiguous ranking |
+
+**New-word discovery (CP3c).** Common words jieba's dict simply omits
+(给力/吐槽/网红/靠前/榨干 …) never reach `weights.tsv` via the sources above —
+they aren't in `readings.tsv` to begin with, so corpus counting can't score
+them. `tools/scoring/discover_new_words.py` mines them from corpus full text
+(cohesion PMI + left/right boundary entropy + stopword / t2s / tiered-freq /
+rare-char filters), emits `data/supplemental/phrases_discovered.tsv`, which
+feeds `compose_phrase_readings` as an extra phrase source — so they get pinyin
+(Unihan cartesian) + corpus-derived freq like any other word. This is the
+systematic, in-corpus alternative to hand-curated supplemental word lists.
+Two known statistical ceilings: words made of two high-freq chars are a PMI
+dead-zone (点赞), and low-freq real words share the freq band with name
+fragments (precision/recall trade-off, handled by the tiered gate).
 
 What we *deliberately don't use*:
 - Search-engine query logs (don't have access, privacy concerns).
