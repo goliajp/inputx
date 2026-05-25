@@ -55,7 +55,7 @@ nihao	你好	pinyin	high-freq-staple
 zhongguo	中国	pinyin	high-freq-staple
 kaopu	靠谱	pinyin	user-report-2026-05-25 was-zero(Path5 d78ec45)+was-#3-behind-JP-kana; COMPOSED_FALLBACK_SCORE 250k now ranks 靠谱 #1 in Mixed+JP
 zhagan	榨干	pinyin	user-report-2026-05-25 coverage-gap (not in any source incl jieba); FAILING until rebuild adds it
-woyao	我要	pinyin	user-report-2026-05-25 OK in pinyin/mixed; in Mixed+JP the JP adapter emits をや小/をや尾 (kana+kanji partial-parse garbage) outranking 我要 — separate JP-filter bug (is_jp_clean misses kana+kanji); FAILING in Mixed+JP
+woyao	我要	pinyin	user-report-2026-05-25 OK in pinyin/mixed; in Mixed+JP the JP adapter spliced particle-kana-led kanji garbage (をや小/をや尾) above 我要 — FIXED: is_jp_clean now rejects kanji-containing candidates that don't start with kanji; 我要 #1 in all three modes
 # Pollution NEGATIVE case (not expressible as expected_top — filter requirement
 # for 04_layer_assign / CP3): `maodund` must NOT surface 矛盾的特 (corpus
 # fragment of 矛盾的特殊性, leaked past MIN_FREQ at freq 2895). user-report-2026-05-25.

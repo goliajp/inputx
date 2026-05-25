@@ -11,16 +11,45 @@
 
 use inputx_jp::JapaneseEngine;
 
-/// Filter: drop candidates that contain residual ASCII letters. Where they
-/// come from: `inputx_jp`'s Hepburn romaji→kana state machine treats
-/// unclaimed letters (e.g. `g` not followed by a vowel) as literal Latin
-/// passthrough. For an input like `gkih`, the engine produces `g` →
-/// (consumes `ki` as `き`) → `h` and emits `gきh` / `gキh` — mechanically
-/// correct for the engine's contract, but useless as an IME candidate.
-/// We drop anything with any ASCII alpha here so cross-engine merge never
-/// sees garbage. (Pure kanji / pure kana stays.)
+/// Filter: drop candidates that aren't usable IME output. Two rejection
+/// classes, both products of the engine's mechanical rendering rather than
+/// of real conversion:
+///
+/// 1. **Residual ASCII letters.** `inputx_jp`'s Hepburn romaji→kana state
+///    machine treats unclaimed letters (e.g. `g` not followed by a vowel)
+///    as literal Latin passthrough. For `gkih` it produces `g` →
+///    (consumes `ki` as `き`) → `h` and emits `gきh` / `gキh` —
+///    mechanically correct for the engine's contract, useless as an IME
+///    candidate.
+///
+/// 2. **Particle-kana-led kanji garbage.** `compose_sentence`'s bare-tail
+///    / 2-segment paths can splice a leading particle kana onto a trailing
+///    single-kanji reading: `woyao` → `をや小` (particle を+や leading 小,
+///    the `o`-reading kanji), drowning out 我要. A real JP conversion that
+///    contains *any* kanji is always content-word-led — 私は学生, 食べる
+///    (okurigana), 日本です all START with kanji. So a candidate that
+///    contains kanji but does not start with kanji is spliced junk. Pure
+///    kana (をやお / ヲヤオ) and pure kanji (日本) are unaffected.
 fn is_jp_clean(word: &str) -> bool {
-    !word.chars().any(|c| c.is_ascii_alphabetic())
+    if word.chars().any(|c| c.is_ascii_alphabetic()) {
+        return false;
+    }
+    if word.chars().any(is_kanji) {
+        if let Some(first) = word.chars().next() {
+            if !is_kanji(first) {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// CJK Unified Ideographs basic block — the same range the wubi import
+/// tools and the composite proptest generators use for "is this a Han
+/// character". Kana (U+3040–30FF) deliberately fall outside, so okurigana
+/// tails and particle kana don't read as kanji here.
+fn is_kanji(c: char) -> bool {
+    ('\u{4E00}'..='\u{9FFF}').contains(&c)
 }
 
 pub struct JapaneseAdapter {
@@ -189,5 +218,48 @@ mod tests {
             !cands.is_empty(),
             "expected JP candidates for konnichiwa, got empty"
         );
+    }
+
+    #[test]
+    fn woyao_drops_particle_kana_led_kanji_garbage() {
+        // User-reported (2026-05-25): `woyao --mode mixed --jp` surfaced
+        // をや小 / をや尾 / をや和 (particle を+や leading an `o`-reading
+        // single kanji) above 我要. These are spliced junk from
+        // compose_sentence's bare-tail path — drop them at the boundary.
+        let mut jp = JapaneseAdapter::new();
+        for b in b"woyao" {
+            jp.handle_letter(*b);
+        }
+        for cand in jp.candidates() {
+            assert!(
+                is_jp_clean(&cand),
+                "candidate `{}` is particle-kana-led kanji garbage — should be filtered",
+                cand
+            );
+        }
+        // The clean kana renderings (をやお / ヲヤオ) must still survive so
+        // JP isn't left empty for this buffer.
+        assert!(
+            jp.candidates().iter().any(|c| c.chars().all(|ch| !is_kanji(ch))),
+            "expected at least one pure-kana candidate to survive, got {:?}",
+            jp.candidates()
+        );
+    }
+
+    #[test]
+    fn kanji_led_candidates_survive_filter() {
+        // Guard against over-filtering: content-word-led conversions that
+        // legitimately carry trailing kana — particle composition (私は
+        // 学生), okurigana (食べる), copula (日本です) — must NOT be
+        // dropped, and pure kana / pure kanji stay clean.
+        assert!(is_jp_clean("私は学生"), "kanji-led particle composition");
+        assert!(is_jp_clean("食べる"), "okurigana: kanji + trailing kana");
+        assert!(is_jp_clean("日本です"), "kanji-led + copula kana");
+        assert!(is_jp_clean("日本"), "pure kanji");
+        assert!(is_jp_clean("をやお"), "pure hiragana");
+        assert!(is_jp_clean("ヲヤオ"), "pure katakana");
+        // The garbage forms must be rejected.
+        assert!(!is_jp_clean("をや小"), "particle-kana-led kanji");
+        assert!(!is_jp_clean("をや尾"), "particle-kana-led kanji");
     }
 }
