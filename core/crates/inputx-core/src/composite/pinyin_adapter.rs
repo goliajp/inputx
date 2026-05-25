@@ -70,6 +70,14 @@ pub struct PinyinAdapter {
     /// default pick when the user types something long-and-pinyin-shaped
     /// like `nihaomawojiao`.
     composed_sentence: Option<String>,
+    /// `best_composition`'s path score for `composed_sentence` (the Viterbi
+    /// DP total: Σ raw_freq + bigram − STEP_PENALTY). Always negative;
+    /// per-char it's a quality signal — junk forced compositions like
+    /// 是嗯据库 (for the Japanese romaji `shinjuku`) sit far more negative
+    /// (~−22k/char) than real sentences (你好吗我叫 ~−11k/char). Used in
+    /// `candidates_with_scores` to demote a low-quality composition below the
+    /// kana / non-exact tiers instead of giving it the fixed COMPOSED_SCORE.
+    composed_score: Option<f64>,
     /// Candidates that came from fuzzy-pinyin expansion (z↔zh, c↔ch,
     /// s↔sh, etc. on the buffer prefix). Tracked so
     /// `candidates_with_scores` can apply a score discount — a fuzzy
@@ -132,6 +140,7 @@ impl PinyinAdapter {
             candidates: Vec::with_capacity(16),
             has_non_speculative_candidate: false,
             composed_sentence: None,
+            composed_score: None,
             fuzzy_candidates: HashSet::new(),
             fallback_composition: None,
         }
@@ -276,15 +285,32 @@ impl PinyinAdapter {
         // exact_map (built from `lookup_with_scores_into(self.buffer)`)
         // only sees the typed-buffer entries. Give them a mid-tier base.
         const FUZZY_BASE: f64 = 350_000.0;
-        // When an exact full-buffer dict word exists, a Viterbi forced
-        // segmentation (用中 for yongzhong) is LOWER confidence than the
-        // real phrase (臃肿) — drop the composition just below the lowest
-        // exact score so every real word leads. With NO exact word (long
-        // inputs like nihaomawojiao→你好吗我叫) keep the high COMPOSED_SCORE
-        // so the composition still wins #0. User-reported 2026-05-25:
-        // 用中 (composition 500k) wrongly beat 臃肿 (exact 420k).
+        // Per-char Viterbi path-score floor separating a real composed
+        // sentence from junk. best_composition's score is Σraw_freq+bigram−
+        // STEP_PENALTY (always negative); per char a real sentence sits around
+        // −11k (你好吗我叫) while a forced junk segmentation of non-pinyin
+        // input sits ~−22k (是嗯据库 for the Japanese romaji `shinjuku`).
+        const COMPOSED_QUALITY_FLOOR: f64 = -15_000.0;
+        // Floor for a junk composition — below the pinyin non-exact tier
+        // (~244k) and the kana tiers so it sinks out of the visible window
+        // instead of polluting #2. User-reported 2026-05-26 (shinjuku→是嗯据库).
+        const COMPOSED_LOW_QUALITY: f64 = 120_000.0;
+        // Composition base:
+        //   * exact full-buffer dict word exists → drop just below the lowest
+        //     exact score (用中 < 臃肿 for yongzhong, 2026-05-25).
+        //   * no exact word, but the composition is GOOD (per-char score above
+        //     floor) → keep the high COMPOSED_SCORE so it wins #0
+        //     (nihaomawojiao→你好吗我叫).
+        //   * no exact word and the composition is JUNK (per-char below floor)
+        //     → COMPOSED_LOW_QUALITY so 是嗯据库-style garbage sinks.
         let composed_base = if exact_map.is_empty() {
-            COMPOSED_SCORE
+            let per_char = self.composed_score
+                .map(|s| s / (self.buffer.chars().count().max(1) as f64));
+            if per_char.is_some_and(|pc| pc < COMPOSED_QUALITY_FLOOR) {
+                COMPOSED_LOW_QUALITY
+            } else {
+                COMPOSED_SCORE
+            }
         } else {
             let min_exact = exact_map.values().copied().fold(f64::INFINITY, f64::min);
             (min_exact - 1.0).min(COMPOSED_SCORE)
@@ -452,6 +478,7 @@ impl PinyinAdapter {
         self.candidates.clear();
         self.has_non_speculative_candidate = false;
         self.composed_sentence = None;
+        self.composed_score = None;
         self.fuzzy_candidates.clear();
         self.fallback_composition = None;
         if self.buffer.is_empty() {
@@ -491,9 +518,10 @@ impl PinyinAdapter {
         //      false positive. Threshold 8 sidesteps this entirely:
         //      no real ambiguous short composition reaches it.
         if self.buffer.len() >= 8
-            && let Some((_, sentence)) = self.engine.dict().best_composition(&self.buffer)
+            && let Some((score, sentence)) = self.engine.dict().best_composition(&self.buffer)
         {
             self.composed_sentence = Some(sentence.clone());
+            self.composed_score = Some(score);
             // Push into candidates immediately so it surfaces even when
             // Path 1/2/3 all return empty for this long buffer
             // (user-reported "yongbuliao → no candidates" 2026-05-24).
