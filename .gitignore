@@ -17,6 +17,10 @@ core/crates/inputx-pinyin/data/corpus/cache/
 core/crates/inputx-pinyin/data/unihan/
 core/crates/inputx-pinyin/data/jieba/
 core/crates/inputx-wubi/data/corpus/cache/
+# mozc dictionary_oss download (BSD-3, ~59 MB) — regenerable via the curl loop
+# in build_mozc_jukugo.py's docstring; the derived jp_jukugo_mozc_v1.tsv IS
+# committed (and jukugo.rs is generated from it).
+tools/jp/.mozc_cache/
 
 # Editor swap / temp
 *.rs.tmp
