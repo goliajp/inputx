@@ -163,16 +163,20 @@ pub const TC_DEMOTE_MULTIPLIER: f64 = 1e-3;
 /// Wubi-first PROMOTE for a full-code (4-key) exact wubi **Phrase** hit
 /// when the user is simultaneously typing a valid pinyin word
 /// (`pinyin_intent`). User rule (2026-05-25, aiyi→东京): a *complete*
-/// wubi code is a high-confidence wubi-first signal that must beat a
-/// same-tier pinyin word even when the wubi entry's freq is somewhat
-/// lower. With Phrase base = 400k, ×1.2 → 480k, giving a full-code phrase
-/// roughly an 80k freq-equivalent head-start over a pinyin 二字词 (so a
-/// same-tier or modestly-lower-freq wubi phrase wins, while a *far* higher
-/// freq pinyin word can still climb back). Bounded deliberately below the
-/// Zigen base (500k) so this never reorders wubi's own internal layers
-/// (Jianma1/2/3 + Zigen still outrank a promoted Phrase). NOT applied to
+/// wubi code is a high-confidence wubi-first signal that should edge out a
+/// *same-freq* pinyin word.
+///
+/// Tuned to ×1.1 (was 1.2). With Phrase base ~400k that's a ~40k
+/// freq-equivalent edge — enough that a same-or-slightly-lower-freq wubi
+/// phrase wins (aiyi: 东京 raw 429k already tops 爱意 425k, promote widens
+/// it), but NOT enough to flip a *clearly* higher-freq pinyin word. The
+/// 2026-05-26 jixu regression forced this down: 曳光弹 (rare wubi 3-char
+/// coincidence, raw 407k) was beating 继续 (common pinyin, raw 475k —
+/// 67k higher) because ×1.2 gave an 80k edge; ×1.1's 40k edge keeps 继续
+/// ahead while still honoring the aiyi same-freq case. Bounded below the
+/// Zigen base (500k) so wubi-internal layering is untouched. NOT applied to
 /// speculative short buffers (those keep the 0.5 demote) nor to Auto junk.
-pub const WUBI_FULL_CODE_PHRASE_PROMOTE: f64 = 1.2;
+pub const WUBI_FULL_CODE_PHRASE_PROMOTE: f64 = 1.1;
 
 /// Multiplier applied to L0-pinned words inside the engine's
 /// `lookup_with_scores_into`. Brings any pin above any natural score:
