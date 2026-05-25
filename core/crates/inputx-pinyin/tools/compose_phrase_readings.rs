@@ -71,6 +71,20 @@ fn main() -> std::io::Result<()> {
         )
     });
 
+    // CP3c: corpus-discovered new words (jieba coverage gaps — 给力/吐槽/
+    // 网红/靠前/榨干 ...). Optional; empty if discovery hasn't been run. Same
+    // `word\tfreq` format as jieba, fed through the SAME processing loop so
+    // they get pinyin via the Unihan cartesian fallback (by definition these
+    // are not in pypinyin). Produced by tools/scoring/discover_new_words.py.
+    let discovered_path =
+        crate_dir.join("../../../tools/scoring/data/supplemental/phrases_discovered.tsv");
+    let discovered_txt = fs::read_to_string(&discovered_path).unwrap_or_default();
+    eprintln!(
+        "loaded {} bytes of discovered phrases from {}",
+        discovered_txt.len(),
+        discovered_path.display()
+    );
+
     // char → readings
     let mut readings: HashMap<char, Vec<String>> = HashMap::with_capacity(50_000);
     for line in unihan_txt.lines() {
@@ -144,7 +158,7 @@ fn main() -> std::io::Result<()> {
     let mut pypinyin_hits = 0u64;
     let mut cartesian_phrases = 0u64;
 
-    for line in jieba_txt.lines() {
+    for line in jieba_txt.lines().chain(discovered_txt.lines()) {
         if line.is_empty() || line.starts_with('#') {
             continue;
         }

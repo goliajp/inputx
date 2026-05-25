@@ -37,7 +37,7 @@
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
-use std::io::Read;
+use std::io::{BufRead, Read};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -704,8 +704,37 @@ fn read_corpus(path: &Path, format: &str) -> Result<String, String> {
             }
             Ok(out)
         }
+        "jsonl_dialog" => {
+            // LCCC-style dialogue corpus: gzip-compressed JSONL where each
+            // line is a JSON array of utterance strings, and each utterance
+            // is jieba-tokenized (space-separated). Strip whitespace so
+            // multi-char words are contiguous for Aho-Corasick (otherwise
+            // "靠 谱" never matches the pattern "靠谱"), and emit one
+            // utterance per line — the trailing newline is a hard boundary
+            // that prevents cross-utterance substring matches, mirroring the
+            // natural sentence boundaries in the tar_gz / plain sources.
+            let f = fs::File::open(path).map_err(|e| format!("open jsonl.gz: {e}"))?;
+            let reader = std::io::BufReader::new(GzDecoder::new(f));
+            let mut out = String::new();
+            for line in reader.lines() {
+                let line = line.map_err(|e| format!("read jsonl.gz: {e}"))?;
+                let trimmed = line.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                let utts: Vec<String> = match serde_json::from_str(trimmed) {
+                    Ok(v) => v,
+                    Err(_) => continue, // skip malformed line
+                };
+                for utt in utts {
+                    out.extend(utt.chars().filter(|c| !c.is_whitespace()));
+                    out.push('\n');
+                }
+            }
+            Ok(out)
+        }
         other => Err(format!(
-            "format `{other}` not supported (try `plain`, `gzip`, `bzip2`, `tar_gz`, or `frequency_list`)"
+            "format `{other}` not supported (try `plain`, `gzip`, `bzip2`, `tar_gz`, `jsonl_dialog`, or `frequency_list`)"
         )),
     }
 }
