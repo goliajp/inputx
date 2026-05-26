@@ -7,6 +7,27 @@ import InputxKit
 // each declared input mode. install.sh runs this immediately after copying
 // the .app into place so the IME shows up in the picker AND lands in the
 // user's enabled input-source list in one step.
+// DIAGNOSTIC 2026-05-26 — direct candidate dump bypassing IMK/LaunchAgent.
+// Verifies whether the mac binary's bundled inputx-core gives the same
+// candidate order as cli inputx-probe. If yes: IME-layer caching/timing
+// bug. If no: the mac binary links a different (stale) inputx-core.
+if CommandLine.arguments.count >= 3, CommandLine.arguments[1] == "probe" {
+    let buf = CommandLine.arguments[2]
+    let sess = InputxSession()
+    sess.setEngineMode(.mixed)
+    sess.setJapaneseEnabled(true)
+    for codepoint in buf.unicodeScalars {
+        _ = sess.handleKey(codepoint: codepoint.value, modifiers: InputxModifiers(rawValue: 0))
+    }
+    let n = min(sess.candidateCount, 5)
+    for i in 0..<n {
+        let w = sess.candidate(at: i) ?? "?"
+        let s = sess.candidateSource(at: i)
+        print("#\(i+1) \(w) (\(s))")
+    }
+    exit(0)
+}
+
 if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "install" {
     let modeIDs: [String] = {
         guard let comp = Bundle.main.infoDictionary?["ComponentInputModeDict"] as? [String: Any],
