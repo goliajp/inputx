@@ -476,6 +476,46 @@ mod tests {
     }
 
     #[test]
+    fn mixed_jixu_continue_leads_after_prior_correction() {
+        // User polish-log 2026-05-26 screenshot: jixu shows 积蓄 #1 / 继续 #2.
+        // Probe attributed it to corpus freq inflation (积蓄 = 166k vs 继续
+        // = 75k, newswire/financial source bias). User attestation: "继续
+        // 还是应该在第一的，这个感觉比积蓄要高频". prior_correction adds a
+        // ×2 boost on 继续 so it clears 积蓄 at jixu and any other buffer
+        // where corpus underrates 继续.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"jixu" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("继续"),
+            "继续 must lead jixu (prior_correction × 2 over corpus 积蓄 inflation); \
+             got top5={top:?}");
+    }
+
+    #[test]
+    fn mixed_sheji_design_leads_after_prior_correction() {
+        // User polish-log 2026-05-26 screenshot: sheji shows 涉及 #1 / 设计 #2.
+        // Same corpus-skew pattern as jixu→继续 (news/academic sources
+        // over-represent 涉及). User attestation: "设计肯定应该高于涉及".
+        // prior_correction ×2 boost on 设计 surfaces it at #1.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"sheji" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("设计"),
+            "设计 must lead sheji (prior_correction × 2 over corpus 涉及 inflation); \
+             got top5={top:?}");
+    }
+
+    #[test]
     fn mixed_jixu_pinyin_word_beats_wubi_coincidence() {
         // User-reported 2026-05-26 (REGRESSION — keep this as a permanent
         // guard): `jixu` should give 继续 (common pinyin word), not 曳光弹

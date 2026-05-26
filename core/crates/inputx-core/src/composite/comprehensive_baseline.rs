@@ -620,13 +620,25 @@ mod tests {
 
     #[test]
     fn polish_log_promoted_words_lead() {
-        // These came from user actual polish-log picks:
+        // These came from user actual polish-log picks (auto-aggregated by
+        // `aggregate_polish_log.py`), with subsequent user re-evaluations
+        // overriding the historical signal when the context that produced
+        // the picks isn't representative of daily usage.
         let cases: &[(&str, &str)] = &[
             ("queshi", "缺失"),   // user picked 4× over 确实
             ("youshi", "优势"),   // 5×
             ("rongyu", "冗余"),   // 5×
-            ("jixu", "积蓄"),     // 28× — strongest signal
+            // jixu: polish-log 28× had been 积蓄 (likely from a
+            // financial-context typing burst). User re-attestation 2026-05-26
+            // direct screenshot: "继续还是应该在第一的，这个感觉比积蓄要高频" —
+            // daily-use 继续 dominates. prior_correction × 2 on 继续 enforces
+            // this; baseline test follows the user's overriding pick.
+            ("jixu", "继续"),
             ("yuming", "域名"),   // 4× + modern_vocab
+            // sheji: user 2026-05-26 screenshot showed 涉及 #1 / 设计 #2.
+            // Same pattern as jixu — corpus over-represents 涉及 (academic /
+            // news bias). User: "设计肯定应该高于涉及". prior_correction × 2.
+            ("sheji", "设计"),
         ];
         run("polish_log", cases, pinyin_top, pinyin_top10);
     }

@@ -381,20 +381,33 @@ pub fn merge(
     let demote = |w: &str, s: f64| -> f64 {
         if contains_demote_tc(w) { s * LIKELIHOOD_TC_DEMOTE_MULT } else { s }
     };
+    // Scoring-layer prior correction: user-curated word→multiplier table.
+    // Applied uniformly across sources at the merge chokepoint (same shape
+    // as `blacklist` / TC `demote`). Each entry is a documented polish-log
+    // case where corpus freq diverges from real-world usage; see
+    // `prior_correction.rs` for the contract. 1.0 (no-op) for any word not
+    // in the table — overhead is one O(N) linear scan over a tiny list.
+    let correct = |w: &str, s: f64| -> f64 {
+        s * super::prior_correction::correction_for(w)
+    };
     for (w, s, c) in wubi {
-        let s = demote(&w, s);
+        let s = correct(&w, demote(&w, s));
         all.push(Candidate { word: w, source: Source::Wubi, score: s, components: c });
     }
     for (w, s, c) in pinyin {
-        let s = demote(&w, s);
+        let s = correct(&w, demote(&w, s));
         all.push(Candidate { word: w, source: Source::Pinyin, score: s, components: c });
     }
     for (w, s, c) in jp_kanji {
         // JP candidates are explicitly JP — TC demote doesn't apply
         // (whether a JP kanji happens to share form with TC is fine).
+        // prior_correction still applies (JP words can also be in the
+        // calibration table if user reports JP-side corpus skew).
+        let s = correct(&w, s);
         all.push(Candidate { word: w, source: Source::Japanese, score: s, components: c });
     }
     for (w, s, c) in jp_kana {
+        let s = correct(&w, s);
         all.push(Candidate { word: w, source: Source::Japanese, score: s, components: c });
     }
     // Stable sort by score desc — ties keep input order (wubi first).
