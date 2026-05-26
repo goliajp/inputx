@@ -177,11 +177,31 @@ pub const LIKELIHOOD_WUBI_PREDICT_BASE: f64 = 50_000.0;
 /// "7/8 of code" around base + freq·0.67 — predictions rise as the
 /// user types closer to the word.
 ///
+/// Must also sit BELOW:
+///   - `FUZZY_BASE * FUZZY_DISCOUNT` (= 350k * 0.7 = 245k in
+///     pinyin_adapter): a fuzzy match (`famin` → `faming` via in↔ing
+///     swap) is a higher-confidence match than mid-typing prediction —
+///     user typed a typo of an EXISTING word, vs typed a prefix toward
+///     SOME word. Polish-log 2026-05-27 (`famin`): user reported
+///     发明家 (prediction, base 250k + decay = 253k) outranking 发明
+///     (fuzzy, 245k); fix is base lowered so prediction stays below
+///     fuzzy across the proximity range.
+///   - JP exact whole-buffer kana (`LIKELIHOOD_JP_HIRAGANA_BASE` +
+///     full freq lift ≈ 240k for `fami` → ファミ): an exact JP match
+///     for the typed buffer (proximity=1.0) is more confident than a
+///     pinyin mid-typing prediction. Polish-log 2026-05-27 (`fami`):
+///     pinyin predictions buried ファミ / ふぁみ.
+///
+/// Calibration: cap at 180k. With max freq ~50k and proximity^3 max 1.0,
+/// peak prediction lands at 180k + 50k = 230k — comfortably below
+/// fuzzy 245k and JP exact 240k. NON_EXACT_FLOOR (1k) remains well
+/// below. Real Chinese exact (400k+) still leads.
+///
 /// Only applies when `allow_prefix_completion` fires
 /// (`has_non_speculative_candidate == false`), so exact matches like
 /// `lianxiang → 联想` are not affected (2026-05-22 user rule). Wired
 /// into `predict_score()` below.
-pub const LIKELIHOOD_PINYIN_PREDICT_BASE: f64 = 250_000.0;
+pub const LIKELIHOOD_PINYIN_PREDICT_BASE: f64 = 180_000.0;
 
 /// **LIKELIHOOD** — JP full-match PROMOTE: multiplier applied to *every*
 /// JP candidate's score when the buffer yields a real full-buffer 熟語
@@ -469,7 +489,7 @@ mod tests {
         // pinned by CP-B; CP-C adds WUBI alongside.
         assert_eq!(PRIOR_FREQ_MULT_PINYIN, 1.0);
         assert_eq!(PRIOR_FREQ_MULT_WUBI, 1.0);
-        assert_eq!(LIKELIHOOD_PINYIN_PREDICT_BASE, 250_000.0);
+        assert_eq!(LIKELIHOOD_PINYIN_PREDICT_BASE, 180_000.0);
         assert_eq!(LIKELIHOOD_WUBI_PREDICT_BASE, 50_000.0);
     }
 
