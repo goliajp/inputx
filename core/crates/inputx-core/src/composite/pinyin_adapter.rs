@@ -288,10 +288,19 @@ impl PinyinAdapter {
         // dict-pipeline T0); once there they score as real words, above this.
         const COMPOSED_FALLBACK_SCORE: f64 = 250_000.0;
         // Fuzzy-match discount: a candidate that only matched after
-        // initial-prefix fuzzy expansion (z↔zh, etc.) loses 30% of its
-        // score. Still better than nothing, but clear loser to any
-        // exact match for the same buffer.
-        const FUZZY_DISCOUNT: f64 = 0.7;
+        // initial-prefix fuzzy expansion (z↔zh, f↔h, etc.) is a typo-
+        // correction guess — the user typed something close to, but not
+        // the same as, a real dict entry. User rule 2026-05-27 ("你都
+        // 打错了，有就不错了") puts fuzzy at the BOTTOM of the tier
+        // ordering: above NON_EXACT_FLOOR (1k) so it stays visible, but
+        // BELOW prediction (CP-B, base 180k + decay → 180-230k range)
+        // and BELOW JP exact whole-buffer (240k). User-reported: `fami`
+        // surfaced 哈密 / 哈米 (fuzzy of `hami` via f↔h swap) above
+        // ファミ — the typo-correction guess outranked the JP exact
+        // match. Calibration: FUZZY_BASE * FUZZY_DISCOUNT = 350k * 0.3
+        // = 105k, comfortably below prediction min 180k and JP exact
+        // 240k.
+        const FUZZY_DISCOUNT: f64 = 0.3;
         // Fuzzy candidates need a synthetic base if they have no exact
         // dict entry at the typed buffer — they DO have an entry at the
         // fuzzy-variant buffer (`zhongguo` for typed `zongguo`), but
@@ -334,14 +343,22 @@ impl PinyinAdapter {
                     (exact_map.get(w).copied().unwrap_or(composed_base), None)
                 } else if is_fallback {
                     (COMPOSED_FALLBACK_SCORE, None)
-                } else if is_fuzzy {
-                    (FUZZY_BASE * FUZZY_DISCOUNT, None)
                 } else if let Some(s) = exact_map.get(w).copied() {
                     (s, None)
                 } else if let Some(s) = self.prefix_scored.get(w).copied() {
                     // CP-B prediction hit: pull the decomposition from the
                     // parallel components map so probe can render it.
+                    // Checked BEFORE fuzzy: when a word is reachable both as
+                    // a mid-typing prediction (`famin*` → 发明 via prefix
+                    // scan) AND as a typo-corrected fuzzy hit (`famin` ↔
+                    // `faming` via in↔ing swap), the prediction reading is
+                    // more confident (the user is mid-typing toward a real
+                    // word) than the typo guess. User polish-log 2026-05-27:
+                    // 发明 should rank as prediction for `famin`, not as
+                    // bottom-tier fuzzy.
                     (s, self.prefix_components.get(w).copied())
+                } else if is_fuzzy {
+                    (FUZZY_BASE * FUZZY_DISCOUNT, None)
                 } else {
                     (NON_EXACT_FLOOR * 0.99f64.powi(i as i32), None)
                 };
@@ -971,21 +988,30 @@ fn push_prefix_top_k(
     drained.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
     let prefix_len = prefix.len();
     for (freq, word, pinyin_len) in drained {
+        // Always populate out_scored/out_components for prediction hits,
+        // even when the word is already in `seen` (e.g., a fuzzy path
+        // inserted it earlier). The scoring layer checks prefix_scored
+        // BEFORE fuzzy_candidates so an entry that's reachable as both
+        // a mid-typing prediction AND a typo-corrected fuzzy match gets
+        // the prediction (180k+) score, not the fuzzy (105k) score —
+        // user polish-log 2026-05-27 (`famin` → 发明: prefix-scan of
+        // `famin*` finds `faming`→发明 as prediction, fuzzy swap
+        // in↔ing ALSO finds 发明; the prediction reading is the
+        // confident one).
+        let proximity = (prefix_len as f64 / pinyin_len.max(1) as f64).min(1.0);
+        let (score, components) = scoring::predict_score_with_components(
+            scoring::LIKELIHOOD_PINYIN_PREDICT_BASE,
+            freq,
+            scoring::PRIOR_FREQ_MULT_PINYIN,
+            proximity,
+        );
+        out_scored.insert(word.clone(), score);
+        out_components.insert(word.clone(), components);
+        // Candidate-list push: only when not already there (dedup vs.
+        // earlier paths' insertions). The scored/components maps above
+        // are populated unconditionally so the upgrade path can hit
+        // them via word-key lookup.
         if seen.insert(word.clone()) {
-            // CP-B: emit a probability-framed score per winner.
-            // proximity = prefix.len() / pinyin_len ∈ (0, 1]. At exact
-            // (pinyin_len == prefix.len()) proximity is 1.0 and signal
-            // is undecayed; at "half-typed" proximity 0.5, signal damps
-            // to 0.5^3 = 0.125.
-            let proximity = (prefix_len as f64 / pinyin_len.max(1) as f64).min(1.0);
-            let (score, components) = scoring::predict_score_with_components(
-                scoring::LIKELIHOOD_PINYIN_PREDICT_BASE,
-                freq,
-                scoring::PRIOR_FREQ_MULT_PINYIN,
-                proximity,
-            );
-            out_scored.insert(word.clone(), score);
-            out_components.insert(word.clone(), components);
             out.push(word);
         }
     }
