@@ -75,9 +75,28 @@ impl JapaneseEngine {
     }
 
     /// Push one ASCII letter into the buffer and re-render candidates.
-    /// Returns `true` if the letter was accepted (a-z, A-Z); non-letters
-    /// are rejected without altering state.
+    /// Returns `true` if the letter was accepted; rejected letters leave
+    /// state unchanged so the IME controller can route the byte elsewhere
+    /// (locale punct mapping, raw passthrough).
+    ///
+    /// Accepted bytes:
+    ///   - `a-z`, `A-Z` (the romaji alphabet — lowercased on push)
+    ///   - `-` *only when the buffer is non-empty* — chōonpu (ー / long-vowel
+    ///     mark). `romaji::TABLE` maps `-` to `ー` so a buffer of `"koohi-"`
+    ///     renders as `コーヒー`. Empty-buffer `-` is rejected so a stranded
+    ///     hyphen still routes to the host as ASCII punctuation rather than
+    ///     becoming a leading `ー` with no preceding syllable. User-reported
+    ///     2026-05-27: `-` must be typeable as JP chōonpu, otherwise long-
+    ///     vowel words like コーヒー are unreachable.
     pub fn handle_letter(&mut self, c: u8) -> bool {
+        if c == b'-' {
+            if self.buffer.is_empty() {
+                return false;
+            }
+            self.buffer.push(b'-');
+            self.refresh_candidates();
+            return true;
+        }
         if !c.is_ascii_alphabetic() {
             return false;
         }
@@ -452,6 +471,50 @@ fn compose_sentence(buffer: &str) -> Vec<Candidate> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn chouonpu_hyphen_extends_buffer_when_composing() {
+        // Mozc-standard romaji for コーヒー is `ko-hi-` (chōonpu enters
+        // literally as `-` → ー). Buffer "ko-hi-" renders コーヒー /
+        // こーひー via romaji::TABLE entry e("-", "ー", "ー").
+        // Bare-letter `koohi` would render コオヒー (literal oo→オオ),
+        // which is correct kana for that romaji but not the chōonpu form.
+        let mut e = JapaneseEngine::new();
+        for b in b"ko" { assert!(e.handle_letter(*b)); }
+        assert!(e.handle_letter(b'-'), "`-` must be accepted as chouonpu mid-composition");
+        for b in b"hi" { assert!(e.handle_letter(*b)); }
+        assert!(e.handle_letter(b'-'), "trailing `-` also accepted");
+        let cands = e.candidates();
+        assert!(cands.iter().any(|c| c.word == "コーヒー"),
+            "expected コーヒー (katakana with chouonpu) among candidates, got {:?}",
+            cands.iter().map(|c| &c.word).collect::<Vec<_>>());
+        assert!(cands.iter().any(|c| c.word == "こーひー"),
+            "expected こーひー (hiragana with chouonpu) among candidates");
+    }
+
+    #[test]
+    fn chouonpu_hyphen_literal_oo_no_auto_chouonpu() {
+        // Sanity guard for the chōonpu rule: `koo` does NOT auto-convert
+        // double-o to ー (matches mozc/Google IME behavior — chōonpu must
+        // be entered explicitly via `-`). User typing `koohi` gets
+        // コオヒ / こおひ, not コーヒ.
+        let mut e = JapaneseEngine::new();
+        for b in b"koo" { assert!(e.handle_letter(*b)); }
+        let cands = e.candidates();
+        assert!(cands.iter().any(|c| c.word == "コオ"),
+            "expected コオ for `koo`; got {:?}", cands.iter().map(|c| &c.word).collect::<Vec<_>>());
+        assert!(!cands.iter().any(|c| c.word.contains("コー") && c.word.chars().count() <= 2),
+            "double-o must not auto-convert to chōonpu");
+    }
+
+    #[test]
+    fn chouonpu_hyphen_rejected_on_empty_buffer() {
+        // Empty-buffer `-` must reject so the IME controller routes it as
+        // punctuation, not as a stranded ー.
+        let mut e = JapaneseEngine::new();
+        assert!(!e.handle_letter(b'-'), "empty-buffer `-` must reject");
+        assert_eq!(e.preedit(), "", "rejected `-` must leave buffer empty");
+    }
 
     #[test]
     fn single_letter_a_gives_hiragana_katakana() {

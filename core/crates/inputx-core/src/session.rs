@@ -189,6 +189,20 @@ impl Session {
             return true;
         }
 
+        // `-` (chōonpu / long-vowel mark) routes to the engine ONLY when JP
+        // is mid-composition (e.g., `koohi` + `-` → コーヒー). Outside JP
+        // composing — wubi/pinyin in progress, or no engine composing — `-`
+        // falls through to the IME controller's locale punct path so it
+        // ends up as raw ASCII / 全角 hyphen on the host. User-reported
+        // 2026-05-27: `-` must be typeable as chōonpu in JP mode.
+        if codepoint == b'-' as u32 && self.composite.japanese_is_composing() {
+            if let Some(text) = self.composite.handle_letter(b'-') {
+                self.append_pending(text);
+            }
+            self.refresh_caches();
+            return true;
+        }
+
         match codepoint {
             CP_SPACE => {
                 if !self.composite.is_composing() {
@@ -276,6 +290,18 @@ impl Session {
             InputMode::Cjk => self.composite.preedit(),
             // EN mode has no IME-side preedit — host owns the text.
             InputMode::En => "",
+        }
+    }
+
+    /// `true` iff the JP sub-engine currently has a non-empty buffer.
+    /// Lets the IME controller decide whether `-` should route through
+    /// the engine as chōonpu (when JP composing) or fall to locale
+    /// punct (otherwise). EN mode forces false: there's no engine
+    /// composing at all.
+    pub fn japanese_is_composing(&self) -> bool {
+        match self.input_mode {
+            InputMode::Cjk => self.composite.japanese_is_composing(),
+            InputMode::En => false,
         }
     }
 
@@ -448,6 +474,55 @@ mod tests {
 
     fn s() -> Session {
         Session::new()
+    }
+
+    #[test]
+    fn chouonpu_hyphen_extends_jp_composition() {
+        // User polish 2026-05-27: `-` must be typeable as chōonpu (ー) in
+        // JP mode. Mozc-standard romaji for コーヒー is `ko-hi-` (chōonpu
+        // entered explicitly with `-`). With JP enabled and a romaji buffer
+        // in progress, each `-` keystroke should be routed to the engine,
+        // extending the JP composition so コーヒー surfaces among candidates.
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_japanese_enabled(true);
+        for b in b"ko" {
+            assert!(sess.handle_key(*b as u32, 0));
+        }
+        assert!(sess.japanese_is_composing(),
+            "JP buffer should be composing after typing romaji");
+        assert!(sess.handle_key(b'-' as u32, 0),
+            "`-` keystroke must be consumed when JP is composing");
+        for b in b"hi" {
+            assert!(sess.handle_key(*b as u32, 0));
+        }
+        assert!(sess.handle_key(b'-' as u32, 0),
+            "trailing `-` must be consumed");
+        let preedit = sess.preedit().to_string();
+        assert_eq!(preedit, "ko-hi-",
+            "preedit should reflect full chouonpu romaji buffer; got {preedit:?}");
+        // The katakana with chōonpu must surface as a candidate.
+        let cands = sess.candidates();
+        assert!(cands.iter().any(|w| w == "コーヒー"),
+            "コーヒー expected after ko-hi-; got top10={:?}",
+            cands.iter().take(10).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn chouonpu_hyphen_falls_through_when_not_jp_composing() {
+        // Outside JP composition (no JP enabled, or JP buffer empty), `-`
+        // must NOT be consumed by the engine — it should fall through so
+        // the host gets a regular hyphen via locale punct routing.
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        // No JP enabled, no composing — `-` falls through.
+        assert!(!sess.handle_key(b'-' as u32, 0),
+            "`-` must NOT be consumed when no engine is composing");
+        // Even with JP enabled but empty buffer, `-` falls through.
+        sess.set_japanese_enabled(true);
+        assert!(!sess.japanese_is_composing());
+        assert!(!sess.handle_key(b'-' as u32, 0),
+            "`-` must NOT be consumed with JP enabled but empty buffer");
     }
 
     #[test]

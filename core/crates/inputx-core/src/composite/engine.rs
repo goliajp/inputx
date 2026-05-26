@@ -198,6 +198,17 @@ impl CompositeEngine {
                 && self.japanese.as_ref().is_some_and(|j| j.is_composing()))
     }
 
+    /// `true` iff the JP sub-engine is in the middle of a composition.
+    /// Used by `Session::handle_key_cjk` to gate the `-` chōonpu input —
+    /// only when JP is actively composing should `-` be routed through
+    /// the engine (otherwise it stays a punct char). Independent of mode
+    /// gating: in JapaneseOnly always returns the JP buffer state; in
+    /// Mixed it follows the JP adapter (only Some when enable_japanese
+    /// is on).
+    pub fn japanese_is_composing(&self) -> bool {
+        self.japanese.as_ref().is_some_and(|j| j.is_composing())
+    }
+
     /// The active preedit string. In Mixed mode prefers pinyin's longer
     /// buffer if it diverges (e.g., > 4 chars after wubi force-commits);
     /// in JapaneseOnly mode the JP buffer is used. Callers that want a
@@ -238,11 +249,19 @@ impl CompositeEngine {
         }
         // Mixed — prefer pinyin (it captures the full input across
         // wubi force-commits). But fall back to wubi if pinyin's buffer
-        // happens to be empty (e.g., entered Mixed from WubiOnly after
-        // some keystrokes — wubi has state, pinyin does not). JP buffer
-        // mirrors pinyin (same letter-by-letter feed) so it doesn't
-        // need a separate fallback here.
+        // happens to be empty, and (user 2026-05-27 chōonpu polish) also
+        // fall through to JP whenever JP holds a *longer* buffer than
+        // pinyin: this happens when `-` (chōonpu) extends the JP buffer
+        // — pinyin rejects `-`, JP accepts it, so showing the pinyin
+        // buffer would hide the `-` the user just typed and confuse the
+        // preedit display vs the kana candidates.
         let p = self.pinyin.buffer_str();
+        if let Some(j) = self.japanese.as_ref() {
+            let jp = j.buffer_str();
+            if jp.len() > p.len() {
+                return jp;
+            }
+        }
         if !p.is_empty() {
             p
         } else {
