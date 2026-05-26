@@ -15,11 +15,11 @@
 //! `v` form (real input behavior); the segmenter / engine never see `ü` from
 //! the keyboard.
 
-use phf::phf_set;
-
 /// All valid Mandarin syllables in Hanyu Pinyin orthography (no tones,
-/// lowercase, ü → `v` for n/l).
-pub static VALID_SYLLABLES: phf::Set<&'static str> = phf_set! {
+/// lowercase, ü → `v` for n/l). Plain slice + linear membership (zero-dep,
+/// replaces the former `phf::Set`). 403 entries, probed a few dozen times
+/// per keystroke — negligible vs the perfgate budget.
+pub static VALID_SYLLABLES: &[&str] = &[
     // null-initial vowel-only
     "a", "ai", "an", "ang", "ao",
     "e", "ei", "en", "eng", "er",
@@ -100,14 +100,14 @@ pub static VALID_SYLLABLES: phf::Set<&'static str> = phf_set! {
     // s
     "sa", "se", "si", "sai", "sao", "sou", "san", "sen", "sang", "seng", "song",
     "su", "suo", "sui", "suan", "sun",
-};
+];
 
 /// `true` iff `s` is a valid Pinyin syllable. Case-insensitive on ASCII.
 pub fn is_valid(s: &str) -> bool {
     if s.is_ascii() && s.bytes().all(|b| b.is_ascii_lowercase()) {
-        VALID_SYLLABLES.contains(s)
+        VALID_SYLLABLES.contains(&s)
     } else {
-        VALID_SYLLABLES.contains(s.to_ascii_lowercase().as_str())
+        VALID_SYLLABLES.contains(&s.to_ascii_lowercase().as_str())
     }
 }
 

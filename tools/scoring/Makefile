@@ -14,8 +14,9 @@
 DATA := data
 MARK := $(DATA)/.markers
 PYTHON := python3
+ROOT := $(shell git rev-parse --show-toplevel)
 
-.PHONY: rebuild validate clean distclean diff-vs-shipped help
+.PHONY: rebuild validate clean distclean diff-vs-shipped identity-check gate1 help
 
 help:
 	@echo "Targets:"
@@ -39,15 +40,44 @@ $(MARK)/01.done:
 
 02-extract: $(MARK)/02.done
 $(MARK)/02.done: $(MARK)/01.done
-	@echo "[02] extract (word, freq) per source"
+	@echo "[02] extract per-source (word,count) via build_weights dump (Rust counter)"
 	$(PYTHON) 02_extract/run_all.py
 	@touch $@
 
+# CP3b: default normalize is per-source-log-count (SCORING.md §03 intent —
+# per-source scale-free — but keeping count magnitude; chosen over literal
+# rank-based log-rank, which collapsed coverage). See .claude/PLAN-dict-pipeline.md.
 03-normalize: $(MARK)/03.done
 $(MARK)/03.done: $(MARK)/02.done
-	@echo "[03] log-rank normalize per source"
+	@echo "[03] CP3b: per-source-log-count normalize -> merged/"
 	$(PYTHON) 03_normalize/run_all.py
 	@touch $@
+
+# CP2 identity gate (counting-chain regression): the sum-then-log mode must
+# still reproduce the bare build_weights baseline bit-for-bit. Builds to a
+# scratch path so it does not disturb the main per-source-log-count merged/.
+identity-check:
+	@$(PYTHON) 03_normalize/run_all.py --mode sum-then-log --out $(DATA)/baseline/sum-then-log.tsv >/dev/null
+	@cmp $(DATA)/baseline/weights-bare.tsv $(DATA)/baseline/sum-then-log.tsv \
+	    && echo "[identity] OK  sum-then-log mode == bare build_weights baseline" \
+	    || { echo "[identity] DRIFT — counting chain no longer reproduces build_weights"; exit 1; }
+
+# CP3d pollution filter: merged/ → filtered/ (rules ①super-long ②traditional
+# ③function-frag ④surname-name; see 03b_pollution/run_all.py). Rebuilds when the
+# merged weights, the filter, or the committed char tables change.
+$(DATA)/filtered/weights.tsv: $(DATA)/merged/weights.tsv 03b_pollution/run_all.py 03b_pollution/name_chars.tsv 03b_pollution/surnames.tsv
+	$(PYTHON) 03b_pollution/run_all.py
+
+# CP3a/CP3d engine-level gate: build a dict from the FILTERED pipeline weights
+# (no overlay) into baseline/, then run the input_corpus regression against it
+# via probe (which loads it through INPUTX_PINYIN_DICT). Pass GATE1_ARGS=--baseline
+# for a report-only run. Does NOT touch the shipped data/pinyin.dict.
+gate1: $(DATA)/filtered/weights.tsv
+	cd $(ROOT)/core && cargo run -q --release --features tools --bin pinyin-build-dict -- \
+	    --weights $(ROOT)/tools/scoring/$(DATA)/filtered/weights.tsv \
+	    --out $(ROOT)/tools/scoring/$(DATA)/baseline/pipeline.dict --no-overlay
+	$(PYTHON) 07_validate/gate1_regression_corpus.py \
+	    --dict $(DATA)/baseline/pipeline.dict $(GATE1_ARGS)
 
 04-layer-assign: $(MARK)/04.done
 $(MARK)/04.done: $(MARK)/03.done
@@ -86,7 +116,7 @@ validate:
 
 clean:
 	rm -rf $(DATA)/extracted $(DATA)/normalized $(DATA)/layers \
-	       $(DATA)/merged $(DATA)/annotations $(MARK)
+	       $(DATA)/merged $(DATA)/annotations $(DATA)/baseline $(MARK)
 
 distclean: clean
 	rm -rf $(DATA)/raw $(DATA)

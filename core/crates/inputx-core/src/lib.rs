@@ -13,6 +13,10 @@
 mod composite;
 mod input_mode;
 mod session;
+// v3.0 rule engine — scaffolding only at v3.0.1 (no rules migrated
+// yet, existing inline rules continue to execute). Public so tests
+// and the future inputx-debug binary can build rule fixtures.
+pub mod rules;
 
 // `locale` and `wubi` are `pub` so the sibling `inputx-core-ffi` crate can
 // reach `inputx_core::locale::punct::*`, `inputx_core::wubi::set_show_rare`,

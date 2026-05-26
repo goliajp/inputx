@@ -10,6 +10,7 @@
 //! adds `set_engine_mode` / `get_engine_mode` / `candidate_source`
 //! getters.
 
+mod blacklist;
 mod dispatch;
 mod engine;
 mod japanese_adapter;
@@ -18,9 +19,18 @@ mod merge;
 mod mode;
 mod pinyin_adapter;
 pub mod scoring;
+// Candidate-quality TDD baseline (user 2026-05-24: 候选质量是非常容易
+// 用 tdd 保障的). Pure test module; no production code.
+#[cfg(test)]
+mod baseline_quality_test;
+// Comprehensive baseline — 200+ cases per user 10h autorun directive.
+#[cfg(test)]
+mod comprehensive_baseline;
 
 pub use engine::CompositeEngine;
-pub use japanese_adapter::JapaneseAdapter;
+// JapaneseAdapter is internal to composite; sub-modules import via
+// `super::japanese_adapter::JapaneseAdapter` directly. No external
+// caller needs it via composite:: path.
 pub use merge::{Candidate, Source};
 pub use mode::Mode;
 pub use pinyin_adapter::PinyinAdapter;

@@ -3,7 +3,8 @@
 This is the **operational** spec for Inputx's candidate ranking
 quality. The runtime side is one piece; the bigger piece is the
 **static-DB build pipeline** — how raw corpora become the weights
-that ship inside `pinyin.fst` / `wubi.fst`. We treat that pipeline
+that ship inside `pinyin.dict` / `wubi86.dict` (self-built `inputx-fsa`
+two-level `Dict`, not the `fst` crate — 0-dep migration). We treat that pipeline
 as a serious software project with the four dimensions the user
 called out: 来源 / 处理 / 更新 / 退出.
 
@@ -122,6 +123,7 @@ guaranteed.
 | **Wikipedia ja dump** | full-text | CC-BY-SA | JP kanji + jukugo freq |
 | **jieba dict** | (word, freq) pairs | MIT | phrase segmentation baseline |
 | **Leipzig zh corpus** | sentence-tokenized | CC-BY | modern-Chinese unigram |
+| **LCCC-base** | dialogue full-text | MIT | modern colloquial / network vocab (微博 chat) — CP3c |
 | **Unihan database** | char-level metadata | Unicode | readings (on-yomi / pinyin), variants |
 | **现代汉语常用字表** | char list | public | which chars are "common" baseline |
 | **常用漢字表 (JP)** | char list | public | which kanji are in the JP base set |
@@ -129,6 +131,19 @@ guaranteed.
 | **KANJIDIC2** | kanji readings + glosses | EDRDG-PD | JP on/kun readings |
 | **Custom — Inputx user picks** | per-user telemetry | local-only | PolishLog jsonl, opt-in upload |
 | **Custom — LLM annotations** | (code, expected #1) tuples | curated | resolve ambiguous ranking |
+
+**New-word discovery (CP3c).** Common words jieba's dict simply omits
+(给力/吐槽/网红/靠前/榨干 …) never reach `weights.tsv` via the sources above —
+they aren't in `readings.tsv` to begin with, so corpus counting can't score
+them. `tools/scoring/discover_new_words.py` mines them from corpus full text
+(cohesion PMI + left/right boundary entropy + stopword / t2s / tiered-freq /
+rare-char filters), emits `data/supplemental/phrases_discovered.tsv`, which
+feeds `compose_phrase_readings` as an extra phrase source — so they get pinyin
+(Unihan cartesian) + corpus-derived freq like any other word. This is the
+systematic, in-corpus alternative to hand-curated supplemental word lists.
+Two known statistical ceilings: words made of two high-freq chars are a PMI
+dead-zone (点赞), and low-freq real words share the freq band with name
+fragments (precision/recall trade-off, handled by the tiered gate).
 
 What we *deliberately don't use*:
 - Search-engine query logs (don't have access, privacy concerns).
@@ -149,7 +164,7 @@ tools/scoring/
   ├── 05_merge/           # combine sources into unified weights.tsv
   ├── 06_llm_annotate/    # batch LLM rerank for ambiguous codes
   ├── 07_validate/        # run weights against test corpus + polish-log
-  ├── 08_pack/            # weights.tsv → FST artifacts
+  ├── 08_pack/            # weights.tsv → .dict/.fsa artifacts (inputx-fsa)
   └── README.md
 ```
 
@@ -168,6 +183,25 @@ score[word] = Σ_src α[src] × log_rank(word, src)
 
 α weights chosen by validation against polish-log + LLM annotation
 set. Default α favors Wikipedia (most diverse, modern register).
+
+**Implementation note (CP3b, 2026-05-25):** the shipped pipeline uses
+**per-source log-COUNT**, not literal log-rank:
+
+```python
+score[word] = Σ_src α[src] × ln(1 + count(word, src)) / max_ln[src]
+```
+
+with α = corpus `manifest.weight`. Rationale, decided on gate1/coverage data:
+literal rank-based log-rank discards count magnitude, and on our current
+*homogeneous* occurrence-count sources (subtlex/news/wiki) that collapses the
+long tail — most words' freq_score trend to 0 and get cut by build_dict's
+MIN_FREQ (dict 22k vs 219k entries). log-count keeps the per-source scale-free
+property — the actual point of §03, which pays off for *heterogeneous* sources
+(absolute count vs per-million vs arbitrary ints) — while preserving magnitude,
+so coverage stays full AND gate1 improves (kaopu→靠谱 to #1). The literal rank
+form stays available as `03_normalize --mode per-source-log-rank` for when
+heterogeneous sources are added. `--mode sum-then-log` reproduces the CP2
+byte-identical build_weights baseline (counting-chain regression guard).
 
 #### 04_layer_assign — Wubi layer floors
 
@@ -208,7 +242,7 @@ weights.tsv:
 ```
 
 **Distribution paths**:
-1. **In-binary** (default) — `weights.tsv` baked into the FST shipped
+1. **In-binary** (default) — `weights.tsv` baked into the `.dict` shipped
    with the Inputx.app bundle. Updated via app upgrade.
 2. **Side-loadable** (future, v0.4+) — user drops a newer
    `weights.tsv` into `~/Library/Application Support/Inputx/`
@@ -299,7 +333,7 @@ l0_boost = 0.5 × tanh(pick_count / 5)  // capped, soft promotion
 ```
 
 All weights live in the engine-internal score, which is built into
-the FST value (already the case for wubi/pinyin via packed u64).
+the index value (already the case for wubi/pinyin via packed u64).
 JP synthesizes at runtime from KanaKind.
 
 ### Wubi 简码 hard rule — the only structural override

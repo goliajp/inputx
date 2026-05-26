@@ -57,14 +57,44 @@ public final class InputxL0Storage {
 
     /// Read both engines' L0 into the session. Returns the total accepted
     /// pin count; 0 on first launch (no files yet) or on full corruption.
+    ///
+    /// v1.5 (user 2026-05-24: "每次更新都 clean 一下用户那个 3 次选择
+    /// 就排第一的记录"): if the binary's version marker has changed,
+    /// reset L0 first — accumulated pick-counts from a previous binary
+    /// can bias scoring incorrectly after dict/scoring changes.
     @discardableResult
     public func load(into session: InputxSession) -> Int {
+        resetIfBinaryVersionChanged()
         var total = 0
         for engine in InputxL0Engine.allCases {
             guard let json = readJson(engine: engine) else { continue }
             total += session.importL0Json(engine: engine, json: json)
         }
         return total
+    }
+
+    /// If the binary's version marker (CFBundleVersion) differs from
+    /// the recorded marker on disk, wipe L0 + record the new version.
+    /// One-shot per app launch.
+    private func resetIfBinaryVersionChanged() {
+        let versionKey = "binary_version"
+        let markerURL = dirURL.appendingPathComponent(".l0_version_marker")
+        let currentVersion = (Bundle.main.infoDictionary?["CFBundleVersion"] as? String)
+            ?? (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String)
+            ?? "unknown"
+        let storedVersion = (try? String(contentsOf: markerURL, encoding: .utf8)) ?? ""
+        if storedVersion == currentVersion {
+            return
+        }
+        // Version mismatch (or first launch with no marker) → reset.
+        // First launch case: stored is empty, but we still write the
+        // marker so subsequent launches with same version skip reset.
+        if !storedVersion.isEmpty {
+            reset()
+        }
+        ensureDirectoryExists()
+        _ = versionKey  // reserved
+        try? currentVersion.write(to: markerURL, atomically: true, encoding: .utf8)
     }
 
     /// Write both engines' L0 from the session. Atomic per-file: a crash

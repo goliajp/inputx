@@ -22,12 +22,22 @@ Document any miss in this file (so v1.0.x patch knows to address).
 
 | Budget                                                  | Target           | Measured | Pass? |
 |---------------------------------------------------------|------------------|----------|-------|
-| Cold-start (InputxApp launch → SettingsView visible)      | < 300ms          | TBD      | TBD   |
-| Cold-start (Keyboard appex → first paint)               | < 500ms          | TBD      | TBD   |
-| Keystroke → candidate refresh latency (p99)             | < 50ms           | TBD      | TBD   |
-| Idle resident memory (Keyboard extension)               | < 50MB           | TBD      | TBD   |
-| First-keystroke latency after keyboard show             | < 100ms          | TBD      | TBD   |
-| 60fps scrolling with 50 candidates (item 60)            | no dropped frame | TBD      | TBD   |
+| Cold-start (InputxApp launch → SettingsView visible)      | < 300ms          | device-TBD | —   |
+| Cold-start (Keyboard appex → first paint)               | < 500ms          | device-TBD | —   |
+| Keystroke → candidate refresh latency (p99)             | < 50ms           | engine p95<0.3ms (host perfgate) ✓; UI device-TBD | ✓* |
+| Idle resident memory (Keyboard extension)               | < 50MB           | ~23M dict rodata+binary; device-TBD | ⚠ near-limit |
+| First-keystroke latency after keyboard show             | < 100ms          | device-TBD | —   |
+| 60fps scrolling with 50 candidates (item 60)            | no dropped frame | device-TBD | —   |
+
+#### CP2 baseline (v1.2, 2026-05-25, post-hybrid-cutover)
+- **Embedded pinyin data** (`include_bytes!`): pinyin.dict 4.2M + bigrams.fsa 4.3M
+  + bigrams_intra.fsa 1.4M + **trigrams.dict 13M** = **23M total**. trigrams is 57%
+  → primary target for compression / on-demand layering (latter = CP6 sideload).
+- **Engine perfgate** (release, `scripts/perf_isolated.sh`): every keystroke
+  < 0.3ms worst-case (nihaomawojiao max 0.30ms) vs the 16ms frame budget — the
+  Rust hot path is NOT a bottleneck. (UI-layer refresh/scroll still device-TBD.)
+- Device rows (cold-start, RSS, fps) need real-iPhone Instruments — deferred to
+  user's device per the sim-default workflow.
 
 Tools:
 - Instruments → Time Profiler for cold-start + keystroke latency

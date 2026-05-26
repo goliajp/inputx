@@ -84,6 +84,21 @@ pub fn lookup_with_scores(code: &str) -> Vec<(String, f64)> {
     all
 }
 
+/// Layer-aware variant: each candidate also carries its origin Layer
+/// (Jianma1/2/3, Zigen, Phrase, Auto). Composite dispatch uses the
+/// layer tag to make context-aware ranking decisions — e.g. demoting
+/// low-confidence Auto / Phrase wubi candidates when the buffer shape
+/// suggests pinyin intent, while keeping high-confidence Jianma simcodes
+/// untouched (the 伙-rule: wubi simcodes always lead at their code).
+pub fn lookup_with_layer(code: &str) -> Vec<(String, f64, wubi::Layer)> {
+    let mut all: Vec<(String, f64, wubi::Layer)> = Vec::new();
+    dict().lookup_with_layer_into(code, &mut all);
+    if !SHOW_RARE.load(Ordering::Relaxed) {
+        all.retain(|(w, _, _)| is_displayable(w));
+    }
+    all
+}
+
 /// Notify the dictionary that the user committed `word` for `code`. The
 /// internal pick counter advances; on threshold the word auto-pins. All
 /// learning logic lives in `wubi` — this is just a passthrough so the IME

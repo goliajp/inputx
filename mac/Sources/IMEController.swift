@@ -107,6 +107,28 @@ final class InputxController: IMKInputController {
         )
     }
 
+    /// After any commit, surface the engine's next-word predictions
+    /// (联想) in the candidate panel instead of just hiding it. When
+    /// `session.predictionCount == 0` this hides the panel as before.
+    /// Called from every commit path — manual number-key, space-commit,
+    /// auto-commit drain, mode-toggle drain, etc.
+    private func showPredictionsOrHide(client sender: Any!) {
+        if session.predictionCount > 0 {
+            var words: [String] = []
+            for i in 0..<session.predictionCount {
+                if let w = session.prediction(at: i) {
+                    words.append(w)
+                }
+            }
+            candidatePanel?.showPredictions(
+                words: words,
+                client: sender as AnyObject?
+            )
+        } else {
+            candidatePanel?.hide()
+        }
+    }
+
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard let event = event else { return false }
 
@@ -121,14 +143,86 @@ final class InputxController: IMKInputController {
         // (including return / backspace / cmd-combos) directly. We still
         // observed shiftDown above so a subsequent single-shift toggle is
         // detectable; everything else is a pure passthrough.
+        //
+        // Defensive: if a 联想 prediction panel is up at the moment we
+        // enter EN mode, hide it. Predictions are a CJK-mode feature and
+        // would otherwise stay visible across the mode boundary while
+        // the user types EN letters that this controller doesn't see —
+        // producing the user-observed "stale prediction shows next to
+        // unrelated typing" bug.
         if session.inputMode == .en {
+            if let panel = candidatePanel, panel.isVisible, panel.isPredictionMode {
+                panel.hide()
+            }
             return false
         }
 
         guard let chars = event.charactersIgnoringModifiers,
               let firstScalar = chars.unicodeScalars.first
         else { return false }
-        let codepoint = firstScalar.value
+        var codepoint = firstScalar.value
+
+        // Shift+digit re-anchor (user-reported 2026-05-24: shift+1 was
+        // committing candidate #1 instead of inserting '!').
+        // `charactersIgnoringModifiers` returns the digit (0-9) even when
+        // shift is held — but on US/JP/etc keyboards shift+digit produces
+        // a symbol (!@#$%^&*()). Without this remap, Path A would route
+        // shift+1 as candidate-pick #1 and the symbol the user actually
+        // typed would be dropped on the floor.
+        //
+        // Scope: only affects digit codepoints. Shift+letter (uppercase)
+        // and shift+other-punct paths are unchanged — both already
+        // produce a sensible codepoint via the unmodified char and
+        // engine canonicalization handles case.
+        if event.modifierFlags.contains(.shift),
+           (0x30...0x39).contains(codepoint),
+           let typed = event.characters,
+           let typedScalar = typed.unicodeScalars.first {
+            codepoint = typedScalar.value
+        }
+
+        // Prediction-mode dismissals. When the panel is showing 联想
+        // predictions (post-commit) and the user presses a key that
+        // semantically means "I'm done / I don't want a prediction",
+        // hide the panel. Letter keys naturally dismiss via Path C's
+        // refresh; Esc / Backspace need explicit handling because they
+        // wouldn't otherwise reach a panel-refresh call.
+        if let panel = candidatePanel, panel.isPredictionMode, panel.isVisible {
+            // Esc → dismiss + consume (don't propagate to host).
+            if codepoint == 0x1B {
+                panel.hide()
+                updatePreedit(client: sender)
+                return true
+            }
+            // Backspace / forward-delete → dismiss + consume (no buffer
+            // to delete; the user pressed it to back out of predictions).
+            if codepoint == 0x08 || codepoint == 0x7F {
+                panel.hide()
+                updatePreedit(client: sender)
+                return true
+            }
+            // Punctuation / symbol → dismiss panel but DON'T consume —
+            // let Path B map the punct (',' → '，' etc.) and commit it
+            // normally. Predictions are only meaningful while the user
+            // is in a "continuing this sentence" stance; punctuation
+            // signals clause/phrase boundary, so the post-commit panel
+            // is stale and just clutters the screen.
+            // Excludes +/-/= (pagination keys) — those technically
+            // satisfy isAsciiPunctKey but are reserved for panel
+            // navigation by the block ~50 lines below; hiding here
+            // would break their pagination semantics in prediction
+            // mode. They naturally never reach Path B for punct
+            // mapping because the pagination block consumes them.
+            if codepoint < 0x80
+                && isAsciiPunctKey(codepoint)
+                && codepoint != 0x2B   // '+'
+                && codepoint != 0x2D   // '-'
+                && codepoint != 0x3D   // '='
+            {
+                panel.hide()
+                // fall through; Path B below applies locale mapping.
+            }
+        }
 
         // Apple PUA range for special keys (arrows, function keys). When
         // the panel is visible, ↑ / ↓ / ← / → drive the panel; other PUA
@@ -168,7 +262,9 @@ final class InputxController: IMKInputController {
             case 0x09: // Tab
                 if shifted { _ = panel.prevPage() } else { _ = panel.nextPage() }
                 return true
-            case 0x2B: // '+'
+            case 0x2B, 0x3D: // '+' or '=' (= is what's actually printed
+                             // without shift on the same key; user expects
+                             // either to page forward)
                 _ = panel.nextPage()
                 return true
             case 0x2D: // '-'
@@ -179,11 +275,30 @@ final class InputxController: IMKInputController {
             }
         }
 
+        // ---- Path A0a: Space commits the prediction in 联想 mode -------
+        // Standard Sogou / 智能ABC behavior: when the candidate panel
+        // is showing 联想 predictions, Space commits the highlighted
+        // prediction (default: #0). The arrow-driven `idx > 0` carve-
+        // out doesn't apply here — in prediction mode every Space is a
+        // "commit and continue" gesture. Letter input dismisses
+        // predictions (Path C / refresh); Esc / Backspace dismiss
+        // explicitly (handled above).
+        if codepoint == 0x20,
+           let panel = candidatePanel, panel.isVisible, panel.isPredictionMode {
+            let idx = panel.selectedAbsoluteIndex() ?? 0
+            if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
+                commitText(committed, to: sender)
+            }
+            showPredictionsOrHide(client: sender)
+            updatePreedit(client: sender)
+            return true
+        }
+
         // ---- Path A0: Space → commit highlighted (not just #0) -----------
         // When the panel is visible and ↑/↓ has moved the highlight off #0,
         // Space commits the *highlighted* candidate. If highlight is on #0
         // (panel just opened), this matches the legacy "Space = commit #0"
-        // semantic. Falls through if not composing.
+        // semantic via Path C below. Falls through if not composing.
         if codepoint == 0x20,
            let panel = candidatePanel, panel.isVisible,
            let idx = panel.selectedAbsoluteIndex(),
@@ -202,7 +317,7 @@ final class InputxController: IMKInputController {
                     japaneseEnabled: inputxSettings.japaneseEnabled
                 )
             }
-            panel.hide()
+            showPredictionsOrHide(client: sender)
             updatePreedit(client: sender)
             return true
         }
@@ -212,6 +327,19 @@ final class InputxController: IMKInputController {
         // (0 → 10th slot) without touching the engine state machine.
         if let panel = candidatePanel, panel.isVisible,
            let idx = panel.candidateIndex(forNumberKey: codepoint) {
+            // Route based on whether the panel is showing predictions
+            // (post-commit 联想) or regular buffer-driven candidates.
+            // Predictions commit through `commitPrediction(at:)` which
+            // triggers a fresh round of predictions internally (chained
+            // 联想 — Sogou 句串 style).
+            if panel.isPredictionMode {
+                if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
+                    commitText(committed, to: sender)
+                }
+                showPredictionsOrHide(client: sender)
+                updatePreedit(client: sender)
+                return true
+            }
             let bufferBefore = session.preedit ?? ""
             let candsBefore = panel.current
             if let committed = session.commit(at: idx), !committed.isEmpty {
@@ -226,7 +354,7 @@ final class InputxController: IMKInputController {
                     japaneseEnabled: inputxSettings.japaneseEnabled
                 )
             }
-            panel.hide()
+            showPredictionsOrHide(client: sender)
             updatePreedit(client: sender)
             return true
         }
@@ -255,7 +383,7 @@ final class InputxController: IMKInputController {
                 if let top = session.commit(at: 0), !top.isEmpty {
                     commitText(top, to: sender)
                 }
-                candidatePanel?.hide()
+                showPredictionsOrHide(client: sender)
                 updatePreedit(client: sender)
                 // Fall through — punct is now in "not composing" state.
             }
@@ -283,11 +411,22 @@ final class InputxController: IMKInputController {
         }
 
         // Drain pending commit (auto-commit / 5th-letter force / unique match).
-        if let committed = session.takeCommit(), !committed.isEmpty {
+        let drained = session.takeCommit()
+        if let committed = drained, !committed.isEmpty {
             commitText(committed, to: sender)
         }
         updatePreedit(client: sender)
-        candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+        // If the engine still has a preedit/candidates (user is mid-
+        // composing), refresh normally. If the engine just drained a
+        // commit and is now idle, show predictions in the panel
+        // instead of leaving it empty.
+        if session.isComposing {
+            candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+        } else if drained != nil {
+            showPredictionsOrHide(client: sender)
+        } else {
+            candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+        }
         return true
     }
 
