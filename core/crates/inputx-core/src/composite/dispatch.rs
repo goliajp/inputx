@@ -539,6 +539,35 @@ mod tests {
     }
 
     #[test]
+    fn mixed_tongyi_unify_outranks_same_one() {
+        // User polish-log 2026-05-27 screenshot: tongyi gave 同意 #1 /
+        // 同一 #2 / 统一 #3 / 同义 #4 / 通译 #5 / 通义 #6 / 通易 #7. User
+        // expectation: 统一 ≥ #2 ("应该大于同一，在第二或第一顺位"). Corpus
+        // skew is the news/academic over-rep of 同一 (the "same" adjective)
+        // vs daily-use 统一 (unify verb/noun). prior_correction ("统一",
+        // 1.5) lifts it to #1 ahead of 同意/同一 with a comfortable margin.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"tongyi" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        let unify_idx = cands.iter().position(|c| c.word == "统一");
+        let same_one_idx = cands.iter().position(|c| c.word == "同一");
+        assert!(unify_idx.is_some(),
+            "统一 must appear in tongyi candidates; got top5={top:?}");
+        if let (Some(u), Some(s)) = (unify_idx, same_one_idx) {
+            assert!(u < s,
+                "统一 (idx={u}) must outrank 同一 (idx={s}); got top5={top:?}");
+        }
+        // Acceptable: 统一 at #1 or #2.
+        assert!(unify_idx.unwrap() <= 1,
+            "统一 must be top-2 (user rule); got idx={} top5={top:?}", unify_idx.unwrap());
+    }
+
+    #[test]
     fn mixed_jixu_pinyin_word_beats_wubi_coincidence() {
         // User-reported 2026-05-26 (REGRESSION — keep this as a permanent
         // guard): `jixu` should give 继续 (common pinyin word), not 曳光弹

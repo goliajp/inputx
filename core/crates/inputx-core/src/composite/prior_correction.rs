@@ -71,6 +71,17 @@ const PRIOR_CORRECTIONS: &[(&str, f64)] = &[
     // promoted wubi (~454k), so daily-use Chinese leads at juti without
     // suppressing the wubi-first rule elsewhere.
     ("具体", 1.5),
+    // 2026-05-27 user polish-log (tongyi → 统一 should lead, screenshot
+    // showed 同意 #1 / 同一 #2 / 统一 #3 / 同义 #4 / 通译 #5 / 通义 #6 /
+    // 通易 #7). User: "统一应该大于同一，在第二或第一顺位". Probe scores:
+    // 同意 460k / 同一 436k / 统一 433k (gap 3k between 同一 and 统一).
+    // Corpus skew is the news/academic over-representation of 同一 (用作
+    // 形容词 "相同的", common in news headlines) vs daily-use 统一 (用作
+    // 动词/名词 — 统一标准, 统一服装, 国家统一). Boost ×1.5 lifts 统一 to
+    // ~650k, decisively #1 across tongyi-bearing buffers; matches existing
+    // 加载/具体 magnitude (entries with corpus skew but no extreme
+    // polish-log evidence).
+    ("统一", 1.5),
 ];
 
 /// Lookup the user-curated multiplier for `word`. Returns 1.0 (no
