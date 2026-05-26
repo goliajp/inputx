@@ -131,6 +131,31 @@ pub const LIKELIHOOD_JP_KATAKANA_BASE: f64 = 110_000.0;
 /// JP picks aren't drowned out.
 pub const PRIOR_FREQ_MULT_JP: f64 = 3000.0;
 
+/// **PRIOR** — multiplier on the per-entry freq value for the **pinyin
+/// engine**. Pinyin dict entries already carry corpus-derived freq at a
+/// scale where 1.0 multiplier is well-calibrated against the pinyin
+/// Phrase base 400k (top pinyin words land near 400k + freq, see
+/// `inputx_pinyin::PinyinDict::lookup_with_scores_into`). This factor
+/// stays 1.0 unless cross-engine calibration says otherwise.
+pub const PRIOR_FREQ_MULT_PINYIN: f64 = 1.0;
+
+/// **LIKELIHOOD** — base for pinyin prefix-prediction candidates
+/// (typed buffer is a **prefix** of the candidate's full pinyin, not a
+/// complete match). Per PLAN-prefix-prediction §4: must sit ABOVE the
+/// non-exact-match floor (1k) so a high-freq predicted word like 中国
+/// for `zho` surfaces visibly, but BELOW a real exact pinyin match
+/// (Phrase base 400k) so an exact dict word always wins when both
+/// exist. Combined with `proximity^K` damping, the actual delivered
+/// score for "buffer is 3/8 of code" sits around base + freq·0.05; for
+/// "7/8 of code" around base + freq·0.67 — predictions rise as the
+/// user types closer to the word.
+///
+/// Only applies when `allow_prefix_completion` fires
+/// (`has_non_speculative_candidate == false`), so exact matches like
+/// `lianxiang → 联想` are not affected (2026-05-22 user rule). Wired
+/// into `predict_score()` below.
+pub const LIKELIHOOD_PINYIN_PREDICT_BASE: f64 = 250_000.0;
+
 /// **LIKELIHOOD** — JP full-match PROMOTE: multiplier applied to *every*
 /// JP candidate's score when the buffer yields a real full-buffer 熟語
 /// (multi-char kanji jukugo with freq > 0). A jukugo match means the
@@ -305,6 +330,34 @@ pub fn length_bias(word_len: usize) -> f64 {
         4 => 0.07,
         _ => 0.05,
     }
+}
+
+/// **LIKELIHOOD × PRIOR** — predicted-candidate score for a typed buffer
+/// that is a **prefix** of the candidate's full code.
+///
+/// Decomposition (per `.claude/PLAN-probabilistic-model.md`):
+///   `score(W) = base + prior(W) · likelihood(i, W)`
+///       = base + (freq · freq_mult) · proximity^K
+///
+/// - `base` — match-type floor (e.g., `LIKELIHOOD_PINYIN_PREDICT_BASE`)
+/// - `freq` — corpus / per-entry frequency (raw integer from the dict)
+/// - `freq_mult` — engine-specific scaling (`PRIOR_FREQ_MULT_{PINYIN,JP}`)
+/// - `proximity` — `len(typed) / len(full_code)`, ∈ (0, 1]; at 1.0 the
+///   typed buffer fully matches the code (proximity^K = 1, max signal);
+///   at 0.375 (3/8 of code typed) damped to 0.053.
+/// - `LIKELIHOOD_PREDICT_PROXIMITY_K` (=3.0) — the exponent K. Higher K
+///   damps short prefixes harder; K=3 chosen so "almost-complete"
+///   (proximity 7/8) keeps ~67% signal while "just started" (3/8) keeps
+///   ~5%.
+///
+/// Used by:
+///   - pinyin `push_prefix_top_k` for Path 3 prefix-completion
+///     (CP-B, v1.3 WU-α)
+///   - JP `japanese_adapter::candidates_with_scores` for jukugo prefix
+///     prediction (CP-A, v1.2)
+///   - wubi prefix-prediction (CP-C, v1.3 WU-α, planned)
+pub fn predict_score(base: f64, freq: u64, freq_mult: f64, proximity: f64) -> f64 {
+    base + (freq as f64) * freq_mult * proximity.powf(LIKELIHOOD_PREDICT_PROXIMITY_K)
 }
 
 #[cfg(test)]

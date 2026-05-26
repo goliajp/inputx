@@ -83,6 +83,18 @@ pub struct PinyinAdapter {
     /// dict word — so a composed-from-real-chars word outranks かおぷ-style
     /// kana transliterations in Mixed+JP, yet never beats a true match.
     fallback_composition: Option<String>,
+    /// Path-3 prefix-completion scored entries (v1.3 WU-α CP-B).
+    /// `word → predict_score(LIKELIHOOD_PINYIN_PREDICT_BASE, freq,
+    /// PRIOR_FREQ_MULT_PINYIN, proximity)` where proximity =
+    /// `self.buffer.len() / full_pinyin_code.len()`. Populated by
+    /// `push_prefix_top_k` for multi-letter prefix scans only; single-letter
+    /// prefix path (cached) stays on the NON_EXACT_FLOOR floor (proximity
+    /// would be ~0.1, predict signal negligible). `candidates_with_scores`
+    /// looks up here before falling through to the floor — so
+    /// `zho → 中国` lands at ~250k visible across engines, while staying
+    /// gated on `allow_prefix_completion = !has_non_speculative_candidate`
+    /// so `lianxiang → 联想` exact match is untouched (2026-05-22 user rule).
+    prefix_scored: HashMap<String, f64>,
 }
 
 impl Default for PinyinAdapter {
@@ -134,6 +146,7 @@ impl PinyinAdapter {
             composed_sentence: None,
             fuzzy_candidates: HashSet::new(),
             fallback_composition: None,
+            prefix_scored: HashMap::new(),
         }
     }
 
@@ -305,7 +318,14 @@ impl PinyinAdapter {
             } else if is_fuzzy {
                 FUZZY_BASE * FUZZY_DISCOUNT
             } else {
+                // v1.3 WU-α CP-B: check prefix_scored (multi-letter
+                // Path-3 predict_score) before falling through to the
+                // legacy NON_EXACT_FLOOR. Single-letter prefix-completion
+                // and 简拼 initials entries are not in prefix_scored, so
+                // they keep the original floor + decay-by-position
+                // ordering.
                 exact_map.get(w).copied()
+                    .or_else(|| self.prefix_scored.get(w).copied())
                     .unwrap_or(NON_EXACT_FLOOR * 0.99f64.powi(i as i32))
             };
             let bigram_bonus = dict.bigram_boost(prev_committed, w);
@@ -405,6 +425,7 @@ impl PinyinAdapter {
         self.buffer.clear();
         self.candidates.clear();
         self.has_non_speculative_candidate = false;
+        self.prefix_scored.clear();
         true
     }
 
@@ -412,6 +433,7 @@ impl PinyinAdapter {
         self.buffer.clear();
         self.candidates.clear();
         self.has_non_speculative_candidate = false;
+        self.prefix_scored.clear();
     }
 
     /// Commit candidate at `index`. Records the pick into the engine's L0
@@ -423,6 +445,7 @@ impl PinyinAdapter {
         self.buffer.clear();
         self.candidates.clear();
         self.has_non_speculative_candidate = false;
+        self.prefix_scored.clear();
         Some(word)
     }
 
@@ -454,6 +477,7 @@ impl PinyinAdapter {
         self.composed_sentence = None;
         self.fuzzy_candidates.clear();
         self.fallback_composition = None;
+        self.prefix_scored.clear();
         if self.buffer.is_empty() {
             return;
         }
@@ -649,6 +673,7 @@ impl PinyinAdapter {
                 want,
                 &mut seen,
                 &mut self.candidates,
+                &mut self.prefix_scored,
             );
         }
 
@@ -787,8 +812,18 @@ fn suffix_could_start_syllable(
 // CANDIDATE_RULE_ENGINE. Inline function deleted.
 
 /// Scan `engine.dict()` for entries whose pinyin starts with `prefix`, pick
-/// the top `k` by frequency (excluding anything already in `seen`), and push
-/// them onto `out` in freq-desc order.
+/// the top `k` by frequency (excluding anything already in `seen`), push
+/// them onto `out` in freq-desc order, and (v1.3 WU-α CP-B) record a
+/// `predict_score` for each winner into `out_scored` keyed by word.
+///
+/// `out_scored` is populated only for the multi-letter prefix path; the
+/// single-letter cached path leaves `out_scored` untouched, so those
+/// candidates retain the legacy NON_EXACT_FLOOR floor in
+/// `candidates_with_scores`. Rationale: at len=1 proximity = 1/N is so
+/// small (~0.1) that `proximity^K` ≈ 0 — predict_score reduces to base,
+/// which would lift every single-letter completion uniformly to ~250k
+/// and crowd out the natural high-freq ordering. The `length_bias` path
+/// already orders single-letter completions correctly.
 ///
 /// Uses the streaming `prefix_for_each` API so the visit cost is O(n) FST
 /// stream + O(k log k) heap work, with String allocation only for the ≤ k
@@ -797,13 +832,16 @@ fn suffix_could_start_syllable(
 ///
 /// Heap discipline: min-heap of size k keyed by freq. New entry is admitted
 /// iff its freq beats the current heap minimum. Word-asc tiebreaker for
-/// determinism (matches `lookup_into`'s ordering).
+/// determinism (matches `lookup_into`'s ordering); pinyin_len tagged
+/// along (unused for sorting since word breaks ties) so the drain pass
+/// can compute proximity = `prefix.len() / pinyin_len` per winner.
 fn push_prefix_top_k(
     engine: &PinyinEngine,
     prefix: &str,
     k: usize,
     seen: &mut HashSet<String>,
     out: &mut Vec<String>,
+    out_scored: &mut HashMap<String, f64>,
 ) {
     if k == 0 {
         return;
@@ -812,7 +850,8 @@ fn push_prefix_top_k(
     // entries) and `h` (~30k) dominate perfgate worst-case; pre-compute
     // top-K-by-freq for each of the 26 single letters once at warmup
     // (or lazy on first miss), then subsequent queries are a cache hit
-    // — microseconds instead of milliseconds.
+    // — microseconds instead of milliseconds. CP-B leaves these on the
+    // legacy NON_EXACT_FLOOR path (see doc above).
     if prefix.len() == 1 {
         if let Some(c) = prefix.chars().next()
             && c.is_ascii_lowercase()
@@ -827,15 +866,19 @@ fn push_prefix_top_k(
         }
     }
 
-    // Entry tuple: (freq, Reverse(word)). The Reverse on word makes lex-asc
-    // the tiebreaker (smaller word wins ties). Wrapped in outer Reverse so
-    // BinaryHeap behaves as a min-heap (top = smallest freq, ready to evict).
-    type Entry = Reverse<(u64, Reverse<String>)>;
+    // Entry tuple: (freq, Reverse(word), pinyin_len). The Reverse on word
+    // makes lex-asc the tiebreaker (smaller word wins ties). pinyin_len
+    // is appended as the 3rd element — sort comparison reaches it only
+    // when both freq and word tie, which is unique-key impossible for
+    // dict entries (one (pinyin, word) per key). Wrapped in outer Reverse
+    // so BinaryHeap behaves as a min-heap (top = smallest freq, ready to
+    // evict).
+    type Entry = Reverse<(u64, Reverse<String>, usize)>;
     let mut heap: BinaryHeap<Entry> = BinaryHeap::with_capacity(k + 1);
 
     engine
         .dict()
-        .prefix_for_each_raw(prefix, |_pinyin_bytes, word_bytes, freq| {
+        .prefix_for_each_raw(prefix, |pinyin_bytes, word_bytes, freq| {
             // Cheap pre-check FIRST: compare raw freq against heap's current
             // minimum without touching anything else. >99% of FST entries on
             // short prefixes fail this and bail before allocating anything
@@ -855,17 +898,31 @@ fn push_prefix_top_k(
             let Ok(word) = std::str::from_utf8(word_bytes) else {
                 return;
             };
-            heap.push(Reverse((freq, Reverse(word.to_owned()))));
+            heap.push(Reverse((freq, Reverse(word.to_owned()), pinyin_bytes.len())));
         });
 
     // Drain in freq-desc + lex-asc order.
-    let mut drained: Vec<(u64, String)> = heap
+    let mut drained: Vec<(u64, String, usize)> = heap
         .into_iter()
-        .map(|Reverse((freq, Reverse(word)))| (freq, word))
+        .map(|Reverse((freq, Reverse(word), pinyin_len))| (freq, word, pinyin_len))
         .collect();
     drained.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
-    for (_, word) in drained {
+    let prefix_len = prefix.len();
+    for (freq, word, pinyin_len) in drained {
         if seen.insert(word.clone()) {
+            // CP-B: emit a probability-framed score per winner.
+            // proximity = prefix.len() / pinyin_len ∈ (0, 1]. At exact
+            // (pinyin_len == prefix.len()) proximity is 1.0 and signal
+            // is undecayed; at "half-typed" proximity 0.5, signal damps
+            // to 0.5^3 = 0.125.
+            let proximity = (prefix_len as f64 / pinyin_len.max(1) as f64).min(1.0);
+            let score = scoring::predict_score(
+                scoring::LIKELIHOOD_PINYIN_PREDICT_BASE,
+                freq,
+                scoring::PRIOR_FREQ_MULT_PINYIN,
+                proximity,
+            );
+            out_scored.insert(word.clone(), score);
             out.push(word);
         }
     }

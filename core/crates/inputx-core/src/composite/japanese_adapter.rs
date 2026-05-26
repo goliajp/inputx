@@ -224,17 +224,25 @@ impl JapaneseAdapter {
                     KanaKind::Hiragana => scoring::LIKELIHOOD_JP_HIRAGANA_BASE,
                     KanaKind::Katakana => scoring::LIKELIHOOD_JP_KATAKANA_BASE,
                 };
-                // Prefix-prediction proximity decay: an exact candidate has
-                // proximity 1.0 (no change); a predicted one (shinjuk→新宿,
-                // 0.875) decays its freq contribution by proximity^K so it
-                // sits above simpdy noise but below the eventual full match,
-                // and rises as the user types closer. See PLAN-prefix-prediction.
+                // Prefix-prediction proximity decay via shared `predict_score`
+                // helper: an exact candidate has proximity 1.0 (no decay); a
+                // predicted one (shinjuk→新宿, 0.875) decays its freq
+                // contribution by proximity^K so it sits above simpdy noise
+                // but below the eventual full match, and rises as the user
+                // types closer. The helper unifies pinyin (CP-B), wubi
+                // (CP-C), and JP (CP-A) prefix scoring around the
+                // `base + freq·freq_mult·proximity^K` shape. See
+                // PLAN-prefix-prediction §4 and PLAN-probabilistic-model.
                 let proximity = c.proximity_milli as f64 / 1000.0;
-                let freq_term = scoring::PRIOR_FREQ_MULT_JP * c.freq as f64
-                    * proximity.powf(scoring::LIKELIHOOD_PREDICT_PROXIMITY_K);
+                let pre_promote = scoring::predict_score(
+                    base,
+                    c.freq as u64,
+                    scoring::PRIOR_FREQ_MULT_JP,
+                    proximity,
+                );
                 // Predictions (proximity < 1) never ride the full-match promote.
                 let mult = if c.proximity_milli >= 1000 { promote } else { 1.0 };
-                let score = (base + freq_term) * mult;
+                let score = pre_promote * mult;
                 (c.word.clone(), score)
             })
             .collect()
