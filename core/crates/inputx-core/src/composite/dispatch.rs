@@ -4,11 +4,19 @@
 //! candidate lists combine into the merged output.
 
 use super::japanese_adapter::JapaneseAdapter;
-use super::merge::{Candidate, merge};
+use super::merge::{Candidate, Scored, merge};
 use super::mode::Mode;
 use super::pinyin_adapter::PinyinAdapter;
 use super::scoring;
 use crate::wubi::WubiEngine;
+
+/// Wrap legacy `(word, score)` pairs as `Scored` tuples with `None`
+/// components. Used at every choke-point where an upstream adapter
+/// still returns the legacy shape; the decomposition stays empty until
+/// that adapter migrates to emit `ScoreComponents`.
+fn no_components(v: Vec<(String, f64)>) -> Vec<Scored> {
+    v.into_iter().map(|(w, s)| (w, s, None)).collect()
+}
 
 /// Compute the merged candidate list for the current state.
 ///
@@ -42,7 +50,7 @@ pub fn dispatch(
         None => (vec![], vec![]),
     };
     match mode {
-        Mode::WubiOnly => merge(wubi.candidates_with_scores(), vec![], jp_kanji, jp_kana),
+        Mode::WubiOnly => merge(no_components(wubi.candidates_with_scores()), vec![], jp_kanji, jp_kana),
         Mode::PinyinOnly => merge(vec![], pinyin.candidates_with_scores(prev_committed), jp_kanji, jp_kana),
         Mode::JapaneseOnly => merge(vec![], vec![], jp_kanji, jp_kana),
         Mode::Mixed => {
@@ -151,7 +159,7 @@ pub fn dispatch(
                 let freq = pinyin_dict.char_max_freq(c);
                 if freq >= CHAR_PROMINENT_FLOOR { 1.0 } else { RARE_CHAR_DEMOTE }
             };
-            let mut wubi_cands: Vec<(String, f64)> = wubi
+            let mut wubi_cands: Vec<Scored> = wubi
                 .candidates_with_layer()
                 .into_iter()
                 .map(|(w, score, layer)| {
@@ -161,7 +169,12 @@ pub fn dispatch(
                         _ => 1.0,
                     };
                     let cd = char_demote(&w, layer);
-                    (w, score * layer_demote * cd)
+                    // Exact wubi candidates don't yet have a clean (base,
+                    // prior, likelihood) split — score is `layer.base ·
+                    // prefs + freq` multiplied by several layer/char/length
+                    // factors. v1.4 architecture upgrade will decompose
+                    // them; for v1.3 they stay None.
+                    (w, score * layer_demote * cd, None)
                 })
                 .collect();
             // CP-C (v1.3 WU-α): attach wubi prefix-predictions. predict_score
@@ -198,13 +211,18 @@ pub fn dispatch(
                 preds.truncate(pred_cap);
                 for (word, freq, code_len) in preds {
                     let proximity = (wubi_typed_len as f64 / code_len as f64).min(1.0);
-                    let score = scoring::predict_score(
+                    // WU-γ: keep both the score AND the (base, prior,
+                    // likelihood) decomposition. score == base + prior ·
+                    // likelihood holds bit-for-bit. final_mult below is 0
+                    // (suppress) or 1 (keep) so components stay
+                    // invariant-preserving without folding.
+                    let (score, components) = scoring::predict_score_with_components(
                         scoring::LIKELIHOOD_WUBI_PREDICT_BASE,
                         freq,
                         scoring::PRIOR_FREQ_MULT_WUBI,
                         proximity,
                     );
-                    wubi_cands.push((word, score));
+                    wubi_cands.push((word, score, Some(components)));
                 }
             }
             let final_mult = wubi_mult * z_mult;
@@ -218,7 +236,7 @@ pub fn dispatch(
                 // pinyin entries (whose floor can underflow toward 0).
                 wubi_cands.clear();
             } else if final_mult != 1.0 {
-                for (_, s) in wubi_cands.iter_mut() {
+                for (_, s, _) in wubi_cands.iter_mut() {
                     *s *= final_mult;
                 }
             }
@@ -232,17 +250,17 @@ pub fn dispatch(
 /// scoring is uniform across both.
 fn split_jp_scored(
     j: &JapaneseAdapter,
-) -> (Vec<(String, f64)>, Vec<(String, f64)>) {
+) -> (Vec<Scored>, Vec<Scored>) {
     let all = j.candidates_with_scores();
     let kanji_set: std::collections::HashSet<String> =
         j.kanji_candidates().into_iter().collect();
     let mut kanji = Vec::new();
     let mut kana = Vec::new();
-    for (w, s) in all {
+    for (w, s, c) in all {
         if kanji_set.contains(&w) {
-            kanji.push((w, s));
+            kanji.push((w, s, c));
         } else {
-            kana.push((w, s));
+            kana.push((w, s, c));
         }
     }
     (kanji, kana)
@@ -553,6 +571,31 @@ mod tests {
         let top10: Vec<&str> = cands.iter().take(10).map(|c| c.word.as_str()).collect();
         assert_eq!(cands.first().map(|c| c.word.as_str()), Some("日"),
             "日 (jjjj Zigen exact) must lead at full code; got top10={top10:?}");
+    }
+
+    #[test]
+    fn wug_shinjuk_prediction_components_match_score() {
+        // WU-γ end-to-end: a CP-A JP jukugo prefix-prediction candidate
+        // (新宿 for shinjuk) carries (base, prior, likelihood) such that
+        // `base + prior * likelihood == score`. Promote only applies at
+        // proximity == 1 (full match), so a prediction's score is the
+        // raw predict_score output — invariant strictly holds.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"shinjuk" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let shinjuku = cands.iter().find(|c| c.word == "新宿")
+            .expect("新宿 must appear for shinjuk");
+        let c = shinjuku.components.expect(
+            "新宿 (CP-A JP jukugo prediction) must carry ScoreComponents");
+        let recomputed = c.base + c.prior * c.likelihood;
+        assert!((shinjuku.score - recomputed).abs() < 1e-3,
+            "WU-γ invariant breaks: score={} vs base+prior*likelihood={recomputed} \
+             (c = {c:?})", shinjuku.score);
     }
 
     #[test]

@@ -152,7 +152,7 @@ impl JapaneseAdapter {
     /// confident JP matches aren't drowned out. The user can override
     /// per-buffer via picking #2/#3 — that goes to PolishLog and gets
     /// rolled into next pipeline run.
-    pub fn candidates_with_scores(&self) -> Vec<(String, f64)> {
+    pub fn candidates_with_scores(&self) -> Vec<super::merge::Scored> {
         use inputx_jp::KanaKind;
         use crate::composite::scoring;
         // Full-match signal: a real full-buffer jukugo (multi-char kanji
@@ -198,7 +198,7 @@ impl JapaneseAdapter {
                     } else {
                         scoring::LIKELIHOOD_JP_COMPOSED_BASE
                     };
-                    return (c.word.clone(), s);
+                    return (c.word.clone(), s, None);
                 }
                 // base = per-kind floor; freq-weighted add lifts high-freq
                 // JP above rare Chinese (per user rule: JP base < wubi/
@@ -234,7 +234,7 @@ impl JapaneseAdapter {
                 // `base + freq·freq_mult·proximity^K` shape. See
                 // PLAN-prefix-prediction §4 and PLAN-probabilistic-model.
                 let proximity = c.proximity_milli as f64 / 1000.0;
-                let pre_promote = scoring::predict_score(
+                let (pre_promote, components) = scoring::predict_score_with_components(
                     base,
                     c.freq as u64,
                     scoring::PRIOR_FREQ_MULT_JP,
@@ -243,7 +243,12 @@ impl JapaneseAdapter {
                 // Predictions (proximity < 1) never ride the full-match promote.
                 let mult = if c.proximity_milli >= 1000 { promote } else { 1.0 };
                 let score = pre_promote * mult;
-                (c.word.clone(), score)
+                // Components keep the un-promoted (base, prior, likelihood)
+                // shape from predict_score: probe shows score (post-promote)
+                // alongside the decomposition, the promote factor is then
+                // implicit (score / (base + prior · likelihood) == promote
+                // when components is Some).
+                (c.word.clone(), score, Some(components))
             })
             .collect()
     }

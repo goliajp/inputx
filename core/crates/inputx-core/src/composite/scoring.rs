@@ -387,6 +387,33 @@ pub fn predict_score(base: f64, freq: u64, freq_mult: f64, proximity: f64) -> f6
     base + (freq as f64) * freq_mult * proximity.powf(LIKELIHOOD_PREDICT_PROXIMITY_K)
 }
 
+/// Variant of [`predict_score`] that also returns the two-axis
+/// decomposition (`base`, `prior = freq · freq_mult`,
+/// `likelihood = proximity^K`). Invariant:
+///   `score == base + prior · likelihood`
+/// holds bit-for-bit (`base + prior * likelihood` is the exact same
+/// expression as in `predict_score`'s body, just split). The
+/// composite layer surfaces these via `Candidate.components` so
+/// `inputx-probe` can render the (base, prior, likelihood) view (v1.3
+/// WU-γ) without disturbing the underlying score.
+///
+/// Used by every `predict_score` caller (CP-A JP / CP-B pinyin / CP-C
+/// wubi prediction) — they now keep both the score and its components.
+pub fn predict_score_with_components(
+    base: f64,
+    freq: u64,
+    freq_mult: f64,
+    proximity: f64,
+) -> (f64, crate::composite::merge::ScoreComponents) {
+    let prior = (freq as f64) * freq_mult;
+    let likelihood = proximity.powf(LIKELIHOOD_PREDICT_PROXIMITY_K);
+    let score = base + prior * likelihood;
+    (
+        score,
+        crate::composite::merge::ScoreComponents { base, prior, likelihood },
+    )
+}
+
 #[cfg(test)]
 mod tests {
     //! Manifest tests for the v1.3 PRIOR/LIKELIHOOD/CUTOFF rename.
@@ -406,6 +433,34 @@ mod tests {
         // P(W) — frequency-derived priors. Unchanged across the v1.3 rename.
         assert_eq!(PRIOR_FREQ_MULT_JP, 3000.0);
         assert_eq!(PRIOR_L0_PIN_MULT, 1000.0);
+    }
+
+    #[test]
+    fn wug_predict_score_components_invariant() {
+        // v1.3 WU-γ invariant: for every (base, freq, freq_mult, proximity)
+        // accepted by `predict_score`, `predict_score_with_components` must
+        // return a `ScoreComponents` whose `base + prior * likelihood`
+        // reproduces the score bit-for-bit (modulo IEEE rounding within an
+        // epsilon). This is the only thing that keeps the probe's three-
+        // axis decomposition honest — without this test a future refactor
+        // could silently desync the two helpers.
+        let cases: &[(f64, u64, f64, f64)] = &[
+            (LIKELIHOOD_PINYIN_PREDICT_BASE, 50_000, PRIOR_FREQ_MULT_PINYIN, 0.875),
+            (LIKELIHOOD_PINYIN_PREDICT_BASE, 0,      PRIOR_FREQ_MULT_PINYIN, 1.0),
+            (LIKELIHOOD_WUBI_PREDICT_BASE,   45_000, PRIOR_FREQ_MULT_WUBI,   0.5),
+            (LIKELIHOOD_JP_JUKUGO_BASE,      88,     PRIOR_FREQ_MULT_JP,     0.875),
+            (LIKELIHOOD_JP_JUKUGO_BASE,      100,    PRIOR_FREQ_MULT_JP,     1.0),
+        ];
+        for &(base, freq, mult, proximity) in cases {
+            let plain = predict_score(base, freq, mult, proximity);
+            let (split, c) = predict_score_with_components(base, freq, mult, proximity);
+            assert_eq!(plain, split,
+                "predict_score and _with_components must agree for ({base}, {freq}, {mult}, {proximity})");
+            let recomputed = c.base + c.prior * c.likelihood;
+            assert!((split - recomputed).abs() < 1e-9,
+                "invariant breaks for ({base}, {freq}, {mult}, {proximity}): \
+                 score={split}, base+prior*likelihood={recomputed}");
+        }
     }
 
     #[test]

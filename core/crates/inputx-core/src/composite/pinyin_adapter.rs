@@ -95,6 +95,13 @@ pub struct PinyinAdapter {
     /// gated on `allow_prefix_completion = !has_non_speculative_candidate`
     /// so `lianxiang → 联想` exact match is untouched (2026-05-22 user rule).
     prefix_scored: HashMap<String, f64>,
+    /// WU-γ parallel decomposition map: `word → ScoreComponents` for the
+    /// same CP-B prediction entries that populate `prefix_scored`. Kept
+    /// alongside (not folded in) so the existing f64 score read-path
+    /// stays a single map lookup; `candidates_with_scores` zips both
+    /// to emit `Scored` tuples carrying the (base, prior, likelihood)
+    /// view for `inputx-probe`.
+    prefix_components: HashMap<String, super::merge::ScoreComponents>,
 }
 
 impl Default for PinyinAdapter {
@@ -147,6 +154,7 @@ impl PinyinAdapter {
             fuzzy_candidates: HashSet::new(),
             fallback_composition: None,
             prefix_scored: HashMap::new(),
+            prefix_components: HashMap::new(),
         }
     }
 
@@ -243,14 +251,15 @@ impl PinyinAdapter {
     pub fn candidates_with_scores(
         &self,
         prev_committed: Option<&str>,
-    ) -> Vec<(String, f64)> {
+    ) -> Vec<super::merge::Scored> {
         if self.candidates.is_empty() || self.buffer.is_empty() {
             return Vec::new();
         }
         // Score exact-match entries via the dict; everything else
         // (initials + prefix-completion injected entries) gets a small
         // floor so the cross-engine merge still ranks them.
-        let mut scored: Vec<(String, f64)> = Vec::with_capacity(self.candidates.len());
+        let mut scored: Vec<super::merge::Scored> =
+            Vec::with_capacity(self.candidates.len());
         let mut exact_scored: Vec<(String, f64)> = Vec::new();
         self.engine.dict().lookup_with_scores_into(&self.buffer, &mut exact_scored);
         let exact_map: std::collections::HashMap<String, f64> =
@@ -306,30 +315,38 @@ impl PinyinAdapter {
             let is_composed = Some(w.as_str()) == self.composed_sentence.as_deref();
             let is_fallback = Some(w.as_str()) == self.fallback_composition.as_deref();
             let is_fuzzy = self.fuzzy_candidates.contains(w);
-            let base = if is_composed {
-                // A composition that coincides with a real exact dict word
-                // (zhongguo→中国, women→我们) keeps its real exact score — it
-                // is a genuine word, not forced junk. Only a segmentation
-                // that is NOT itself a dict word (用中 for yongzhong, 是嗯据库
-                // for shinjuku) drops to composed_base, below every exact word.
-                exact_map.get(w).copied().unwrap_or(composed_base)
-            } else if is_fallback {
-                COMPOSED_FALLBACK_SCORE
-            } else if is_fuzzy {
-                FUZZY_BASE * FUZZY_DISCOUNT
-            } else {
-                // v1.3 WU-α CP-B: check prefix_scored (multi-letter
-                // Path-3 predict_score) before falling through to the
-                // legacy NON_EXACT_FLOOR. Single-letter prefix-completion
-                // and 简拼 initials entries are not in prefix_scored, so
-                // they keep the original floor + decay-by-position
-                // ordering.
-                exact_map.get(w).copied()
-                    .or_else(|| self.prefix_scored.get(w).copied())
-                    .unwrap_or(NON_EXACT_FLOOR * 0.99f64.powi(i as i32))
-            };
+            // (base, components) — components attached only on the CP-B
+            // prefix-prediction path (Path 3 multi-letter predict_score).
+            // All other paths leave it None; their scoring isn't yet a
+            // clean (base, prior, likelihood) split (composed/fuzzy/exact
+            // are flat additive bases, not probability-decomposed). The
+            // bigram_bonus added below is a cross-engine signal and does
+            // NOT enter components — `score` field carries it; probe
+            // surfaces both so the bonus is implicit (score − (base +
+            // prior · likelihood) == bigram_bonus when components is Some).
+            let (base, components): (f64, Option<super::merge::ScoreComponents>) =
+                if is_composed {
+                    // A composition that coincides with a real exact dict word
+                    // (zhongguo→中国, women→我们) keeps its real exact score — it
+                    // is a genuine word, not forced junk. Only a segmentation
+                    // that is NOT itself a dict word (用中 for yongzhong, 是嗯据库
+                    // for shinjuku) drops to composed_base, below every exact word.
+                    (exact_map.get(w).copied().unwrap_or(composed_base), None)
+                } else if is_fallback {
+                    (COMPOSED_FALLBACK_SCORE, None)
+                } else if is_fuzzy {
+                    (FUZZY_BASE * FUZZY_DISCOUNT, None)
+                } else if let Some(s) = exact_map.get(w).copied() {
+                    (s, None)
+                } else if let Some(s) = self.prefix_scored.get(w).copied() {
+                    // CP-B prediction hit: pull the decomposition from the
+                    // parallel components map so probe can render it.
+                    (s, self.prefix_components.get(w).copied())
+                } else {
+                    (NON_EXACT_FLOOR * 0.99f64.powi(i as i32), None)
+                };
             let bigram_bonus = dict.bigram_boost(prev_committed, w);
-            scored.push((w.clone(), base + bigram_bonus));
+            scored.push((w.clone(), base + bigram_bonus, components));
         }
         scored
     }
@@ -426,6 +443,7 @@ impl PinyinAdapter {
         self.candidates.clear();
         self.has_non_speculative_candidate = false;
         self.prefix_scored.clear();
+        self.prefix_components.clear();
         true
     }
 
@@ -434,6 +452,7 @@ impl PinyinAdapter {
         self.candidates.clear();
         self.has_non_speculative_candidate = false;
         self.prefix_scored.clear();
+        self.prefix_components.clear();
     }
 
     /// Commit candidate at `index`. Records the pick into the engine's L0
@@ -446,6 +465,7 @@ impl PinyinAdapter {
         self.candidates.clear();
         self.has_non_speculative_candidate = false;
         self.prefix_scored.clear();
+        self.prefix_components.clear();
         Some(word)
     }
 
@@ -478,6 +498,7 @@ impl PinyinAdapter {
         self.fuzzy_candidates.clear();
         self.fallback_composition = None;
         self.prefix_scored.clear();
+        self.prefix_components.clear();
         if self.buffer.is_empty() {
             return;
         }
@@ -674,6 +695,7 @@ impl PinyinAdapter {
                 &mut seen,
                 &mut self.candidates,
                 &mut self.prefix_scored,
+                &mut self.prefix_components,
             );
         }
 
@@ -858,6 +880,7 @@ fn push_prefix_top_k(
     seen: &mut HashSet<String>,
     out: &mut Vec<String>,
     out_scored: &mut HashMap<String, f64>,
+    out_components: &mut HashMap<String, super::merge::ScoreComponents>,
 ) {
     if k == 0 {
         return;
@@ -932,13 +955,14 @@ fn push_prefix_top_k(
             // is undecayed; at "half-typed" proximity 0.5, signal damps
             // to 0.5^3 = 0.125.
             let proximity = (prefix_len as f64 / pinyin_len.max(1) as f64).min(1.0);
-            let score = scoring::predict_score(
+            let (score, components) = scoring::predict_score_with_components(
                 scoring::LIKELIHOOD_PINYIN_PREDICT_BASE,
                 freq,
                 scoring::PRIOR_FREQ_MULT_PINYIN,
                 proximity,
             );
             out_scored.insert(word.clone(), score);
+            out_components.insert(word.clone(), components);
             out.push(word);
         }
     }
