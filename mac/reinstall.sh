@@ -110,12 +110,7 @@ fi
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 "$LSREGISTER" -f "$APP_DST" >>"$LOG" 2>&1 || true
 
-# 4. Restart TextInputMenuAgent so the menu-bar picker re-reads the new
-#    bundle (display name, icon, mode list) — and the LS re-register
-#    from 3c.
-killall TextInputMenuAgent >>"$LOG" 2>&1 || true
-
-# 5. (Re)install the LaunchAgent plist and bootstrap. Bootstrap is noisy
+# 4. (Re)install the LaunchAgent plist and bootstrap. Bootstrap is noisy
 #    on re-load ("Bootstrap failed: 5: I/O error") when the domain still
 #    considers the plist loaded — fully silenced; step 6 is the source
 #    of truth for "is it running."
@@ -123,6 +118,42 @@ mkdir -p "$(dirname "$LA_DST")"
 sed "s|__APP_PATH__|$APP_DST|g" Resources/LaunchAgent.plist.template > "$LA_DST" 2>>"$LOG"
 launchctl bootstrap "gui/$UID" "$LA_DST" >>"$LOG" 2>&1 || true
 sleep 1
+
+# 5. Force the Ctrl+Space picker UI to refresh its enumeration cache by
+#    toggling our input mode disable → enable via TIS API. This mirrors
+#    the user's "Settings → 文本输入 → Edit → 删除 → 添加" round-trip:
+#    the disable+enable cycle fires kTISNotifyInputSourceListChanged so
+#    the picker UI invalidates its filter cache. None of `lsregister`,
+#    `killall TextInputMenuAgent`, or LaunchAgent bootstrap fire that
+#    notification on their own — empirically verified 2026-05-27 (post-
+#    reinstall: TIS API enumerates Inputx enabled=1 selectable=1, but
+#    Ctrl+Space picker silently hides it until the user goes through
+#    Settings to delete + re-add the mode).
+#
+#    Idempotent: TIS only fires the notification on actual state
+#    transition; disable may fail (transient lock) → `|| true` swallows
+#    it and enable still re-asserts the entry. No TCC popup because we
+#    don't call TISRegisterInputSource (that's the call which triggers
+#    the third-party-IME permission prompt; see 6b83f91).
+swift - <<'SWIFT' >>"$LOG" 2>&1 || true
+import Carbon
+let modeIDs: Set<String> = ["jp.golia.inputmethod.wubi.zh"]
+let all = (TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource]) ?? []
+for src in all {
+    guard let p = TISGetInputSourceProperty(src, kTISPropertyInputSourceID) else { continue }
+    let id = Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
+    if modeIDs.contains(id) {
+        _ = TISDisableInputSource(src)
+        _ = TISEnableInputSource(src)
+    }
+}
+SWIFT
+
+# 5b. Restart TextInputMenuAgent so picker respawns AFTER the TIS state
+#     transition above — guarantees the picker process inits from the
+#     post-flip TIS state even if it had been listening when the
+#     notification fired.
+killall TextInputMenuAgent >>"$LOG" 2>&1 || true
 
 # 6. Verify the binary is running.
 if pgrep -f "Inputx.app/Contents/MacOS/Inputx" >/dev/null; then
