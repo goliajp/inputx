@@ -1,5 +1,21 @@
 # Inputx Changelog
 
+## 1.3.0 — 2026-05-26
+
+**Probability model structural landing + prefix-prediction full coverage.** v1.2 set the conceptual frame (i→P→o, `P(W|i) = P(i|W)·P(W)`); v1.3 lands it structurally across the engine: scoring constants renamed to PRIOR_/LIKELIHOOD_/CUTOFF_/MARKER_ groups, the prefix-prediction shape unified across pinyin/wubi/JP, and `inputx-probe` now emits the two-axis (base, prior, likelihood) decomposition so the Bayesian split is inspectable.
+
+### v1.3 work units
+
+- **WU-β (scoring rename)** — 13 ad-hoc constants → 4 prefix groups; every constant now carries doc comments stating which factor of `P(i|W)·P(W)` it estimates. 6 manifest tests pin the values. Pure rename — byte-for-byte invariant verified by 271+25 baseline tests.
+- **WU-α CP-B (pinyin Path-3 prefix prediction)** — `lianxiang → 联想` rule preserved; multi-letter mid-syllable input (`zho`, `shink`, …) now scored via `predict_score(base, freq, freq_mult, proximity^K)` instead of the legacy `NON_EXACT_FLOOR` floor. CP-A JP path refactored to the same helper (no behavior change).
+- **WU-α CP-C (wubi prefix prediction)** — symmetric coverage for wubi: `jj → 昌` (Jianma2 simcode) stays #1; `日 / 日本 / 日子 / …` (jjjj-prefix predictions) attach as low-priority alternates beneath it; `jjjj → 日` exact full-code unchanged. Cross-crate API addition (`inputx-wubi::WubiDict::prefix_predictions`).
+- **WU-γ (probe two-axis output)** — `inputx-probe` candidate JSON now carries `score` plus, where applicable, `base` / `prior` / `likelihood`. The decomposition is populated wherever the candidate flowed through `predict_score_with_components` (CP-A/B/C); exact / Viterbi / fuzzy / fallback candidates emit only `score` (their architectural decomposition is scheduled for v1.4 candidate-schema upgrade).
+
+### Polish (continuous, on top of v1.3 work units)
+
+- **K-best Viterbi for short-buffer fallback** — Path 5 1-best DP locked the first segment to the freq-greedy top word, masking strong-bigram alternates downstream. K-best (k=5) keeps the top-K partials at every position so alternates surface as visible fallbacks. Example: `pianni` now exposes `便你 / 骗你 / 偏你 / 篇你` as a candidate set instead of just `片你`.
+- **`片你` blacklist** — `pianni` Path-5 freq-greedy #1 isn't a real phrase; corpus has no (骗, 你) bigram so K-best can't reorder it via the bonus channel. Blacklisted at `composite::blacklist` (the existing pollution backstop) so the wrong reading never surfaces. Policy (user 2026-05-26): no ad-hoc dict patches for OOV collocations — blacklist the wrong, let the engine surface the alternates; real-phrase coverage stays in dict-pipeline T0 scope.
+
 ## 1.2.0 — 2026-05-26
 
 **Polish + 首版正式发布。** 词库 pipeline 收口到唯一真相源，四维工程指标 baseline 入库，应用 UI 与日语扩展收口，mac dmg 通过 notarize + staple 上线，iOS 保留 self-use sideload 能力。本版本所有 ranking 修复按 `P(W|i) = P(i|W) · P(W)` 概率框架诠释（指导思想见 `.claude/PLAN-probabilistic-model.md`）。
