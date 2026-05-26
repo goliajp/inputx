@@ -51,6 +51,15 @@ const PRIOR_CORRECTIONS: &[(&str, f64)] = &[
     // attestation: "设计肯定应该高于涉及". Boost ×2 so 设计 clears 涉及 at
     // sheji and any other buffer where corpus underrates 设计.
     ("设计", 2.0),
+    // 2026-05-26 baseline-fix after deterministic pinyin.dict rebuild
+    // (build_pinyin_modern.py finance expansion exposed PLAN-dict-pipeline
+    // "三套混杂" — modern_v1 overlay had `立项` = 50000 which the previous
+    // manual-mix .dict didn't reflect). Restore lixiang→理想 #0 ranking.
+    ("理想", 2.0),
+    // Same trigger: jiazai weights.tsv has 加在 20123 > 加载 18923 but
+    // baseline test pins 加载 outranking 加在 (common-use signal: file
+    // loading is much more frequent than the "加 in" particle compound).
+    ("加载", 1.5),
 ];
 
 /// Lookup the user-curated multiplier for `word`. Returns 1.0 (no
@@ -74,9 +83,13 @@ mod tests {
     fn known_corrections_apply() {
         assert_eq!(correction_for("继续"), 2.0);
         assert_eq!(correction_for("设计"), 2.0);
+        assert_eq!(correction_for("理想"), 2.0);
+        assert_eq!(correction_for("加载"), 1.5);
         // Untouched words pass through at 1.0.
         assert_eq!(correction_for("积蓄"), 1.0);
         assert_eq!(correction_for("涉及"), 1.0);
+        assert_eq!(correction_for("立项"), 1.0);
+        assert_eq!(correction_for("加在"), 1.0);
         assert_eq!(correction_for("新宿"), 1.0);
         assert_eq!(correction_for(""), 1.0);
         // Multiplier window — corrections outside [0.3, 3.0] should not
