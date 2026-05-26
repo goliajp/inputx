@@ -619,6 +619,38 @@ mod tests {
     }
 
     #[test]
+    fn mixed_jieni_no_jp_compose_garbage_in_top_5() {
+        // User polish-log 2026-05-26 screenshot: jieni (5 letters)
+        // surfaced ~30 mechanical compose_sentence products at #4-30+
+        // (時へに / 事へに / 治へに / 耳へに / 耳へ尼 / 事へ尼 / ...),
+        // X+へ+Y cartesian where へ is the particle pronounced as `e`.
+        // None of them are real Japanese. They scored at
+        // LIKELIHOOD_JP_COMPOSED_BASE so they didn't lead, but their
+        // sheer count crowded out the visible window. Short-buffer
+        // (< 8 chars) compose filter in japanese_adapter drops them all.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"jieni" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(8).map(|c| c.word.as_str()).collect();
+        // No 時へに / 事へに / 治へに / 耳へに / 耳へ尼 / 事へ尼 / 治へ尼 / 仕へ尼.
+        let garbage_patterns = ["時へに", "事へに", "治へに", "耳へに",
+                                "耳へ尼", "事へ尼", "治へ尼", "仕へ尼"];
+        for w in &garbage_patterns {
+            assert!(!cands.iter().any(|c| &c.word.as_str() == w),
+                "{w} (mechanical compose garbage) must not appear in jieni candidates; \
+                 got top8={top:?}");
+        }
+        // Useful candidates still present: 杰尼 (pinyin), じえに / ジエニ (kana).
+        assert!(cands.iter().any(|c| c.word == "じえに"),
+            "じえに (hiragana) must remain visible; got top8={top:?}");
+    }
+
+    #[test]
     fn mixed_jjjj_full_code_exact_leads_no_prediction_inversion() {
         // CP-C invariant at full code: wubi codes are at most 4 chars, so
         // prefix_predictions returns no entries (no code length > 4). 日
