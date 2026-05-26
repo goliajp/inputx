@@ -264,7 +264,7 @@ impl CompositeEngine {
     /// Returns the merged candidate list, sorted purely by score
     /// (descending). L0 pins surface at #0 via the score multiplier
     /// applied inside the engine adapter's `lookup_with_scores_into`
-    /// (see `scoring::L0_PIN_MULTIPLIER` = 1000×) — no post-pass
+    /// (see `scoring::PRIOR_L0_PIN_MULT` = 1000×) — no post-pass
     /// re-ordering exists or is needed.
     pub fn candidates(&mut self) -> &[Candidate] {
         self.cand_buf.clear();
@@ -908,7 +908,7 @@ mod tests {
     #[test]
     fn composed_fallback_outranks_jp_kana() {
         // user-report 2026-05-25: in Mixed+JP, `kaopu` ranked the mechanical
-        // kana かおぷ (JP_HIRAGANA_SCORE 150k) ABOVE 靠谱 (Path 5 composition,
+        // kana かおぷ (LIKELIHOOD_JP_HIRAGANA_BASE 150k) ABOVE 靠谱 (Path 5 composition,
         // was NON_EXACT_FLOOR ~1k). A word composed from real single chars
         // must outrank a kana transliteration. COMPOSED_FALLBACK_SCORE (250k)
         // now sits above kana but below real dict words.

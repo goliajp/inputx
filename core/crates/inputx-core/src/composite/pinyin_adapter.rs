@@ -256,7 +256,7 @@ impl PinyinAdapter {
         // priority when both engines have a strong claim.
         const COMPOSED_SCORE: f64 = 500_000.0;
         // Path 5 last-resort composition (kaopu→靠谱). Sits ABOVE mechanical
-        // JP kana (scoring::JP_HIRAGANA_SCORE = 150k, katakana 110k, +freq×3k
+        // JP kana (scoring::LIKELIHOOD_JP_HIRAGANA_BASE = 150k, katakana 110k, +freq×3k
         // — but mechanical renders carry freq 0) so a word composed from real
         // single chars beats a かおぷ-style transliteration in Mixed+JP, while
         // staying BELOW any real pinyin dict word (~445k), wubi 简码 (600k–1M)
