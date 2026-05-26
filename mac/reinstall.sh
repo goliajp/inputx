@@ -78,6 +78,17 @@ if ! cp -R "$APP_SRC" "$APP_DST" >>"$LOG" 2>&1; then
   fail "cp new bundle"
 fi
 
+# 3a. Reset L0 user-learning state (wubi + pinyin pins / pick_counts).
+#     User directive 2026-05-26: "每次更新都要清理掉 l0 pin，不然我不知道
+#     你有没有做". L0 pins multiply candidate score by PRIOR_L0_PIN_MULT
+#     (= 1000×) which dwarfs corpus / prior_correction work — leaving them
+#     in place across reinstalls makes polish-log verification impossible
+#     (a previously-pinned candidate stays #1 regardless of any engine
+#     change). polish-log.jsonl is preserved (it's a history record, not
+#     a ranking-influencing pin store).
+L0_DIR="$HOME/Library/Containers/jp.golia.inputmethod.wubi/Data/Library/Application Support/Inputx"
+rm -f "$L0_DIR/wubi_l0.json" "$L0_DIR/pinyin_l0.json" 2>>"$LOG" || true
+
 # 3b. Purge the loose build/ .app from LaunchServices and disk. Without
 #     this, LS auto-registers the $HOME-resident bundle and may shadow
 #     the install at /Library/Input Methods/ — picker silently hides
