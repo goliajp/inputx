@@ -79,17 +79,82 @@ pub const JP_JUKUGO_SCORE: f64 = 200_000.0;
 /// less specific than compounds), still below Chinese bases.
 pub const JP_SINGLE_KANJI_SCORE: f64 = 100_000.0;
 
-/// JP hiragana base — mechanical romaji→kana rendering, lowest tier.
-pub const JP_HIRAGANA_SCORE: f64 = 50_000.0;
+/// JP hiragana base — mechanical romaji→kana rendering.
+/// Tuned 2026-05-24 from 200k → 150k after user-reported `di → ぢ #1
+/// over 的`: at base 200k + freq 100·3000 = 500k, top hiragana beat
+/// pinyin top 的 (465k). New target: top hiragana = 150k + 300k = 450k,
+/// just under pinyin top, preserving user rule "JP top > Chinese rare,
+/// JP top < Chinese top". `え` at 'e' (low freq) lands at 150k, still
+/// visible mid-list (rank 3-6 typical), so the え-recovery regression
+/// stays fixed without overpowering pinyin.
+pub const JP_HIRAGANA_SCORE: f64 = 150_000.0;
 
-/// JP katakana base — slightly below hiragana (less common as the
-/// "default" kana rendering of romaji input).
-pub const JP_KATAKANA_SCORE: f64 = 40_000.0;
+/// JP katakana base — below hiragana (less common as the default romaji
+/// rendering). Tuned 150k → 110k for the same reason as hiragana:
+/// top katakana = 110k + 300k = 410k, comfortably under pinyin top.
+pub const JP_KATAKANA_SCORE: f64 = 110_000.0;
 
 /// Multiplier on the per-entry freq value. Calibrated so top JP entries
-/// (freq 100) land at base + 300k, lifting them above pinyin rare (~410k)
-/// while staying under pinyin top (~480k) and wubi simcodes (600k+).
+/// (freq 100) land at base + 300k. Combined with the tuned bases above,
+/// top hiragana = 450k, top katakana = 410k — both below pinyin top
+/// (~465k for common particles like 的/了/是) while staying above
+/// pinyin rare (~410k+) so confident JP picks aren't drowned out.
 pub const JP_FREQ_MULTIPLIER: f64 = 3000.0;
+
+/// JP full-match PROMOTE — multiplier applied to *every* JP candidate's
+/// score when the buffer yields a real full-buffer 熟語 (multi-char kanji
+/// jukugo with freq > 0). A jukugo match means the *entire* romaji buffer
+/// maps to a genuine Japanese word — a high-confidence "the user is typing
+/// Japanese" signal, analogous to a full-code exact wubi hit. User rule
+/// 2026-05-25 (shinjuku→新宿): in that case JP must take precedence over a
+/// Chinese FORCED-composition fallback (the Viterbi 整句拼接 junk like
+/// 是嗯据库 at COMPOSED_SCORE=500k), and the kana forms (esp. katakana,
+/// base 110k) must surface into the visible window instead of drowning
+/// under pinyin non-exact noise (~244k). Calibration: top jukugo 新宿
+/// (464k) ×1.3 = 603k clears the 500k composition; katakana シンジュク
+/// (200k) ×1.3 = 260k clears the pinyin cluster. Only fires when a real
+/// jukugo is present, so plain pinyin input (no jukugo) is untouched.
+/// Bounded so it only matters for long romaji buffers (jukugo ≥ ~4 chars
+/// ⇒ wubi already zeroed by wubi_length_modifier; no simcode collision).
+pub const JP_FULL_MATCH_PROMOTE: f64 = 1.3;
+
+/// Exponent on prefix-prediction proximity (typed_len / full_reading_len).
+/// A predicted candidate's freq contribution is scaled by `proximity^K`, so
+/// "almost done" (proximity→1) keeps most of the freq while "just started"
+/// (low proximity) is strongly damped — predictions rise as the user types
+/// closer to the word. K=3 (草案): 0.875→0.67, 0.5→0.125, 0.375→0.05. Tune
+/// in CP-A calibration. See PLAN-prefix-prediction.md §4.
+pub const PREDICT_PROXIMITY_K: f64 = 3.0;
+
+/// Base score for `compose_sentence` products (mechanical content+particle
+/// sentence guesses: 私は for watashiwa, but junk like 時へ時 for the
+/// Chinese pinyin `jieji`). User-reported 2026-05-25: these polluted the
+/// top of Chinese pinyin input (jieji/jieshou surfaced 時へ時 / 治へ上 at
+/// #1-4, worsened by treating them as jukugo + the full-match promote).
+/// They are LOW confidence — set well below the pinyin/wubi Phrase base
+/// (400k) so real Chinese words always lead, while still letting a
+/// composed guess surface when there is NO Chinese competition
+/// (watashiwa→私は). Never freq-scaled here and never promoted (the freq
+/// of a mechanical compose is unreliable); a flat floor keeps the whole
+/// compose group beneath real candidates. Above katakana (110k) so a
+/// composed sentence still beats a bare mechanical kana rendering.
+pub const JP_COMPOSED_SCORE: f64 = 130_000.0;
+
+/// Base score for a PURE-KANJI compose product — specifically the "jukugo +
+/// category-suffix kanji" path (東京+都 = 東京都, 大阪+府 = 大阪府). User
+/// insight 2026-05-26: 東京都 is "拼" (productive 词+后缀), not a dict word
+/// (mozc itself doesn't list it), so it's composed — but unlike a 私は /
+/// 時へ時 particle-compose (which carries kana) a pure-kanji admin compound
+/// is a high-confidence real reading the user wants AS the kanji conversion.
+/// Set ABOVE the long-buffer kana fallbacks (hiragana base 150k + kana_freq
+/// 30×3000 = 240k, katakana = 200k) so the kanji conversion 東京都 leads the
+/// kana in Japanese mode — the standard JP-IME workflow (type romaji, see
+/// kanji first, kana as fallback). Kept BELOW real Chinese (400k) and never
+/// promoted, so it can't pollute Chinese pinyin that happens to end in a
+/// suffix reading. (It can edge a very-low-freq real jukugo, freq<27 → <280k;
+/// acceptable — 東京都 is a legit reading.) Pure-kanji vs has-kana split is
+/// done by inspecting the word in japanese_adapter (no extra field).
+pub const JP_COMPOSED_KANJI_SCORE: f64 = 280_000.0;
 
 /// Past this input length (pinyin-buffer chars), wubi candidate scores
 /// get multiplied by 0.0 via `wubi_length_modifier`. Effect: wubi
@@ -103,20 +168,42 @@ pub const WUBI_MAX_BUFFER_LEN: usize = 4;
 /// while still leaving them in the list if no SC equivalent exists.
 pub const TC_DEMOTE_MULTIPLIER: f64 = 1e-3;
 
+/// Wubi-first PROMOTE for a full-code (4-key) exact wubi **Phrase** hit
+/// when the user is simultaneously typing a valid pinyin word
+/// (`pinyin_intent`). User rule (2026-05-25, aiyi→东京): a *complete*
+/// wubi code is a high-confidence wubi-first signal that should edge out a
+/// *same-freq* pinyin word.
+///
+/// Tuned to ×1.1 (was 1.2). With Phrase base ~400k that's a ~40k
+/// freq-equivalent edge — enough that a same-or-slightly-lower-freq wubi
+/// phrase wins (aiyi: 东京 raw 429k already tops 爱意 425k, promote widens
+/// it), but NOT enough to flip a *clearly* higher-freq pinyin word. The
+/// 2026-05-26 jixu regression forced this down: 曳光弹 (rare wubi 3-char
+/// coincidence, raw 407k) was beating 继续 (common pinyin, raw 475k —
+/// 67k higher) because ×1.2 gave an 80k edge; ×1.1's 40k edge keeps 继续
+/// ahead while still honoring the aiyi same-freq case. Bounded below the
+/// Zigen base (500k) so wubi-internal layering is untouched. NOT applied to
+/// speculative short buffers (those keep the 0.5 demote) nor to Auto junk.
+pub const WUBI_FULL_CODE_PHRASE_PROMOTE: f64 = 1.1;
+
 /// Multiplier applied to L0-pinned words inside the engine's
 /// `lookup_with_scores_into`. Brings any pin above any natural score:
 /// Jianma1 (1.04M) × 1.0 = 1.04M; pinyin top (444k) × 1000 = 444M.
-/// Pin wins.
+/// Pin wins. (Constant kept for documentation + future external
+/// callers; current pin path uses the literal `1000.0` in dict.rs.)
+#[allow(dead_code)]
 pub const L0_PIN_MULTIPLIER: f64 = 1000.0;
 
 /// Multiplier applied to a wubi single-char candidate at full-code
 /// input length when its freq exceeds the max phrase freq at the same
-/// code. Lifts e.g. 两 (single char, freq 37k) above 两败俱伤 (phrase,
-/// freq 15k) at code `gmww`.
+/// code. Documentation constant; promotion currently lives inside
+/// wubi engine's own scoring.
+#[allow(dead_code)]
 pub const WUBI_SINGLE_CHAR_PROMOTE_MULTIPLIER: f64 = 100.0;
 
 /// Score floor recognizing "this is a wubi Jianma1 hit". Used by
 /// diagnostic / FFI code. Today = LAYER_BASE[Jianma1] in inputx-wubi.
+#[allow(dead_code)]
 pub const JIANMA1_THRESHOLD: f64 = 1_000_000.0;
 
 /// Score multiplier for wubi candidates given the user's input length.
@@ -138,7 +225,26 @@ pub const ENGINE_MULT_PINYIN: f64 = 1.0;
 #[allow(dead_code)]
 pub const ENGINE_MULT_JP: f64 = 1.0;
 
-/// Length bias (not yet wired). Future: short phrases get a small boost,
-/// long phrases penalized unless the user typed all chars.
-#[allow(dead_code)]
-pub fn length_bias(_word_len: usize) -> f64 { 1.0 }
+/// Length bias for **prefix-completion** ranking (bare letter / partial
+/// syllable, e.g. `q`). At a single-syllable EXACT code the dict already
+/// returns only single chars, so this never touches those. But a bare
+/// prefix can complete to a single char OR a multi-char phrase, and raw
+/// corpus freq buries common single chars (去/起) under tech-corpus
+/// phrases (前端/前端工程师/企业微信). This multiplier favors shorter
+/// candidates so single chars lead — while staying multiplicative, so a
+/// phrase whose freq is high enough can still climb back (user rule
+/// 2026-05-24: "单个字的评分肯定要更高", with the implicit "除非多字词频
+/// 率远高"). 1.0 for a single char; sharp decay past that.
+///
+/// Scoped deliberately to `compute_single_letter_top_k` only — NOT to
+/// multi-letter prefix completion (`zho` → 中国), where the user is
+/// mid-syllable toward a phrase and phrases are the desired result.
+pub fn length_bias(word_len: usize) -> f64 {
+    match word_len {
+        0 | 1 => 1.0,
+        2 => 0.18,
+        3 => 0.10,
+        4 => 0.07,
+        _ => 0.05,
+    }
+}

@@ -8,12 +8,13 @@ members = [
     "crates/inputx-pinyin",
     "crates/inputx-pinyin-wasm",
     "crates/inputx-jp",
+    "crates/inputx-fsa",
 ]
 
 [workspace.package]
-version = "1.1.1"
+version = "1.2.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.95"
 
 # wubi/pinyin engines live inside this monorepo as workspace members
 # (`crates/inputx-wubi`, `crates/inputx-pinyin`). They're also published
@@ -25,8 +26,8 @@ rust-version = "1.85"
 # from the registry. `package = "inputx-X"` rename keeps the historical
 # `use wubi::...` / `use golia_pinyin::...` import paths stable.
 [workspace.dependencies]
-wubi = { package = "inputx-wubi", version = "1.1", path = "crates/inputx-wubi" }
-golia-pinyin = { package = "inputx-pinyin", version = "1.1", path = "crates/inputx-pinyin" }
+wubi = { package = "inputx-wubi", version = "1.2", path = "crates/inputx-wubi" }
+golia-pinyin = { package = "inputx-pinyin", version = "1.2", path = "crates/inputx-pinyin" }
 
 [profile.release]
 # Was `lto = true` (fat LTO). Switched to "off" because fat LTO embeds

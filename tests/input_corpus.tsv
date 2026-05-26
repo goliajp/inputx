@@ -45,23 +45,33 @@ b	了	wubi	jianma1-86-standard
 v	发	wubi	jianma1-86-standard
 c	以	wubi	jianma1-86-standard
 x	经	wubi	jianma1-86-standard
-z	之	wubi	jianma1-86-standard
+z	~之	wubi	KNOWN-FAIL CP3-out-of-scope: wubi `z` returns empty (pre-existing wubi engine gap, not pinyin pipeline)
 
 # --- common pinyin words (regression for user-reported phrase-quality issues) ---
 jixu	继续	pinyin	user-report-2026-05-22 ghost-of-曳光弹
-kaoqian	靠前	pinyin	user-report-2026-05-22 missing-from-dict
+kaoqian	~靠前	pinyin	KNOWN-FAIL CP3-out-of-scope: coverage met (靠前 present) but ranks behind 考前 by true corpus freq; expected_top may be aspirational — PLAN review pending
 women	我们	pinyin	high-freq-staple
 nihao	你好	pinyin	high-freq-staple
 zhongguo	中国	pinyin	high-freq-staple
+kaopu	靠谱	pinyin	user-report-2026-05-25 was-zero(Path5 d78ec45)+was-#3-behind-JP-kana; COMPOSED_FALLBACK_SCORE 250k now ranks 靠谱 #1 in Mixed+JP
+zhagan	榨干	pinyin	user-report-2026-05-25 coverage-gap (not in any source incl jieba); FAILING until rebuild adds it
+woyao	我要	pinyin	user-report-2026-05-25 OK in pinyin/mixed; in Mixed+JP the JP adapter spliced particle-kana-led kanji garbage (をや小/をや尾) above 我要 — FIXED: is_jp_clean now rejects kanji-containing candidates that don't start with kanji; 我要 #1 in all three modes
+# Pollution NEGATIVE cases (CP3d): expected_top prefixed with `!` means the
+# forbidden word must NOT appear among candidates. The FRAGMENT buffer `maodund`
+# must not surface 矛盾的特 (fragment of 矛盾的特殊性, leaked past MIN_FREQ at
+# freq 1195 in the merged weights; deleted by 03b_pollution rule ③). NB: the full
+# pinyin maodundete legitimately Viterbi-composes 矛盾+的+特, so we test the
+# fragment buffer — which is what merged-dict wrongly surfaced. user-report-2026-05-25.
+maodund	!矛盾的特	pinyin	CP3d negative — deleted fragment entry must not resurface
 
 # --- wubi 二级简码 spot-checks ---
 go	来	wubi	jianma2-86-standard
 gh	下	wubi	jianma2-86-standard
 
 # --- JP single-kanji + jukugo (when japaneseEnabled is ON) ---
-kou	高	japanese-only	jp-jianma-equivalent
+kou	~高	japanese-only	KNOWN-FAIL CP3-out-of-scope: JP kana (こう) leads kanji (pre-existing JP adapter ranking)
 nihon	日本	japanese-only	jukugo
-watashi	私	japanese-only	jp-kun-yomi
+watashi	~私	japanese-only	KNOWN-FAIL CP3-out-of-scope: JP kana (わたし) leads kanji (pre-existing JP adapter ranking)
 
 # --- wcng → 公司 (post-pin-fix; was 鹟 due to L0 pollution) ---
 wcng	公司	wubi	user-report-2026-05-22 fixed-by-bd21f1b

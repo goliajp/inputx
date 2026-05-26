@@ -275,6 +275,38 @@ impl Session {
         self.cand_cache.len()
     }
 
+    /// Next-word predictions (联想) computed after the most-recent
+    /// CJK commit. Empty until first CJK commit and after `clear`.
+    /// Host UI uses this to decide whether to keep the candidate
+    /// panel visible post-commit, showing predictions as the user's
+    /// likely next pick (Sogou-style 联想 panel).
+    pub fn predictions(&self) -> Vec<String> {
+        self.composite.predicted_candidates()
+            .iter()
+            .map(|c| c.word.clone())
+            .collect()
+    }
+
+    pub fn prediction_count(&self) -> usize {
+        self.composite.predicted_candidates().len()
+    }
+
+    /// Commit a prediction by index. Returns the committed text on
+    /// success (and triggers a fresh round of predictions internally,
+    /// keyed off the just-committed word — chained 联想). Returns
+    /// `None` for out-of-range index.
+    ///
+    /// Unlike `commit_index`, this is a "soft" commit — there's no
+    /// buffer to drain, so no per-engine L0 pick is recorded. The
+    /// prediction list is fully derived from `last_committed_word` +
+    /// the static bigram corpus.
+    pub fn commit_prediction(&mut self, index: usize) -> Option<String> {
+        let preds = self.composite.predicted_candidates();
+        let word = preds.get(index).map(|c| c.word.clone())?;
+        let committed = self.composite.commit_prediction_word(&word);
+        Some(committed)
+    }
+
     /// Source byte for the candidate at `index` — 0 = Wubi, 1 = Pinyin.
     /// Returns `None` if the index is out of range.
     pub fn candidate_source(&self, index: usize) -> Option<u8> {
@@ -382,6 +414,39 @@ mod tests {
 
     fn s() -> Session {
         Session::new()
+    }
+
+    #[test]
+    fn q_bare_letter_single_chars_lead_phrases() {
+        // User 2026-05-24: "单个字的评分也肯定要更高，现在 q 这列表根本
+        // 不能看" — typing a bare letter `q` showed multi-char phrases
+        // (前端/请问/权限/企业微信/前端工程师) buried single chars
+        // (去/起/前) via raw corpus freq. Fix: `scoring::length_bias`
+        // in `compute_single_letter_top_k` favors single chars for
+        // bare-letter prefix completion. wubi Jianma1 (q→我) stays #0.
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.handle_key(b'q' as u32, 0);
+        let cands = sess.candidates();
+        assert!(!cands.is_empty(), "expected q candidates");
+        // Every Pinyin-source candidate in the top 10 must be a single
+        // char — no phrase may interleave among the leading single chars.
+        for (i, w) in cands.iter().take(10).enumerate() {
+            if sess.candidate_source(i) == Some(1) {
+                assert_eq!(
+                    w.chars().count(),
+                    1,
+                    "q top-10 pinyin candidate #{i} {w:?} should be a single \
+                     char; phrases must rank below single chars for a bare letter"
+                );
+            }
+        }
+        // Sanity: a common single char surfaces high (去 is q-prefix common).
+        let qu_pos = cands.iter().position(|w| w == "去");
+        assert!(
+            qu_pos.is_some_and(|p| p <= 5),
+            "去 should rank in the top few for bare q, got {qu_pos:?}"
+        );
     }
 
     #[test]
@@ -1039,6 +1104,15 @@ mod wubi_simcode_priority {
     #[test] fn de_wubi_胡()  { assert_eq!(top(b"de"),  "胡"); }
     #[test] fn shi_wubi_椒() { assert_eq!(top(b"shi"), "椒"); }
     #[test] fn you_wubi_亦() { assert_eq!(top(b"you"), "亦"); }
+    // User-confirmed via runtime (2026-05-24): Jianma2 common-char
+    // entries also must lead via Session path (same flow the Mac IME
+    // uses). Adding these pins more of the user-stated invariant so
+    // a regression at the Session layer can't slip past wubi_simcode_
+    // priority's protect list silently.
+    #[test] fn ce_wubi_能() { assert_eq!(top(b"ce"), "能"); }
+    #[test] fn yi_wubi_就() { assert_eq!(top(b"yi"), "就"); }
+    #[test] fn ge_wubi_表() { assert_eq!(top(b"ge"), "表"); }
+    #[test] fn da_wubi_左() { assert_eq!(top(b"da"), "左"); }
     // Jianma1 (1-letter) keeps its hard floor too.
     #[test] fn e_wubi_有() { assert_eq!(top(b"e"), "有"); }
     #[test] fn g_wubi_一() { assert_eq!(top(b"g"), "一"); }

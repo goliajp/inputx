@@ -17,6 +17,12 @@ import InputxKit
 final class CandidatePanel {
     /// All candidates from the engine (not just current page).
     private(set) var current: [String] = []
+    /// `true` when the panel is showing 联想 (next-word predictions)
+    /// instead of regular keystroke-driven candidates. Controls
+    /// whether number-key commits route through `session.commit(at:)`
+    /// (regular) or `session.commitPrediction(at:)` (prediction).
+    /// Set by `showPredictions`, cleared by `hide` / `refresh`.
+    private(set) var isPredictionMode: Bool = false
     /// 0-based current page.
     private var pageIndex: Int = 0
     /// 0-based selected index within the current page (0…pageSize-1).
@@ -143,6 +149,15 @@ final class CandidatePanel {
     /// caret rects each call. Sticky positioning per session = stable.
     func refresh(session: InputxSession, client: AnyObject?) {
         lastClient = client
+        // Refresh always exits prediction mode — predictions only show
+        // when there's NO buffer; a normal refresh means buffer changed
+        // and we're back to regular keystroke-driven candidates.
+        // Capture transition so we can reposition the panel: the post-
+        // prediction → new-typing path means the host's caret moved
+        // (commit advanced it), and the new composing session should
+        // anchor at the FRESH caret, not the stale prediction anchor.
+        let wasPrediction = isPredictionMode
+        isPredictionMode = false
         let count = session.candidateCount
         guard count > 0, let preedit = session.preedit, !preedit.isEmpty else {
             hide()
@@ -163,19 +178,56 @@ final class CandidatePanel {
             pageIndex = 0
             selectedInPage = 0
         }
+        // Reposition when transitioning out of prediction mode — the
+        // caret moved while predictions were on (commit advanced it),
+        // so the new typing session must anchor at the fresh caret.
         let firstShow = !window.isVisible
+        let needsReposition = firstShow || wasPrediction
         rebuildRows()
-        if firstShow {
+        if needsReposition {
             positionNear(client: client)
-            window.orderFront(nil)
+            if !window.isVisible { window.orderFront(nil) }
         }
     }
 
     func hide() {
         current.removeAll(keepingCapacity: true)
+        isPredictionMode = false
         pageIndex = 0
         selectedInPage = 0
         if window.isVisible { window.orderOut(nil) }
+    }
+
+    /// Show the panel populated with 联想 (next-word) predictions
+    /// instead of buffer-driven candidates. Surfaced after every CJK
+    /// commit when `session.predictionCount > 0`. Visual presentation
+    /// is identical to the regular panel — same numbering, same anchor
+    /// — so the user picks via the same muscle memory (1-9 / 0).
+    /// Number-key commit at this point routes through
+    /// `session.commitPrediction(at:)` instead of `commit(at:)`, which
+    /// triggers a fresh round of predictions (chained 联想 / Sogou
+    /// 句串).
+    func showPredictions(words: [String], client: AnyObject?) {
+        if words.isEmpty {
+            hide()
+            return
+        }
+        lastClient = client
+        let cap = 50
+        var picked = words
+        if picked.count > cap { picked.removeLast(picked.count - cap) }
+        current = picked
+        isPredictionMode = true
+        pageIndex = 0
+        selectedInPage = 0
+        rebuildRows()
+        // ALWAYS reposition for predictions — each commit advances the
+        // host's caret (the just-committed word shifts everything right),
+        // so chained predictions must follow the new caret instead of
+        // sticking at the original anchor. This is the
+        // post-commit equivalent of "fresh session = fresh position".
+        positionNear(client: client)
+        if !window.isVisible { window.orderFront(nil) }
     }
 
     var isVisible: Bool { !current.isEmpty }
@@ -299,13 +351,29 @@ final class CandidatePanel {
         // the anchored BOTTOM down by the inflation delta on every
         // refresh. User-reported "第二个字符输入还是会下偏" 2026-05-23.
         window.contentView?.layoutSubtreeIfNeeded()
-        let actualH = window.contentView?.fittingSize.height
-            ?? (22 * CGFloat(Self.pageSize) + 10 + 16)
+        let fitting = window.contentView?.fittingSize
+            ?? NSSize(width: 110, height: 22 * CGFloat(Self.pageSize) + 10 + 16)
+        // v1.5 width-aware (user 2026-05-24: "字数超过 3 个，候选列表
+        // 应该要变宽"). NSTextField .byTruncatingTail was hiding long
+        // candidates at fixed 110pt width. Now panel auto-widens to fit
+        // the longest candidate, clamped [110, MAX_PANEL_WIDTH] to keep
+        // it from spanning the screen.
+        let MIN_WIDTH: CGFloat = 110
+        let MAX_WIDTH: CGFloat = 360
+        let actualW = max(MIN_WIDTH, min(MAX_WIDTH, fitting.width))
+        let actualH = fitting.height
         var f = window.frame
+        let widthChanged = abs(f.size.width - actualW) > 0.5
+        f.size.width = actualW
         f.size.height = actualH
         switch anchorEdge {
-        case .top:    f.origin.y = anchorY - actualH  // pin TOP, grow downward
-        case .bottom: f.origin.y = anchorY            // pin BOTTOM, grow upward
+        case .top:    f.origin.y = anchorY - actualH
+        case .bottom: f.origin.y = anchorY
+        }
+        // Width changed → re-clamp originX so the panel doesn't fall
+        // off the screen right edge (extends leftward when needed).
+        if widthChanged, let s = NSScreen.screens.first(where: { $0.frame.contains(NSPoint(x: f.origin.x, y: f.origin.y)) })?.visibleFrame {
+            f.origin.x = min(max(s.minX, f.origin.x), s.maxX - f.size.width)
         }
         window.setFrame(f, display: true)
     }

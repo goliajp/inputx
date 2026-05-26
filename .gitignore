@@ -17,6 +17,10 @@ core/crates/inputx-pinyin/data/corpus/cache/
 core/crates/inputx-pinyin/data/unihan/
 core/crates/inputx-pinyin/data/jieba/
 core/crates/inputx-wubi/data/corpus/cache/
+# mozc dictionary_oss download (BSD-3, ~59 MB) — regenerable via the curl loop
+# in build_mozc_jukugo.py's docstring; the derived jp_jukugo_mozc_v1.tsv IS
+# committed (and jukugo.rs is generated from it).
+tools/jp/.mozc_cache/
 
 # Editor swap / temp
 *.rs.tmp
@@ -38,11 +42,44 @@ core/include/inputx_core.h
 .maestro/
 **/.maestro/
 
-# Claude workspace — internal planning/working docs, never published
-.claude/
-**/.claude/
+# Claude workspace — internal planning/working docs, never published.
+# Use `.claude/*` (not `.claude/`) so the directory itself isn't excluded;
+# git refuses to re-include children of an excluded parent directory, so
+# the `!` allowlist for skills/ below would otherwise be a no-op.
+.claude/*
+**/.claude/*
+# Exception: skills are repo-shared (versioned with the code that
+# invokes them). Personal/transient .claude content stays ignored.
+!.claude/skills/
+!.claude/skills/**
+!**/.claude/skills/
+!**/.claude/skills/**
 
 # macOS / editor cruft
 .DS_Store
 *.swp
 *~
+
+# Local data backups from scoring polish scripts (kept on disk for
+# manual recovery, not part of repo)
+*.pretrad-backup
+*.preoverlap-backup
+*.prejianma2-backup
+*.prelong-backup
+
+# Scoring pipeline intermediate data — regenerable from corpora; `make clean`
+# wipes these. Only data/supplemental + data/polish_reports stay tracked.
+tools/scoring/data/extracted/
+tools/scoring/data/normalized/
+tools/scoring/data/layers/
+tools/scoring/data/merged/
+tools/scoring/data/annotations/
+tools/scoring/data/baseline/
+tools/scoring/data/filtered/
+tools/scoring/data/.markers/
+# discover_new_words.py pass1 cache (char+bigram freqs) — large, regenerable
+tools/scoring/data/supplemental/.discover_cache_*.pkl
+# CP3d name-corpus download (wainshine/Chinese-Names-Corpus, 12 MB) — large,
+# regenerable via 03b_pollution/build_name_chars.py; derived char tables
+# (03b_pollution/name_chars.tsv, surnames.tsv) ARE committed.
+tools/scoring/data/cache/

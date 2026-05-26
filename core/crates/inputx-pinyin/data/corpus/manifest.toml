@@ -30,27 +30,24 @@
 
 # --- corpus mixing weights ---
 #
-# Weight rationale (revised 2026-05-11 to address sim-testing finding that
-# colloquial words like 你好/红包/哈哈哈 ranked too low):
+# Weight rationale (revised 2026-05-11 colloquial-first; kept at 3/3/3/1 for the
+# 2026-05-25 CP3d-cutover HYBRID normalizer):
 #
-# An IME's primary input register is **conversational / colloquial** —
-# users type chat messages, search queries, casual notes. Book / news
-# corpora overweight formal vocabulary (proper nouns, professional jargon,
-# Wikipedia entity titles like 合欢花 / 黄淮海 / 惠皇后) which then drown
-# out frequent colloquial words in candidate ranking.
+# An IME's primary input register is **conversational / colloquial** — users
+# type chat messages, search queries, casual notes. Book / news corpora
+# overweight formal vocabulary (proper nouns, jargon, Wikipedia entity titles
+# like 合欢花 / 黄淮海 / 惠皇后) which can drown out frequent colloquial words.
 #
-# Therefore SUBTLEX-CH-WF (33.5M chars of film subtitles → most spoken-
-# Mandarin-like data we can ship under CC-BY) gets the **highest** mixing
-# weight; News + Wikipedia provide secondary signal so written-register
-# vocabulary doesn't disappear entirely.
+# SUBTLEX (film subtitles) + LCCC (Weibo dialogues) are the colloquial signal;
+# news + wiki provide written-register coverage. The three occurrence corpora
+# sit at weight 3, wiki at 1 (it over-counts via its larger sentence set).
 #
-# Per-corpus weighted-mass sanity check (raw count of 的 ≈):
-#   subtlex 1,682,530 × 3.0 ≈ 5,047k  ← dominant signal
-#   news    ~50,000  × 3.0 ≈   150k   ← floor for modern news vocab
-#   wiki    ~150,000 × 1.0 ≈   150k   ← floor for entity / encyclopedic vocab
-# Colloquial words present mostly in subtlex thus rank ~30× higher than
-# under the previous (0.6 / 10 / 1) mix; formal-register words still get
-# meaningful baseline contribution from the 1+3 weighted mass.
+# IMPORTANT: the colloquial-vs-formal single-char tension (把/吧, 起/其, 发/法)
+# is resolved by the HYBRID normalizer (03_normalize --mode hybrid, β=0.5 of
+# sum-then-log + per-source-log-count), NOT by skewing these weights. Pure
+# per-source-log-count needed news=1 to fix 吧, but that sank 中国's zho-prefix
+# rank to 67 (out of top-30) by flattening cross-source magnitude; hybrid keeps
+# 中国 at rk≈19 AND 吧 at #0 under plain 3/3/3/1. See 03_normalize/tune_weights.py.
 
 [corpus.zho_subtlex_ch_wf]
 url         = "https://raw.githubusercontent.com/leonsilicon/subtlex-ch-wf/main/data/SUBTLEX-CH-WF"
@@ -76,3 +73,11 @@ weight      = 3.0
 license     = "CC-BY 4.0"
 description = "Leipzig Corpora — 100K Chinese news sentences (2020); secondary signal for modern (post-2018) news vocabulary"
 format      = "tar_gz"
+
+[corpus.zho_lccc_base]
+url         = "https://huggingface.co/datasets/silver/lccc/resolve/main/lccc_base_train.jsonl.gz"
+sha256      = "2162e0ed923fba62329cabf7e1493fbe59248afc94a62508e4abdea61e624627"
+weight      = 3.0
+license     = "MIT"
+description = "LCCC-base (Large-scale Cleaned Chinese Conversation, thu-coai, 2020) — 6.8M Weibo/social-media dialogues (32.8M utterances, ~232M chars). Modern colloquial signal closest to the IME's primary register (chat). Fills the post-2010 colloquial gap that SUBTLEX-CH (2010 subtitles) and wiki/news (written) miss: 搞定/给力/吐槽 etc. jump from two-digit to thousands of occurrences. We redistribute only the irreversible derived word-frequency statistics, never the source text — same posture as SUBTLEX-CH (subtitle-derived freq table). jieba-tokenized utterances are de-spaced at scan time so Aho-Corasick matches multi-char words."
+format      = "jsonl_dialog"

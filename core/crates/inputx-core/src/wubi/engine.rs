@@ -89,6 +89,18 @@ impl WubiEngine {
         table::lookup_with_scores(self.buffer_str())
     }
 
+    /// Layer-aware scored candidates. Returns `(word, score, Layer)` so
+    /// the composite dispatch can apply layer-specific ranking rules —
+    /// notably demoting low-confidence Auto / Phrase entries at short
+    /// pinyin-shaped buffers without touching high-confidence
+    /// Jianma1/2/3 + Zigen simcodes (the 伙-rule).
+    pub fn candidates_with_layer(&self) -> Vec<(String, f64, wubi::Layer)> {
+        if self.buffer.is_empty() {
+            return Vec::new();
+        }
+        table::lookup_with_layer(self.buffer_str())
+    }
+
     /// Feed one Wubi-relevant letter. Returns text to commit, if any
     /// (forced commit when buffer was already full, and/or auto-commit
     /// triggered by `AutoCommitPolicy`). May concatenate two commits

@@ -31,12 +31,14 @@ Source corpora                 step             output
                                05_merge         data/merged/weights.tsv
                                06_llm_annotate  data/annotations/llm_overrides.tsv
                                07_validate      reports/build-<version>.html
-                               08_pack          ../../core/crates/inputx-pinyin/data/pinyin.fst
-                                                ../../core/crates/inputx-wubi/data/wubi.fst
+                               08_pack          ../../core/crates/inputx-pinyin/data/pinyin.dict
+                                                (wubi: build.rs → OUT_DIR/wubi86.dict)
 ```
 
-Each step writes to `data/` (gitignored) — only the final FST
-artifacts in `core/crates/*/data/` are committed.
+Each step writes to `data/` (gitignored) — only the final `.dict` /
+`.fsa` artifacts (self-built `inputx-fsa`, not the `fst` crate) in
+`core/crates/*/data/` are committed. (Wubi's `wubi86.dict` is built at
+compile time by `inputx-wubi/build.rs` into `OUT_DIR`, not committed.)
 
 ## Steps in detail
 
@@ -169,17 +171,19 @@ Four gates (see SCORING.md §1.4):
 A failing gate aborts the build. The report is reviewed by a human
 before the artifact ships.
 
-### 08_pack — emit FST artifacts
+### 08_pack — emit index artifacts
 
-Final step: `weights.tsv` → FST binary (`pinyin.fst`, `wubi.fst`)
-that the Rust crates ship. Same packing format as today (`layer
-<< 56 | freq_score`).
+Final step: `weights.tsv` → `inputx-fsa` two-level `Dict` binary
+(`pinyin.dict`; wubi's `wubi86.dict` is emitted by `inputx-wubi/build.rs`
+at compile time). Packing format `(layer << FREQ_BITS) | freq_score`
+with `FREQ_BITS = 20` (zerodep E1 dense-pack; was `<< 56` under the old
+`fst`-crate path).
 
 ## Tools
 
 - **`make rebuild`** — full pipeline 01–08
 - **`make validate`** — just step 07 against current merged data
-- **`make clean`** — wipe `data/` (NOT the committed `*.fst`)
+- **`make clean`** — wipe `data/` (NOT the committed `*.dict` / `*.fsa`)
 - **`make diff-vs-shipped`** — show top-100 candidate-list changes
   between current pipeline output and what's currently shipped
 
@@ -207,7 +211,7 @@ Before promoting a pipeline output to a release:
 
 ## Distribution
 
-Final `pinyin.fst` + `wubi.fst` artifacts are committed to the
-respective crates' `data/` directories. App builds embed them via
-the existing build.rs. Side-loading via override directory is a
-v0.4 future (see SCORING.md §1.3).
+The final `pinyin.dict` artifact is committed to `inputx-pinyin/data/`;
+wubi's `wubi86.dict` is built into `OUT_DIR` by `inputx-wubi/build.rs`
+(not committed). App builds embed them via `include_bytes!`. Side-loading
+via override directory is a v0.4 future (see SCORING.md §1.3).

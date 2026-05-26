@@ -15,6 +15,27 @@ use std::sync::{Arc, OnceLock};
 
 use golia_pinyin::PinyinEngine;
 
+use crate::rules::builtin::RepeatedLetterExpansion;
+use crate::rules::candidate::{CandidateRule, CandidateRuleEngine, RuleCandidate};
+use crate::rules::{Context, ContextFlags};
+use super::mode::Mode;
+use super::scoring;
+
+/// Lazily-built CandidateRuleEngine carrying v3.0.2-migrated rules.
+/// Lives behind OnceLock so the priority sort runs once per process.
+/// Currently has only `RepeatedLetterExpansion`; subsequent v3.0.2.x
+/// commits register more rules here as they're migrated.
+static CANDIDATE_RULE_ENGINE: OnceLock<CandidateRuleEngine> = OnceLock::new();
+
+fn candidate_rule_engine() -> &'static CandidateRuleEngine {
+    CANDIDATE_RULE_ENGINE.get_or_init(|| {
+        let rules: Vec<Arc<dyn CandidateRule>> = vec![
+            Arc::new(RepeatedLetterExpansion),
+        ];
+        CandidateRuleEngine::new(rules)
+    })
+}
+
 /// Process-global initials index for 简拼 (first-letter abbreviation)
 /// lookup, e.g., `hhh → 哈哈哈, 好好好, …`. Built lazily on first miss
 /// of full-pinyin lookup. Shared across all `PinyinAdapter` instances
@@ -41,6 +62,27 @@ pub struct PinyinAdapter {
     /// letter wubi 简码 commits like `g → 一` because `g` always has
     /// prefix matches in the pinyin dict.
     has_non_speculative_candidate: bool,
+    /// Viterbi-derived sentence composition for long buffers (>= 6 chars).
+    /// `Some(word)` when `PinyinDict::best_composition` returned a
+    /// segmentation covering the whole buffer; `None` for short buffers
+    /// or no-valid-cover cases. Surfaced at the top of `candidates_with_
+    /// scores` with a fixed high score so the composed sentence is the
+    /// default pick when the user types something long-and-pinyin-shaped
+    /// like `nihaomawojiao`.
+    composed_sentence: Option<String>,
+    /// Candidates that came from fuzzy-pinyin expansion (z↔zh, c↔ch,
+    /// s↔sh, etc. on the buffer prefix). Tracked so
+    /// `candidates_with_scores` can apply a score discount — a fuzzy
+    /// match is plausibly what the user meant but shouldn't beat an
+    /// exact match in mixed lists.
+    fuzzy_candidates: HashSet<String>,
+    /// The Path 5 last-resort Viterbi composition (short non-lexeme buffer
+    /// with no other candidate — e.g. `kaopu`→靠谱). `Some` only when that
+    /// fallback fired. Scored in `candidates_with_scores` at
+    /// `COMPOSED_FALLBACK_SCORE` — above mechanical JP kana but below a real
+    /// dict word — so a composed-from-real-chars word outranks かおぷ-style
+    /// kana transliterations in Mixed+JP, yet never beats a true match.
+    fallback_composition: Option<String>,
 }
 
 impl Default for PinyinAdapter {
@@ -50,12 +92,48 @@ impl Default for PinyinAdapter {
 }
 
 impl PinyinAdapter {
+    /// Build a snapshot Context for the rule engine. Cheap (one
+    /// String clone of the buffer + 6 booleans). Called once per
+    /// refresh_candidates invocation.
+    ///
+    /// Mode is fixed to `Mixed` here because the rule engine treats
+    /// `Context::mode` as a hint for mode-gated rules; the actual
+    /// per-mode routing happens in `dispatch::dispatch`. The adapter
+    /// itself doesn't know which composite mode it's running under,
+    /// so Mixed is the "all rules eligible" placeholder. Once the
+    /// engine registry grows mode-specific rules, this signature
+    /// will gain a `mode: Mode` parameter from the caller.
+    fn build_rule_context(&self) -> Context {
+        let has_vowel = self.buffer.chars()
+            .any(|c| matches!(c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v'));
+        let starts_with_z = self.buffer.starts_with('z');
+        let buffer_len = self.buffer.len();
+        let has_ns = self.has_non_speculative_candidate;
+        Context {
+            mode: Mode::Mixed,
+            buffer: self.buffer.clone(),
+            prev_committed: None, // future rules may want this
+            second_prev_committed: None,
+            flags: ContextFlags {
+                has_vowel,
+                has_non_speculative_pinyin: has_ns,
+                pinyin_intent: buffer_len > 0 && buffer_len <= 4
+                    && has_vowel && has_ns,
+                starts_with_z,
+                buffer_len,
+            },
+        }
+    }
+
     pub fn new() -> Self {
         Self {
             engine: PinyinEngine::new(),
             buffer: String::with_capacity(16),
             candidates: Vec::with_capacity(16),
             has_non_speculative_candidate: false,
+            composed_sentence: None,
+            fuzzy_candidates: HashSet::new(),
+            fallback_composition: None,
         }
     }
 
@@ -107,6 +185,14 @@ impl PinyinAdapter {
         &self.buffer
     }
 
+    /// Direct access to the underlying engine — used by the composite
+    /// layer to call into PinyinDict methods (bigram_boost,
+    /// predict_next_words, etc.) that the adapter doesn't otherwise
+    /// proxy.
+    pub fn engine(&self) -> &PinyinEngine {
+        &self.engine
+    }
+
     pub fn candidates(&self) -> &[String] {
         &self.candidates
     }
@@ -124,15 +210,27 @@ impl PinyinAdapter {
     /// Scored variant of `candidates()`. Returns the current candidate
     /// list paired with each entry's unified score (see
     /// `inputx_pinyin::PinyinDict::lookup_with_scores_into` for the score
-    /// formula).
+    /// formula), optionally enriched with a context-aware bigram bonus.
+    ///
+    /// `prev_committed` is the user's most-recently-committed word in
+    /// this session (composite-layer state — adapter is stateless re:
+    /// session). When `Some`, each candidate's score gets a positive
+    /// additive bonus from `PinyinDict::bigram_boost(prev, candidate)`,
+    /// which lifts candidates that frequently follow `prev` in the
+    /// training corpus (e.g. after committing 今天, candidates 是/的/
+    /// 我们 jump because of high bigram counts).
     ///
     /// Implementation: re-scores the existing `self.candidates` Vec.
     /// Path 1 (exact lookup) is scored via the dict's
     /// `lookup_with_scores_into`. Paths 2/3 (initials + prefix
     /// completion) inject candidates that wouldn't otherwise have a
     /// freq; for those we default to a low score so the cross-engine
-    /// sort puts them below exact matches.
-    pub fn candidates_with_scores(&self) -> Vec<(String, f64)> {
+    /// sort puts them below exact matches. Bigram bonus applies to all
+    /// candidates (exact + non-exact).
+    pub fn candidates_with_scores(
+        &self,
+        prev_committed: Option<&str>,
+    ) -> Vec<(String, f64)> {
         if self.candidates.is_empty() || self.buffer.is_empty() {
             return Vec::new();
         }
@@ -150,10 +248,68 @@ impl PinyinAdapter {
         const NON_EXACT_FLOOR: f64 = 1000.0;
         // Decay non-exact entries by position so the original within-
         // path ordering is preserved at the bottom of the merged list.
+        let dict = self.engine.dict();
+        // Composed-sentence score: chosen to sit just above a typical
+        // top single-phrase score (~480k = 400k base + ~80k freq) so
+        // the Viterbi result wins #0 for long buffers, but stays well
+        // below wubi simcodes (~600k-1M) so simcodes can still take
+        // priority when both engines have a strong claim.
+        const COMPOSED_SCORE: f64 = 500_000.0;
+        // Path 5 last-resort composition (kaopu→靠谱). Sits ABOVE mechanical
+        // JP kana (scoring::JP_HIRAGANA_SCORE = 150k, katakana 110k, +freq×3k
+        // — but mechanical renders carry freq 0) so a word composed from real
+        // single chars beats a かおぷ-style transliteration in Mixed+JP, while
+        // staying BELOW any real pinyin dict word (~445k), wubi 简码 (600k–1M)
+        // and the long-buffer COMPOSED_SCORE. Path 5 only fires when pinyin
+        // itself is empty, so this never leapfrogs a real pinyin candidate.
+        // Real common words (靠谱/榨干) belong IN the dict (coverage —
+        // dict-pipeline T0); once there they score as real words, above this.
+        const COMPOSED_FALLBACK_SCORE: f64 = 250_000.0;
+        // Fuzzy-match discount: a candidate that only matched after
+        // initial-prefix fuzzy expansion (z↔zh, etc.) loses 30% of its
+        // score. Still better than nothing, but clear loser to any
+        // exact match for the same buffer.
+        const FUZZY_DISCOUNT: f64 = 0.7;
+        // Fuzzy candidates need a synthetic base if they have no exact
+        // dict entry at the typed buffer — they DO have an entry at the
+        // fuzzy-variant buffer (`zhongguo` for typed `zongguo`), but
+        // exact_map (built from `lookup_with_scores_into(self.buffer)`)
+        // only sees the typed-buffer entries. Give them a mid-tier base.
+        const FUZZY_BASE: f64 = 350_000.0;
+        // Composition base. Junk compositions (是嗯据库) are already dropped at
+        // generation by the per-char quality gate in refresh_candidates, so a
+        // composed_sentence reaching here is good. When an exact full-buffer
+        // dict word exists, a forced segmentation (用中 for yongzhong) is still
+        // lower confidence than the real phrase (臃肿) → drop it just below the
+        // lowest exact score; otherwise keep the high COMPOSED_SCORE so a real
+        // sentence wins #0 (nihaomawojiao→你好吗我叫).
+        let composed_base = if exact_map.is_empty() {
+            COMPOSED_SCORE
+        } else {
+            let min_exact = exact_map.values().copied().fold(f64::INFINITY, f64::min);
+            (min_exact - 1.0).min(COMPOSED_SCORE)
+        };
         for (i, w) in self.candidates.iter().enumerate() {
-            let s = exact_map.get(w).copied()
-                .unwrap_or(NON_EXACT_FLOOR * 0.99f64.powi(i as i32));
-            scored.push((w.clone(), s));
+            let is_composed = Some(w.as_str()) == self.composed_sentence.as_deref();
+            let is_fallback = Some(w.as_str()) == self.fallback_composition.as_deref();
+            let is_fuzzy = self.fuzzy_candidates.contains(w);
+            let base = if is_composed {
+                // A composition that coincides with a real exact dict word
+                // (zhongguo→中国, women→我们) keeps its real exact score — it
+                // is a genuine word, not forced junk. Only a segmentation
+                // that is NOT itself a dict word (用中 for yongzhong, 是嗯据库
+                // for shinjuku) drops to composed_base, below every exact word.
+                exact_map.get(w).copied().unwrap_or(composed_base)
+            } else if is_fallback {
+                COMPOSED_FALLBACK_SCORE
+            } else if is_fuzzy {
+                FUZZY_BASE * FUZZY_DISCOUNT
+            } else {
+                exact_map.get(w).copied()
+                    .unwrap_or(NON_EXACT_FLOOR * 0.99f64.powi(i as i32))
+            };
+            let bigram_bonus = dict.bigram_boost(prev_committed, w);
+            scored.push((w.clone(), base + bigram_bonus));
         }
         scored
     }
@@ -181,10 +337,44 @@ impl PinyinAdapter {
         if self.buffer.is_empty() {
             return false;
         }
-        // `prefix_exists` is O(log n) seek + first-item check — vs the old
-        // `prefix(...)` which allocated a full Vec<(String, String)> for
-        // every match just to take `.is_empty()`. Hot per-keystroke path.
-        self.engine.dict().prefix_exists(&self.buffer)
+        // First-tier: exact prefix match in pinyin dict.
+        if self.engine.dict().prefix_exists(&self.buffer) {
+            return true;
+        }
+        // Second-tier: handle mid-typing of multi-syllable inputs.
+        // User 2026-05-24 `yongbuliao → no candidates`: at intermediate
+        // state "yongbul", dict has no entry with pinyin "yongbul*"
+        // (final 'l' starts next syllable). Trim trailing 1-4 chars
+        // AND require the SUFFIX to be a valid pinyin syllable PREFIX
+        // (e.g. 'l' starts li/la/le; 'wxzy' doesn't start anything).
+        // This distinguishes "user mid-typing yong+bu+l[iao]" (alive)
+        // from "user typing garbage qwxzy" (dead).
+        for trim in 1..=4.min(self.buffer.len() - 1) {
+            let shorter = &self.buffer[..self.buffer.len() - trim];
+            let suffix = &self.buffer[self.buffer.len() - trim..];
+            if !suffix_could_start_syllable(suffix, golia_pinyin::is_valid_syllable) {
+                continue;
+            }
+            if self.engine.dict().prefix_exists(shorter) {
+                return true;
+            }
+        }
+        // Third-tier: Viterbi viability for medium+ buffers. If a
+        // prefix of the buffer can be segmented by best_composition,
+        // user is mid-typing a long composable string. Catches cases
+        // where intermediate prefix isn't an exact dict-pinyin match
+        // (e.g. "nihaomaw" — no dict word at that exact pinyin, but
+        // "nihaoma" composes 你好吗 and the trailing "w" starts 我).
+        // Threshold 6 = Viterbi's effective MIN_LEN floor + headroom.
+        if self.buffer.len() >= 6 {
+            for trim in 0..=3.min(self.buffer.len() - 4) {
+                let shorter = &self.buffer[..self.buffer.len() - trim];
+                if self.engine.dict().best_composition(shorter).is_some() {
+                    return true;
+                }
+            }
+        }
+        false
     }
 
     /// Append one ASCII alphabetic byte. Non-alpha bytes are silently
@@ -261,8 +451,62 @@ impl PinyinAdapter {
     fn refresh_candidates(&mut self) {
         self.candidates.clear();
         self.has_non_speculative_candidate = false;
+        self.composed_sentence = None;
+        self.fuzzy_candidates.clear();
+        self.fallback_composition = None;
         if self.buffer.is_empty() {
             return;
+        }
+
+        // Path 0a (v3.0.2b: migrated to rule-engine).
+        // RepeatedLetterExpansion in rules/builtin/repeated_letter.rs.
+        // Engine output is read here and placed into the existing
+        // composed_sentence slot — keeps every other path's logic
+        // unchanged. Once all 7 pinyin paths migrate, composed_sentence
+        // and self.candidates will both be rule-engine outputs.
+        {
+            let ctx = self.build_rule_context();
+            let mut rule_cands: Vec<RuleCandidate> = Vec::new();
+            let _trace = candidate_rule_engine().run(&ctx, &mut rule_cands);
+            if let Some(c) = rule_cands.into_iter()
+                .find(|c| c.source == "repeated-letter")
+            {
+                self.composed_sentence = Some(c.word);
+            }
+        }
+
+        // Path 0b (Viterbi composition): for LONG buffers (>= 8 bytes),
+        // try to segment the whole input into a sequence of dict-matched
+        // phrases. When it works, the composed string surfaces at the
+        // top of the candidate list (see `candidates_with_scores`).
+        //
+        // 8 is the threshold for two reasons:
+        //   1. Under 8, normal exact-phrase + prefix lookup already
+        //      cover everything (e.g. nihao→你好 directly).
+        //   2. Short Viterbi compositions can construct strings that
+        //      LOOK like real dict words but at the wrong pinyin —
+        //      e.g. `nuanhe` (6 chars) composes 暖+和 → "暖和", but
+        //      the actual word 暖和 has pinyin "nuanhuo", not "nuanhe".
+        //      Pushing this composition to #0 would be a wrong-reading
+        //      false positive. Threshold 8 sidesteps this entirely:
+        //      no real ambiguous short composition reaches it.
+        if self.buffer.len() >= 8
+            && let Some((score, sentence)) = self.engine.dict().best_composition(&self.buffer)
+        {
+            // Quality gate (user 2026-05-26: pollution must be DELETED, not
+            // demoted): a forced composition whose per-char Viterbi path score
+            // is too negative is junk — 是嗯据库 (~−22k/char) for the Japanese
+            // romaji `shinjuku` vs a real sentence ~−11k/char (你好吗我叫). Drop
+            // it at generation so it never becomes a candidate. (The pollution
+            // blacklist in `merge` is a second, scoring-independent backstop.)
+            const COMPOSED_QUALITY_FLOOR: f64 = -15_000.0;
+            let per_char = score / (self.buffer.chars().count().max(1) as f64);
+            if per_char >= COMPOSED_QUALITY_FLOOR {
+                self.composed_sentence = Some(sentence.clone());
+                // Push immediately so it surfaces even when Path 1/2/3 all
+                // return empty for this long buffer (yongbuliao 2026-05-24).
+                self.candidates.push(sentence);
+            }
         }
 
         // Path 1: exact-syllable lookup (含 fuzzy / tone-strip / heteronym
@@ -277,6 +521,79 @@ impl PinyinAdapter {
             if seen.insert(w.clone()) {
                 self.candidates.push(w);
                 self.has_non_speculative_candidate = true;
+            }
+        }
+
+        // Path 1c (typo-shaped initials fallback): catches missing-vowel
+        // typos like `pyin` (intended pinyin → expected 拼音).
+        //
+        // Gate: only triggers when the buffer is *not* a valid pinyin
+        // prefix of any dict entry (`prefix_exists` = false). Mid-typing
+        // sequences like `zhon` (en route to `zhong*`) are valid prefixes
+        // and stay on the normal Path-3 prefix-completion track. A
+        // genuine typo like `pyin` has no prefix match, falls here, and
+        // its 2-char consonant cluster gets looked up in the 简拼 index.
+        //
+        // Results marked as fuzzy so they rank below true exact matches.
+        //
+        // NOTE: does NOT set `has_non_speculative_candidate`. Path 1c is
+        // a speculative typo-correction guess, not "user is actively
+        // typing pinyin". Setting the flag would leak this speculation
+        // into downstream cross-engine demotion (the v0.5 pinyin-intent
+        // wubi-Phrase demote), causing legitimate wubi candidates at
+        // clearly-wubi-shaped input like `xlab` (wubi 细节) to get
+        // demoted below speculative xl-initials pinyin matches (向量
+        // etc.). User-reported 2026-05-24.
+        if !self.has_non_speculative_candidate
+            && self.buffer.len() >= 4
+            && !self.engine.dict().prefix_exists(&self.buffer)
+        {
+            let consonant_prefix: String = self.buffer.chars()
+                .take_while(|c| !matches!(*c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v'))
+                .collect();
+            let suffix_len = self.buffer.len() - consonant_prefix.len();
+            if consonant_prefix.len() == 2 && suffix_len >= 2
+                && let Some(matches) = initials_index(&self.engine).get(&consonant_prefix)
+            {
+                for w in matches.iter().take(50) {
+                    if seen.insert(w.clone()) {
+                        self.candidates.push(w.clone());
+                        self.fuzzy_candidates.insert(w.clone());
+                    }
+                }
+            }
+        }
+
+        // Path 1b (fuzzy pinyin): southern-dialect-tolerant initial swaps
+        // on the buffer (z↔zh, c↔ch, s↔sh, n↔l, f↔h, r↔l, in↔ing,
+        // en↔eng, an↔ang). Common Sogou behavior: type `zongguo` →
+        // surface `中国` at a score discount. We expand the buffer's
+        // initial syllable through the FuzzyConfig and look up each
+        // variant, marking results as fuzzy so `candidates_with_scores`
+        // can demote them.
+        //
+        // Skipped when Path 1 already returned a non-speculative match
+        // (the user got the spelling right, no need to spray fuzzy
+        // alternates) — preserves the "exact wins" rule.
+        //
+        // NOTE: does NOT set `has_non_speculative_candidate`. Fuzzy
+        // variants are speculative (the user may have meant something
+        // entirely different); letting them drive cross-engine
+        // demotion would crowd out legitimate wubi entries at
+        // wubi-shaped buffers. Path 1c carries the same caveat.
+        if !self.has_non_speculative_candidate {
+            for variant in fuzzy_buffer_variants(&self.buffer) {
+                if variant == self.buffer {
+                    continue;
+                }
+                let mut alt_buf: Vec<String> = Vec::new();
+                self.engine.dict().lookup_into(&variant, &mut alt_buf);
+                for w in alt_buf {
+                    if seen.insert(w.clone()) {
+                        self.candidates.push(w.clone());
+                        self.fuzzy_candidates.insert(w);
+                    }
+                }
             }
         }
 
@@ -339,8 +656,135 @@ impl PinyinAdapter {
         if !crate::wubi::show_rare() {
             self.candidates.retain(|w| crate::wubi::is_displayable(w));
         }
+
+        // Inject the Viterbi composed sentence at the FRONT of the
+        // candidate list (computed at the very top of this method).
+        // The composed string is given a fixed high score in
+        // `candidates_with_scores` so it surfaces as #0 even though
+        // its multi-segment word doesn't have a freq entry of its own.
+        // Done AFTER all other paths so it doesn't get filtered out
+        // by Path 4's rare-CJK retain (composed strings are by
+        // construction common-char only).
+        if let Some(sentence) = self.composed_sentence.clone()
+            && !self.candidates.iter().any(|w| w == &sentence)
+        {
+            self.candidates.insert(0, sentence);
+        }
+
+        // Path 5 (last-resort Viterbi for SHORT buffers): if every path
+        // above produced nothing — the buffer is not a lexeme, not a
+        // prefix of one, and not a 简拼/typo/fuzzy hit — compose it from
+        // single-char dict entries so it isn't a dead end. User-reported
+        // 2026-05-25: `kaopu`→靠谱, `woyao`→我要, `taikexi`→太可惜 all
+        // returned ZERO candidates because Viterbi (the only path that
+        // composes 靠+谱) was gated to >=8 bytes in Path 0b. Gated on
+        // `is_empty()` so it CANNOT reorder any buffer that already has
+        // candidates: `nuanhe` keeps 滦河 and never surfaces the
+        // wrong-reading composition 暖(nuan)+和(he)→暖和. (Long empty
+        // buffers were already covered by Path 0b above.)
+        if self.candidates.is_empty()
+            && let Some((_, sentence)) = self.engine.dict().best_composition(&self.buffer)
+        {
+            // Mark it so candidates_with_scores can rank it above mechanical
+            // JP kana (a composed-from-real-chars word beats a かおぷ-style
+            // transliteration) yet below any real dict word. NOTE: the proper
+            // home for common words like 靠谱/榨干 is the dict itself
+            // (coverage — dict-pipeline T0); this is only the safety net
+            // until the rebuild adds them.
+            self.fallback_composition = Some(sentence.clone());
+            self.candidates.push(sentence);
+        }
     }
 }
+
+/// Fuzzy-pinyin buffer variants: produce alternate spellings by
+/// swapping the buffer's initial-prefix consonants per common
+/// dialect-tolerant rules (z↔zh, c↔ch, s↔sh, n↔l, f↔h, r↔l) and
+/// final-prefix vowel groups (in↔ing, en↔eng, an↔ang). Returns the
+/// original buffer + each variant; caller is responsible for skipping
+/// the original when iterating.
+///
+/// Single-rule application (no cascade): `zin` produces `zhin` and
+/// `zing`, not `zhing`. Good enough for typing tolerance; cascades
+/// would explode the candidate list.
+fn fuzzy_buffer_variants(buffer: &str) -> Vec<String> {
+    let mut out = Vec::with_capacity(8);
+    out.push(buffer.to_string());
+    let initial_swaps: &[(&str, &str)] = &[
+        ("zh", "z"), ("z", "zh"),
+        ("ch", "c"), ("c", "ch"),
+        ("sh", "s"), ("s", "sh"),
+        ("n", "l"), ("l", "n"),
+        ("f", "h"), ("h", "f"),
+        ("r", "l"),
+    ];
+    for (from, to) in initial_swaps {
+        if let Some(rest) = buffer.strip_prefix(from) {
+            let mut alt = String::with_capacity(buffer.len() + 1);
+            alt.push_str(to);
+            alt.push_str(rest);
+            if !out.contains(&alt) {
+                out.push(alt);
+            }
+        }
+    }
+    // Final-prefix vowel-group swaps: `xin` ↔ `xing`, etc. Apply on the
+    // FIRST syllable only (won't catch all positions but covers the
+    // common case of single-syllable input where the user typed `zin`
+    // wanting `zing`).
+    let final_swaps: &[(&str, &str)] = &[
+        ("ing", "in"), ("in", "ing"),
+        ("eng", "en"), ("en", "eng"),
+        ("ang", "an"), ("an", "ang"),
+    ];
+    for (from, to) in final_swaps {
+        if let Some(stem) = buffer.strip_suffix(from) {
+            if !stem.is_empty() {
+                let mut alt = String::with_capacity(buffer.len() + 1);
+                alt.push_str(stem);
+                alt.push_str(to);
+                if !out.contains(&alt) {
+                    out.push(alt);
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Does `suffix` look like the START of some valid pinyin syllable?
+/// Used by `has_future_match` to distinguish "user mid-typing yong+bu+l"
+/// (l starts li/la/le → return true) from "user typing garbage qwxzy"
+/// (no valid syllable starts qw → return false).
+///
+/// Heuristic: try concatenating suffix with 0/1/2/3 trailing chars
+/// (any ASCII alpha) and see if any forms a valid syllable. Cheap
+/// since we only iterate suffix len * 26^N which is bounded.
+fn suffix_could_start_syllable(
+    suffix: &str,
+    is_valid: impl Fn(&str) -> bool,
+) -> bool {
+    // suffix itself a valid syllable?
+    if is_valid(suffix) { return true; }
+    // suffix + 1 trailing char forms valid? (l + i = li)
+    for c1 in b'a'..=b'z' {
+        let mut test = suffix.to_string();
+        test.push(c1 as char);
+        if is_valid(&test) { return true; }
+        // + another char (li + a = lia? no; li + n = lin yes)
+        for c2 in b'a'..=b'z' {
+            let mut test2 = test.clone();
+            test2.push(c2 as char);
+            if is_valid(&test2) { return true; }
+        }
+    }
+    false
+}
+
+// Repeated-letter expansion: migrated to rules/builtin/repeated_letter.rs
+// (v3.0.2b, 2026-05-24). The CandidateRule impl there is the single
+// source of truth; refresh_candidates above invokes it via the global
+// CANDIDATE_RULE_ENGINE. Inline function deleted.
 
 /// Scan `engine.dict()` for entries whose pinyin starts with `prefix`, pick
 /// the top `k` by frequency (excluding anything already in `seen`), and push
@@ -455,22 +899,33 @@ fn compute_single_letter_top_k(
     k: usize,
 ) -> Vec<String> {
     let prefix = letter.to_string();
+    // Entry key is the *length-biased* freq (raw freq × scoring::length_bias)
+    // so single chars lead multi-char phrases for a bare letter. See
+    // `scoring::length_bias` for the rationale (user: "单字评分要更高").
     type Entry = Reverse<(u64, Reverse<String>)>;
     let mut heap: BinaryHeap<Entry> = BinaryHeap::with_capacity(k + 1);
     engine
         .dict()
         .prefix_for_each_raw(&prefix, |_pinyin_bytes, word_bytes, freq| {
-            if heap.len() == k {
-                let min_freq = heap.peek().expect("heap full").0.0;
-                if freq <= min_freq { return; }
-                heap.pop();
+            // Cheap pre-check survives the length bias: the bias is ≤ 1.0,
+            // so adjusted ≤ raw freq. If raw freq can't beat the heap min
+            // (already an adjusted value), the adjusted score can't either
+            // — skip before the utf8 decode + char count.
+            if heap.len() == k && freq <= heap.peek().expect("heap full").0.0 {
+                return;
             }
             let Ok(word) = std::str::from_utf8(word_bytes) else { return; };
-            heap.push(Reverse((freq, Reverse(word.to_owned()))));
+            let adj = (freq as f64 * scoring::length_bias(word.chars().count())) as u64;
+            if heap.len() == k {
+                let min_adj = heap.peek().expect("heap full").0.0;
+                if adj <= min_adj { return; }
+                heap.pop();
+            }
+            heap.push(Reverse((adj, Reverse(word.to_owned()))));
         });
     let mut drained: Vec<(u64, String)> = heap
         .into_iter()
-        .map(|Reverse((freq, Reverse(word)))| (freq, word))
+        .map(|Reverse((adj, Reverse(word)))| (adj, word))
         .collect();
     drained.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
     drained.into_iter().map(|(_, w)| w).collect()
@@ -651,6 +1106,117 @@ mod tests {
             a.handle_letter(*b);
         }
         assert_eq!(a.candidates().first().map(String::as_str), Some("中国"));
+    }
+
+    #[test]
+    fn viterbi_kicks_in_for_long_buffer() {
+        let mut a = PinyinAdapter::new();
+        // 13-byte buffer — well past the 8-byte threshold for Viterbi.
+        for b in b"nihaomawojiao" {
+            a.handle_letter(*b);
+        }
+        // Composed should be set, and surface at the top of candidates.
+        let composed = a.composed_sentence.clone();
+        assert!(composed.is_some(),
+            "expected Viterbi composition for long buffer; got None");
+        let composed = composed.unwrap();
+        assert!(composed.chars().all(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)),
+            "expected pure-CJK composed sentence, got {composed:?}");
+        // Composed candidate should be at #0 of the candidate list.
+        assert_eq!(a.candidates().first().cloned(), Some(composed),
+            "composed sentence should be at top of candidates");
+    }
+
+    #[test]
+    fn repeat_letter_expands_to_interjection_chain() {
+        let mut a = PinyinAdapter::new();
+        for b in b"hhhhh" { a.handle_letter(*b); }
+        assert_eq!(a.candidates().first().cloned(), Some("哈哈哈哈哈".to_string()),
+            "hhhhh should produce 哈哈哈哈哈 at #0; got {:?}", a.candidates());
+
+        let mut a = PinyinAdapter::new();
+        for b in b"aaaa" { a.handle_letter(*b); }
+        assert_eq!(a.candidates().first().cloned(), Some("啊啊啊啊".to_string()));
+    }
+
+    #[test]
+    fn repeat_letter_below_threshold_no_expansion() {
+        let mut a = PinyinAdapter::new();
+        for b in b"hh" { a.handle_letter(*b); }
+        // hh is < 3 chars — falls through to 简拼 path (lookup "hh" in
+        // initials). The auto-laughter expansion shouldn't fire.
+        assert_ne!(a.candidates().first().map(String::as_str), Some("哈哈"));
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn fuzzy_zongguo_surfaces_zhongguo() {
+        let mut a = PinyinAdapter::new();
+        for b in b"zongguo" { a.handle_letter(*b); }
+        // zongguo → no exact match, but fuzzy z→zh expansion finds 中国
+        // via the zhongguo dict entry. Should appear somewhere in
+        // candidates (not necessarily #0 since wubi/non-fuzzy may take
+        // priority in mixed mode — here we just verify presence).
+        assert!(a.candidates().iter().any(|w| w == "中国"),
+            "fuzzy z→zh should surface 中国 for zongguo; got {:?}", a.candidates());
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn typo_pyin_surfaces_pinyin_via_initials() {
+        let mut a = PinyinAdapter::new();
+        for b in b"pyin" { a.handle_letter(*b); }
+        // pyin = missing-vowel typo for pinyin. Path 1c picks up
+        // consonant prefix "py" and queries initials_index → 拼音 etc.
+        assert!(a.candidates().iter().any(|w| w == "拼音"),
+            "py initials should surface 拼音 for typo pyin; got {:?}", a.candidates());
+    }
+
+    #[test]
+    fn viterbi_short_buffer_never_claims_top() {
+        let mut a = PinyinAdapter::new();
+        // 6-byte buffer — under the 8-byte threshold. Path 0b's #0
+        // injection (composed_sentence) must stay off for short buffers,
+        // so a wrong-reading composition like 暖(nuan)+和(he)→暖和 can
+        // never win the top slot (暖和 is really "nuanhuo").
+        for b in b"nuanhe" {
+            a.handle_letter(*b);
+        }
+        assert!(a.composed_sentence.is_none(),
+            "composed_sentence (#0 boost) must not fire for short buffers");
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn nuanhe_keeps_real_match_not_wrong_reading_composition() {
+        // nuanhe is NOT empty (滦河 via n→l fuzzy), so the Path 5
+        // last-resort fallback must NOT fire — the wrong-reading
+        // composition 暖和 must not even appear, let alone outrank 滦河.
+        let mut a = PinyinAdapter::new();
+        for b in b"nuanhe" { a.handle_letter(*b); }
+        assert!(!a.candidates().is_empty(), "nuanhe should have candidates");
+        assert_ne!(a.candidates().first().map(String::as_str), Some("暖和"),
+            "wrong-reading 暖和 must not be #0 for nuanhe; got {:?}", a.candidates());
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn short_non_lexeme_composes_instead_of_empty() {
+        // Regression for user-reported 2026-05-25: short multi-syllable
+        // inputs that aren't a dict lexeme and aren't a prefix of one
+        // returned ZERO candidates. Path 5 composes them from single-char
+        // dict entries (靠+谱, 我+要, 太+可+惜) as a last resort.
+        for (buf, want) in [
+            (&b"kaopu"[..], "靠谱"),
+            (&b"woyao"[..], "我要"),
+            (&b"taikexi"[..], "太可惜"),
+        ] {
+            let mut a = PinyinAdapter::new();
+            for b in buf { a.handle_letter(*b); }
+            assert!(a.candidates().iter().any(|w| w == want),
+                "{} should compose {want} (was empty before Path 5); got {:?}",
+                core::str::from_utf8(buf).unwrap(), a.candidates());
+        }
     }
 
     #[test]
@@ -1156,9 +1722,14 @@ mod tests {
         const MAX_BUDGET_NS: u128 = 16_000_000; // 16 ms (one frame @ 60Hz)
 
         // Worst cases first (short prefix → biggest scan).
+        // v1.5d adds long-pinyin probes that exercise the Viterbi
+        // viability tier in has_future_match (8+ chars → ASCII
+        // fallback check calls best_composition on up to 4 prefixes).
         let probes: &[&str] = &[
             "z", "zh", "zho", "zhon", "zhong", "zhongguo", "wo", "women", "ni", "nihao", "h",
             "hh", "hhh",
+            // Long-pinyin Viterbi-viability hot path.
+            "nihaoma", "nihaomawoj", "nihaomawojiao", "yongbuliao",
         ];
 
         let mut all_passed = true;

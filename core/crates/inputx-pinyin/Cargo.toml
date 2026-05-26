@@ -1,10 +1,10 @@
 [package]
 name = "inputx-pinyin"
-version = "1.1.1"
+version = "1.2.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Self-developed Mandarin Pinyin input method engine — segmenter, fuzzy syllables, FST dict, WASM-ready. Powers the Inputx IME."
+description = "Self-developed Mandarin Pinyin input method engine — segmenter, fuzzy syllables, zero-dependency self-built finite-state index (inputx-fsa) dict, WASM-ready. Powers the Inputx IME."
 authors = ["GOLIA K.K."]
 repository = "https://github.com/goliajp/inputx"
 homepage = "https://github.com/goliajp/inputx"
@@ -34,12 +34,9 @@ name = "golia_pinyin"
 crate-type = ["rlib", "cdylib", "staticlib"]
 
 [dependencies]
-# `macros` feature pulls in the `phf_set!` / `phf_map!` codegen macros used
-# by `syllable.rs`. Wubi avoids this feature by generating PHF tables in
-# build.rs; pinyin's syllable inventory is small + static enough that the
-# macro path is simpler and adds no measurable build-time cost.
-phf = { version = "0.11", default-features = false, features = ["macros"] }
-fst = { version = "0.4", default-features = false }
+# Self-built zero-dependency index — fully replaces fst on the pinyin read
+# path (main dict = Dict, n-grams = Fsa). See .claude/PLAN-self-built-fsa.md.
+inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 
 # tools-only deps (gated behind `tools` feature)
 ureq = { version = "2", optional = true }
@@ -63,7 +60,7 @@ tar = { version = "0.4", optional = true, default-features = false }
 encoding_rs = { version = "0.8", optional = true }
 
 [build-dependencies]
-fst = { version = "0.4", default-features = false }
+inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 
 [dev-dependencies]
 proptest = "1"
@@ -128,8 +125,13 @@ path = "tools/build_weights.rs"
 required-features = ["tools"]
 
 [[bin]]
-name = "pinyin-build-fst"
-path = "tools/build_fst.rs"
+name = "pinyin-build-dict"
+path = "tools/build_dict.rs"
+required-features = ["tools"]
+
+[[bin]]
+name = "pinyin-build-ngrams-fsa"
+path = "tools/build_ngrams_fsa.rs"
 required-features = ["tools"]
 
 # `[[bench]]` blocks land in v0.2 once data is dense enough to bench.

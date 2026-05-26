@@ -12,7 +12,6 @@
 
 use std::env;
 use std::fs;
-use std::io::BufWriter;
 use std::path::PathBuf;
 
 fn main() {
@@ -30,7 +29,7 @@ fn build_bootstrap(crate_dir: &std::path::Path, out_dir: &std::path::Path) {
     let tsv =
         fs::read_to_string(&tsv_path).unwrap_or_else(|_| panic!("{} missing", tsv_path.display()));
 
-    let mut entries: Vec<(Vec<u8>, u64)> = Vec::new();
+    let mut builder = inputx_fsa::DictBuilder::new();
     for (lineno, raw) in tsv.lines().enumerate() {
         let line = raw.trim();
         if line.is_empty() || line.starts_with('#') {
@@ -45,19 +44,8 @@ fn build_bootstrap(crate_dir: &std::path::Path, out_dir: &std::path::Path) {
                 lineno + 1
             );
         }
-        let mut key = pinyin.to_ascii_lowercase().into_bytes();
-        key.push(0u8);
-        key.extend_from_slice(word.as_bytes());
-        entries.push((key, 1));
+        builder.insert(pinyin.to_ascii_lowercase().as_bytes(), word.as_bytes(), 1);
     }
-    entries.sort();
-    entries.dedup_by(|a, b| a.0 == b.0);
-
-    let fst_path = out_dir.join("bootstrap.fst");
-    let writer = BufWriter::new(fs::File::create(&fst_path).expect("create bootstrap.fst"));
-    let mut builder = fst::MapBuilder::new(writer).expect("MapBuilder::new");
-    for (key, value) in &entries {
-        builder.insert(key, *value).expect("insert");
-    }
-    builder.finish().expect("MapBuilder::finish");
+    let dict_path = out_dir.join("bootstrap.dict");
+    fs::write(&dict_path, builder.finish()).expect("write bootstrap.dict");
 }

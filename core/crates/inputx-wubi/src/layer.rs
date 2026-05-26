@@ -9,13 +9,13 @@
 //! 2. **User-tunable preference** — `WubiDict::set_layer_pref` lets the host
 //!    multiply a layer's contribution at lookup time without touching data.
 //!
-//! FST values pack `(layer << 56) | freq_score` so the runtime can read
-//! both in one stream pass. `freq_score` is currently always 0 (placeholder
-//! until the corpus pipeline lands); when populated it'll be the
-//! corpus-derived frequency normalized within layer.
+//! Index values pack `(layer << FREQ_BITS) | freq_score` so the runtime can
+//! read both in one stream pass. `freq_score` is the corpus-derived frequency
+//! from `data/weights/weights.tsv` (capped at [`MAX_FREQ_SCORE`]; real data
+//! tops out around 50k), normalized within layer.
 
 /// Discriminants are **ascending priority**: `Auto = 0` is lowest, `Jianma1`
-/// is highest. This makes the FST's packed `(layer << 56) | freq` compare
+/// is highest. This makes the packed `(layer << FREQ_BITS) | freq` compare
 /// correctly with raw `u64` ordering — higher u64 = higher priority — so the
 /// build-time merge step can keep the larger value on collision without
 /// special casing.
@@ -100,20 +100,40 @@ impl Layer {
     }
 }
 
-const FREQ_MASK: u64 = 0x00FF_FFFF_FFFF_FFFF;
+/// Bits reserved for `freq_score` in the packed value. The corpus pipeline
+/// caps freq at `max_freq_score` (65535 = 16 bits); 20 gives headroom.
+/// Layer sits ABOVE freq so a larger packed u64 still means higher priority
+/// (layer desc, then freq desc) — the invariant the build-time merge and the
+/// inputx-fsa Dict's value-desc item order both rely on. Keeping the packed
+/// value small (≤ ~2^23 vs the old ~2^58) is what lets the LEB128 value
+/// encoding shrink from ~9 bytes to ~4 (zerodep E1).
+const FREQ_BITS: u32 = 20;
+const FREQ_MASK: u64 = (1 << FREQ_BITS) - 1;
 
-/// Pack `(layer, freq_score)` into a single u64 FST value. `freq_score`
-/// must fit in 56 bits; higher bits are silently truncated.
+/// Largest `freq_score` the packed value can represent (`2^FREQ_BITS - 1`).
+/// The **single source of truth** for the freq domain — tests and any caller
+/// that needs to clamp/validate import this rather than hardcoding a copy
+/// (a stale copy in the proptest survived the E1 `FREQ_BITS` 56→20 change and
+/// silently broke the invariants until proptest caught it).
+pub const MAX_FREQ_SCORE: u64 = FREQ_MASK;
+
+/// Pack `(layer, freq_score)` into a single u64 index value. `freq_score` is
+/// **saturated** to [`MAX_FREQ_SCORE`] if it exceeds the field, never wrapped:
+/// for an order-by-value structure a wraparound would invert priority (a very
+/// high freq would pack to a tiny value and rank last), whereas clamping keeps
+/// "higher freq → higher-or-equal priority". Real freqs (≤ ~50k) are far
+/// inside the field, so this only matters as a defensive guarantee.
 #[allow(dead_code)] // used by build.rs and at runtime; build_weights.rs doesn't pack
 pub const fn pack(layer: Layer, freq_score: u64) -> u64 {
-    ((layer as u64) << 56) | (freq_score & FREQ_MASK)
+    let freq = if freq_score > FREQ_MASK { FREQ_MASK } else { freq_score };
+    ((layer as u64) << FREQ_BITS) | freq
 }
 
 /// Reverse of [`pack`]. Unknown layer bytes fall back to [`Layer::Auto`]
 /// (lowest priority) — preferable to panicking on a corrupt FST.
 #[allow(dead_code)] // runtime-only; build.rs only uses pack
 pub const fn unpack(packed: u64) -> (Layer, u64) {
-    let layer_byte = (packed >> 56) as u8;
+    let layer_byte = (packed >> FREQ_BITS) as u8;
     let freq = packed & FREQ_MASK;
     let layer = match Layer::from_u8(layer_byte) {
         Some(l) => l,
@@ -146,11 +166,19 @@ mod tests {
     }
 
     #[test]
-    fn freq_overflow_is_truncated() {
-        let p = pack(Layer::Phrase, FREQ_MASK + 1);
-        let (l, f) = unpack(p);
-        assert_eq!(l, Layer::Phrase);
-        assert_eq!(f, 0);
+    fn freq_overflow_is_saturated() {
+        // Over-range freq clamps to MAX_FREQ_SCORE (not wrapped to 0) and the
+        // layer is untouched — so an out-of-range freq still ranks at the top
+        // of its layer rather than the bottom.
+        for over in [FREQ_MASK + 1, u64::MAX, 1 << 40] {
+            let p = pack(Layer::Phrase, over);
+            let (l, f) = unpack(p);
+            assert_eq!(l, Layer::Phrase);
+            assert_eq!(f, FREQ_MASK);
+        }
+        // Saturated value must equal packing the exact max, and never spill
+        // into the layer bits.
+        assert_eq!(pack(Layer::Phrase, u64::MAX), pack(Layer::Phrase, FREQ_MASK));
     }
 
     #[test]
