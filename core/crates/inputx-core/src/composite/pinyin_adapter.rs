@@ -740,13 +740,36 @@ impl PinyinAdapter {
             // microseconds (perfgate-validated).
             let comps = self.engine.dict().top_k_compositions(&self.buffer, 5);
             if let Some((_, top)) = comps.first() {
-                // Mark only the top composition with fallback_composition so
-                // candidates_with_scores gives it COMPOSED_FALLBACK_SCORE
-                // (250k). Subsequent compositions fall through to
-                // NON_EXACT_FLOOR-tier scoring and rank near the bottom —
-                // visible to the user as 60-percentile fallbacks if the
-                // top is wrong, without crowding the #1 spot.
-                self.fallback_composition = Some(top.clone());
+                // Quality gate (user polish-log 2026-05-27, famiriaare):
+                // foreign-romaji inputs (`famiriaare` → 法弥日呵呵热) get
+                // composed from single-pinyin char dict entries that score as
+                // 1-pinyin-char-per-1-Chinese-char (avg ratio 1.0-1.7). Real
+                // compositions (kaopu→靠谱, nihaomawojiao→你好吗我叫,
+                // pianni→骗你) average ≥ 2.0 pinyin chars per output char —
+                // because real pinyin syllables are 2-3 chars and STEP_PENALTY
+                // favors multi-char dict entries. When the top composition is
+                // below the 2.0 ratio threshold, suppress fallback_composition
+                // — candidates_with_scores then leaves it at NON_EXACT_FLOOR
+                // tier (much lower than COMPOSED_FALLBACK_SCORE=250k), so JP
+                // kana / katakana surfaces ahead of mechanical pinyin garbage
+                // in Mixed+JP mode (per user rule: low-quality pinyin yields
+                // to kana — kana count is small, real cost is one rank slip).
+                // Empirical from `_explore_composition_scores`:
+                //   famiriaare (10 pinyin / 6 chars) ratio 1.67 → MECHANICAL
+                //   shinjuku   ( 8 pinyin / 4 chars) ratio 2.00 → borderline (blacklist handles separately)
+                //   kaopu      ( 5 pinyin / 2 chars) ratio 2.50 → REAL
+                //   nihaomawojiao (13/5) ratio 2.60 → REAL
+                let top_chars = top.chars().count().max(1);
+                let ratio = self.buffer.len() as f64 / top_chars as f64;
+                if ratio >= 2.0 {
+                    // Mark only the top composition with fallback_composition so
+                    // candidates_with_scores gives it COMPOSED_FALLBACK_SCORE
+                    // (250k). Subsequent compositions fall through to
+                    // NON_EXACT_FLOOR-tier scoring and rank near the bottom —
+                    // visible to the user as 60-percentile fallbacks if the
+                    // top is wrong, without crowding the #1 spot.
+                    self.fallback_composition = Some(top.clone());
+                }
             }
             for (_, sentence) in comps {
                 if !self.candidates.iter().any(|w| w == &sentence) {

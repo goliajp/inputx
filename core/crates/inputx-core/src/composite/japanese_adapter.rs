@@ -52,6 +52,40 @@ fn is_kanji(c: char) -> bool {
     ('\u{4E00}'..='\u{9FFF}').contains(&c)
 }
 
+/// `true` if `buf` contains a romaji substring that's only used for foreign
+/// loanwords — i.e., a syllable from the extended-Hepburn table that native
+/// JP vocabulary doesn't use. Triggers the katakana > hiragana score swap
+/// in `candidates_with_scores` so words like `famiriaare` (ファミリアアレ),
+/// `vaiorin` (ヴァイオリン), `pa-thi-` (パーティー) surface katakana ahead
+/// of hiragana — matching real JP convention for gairaigo.
+///
+/// Patterns are the foreign-syllable subset of `inputx_jp::romaji::TABLE`.
+/// Order: longest first (so 3-letter matches lock before 2-letter could).
+/// Doesn't include kunrei-vs-Hepburn pairs (shi/si, chi/ti, tsu/tu, ji/zi):
+/// those are native JP, not foreign loanword markers.
+fn buffer_is_foreign_romaji(buf: &str) -> bool {
+    // Patterns sorted longest-first to avoid false positives via prefix
+    // overlap (none of these prefix-overlap with native syllables — `fa`
+    // doesn't prefix any native, etc. — but length-desc is the convention).
+    const FOREIGN: &[&str] = &[
+        // 3-letter foreign extensions
+        "fya", "fyu", "fyo", "vya", "vyu", "vyo",
+        "tsa", "tsi", "tse", "tso", "che", "she",
+        "kwa", "kwi", "kwe", "kwo", "gwa", "gwi", "gwe", "gwo",
+        "wha", "whi", "whe", "who",
+        "tha", "thi", "the", "tho", "dha", "dhi", "dhe", "dho",
+        "twu", "dwu",
+        // 2-letter foreign extensions
+        "fa", "fi", "fe", "fo",
+        "va", "vi", "vu", "ve", "vo",
+        "wi", "we", "je",
+        "xa", "xi", "xu", "xe", "xo",
+        "la", "li", "lu", "le", "lo",
+    ];
+    let lower = buf.to_ascii_lowercase();
+    FOREIGN.iter().any(|p| lower.contains(p))
+}
+
 pub struct JapaneseAdapter {
     engine: JapaneseEngine,
 }
@@ -237,8 +271,28 @@ impl JapaneseAdapter {
                             scoring::LIKELIHOOD_JP_SINGLE_KANJI_BASE
                         }
                     }
-                    KanaKind::Hiragana => scoring::LIKELIHOOD_JP_HIRAGANA_BASE,
-                    KanaKind::Katakana => scoring::LIKELIHOOD_JP_KATAKANA_BASE,
+                    // Foreign-syllable buffer swap (user 2026-05-27, famiriaare):
+                    // when the romaji buffer contains a foreign-loanword syllable
+                    // (fa/va/wi/ti via thi/dhi/etc.), the user is typing a foreign
+                    // word — katakana (ファミリアアレ) is the conventional written
+                    // form, hiragana (ふぁみりああれ) is rare / unnatural. Swap
+                    // the two bases so katakana leads hiragana in this regime,
+                    // but stay below jukugo / kanji. Native-romaji buffers
+                    // (nihon→にほん) keep hiragana > katakana as before.
+                    KanaKind::Hiragana => {
+                        if buffer_is_foreign_romaji(self.engine.preedit()) {
+                            scoring::LIKELIHOOD_JP_KATAKANA_BASE
+                        } else {
+                            scoring::LIKELIHOOD_JP_HIRAGANA_BASE
+                        }
+                    }
+                    KanaKind::Katakana => {
+                        if buffer_is_foreign_romaji(self.engine.preedit()) {
+                            scoring::LIKELIHOOD_JP_HIRAGANA_BASE
+                        } else {
+                            scoring::LIKELIHOOD_JP_KATAKANA_BASE
+                        }
+                    }
                 };
                 // Prefix-prediction proximity decay via shared `predict_score`
                 // helper: an exact candidate has proximity 1.0 (no decay); a
