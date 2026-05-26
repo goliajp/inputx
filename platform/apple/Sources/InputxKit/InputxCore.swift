@@ -103,6 +103,14 @@ public final class InputxSession {
         return !pre.isEmpty
     }
 
+    /// `true` iff the JP sub-engine specifically has a non-empty buffer.
+    /// Used by the IME controller to route `-` (chōonpu) into the engine
+    /// only when JP is mid-composition; outside JP composing, `-` falls
+    /// to locale punctuation.
+    public var isComposingJapanese: Bool {
+        inputx_session_is_composing_japanese(handle) != 0
+    }
+
     public var candidateCount: Int {
         return Int(inputx_session_candidate_count(handle))
     }

@@ -426,6 +426,24 @@ pub unsafe extern "C" fn inputx_session_get_japanese_enabled(
     }
 }
 
+/// `1` iff the JP sub-engine has a non-empty buffer (i.e. the user is
+/// mid-romaji-composition). Hosts use this to decide whether `-` should
+/// be forwarded to the engine as chōonpu (when JP composing) or passed
+/// through as ASCII / locale-mapped punct (otherwise). Returns `0` when
+/// the session is NULL.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_is_composing_japanese(
+    session: *const InputxSession,
+) -> u8 {
+    match unsafe { session.as_ref() } {
+        Some(s) => if s.inner.japanese_is_composing() { 1 } else { 0 },
+        None => 0,
+    }
+}
+
 /// Source byte for the candidate at `index`:
 ///   0 = Wubi
 ///   1 = Pinyin

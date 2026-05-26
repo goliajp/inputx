@@ -93,7 +93,10 @@ fn main() -> ExitCode {
     sess.set_mode(mode);
     sess.set_japanese_enabled(jp_on || matches!(mode, Mode::JapaneseOnly));
     for b in buffer.bytes() {
-        if !b.is_ascii_alphabetic() {
+        // Forward ASCII letters AND `-` (chōonpu / long-vowel mark for JP).
+        // Other punctuation still skipped — `inputx-probe foo,bar` should
+        // probe `foobar`, not `foo,bar`.
+        if !b.is_ascii_alphabetic() && b != b'-' {
             continue;
         }
         sess.handle_key(b as u32, 0);

@@ -250,25 +250,29 @@ final class InputxController: IMKInputController {
             return false
         }
 
-        // ---- Panel pagination via Tab / + / - -----------------------------
-        // Same effect as ← / → arrows, exposed under the keys the user
-        // already has muscle memory for. Tab = next page (Shift+Tab =
-        // previous), + = next, - = previous. Intercepts BEFORE Path B
-        // (locale punct) so the `+`/`-` keystrokes never reach the host
+        // ---- Panel pagination via Tab / [ / ] -----------------------------
+        // Same effect as ← / → arrows, exposed under bracket keys. Tab =
+        // next page (Shift+Tab = previous), [ = previous, ] = next.
+        // Shifted braces { / } follow the unshifted bracket bindings for
+        // symmetry (no separate semantics). Intercepts BEFORE Path B
+        // (locale punct) so the bracket keystrokes never reach the host
         // when the panel is up.
+        //
+        // Previously `-` / `+` / `=` were paginate keys; those were freed
+        // 2026-05-27 so `-` could be typed as chōonpu (ー) in JP mode
+        // (see Path B chōonpu skip below + inputx-jp engine `-` accept).
+        // User: "`-` 是假名输入中的长音符号，必须要变成可输入的字符".
         if let panel = candidatePanel, panel.isVisible {
             let shifted = event.modifierFlags.contains(.shift)
             switch codepoint {
             case 0x09: // Tab
                 if shifted { _ = panel.prevPage() } else { _ = panel.nextPage() }
                 return true
-            case 0x2B, 0x3D: // '+' or '=' (= is what's actually printed
-                             // without shift on the same key; user expects
-                             // either to page forward)
-                _ = panel.nextPage()
-                return true
-            case 0x2D: // '-'
+            case 0x5B, 0x7B: // '[' or '{' — previous page
                 _ = panel.prevPage()
+                return true
+            case 0x5D, 0x7D: // ']' or '}' — next page
+                _ = panel.nextPage()
                 return true
             default:
                 break
@@ -379,24 +383,33 @@ final class InputxController: IMKInputController {
         //       `applyLocaleIfApplicable` so it can read the live shift
         //       state and route 0x27+shift to the double-quote map.
         if codepoint < 0x80 && isAsciiPunctKey(codepoint) {
-            if session.isComposing {
-                if let top = session.commit(at: 0), !top.isEmpty {
-                    commitText(top, to: sender)
+            // `-` chōonpu carve-out (user 2026-05-27): when JP is actively
+            // composing, route `-` through the engine (Path C below) so it
+            // becomes a ー in the kana buffer (`koohi` + `-` → コーヒー).
+            // Outside JP composing, fall into the regular Path B punct flow
+            // — the host gets a raw / 全角 hyphen.
+            if codepoint != 0x2D || !session.isComposingJapanese {
+                if session.isComposing {
+                    if let top = session.commit(at: 0), !top.isEmpty {
+                        commitText(top, to: sender)
+                    }
+                    showPredictionsOrHide(client: sender)
+                    updatePreedit(client: sender)
+                    // Fall through — punct is now in "not composing" state.
                 }
-                showPredictionsOrHide(client: sender)
-                updatePreedit(client: sender)
-                // Fall through — punct is now in "not composing" state.
+                if let mapped = applyLocaleIfApplicable(
+                    codepoint: codepoint,
+                    event: event
+                ) {
+                    commitText(mapped, to: sender)
+                    return true
+                }
+                // No CJK mapping (and useCjkPunct may be off) — pass the
+                // raw ASCII punct through to host via IMK default routing.
+                return false
             }
-            if let mapped = applyLocaleIfApplicable(
-                codepoint: codepoint,
-                event: event
-            ) {
-                commitText(mapped, to: sender)
-                return true
-            }
-            // No CJK mapping (and useCjkPunct may be off) — pass the
-            // raw ASCII punct through to host via IMK default routing.
-            return false
+            // else: `-` + JP composing → fall through to Path C, engine
+            // accepts the byte as chōonpu input.
         }
 
         // ---- Path C: engine input ------------------------------------------
