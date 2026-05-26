@@ -673,6 +673,9 @@ impl CompositeEngine {
                 word,
                 source: super::merge::Source::Pinyin,
                 score: 200_000.0 - (count as f64) * 5_000.0,
+                // Next-word predictions (post-commit 联想) use a synthetic
+                // ranking-only score; no probability decomposition yet.
+                components: None,
             });
             count += 1;
             if count >= PREDICTION_LIMIT { break }

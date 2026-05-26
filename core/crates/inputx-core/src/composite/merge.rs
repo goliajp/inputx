@@ -26,20 +26,52 @@ impl Source {
     }
 }
 
+/// Two-axis decomposition of a candidate's score under the probability
+/// framing (`P(W|i) = P(i|W) · P(W)`):
+///
+///   `score == base + prior · likelihood`
+///
+/// Where:
+/// - `base` is the match-type floor (`LIKELIHOOD_*_BASE`).
+/// - `prior` is the P(W) freq contribution (`freq · PRIOR_FREQ_MULT_*`).
+/// - `likelihood` is the P(i|W) match-confidence factor (`proximity^K`
+///   for prefix-prediction; 1.0 for exact full-buffer matches when
+///   recorded).
+///
+/// Currently populated only by candidates that flow through
+/// `scoring::predict_score` (CP-A JP / CP-B pinyin / CP-C wubi
+/// prediction). Exact-dict / Viterbi-composed / fuzzy / fallback
+/// candidates leave `Candidate.components` as `None` — their scoring
+/// is still additive but the (base, prior, likelihood) split isn't
+/// uniformly meaningful pre-v1.4 architecture upgrade. `inputx-probe`
+/// surfaces this so the dev UI can show the decomposition where it
+/// exists and the raw score where it doesn't.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ScoreComponents {
+    pub base: f64,
+    pub prior: f64,
+    pub likelihood: f64,
+}
+
 /// One candidate with its source engine + unified score. The score is
 /// produced by the engine's `*_with_scores` API and is comparable
 /// across sources after the engine has applied its `engine_mult` /
 /// `layer_floor` calibration. The composite merge sorts by score
 /// desc; ties keep the first-seen source.
 ///
-/// Equality intentionally ignores `score` so legacy tests that
-/// compare `Candidate { word, source }` literals still match — score
-/// is a sort key, not part of identity.
+/// `components` carries the (base, prior, likelihood) decomposition
+/// when the score was produced by `scoring::predict_score`; `None`
+/// for paths that don't yet emit the decomposition.
+///
+/// Equality intentionally ignores `score` and `components` so legacy
+/// tests that compare `Candidate { word, source }` literals still match
+/// — score is a sort key, not part of identity.
 #[derive(Clone, Debug)]
 pub struct Candidate {
     pub word: String,
     pub source: Source,
     pub score: f64,
+    pub components: Option<ScoreComponents>,
 }
 
 impl PartialEq for Candidate {
@@ -330,11 +362,18 @@ fn contains_demote_tc(word: &str) -> bool {
     word.chars().any(|c| set.contains(&c))
 }
 
+/// Per-source scored candidate as passed to [`merge`]: `(word, score,
+/// components)`. Components carry the (base, prior, likelihood) two-axis
+/// decomposition when the candidate flowed through
+/// `scoring::predict_score`; otherwise `None` (the score is still valid
+/// for sorting, just not yet decomposed).
+pub type Scored = (String, f64, Option<ScoreComponents>);
+
 pub fn merge(
-    wubi: Vec<(String, f64)>,
-    pinyin: Vec<(String, f64)>,
-    jp_kanji: Vec<(String, f64)>,
-    jp_kana: Vec<(String, f64)>,
+    wubi: Vec<Scored>,
+    pinyin: Vec<Scored>,
+    jp_kanji: Vec<Scored>,
+    jp_kana: Vec<Scored>,
 ) -> Vec<Candidate> {
     let total_hint = wubi.len() + pinyin.len() + jp_kanji.len() + jp_kana.len();
     let mut all: Vec<Candidate> = Vec::with_capacity(total_hint);
@@ -342,21 +381,21 @@ pub fn merge(
     let demote = |w: &str, s: f64| -> f64 {
         if contains_demote_tc(w) { s * LIKELIHOOD_TC_DEMOTE_MULT } else { s }
     };
-    for (w, s) in wubi {
+    for (w, s, c) in wubi {
         let s = demote(&w, s);
-        all.push(Candidate { word: w, source: Source::Wubi, score: s });
+        all.push(Candidate { word: w, source: Source::Wubi, score: s, components: c });
     }
-    for (w, s) in pinyin {
+    for (w, s, c) in pinyin {
         let s = demote(&w, s);
-        all.push(Candidate { word: w, source: Source::Pinyin, score: s });
+        all.push(Candidate { word: w, source: Source::Pinyin, score: s, components: c });
     }
-    for (w, s) in jp_kanji {
+    for (w, s, c) in jp_kanji {
         // JP candidates are explicitly JP — TC demote doesn't apply
         // (whether a JP kanji happens to share form with TC is fine).
-        all.push(Candidate { word: w, source: Source::Japanese, score: s });
+        all.push(Candidate { word: w, source: Source::Japanese, score: s, components: c });
     }
-    for (w, s) in jp_kana {
-        all.push(Candidate { word: w, source: Source::Japanese, score: s });
+    for (w, s, c) in jp_kana {
+        all.push(Candidate { word: w, source: Source::Japanese, score: s, components: c });
     }
     // Stable sort by score desc — ties keep input order (wubi first).
     all.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
@@ -379,8 +418,8 @@ pub fn merge(
 mod tests {
     use super::*;
 
-    fn s(word: &str, score: f64) -> (String, f64) {
-        (word.into(), score)
+    fn s(word: &str, score: f64) -> Scored {
+        (word.into(), score, None)
     }
 
     #[test]
@@ -461,8 +500,8 @@ mod tests {
 
     #[test]
     fn cap_at_max_per_input() {
-        let many: Vec<(String, f64)> = (0..MAX_PER_INPUT * 2)
-            .map(|i| (i.to_string(), 100.0))
+        let many: Vec<Scored> = (0..MAX_PER_INPUT * 2)
+            .map(|i| (i.to_string(), 100.0, None))
             .collect();
         let m = merge(many.clone(), many.clone(), many.clone(), many);
         assert_eq!(m.len(), MAX_PER_INPUT);

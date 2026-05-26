@@ -4,7 +4,7 @@
 //! wubi-only shape; new dual-engine knobs (`mode`, `candidate_source`,
 //! `export_l0_json`) are additive.
 
-use crate::composite::{Candidate, CompositeEngine, Mode, Source, l0_json};
+use crate::composite::{Candidate, CompositeEngine, Mode, ScoreComponents, Source, l0_json};
 use crate::input_mode::InputMode;
 use crate::locale::punct::SmartQuoteState;
 use crate::wubi::{self, AutoCommitPolicy, L0Snapshot};
@@ -28,6 +28,16 @@ pub struct Session {
     /// `source_cache` for the W/P indicator.
     cand_cache: Vec<String>,
     source_cache: Vec<Source>,
+    /// Per-candidate unified score, mirrors `cand_cache` index-for-index.
+    /// Exposed via `candidate_score()` so `inputx-probe` can print the
+    /// engine's ranking signal (v1.3 WU-γ).
+    score_cache: Vec<f64>,
+    /// Per-candidate (base, prior, likelihood) decomposition when the
+    /// score flowed through `scoring::predict_score_with_components`
+    /// (CP-A JP / CP-B pinyin / CP-C wubi prefix-prediction). `None`
+    /// for paths that don't yet emit the split (exact / fuzzy /
+    /// composed / fallback) — those remain pre-v1.4 architecture.
+    components_cache: Vec<Option<ScoreComponents>>,
     /// Text the engine has decided should be committed but the host hasn't
     /// drained yet. Drained via `take_pending_commit`. Multiple commits
     /// within one keystroke get concatenated.
@@ -56,6 +66,8 @@ impl Session {
             composite: CompositeEngine::new(),
             cand_cache: Vec::with_capacity(16),
             source_cache: Vec::with_capacity(16),
+            score_cache: Vec::with_capacity(16),
+            components_cache: Vec::with_capacity(16),
             pending_commit: None,
             smart_quote: SmartQuoteState::new(),
             input_mode: InputMode::Cjk,
@@ -313,6 +325,24 @@ impl Session {
         self.source_cache.get(index).map(|s| s.as_u8())
     }
 
+    /// Unified score for the candidate at `index` (the value used for
+    /// cross-engine sort). `None` if the index is out of range.
+    /// Exposed for diagnostic tooling (`inputx-probe`); UI code should
+    /// not depend on the absolute value.
+    pub fn candidate_score(&self, index: usize) -> Option<f64> {
+        self.score_cache.get(index).copied()
+    }
+
+    /// (base, prior, likelihood) decomposition for the candidate at
+    /// `index` when its score came from `scoring::predict_score_with_components`;
+    /// `None` for paths that don't yet emit the split. Invariant when
+    /// present: `base + prior * likelihood == predict_score(..)` — the
+    /// final `candidate_score()` may exceed this by an additive
+    /// bigram_bonus / multiplicative promote applied downstream.
+    pub fn candidate_components(&self, index: usize) -> Option<ScoreComponents> {
+        self.components_cache.get(index).copied().flatten()
+    }
+
     pub fn commit_index(&mut self, index: usize) -> Option<String> {
         let r = self.composite.commit_index(index);
         self.refresh_caches();
@@ -401,9 +431,13 @@ impl Session {
         let cands: Vec<Candidate> = self.composite.candidates().to_vec();
         self.cand_cache.clear();
         self.source_cache.clear();
+        self.score_cache.clear();
+        self.components_cache.clear();
         for c in cands {
             self.cand_cache.push(c.word);
             self.source_cache.push(c.source);
+            self.score_cache.push(c.score);
+            self.components_cache.push(c.components);
         }
     }
 }
