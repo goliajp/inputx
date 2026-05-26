@@ -557,19 +557,16 @@ mod tests {
 
     #[test]
     fn mixed_pianni_kbest_exposes_pian_alternates() {
-        // User-reported 2026-05-26 (polish-log): pianni surfaced only
-        // 片你 / ぴあんに / ピアンニ — no 骗你. Root cause: Path 5 1-best
-        // Viterbi locked dp[pian] to 片 (highest single-char freq); the
-        // (片, 你) bigram is empty so any (片, ni-word) was equivalent
-        // and 你 (highest ni-freq) won → 片你. Worse, the (骗, 你)
-        // bigram is also empty in our corpus so even K-best can't push
-        // 骗你 to #1 via bigram bonus alone.
-        //
-        // What this test guards: K-best DP makes the alternates *visible*
-        // in the candidate list (60-percentile fallback per
-        // candidates_with_scores's NON_EXACT_FLOOR tier). Getting 骗你
-        // to actually lead #1 requires a dict-side phrase entry for it
-        // (dict-pipeline T0 work), out of scope for this polish.
+        // User-reported 2026-05-26 (polish-log): pianni originally surfaced
+        // only 片你 / ぴあんに / ピアンニ — no 骗你. Two layered fixes:
+        //   1. K-best Viterbi: dp[j] retains top-K instead of 1-best so
+        //      the (pian-char) alternates (便 骗 偏 篇) are reachable past
+        //      the freq-greedy 片. Makes 骗你/便你/偏你/篇你 visible.
+        //   2. Blacklist of 片你 (user 2026-05-26: "片你加进去就解决,
+        //      不开 dict ad-hoc patch 口子"): "片你" isn't a real phrase
+        //      and shouldn't appear in any context, so the merge layer
+        //      drops it unconditionally. Letting the user pick from the
+        //      remaining alternates.
         use crate::composite::engine::CompositeEngine;
         use crate::wubi::AutoCommitPolicy;
         let mut e = CompositeEngine::new();
@@ -578,18 +575,21 @@ mod tests {
         for b in b"pianni" { let _ = e.handle_letter(*b); }
         let cands = e.candidates();
         let top: Vec<&str> = cands.iter().take(8).map(|c| c.word.as_str()).collect();
-        // K-best fanout: at least 3 distinct pian-char compositions must
-        // surface so the user can pick the right one. Confirms the DP
-        // didn't collapse to a single 1-best result.
-        let pian_compositions = ["片你", "便你", "骗你", "偏你", "篇你"];
+        // K-best fanout: at least 3 distinct pian+ni alternates must
+        // surface so the user can pick the right one.
+        let pian_compositions = ["便你", "骗你", "偏你", "篇你"];
         let visible = pian_compositions.iter()
             .filter(|w| cands.iter().any(|c| &c.word.as_str() == *w))
             .count();
         assert!(visible >= 3,
-            "K-best Viterbi must expose ≥3 pian+ni alternates; got top={top:?}");
+            "K-best Viterbi must expose ≥3 pian+ni alternates (excluding \
+             blacklisted 片你); got top={top:?}");
         // 骗你 specifically must be visible (the user-flagged target).
         assert!(cands.iter().any(|c| c.word == "骗你"),
             "骗你 must surface as a fallback composition; got top={top:?}");
+        // 片你 must NOT appear (blacklisted as it's not a real phrase).
+        assert!(!cands.iter().any(|c| c.word == "片你"),
+            "片你 must be blacklisted out; got top={top:?}");
     }
 
     #[test]

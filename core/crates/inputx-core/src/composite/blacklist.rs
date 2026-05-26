@@ -16,6 +16,11 @@ use std::sync::OnceLock;
 /// Exact candidate strings that are pure pollution — never show them.
 const BLACKLIST: &[&str] = &[
     "是嗯据库", // forced Viterbi junk for the Japanese romaji `shinjuku`
+    "片你",     // pianni Path-5 K-best #1 (freq 片>骗, (骗,你) bigram = 0
+                // so K-best can't rerank); not a real phrase. User
+                // 2026-05-26 policy: no ad-hoc dict patches for OOV
+                // collocations — blacklist the wrong reading, let
+                // K-best surface 便你/骗你/偏你/篇你.
 ];
 
 /// `true` if `word` must be dropped from the merged candidate list.
@@ -32,9 +37,15 @@ mod tests {
     #[test]
     fn known_pollution_is_blacklisted() {
         assert!(is_blacklisted("是嗯据库"));
+        assert!(is_blacklisted("片你"));
         // real words must NOT be blacklisted
         assert!(!is_blacklisted("继续"));
         assert!(!is_blacklisted("新宿"));
         assert!(!is_blacklisted("你好吗我叫"));
+        // adjacent compositions that ARE legitimate must NOT be caught
+        assert!(!is_blacklisted("骗你"));
+        assert!(!is_blacklisted("便你"));
+        assert!(!is_blacklisted("偏你"));
+        assert!(!is_blacklisted("篇你"));
     }
 }
