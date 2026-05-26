@@ -49,10 +49,41 @@ pub fn dispatch(
         Some(j) => split_jp_scored(j),
         None => (vec![], vec![]),
     };
+    // JP-chōonpu lockout (user polish-log 2026-05-27, `fa------`): if the
+    // JP buffer contains `-` (chōonpu / long-vowel mark), the user has
+    // unambiguously committed to a Japanese romaji input. Chinese has no
+    // syllable that contains `-`, so wubi/pinyin candidates surfaced
+    // alongside (still derived from the pre-`-` prefix the Chinese engines
+    // froze on) are mismatched noise to the user — preedit shows the full
+    // `fa------` but the wubi candidates are for `fa` only, confusing the
+    // ranking. Drop all wubi/pinyin candidates in this regime, leave only
+    // JP. Works across WubiOnly+JP / PinyinOnly+JP / Mixed+JP since
+    // `-` only enters the JP buffer when JP is composing.
+    let jp_chouonpu_lockout = japanese
+        .map_or(false, |j| j.buffer_str().contains('-'));
     match mode {
-        Mode::WubiOnly => merge(no_components(wubi.candidates_with_scores()), vec![], jp_kanji, jp_kana),
-        Mode::PinyinOnly => merge(vec![], pinyin.candidates_with_scores(prev_committed), jp_kanji, jp_kana),
+        Mode::WubiOnly => {
+            let w = if jp_chouonpu_lockout {
+                vec![]
+            } else {
+                no_components(wubi.candidates_with_scores())
+            };
+            merge(w, vec![], jp_kanji, jp_kana)
+        }
+        Mode::PinyinOnly => {
+            let p = if jp_chouonpu_lockout {
+                vec![]
+            } else {
+                pinyin.candidates_with_scores(prev_committed)
+            };
+            merge(vec![], p, jp_kanji, jp_kana)
+        }
         Mode::JapaneseOnly => merge(vec![], vec![], jp_kanji, jp_kana),
+        Mode::Mixed if jp_chouonpu_lockout => {
+            // Short-circuit Mixed → JP-only when chōonpu present. Skips
+            // the entire wubi+pinyin candidate pipeline below.
+            merge(vec![], vec![], jp_kanji, jp_kana)
+        }
         Mode::Mixed => {
             // EVERYTHING IS SCORE. No if-skip-engine branches. Wubi
             // candidates always get collected; their scores are
@@ -677,6 +708,41 @@ mod tests {
         // Useful candidates still present: 杰尼 (pinyin), じえに / ジエニ (kana).
         assert!(cands.iter().any(|c| c.word == "じえに"),
             "じえに (hiragana) must remain visible; got top8={top:?}");
+    }
+
+    #[test]
+    fn mixed_chouonpu_buffer_locks_out_chinese_candidates() {
+        // User polish-log 2026-05-27 screenshot: `fa------` (8 chars,
+        // 7 chōonpu) surfaced 工 / 阿 / 啊 / 阿 / 吖 / 锕 (wubi+pinyin
+        // candidates for `fa`) BEFORE the JP kana candidates ファーーー
+        // and ふぁーーー. User rule: "中文输入肯定不会含 `-`" — Chinese
+        // has zero syllables containing chōonpu, so any wubi/pinyin
+        // candidate surfaced alongside a JP-chōonpu buffer is mismatched
+        // noise (the Chinese engines froze on `fa` while the JP buffer
+        // grew to `fa------`).
+        //
+        // Dispatch-level lockout: once jp_buffer.contains('-'), all
+        // wubi+pinyin candidates are dropped; only JP kanji+kana surface.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"fa" { let _ = e.handle_letter(*b); }
+        for _ in 0..7 { let _ = e.handle_letter(b'-'); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(8).map(|c| c.word.as_str()).collect();
+        // Every surviving candidate must be JP-source (no wubi, no pinyin).
+        for c in cands.iter() {
+            assert_eq!(c.source, Source::Japanese,
+                "non-JP candidate {:?} (source={:?}) surfaced under JP-chōonpu \
+                 lockout; got top8={top:?}", c.word, c.source);
+        }
+        // ファーーーーーーー (katakana, foreign-syllable rule promotes it
+        // over hiragana for fa-row) should lead.
+        assert!(cands.first().map(|c| c.word.as_str()) == Some("ファーーーーーーー"),
+            "ファーーーーーーー should lead under chōonpu lockout; got top8={top:?}");
     }
 
     #[test]
