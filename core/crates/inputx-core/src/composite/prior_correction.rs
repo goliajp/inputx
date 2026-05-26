@@ -60,6 +60,17 @@ const PRIOR_CORRECTIONS: &[(&str, f64)] = &[
     // baseline test pins 加载 outranking 加在 (common-use signal: file
     // loading is much more frequent than the "加 in" particle compound).
     ("加载", 1.5),
+    // 2026-05-26 user polish-log (juti → 具体 should lead, screenshot
+    // showed 暗送秋波 #1 / 具体 #2). 暗送秋波 is a valid wubi 4-code
+    // Phrase entry that takes the LIKELIHOOD_WUBI_FULL_CODE_PROMOTE × 1.1
+    // boost (designed for aiyi→东京 same-tier wubi-first wins); but here
+    // 具体 corpus freq 36k vs phrase ~12k still loses by ~16k after the
+    // promote. User: "具体的常用分应该太高了". Same corpus-skew pattern as
+    // 继续/设计/理想 — 具体 is daily-use vocabulary the corpus
+    // underweights. Boost ×1.5 puts 具体 (~656k) decisively above the
+    // promoted wubi (~454k), so daily-use Chinese leads at juti without
+    // suppressing the wubi-first rule elsewhere.
+    ("具体", 1.5),
 ];
 
 /// Lookup the user-curated multiplier for `word`. Returns 1.0 (no
@@ -85,11 +96,13 @@ mod tests {
         assert_eq!(correction_for("设计"), 2.0);
         assert_eq!(correction_for("理想"), 2.0);
         assert_eq!(correction_for("加载"), 1.5);
+        assert_eq!(correction_for("具体"), 1.5);
         // Untouched words pass through at 1.0.
         assert_eq!(correction_for("积蓄"), 1.0);
         assert_eq!(correction_for("涉及"), 1.0);
         assert_eq!(correction_for("立项"), 1.0);
         assert_eq!(correction_for("加在"), 1.0);
+        assert_eq!(correction_for("暗送秋波"), 1.0);
         assert_eq!(correction_for("新宿"), 1.0);
         assert_eq!(correction_for(""), 1.0);
         // Multiplier window — corrections outside [0.3, 3.0] should not
