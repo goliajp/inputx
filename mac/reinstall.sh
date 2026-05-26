@@ -99,9 +99,20 @@ if [ "${KEEP_BUILD_APP:-0}" != "1" ]; then
   purge_ls_app "$APP_SRC" >>"$LOG" 2>&1 || true
 fi
 
+# 3c. Re-register the install path to LaunchServices. purge_ls_app at 3b
+#     unregisters the build/.app, leaving LS with ZERO entries for
+#     jp.golia.inputmethod.wubi. Without an explicit register here, the
+#     IME picker (Ctrl+Space / System Settings) silently hides Inputx —
+#     even though the binary, LaunchAgent, AppleEnabledInputSources, and
+#     TCC grant are all intact. macOS auto-scan of ~/Library/Input Methods/
+#     isn't guaranteed to fire post-purge, so register explicitly.
+#     Diagnosed 2026-05-27: reinstall completed cleanly but picker empty.
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+"$LSREGISTER" -f "$APP_DST" >>"$LOG" 2>&1 || true
+
 # 4. Restart TextInputMenuAgent so the menu-bar picker re-reads the new
-#    bundle (display name, icon, mode list). TIS itself doesn't need a
-#    re-register here — bundle id unchanged.
+#    bundle (display name, icon, mode list) — and the LS re-register
+#    from 3c.
 killall TextInputMenuAgent >>"$LOG" 2>&1 || true
 
 # 5. (Re)install the LaunchAgent plist and bootstrap. Bootstrap is noisy
