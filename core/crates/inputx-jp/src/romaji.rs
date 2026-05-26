@@ -52,6 +52,37 @@ const TABLE: &[Entry] = &[
     e("ltu", "っ",   "ッ"),
     e("xya", "ゃ",   "ャ"),  e("xyu", "ゅ",   "ュ"),  e("xyo", "ょ",   "ョ"),
 
+    // ---- 3-letter foreign-loanword extensions (mozc/Google IME standard) ----
+    // Without these, romaji like `famiriaare` (ファミリアアレ) renders as
+    // `fあみりああれ` — the leading `f` has no `fa` map, falls through as
+    // ASCII passthrough, and is_jp_clean rejects the whole candidate.
+    // fa-row yoon (foreign): ファ/ヴァ/ etc.
+    e("fya", "ふゃ", "フャ"), e("fyu", "ふゅ", "フュ"), e("fyo", "ふょ", "フョ"),
+    e("vya", "ゔゃ", "ヴャ"), e("vyu", "ゔゅ", "ヴュ"), e("vyo", "ゔょ", "ヴョ"),
+    // ts/ch/sh/j single-yoon foreign borrowings
+    e("tsa", "つぁ", "ツァ"), e("tsi", "つぃ", "ツィ"),
+    e("tse", "つぇ", "ツェ"), e("tso", "つぉ", "ツォ"),
+    e("che", "ちぇ", "チェ"),
+    e("she", "しぇ", "シェ"),
+    // kw/gw row (クァ/グァ etc. — foreign-borrowed labialized k/g)
+    e("kwa", "くぁ", "クァ"), e("kwi", "くぃ", "クィ"),
+    e("kwe", "くぇ", "クェ"), e("kwo", "くぉ", "クォ"),
+    e("gwa", "ぐぁ", "グァ"), e("gwi", "ぐぃ", "グィ"),
+    e("gwe", "ぐぇ", "グェ"), e("gwo", "ぐぉ", "グォ"),
+    // w-row foreign extensions (ウァ/ウィ/ウェ/ウォ) — 'wh*' explicit form.
+    // Also exposes plain `wi/we` 2-letter below as the more common entry.
+    e("wha", "うぁ", "ウァ"), e("whi", "うぃ", "ウィ"),
+    e("whe", "うぇ", "ウェ"), e("who", "うぉ", "ウォ"),
+    // Explicit ティ/ディ via `th*/dh*` — sidesteps kunrei ti=ち / di=ぢ
+    // conflict. `tho/dho` map to て+small-yo / で+small-yo per mozc.
+    e("tha", "てぁ", "テァ"), e("thi", "てぃ", "ティ"),
+    e("the", "てぇ", "テェ"), e("tho", "てょ", "テョ"),
+    e("dha", "でぁ", "デァ"), e("dhi", "でぃ", "ディ"),
+    e("dhe", "でぇ", "デェ"), e("dho", "でょ", "デョ"),
+    // Explicit トゥ/ドゥ via `twu/dwu` — sidesteps kunrei tu=つ / du=づ.
+    e("twu", "とぅ", "トゥ"),
+    e("dwu", "どぅ", "ドゥ"),
+
     // ---- 2-letter patterns: basic 五十音 + 浊音 + 半浊音 + 'nn' ----------
     e("ka", "か", "カ"), e("ki", "き", "キ"), e("ku", "く", "ク"), e("ke", "け", "ケ"), e("ko", "こ", "コ"),
     e("ga", "が", "ガ"), e("gi", "ぎ", "ギ"), e("gu", "ぐ", "グ"), e("ge", "げ", "ゲ"), e("go", "ご", "ゴ"),
@@ -72,6 +103,29 @@ const TABLE: &[Entry] = &[
     e("ra", "ら", "ラ"), e("ri", "り", "リ"), e("ru", "る", "ル"), e("re", "れ", "レ"), e("ro", "ろ", "ロ"),
     e("wa", "わ", "ワ"), e("wo", "を", "ヲ"),
     e("ja", "じゃ", "ジャ"), e("ju", "じゅ", "ジュ"), e("jo", "じょ", "ジョ"),  // hepburn 2-letter
+
+    // ---- 2-letter foreign-loanword extensions ------------------------
+    // fa-row (ファ): native JP has only fu = ふ/フ; foreign borrowings need
+    // fa/fi/fe/fo for words like ファミリア (familia) / フィルム (film) /
+    // フェルト (felt) / フォーマット (format).
+    e("fa", "ふぁ", "ファ"), e("fi", "ふぃ", "フィ"),
+    e("fe", "ふぇ", "フェ"), e("fo", "ふぉ", "フォ"),
+    // va-row (ヴァ): foreign 'v' — ヴァイオリン (violin), ヴィデオ etc.
+    // Hiragana ゔ (U+3094) is rare but standard for paired small-vowels.
+    e("va", "ゔぁ", "ヴァ"), e("vi", "ゔぃ", "ヴィ"),
+    e("vu", "ゔ",   "ヴ"),  e("ve", "ゔぇ", "ヴェ"),
+    e("vo", "ゔぉ", "ヴォ"),
+    // w-row foreign 2-letter aliases (ウィ/ウェ): wedding=ウェディング etc.
+    e("wi", "うぃ", "ウィ"), e("we", "うぇ", "ウェ"),
+    // je: foreign borrowings (ジェット = jet) — covers gap between ja/ju/jo.
+    e("je", "じぇ", "ジェ"),
+    // Small explicit kana: type ぁ/ぃ/ぅ/ぇ/ぉ directly via `xa-xo` (mozc/
+    // Hepburn convention) or `la-lo` (alternative IME convention; some
+    // users default to `l-`). Both aliases supported.
+    e("xa", "ぁ", "ァ"), e("xi", "ぃ", "ィ"), e("xu", "ぅ", "ゥ"),
+    e("xe", "ぇ", "ェ"), e("xo", "ぉ", "ォ"),
+    e("la", "ぁ", "ァ"), e("li", "ぃ", "ィ"), e("lu", "ぅ", "ゥ"),
+    e("le", "ぇ", "ェ"), e("lo", "ぉ", "ォ"),
     // 'nn' and single 'n' are NOT table entries — they're handled by the
     // moraic-n state machine in `render` so that `annai` → あんない and
     // `nna` → んな work the way mozc/Google JP IME do them. Adding them
@@ -297,5 +351,118 @@ mod tests {
     fn case_insensitive() {
         assert_eq!(to_hiragana("KA"), "か");
         assert_eq!(to_hiragana("Nihon"), "にほん");
+    }
+
+    #[test]
+    fn foreign_fa_row() {
+        // 2-letter ファ row — the famiriaare regression. Pre-fix `fa` had
+        // no entry, leading `f` fell through as ASCII, is_jp_clean rejected
+        // every hiragana/katakana variant containing it.
+        assert_eq!(to_katakana("fa"), "ファ");
+        assert_eq!(to_katakana("famiriaare"), "ファミリアアレ");
+        assert_eq!(to_katakana("fi"), "フィ");
+        assert_eq!(to_katakana("fe"), "フェ");
+        assert_eq!(to_katakana("fo"), "フォ");
+        // hiragana variants render through the same path.
+        assert_eq!(to_hiragana("fa"), "ふぁ");
+        assert_eq!(to_hiragana("famiriaare"), "ふぁみりああれ");
+    }
+
+    #[test]
+    fn foreign_va_row() {
+        assert_eq!(to_katakana("va"), "ヴァ");
+        assert_eq!(to_katakana("vi"), "ヴィ");
+        assert_eq!(to_katakana("vu"), "ヴ");
+        assert_eq!(to_katakana("ve"), "ヴェ");
+        assert_eq!(to_katakana("vo"), "ヴォ");
+        // Real foreign-loanword: violin = vaiorin
+        assert_eq!(to_katakana("vaiorin"), "ヴァイオリン");
+    }
+
+    #[test]
+    fn foreign_w_row() {
+        // 2-letter `wi/we` (also accepts 3-letter `whi/whe` aliases)
+        assert_eq!(to_katakana("wi"), "ウィ");
+        assert_eq!(to_katakana("we"), "ウェ");
+        assert_eq!(to_katakana("whi"), "ウィ");
+        assert_eq!(to_katakana("whe"), "ウェ");
+        assert_eq!(to_katakana("wha"), "ウァ");
+        assert_eq!(to_katakana("who"), "ウォ");
+        // wedding = wedhingu (kunrei `di`=ぢ, so ディ requires explicit dhi)
+        assert_eq!(to_katakana("wedhingu"), "ウェディング");
+        // weak point: wedingu still renders 'wedi' as ウェ+ぢ → ウェヂ
+        // (kunrei mapping) which is expected and matches mozc.
+        assert_eq!(to_katakana("wedingu"), "ウェヂング");
+    }
+
+    #[test]
+    fn foreign_je_che_she() {
+        assert_eq!(to_katakana("je"), "ジェ");
+        assert_eq!(to_katakana("che"), "チェ");
+        assert_eq!(to_katakana("she"), "シェ");
+        // jet = jetto
+        assert_eq!(to_katakana("jetto"), "ジェット");
+        // shake = sheiku
+        assert_eq!(to_katakana("sheiku"), "シェイク");
+    }
+
+    #[test]
+    fn foreign_ts_row() {
+        assert_eq!(to_katakana("tsa"), "ツァ");
+        assert_eq!(to_katakana("tsi"), "ツィ");
+        assert_eq!(to_katakana("tse"), "ツェ");
+        assert_eq!(to_katakana("tso"), "ツォ");
+    }
+
+    #[test]
+    fn foreign_thi_dhi_twu_dwu() {
+        // Explicit ティ/ディ/トゥ/ドゥ — sidesteps kunrei conflict.
+        assert_eq!(to_katakana("thi"), "ティ");
+        assert_eq!(to_katakana("dhi"), "ディ");
+        assert_eq!(to_katakana("twu"), "トゥ");
+        assert_eq!(to_katakana("dwu"), "ドゥ");
+        // party = pa-thi-
+        assert_eq!(to_katakana("pa-thi-"), "パーティー");
+    }
+
+    #[test]
+    fn foreign_kwa_gwa_rows() {
+        assert_eq!(to_katakana("kwa"), "クァ");
+        assert_eq!(to_katakana("kwi"), "クィ");
+        assert_eq!(to_katakana("kwe"), "クェ");
+        assert_eq!(to_katakana("kwo"), "クォ");
+        assert_eq!(to_katakana("gwa"), "グァ");
+    }
+
+    #[test]
+    fn foreign_fy_vy_yoon() {
+        assert_eq!(to_katakana("fya"), "フャ");
+        assert_eq!(to_katakana("fyu"), "フュ");
+        assert_eq!(to_katakana("vya"), "ヴャ");
+        assert_eq!(to_katakana("vyu"), "ヴュ");
+    }
+
+    #[test]
+    fn small_kana_explicit() {
+        // xa-xo and la-lo aliases — type small ぁぃぅぇぉ directly.
+        assert_eq!(to_hiragana("xa"), "ぁ");
+        assert_eq!(to_hiragana("xi"), "ぃ");
+        assert_eq!(to_hiragana("xu"), "ぅ");
+        assert_eq!(to_hiragana("xe"), "ぇ");
+        assert_eq!(to_hiragana("xo"), "ぉ");
+        assert_eq!(to_hiragana("la"), "ぁ");
+        assert_eq!(to_katakana("xa"), "ァ");
+        assert_eq!(to_katakana("la"), "ァ");
+    }
+
+    #[test]
+    fn pre_existing_kunrei_di_du_unchanged() {
+        // Sanity guard against the new 'dh*/dw*/d*' entries clobbering
+        // the kunrei `di`=ぢ / `du`=づ entries. mozc convention: bare
+        // `di` is still kunrei → ぢ; explicit ディ uses `dhi`.
+        assert_eq!(to_hiragana("di"), "ぢ");
+        assert_eq!(to_hiragana("du"), "づ");
+        assert_eq!(to_hiragana("ti"), "ち");
+        assert_eq!(to_hiragana("tu"), "つ");
     }
 }

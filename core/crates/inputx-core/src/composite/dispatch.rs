@@ -651,6 +651,120 @@ mod tests {
     }
 
     #[test]
+    fn mixed_famiriaare_katakana_leads_hiragana_then_pinyin_demoted() {
+        // User polish-log 2026-05-27 screenshot: famiriaare (10 letters) in
+        // Mixed+JP surfaced 法弥日呵呵热 / 法弥日啊啊热 / 发米日啊啊热 /
+        // 法弥日阿阿热 — 4 mechanical Pinyin Viterbi compositions, 0 JP
+        // candidates. Root cause: (1) romaji table lacked `fa` entry → JP
+        // engine rendered "fあみりああれ" with leading-f ASCII passthrough,
+        // is_jp_clean rejected the whole candidate; (2) Pinyin Path 5
+        // fallback_composition gave 法弥日呵呵热 a flat COMPOSED_FALLBACK_SCORE
+        // (250k), beating mechanical kana (240k/200k).
+        //
+        // Two-part fix:
+        //   1. inputx-jp/src/romaji.rs: full foreign-loanword syllable table
+        //      (fa-row, va-row, wi/we, je, tsa-row, che/she, th*/dh*/tw*/dw*,
+        //      kw*/gw*, fy*/vy*, wha-row, xa-row + la-alias).
+        //   2. pinyin_adapter.rs Path 5: quality gate — when buffer.len() /
+        //      sentence.chars().count() < 2.0 (mechanical 1-pinyin-char-per-
+        //      output-char), suppress fallback_composition so the candidate
+        //      drops to NON_EXACT_FLOOR tier (~1k) instead of 250k.
+        //   3. japanese_adapter.rs: foreign-syllable signal → swap hira/kata
+        //      bases, so ファミリアアレ (foreign-loanword convention) leads
+        //      ふぁみりああれ instead of trailing it.
+        //
+        // User rule: 片假名 > 平假名 in foreign-romaji buffers, but both
+        // adjacent. Low-quality Pinyin yields to kana.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"famiriaare" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(6).map(|c| c.word.as_str()).collect();
+        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("ファミリアアレ"),
+            "ファミリアアレ (katakana) must lead foreign-romaji buffer; got top6={top:?}");
+        assert_eq!(cands.get(1).map(|c| c.word.as_str()), Some("ふぁみりああれ"),
+            "ふぁみりああれ (hiragana) must follow katakana for adjacency; got top6={top:?}");
+        // Pinyin mechanical garbage must NOT crowd into the top 2.
+        let mechanical = ["法弥日呵呵热", "法弥日啊啊热", "发米日啊啊热", "法弥日啊阿热"];
+        for w in &mechanical {
+            let idx = cands.iter().position(|c| c.word.as_str() == *w);
+            if let Some(i) = idx {
+                assert!(i >= 2, "{w} (low-quality Pinyin composition) must rank below kana; \
+                    got idx={i} in top6={top:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn mixed_vaiorin_katakana_leads_for_foreign_v_row() {
+        // Sibling case to famiriaare — `vaiorin` (violin) should surface
+        // ヴァイオリン (katakana) #1, ゔぁいおりん (hiragana) #2. This is the
+        // foreign 'v' row which had no romaji entries at all pre-fix.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"vaiorin" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(4).map(|c| c.word.as_str()).collect();
+        assert!(cands.iter().any(|c| c.word == "ヴァイオリン"),
+            "ヴァイオリン (katakana) must appear for vaiorin; got top4={top:?}");
+        let kata_idx = cands.iter().position(|c| c.word == "ヴァイオリン");
+        let hira_idx = cands.iter().position(|c| c.word == "ゔぁいおりん");
+        if let (Some(k), Some(h)) = (kata_idx, hira_idx) {
+            assert!(k < h, "katakana ({k}) must lead hiragana ({h}) for foreign 'v' row; \
+                top4={top:?}");
+        }
+    }
+
+    #[test]
+    fn mixed_nihon_hiragana_above_katakana_native_unchanged() {
+        // Guard: the foreign-syllable swap must NOT flip native JP buffers.
+        // `nihon` (にほん / ニホン / 日本) has no foreign-syllable markers,
+        // so hiragana > katakana is preserved.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"nihon" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(8).map(|c| c.word.as_str()).collect();
+        let hira_idx = cands.iter().position(|c| c.word == "にほん");
+        let kata_idx = cands.iter().position(|c| c.word == "ニホン");
+        if let (Some(h), Some(k)) = (hira_idx, kata_idx) {
+            assert!(h < k, "native nihon: hiragana ({h}) must stay above katakana ({k}); \
+                top8={top:?}");
+        }
+    }
+
+    #[test]
+    fn mixed_kaopu_real_composition_still_leads_kana() {
+        // Guard: the Pinyin Path 5 quality gate must NOT demote *real* fallback
+        // compositions (kaopu→靠谱 ratio 5/2=2.5 ≥ 2.0). 靠谱 should still beat
+        // mechanical kana かおぷ/カオプ as it did before the gate.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"kaopu" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("靠谱"),
+            "靠谱 (real Pinyin fallback composition, ratio 2.5) must keep leading; \
+             got top5={top:?}");
+    }
+
+    #[test]
     fn mixed_jjjj_full_code_exact_leads_no_prediction_inversion() {
         // CP-C invariant at full code: wubi codes are at most 4 chars, so
         // prefix_predictions returns no entries (no code length > 4). 日
