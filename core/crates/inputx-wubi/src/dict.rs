@@ -361,6 +361,41 @@ impl WubiDict {
         results
     }
 
+    /// Prefix-prediction lookups: all `(word, freq, code_len)` triples where
+    /// `code` strictly extends `prefix` (i.e., `code_len > prefix.len()`).
+    /// Exact-code matches are excluded — those are not predictions.
+    ///
+    /// Returned tuples are ordered by `freq` descending, then `word` ascending
+    /// (FST byte order tiebreaker). Pins are NOT applied (per-code; prefix
+    /// scan can't generalize). Used by the composite dispatch to attach Wubi
+    /// prediction candidates in Mixed mode (e.g., `jj` → 日, 时, 旧 as
+    /// predictions in addition to exact 是/我).
+    ///
+    /// Raw frequency is returned (not score) so the caller can compose the
+    /// final score via `scoring::predict_score(base, freq, freq_mult,
+    /// proximity)` where `proximity = typed_len / code_len`.
+    pub fn prefix_predictions(&self, prefix: &str) -> Vec<(String, u64, usize)> {
+        let lower = prefix.to_ascii_lowercase();
+        let prefix_len = lower.len();
+        let mut results: Vec<(String, u64, usize)> = Vec::new();
+        self.map.prefix_for_each(lower.as_bytes(), |code_bytes, word_bytes, value| {
+            if code_bytes.len() <= prefix_len {
+                return;
+            }
+            if let (Ok(_code), Ok(word)) = (
+                core::str::from_utf8(code_bytes),
+                core::str::from_utf8(word_bytes),
+            ) {
+                let (_layer, freq) = unpack(value);
+                results.push((word.to_string(), freq, code_bytes.len()));
+            }
+        });
+        results.sort_by(|a, b| {
+            b.1.cmp(&a.1).then(a.0.cmp(&b.0))
+        });
+        results
+    }
+
     /// All `(code, word)` pairs with code starting with `prefix`, ordered by
     /// (effective L1 weight desc, code, word). Pins are NOT applied here —
     /// they're per-code and don't generalize across a prefix scan.

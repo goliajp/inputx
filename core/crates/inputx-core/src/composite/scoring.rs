@@ -139,6 +139,33 @@ pub const PRIOR_FREQ_MULT_JP: f64 = 3000.0;
 /// stays 1.0 unless cross-engine calibration says otherwise.
 pub const PRIOR_FREQ_MULT_PINYIN: f64 = 1.0;
 
+/// **PRIOR** — multiplier on the per-entry freq value for the **wubi
+/// engine** in prefix-prediction. Wubi raw freq (from the embedded FST)
+/// already sits on a corpus-scaled axis where the bare value reads as a
+/// score contribution; 1.0 keeps it. See `LIKELIHOOD_WUBI_PREDICT_BASE`
+/// for the calibration of the additive floor.
+pub const PRIOR_FREQ_MULT_WUBI: f64 = 1.0;
+
+/// **LIKELIHOOD** — base for wubi prefix-prediction candidates (typed
+/// buffer is a **prefix** of the candidate's full wubi code, not an exact
+/// match). Per PLAN-prefix-prediction §3 (CP-C) — predictions must NOT
+/// outrank a real exact wubi hit at the same buffer. Tuned 50_000.0:
+/// below the lowest-confidence exact layer (Auto = 70k) so any exact
+/// match leads its predictions; well above the score-0 cutoff so high-
+/// freq predictions still surface mid-list. Combined with `proximity^K`
+/// the actual delivered score for "3/8 of code typed" sits near base +
+/// 0.05·freq; for "7/8 of code" near base + 0.67·freq — predictions rise
+/// as the user types closer to the word.
+///
+/// Always-attached (no `has_non_speculative` gate, unlike pinyin Path 3):
+/// since the exact wubi candidates carry layer-base scores in the
+/// 70k-1M range and predictions max around base + freq, the math
+/// naturally keeps an exact #0 (CP-A JP path uses the same pattern).
+/// Predictions are subject to the same `wubi_length_modifier` cutoff,
+/// so they silently vanish past `CUTOFF_WUBI_MAX_BUFFER_LEN` (4 chars).
+/// Wired into `predict_score()` via `dispatch.rs`.
+pub const LIKELIHOOD_WUBI_PREDICT_BASE: f64 = 50_000.0;
+
 /// **LIKELIHOOD** — base for pinyin prefix-prediction candidates
 /// (typed buffer is a **prefix** of the candidate's full pinyin, not a
 /// complete match). Per PLAN-prefix-prediction §4: must sit ABOVE the
@@ -379,6 +406,16 @@ mod tests {
         // P(W) — frequency-derived priors. Unchanged across the v1.3 rename.
         assert_eq!(PRIOR_FREQ_MULT_JP, 3000.0);
         assert_eq!(PRIOR_L0_PIN_MULT, 1000.0);
+    }
+
+    #[test]
+    fn predict_factors_match_v1_3_values() {
+        // v1.3 prefix-prediction constants (WU-α CP-B/C). PINYIN already
+        // pinned by CP-B; CP-C adds WUBI alongside.
+        assert_eq!(PRIOR_FREQ_MULT_PINYIN, 1.0);
+        assert_eq!(PRIOR_FREQ_MULT_WUBI, 1.0);
+        assert_eq!(LIKELIHOOD_PINYIN_PREDICT_BASE, 250_000.0);
+        assert_eq!(LIKELIHOOD_WUBI_PREDICT_BASE, 50_000.0);
     }
 
     #[test]

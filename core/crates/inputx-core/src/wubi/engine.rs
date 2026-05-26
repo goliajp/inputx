@@ -101,6 +101,20 @@ impl WubiEngine {
         table::lookup_with_layer(self.buffer_str())
     }
 
+    /// Prefix-prediction candidates for the current buffer: `(word, freq,
+    /// code_len)` for every dict entry whose code strictly extends the
+    /// buffer (exact-code matches excluded). Caller composes the final
+    /// score via `scoring::predict_score`. Empty when the buffer is empty.
+    /// Wrapper around [`table::prefix_predictions`] so callers don't reach
+    /// into the dict directly (the engine remains the single owner of
+    /// buffer state).
+    pub fn prefix_predictions(&self) -> Vec<(String, u64, usize)> {
+        if self.buffer.is_empty() {
+            return Vec::new();
+        }
+        table::prefix_predictions(self.buffer_str())
+    }
+
     /// Feed one Wubi-relevant letter. Returns text to commit, if any
     /// (forced commit when buffer was already full, and/or auto-commit
     /// triggered by `AutoCommitPolicy`). May concatenate two commits

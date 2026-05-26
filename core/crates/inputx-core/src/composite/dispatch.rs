@@ -164,6 +164,49 @@ pub fn dispatch(
                     (w, score * layer_demote * cd)
                 })
                 .collect();
+            // CP-C (v1.3 WU-α): attach wubi prefix-predictions. predict_score
+            // tops out at base + freq (proximity=1) ≈ 50k + freq, well below
+            // the lowest exact layer base (Auto = 70k) — so an exact hit at
+            // the same buffer is mathematically guaranteed to lead. Goes
+            // through the same final_mult below, so predictions vanish past
+            // CUTOFF_WUBI_MAX_BUFFER_LEN and on the 'z' carve-out exactly
+            // like exact wubi hits. Layer/char demotes don't apply: those
+            // encode per-code candidate semantics; predictions are
+            // cross-code by construction.
+            //
+            // Bare letters skipped: at buffer.len()==1, proximity is at most
+            // 1/2 = 0.5 (code_len ≥ 2), proximity^3 = 0.125 — predictions
+            // still land in the 50-60k range and flood out pinyin single
+            // chars (q→去 baseline). Same pattern as pinyin CP-B which
+            // leaves single-letter prefixes on the legacy NON_EXACT_FLOOR
+            // path: at one letter the user's bare exact (q→我 Jianma1) is
+            // the only confident wubi signal worth surfacing — multi-letter
+            // predictions like 求/全 should arrive when the user types
+            // another character.
+            //
+            // Cap mirrors pinyin's CP-B prefix scan caps but scaled down —
+            // wubi's prefix scan over a 2-letter prefix already returns
+            // ~hundreds of entries, more than a candidate window needs.
+            let wubi_typed_len = wubi.buffer_str().len();
+            let pred_cap = match wubi_typed_len {
+                2 => 30,
+                3 => 40,
+                _ => 0,
+            };
+            if pred_cap > 0 {
+                let mut preds = wubi.prefix_predictions();
+                preds.truncate(pred_cap);
+                for (word, freq, code_len) in preds {
+                    let proximity = (wubi_typed_len as f64 / code_len as f64).min(1.0);
+                    let score = scoring::predict_score(
+                        scoring::LIKELIHOOD_WUBI_PREDICT_BASE,
+                        freq,
+                        scoring::PRIOR_FREQ_MULT_WUBI,
+                        proximity,
+                    );
+                    wubi_cands.push((word, score));
+                }
+            }
             let final_mult = wubi_mult * z_mult;
             if final_mult == 0.0 {
                 // Wubi fully suppressed (past the 4-char window, or 'z'-led
@@ -464,6 +507,52 @@ mod tests {
         for b in b"nihaomawojiao" { let _ = e2.handle_letter(*b); }
         assert_eq!(e2.candidates().first().map(|c| c.word.as_str()), Some("你好吗我叫"),
             "real composed sentence must still lead nihaomawojiao");
+    }
+
+    #[test]
+    fn mixed_jj_exact_leads_with_predictions_attached() {
+        // CP-C (v1.3 WU-α): wubi prefix-predictions attach to 2-3 letter
+        // wubi buffers. `jj` is a Jianma2 simcode → 昌 (~832k = 800k +
+        // freq); predictions for jj-prefix longer codes (日 at jjjj
+        // Zigen, 日本/日子/日常 at jjjj-suffixed phrase codes) attach
+        // beneath the exact. predict_score top: 50k + 0.125·45k ≈ 56k,
+        // well below 832k — exact mathematically dominates.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"jj" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top10: Vec<&str> = cands.iter().take(10).map(|c| c.word.as_str()).collect();
+        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("昌"),
+            "exact wubi Jianma2 昌 must lead jj; got top10={top10:?}");
+        // 日 (jjjj Zigen prediction) must surface — high-freq prediction
+        // visible to the user typing toward jjjj.
+        let ri = cands.iter().position(|c| c.word == "日");
+        assert!(ri.is_some(),
+            "日 (jjjj prediction) must appear for jj; got top10={top10:?}");
+        // Predictions follow, not lead: 日 ranks below 昌.
+        assert!(ri.unwrap() > 0,
+            "predictions must follow the exact #0; 日 idx={ri:?} top10={top10:?}");
+    }
+
+    #[test]
+    fn mixed_jjjj_full_code_exact_leads_no_prediction_inversion() {
+        // CP-C invariant at full code: wubi codes are at most 4 chars, so
+        // prefix_predictions returns no entries (no code length > 4). 日
+        // (Zigen exact at jjjj) leads with its full layer base 500k + freq,
+        // unaffected by the CP-C attach path.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"jjjj" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top10: Vec<&str> = cands.iter().take(10).map(|c| c.word.as_str()).collect();
+        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("日"),
+            "日 (jjjj Zigen exact) must lead at full code; got top10={top10:?}");
     }
 
     #[test]

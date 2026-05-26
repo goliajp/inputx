@@ -99,6 +99,19 @@ pub fn lookup_with_layer(code: &str) -> Vec<(String, f64, wubi::Layer)> {
     all
 }
 
+/// Prefix-prediction lookup: `(word, freq, code_len)` for every dict
+/// entry whose code strictly extends `prefix` (no exact-code matches).
+/// Rare-CJK filter applied uniformly with [`lookup`]. Wired into the
+/// composite dispatch so Wubi gets the same prefix-prediction shape as
+/// pinyin / JP (e.g. `jj` exact 是 stays at #0, predictions 日/时 follow).
+pub fn prefix_predictions(prefix: &str) -> Vec<(String, u64, usize)> {
+    let mut all = dict().prefix_predictions(prefix);
+    if !SHOW_RARE.load(Ordering::Relaxed) {
+        all.retain(|(w, _, _)| is_displayable(w));
+    }
+    all
+}
+
 /// Notify the dictionary that the user committed `word` for `code`. The
 /// internal pick counter advances; on threshold the word auto-pins. All
 /// learning logic lives in `wubi` — this is just a passthrough so the IME
