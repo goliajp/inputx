@@ -497,6 +497,29 @@ mod tests {
     }
 
     #[test]
+    fn mixed_juti_jutiu_design_concept_leads_over_wubi_phrase() {
+        // User polish-log 2026-05-26: juti (4-letter wubi full code +
+        // valid pinyin) showed 暗送秋波 #1 / 具体 #2. wubi 暗送秋波 is a
+        // valid Phrase entry that gets LIKELIHOOD_WUBI_FULL_CODE_PROMOTE
+        // ×1.1 (the aiyi→东京 wubi-first rule), but the user's frequency
+        // intuition is correct: 具体 corpus freq 37k vs phrase ~12k still
+        // loses ~16k after promote. prior_correction ×1.5 on 具体 puts
+        // it firmly above the promoted wubi phrase. User: "五笔优势，但
+        // 是具体的常用分应该太高了".
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"juti" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("具体"),
+            "具体 must lead juti (prior_correction × 1.5 over wubi-promote 暗送秋波); \
+             got top5={top:?}");
+    }
+
+    #[test]
     fn mixed_sheji_design_leads_after_prior_correction() {
         // User polish-log 2026-05-26 screenshot: sheji shows 涉及 #1 / 设计 #2.
         // Same corpus-skew pattern as jixu→继续 (news/academic sources
