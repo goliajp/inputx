@@ -147,8 +147,11 @@ xcrun stapler validate "$DMG_PATH"
 # /Library/Input Methods/ (see mac/_purge_ls.sh for the full story).
 # Override with KEEP_BUILD_APP=1 if you need the loose .app for inspection.
 if [ "${KEEP_BUILD_APP:-0}" != "1" ]; then
+    # cwd is already mac/ (see `cd "$(dirname "$0")"` at top); $0 still
+    # carries the original invocation path, so `dirname $0` from here can
+    # double-prefix `mac/`. Use `./` since we're guaranteed to be in mac/.
     # shellcheck source=./_purge_ls.sh
-    source "$(dirname "$0")/_purge_ls.sh"
+    source "./_purge_ls.sh"
     purge_ls_app "$APP_DIR"
 fi
 
