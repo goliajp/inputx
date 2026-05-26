@@ -155,6 +155,21 @@ impl JapaneseAdapter {
     pub fn candidates_with_scores(&self) -> Vec<super::merge::Scored> {
         use inputx_jp::KanaKind;
         use crate::composite::scoring;
+        // Short-buffer compose_sentence garbage filter (user polish-log
+        // 2026-05-26, jieni): for short romaji buffers (< 8 chars), the
+        // engine's compose_sentence path can produce ~30 mechanical
+        // "X+particle+Y" cartesian products that aren't real Japanese —
+        // jieni → 時へに / 事へに / 治へに / 耳へに / ... (X=ji-yomi kanji,
+        // particle=へ from `e`, Y=ni-reading). They score at
+        // LIKELIHOOD_JP_COMPOSED_BASE so they don't lead the candidate
+        // list, but their sheer count (~30) crowds out the visible window.
+        //
+        // The 8-char cutoff mirrors pinyin Path 0b Viterbi: under 8 chars
+        // the user isn't typing a multi-segment JP sentence, so any
+        // composed product is noise. Real long-form composed sentences
+        // (私は学生, watashiwagakusei = 14 chars) survive — at ≥8 chars
+        // there's enough buffer for a genuine compose to be intentional.
+        let short_buffer = self.engine.preedit().chars().count() < 8;
         // Full-match signal: a real full-buffer jukugo (multi-char kanji
         // with freq > 0) means the entire romaji buffer maps to a genuine
         // Japanese word — high-confidence "user is typing Japanese". In
@@ -181,6 +196,7 @@ impl JapaneseAdapter {
             .candidates()
             .iter()
             .filter(|c| is_jp_clean(&c.word))
+            .filter(|c| !(short_buffer && c.composed))
             .map(|c| {
                 // compose_sentence products score below real Chinese words
                 // (so 時へ時 never pollutes the top of jieji/jieshou) and are
