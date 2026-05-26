@@ -119,34 +119,47 @@ sed "s|__APP_PATH__|$APP_DST|g" Resources/LaunchAgent.plist.template > "$LA_DST"
 launchctl bootstrap "gui/$UID" "$LA_DST" >>"$LOG" 2>&1 || true
 sleep 1
 
-# 5. Force the Ctrl+Space picker UI to refresh its enumeration cache by
-#    toggling our input mode disable → enable via TIS API. This mirrors
-#    the user's "Settings → 文本输入 → Edit → 删除 → 添加" round-trip:
-#    the disable+enable cycle fires kTISNotifyInputSourceListChanged so
-#    the picker UI invalidates its filter cache. None of `lsregister`,
-#    `killall TextInputMenuAgent`, or LaunchAgent bootstrap fire that
-#    notification on their own — empirically verified 2026-05-27 (post-
-#    reinstall: TIS API enumerates Inputx enabled=1 selectable=1, but
-#    Ctrl+Space picker silently hides it until the user goes through
-#    Settings to delete + re-add the mode).
+# 5. Refresh the Ctrl+Space picker UI by replicating the user's "Settings
+#    → 文本输入 → Edit → 删除 → 添加" round-trip *purely at the UserDefaults
+#    layer*. The disable+enable round-trip via TIS API DOES fire the picker
+#    refresh notification but ALSO retriggers the "允许开发者获取敏感信息"
+#    TCC popup on every reinstall — user-reported 2026-05-27, retracted
+#    from the earlier 9b0957a approach.
 #
-#    Idempotent: TIS only fires the notification on actual state
-#    transition; disable may fail (transient lock) → `|| true` swallows
-#    it and enable still re-asserts the entry. No TCC popup because we
-#    don't call TISRegisterInputSource (that's the call which triggers
-#    the third-party-IME permission prompt; see 6b83f91).
+#    Instead we mutate AppleEnabledInputSources directly: remove our mode
+#    entry, write+synchronize, re-append the entry, write+synchronize.
+#    cfprefsd fires its own distributed notification on the second
+#    synchronize (the list shape changed), which the picker UI receives
+#    and uses to invalidate its filter cache. TCC stays silent because no
+#    TIS API is called — UserDefaults writes are not gated by the
+#    third-party-IME consent flow (only TISRegister/TISEnable are).
+#
+#    Empirically: this matches what Settings UI does internally on Edit →
+#    delete + re-add (which the user discovered restores the picker).
 swift - <<'SWIFT' >>"$LOG" 2>&1 || true
-import Carbon
-let modeIDs: Set<String> = ["jp.golia.inputmethod.wubi.zh"]
-let all = (TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource]) ?? []
-for src in all {
-    guard let p = TISGetInputSourceProperty(src, kTISPropertyInputSourceID) else { continue }
-    let id = Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
-    if modeIDs.contains(id) {
-        _ = TISDisableInputSource(src)
-        _ = TISEnableInputSource(src)
-    }
-}
+import Foundation
+
+let modeID = "jp.golia.inputmethod.wubi.zh"
+let bundleID = "jp.golia.inputmethod.wubi"
+
+guard let defaults = UserDefaults(suiteName: "com.apple.HIToolbox") else { exit(0) }
+var enabled = defaults.array(forKey: "AppleEnabledInputSources") as? [[String: Any]] ?? []
+
+// Phase 1 — strip our entry. Force-write even if absent so cfprefsd
+// re-pushes the array shape (no-op writes are coalesced; this guarantees
+// at least one change event).
+enabled.removeAll { ($0["Input Mode"] as? String) == modeID }
+defaults.set(enabled, forKey: "AppleEnabledInputSources")
+_ = defaults.synchronize()
+
+// Phase 2 — re-append. Same shape Settings UI writes.
+enabled.append([
+    "Bundle ID":       bundleID as Any,
+    "Input Mode":      modeID as Any,
+    "InputSourceKind": "Input Mode" as Any,
+])
+defaults.set(enabled, forKey: "AppleEnabledInputSources")
+_ = defaults.synchronize()
 SWIFT
 
 # 5b. Restart TextInputMenuAgent so picker respawns AFTER the TIS state
