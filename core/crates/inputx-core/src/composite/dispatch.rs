@@ -122,9 +122,9 @@ pub fn dispatch(
             //     structural ~40k freq-equivalent edge (×1.1; was 1.2 — see
             //     mixed_jixu_* regression: 1.2's 80k edge wrongly flipped a
             //     clearly-higher-freq pinyin word 继续 under 曳光弹).
-            let full_code = pinyin_len == scoring::WUBI_MAX_BUFFER_LEN;
+            let full_code = pinyin_len == scoring::CUTOFF_WUBI_MAX_BUFFER_LEN;
             let phrase_mult = if pinyin_intent {
-                if full_code { scoring::WUBI_FULL_CODE_PHRASE_PROMOTE } else { 0.5 }
+                if full_code { scoring::LIKELIHOOD_WUBI_FULL_CODE_PROMOTE } else { 0.5 }
             } else {
                 1.0
             };
@@ -283,7 +283,7 @@ mod tests {
         // in Mixed+JP ranked Chinese forced-composition junk 是嗯据库 (#0,
         // COMPOSED_SCORE 500k) above 新宿 (464k), and katakana シンジュク was
         // buried below the pinyin non-exact cluster. A real full-buffer jukugo
-        // is high-confidence Japanese — JP_FULL_MATCH_PROMOTE (×1.3) lifts the
+        // is high-confidence Japanese — LIKELIHOOD_JP_FULL_MATCH_PROMOTE (×1.3) lifts the
         // whole JP group so 新宿 leads and katakana surfaces into the window.
         use crate::composite::engine::CompositeEngine;
         use crate::wubi::AutoCommitPolicy;
@@ -307,7 +307,7 @@ mod tests {
         // in Mixed+JP surfaced compose_sentence junk 時へ時 / 治へ治 at #1-4
         // — they were tagged kind=Kanji so japanese_adapter treated them as
         // jukugo AND they tripped the full-match promote. compose products
-        // now carry `composed=true`, score at JP_COMPOSED_SCORE (below real
+        // now carry `composed=true`, score at LIKELIHOOD_JP_COMPOSED_BASE (below real
         // Chinese) and never promote, so real Chinese leads and junk sinks.
         use crate::composite::engine::CompositeEngine;
         use crate::wubi::AutoCommitPolicy;
@@ -377,7 +377,7 @@ mod tests {
     fn japanese_toukyouto_compose_suffix_leads_kana() {
         // User insight 2026-05-26: 東京都 is 拼 (東京 + 都 admin suffix), not a
         // dict word (mozc itself doesn't list it). The jukugo+KANJI_SUFFIXES
-        // compose path now produces 東京都, scored JP_COMPOSED_KANJI_SCORE
+        // compose path now produces 東京都, scored LIKELIHOOD_JP_COMPOSED_KANJI_BASE
         // (280k, a pure-kanji composed tier above the long-buffer kana
         // fallbacks at 240k) so the kanji conversion leads in Japanese mode.
         use crate::composite::engine::CompositeEngine;
@@ -511,7 +511,7 @@ mod tests {
         // phrase; the speculative Phrase ×0.5 demote buried its raw 429241
         // at 214620, below 爱意 424712. At full code the wubi hit is high-
         // confidence and gets the wubi-first PROMOTE (×1.1), so 东京 leads.
-        // See dispatch `full_code` / scoring::WUBI_FULL_CODE_PHRASE_PROMOTE.
+        // See dispatch `full_code` / scoring::LIKELIHOOD_WUBI_FULL_CODE_PROMOTE.
         use crate::composite::engine::CompositeEngine;
         use crate::wubi::AutoCommitPolicy;
         let mut e = CompositeEngine::new();

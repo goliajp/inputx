@@ -138,10 +138,10 @@ impl JapaneseAdapter {
     /// kanji-with-readings tables), so we synthesize per-kind scores
     /// chosen to slot into the cross-engine ranking:
     ///
-    ///   * Single-kanji (whole-buffer on/kun reading) → scoring::JP_SINGLE_KANJI_SCORE
-    ///   * Hiragana (mechanical kana rendering)        → scoring::JP_HIRAGANA_SCORE
-    ///   * Katakana                                    → scoring::JP_KATAKANA_SCORE
-    /// plus scoring::JP_FREQ_MULTIPLIER × freq (mechanical kana renders carry
+    ///   * Single-kanji (whole-buffer on/kun reading) → scoring::LIKELIHOOD_JP_SINGLE_KANJI_BASE
+    ///   * Hiragana (mechanical kana rendering)        → scoring::LIKELIHOOD_JP_HIRAGANA_BASE
+    ///   * Katakana                                    → scoring::LIKELIHOOD_JP_KATAKANA_BASE
+    /// plus scoring::PRIOR_FREQ_MULT_JP × freq (mechanical kana renders carry
     /// freq 0). scoring.rs is the source of truth — values currently are
     /// single-kanji 100k, hiragana 150k, katakana 110k (do NOT hardcode copies
     /// here; this comment drifted once and mislabeled hiragana as 100k).
@@ -160,7 +160,7 @@ impl JapaneseAdapter {
         // Japanese word — high-confidence "user is typing Japanese". In
         // that case the whole JP group is promoted so a high-freq jukugo
         // (新宿) beats the Chinese forced-composition fallback and kana
-        // (esp. katakana) surfaces. See scoring::JP_FULL_MATCH_PROMOTE.
+        // (esp. katakana) surfaces. See scoring::LIKELIHOOD_JP_FULL_MATCH_PROMOTE.
         // EXCLUDES compose_sentence products (`c.composed`): those are
         // mechanical guesses, not real dictionary words, so they must not
         // count as a full-match signal nor receive the promote.
@@ -176,7 +176,7 @@ impl JapaneseAdapter {
                 && c.freq > 0
                 && !is_pure_kana(&c.word)
         });
-        let promote = if full_match { scoring::JP_FULL_MATCH_PROMOTE } else { 1.0 };
+        let promote = if full_match { scoring::LIKELIHOOD_JP_FULL_MATCH_PROMOTE } else { 1.0 };
         self.engine
             .candidates()
             .iter()
@@ -186,17 +186,17 @@ impl JapaneseAdapter {
                 // (so 時へ時 never pollutes the top of jieji/jieshou) and are
                 // never promoted. Two tiers, split by whether the product is
                 // pure kanji: a "jukugo+suffix" compound like 東京都 is a
-                // high-confidence kanji conversion → JP_COMPOSED_KANJI_SCORE
+                // high-confidence kanji conversion → LIKELIHOOD_JP_COMPOSED_KANJI_BASE
                 // (above kana so it leads in JP mode); a particle-bearing
                 // compose like 時へ時 / 東京と (carries kana) stays at the low
-                // JP_COMPOSED_SCORE. Both still surface when there's no
+                // LIKELIHOOD_JP_COMPOSED_BASE. Both still surface when there's no
                 // Chinese competition (watashiwa→私は) and neither promotes.
                 if c.composed {
                     let pure_kanji = c.word.chars().all(|ch| ('一'..='鿿').contains(&ch));
                     let s = if pure_kanji {
-                        scoring::JP_COMPOSED_KANJI_SCORE
+                        scoring::LIKELIHOOD_JP_COMPOSED_KANJI_BASE
                     } else {
-                        scoring::JP_COMPOSED_SCORE
+                        scoring::LIKELIHOOD_JP_COMPOSED_BASE
                     };
                     return (c.word.clone(), s);
                 }
@@ -214,15 +214,15 @@ impl JapaneseAdapter {
                         // single-kanji tier so えっ doesn't rank like a real
                         // 熟语 (user 2026-05-26: えっ at #3 for single `e`).
                         if is_pure_kana(&c.word) {
-                            scoring::JP_SINGLE_KANJI_SCORE
+                            scoring::LIKELIHOOD_JP_SINGLE_KANJI_BASE
                         } else if c.word.chars().count() > 1 {
-                            scoring::JP_JUKUGO_SCORE
+                            scoring::LIKELIHOOD_JP_JUKUGO_BASE
                         } else {
-                            scoring::JP_SINGLE_KANJI_SCORE
+                            scoring::LIKELIHOOD_JP_SINGLE_KANJI_BASE
                         }
                     }
-                    KanaKind::Hiragana => scoring::JP_HIRAGANA_SCORE,
-                    KanaKind::Katakana => scoring::JP_KATAKANA_SCORE,
+                    KanaKind::Hiragana => scoring::LIKELIHOOD_JP_HIRAGANA_BASE,
+                    KanaKind::Katakana => scoring::LIKELIHOOD_JP_KATAKANA_BASE,
                 };
                 // Prefix-prediction proximity decay: an exact candidate has
                 // proximity 1.0 (no change); a predicted one (shinjuk→新宿,
@@ -230,8 +230,8 @@ impl JapaneseAdapter {
                 // sits above simpdy noise but below the eventual full match,
                 // and rises as the user types closer. See PLAN-prefix-prediction.
                 let proximity = c.proximity_milli as f64 / 1000.0;
-                let freq_term = scoring::JP_FREQ_MULTIPLIER * c.freq as f64
-                    * proximity.powf(scoring::PREDICT_PROXIMITY_K);
+                let freq_term = scoring::PRIOR_FREQ_MULT_JP * c.freq as f64
+                    * proximity.powf(scoring::LIKELIHOOD_PREDICT_PROXIMITY_K);
                 // Predictions (proximity < 1) never ride the full-match promote.
                 let mult = if c.proximity_milli >= 1000 { promote } else { 1.0 };
                 let score = (base + freq_term) * mult;
