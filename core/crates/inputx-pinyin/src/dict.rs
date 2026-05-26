@@ -555,6 +555,123 @@ impl PinyinDict {
         Some((final_score, chain.concat()))
     }
 
+    /// K-best Viterbi composition: like [`Self::best_composition`] but
+    /// retains the top-`k` paths to every position instead of just the
+    /// single best, so the top-K full-buffer paths are recovered. Returns
+    /// `(score, sentence)` tuples in score-desc order, deduped by sentence.
+    ///
+    /// Why it matters even when 1-best looks "right":
+    ///   1-best DP commits irrevocably to dp[j]'s top word and only looks
+    ///   forward from there. For `pianni` → 片(highest freq at 'pian') →
+    ///   (片, *) bigram is weak so any 'ni' word fits → 你 (highest freq)
+    ///   → "片你". The strong (骗, 你) bigram never gets to apply because
+    ///   骗 was never the prev word. K-best keeps 骗 alive in dp[4] and
+    ///   the (骗, 你) bonus (~50k from the bigram FST) pushes "骗你" above
+    ///   "片你" globally. User-reported 2026-05-26: pianni should give
+    ///   骗你, not 片你.
+    ///
+    /// Cost: O(n × MAX_SYL × k × avg_lookup_size × k_resort). For typical
+    /// short buffers (≤8 chars, k=5) on the order of a few hundred
+    /// `cmp::partial_cmp` calls per call. Safe to invoke from the per-
+    /// keystroke composition path (Path 5 in pinyin_adapter).
+    ///
+    /// Returns `None`-equivalent (empty `Vec`) when `buffer` is outside
+    /// the [MIN_LEN, MAX_LEN] window or no path covers the full buffer.
+    pub fn top_k_compositions(&self, buffer: &str, k: usize) -> Vec<(f64, String)> {
+        const MIN_LEN: usize = 4;
+        const MAX_LEN: usize = 30;
+        const MAX_SYL: usize = 24;
+        const STEP_PENALTY: f64 = 100_000.0;
+        let buf = buffer.as_bytes();
+        let n = buf.len();
+        if k == 0 || !(MIN_LEN..=MAX_LEN).contains(&n) {
+            return Vec::new();
+        }
+        // dp[i] = top-k partial paths reaching position i:
+        //   (cum_score, prev_pos, prev_idx_in_dp, chosen_word_at_step)
+        // dp[0] is the start sentinel with one empty-word entry.
+        let mut dp: Vec<Vec<(f64, usize, usize, String)>> = vec![Vec::new(); n + 1];
+        dp[0].push((0.0, 0, 0, String::new()));
+
+        let mut scratch: Vec<(String, u64)> = Vec::new();
+        for i in 1..=n {
+            let lo = i.saturating_sub(MAX_SYL);
+            let mut candidates: Vec<(f64, usize, usize, String)> = Vec::new();
+            for j in lo..i {
+                if dp[j].is_empty() {
+                    continue;
+                }
+                let seg = match core::str::from_utf8(&buf[j..i]) {
+                    Ok(s) => s,
+                    Err(_) => continue,
+                };
+                self.lookup_raw_into(seg, &mut scratch);
+                if scratch.is_empty() {
+                    continue;
+                }
+                for (prev_idx, prev_path) in dp[j].iter().enumerate() {
+                    let prev_word_opt = if prev_path.3.is_empty() {
+                        None
+                    } else {
+                        Some(prev_path.3.as_str())
+                    };
+                    for (word, raw_freq) in scratch.iter() {
+                        let bonus = self.bigram_boost(prev_word_opt, word);
+                        let step_score = (*raw_freq as f64) + bonus - STEP_PENALTY;
+                        let total = prev_path.0 + step_score;
+                        candidates.push((total, j, prev_idx, word.clone()));
+                    }
+                }
+            }
+            candidates.sort_by(|a, b| {
+                b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal)
+            });
+            candidates.truncate(k);
+            dp[i] = candidates;
+        }
+
+        // Trace back each top-K path at dp[n].
+        let mut out: Vec<(f64, String)> = Vec::with_capacity(dp[n].len());
+        let mut seen: std::collections::HashSet<String> =
+            std::collections::HashSet::with_capacity(dp[n].len());
+        let end_paths: Vec<(f64, usize, usize)> = dp[n]
+            .iter()
+            .map(|p| (p.0, p.1, p.2))
+            .collect();
+        for (end_score, end_prev_pos, end_prev_idx) in end_paths {
+            let mut chain: Vec<String> = Vec::new();
+            // Start from the dp[n] entry's own word (need the entry itself
+            // for the word, but the entry's prev is what we follow next).
+            // We look up entries by walking (pos, idx) backward — the END
+            // entry's word is dp[n][rank_at_end], so first pull it.
+            // Reconstruct by tracking (pos, idx).
+            let mut pos = n;
+            // Find the rank of (end_score, end_prev_pos, end_prev_idx)
+            // within dp[n]: since the loop iterates dp[n] in order, the
+            // corresponding rank is implicit — we know its prev_pos/idx,
+            // we just need its own word, accessed by re-indexing via these.
+            // Simpler: walk by storing the cur position+idx; on each step
+            // grab the entry's word then jump to its prev_pos/prev_idx.
+            // Bootstrap: locate cur_idx for `pos == n` by matching prev.
+            let mut cur_idx = dp[pos]
+                .iter()
+                .position(|p| (p.1, p.2) == (end_prev_pos, end_prev_idx))
+                .expect("dp[n] contains the end path we just enumerated");
+            while pos > 0 {
+                let entry = &dp[pos][cur_idx];
+                chain.push(entry.3.clone());
+                pos = entry.1;
+                cur_idx = entry.2;
+            }
+            chain.reverse();
+            let sentence = chain.concat();
+            if seen.insert(sentence.clone()) {
+                out.push((end_score, sentence));
+            }
+        }
+        out
+    }
+
     /// Raw (word, freq) lookup — like `lookup_with_scores_into` but
     /// returns the FST's raw u64 freq value instead of the
     /// PINYIN_PHRASE_BASE-shifted f64 score. Used by Viterbi

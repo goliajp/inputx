@@ -707,17 +707,33 @@ impl PinyinAdapter {
         // candidates: `nuanhe` keeps 滦河 and never surfaces the
         // wrong-reading composition 暖(nuan)+和(he)→暖和. (Long empty
         // buffers were already covered by Path 0b above.)
-        if self.candidates.is_empty()
-            && let Some((_, sentence)) = self.engine.dict().best_composition(&self.buffer)
-        {
-            // Mark it so candidates_with_scores can rank it above mechanical
-            // JP kana (a composed-from-real-chars word beats a かおぷ-style
-            // transliteration) yet below any real dict word. NOTE: the proper
-            // home for common words like 靠谱/榨干 is the dict itself
-            // (coverage — dict-pipeline T0); this is only the safety net
-            // until the rebuild adds them.
-            self.fallback_composition = Some(sentence.clone());
-            self.candidates.push(sentence);
+        if self.candidates.is_empty() {
+            // K-best Viterbi (v1.3 polish, 2026-05-26): 1-best (the original
+            // best_composition) commits to dp[j]'s top word and can miss
+            // strong-bigram alternates. User-reported `pianni`: 1-best gave
+            // 片你 (freq-greedy at pian: 片>骗; (片,你) bigram weak) but the
+            // (骗,你) bigram is much stronger — K-best surfaces 骗你 as #1.
+            // Cap K=5: enough to bring in real-bigram alternates, small
+            // enough that even pathological short-buffer cases finish in
+            // microseconds (perfgate-validated).
+            let comps = self.engine.dict().top_k_compositions(&self.buffer, 5);
+            if let Some((_, top)) = comps.first() {
+                // Mark only the top composition with fallback_composition so
+                // candidates_with_scores gives it COMPOSED_FALLBACK_SCORE
+                // (250k). Subsequent compositions fall through to
+                // NON_EXACT_FLOOR-tier scoring and rank near the bottom —
+                // visible to the user as 60-percentile fallbacks if the
+                // top is wrong, without crowding the #1 spot.
+                self.fallback_composition = Some(top.clone());
+            }
+            for (_, sentence) in comps {
+                if !self.candidates.iter().any(|w| w == &sentence) {
+                    self.candidates.push(sentence);
+                }
+            }
+            // NOTE: the proper home for common words like 靠谱/榨干 is the
+            // dict itself (coverage — dict-pipeline T0); this is the safety
+            // net until the rebuild adds them.
         }
     }
 }
