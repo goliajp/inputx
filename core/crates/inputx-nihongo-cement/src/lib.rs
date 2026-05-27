@@ -57,14 +57,14 @@ use inputx_dict_format::IdfReader;
 /// table the facade's `jukugo::lookup_by_reading` scans) re-encoded
 /// in IDFv1 with FST code index for O(|romaji|) lookups.
 pub const EMBEDDED_NIHONGO_JUKUGO_IDF: &[u8] =
-    include_bytes!("../../../../data/private-dict/v0.0.1/nihongo/jukugo.idf");
+    include_bytes!("../data/jukugo.idf");
 
 /// Embedded IDFv1 kanji dict blob, sourced from
 /// `data/private-dict/v0.0.1/nihongo/kanji.idf` at compile time. The
 /// 40 KB file carries 1,666 `(reading, kanji)` pairs (multi-reading
 /// expansion of 813 source kanji from `KANJI_TABLE`) in IDFv1.
 pub const EMBEDDED_NIHONGO_KANJI_IDF: &[u8] =
-    include_bytes!("../../../../data/private-dict/v0.0.1/nihongo/kanji.idf");
+    include_bytes!("../data/kanji.idf");
 
 /// Process-global [`IdfReader`] over [`EMBEDDED_NIHONGO_JUKUGO_IDF`].
 /// Lazy-init via `OnceLock`; the ~1 MB parse + sha256 verify cost

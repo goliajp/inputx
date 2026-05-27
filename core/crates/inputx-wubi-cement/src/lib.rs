@@ -40,7 +40,7 @@ pub use inputx_wubi::L0Snapshot;
 /// reconstruct `(word, layer, raw_freq)` without re-reading the
 /// `inputx_wubi::WubiDict` table.
 pub const EMBEDDED_WUBI_IDF: &[u8] =
-    include_bytes!("../../../../data/private-dict/v0.0.1/wubi/words.idf");
+    include_bytes!("../data/words.idf");
 
 /// Process-global [`IdfReader`] over [`EMBEDDED_WUBI_IDF`]. Parses
 /// the 4 MB header / FST / entry-table sections once and amortizes

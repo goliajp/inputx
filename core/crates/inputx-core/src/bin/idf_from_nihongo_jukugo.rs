@@ -1,5 +1,5 @@
 //! `idf-from-nihongo-jukugo` — snapshot the embedded jukugo (熟語) const
-//! table into IDFv1 at `data/private-dict/v0.0.1/nihongo/jukugo.idf`.
+//! table into IDFv1 at `core/crates/inputx-nihongo-cement/data/jukugo.idf`.
 //!
 //! Source: `inputx_nihongo::jukugo::JUKUGO_TABLE` (~27k entries,
 //! `reading` (romaji), `kanji` (UTF-8 multi-char), `freq` (u32)).
@@ -10,7 +10,7 @@
 //!
 //! Usage:
 //!   cargo run --release --bin idf-from-nihongo-jukugo -- \
-//!       --output data/private-dict/v0.0.1/nihongo/jukugo.idf
+//!       --output core/crates/inputx-nihongo-cement/data/jukugo.idf
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -36,7 +36,7 @@ fn main() -> ExitCode {
         }
     }
     let out = output.unwrap_or_else(|| {
-        PathBuf::from("../data/private-dict/v0.0.1/nihongo/jukugo.idf")
+        PathBuf::from("crates/inputx-nihongo-cement/data/jukugo.idf")
     });
     match run(&out) {
         Ok(()) => ExitCode::SUCCESS,

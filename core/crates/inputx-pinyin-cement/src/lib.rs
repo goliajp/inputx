@@ -44,7 +44,7 @@ pub use ngram::{bigram_boost_from_ngm, legacy_bigram_boost_from_ngm};
 /// replace the per-call `PinyinDict::bigram_boost` lookup against the
 /// facade's bundled `bigrams.fsa`.
 pub const EMBEDDED_BIGRAMS_NGM: &[u8] =
-    include_bytes!("../../../../data/private-dict/v0.0.1/pinyin/bigrams.ngm");
+    include_bytes!("../data/bigrams.ngm");
 
 /// Embedded IDFv1 pinyin dict blob, sourced from
 /// `data/private-dict/v0.0.1/pinyin/words.idf` at compile time. Already
@@ -58,7 +58,7 @@ pub const EMBEDDED_BIGRAMS_NGM: &[u8] =
 /// against the facade's bundled `pinyin.dict` (which lacks the
 /// prior_correction absorb and is also being phased out).
 pub const EMBEDDED_PINYIN_IDF: &[u8] =
-    include_bytes!("../../../../data/private-dict/v0.0.1/pinyin/words.idf");
+    include_bytes!("../data/words.idf");
 
 /// Process-global [`IdfReader`] over [`EMBEDDED_PINYIN_IDF`]. Parses the
 /// 9 MB header / FST / entry-table sections once and amortizes the

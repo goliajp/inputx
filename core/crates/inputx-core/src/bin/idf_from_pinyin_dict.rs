@@ -1,5 +1,5 @@
 //! `idf-from-pinyin-dict` — snapshot the current pinyin dict (.dict /
-//! FST) into IDFv1 binary at `data/private-dict/v0.0.1/pinyin/words.idf`.
+//! FST) into IDFv1 binary at `core/crates/inputx-pinyin-cement/data/words.idf`.
 //!
 //! Reads every entry via `PinyinDict::prefix_with_freq("")` (~237k
 //! tuples), computes `log_prior = Q4 · ln(raw_freq / total_corpus)`,
@@ -8,9 +8,9 @@
 //!
 //! Usage:
 //!   cargo run --release --bin idf-from-pinyin-dict -- \
-//!       --output data/private-dict/v0.0.1/pinyin/words.idf
+//!       --output core/crates/inputx-pinyin-cement/data/words.idf
 //!
-//! Default output path is `data/private-dict/v0.0.1/pinyin/words.idf`
+//! Default output path is `core/crates/inputx-pinyin-cement/data/words.idf`
 //! relative to the workspace root (cwd when invoked from `core/`).
 
 use std::path::{Path, PathBuf};
@@ -70,7 +70,7 @@ fn main() -> ExitCode {
                      \n\
                      Snapshot inputx-pinyin's bundled dict into IDFv1.\n\
                      \n\
-                     Default output: data/private-dict/v0.0.1/pinyin/words.idf"
+                     Default output: core/crates/inputx-pinyin-cement/data/words.idf"
                 );
                 return ExitCode::SUCCESS;
             }
@@ -81,7 +81,7 @@ fn main() -> ExitCode {
         }
     }
     let out = output.unwrap_or_else(|| {
-        PathBuf::from("../data/private-dict/v0.0.1/pinyin/words.idf")
+        PathBuf::from("crates/inputx-pinyin-cement/data/words.idf")
     });
     match run(&out) {
         Ok(()) => ExitCode::SUCCESS,
