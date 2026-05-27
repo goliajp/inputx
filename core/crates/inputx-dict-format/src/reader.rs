@@ -169,25 +169,55 @@ impl<B: AsRef<[u8]>> IdfReader<B> {
     }
 
     /// Lookup all entries whose `code` exactly matches the queried
-    /// bytes. Returns an iterator (multi-reading entries appear in
-    /// entry-table order). Falls back to a linear scan when the file
-    /// has no FST code index attached.
+    /// bytes. When the file carries an FST code index (v1.4.6 sub-
+    /// phase C1 onwards), goes through the FST (O(|code|) instead of
+    /// O(entry_count)) and walks the contiguous multi-reading run in
+    /// the entry table. Falls back to a linear scan for v1.4.3-era
+    /// files that ship with an empty FST section.
     pub fn lookup<'a>(&'a self, code: &[u8]) -> Vec<Entry<'a>> {
-        // FST code index lookup. The writer stores a code-major sorted
-        // run, so a single lookup yields the FIRST entry_index; the
-        // writer also packs the per-code run length as a varint prefix
-        // — but for v1 simplicity (and because the largest production
-        // dict has at most ~50 entries per code), we fall back to a
-        // linear scan over the entry table when the FST returns a hit.
-        // Cost: O(entry_count); acceptable for v1.4.3 dual-path verify.
-        // v1.4.6+ may switch to packed run-length encoding.
         let mut out: Vec<Entry<'a>> = Vec::new();
+        if let Some(fst_bytes) = self.fst_code_index_bytes() {
+            if let Ok(fst) = inputx_fsa::Fsa::new(fst_bytes) {
+                if let Some(first) = fst.get(code) {
+                    // Multi-reading run: entries are sorted by code, so
+                    // all entries sharing this code are contiguous
+                    // starting at `first`. Walk forward until the code
+                    // changes or we hit EOF.
+                    let total = self.header.entry_count as u64;
+                    let mut idx = first;
+                    while idx < total {
+                        if let Some(e) = self.entry_at(idx as u32) {
+                            if e.code.as_bytes() == code {
+                                out.push(e);
+                                idx += 1;
+                                continue;
+                            }
+                        }
+                        break;
+                    }
+                }
+                return out;
+            }
+        }
+        // Linear scan fallback (no FST or FST decode failed).
         for entry in self.entries() {
             if entry.code.as_bytes() == code {
                 out.push(entry);
             }
         }
         out
+    }
+
+    /// Returns the raw FST code-index byte slice, or `None` when the
+    /// file ships with an empty section (v1.4.3-era files).
+    fn fst_code_index_bytes(&self) -> Option<&[u8]> {
+        if self.header.fst_code_index_size == 0 {
+            return None;
+        }
+        let buf = self.bytes.as_ref();
+        let s = self.header.fst_code_index_offset as usize;
+        let e = s + self.header.fst_code_index_size as usize;
+        Some(&buf[s..e])
     }
 
     /// Reverse lookup by word. Same caveats as `lookup`.
@@ -202,6 +232,57 @@ impl<B: AsRef<[u8]>> IdfReader<B> {
     }
 
     /// Top-k entries whose `code` starts with the prefix, ordered by
+    /// `log_prior` desc. When the FST code index is populated, walks
+    /// only the prefix subtree (O(matching codes) instead of
+    /// O(entry_count)). Falls back to linear scan for v1.4.3-era files.
+    pub fn prefix_top_k_fst<'a>(&'a self, prefix: &[u8], k: usize) -> Vec<Entry<'a>> {
+        if k == 0 { return Vec::new(); }
+        let Some(fst_bytes) = self.fst_code_index_bytes() else {
+            return self.prefix_top_k(prefix, k);
+        };
+        let Ok(fst) = inputx_fsa::Fsa::new(fst_bytes) else {
+            return self.prefix_top_k(prefix, k);
+        };
+        let total = self.header.entry_count as u64;
+        let mut hits: Vec<Entry<'a>> = Vec::new();
+        fst.prefix_for_each(prefix, |_code, first_idx| {
+            let mut idx = first_idx;
+            while idx < total {
+                if let Some(e) = self.entry_at(idx as u32) {
+                    if e.code.as_bytes().starts_with(prefix) {
+                        // Same code group?
+                        if let Some(prev) = hits.last() {
+                            if prev.code.as_bytes() == e.code.as_bytes() {
+                                hits.push(e);
+                                idx += 1;
+                                continue;
+                            }
+                        }
+                        // first reading of this code — caller iterates
+                        // codes via FST so we only push the run for the
+                        // current code.
+                        if e.code.as_bytes() == &_code[..] {
+                            hits.push(e);
+                            idx += 1;
+                            continue;
+                        }
+                    }
+                }
+                break;
+            }
+        });
+        hits.sort_by(|a, b| {
+            b.log_prior
+                .cmp(&a.log_prior)
+                .then_with(|| a.code.cmp(b.code))
+        });
+        hits.truncate(k);
+        hits
+    }
+
+    // ---- legacy / linear-scan path ----
+
+    /// Original linear-scan top-k (v1.4.3 fallback).
     /// `log_prior` desc. Linear scan + top-k heap (BinaryHeap for std;
     /// sorted insert otherwise).
     pub fn prefix_top_k<'a>(&'a self, prefix: &[u8], k: usize) -> Vec<Entry<'a>> {

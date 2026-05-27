@@ -139,13 +139,30 @@ impl IdfBuilder {
             entry_bytes.extend_from_slice(&rec.to_bytes());
         }
 
-        // 4. FST code/word indexes. For v1 simplicity (and to avoid
-        // wiring inputx-fsa Builder into the path before the round-trip
-        // test passes), v1.4.3 ships with EMPTY index sections — the
-        // reader's lookup/find_by_word/prefix_top_k all fall back to a
-        // linear entry scan. v1.4.6 cement-layer cutover will populate
-        // the FST sections for hot-path latency.
-        let fst_code_index: Vec<u8> = Vec::new();
+        // 4. FST code index (populated v1.4.6 sub-phase C1 for hot-path
+        // latency). Entries are already sorted by (code, word), so all
+        // readings of one code form a contiguous run; the FST stores
+        // `code → first_entry_index` and the reader walks
+        // `entries[first..]` until the code changes. `inputx_fsa` keys
+        // must be unique — multi-reading codes get one FST entry
+        // pointing at their first reading.
+        //
+        // Word index stays empty in v1.4.6: `find_by_word` is used only
+        // by L0 join and blacklist post-merge, not the hot keystroke
+        // path, so linear scan over the entry table is acceptable. A
+        // future polish wave can add it.
+        let fst_code_index: Vec<u8> = {
+            let mut fb = inputx_fsa::Builder::new();
+            let mut last_code: Option<&str> = None;
+            for (i, e) in self.entries.iter().enumerate() {
+                if Some(e.code.as_str()) == last_code {
+                    continue;
+                }
+                fb.insert(e.code.as_bytes(), i as u64);
+                last_code = Some(e.code.as_str());
+            }
+            fb.finish()
+        };
         let fst_word_index: Vec<u8> = Vec::new();
 
         // 5. Layout offsets.
