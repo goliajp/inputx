@@ -62,6 +62,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
             e.reading,
             e.kanji,
             log_prior_i16,
+            e.freq,
             MatchType::Exact,
             EntryFlags::default(),
         );

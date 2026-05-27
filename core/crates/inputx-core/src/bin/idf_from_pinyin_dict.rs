@@ -117,10 +117,15 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         let _ = (word, correction_for); // keep symbols used while file lives.
         let log_prior_q4 = log_prior_from_freq(*raw_freq);
         let log_prior_i16 = clamp_to_i16(log_prior_q4);
+        // raw_freq saturates into u32 — corpus frequencies don't
+        // reasonably exceed 2^32-1; clamp defensively in case a future
+        // pipeline emits unscaled bigram-style counts.
+        let raw_freq_u32 = (*raw_freq).min(u32::MAX as u64) as u32;
         builder.add_entry(
             code,
             word,
             log_prior_i16,
+            raw_freq_u32,
             MatchType::Exact,
             EntryFlags::default(),
         );

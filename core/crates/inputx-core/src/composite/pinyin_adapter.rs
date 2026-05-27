@@ -15,14 +15,9 @@ use std::sync::{Arc, OnceLock};
 
 use inputx_ngram::NgramTable;
 use inputx_pinyin::PinyinEngine;
-use inputx_pinyin_cement::{legacy_bigram_boost_from_ngm, EMBEDDED_BIGRAMS_NGM};
-// v1.4.6 sub-phase C3 prepared infrastructure: estimated_freq_from_log
-// _prior + EMBEDDED_PINYIN_IDF + IdfReader wiring were attempted in C3
-// step 2 but reverted (~0.5% Q4 round-trip drift breaks strict
-// baseline diff zero). The v1.4.7+ sort-key cutover (Q4-log additive
-// sort, no f64 score drift concern) can re-import them from
-// inputx_pinyin_cement::{estimated_freq_from_log_prior,
-// EMBEDDED_PINYIN_IDF} + inputx_dict_format::IdfReader.
+use inputx_pinyin_cement::{
+    legacy_bigram_boost_from_ngm, pinyin_idf_reader, EMBEDDED_BIGRAMS_NGM,
+};
 
 use crate::rules::builtin::RepeatedLetterExpansion;
 use crate::rules::candidate::{CandidateRule, CandidateRuleEngine, RuleCandidate};
@@ -46,12 +41,18 @@ fn embedded_bigrams_table() -> &'static NgramTable<&'static [u8]> {
     })
 }
 
-// v1.4.6 sub-phase C3 step 2 prepared but REVERTED: helpers
-// embedded_pinyin_idf() / PINYIN_PHRASE_BASE / L0_PIN_MULTIPLIER were
-// staged here for the .idf-sourced lookup_with_scores_into swap.
-// Round-trip Q4 drift breaks the strict diff-zero baseline gate;
-// v1.4.7+ sort-key cutover (Q4-log additive) will re-stage them.
-// Removed to keep the live code surface clean.
+// v1.4.7 sub-phase A4 step 1 cutover (this commit): exact / fuzzy /
+// prefix-prediction reads route through `pinyin_idf_reader()` (cement-
+// owned process-global IdfReader over EMBEDDED_PINYIN_IDF) instead of
+// `self.engine.dict().lookup_*` / `prefix_for_each_raw`. The sort key
+// is now Q4-log additive (`score_q4`, A3); the v1.4.6 C3-revert's
+// concern about ~0.5% Q4 round-trip drift inverting the f64 score gate
+// no longer applies — `log_prior_q4` is read straight from IDF, no
+// round-trip, and legacy f64 `score` is only a tiebreaker. L0 pin
+// state (pinned_word / pin / forget / export_l0 / import_l0) and dict-
+// graph helpers (prefix_exists / best_composition / top_k_compositions)
+// stay on the facade — those are per-session state and FSA structure,
+// not corpus lookup.
 
 /// Lazily-built CandidateRuleEngine carrying v3.0.2-migrated rules.
 /// Lives behind OnceLock so the priority sort runs once per process.
@@ -216,11 +217,19 @@ impl PinyinAdapter {
         // 12 seeds spanning the FST's lexical range — first-letter span +
         // a few representative 2/3-letter prefixes + a full word, so the
         // OS pages we fault in are spread across the file, not clustered.
+        // Touch BOTH the facade dict (for prefix_exists /
+        // best_composition / top_k_compositions hot paths that still
+        // ride the inputx-pinyin FSA + value table) AND the cement-
+        // owned IdfReader (for the exact / fuzzy / prefix-prediction
+        // fills that v1.4.7 A4 cut over to EMBEDDED_PINYIN_IDF). Two
+        // backing files; two distinct sets of pages to fault in.
         let mut buf: Vec<String> = Vec::with_capacity(32);
+        let reader = pinyin_idf_reader();
         for seed in &[
             "a", "k", "p", "ni", "hao", "kp", "shi", "wo", "zhongguo", "h", "z", "ma",
         ] {
             self.engine.dict().lookup_into(seed, &mut buf);
+            let _ = reader.lookup(seed.as_bytes());
         }
         // Force INITIALS_INDEX construction (otherwise first 简拼 query
         // pays a ~1-2s OneLock::get_or_init build). After this, any
@@ -230,7 +239,7 @@ impl PinyinAdapter {
         // (`z` ~50k entries, `h` ~30k, `s` and `j` are the next biggest).
         // First-keystroke cost otherwise: 4-7ms scan; cached: microseconds.
         for c in ['z', 'h', 's', 'j', 'x', 'c', 'q', 'b', 'p', 'm'] {
-            let _ = single_letter_cache(&self.engine, c);
+            let _ = single_letter_cache(c);
         }
     }
 
@@ -292,29 +301,23 @@ impl PinyinAdapter {
         // floor so the cross-engine merge still ranks them.
         let mut scored: Vec<super::merge::Scored> =
             Vec::with_capacity(self.candidates.len());
-        // v1.4.6 sub-phase C3 step 2 (REVERTED 2026-05-27, see commit
-        // message): an attempt swapped this line for IdfReader-driven
-        // exact-match scores. Round-trip Q4 inversion introduces ~0.5%
-        // score drift per candidate; while ranking is preserved across
-        // the 69-entry baseline, the strict "diff zero on score" gate
-        // breaks (jixu top1 949304 → 953758, etc.). Reverting to legacy
-        // PinyinDict::lookup_with_scores_into. True C3 cutover requires
-        // the v1.4.7+ sort-key migration to Q4-log additive (then the
-        // score field IS the log_prior + log_likelihood sum and round-
-        // trip drift only matters at the rank-flip threshold).
-        // v1.4.7 sub-phase A2 step 2: orthodox three-axis
-        // decomposition for pinyin exact-match path. Source raw freq
-        // separately from PINYIN_PHRASE_BASE so log_prior_q4 / log
-        // _likelihood_q4 can split cleanly.
+        // v1.4.7 sub-phase A4 step 1: exact-match fill reads through
+        // the cement-owned IdfReader over EMBEDDED_PINYIN_IDF. The
+        // FST code index makes each lookup O(|buffer|) and the
+        // returned `Entry` already carries `log_prior_q4` (Q4 fixed-
+        // point ln(1+freq) baked at build time — sub-phase B1 absorb
+        // of `prior_correction` lands here too), so the cement-side
+        // path no longer runs `log_prior_from_freq` per candidate.
+        //
+        // Legacy f64 `score` is now a deterministic tiebreaker only;
+        // v1.4.7 A3 cut the primary sort key to `score_q4`. The
+        // estimated_freq round-trip drift (~0.5%) that blocked the
+        // v1.4.6 C3 attempt no longer flips ranking.
         const PINYIN_PHRASE_BASE: f64 = 400_000.0;
         const L0_PIN_MULTIPLIER: f64 = 1000.0;
-        let mut exact_freq: Vec<(String, u64)> = Vec::new();
-        self.engine
-            .dict()
-            .lookup_with_freq_into(&self.buffer, &mut exact_freq);
-        // L0 pin lookup — cement-level business rule re-applied here
-        // (facade's lookup_with_freq_into intentionally omits the pin
-        // promote so cement can decide the multiplier path).
+        let exact_entries = pinyin_idf_reader().lookup(self.buffer.as_bytes());
+        // L0 pin lookup — cement-level state, intentionally orthogonal
+        // to the corpus snapshot in EMBEDDED_PINYIN_IDF.
         let pinned: Option<String> = self
             .engine
             .dict()
@@ -322,29 +325,40 @@ impl PinyinAdapter {
         // Build (word, legacy_score) map + parallel (word, log_prior_q4,
         // log_likelihood_q4) map so downstream chains can compose either.
         let mut exact_map: std::collections::HashMap<String, f64> =
-            std::collections::HashMap::with_capacity(exact_freq.len());
+            std::collections::HashMap::with_capacity(exact_entries.len());
         let mut exact_components: std::collections::HashMap<String, super::merge::ScoreComponents> =
-            std::collections::HashMap::with_capacity(exact_freq.len());
-        for (word, freq) in &exact_freq {
-            let pin_mult = if pinned.as_deref() == Some(word.as_str()) {
+            std::collections::HashMap::with_capacity(exact_entries.len());
+        for entry in &exact_entries {
+            let word = entry.word;
+            let pin_mult = if pinned.as_deref() == Some(word) {
                 L0_PIN_MULTIPLIER
             } else {
                 1.0
             };
-            // Legacy f64 (transitional): same shape as
-            // PinyinDict::lookup_with_scores_into output.
-            let legacy_score = (PINYIN_PHRASE_BASE + *freq as f64) * pin_mult;
-            // Orthodox Q4 log decomposition.
-            let log_prior_q4 = inputx_scoring::log_prior_from_freq(*freq);
+            // Legacy f64 (post-A3 tiebreaker): byte-equivalent to the
+            // historical PinyinDict::lookup_with_scores_into output —
+            // raw_freq is now carried losslessly in the IDF entry
+            // (v1.4.7 A4 step 1 schema bump, replaced the unused
+            // bigram_offset slot). When two entries land in the same
+            // Q4 log_prior bucket (e.g. 乎/护 both quantize to 170 at
+            // code `hu`), raw_freq still distinguishes them — fixes the
+            // ranking inversion that estimated_freq_from_log_prior's
+            // inverse would otherwise collapse.
+            let legacy_score = (PINYIN_PHRASE_BASE + entry.raw_freq as f64) * pin_mult;
+            // Orthodox Q4 log decomposition — `log_prior_q4` read
+            // straight from IDF (no round-trip back through
+            // `log_prior_from_freq`), so the only quantization point
+            // is the writer's `Q4·ln(1+freq).round()` at .idf build.
+            let log_prior_q4 = entry.log_prior as i32;
             let likelihood_linear = PINYIN_PHRASE_BASE * pin_mult;
             let log_likelihood_q4 = (likelihood_linear
                 .max(1.0)
                 .ln()
                 * inputx_scoring::Q4 as f64)
                 .round() as i32;
-            exact_map.insert(word.clone(), legacy_score);
+            exact_map.insert(word.to_string(), legacy_score);
             exact_components.insert(
-                word.clone(),
+                word.to_string(),
                 super::merge::ScoreComponents::three_axis(
                     log_prior_q4,
                     log_likelihood_q4,
@@ -859,9 +873,14 @@ impl PinyinAdapter {
                 if variant == self.buffer {
                     continue;
                 }
-                let mut alt_buf: Vec<String> = Vec::new();
-                self.engine.dict().lookup_into(&variant, &mut alt_buf);
-                for w in alt_buf {
+                // v1.4.7 A4 step 1: fuzzy variant lookup routes
+                // through cement IdfReader. Fuzzy candidates carry no
+                // freq downstream (they hit the FUZZY_BASE *
+                // FUZZY_DISCOUNT path in candidates_with_scores), so
+                // we only need the word list — entry.log_prior is
+                // discarded here.
+                for entry in pinyin_idf_reader().lookup(variant.as_bytes()) {
+                    let w = entry.word.to_string();
                     if seen.insert(w.clone()) {
                         self.candidates.push(w.clone());
                         self.fuzzy_candidates.insert(w);
@@ -917,7 +936,6 @@ impl PinyinAdapter {
         if allow_prefix_completion && self.candidates.len() < cap {
             let want = cap - self.candidates.len();
             push_prefix_top_k(
-                &self.engine,
                 &self.buffer,
                 want,
                 &mut seen,
@@ -1100,10 +1118,11 @@ fn suffix_could_start_syllable(
 // source of truth; refresh_candidates above invokes it via the global
 // CANDIDATE_RULE_ENGINE. Inline function deleted.
 
-/// Scan `engine.dict()` for entries whose pinyin starts with `prefix`, pick
-/// the top `k` by frequency (excluding anything already in `seen`), push
-/// them onto `out` in freq-desc order, and (v1.3 WU-α CP-B) record a
-/// `predict_score` for each winner into `out_scored` keyed by word.
+/// Scan the cement-owned pinyin IdfReader for entries whose code starts
+/// with `prefix`, pick the top `k` by frequency (excluding anything
+/// already in `seen`), push them onto `out` in freq-desc order, and
+/// (v1.3 WU-α CP-B) record a `predict_score` for each winner into
+/// `out_scored` keyed by word.
 ///
 /// `out_scored` is populated only for the multi-letter prefix path; the
 /// single-letter cached path leaves `out_scored` untouched, so those
@@ -1114,18 +1133,21 @@ fn suffix_could_start_syllable(
 /// and crowd out the natural high-freq ordering. The `length_bias` path
 /// already orders single-letter completions correctly.
 ///
-/// Uses the streaming `prefix_for_each` API so the visit cost is O(n) FST
-/// stream + O(k log k) heap work, with String allocation only for the ≤ k
-/// winners — short prefixes like `"z"` would otherwise pay ~50k String
-/// allocations just to throw most away.
+/// v1.4.7 A4 step 1: data source is now `pinyin_idf_reader()` (cement-
+/// owned IdfReader over EMBEDDED_PINYIN_IDF) instead of
+/// `engine.dict().prefix_for_each_raw`. The IDF entry carries Q4
+/// `log_prior` directly — we use it as the heap-pre-check key (monotone
+/// in raw freq modulo Q4 quantization) so the scan-loop hot path
+/// avoids `estimated_freq_from_log_prior`'s `exp()` per entry. Raw
+/// freq is reconstructed at drain time on the ≤k winners only, before
+/// feeding `predict_score_with_components`.
 ///
-/// Heap discipline: min-heap of size k keyed by freq. New entry is admitted
-/// iff its freq beats the current heap minimum. Word-asc tiebreaker for
-/// determinism (matches `lookup_into`'s ordering); pinyin_len tagged
-/// along (unused for sorting since word breaks ties) so the drain pass
-/// can compute proximity = `prefix.len() / pinyin_len` per winner.
+/// Heap discipline: min-heap of size k keyed by `log_prior`. New entry
+/// is admitted iff its `log_prior` beats the current heap minimum.
+/// Word-asc tiebreaker for determinism; code length tagged along
+/// (unused for sorting since word breaks ties) so the drain pass can
+/// compute proximity = `prefix.len() / code.len()` per winner.
 fn push_prefix_top_k(
-    engine: &PinyinEngine,
     prefix: &str,
     k: usize,
     seen: &mut HashSet<String>,
@@ -1142,63 +1164,54 @@ fn push_prefix_top_k(
     // (or lazy on first miss), then subsequent queries are a cache hit
     // — microseconds instead of milliseconds. CP-B leaves these on the
     // legacy NON_EXACT_FLOOR path (see doc above).
-    if prefix.len() == 1 {
-        if let Some(c) = prefix.chars().next()
-            && c.is_ascii_lowercase()
-        {
-            let cached = single_letter_cache(engine, c);
-            for word in cached.iter().take(k) {
-                if seen.insert(word.clone()) {
-                    out.push(word.clone());
-                }
+    if prefix.len() == 1
+        && let Some(c) = prefix.chars().next()
+        && c.is_ascii_lowercase()
+    {
+        let cached = single_letter_cache(c);
+        for word in cached.iter().take(k) {
+            if seen.insert(word.clone()) {
+                out.push(word.clone());
             }
-            return;
         }
+        return;
     }
 
-    // Entry tuple: (freq, Reverse(word), pinyin_len). The Reverse on word
-    // makes lex-asc the tiebreaker (smaller word wins ties). pinyin_len
-    // is appended as the 3rd element — sort comparison reaches it only
-    // when both freq and word tie, which is unique-key impossible for
-    // dict entries (one (pinyin, word) per key). Wrapped in outer Reverse
-    // so BinaryHeap behaves as a min-heap (top = smallest freq, ready to
-    // evict).
-    type Entry = Reverse<(u64, Reverse<String>, usize)>;
-    let mut heap: BinaryHeap<Entry> = BinaryHeap::with_capacity(k + 1);
+    // Heap key: (raw_freq, Reverse(word), code_len). raw_freq is the
+    // pre-quantization corpus frequency stored alongside log_prior in
+    // the IDF entry (v1.4.7 A4 step 1 schema bump), so the heap-pre-
+    // check sees the lossless ordering with no `exp()` per entry —
+    // unlike a log_prior-keyed heap, ties never need a tiebreaker
+    // round-trip. Outer Reverse so BinaryHeap behaves as a min-heap
+    // (top = smallest raw_freq, ready to evict).
+    type HeapEntry = Reverse<(u32, Reverse<String>, usize)>;
+    let mut heap: BinaryHeap<HeapEntry> = BinaryHeap::with_capacity(k + 1);
 
-    engine
-        .dict()
-        .prefix_for_each_raw(prefix, |pinyin_bytes, word_bytes, freq| {
-            // Cheap pre-check FIRST: compare raw freq against heap's current
-            // minimum without touching anything else. >99% of FST entries on
-            // short prefixes fail this and bail before allocating anything
-            // (or even running utf8 decode). For `z` (~50k entries) this
-            // saves both the per-entry HashSet lookup AND the utf8 decode.
-            // Dedup vs. `seen` is deferred to drain time when there are only
-            // k candidates left.
-            if heap.len() == k {
-                let min_freq = heap.peek().expect("heap is full (len == k)").0.0;
-                if freq <= min_freq {
-                    return;
-                }
-                heap.pop();
-            }
-            // Now decode utf8 (cheap: ~50ns for typical 6-byte word) +
-            // allocate the String. Only ≤k of these run per scan.
-            let Ok(word) = std::str::from_utf8(word_bytes) else {
+    pinyin_idf_reader().prefix_for_each_entry(prefix.as_bytes(), |e| {
+        // Cheap pre-check FIRST against heap minimum. >99% of FST
+        // entries on short prefixes fail this and bail before allocating
+        // the word String. For `z`-prefix scans this saves both the
+        // dedup vs. `seen` AND the per-entry allocation.
+        if heap.len() == k {
+            let min_freq = heap.peek().expect("heap is full (len == k)").0.0;
+            if e.raw_freq <= min_freq {
                 return;
-            };
-            heap.push(Reverse((freq, Reverse(word.to_owned()), pinyin_bytes.len())));
-        });
+            }
+            heap.pop();
+        }
+        heap.push(Reverse((e.raw_freq, Reverse(e.word.to_owned()), e.code.len())));
+    });
 
-    // Drain in freq-desc + lex-asc order.
-    let mut drained: Vec<(u64, String, usize)> = heap
+    // Drain in raw_freq-desc + lex-asc order. Same ordering as the
+    // legacy `prefix_for_each_raw`-driven path — IDF carries the same
+    // raw freq the facade dict used to emit.
+    let mut drained: Vec<(u32, String, usize)> = heap
         .into_iter()
-        .map(|Reverse((freq, Reverse(word), pinyin_len))| (freq, word, pinyin_len))
+        .map(|Reverse((freq, Reverse(word), code_len))| (freq, word, code_len))
         .collect();
     drained.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
     let prefix_len = prefix.len();
-    for (freq, word, pinyin_len) in drained {
+    for (raw_freq, word, code_len) in drained {
         // Always populate out_scored/out_components for prediction hits,
         // even when the word is already in `seen` (e.g., a fuzzy path
         // inserted it earlier). The scoring layer checks prefix_scored
@@ -1209,10 +1222,10 @@ fn push_prefix_top_k(
         // `famin*` finds `faming`→发明 as prediction, fuzzy swap
         // in↔ing ALSO finds 发明; the prediction reading is the
         // confident one).
-        let proximity = (prefix_len as f64 / pinyin_len.max(1) as f64).min(1.0);
+        let proximity = (prefix_len as f64 / code_len.max(1) as f64).min(1.0);
         let (score, components) = scoring::predict_score_with_components(
             scoring::LIKELIHOOD_PINYIN_PREDICT_BASE,
-            freq,
+            raw_freq as u64,
             scoring::PRIOR_FREQ_MULT_PINYIN,
             proximity,
         );
@@ -1229,11 +1242,17 @@ fn push_prefix_top_k(
 }
 
 /// Single-letter prefix cache: 26 entries, each holding the top-30 words
-/// by freq for that prefix. Built lazily on first miss; subsequent
-/// queries are O(1) HashMap lookup + slice clone. Warmup pre-touches
-/// `h` and `z` so the cold-path cost is paid up front during
-/// `Session::warmup`.
-fn single_letter_cache(engine: &PinyinEngine, letter: char) -> Arc<Vec<String>> {
+/// by length-biased freq for that prefix. Built lazily on first miss;
+/// subsequent queries are O(1) HashMap lookup + slice clone. Warmup
+/// pre-touches `h` and `z` so the cold-path cost is paid up front
+/// during `Session::warmup`.
+///
+/// v1.4.7 A4 step 1: source is `pinyin_idf_reader()`; raw_freq is
+/// read losslessly from the IDF entry (schema bump replaced the unused
+/// bigram_offset slot), so `length_bias × raw_freq` matches the legacy
+/// `prefix_for_each_raw`-driven heap exactly. Runs once per letter at
+/// `Session::warmup`; cost amortizes across the process lifetime.
+fn single_letter_cache(letter: char) -> Arc<Vec<String>> {
     use std::sync::Mutex;
     static CACHE: OnceLock<Mutex<HashMap<char, Arc<Vec<String>>>>> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::with_capacity(26)));
@@ -1244,42 +1263,30 @@ fn single_letter_cache(engine: &PinyinEngine, letter: char) -> Arc<Vec<String>> 
         }
     }
     // Cache miss — compute, then store.
-    let computed = compute_single_letter_top_k(engine, letter, 30);
+    let computed = compute_single_letter_top_k(letter, 30);
     let arc = Arc::new(computed);
     let mut g = cache.lock().expect("single_letter_cache mutex poisoned");
     g.entry(letter).or_insert_with(|| arc.clone()).clone()
 }
 
-fn compute_single_letter_top_k(
-    engine: &PinyinEngine,
-    letter: char,
-    k: usize,
-) -> Vec<String> {
+fn compute_single_letter_top_k(letter: char, k: usize) -> Vec<String> {
     let prefix = letter.to_string();
     // Entry key is the *length-biased* freq (raw freq × scoring::length_bias)
     // so single chars lead multi-char phrases for a bare letter. See
     // `scoring::length_bias` for the rationale (user: "单字评分要更高").
-    type Entry = Reverse<(u64, Reverse<String>)>;
-    let mut heap: BinaryHeap<Entry> = BinaryHeap::with_capacity(k + 1);
-    engine
-        .dict()
-        .prefix_for_each_raw(&prefix, |_pinyin_bytes, word_bytes, freq| {
-            // Cheap pre-check survives the length bias: the bias is ≤ 1.0,
-            // so adjusted ≤ raw freq. If raw freq can't beat the heap min
-            // (already an adjusted value), the adjusted score can't either
-            // — skip before the utf8 decode + char count.
-            if heap.len() == k && freq <= heap.peek().expect("heap full").0.0 {
+    type HeapEntry = Reverse<(u64, Reverse<String>)>;
+    let mut heap: BinaryHeap<HeapEntry> = BinaryHeap::with_capacity(k + 1);
+    pinyin_idf_reader().prefix_for_each_entry(prefix.as_bytes(), |e| {
+        let adj = (e.raw_freq as f64 * scoring::length_bias(e.word.chars().count())) as u64;
+        if heap.len() == k {
+            let min_adj = heap.peek().expect("heap full").0.0;
+            if adj <= min_adj {
                 return;
             }
-            let Ok(word) = std::str::from_utf8(word_bytes) else { return; };
-            let adj = (freq as f64 * scoring::length_bias(word.chars().count())) as u64;
-            if heap.len() == k {
-                let min_adj = heap.peek().expect("heap full").0.0;
-                if adj <= min_adj { return; }
-                heap.pop();
-            }
-            heap.push(Reverse((adj, Reverse(word.to_owned()))));
-        });
+            heap.pop();
+        }
+        heap.push(Reverse((adj, Reverse(e.word.to_owned()))));
+    });
     let mut drained: Vec<(u64, String)> = heap
         .into_iter()
         .map(|Reverse((adj, Reverse(word)))| (adj, word))

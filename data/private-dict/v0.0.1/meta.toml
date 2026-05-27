@@ -20,11 +20,11 @@
 
 generated_at = "2026-05-27"
 format_version = 1
-tool_version = "inputx-dict-format 1.4.0 (with FST code index — v1.4.6 C1)"
+tool_version = "inputx-dict-format 1.4.0 (FST code index — v1.4.6 C1; raw_freq field — v1.4.7 A4 step 1)"
 
 [pinyin]
 path = "pinyin/words.idf"
-file_sha256 = "78d3c767fc6201223e8add167d51d0cb62b870eebad2e81cedba276e1239702c"
+file_sha256 = "05253a2998c8274067bed2b906512291e4b833e926bfe9f735deb204aafcb2c2"
 size_bytes = 9011166
 entry_count = 237354
 source = "inputx-pinyin embedded pinyin.dict (PinyinDict::embedded). B1 prior_correction absorb attempted then REVERTED at C3 step 2 (math non-equivalence with legacy chain — see commit a4e9c4a..3817707 thread); runtime merge.rs correct lambda re-applies the 6 multipliers."
@@ -32,7 +32,7 @@ engine_kind = "Pinyin"
 
 [wubi]
 path = "wubi/words.idf"
-file_sha256 = "110ee55c6a27ffea32ff2574ef88a3ccf943fd04b248fd3c540645d32609036f"
+file_sha256 = "c5f7d0562fc60ae043309c6601dd5d2b136d9daaa4b51be76f8c04ba582fa363"
 size_bytes = 4387469
 entry_count = 135822
 source = "inputx-wubi embedded dict (WubiDict::embedded — jianma1 + zigen + jianma2/3 + auto + phrases)"
@@ -40,7 +40,7 @@ engine_kind = "Wubi"
 
 [nihongo.jukugo]
 path = "nihongo/jukugo.idf"
-file_sha256 = "faeb944425a75ecd82dc697a990ffe6d7bd2ba5411cde3712cb1491aab2d6bab"
+file_sha256 = "b5f25bbd6996179a0d25e511e1cb4a340d670577f8c22c585dd9f64c20db6551"
 size_bytes = 1147958
 entry_count = 27380
 source = "inputx-nihongo JUKUGO_TABLE const table"
@@ -48,7 +48,7 @@ engine_kind = "NihongoJukugo"
 
 [nihongo.kanji]
 path = "nihongo/kanji.idf"
-file_sha256 = "b91c44372ca69230def17797f2c9a572809f286261346d69c539d3db64678275"
+file_sha256 = "ef131eb8b15e43fe08fe40434b674d370fff597f9c871a2f21eced1d87b1c3f2"
 size_bytes = 40305
 entry_count = 1666
 source = "inputx-nihongo KANJI_TABLE const table (multi-reading: 813 kanji → 1666 (reading, kanji) pairs)"

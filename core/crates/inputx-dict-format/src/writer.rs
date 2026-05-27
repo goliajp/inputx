@@ -28,6 +28,7 @@ struct EntryDraft {
     code: String,
     word: String,
     log_prior: i16,
+    raw_freq: u32,
     match_type: u8,
     flags: u8,
 }
@@ -57,12 +58,18 @@ impl IdfBuilder {
     /// wubi code, romaji reading, etc.); `word` is the displayed form;
     /// `log_prior` is the Q4 fixed-point log prior (use
     /// `inputx_scoring::log_prior_from_freq` to derive from a raw
-    /// frequency).
+    /// frequency); `raw_freq` is the pre-quantization corpus frequency
+    /// (v1.4.7 sub-phase A4: lossless tiebreaker for entries that
+    /// collide in the same Q4 `log_prior` bucket — e.g. high-frequency
+    /// single-char readings whose freq differences quantize out, like
+    /// 乎/护 for code `hu`). Pass `0` when no meaningful freq is
+    /// available (synthetic / placeholder entries).
     pub fn add_entry(
         &mut self,
         code: &str,
         word: &str,
         log_prior: i16,
+        raw_freq: u32,
         match_type: inputx_scoring::MatchType,
         flags: EntryFlags,
     ) {
@@ -70,6 +77,7 @@ impl IdfBuilder {
             code: code.to_string(),
             word: word.to_string(),
             log_prior,
+            raw_freq,
             match_type: encode_match_type(match_type),
             flags: flags.0,
         });
@@ -133,7 +141,7 @@ impl IdfBuilder {
                 log_prior: e.log_prior,
                 match_type: e.match_type,
                 flags: e.flags,
-                bigram_offset: 0,
+                raw_freq: e.raw_freq,
                 embedding_offset: 0,
             };
             entry_bytes.extend_from_slice(&rec.to_bytes());
@@ -237,6 +245,7 @@ mod tests {
                 &format!("code{i}"),
                 &format!("word{i}"),
                 i16::try_from(i * 10).unwrap(),
+                0,
                 MatchType::Exact,
                 EntryFlags::default(),
             );
@@ -266,6 +275,7 @@ mod tests {
                     &format!("c{i:03}"),
                     &format!("w{i:03}"),
                     i as i16,
+                    0,
                     MatchType::Exact,
                     EntryFlags::default(),
                 );
@@ -288,7 +298,7 @@ mod tests {
         // 长 has at least two readings; here we abuse the field for the
         // multi-reading test — same code, different words.
         for w in ["你", "妮", "尼", "拟"] {
-            b.add_entry("ni", w, 100, MatchType::Exact, EntryFlags::default());
+            b.add_entry("ni", w, 100, 0, MatchType::Exact, EntryFlags::default());
         }
         b.build(&path).unwrap();
         let bytes = std::fs::read(&path).unwrap();
@@ -305,9 +315,9 @@ mod tests {
         let dir = tempdir().unwrap();
         let path = dir.path().join("d.idf");
         let mut b = IdfBuilder::new(EngineKind::Pinyin);
-        b.add_entry("ni", "你", 100, MatchType::Exact, EntryFlags::default());
-        b.add_entry("ni", "你", 100, MatchType::Exact, EntryFlags::default());
-        b.add_entry("ni", "你", 100, MatchType::Exact, EntryFlags::default());
+        b.add_entry("ni", "你", 100, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("ni", "你", 100, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("ni", "你", 100, 0, MatchType::Exact, EntryFlags::default());
         b.build(&path).unwrap();
         let bytes = std::fs::read(&path).unwrap();
         let r = IdfReader::from_bytes(bytes).unwrap();
@@ -320,11 +330,11 @@ mod tests {
         let dir = tempdir().unwrap();
         let path = dir.path().join("p.idf");
         let mut b = IdfBuilder::new(EngineKind::Pinyin);
-        b.add_entry("z", "之", 100, MatchType::Exact, EntryFlags::default());
-        b.add_entry("zhong", "中", 500, MatchType::Exact, EntryFlags::default());
-        b.add_entry("zhongguo", "中国", 700, MatchType::Exact, EntryFlags::default());
-        b.add_entry("zhongguodian", "中国电", 50, MatchType::Exact, EntryFlags::default());
-        b.add_entry("xinjiang", "新疆", 999, MatchType::Exact, EntryFlags::default());
+        b.add_entry("z", "之", 100, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("zhong", "中", 500, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("zhongguo", "中国", 700, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("zhongguodian", "中国电", 50, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("xinjiang", "新疆", 999, 0, MatchType::Exact, EntryFlags::default());
         b.build(&path).unwrap();
         let bytes = std::fs::read(&path).unwrap();
         let r = IdfReader::from_bytes(bytes).unwrap();
@@ -336,13 +346,76 @@ mod tests {
     }
 
     #[test]
+    fn prefix_for_each_entry_streams_all_matches_fst_order() {
+        // Streaming sibling of prefix_top_k_fst: no sort, no truncate.
+        // Used by cement layers (composite/pinyin_adapter.rs prefix
+        // prediction + single-letter cache) that need to apply
+        // length-bias / proximity factors PER entry before ranking.
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("pfe.idf");
+        let mut b = IdfBuilder::new(EngineKind::Pinyin);
+        // Mixed under prefix `zhong`: two share code zhongguo (multi-
+        // reading run) so we also assert that all readings of one code
+        // are visited together.
+        b.add_entry("z", "之", 100, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("zhong", "中", 500, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("zhongguo", "中国", 700, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("zhongguo", "种过", 50, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("zhongguodian", "中国电", 30, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("xinjiang", "新疆", 999, 0, MatchType::Exact, EntryFlags::default());
+        b.build(&path).unwrap();
+        let bytes = std::fs::read(&path).unwrap();
+        let r = IdfReader::from_bytes(bytes).unwrap();
+
+        let mut visited: Vec<(String, String, i16)> = Vec::new();
+        r.prefix_for_each_entry(b"zhong", |e| {
+            visited.push((e.code.to_string(), e.word.to_string(), e.log_prior));
+        });
+        // All 4 zhong* entries visited, none of the `z` / `xinjiang` ones.
+        assert_eq!(visited.len(), 4, "got {visited:?}");
+        for (code, _, _) in &visited {
+            assert!(code.starts_with("zhong"));
+        }
+        // FST code-asc visit order: zhong < zhongguo (both readings) < zhongguodian.
+        let codes: Vec<&str> = visited.iter().map(|(c, _, _)| c.as_str()).collect();
+        assert_eq!(codes, vec!["zhong", "zhongguo", "zhongguo", "zhongguodian"]);
+        // Multi-reading run for `zhongguo` visits both 中国 + 种过.
+        let words_for_zhongguo: Vec<&str> = visited
+            .iter()
+            .filter(|(c, _, _)| c == "zhongguo")
+            .map(|(_, w, _)| w.as_str())
+            .collect();
+        assert_eq!(words_for_zhongguo.len(), 2);
+        assert!(words_for_zhongguo.contains(&"中国"));
+        assert!(words_for_zhongguo.contains(&"种过"));
+    }
+
+    #[test]
+    fn prefix_for_each_entry_empty_prefix_visits_all() {
+        // Empty prefix is a full scan via FST root walk; cement
+        // initials-index build does this once at warmup.
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("pfe_empty.idf");
+        let mut b = IdfBuilder::new(EngineKind::Pinyin);
+        b.add_entry("a", "啊", 10, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("ni", "你", 20, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("zhong", "中", 30, 0, MatchType::Exact, EntryFlags::default());
+        b.build(&path).unwrap();
+        let bytes = std::fs::read(&path).unwrap();
+        let r = IdfReader::from_bytes(bytes).unwrap();
+        let mut count = 0;
+        r.prefix_for_each_entry(b"", |_| count += 1);
+        assert_eq!(count, 3);
+    }
+
+    #[test]
     fn find_by_word_round_trip() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("w.idf");
         let mut b = IdfBuilder::new(EngineKind::Pinyin);
-        b.add_entry("changchang", "长长", 100, MatchType::Exact, EntryFlags::default());
-        b.add_entry("zhang", "长", 200, MatchType::Exact, EntryFlags::default());
-        b.add_entry("chang", "长", 300, MatchType::Exact, EntryFlags::default());
+        b.add_entry("changchang", "长长", 100, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("zhang", "长", 200, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry("chang", "长", 300, 0, MatchType::Exact, EntryFlags::default());
         b.build(&path).unwrap();
         let bytes = std::fs::read(&path).unwrap();
         let r = IdfReader::from_bytes(bytes).unwrap();
@@ -358,7 +431,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let path = dir.path().join("tamper.idf");
         let mut b = IdfBuilder::new(EngineKind::Pinyin);
-        b.add_entry("x", "x", 10, MatchType::Exact, EntryFlags::default());
+        b.add_entry("x", "x", 10, 0, MatchType::Exact, EntryFlags::default());
         b.build(&path).unwrap();
         let mut bytes = std::fs::read(&path).unwrap();
         // Corrupt the entry table region (anywhere after FULL_HEADER_SIZE).

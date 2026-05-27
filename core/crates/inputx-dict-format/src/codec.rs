@@ -179,10 +179,21 @@ pub const SHA256_SIZE: usize = 32;
 pub const FULL_HEADER_SIZE: usize = HEADER_SIZE + SHA256_SIZE;
 
 /// Per-entry record (16 bytes packed). `word_offset` and `code_offset`
-/// are u24 (3 bytes); they point into the string pool. log_prior is
+/// are u24 (3 bytes); they point into the string pool. `log_prior` is
 /// signed Q4 fixed-point (one log unit per 16 integer steps, per
-/// [`inputx_scoring::Q4`]). bigram_offset / embedding_offset are 0
-/// when absent.
+/// [`inputx_scoring::Q4`]). `raw_freq` is the original pre-quantization
+/// corpus frequency (added v1.4.7 sub-phase A4 step 1) — it lets
+/// cement-side cement rebuild a lossless tiebreaker when two entries
+/// land in the same Q4 `log_prior` bucket (e.g. 乎/护 for code `hu`,
+/// both quantize to Q4=170; raw_freq distinguishes them).
+///
+/// Layout: `u24 word_offset + u24 code_offset + i16 log_prior + u8
+/// match_type + u8 flags + u32 raw_freq + 2 bytes reserved = 16`.
+///
+/// `raw_freq=0` on disk is the v1.4.6-era backward-compatible default
+/// (those bytes were `bigram_offset`, never written non-zero and never
+/// read), so old .idf blobs decode as `raw_freq=0` — the only fallout
+/// is loss of the tiebreaker for legacy snapshots.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct EntryRecord {
     pub word_offset: u32, // u24 on disk
@@ -190,7 +201,7 @@ pub struct EntryRecord {
     pub log_prior: i16,
     pub match_type: u8,
     pub flags: u8,
-    pub bigram_offset: u32,
+    pub raw_freq: u32,
     pub embedding_offset: u32,
 }
 
@@ -206,19 +217,10 @@ impl EntryRecord {
         buf[6..8].copy_from_slice(&self.log_prior.to_le_bytes());
         buf[8] = self.match_type;
         buf[9] = self.flags;
-        buf[10..14].copy_from_slice(&(self.bigram_offset).to_le_bytes()[0..4]);
-        // 14..16 reserved for entry_table padding to 16 (embedding_offset
-        // is 4 bytes; we have 16 − 14 = 2 left — embedding_offset can't
-        // fit. Reconcile: per PLAN-dict-format-IDFv1.md the entry is 16
-        // bytes; the 6-tuple as listed exceeds that. Real layout: u24+
-        // u24+i16+u8+u8 = 12; bigram_offset (u32) = 4 → 16 total.
-        // embedding_offset lives in the EMBEDDING block index, not the
-        // per-entry record. v1 ships without embeddings; the spec's
-        // mention of per-entry embedding_offset will be a v2 extension
-        // using a side table referenced from the header's
-        // embedding_offset). For v1: per-entry stops at bigram_offset.
-        // Last 2 bytes reserved.
-        // No write needed — buf already zero.
+        buf[10..14].copy_from_slice(&self.raw_freq.to_le_bytes());
+        // Bytes 14..16 reserved. Per-entry embedding_offset lives in a
+        // header-referenced side table (v2 extension); v1 leaves these
+        // zero. No write needed — buf already zero.
         buf
     }
 
@@ -233,14 +235,14 @@ impl EntryRecord {
         let log_prior = i16::from_le_bytes([buf[6], buf[7]]);
         let match_type = buf[8];
         let flags = buf[9];
-        let bigram_offset = u32::from_le_bytes([buf[10], buf[11], buf[12], buf[13]]);
+        let raw_freq = u32::from_le_bytes([buf[10], buf[11], buf[12], buf[13]]);
         EntryRecord {
             word_offset,
             code_offset,
             log_prior,
             match_type,
             flags,
-            bigram_offset,
+            raw_freq,
             embedding_offset: 0, // v1: side table, not per-entry
         }
     }
@@ -360,7 +362,7 @@ mod tests {
             log_prior: -42,
             match_type: 1,
             flags: EntryFlags::BLACKLIST | EntryFlags::USER_ADDED,
-            bigram_offset: 0xdead_beef,
+            raw_freq: 0xdead_beef,
             embedding_offset: 0,
         };
         let bytes = e.to_bytes();
@@ -381,7 +383,7 @@ mod tests {
             log_prior: 0,
             match_type: 0,
             flags: 0,
-            bigram_offset: 0,
+            raw_freq: 0,
             embedding_offset: 0,
         };
         let bytes = e.to_bytes();

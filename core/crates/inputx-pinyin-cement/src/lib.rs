@@ -29,6 +29,10 @@
 pub mod freq;
 pub mod ngram;
 
+use std::sync::OnceLock;
+
+use inputx_dict_format::IdfReader;
+
 pub use freq::estimated_freq_from_log_prior;
 pub use ngram::{bigram_boost_from_ngm, legacy_bigram_boost_from_ngm};
 
@@ -55,3 +59,61 @@ pub const EMBEDDED_BIGRAMS_NGM: &[u8] =
 /// prior_correction absorb and is also being phased out).
 pub const EMBEDDED_PINYIN_IDF: &[u8] =
     include_bytes!("../../../../data/private-dict/v0.0.1/pinyin/words.idf");
+
+/// Process-global [`IdfReader`] over [`EMBEDDED_PINYIN_IDF`]. Parses the
+/// 9 MB header / FST / entry-table sections once and amortizes the
+/// ~few-ms cost over the whole process lifetime; subsequent
+/// `pinyin_idf_reader().lookup(code)` calls are O(|code|) FST walks
+/// with zero allocation per query.
+///
+/// Composite hot path (v1.4.7 sub-phase A4): the pinyin adapter's
+/// exact / fuzzy / prefix-prediction fills go through this reader in
+/// place of `inputx_pinyin::PinyinDict::lookup_with_freq_into` /
+/// `PinyinDict::lookup_into` / `PinyinDict::prefix_for_each_raw`. The
+/// underlying `.idf` already carries
+/// `prior_correction` Q4 boosts baked into `log_prior_q4` (sub-phase
+/// B1 build-time absorb) so cement-side `prior_correction.rs`
+/// recomputation can retire (sub-phase A5).
+pub fn pinyin_idf_reader() -> &'static IdfReader<&'static [u8]> {
+    static READER: OnceLock<IdfReader<&'static [u8]>> = OnceLock::new();
+    READER.get_or_init(|| {
+        IdfReader::from_bytes(EMBEDDED_PINYIN_IDF)
+            .expect("inputx-pinyin-cement EMBEDDED_PINYIN_IDF must be a valid IDFv1 blob")
+    })
+}
+
+#[cfg(test)]
+mod cement_tests {
+    use super::*;
+
+    #[test]
+    fn pinyin_idf_reader_parses_and_supports_exact_lookup() {
+        let r = pinyin_idf_reader();
+        // Smoke test that the embedded blob parses + carries reasonable
+        // entry counts (~237k entries per the v0.0.1 manifest) + lookup
+        // round-trips for a well-known seed word.
+        assert!(r.entry_count() > 100_000);
+        let hits = r.lookup(b"jixu");
+        assert!(!hits.is_empty(), "jixu must have at least one reading");
+        let words: Vec<&str> = hits.iter().map(|e| e.word).collect();
+        // 继续 ships in the v0.0.1 pinyin .idf (canon polish-log entry).
+        assert!(words.contains(&"继续"), "jixu → 继续 expected, got {words:?}");
+    }
+
+    #[test]
+    fn pinyin_idf_reader_prefix_for_each_streams_in_order() {
+        let r = pinyin_idf_reader();
+        // Prefix `jix` is small enough to enumerate exhaustively; ensure
+        // streaming visit reports at least one `jixu` entry.
+        let mut seen_jixu = false;
+        let mut count: usize = 0;
+        r.prefix_for_each_entry(b"jix", |e| {
+            count += 1;
+            if e.code == "jixu" {
+                seen_jixu = true;
+            }
+        });
+        assert!(count > 0);
+        assert!(seen_jixu);
+    }
+}
