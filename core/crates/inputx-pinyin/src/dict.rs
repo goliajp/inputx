@@ -759,6 +759,39 @@ impl PinyinDict {
         });
     }
 
+    /// Iterate every `(prev, next, count)` entry in the bigram FST.
+    /// Tools-only API (v1.4.4 `idf-from-pinyin-bigrams` snapshot
+    /// binary uses this); NOT a runtime hot-path call — full scan
+    /// allocates one `(String, String)` pair per bigram (~500k for
+    /// the embedded table). Returns an empty Vec under `bootstrap_only`.
+    ///
+    /// Layout: keys in the underlying FST are `prev_bytes + \0 +
+    /// next_bytes` → `count u64`. We parse the key shape back into a
+    /// `(prev, next)` pair on each emit.
+    pub fn iter_bigrams(&self) -> Vec<(String, String, u64)> {
+        let Some(bigrams) = self.bigrams.as_ref() else {
+            return Vec::new();
+        };
+        let mut out: Vec<(String, String, u64)> = Vec::new();
+        bigrams.prefix_for_each(b"", |key, count| {
+            // Split on the first \0; rest is next.
+            let Some(sep) = key.iter().position(|&b| b == 0) else {
+                return;
+            };
+            let prev = &key[..sep];
+            let next = &key[sep + 1..];
+            if next.is_empty() {
+                return;
+            }
+            if let (Ok(p), Ok(n)) =
+                (core::str::from_utf8(prev), core::str::from_utf8(next))
+            {
+                out.push((p.to_string(), n.to_string(), count));
+            }
+        });
+        out
+    }
+
     /// Predict the most likely next words given a just-committed `prev`
     /// word. Reads `bigrams.fst` for all `(prev, *)` pairs, sorts by
     /// count desc, returns top `limit`.

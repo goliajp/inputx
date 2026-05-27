@@ -29,6 +29,12 @@ inputx-scoring = { path = "../inputx-scoring", version = "1.4" }
 # `data/private-dict/v0.0.1/*.idf`. composite engine still reads legacy
 # .dict/.fsa at runtime — IDFv1 cutover is v1.4.6 cement carve-out work.
 inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
+# N-gram log-probability table (v1.4.4 WU-ε): used by the snapshot
+# binary `idf-from-pinyin-bigrams` to write
+# `data/private-dict/v0.0.1/pinyin/bigrams.ngm`. composite engine still
+# reads inputx-pinyin's embedded bigrams.fsa at runtime — IDFv1 cement
+# cutover is v1.4.6.
+inputx-ngram = { path = "../inputx-ngram", version = "1.4" }
 # L0 export/import JSON is hand-rolled in composite/l0_json.rs (zero-dep
 # milestone, Stage A — see .claude/PLAN-self-built-fsa.md). No serde.
 
@@ -89,3 +95,7 @@ path = "src/bin/idf_from_nihongo_kanji.rs"
 [[bin]]
 name = "idf-dual-path-verify"
 path = "src/bin/idf_dual_path_verify.rs"
+
+[[bin]]
+name = "idf-from-pinyin-bigrams"
+path = "src/bin/idf_from_pinyin_bigrams.rs"
