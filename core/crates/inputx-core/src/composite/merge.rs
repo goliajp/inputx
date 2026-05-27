@@ -446,6 +446,21 @@ pub fn merge(
     // case where corpus freq diverges from real-world usage; see
     // `prior_correction.rs` for the contract. 1.0 (no-op) for any word not
     // in the table — overhead is one O(N) linear scan over a tiny list.
+    //
+    // v1.4.6 sub-phase C3 note: this lambda KEPT through v1.4.6. Sub-
+    // phase B1 attempted to absorb the 6 multipliers into .idf
+    // log_prior_q4 directly (so this lambda could be deleted), but C3
+    // step 2 wiring revealed the legacy formula
+    // `(PINYIN_PHRASE_BASE + freq) × correction` ≠ post-B1 absorbed
+    // `PINYIN_PHRASE_BASE + freq × correction` — the base term is
+    // also multiplied in v1.3 (since correction is whole-score
+    // multiplicative), so absorbing only at the freq level loses the
+    // ×correction on PINYIN_PHRASE_BASE. Baseline broke at 继续 /
+    // 积蓄 ordering. Decision: REVERT the B1 absorb (rebuild .idf
+    // with un-corrected log_prior_q4), KEEP this lambda. True
+    // correction deletion happens at the v1.4.7+ sort-key cutover
+    // when score moves to Q4-log additive (then correction can be
+    // additive in log space, no base-vs-freq asymmetry).
     let correct = |w: &str, s: f64| -> f64 {
         s * super::prior_correction::correction_for(w)
     };

@@ -98,29 +98,21 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     }
 
     let mut builder = IdfBuilder::new(EngineKind::Pinyin);
-    let mut corrected = 0usize;
     for (code, word, raw_freq) in &entries {
-        // v1.4.6 sub-phase B1: absorb prior_correction multiplier into
-        // log_prior at snapshot time. The 6 corrected words (继续 / 设计
-        // / 理想 / 加载 / 具体 / 统一, all ×1.5-×2.0) currently get the
-        // multiplier via composite/merge.rs's `correct = |w, s| s *
-        // correction_for(w)` lambda at every score step. Baking the
-        // multiplier into log_prior here lets sub-phase C (engine
-        // cutover only reads .idf) drop the lambda + delete
-        // prior_correction.rs without changing ranking.
-        //
-        // Mapping: legacy `score = (base + freq · mult) · correction` →
-        // .idf log_prior = Q4 · ln(1 + freq · correction). Strict
-        // mathematical non-equivalence (additive in linear vs log-space
-        // factor), but rank-preserving for the 6 entries (correction is
-        // monotone scalar > 1.0; multiplying freq monotone-preserves
-        // log_prior ordering within the engine).
-        let correction = correction_for(word);
-        let effective_freq = ((*raw_freq as f64) * correction).round() as u64;
-        if correction != 1.0 {
-            corrected += 1;
-        }
-        let log_prior_q4 = log_prior_from_freq(effective_freq);
+        // v1.4.6 sub-phase B1 (REVERTED at C3 step 2): an earlier
+        // attempt baked prior_correction multipliers into log_prior at
+        // snapshot time so the merge.rs `correct` lambda could be
+        // deleted. Math non-equivalence with the legacy formula
+        // `score = (PINYIN_PHRASE_BASE + freq) × correction` (base
+        // is also multiplied, not just freq) made the absorbed .idf
+        // + dropped lambda combination break baseline at 继续 / 积蓄
+        // ordering. Reverted: .idf carries un-corrected raw freq,
+        // merge.rs keeps the correct lambda. True correction deletion
+        // happens at v1.4.7+ when sort key moves to Q4-log additive
+        // (correction is additive in log space, no base-vs-freq
+        // asymmetry).
+        let _ = (word, correction_for); // keep symbols used while file lives.
+        let log_prior_q4 = log_prior_from_freq(*raw_freq);
         let log_prior_i16 = clamp_to_i16(log_prior_q4);
         builder.add_entry(
             code,
@@ -130,9 +122,6 @@ fn run(out_path: &Path) -> std::io::Result<()> {
             EntryFlags::default(),
         );
     }
-    eprintln!(
-        "[idf-from-pinyin-dict] applied prior_correction to {corrected} entries",
-    );
 
     eprintln!(
         "[idf-from-pinyin-dict] writing {} -> {}",

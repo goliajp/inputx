@@ -24,10 +24,10 @@ tool_version = "inputx-dict-format 1.4.0 (with FST code index — v1.4.6 C1)"
 
 [pinyin]
 path = "pinyin/words.idf"
-file_sha256 = "83702c73783293e4ed1a10788a775e5be0e55ff2d19d4374a5083be7c0428917"
+file_sha256 = "78d3c767fc6201223e8add167d51d0cb62b870eebad2e81cedba276e1239702c"
 size_bytes = 9011166
 entry_count = 237354
-source = "inputx-pinyin embedded pinyin.dict (PinyinDict::embedded) + prior_correction multipliers absorbed (v1.4.6 sub-phase B1)"
+source = "inputx-pinyin embedded pinyin.dict (PinyinDict::embedded). B1 prior_correction absorb attempted then REVERTED at C3 step 2 (math non-equivalence with legacy chain — see commit a4e9c4a..3817707 thread); runtime merge.rs correct lambda re-applies the 6 multipliers."
 engine_kind = "Pinyin"
 
 [wubi]
