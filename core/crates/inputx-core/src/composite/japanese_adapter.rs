@@ -232,16 +232,6 @@ impl JapaneseAdapter {
             .filter(|c| is_jp_clean(&c.word))
             .filter(|c| !(short_buffer && c.composed))
             .map(|c| {
-                // v1.4.2 WU-γ schema fill: synthesize a log-space view of
-                // the per-kind base score so every JP candidate carries
-                // (log_prior_q4, log_likelihood_q4, match_type) per the
-                // inputx-scoring schema. log_likelihood_q4 = Q4·ln(score)
-                // is rank-monotone-equivalent to the legacy sort key.
-                let synth = |s: f64, mt: inputx_scoring::MatchType| -> super::merge::ScoreComponents {
-                    let log_likelihood_q4 =
-                        (s.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
-                    super::merge::ScoreComponents::three_axis(0, log_likelihood_q4, mt)
-                };
                 // compose_sentence products score below real Chinese words
                 // (so 時へ時 never pollutes the top of jieji/jieshou) and are
                 // never promoted. Two tiers, split by whether the product is
@@ -262,7 +252,20 @@ impl JapaneseAdapter {
                     // chain support (cf. pinyin which gates compose on
                     // ≥1 bigram link).
                     let mt = inputx_scoring::MatchType::Composed { bigram_links: 0 };
-                    return (c.word.clone(), s, Some(synth(s, mt)));
+                    // v1.4.7 A2 step 3 orthodox decomposition: compose
+                    // products have no raw corpus freq (mechanical
+                    // jukugo+suffix / particle splice), so log_prior_q4 = 0
+                    // by construction; the per-tier base is purely a
+                    // likelihood signal (how confident the engine is in
+                    // *this kind* of composed structure). Pattern mirrors
+                    // wubi/pinyin exact-path A2 step 1+2: pure-data axis
+                    // emitted at the source, no synth helper indirection.
+                    let log_likelihood_q4 =
+                        (s.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
+                    let components = super::merge::ScoreComponents::three_axis(
+                        0, log_likelihood_q4, mt,
+                    );
+                    return (c.word.clone(), s, Some(components));
                 }
                 // base = per-kind floor; freq-weighted add lifts high-freq
                 // JP above rare Chinese (per user rule: JP base < wubi/
