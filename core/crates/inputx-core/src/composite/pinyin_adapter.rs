@@ -553,17 +553,51 @@ impl PinyinAdapter {
         //      false positive. Threshold 8 sidesteps this entirely:
         //      no real ambiguous short composition reaches it.
         if self.buffer.len() >= 8
-            && let Some((score, sentence)) = self.engine.dict().best_composition(&self.buffer)
+            && let Some((score, sentence, chain))
+                = self.engine.dict().best_composition_chain(&self.buffer)
         {
-            // Quality gate (user 2026-05-26: pollution must be DELETED, not
-            // demoted): a forced composition whose per-char Viterbi path score
-            // is too negative is junk — 是嗯据库 (~−22k/char) for the Japanese
-            // romaji `shinjuku` vs a real sentence ~−11k/char (你好吗我叫). Drop
-            // it at generation so it never becomes a candidate. (The pollution
-            // blacklist in `merge` is a second, scoring-independent backstop.)
+            // Two-tier quality gate:
+            //
+            // Tier 1 — per-char score floor (user 2026-05-26): a Viterbi
+            // composition whose per-char score is too negative is junk —
+            // 是嗯据库 (~−22k/char for the Japanese romaji `shinjuku`) vs
+            // a real sentence ~−11k/char (你好吗我叫). Drop at generation
+            // so it never becomes a candidate.
             const COMPOSED_QUALITY_FLOOR: f64 = -15_000.0;
             let per_char = score / (self.buffer.chars().count().max(1) as f64);
-            if per_char >= COMPOSED_QUALITY_FLOOR {
+            //
+            // Tier 2 — cross-segment bigram support (user 2026-05-27,
+            // `houxuanqu` → 候选+去): chain length ≥ 2 means at least one
+            // cross-segment join. Calibrate by chain length:
+            //   - 2 segments (1 link): STRICT — the single link MUST have
+            //     bigram support. Otherwise it's a freq-greedy mechanical
+            //     concat (候选 multi-char + 去 single-char with (候选, 去)
+            //     bigram == 0). User rule: 候选去 NOT OK, ASCII fallback OK.
+            //   - 3+ segments (multi-link): LENIENT — at least ONE link
+            //     must have bigram support. Allows corpus gaps in long
+            //     real sentences (你好吗我叫 might have (吗, 我) == 0
+            //     while (你好, 吗) and (我, 叫) are non-zero). Otherwise
+            //     real sentences fall through to NON_EXACT_FLOOR tier
+            //     when one bigram entry is incidentally missing.
+            //
+            // Tighter check requires either fixing the missing bigram in
+            // the bigram table (corpus / private-dict work) OR doing
+            // composition-level pruning against an LM (v2+ scope, see
+            // PLAN-private-dict-snapshot.md vector ideas).
+            let bigrams_ok = match chain.len() {
+                0 | 1 => true,
+                2 => {
+                    let dict = self.engine.dict();
+                    dict.bigram_boost(Some(chain[0].as_str()), &chain[1]) > 0.0
+                }
+                _ => {
+                    let dict = self.engine.dict();
+                    (1..chain.len()).any(|i| {
+                        dict.bigram_boost(Some(chain[i - 1].as_str()), &chain[i]) > 0.0
+                    })
+                }
+            };
+            if per_char >= COMPOSED_QUALITY_FLOOR && bigrams_ok {
                 self.composed_sentence = Some(sentence.clone());
                 // Push immediately so it surfaces even when Path 1/2/3 all
                 // return empty for this long buffer (yongbuliao 2026-05-24).

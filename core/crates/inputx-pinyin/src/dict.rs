@@ -469,6 +469,77 @@ impl PinyinDict {
     ///   * Buffer is longer than `MAX_LEN` (30) — bail out, user is
     ///     probably mashing keys, not typing a coherent sentence.
     ///   * No path covers the full buffer (some segment had no dict hits).
+    /// Like [`best_composition`] but also returns the per-segment chain
+    /// (Vec of dict-word strings in left-to-right order). Caller can audit
+    /// cross-segment bigram strength using [`bigram_boost`] over consecutive
+    /// pairs — used by the Path 0b quality gate (user polish-log 2026-05-27:
+    /// `houxuanqu` → 候选+去 where (候选, 去) bigram is 0, so the
+    /// composition is a mechanical join with no corpus backing).
+    pub fn best_composition_chain(&self, buffer: &str) -> Option<(f64, String, Vec<String>)> {
+        const MIN_LEN: usize = 4;
+        const MAX_LEN: usize = 30;
+        const MAX_SYL: usize = 24;
+        const STEP_PENALTY: f64 = 100_000.0;
+        let buf = buffer.as_bytes();
+        let n = buf.len();
+        if !(MIN_LEN..=MAX_LEN).contains(&n) {
+            return None;
+        }
+        let mut dp: Vec<Option<(f64, usize, String)>> = vec![None; n + 1];
+        dp[0] = Some((0.0, 0, String::new()));
+        let mut scratch: Vec<(String, u64)> = Vec::new();
+        for i in 1..=n {
+            let lo = i.saturating_sub(MAX_SYL);
+            for j in lo..i {
+                let prev_entry = match dp[j].as_ref() {
+                    Some(p) => p.clone(),
+                    None => continue,
+                };
+                let seg = match core::str::from_utf8(&buf[j..i]) {
+                    Ok(s) => s,
+                    Err(_) => continue,
+                };
+                self.lookup_raw_into(seg, &mut scratch);
+                if scratch.is_empty() {
+                    continue;
+                }
+                for (word, raw_freq) in scratch.iter() {
+                    let prev_word_opt = if prev_entry.2.is_empty() {
+                        None
+                    } else {
+                        Some(prev_entry.2.as_str())
+                    };
+                    let bonus = self.bigram_boost(prev_word_opt, word);
+                    let step_score = (*raw_freq as f64) + bonus - STEP_PENALTY;
+                    let total = prev_entry.0 + step_score;
+                    let dp_better = match dp[i].as_ref() {
+                        None => true,
+                        Some(cur) => total > cur.0,
+                    };
+                    if dp_better {
+                        dp[i] = Some((total, j, word.clone()));
+                    }
+                }
+            }
+        }
+        let final_entry = dp[n].as_ref()?;
+        let final_score = final_entry.0;
+        let mut chain: Vec<String> = Vec::new();
+        let mut pos = n;
+        while pos > 0 {
+            let entry = dp[pos].as_ref()?;
+            chain.push(entry.2.clone());
+            pos = entry.1;
+        }
+        chain.reverse();
+        let sentence = chain.concat();
+        Some((final_score, sentence, chain))
+    }
+
+    /// Best Viterbi composition for `buffer`, score and concatenated
+    /// sentence only. See [`best_composition_chain`] for the same result
+    /// with the per-segment chain exposed (needed by Path 0b's bigram-
+    /// support audit).
     pub fn best_composition(&self, buffer: &str) -> Option<(f64, String)> {
         const MIN_LEN: usize = 4;
         const MAX_LEN: usize = 30;
