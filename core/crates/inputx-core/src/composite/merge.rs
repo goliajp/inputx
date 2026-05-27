@@ -440,49 +440,18 @@ pub fn merge(
     let demote = |w: &str, s: f64| -> f64 {
         if contains_demote_tc(w) { s * LIKELIHOOD_TC_DEMOTE_MULT } else { s }
     };
-    // Scoring-layer prior correction: user-curated word→multiplier table.
-    // Applied uniformly across sources at the merge chokepoint (same shape
-    // as `blacklist` / TC `demote`). Each entry is a documented polish-log
-    // case where corpus freq diverges from real-world usage; see
-    // `prior_correction.rs` for the contract. 1.0 (no-op) for any word not
-    // in the table — overhead is one O(N) linear scan over a tiny list.
+    // v1.4.7 A5: prior_correction Q4 boosts now baked into the pinyin
+    // .idf at snapshot build time (see idf_from_pinyin_dict.rs
+    // PRIOR_CORRECTIONS). The runtime `correct` lambda + composite/
+    // prior_correction.rs module retired in the same commit — the
+    // cement IdfReader fill reads log_prior_q4 already boosted, and
+    // raw_freq stays the un-boosted lossless tiebreaker. Legacy f64
+    // `score` field is reconstructed from raw_freq +
+    // PINYIN_PHRASE_BASE in the pinyin adapter, so the boost
+    // intentionally NEVER shows up in the f64 score field — it only
+    // affects the Bayesian Q4 sort key, which is now the primary
+    // sort. PLAN.md L4 v1.4.6→v1.4.7 trigger (d) satisfied.
     //
-    // v1.4.7 A3 sort-key cutover: prior_correction is a Q4 log-additive
-    // boost on the prior axis (`components.log_prior_q4 += boost_q4`).
-    // Each canon polish-log entry's boost magnitude is calibrated to
-    // beat its competitor under the score_q4 sort key — see
-    // `prior_correction.rs` for per-entry rationale.
-    //
-    // The legacy f64 `score` field stays in sync via the linear
-    // equivalent `s *= exp(boost / Q4)` — transitional during the
-    // f64 → score_q4 cutover so the f64 tiebreaker downstream still
-    // reflects correction. A5 retires this lambda by baking the same
-    // Q4 boost into .idf log_prior at build time, eliminating the
-    // runtime fold and the prior_correction.rs module (PLAN.md L4
-    // trigger d).
-    //
-    // History: v1.4.6 B1 tried baking correction at the .idf level as a
-    // multiplier on `freq` (`PINYIN_PHRASE_BASE + freq × correction`)
-    // and broke baseline because legacy v1.3 sort used
-    // `(PINYIN_PHRASE_BASE + freq) × correction` (whole-score
-    // multiplicative). The current additive-in-log-space scheme
-    // sidesteps that base-vs-freq asymmetry entirely: log_prior_q4 is
-    // pure `Q4·ln(freq)` with no `base` floor mixed in, so adding a
-    // constant Q4 boost is unambiguous.
-    let correct = |w: &str, s: f64, c: Option<ScoreComponents>|
-            -> (f64, Option<ScoreComponents>) {
-        let boost_q4 = super::prior_correction::correction_for(w);
-        if boost_q4 == 0 {
-            return (s, c);
-        }
-        let mult_linear = (boost_q4 as f64 / inputx_scoring::Q4 as f64).exp();
-        let new_s = s * mult_linear;
-        let new_c = c.map(|mut comp| {
-            comp.log_prior_q4 = comp.log_prior_q4.saturating_add(boost_q4);
-            comp
-        });
-        (new_s, new_c)
-    };
     // v1.4.7 A3 step 4b: wubi engine-priority log_prior boost in mixed
     // mode. Inputx is a wubi-first product ([[project-inputx-wubi-stone]]) —
     // P(intent=wubi | mode=mixed) > P(intent=pinyin | mode=mixed) — and
@@ -507,7 +476,7 @@ pub fn merge(
     // hot path / .idf log_prior at the cement cutover.
     const WUBI_ENGINE_PRIOR_BOOST_Q4: i32 = 15;
     for (w, s, c) in wubi {
-        let (s, c) = correct(&w, demote(&w, s), c);
+        let s = demote(&w, s);
         let c = c.map(|mut comp| {
             comp.log_prior_q4 =
                 comp.log_prior_q4.saturating_add(WUBI_ENGINE_PRIOR_BOOST_Q4);
@@ -516,19 +485,19 @@ pub fn merge(
         all.push(Candidate { word: w, source: Source::Wubi, score: s, components: c });
     }
     for (w, s, c) in pinyin {
-        let (s, c) = correct(&w, demote(&w, s), c);
+        let s = demote(&w, s);
         all.push(Candidate { word: w, source: Source::Pinyin, score: s, components: c });
     }
     for (w, s, c) in jp_kanji {
         // JP candidates are explicitly JP — TC demote doesn't apply
         // (whether a JP kanji happens to share form with TC is fine).
-        // prior_correction still applies (JP words can also be in the
-        // calibration table if user reports JP-side corpus skew).
-        let (s, c) = correct(&w, s, c);
+        // A5 retired prior_correction from runtime; nihongo polish-log
+        // entries would need to be baked into nihongo .idf at the
+        // build-time level (same shape as pinyin A5), tracked under
+        // the v1.4.8 nihongo facade refactor backlog.
         all.push(Candidate { word: w, source: Source::Japanese, score: s, components: c });
     }
     for (w, s, c) in jp_kana {
-        let (s, c) = correct(&w, s, c);
         all.push(Candidate { word: w, source: Source::Japanese, score: s, components: c });
     }
     // v1.4.7 A3 sort-key cutover: primary key is now Q4 log-additive

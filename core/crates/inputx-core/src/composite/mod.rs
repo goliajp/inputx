@@ -18,7 +18,6 @@ pub(crate) mod l0_json;
 mod merge;
 mod mode;
 mod pinyin_adapter;
-mod prior_correction;
 pub mod scoring;
 // Candidate-quality TDD baseline (user 2026-05-24: 候选质量是非常容易
 // 用 tdd 保障的). Pure test module; no production code.
