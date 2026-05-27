@@ -408,21 +408,26 @@ impl PinyinAdapter {
             let min_exact = exact_map.values().copied().fold(f64::INFINITY, f64::min);
             (min_exact - 1.0).min(COMPOSED_SCORE)
         };
-        // v1.4.2 WU-γ schema fill: classify each path → MatchType +
-        // synthesize a log-space view of the base score. The CP-B
-        // prediction path keeps its `prefix_components` decomposition
-        // (which already carries (base, prior, likelihood) AND the
-        // log-space three-axis from `predict_score_with_components`).
-        // Every other path gets `log_likelihood_q4 = Q4·ln(base)` —
-        // rank-monotone-equivalent to the legacy f64 sort key so the
-        // v1.4.5+ cement-layer cutover to `score_q4()` preserves rank.
+        // v1.4.7 A2 step 4 orthodox decomposition: each path emits its
+        // (log_prior_q4, log_likelihood_q4, match_type) directly at the
+        // source. The exact and CP-B prediction paths already carry an
+        // upstream-built decomposition (raw freq → log_prior, base+proximity
+        // → log_likelihood) via `exact_components` / `prefix_components`.
+        // The remaining 4 paths — composed_sentence, Viterbi fallback,
+        // fuzzy variants, NON_EXACT_FLOOR — have no raw corpus freq
+        // (they're mechanical / typo-tolerant / degenerate); their
+        // `base` is purely a likelihood signal (engine's confidence in
+        // *this kind* of match), so log_prior_q4 = 0 by construction
+        // and log_likelihood_q4 = Q4·ln(base). Pattern mirrors wubi/
+        // pinyin exact-path A2 step 1+2 (36b9d3d) and nihongo composed
+        // A2 step 3 (da91f5b): pure-data axis emitted at the source,
+        // no synth helper indirection.
+        //
         // The bigram_bonus is added AFTER and not folded into
         // components — it's a cross-engine context signal, not part of
         // P(i|W) for this adapter.
-        let synth = |s: f64, mt: inputx_scoring::MatchType| -> super::merge::ScoreComponents {
-            let log_likelihood_q4 =
-                (s.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
-            super::merge::ScoreComponents::three_axis(0, log_likelihood_q4, mt)
+        let to_log_q4 = |s: f64| -> i32 {
+            (s.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32
         };
         for (i, w) in self.candidates.iter().enumerate() {
             let is_composed = Some(w.as_str()) == self.composed_sentence.as_deref();
@@ -437,18 +442,21 @@ impl PinyinAdapter {
                     // for shinjuku) drops to composed_base, below every exact word.
                     let s = exact_map.get(w).copied().unwrap_or(composed_base);
                     let mt = inputx_scoring::MatchType::Composed { bigram_links: 1 };
-                    (s, Some(synth(s, mt)))
+                    let c = super::merge::ScoreComponents::three_axis(0, to_log_q4(s), mt);
+                    (s, Some(c))
                 } else if is_fallback {
                     // Path 5 last-resort Viterbi compose — no bigram support
                     // (gated to short buffers where no real composition fits).
                     let mt = inputx_scoring::MatchType::Composed { bigram_links: 0 };
-                    (COMPOSED_FALLBACK_SCORE, Some(synth(COMPOSED_FALLBACK_SCORE, mt)))
+                    let c = super::merge::ScoreComponents::three_axis(
+                        0, to_log_q4(COMPOSED_FALLBACK_SCORE), mt,
+                    );
+                    (COMPOSED_FALLBACK_SCORE, Some(c))
                 } else if let Some(s) = exact_map.get(w).copied() {
                     // v1.4.7 A2 step 2: use the orthodox (log_prior_q4,
                     // log_likelihood_q4) decomposition built upstream
-                    // from raw freq + PINYIN_PHRASE_BASE — not the
-                    // synth() shortcut. exact_components is guaranteed
-                    // to have the same key set as exact_map.
+                    // from raw freq + PINYIN_PHRASE_BASE. exact_components
+                    // is guaranteed to have the same key set as exact_map.
                     let c = exact_components.get(w).copied();
                     (s, c)
                 } else if let Some(s) = self.prefix_scored.get(w).copied() {
@@ -468,15 +476,25 @@ impl PinyinAdapter {
                     // 0.3 (in linear space). When inputx-phonetic-edit
                     // (v1.4.1 stone) is wired into the fuzzy path — post-
                     // v1.4 polish backlog — this becomes the real
-                    // edit_cost_milli.
+                    // edit_cost_milli. Fuzzy candidates currently arrive
+                    // via `lookup_into` without freq attached (Path 1b/1c
+                    // initials/dialect-swap loops), so log_prior_q4 = 0;
+                    // wiring fuzzy through `lookup_with_freq_into` is its
+                    // own polish step, separate from this reshape.
                     let s = FUZZY_BASE * FUZZY_DISCOUNT;
-                    (s, Some(synth(s, inputx_scoring::MatchType::Fuzzy(300))))
+                    let c = super::merge::ScoreComponents::three_axis(
+                        0, to_log_q4(s), inputx_scoring::MatchType::Fuzzy(300),
+                    );
+                    (s, Some(c))
                 } else {
                     // NON_EXACT_FLOOR tier — degenerate; mark Exact for
                     // schema purposes (these are dead-tier candidates
                     // ranking at the bottom of the list).
                     let s = NON_EXACT_FLOOR * 0.99f64.powi(i as i32);
-                    (s, Some(synth(s, inputx_scoring::MatchType::Exact)))
+                    let c = super::merge::ScoreComponents::three_axis(
+                        0, to_log_q4(s), inputx_scoring::MatchType::Exact,
+                    );
+                    (s, Some(c))
                 };
             // v1.4.6 sub-phase C2 cutover: source the bigram bonus
             // from the NGMv1 cement table (data/private-dict/v0.0.1/
