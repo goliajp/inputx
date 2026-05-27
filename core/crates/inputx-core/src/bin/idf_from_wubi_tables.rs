@@ -66,18 +66,27 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         let effective = layer.base().saturating_add(*freq);
         let log_q4 = ((effective.max(1) as f64).ln() * Q4 as f64).round() as i32;
         let log_prior_i16 = log_q4.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
-        // raw_freq carries the wubi `layer.base + freq` composite (the
-        // same scalar that fed log_prior) so cement-side tiebreakers
-        // can recover the unquantized ordering for same-layer entries
-        // that collide in the Q4 bucket. Saturates at u32::MAX defensively.
-        let raw_freq_u32 = effective.min(u32::MAX as u64) as u32;
+        // raw_freq carries the per-entry frequency from the wubi dict
+        // (the same `freq` field facade `lookup_with_freq_layer_into`
+        // hands back). v1.4.7 A4 step 2: cement-side `lookup_with_freq
+        // _layer` reads this directly from IDF so the runtime never
+        // needs the facade dict for corpus lookup.
+        let raw_freq_u32 = (*freq).min(u32::MAX as u64) as u32;
+        // EntryFlags::engine_tag bits encode Layer enum index so the
+        // cement reader can reverse the layer without scanning a side
+        // table or implying it from a raw_freq band (layer + freq are
+        // additive in the legacy score, so the (layer.base + freq)
+        // ordering would otherwise collapse same-bucket entries from
+        // different layers).
+        let flags = EntryFlags::default()
+            .with_engine_tag(layer.as_index() as u8);
         builder.add_entry(
             code,
             word,
             log_prior_i16,
             raw_freq_u32,
             MatchType::Exact,
-            EntryFlags::default(),
+            flags,
         );
     }
 

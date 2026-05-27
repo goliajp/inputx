@@ -19,6 +19,10 @@
 mod engine;
 mod table;
 
+use std::sync::OnceLock;
+
+use inputx_dict_format::IdfReader;
+
 pub use engine::{AutoCommitPolicy, WubiEngine};
 pub use table::{
     export_l0, import_l0, is_displayable, lookup_with_scores, set_show_rare,
@@ -28,3 +32,67 @@ pub use table::{
 /// destructure it without depending on the `inputx-wubi` crate
 /// directly.
 pub use inputx_wubi::L0Snapshot;
+
+/// Embedded IDFv1 wubi dict blob, sourced from
+/// `data/private-dict/v0.0.1/wubi/words.idf` at compile time. Each
+/// entry's `EntryFlags::engine_tag()` carries the wubi `Layer` enum
+/// index (v1.4.7 sub-phase A4 step 2), so cement-side fills can
+/// reconstruct `(word, layer, raw_freq)` without re-reading the
+/// `inputx_wubi::WubiDict` table.
+pub const EMBEDDED_WUBI_IDF: &[u8] =
+    include_bytes!("../../../../data/private-dict/v0.0.1/wubi/words.idf");
+
+/// Process-global [`IdfReader`] over [`EMBEDDED_WUBI_IDF`]. Parses
+/// the 4 MB header / FST / entry-table sections once and amortizes
+/// the ~few-ms cost over the whole process lifetime; subsequent
+/// `wubi_idf_reader().lookup(code)` calls are O(|code|) FST walks
+/// with zero allocation per query.
+///
+/// Composite hot path (v1.4.7 sub-phase A4 step 2): cement-level
+/// `table::lookup_with_freq_layer` and `table::prefix_predictions`
+/// fills go through this reader in place of `WubiDict::lookup_with_
+/// freq_layer_into` / `WubiDict::prefix_predictions`. The facade
+/// `WubiDict` (and the underlying `inputx-wubi` data tables) is
+/// still loaded inside `WubiEngine` because the state machine
+/// (buffer / auto-commit / L0 pin) lives on the facade — but the
+/// composite engine's corpus lookups no longer touch it.
+pub fn wubi_idf_reader() -> &'static IdfReader<&'static [u8]> {
+    static READER: OnceLock<IdfReader<&'static [u8]>> = OnceLock::new();
+    READER.get_or_init(|| {
+        IdfReader::from_bytes(EMBEDDED_WUBI_IDF)
+            .expect("inputx-wubi-cement EMBEDDED_WUBI_IDF must be a valid IDFv1 blob")
+    })
+}
+
+/// Decode an IDF wubi entry's `EntryFlags::engine_tag()` back into the
+/// originating `inputx_wubi::Layer` variant. Falls back to
+/// `Layer::Auto` on out-of-range bytes (defensive — the writer only
+/// emits 0..=5).
+pub fn layer_from_idf_tag(tag: u8) -> inputx_wubi::Layer {
+    inputx_wubi::Layer::from_u8(tag).unwrap_or(inputx_wubi::Layer::Auto)
+}
+
+#[cfg(test)]
+mod cement_tests {
+    use super::*;
+
+    #[test]
+    fn wubi_idf_reader_parses_and_supports_exact_lookup_with_layer() {
+        let r = wubi_idf_reader();
+        // Embedded blob carries ~135k entries.
+        assert!(r.entry_count() > 100_000);
+        // `g` is a one-letter Jianma1 simcode in wubi 86; expect at
+        // least one entry, and the layer tag should round-trip.
+        let hits = r.lookup(b"g");
+        assert!(!hits.is_empty(), "g must have at least one Jianma1 entry");
+        // 一 ships in the v0.0.1 wubi dict as the canonical `g`
+        // Jianma1 simcode (per inputx_wubi seed catalog).
+        let yi = hits.iter().find(|e| e.word == "一");
+        assert!(yi.is_some(), "g → 一 expected; got readings {:?}", hits.iter().map(|e| e.word).collect::<Vec<_>>());
+        let yi = yi.unwrap();
+        assert_eq!(
+            layer_from_idf_tag(yi.flags.engine_tag()),
+            inputx_wubi::Layer::Jianma1,
+        );
+    }
+}

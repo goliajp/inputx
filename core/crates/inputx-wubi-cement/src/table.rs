@@ -104,11 +104,28 @@ pub fn lookup_with_layer(code: &str) -> Vec<(String, f64, inputx_wubi::Layer)> {
 /// score decomposition into (log_prior_q4 = Q4·ln(1+freq),
 /// log_likelihood_q4 = Q4·ln(layer.base() · pref · demotes)). Rare-CJK
 /// filter applied uniformly with `lookup_with_layer`.
+///
+/// v1.4.7 sub-phase A4 step 2: data source is `wubi_idf_reader()`
+/// (cement-owned `IdfReader` over `EMBEDDED_WUBI_IDF`) instead of the
+/// facade `WubiDict::lookup_with_freq_layer_into`. The IDF entry
+/// carries `raw_freq` losslessly and `Layer` via the engine_tag bits
+/// of `EntryFlags`. Output is byte-equivalent to the previous facade
+/// fill modulo the rare-CJK retain pass.
 pub fn lookup_with_freq_layer(
     code: &str,
 ) -> Vec<(String, inputx_wubi::Layer, u64)> {
-    let mut all: Vec<(String, inputx_wubi::Layer, u64)> = Vec::new();
-    dict().lookup_with_freq_layer_into(code, &mut all);
+    let reader = crate::wubi_idf_reader();
+    let entries = reader.lookup(code.as_bytes());
+    let mut all: Vec<(String, inputx_wubi::Layer, u64)> = entries
+        .into_iter()
+        .map(|e| {
+            (
+                e.word.to_string(),
+                crate::layer_from_idf_tag(e.flags.engine_tag()),
+                e.raw_freq as u64,
+            )
+        })
+        .collect();
     if !SHOW_RARE.load(Ordering::Relaxed) {
         all.retain(|(w, _, _)| is_displayable(w));
     }
@@ -120,8 +137,25 @@ pub fn lookup_with_freq_layer(
 /// Rare-CJK filter applied uniformly with [`lookup`]. Wired into the
 /// composite dispatch so Wubi gets the same prefix-prediction shape as
 /// pinyin / JP (e.g. `jj` exact 是 stays at #0, predictions 日/时 follow).
+///
+/// v1.4.7 sub-phase A4 step 2: streamed through `wubi_idf_reader()
+/// .prefix_for_each_entry` instead of `WubiDict::prefix_predictions`.
+/// Strictly-extending filter (`code.len() > prefix.len()`) and the
+/// `freq_desc → word_asc` sort match the facade output byte-for-byte
+/// modulo the rare-CJK retain pass.
 pub fn prefix_predictions(prefix: &str) -> Vec<(String, u64, usize)> {
-    let mut all = dict().prefix_predictions(prefix);
+    let reader = crate::wubi_idf_reader();
+    let prefix_lower = prefix.to_ascii_lowercase();
+    let prefix_len = prefix_lower.len();
+    let mut all: Vec<(String, u64, usize)> = Vec::new();
+    reader.prefix_for_each_entry(prefix_lower.as_bytes(), |e| {
+        if e.code.len() <= prefix_len {
+            return;
+        }
+        all.push((e.word.to_string(), e.raw_freq as u64, e.code.len()));
+    });
+    // freq desc, word asc — matches the facade ordering.
+    all.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
     if !SHOW_RARE.load(Ordering::Relaxed) {
         all.retain(|(w, _, _)| is_displayable(w));
     }

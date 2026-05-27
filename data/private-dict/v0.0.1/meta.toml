@@ -32,10 +32,10 @@ engine_kind = "Pinyin"
 
 [wubi]
 path = "wubi/words.idf"
-file_sha256 = "c5f7d0562fc60ae043309c6601dd5d2b136d9daaa4b51be76f8c04ba582fa363"
+file_sha256 = "ac7b2186fd9b1d091c15af82905c18cf9db0afea757f5c3a35ca35d5925376b9"
 size_bytes = 4387469
 entry_count = 135822
-source = "inputx-wubi embedded dict (WubiDict::embedded — jianma1 + zigen + jianma2/3 + auto + phrases)"
+source = "inputx-wubi embedded dict (WubiDict::embedded — jianma1 + zigen + jianma2/3 + auto + phrases). v1.4.7 A4 step 2: raw_freq carries per-entry freq only (formerly layer.base+freq); EntryFlags engine_tag carries Layer enum index."
 engine_kind = "Wubi"
 
 [nihongo.jukugo]
