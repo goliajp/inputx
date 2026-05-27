@@ -18,7 +18,7 @@
 
 use wasm_bindgen::prelude::*;
 
-use wubi::{L0Snapshot, LAYER_COUNT, Layer as CoreLayer, WubiDict};
+use inputx_wubi::{L0Snapshot, LAYER_COUNT, Layer as CoreLayer, WubiDict};
 
 /// Layer enum mirrored for JS. Use as `Layer.Phrase` etc.
 #[wasm_bindgen]
@@ -228,7 +228,7 @@ fn parse_snapshot(obj: &js_sys::Object) -> L0Snapshot {
         })
         .unwrap_or_default();
 
-    let mut layer_prefs = wubi::DEFAULT_LAYER_PREFS;
+    let mut layer_prefs = inputx_wubi::DEFAULT_LAYER_PREFS;
     if let Ok(arr) = js_sys::Reflect::get(obj, &"layerPrefs".into())
         && let Ok(arr) = arr.dyn_into::<js_sys::Array>()
     {

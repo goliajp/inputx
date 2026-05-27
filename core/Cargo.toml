@@ -23,11 +23,11 @@ rust-version = "1.95"
 # external consumer can pull them on their own. Dual `version = "X.Y"` +
 # `path = "..."` syntax: cargo uses the path inside the workspace; downstream
 # crates.io builds without the path see the version constraint and resolve
-# from the registry. `package = "inputx-X"` rename keeps the historical
-# `use wubi::...` / `use golia_pinyin::...` import paths stable.
+# from the registry. Consumers import via canonical `use inputx_wubi::...` /
+# `use inputx_pinyin::...` (PLAN.md D8: lib name 完全 inputx_* default).
 [workspace.dependencies]
-wubi = { package = "inputx-wubi", version = "1.2", path = "crates/inputx-wubi" }
-golia-pinyin = { package = "inputx-pinyin", version = "1.2", path = "crates/inputx-pinyin" }
+inputx-wubi = { version = "1.2", path = "crates/inputx-wubi" }
+inputx-pinyin = { version = "1.2", path = "crates/inputx-pinyin" }
 
 [profile.release]
 # Was `lto = true` (fat LTO). Switched to "off" because fat LTO embeds

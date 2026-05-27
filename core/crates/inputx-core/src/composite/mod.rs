@@ -2,7 +2,7 @@
 //!
 //! Phase 4 of the iOS commercial-grade roadmap. Wraps the two sub-engines
 //! (`WubiEngine` from `wubi/` + `PinyinAdapter` over the published
-//! `golia_pinyin` crate) with a `Mode` switch (Mixed / WubiOnly /
+//! `inputx_pinyin` crate) with a `Mode` switch (Mixed / WubiOnly /
 //! PinyinOnly) and a merged candidate list with `Source` attribution.
 //!
 //! Public API mirrors `WubiEngine` so the eventual transition in

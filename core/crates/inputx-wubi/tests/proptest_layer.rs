@@ -2,8 +2,8 @@
 
 use proptest::prelude::*;
 
-use wubi::Layer;
-use wubi::layer::{MAX_FREQ_SCORE, pack, unpack};
+use inputx_wubi::Layer;
+use inputx_wubi::layer::{MAX_FREQ_SCORE, pack, unpack};
 
 fn layer_strategy() -> impl Strategy<Value = Layer> {
     prop_oneof![

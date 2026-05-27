@@ -7,7 +7,7 @@
 use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use golia_pinyin::{PinyinEngine, char_to_pinyin, segment};
+use inputx_pinyin::{PinyinEngine, char_to_pinyin, segment};
 
 fn bench_lookup(c: &mut Criterion) {
     let eng = PinyinEngine::new();

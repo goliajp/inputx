@@ -1,8 +1,8 @@
-//! WASM bindings for `golia-pinyin`. Exposes a small, JS-friendly API
+//! WASM bindings for `inputx-pinyin`. Exposes a small, JS-friendly API
 //! that browser and Node consumers can import via `wasm-pack` output.
 //!
 //! Build:
-//!     wasm-pack build crates/golia-pinyin-wasm --target web --release
+//!     wasm-pack build crates/inputx-pinyin-wasm --target web --release
 //!
 //! Default build bakes the bootstrap dict (1.7 KB) — the full 15 MB
 //! `pinyin.fst` is too large for typical wasm bundles. Item 33 of the
@@ -25,7 +25,7 @@
 
 use wasm_bindgen::prelude::*;
 
-use golia_pinyin::{L0Snapshot, PinyinDict, char_to_pinyin};
+use inputx_pinyin::{L0Snapshot, PinyinDict, char_to_pinyin};
 
 /// Pinyin engine wrapping the embedded FST dictionary plus a per-instance
 /// L0 layer (in-memory; persistence is up to the host via `exportL0` /
@@ -94,7 +94,7 @@ impl PinyinEngine {
 
     // -------------------------------------------------------------------
     // L0 mutation — host calls these to drive learning. All counter logic
-    // lives inside `golia-pinyin`; the host only signals events.
+    // lives inside `inputx-pinyin`; the host only signals events.
     // -------------------------------------------------------------------
 
     /// Tell the dictionary that the user just committed `word` for

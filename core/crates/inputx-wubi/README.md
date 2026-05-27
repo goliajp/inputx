@@ -39,7 +39,7 @@ inputx-wubi = "1.0"
 ```
 
 ```rust
-use wubi::WubiDict;
+use inputx_wubi::WubiDict;
 
 let dict = WubiDict::embedded();
 
@@ -56,9 +56,6 @@ dict.lookup_into("ipbf", &mut buf);
 // also exposed for explicit host control.
 dict.record_pick("khlg", "跑车");
 ```
-
-> The crate name on crates.io is `inputx-wubi`, but the lib name is
-> `wubi` for ergonomic imports — `use wubi::...` works directly.
 
 ## Performance (Apple Silicon, release)
 

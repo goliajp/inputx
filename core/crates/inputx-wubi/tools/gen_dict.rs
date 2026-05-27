@@ -5,7 +5,7 @@
 //! Output one entry per line (`<code>\t<word>`) sorted by code, the format
 //! inputx-wubi's `build.rs` ingests at compile time into the embedded FST.
 
-use wubi::{embedded_seed, encode, iter_jianma1};
+use inputx_wubi::{embedded_seed, encode, iter_jianma1};
 
 fn main() {
     let mut entries: Vec<(String, String)> = Vec::new();

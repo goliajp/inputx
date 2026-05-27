@@ -1,7 +1,7 @@
 #![deny(missing_docs)]
 #![deny(rustdoc::broken_intra_doc_links)]
 
-//! `golia-pinyin` — self-developed Mandarin Pinyin input method engine.
+//! `inputx-pinyin` — self-developed Mandarin Pinyin input method engine.
 //!
 //! Engine surface ✓ (segmenter, fuzzy, FST dict, encode, session) +
 //! 414k-entry corpus-derived dict (Unihan kHanyuPinlu + jieba + pypinyin
@@ -14,7 +14,7 @@
 //! # Quickstart
 //!
 //! ```no_run
-//! use golia_pinyin::{PinyinEngine, Session};
+//! use inputx_pinyin::{PinyinEngine, Session};
 //! let engine = PinyinEngine::new();
 //! let mut session = Session::new(&engine);
 //! for c in "zhongguo".chars() {

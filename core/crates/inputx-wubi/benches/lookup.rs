@@ -10,7 +10,7 @@
 //!   encode_*        < 500ns
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use wubi::{
+use inputx_wubi::{
     Decomp, Shape, Stroke, WubiDict, embedded_seed, encode_into, lookup_jianma1, lookup_zigen,
 };
 

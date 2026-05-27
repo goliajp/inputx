@@ -49,9 +49,9 @@ eng.importL0(JSON.parse(localStorage.getItem("wubi-l0") ?? "{}"));
 
 ## What ships
 
-- `wubi_wasm_bg.wasm` — packed FST + ranking + L0 logic (~3 MB)
-- `wubi_wasm.js` — ES-module wrapper
-- `wubi_wasm.d.ts` — TypeScript types
+- `inputx_wubi_wasm_bg.wasm` — packed FST + ranking + L0 logic (~3 MB)
+- `inputx_wubi_wasm.js` — ES-module wrapper
+- `inputx_wubi_wasm.d.ts` — TypeScript types
 - 135,822 dictionary entries (字根 / 简码 / phrases / auto-decomposed CJK)
 
 ## Build from source

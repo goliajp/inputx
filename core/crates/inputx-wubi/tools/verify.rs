@@ -9,7 +9,7 @@
 use std::collections::{HashMap, HashSet};
 use std::io::{self, Write};
 
-use wubi::{embedded_seed, encode, iter_jianma1};
+use inputx_wubi::{embedded_seed, encode, iter_jianma1};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

@@ -1,12 +1,12 @@
-//! Thin adapter over [`wubi::WubiDict`] (the embedded FST in the sibling
-//! [`inputx-wubi`](https://crates.io/crates/inputx-wubi) crate). The dict
+//! Thin adapter over [`inputx_wubi::WubiDict`] (the embedded FST in the
+//! sibling [`inputx-wubi`](https://crates.io/crates/inputx-wubi) crate). The dict
 //! instance is process-global via `OnceLock`; L0 (per-user learning) state
 //! therefore persists across `Session` instances within one process.
 
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use wubi::{L0Snapshot, WubiDict};
+use inputx_wubi::{L0Snapshot, WubiDict};
 
 static DICT: OnceLock<WubiDict> = OnceLock::new();
 
@@ -90,8 +90,8 @@ pub fn lookup_with_scores(code: &str) -> Vec<(String, f64)> {
 /// low-confidence Auto / Phrase wubi candidates when the buffer shape
 /// suggests pinyin intent, while keeping high-confidence Jianma simcodes
 /// untouched (the 伙-rule: wubi simcodes always lead at their code).
-pub fn lookup_with_layer(code: &str) -> Vec<(String, f64, wubi::Layer)> {
-    let mut all: Vec<(String, f64, wubi::Layer)> = Vec::new();
+pub fn lookup_with_layer(code: &str) -> Vec<(String, f64, inputx_wubi::Layer)> {
+    let mut all: Vec<(String, f64, inputx_wubi::Layer)> = Vec::new();
     dict().lookup_with_layer_into(code, &mut all);
     if !SHOW_RARE.load(Ordering::Relaxed) {
         all.retain(|(w, _, _)| is_displayable(w));

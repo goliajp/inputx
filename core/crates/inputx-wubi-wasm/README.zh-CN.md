@@ -47,9 +47,9 @@ eng.importL0(JSON.parse(localStorage.getItem("wubi-l0") ?? "{}"));
 
 ## 发布物
 
-- `wubi_wasm_bg.wasm` —— 打包的 FST + 排序 + L0 逻辑（约 3 MB）
-- `wubi_wasm.js` —— ES module 包装
-- `wubi_wasm.d.ts` —— TypeScript 类型定义
+- `inputx_wubi_wasm_bg.wasm` —— 打包的 FST + 排序 + L0 逻辑（约 3 MB）
+- `inputx_wubi_wasm.js` —— ES module 包装
+- `inputx_wubi_wasm.d.ts` —— TypeScript 类型定义
 - 135,822 条字典（字根 / 简码 / 词组 / 自动分解 CJK）
 
 ## 从源码构建

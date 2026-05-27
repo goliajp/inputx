@@ -42,7 +42,7 @@ inputx-pinyin = "1.0"
 ```
 
 ```rust
-use golia_pinyin::{PinyinEngine, PinyinDict};
+use inputx_pinyin::{PinyinEngine, PinyinDict};
 
 let eng = PinyinEngine::new();
 let dict = eng.dict();
@@ -63,9 +63,6 @@ dict.prefix_for_each("zho", |pinyin, word, freq| {
 dict.record_pick("zhongguo", "中国");
 ```
 
-> The crate name on crates.io is `inputx-pinyin`, but the lib name is
-> `golia_pinyin` for ergonomic imports — `use golia_pinyin::...` works
-> directly.
 
 ## Performance
 

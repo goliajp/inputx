@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use proptest::prelude::*;
 use proptest::sample;
 
-use wubi::{L0Snapshot, Layer, PROMOTE_THRESHOLD, WubiDict, DEFAULT_LAYER_PREFS, LAYER_COUNT};
+use inputx_wubi::{L0Snapshot, Layer, PROMOTE_THRESHOLD, WubiDict, DEFAULT_LAYER_PREFS, LAYER_COUNT};
 
 // A curated set of (code, word) pairs known to exist in the embedded
 // dictionary. We sample from these instead of inventing strings — the
