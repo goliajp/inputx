@@ -179,11 +179,51 @@ fn push_kv_f64(out: &mut String, key: &str, value: f64) {
 }
 
 fn push_kv_components(out: &mut String, c: ScoreComponents) {
+    // v1.3 (base, prior, likelihood) linear-space decomposition. Carries
+    // a real `score == base + prior · likelihood` invariant for the
+    // predict_score chain (CP-A JP / CP-B pinyin / CP-C wubi prediction).
+    // Synthetic three-axis fill paths (exact / composed / fuzzy /
+    // fallback) leave these zero — read those candidates' tier from the
+    // v1.4.2 fields below.
     push_kv_f64(out, "base", c.base);
     out.push(',');
     push_kv_f64(out, "prior", c.prior);
     out.push(',');
     push_kv_f64(out, "likelihood", c.likelihood);
+    out.push(',');
+    // v1.4.2 WU-γ inputx-scoring three-axis (Q4 log-space). Populated by
+    // every fill point in composite/{dispatch,pinyin_adapter,
+    // japanese_adapter}.rs. `log_prior_q4 + log_likelihood_q4` is the
+    // log-space additive score that the v1.4.5+ cement layer will use
+    // as the sort key; today the legacy f64 `score` is still authoritative.
+    push_kv_i32(out, "log_prior_q4", c.log_prior_q4);
+    out.push(',');
+    push_kv_i32(out, "log_likelihood_q4", c.log_likelihood_q4);
+    out.push(',');
+    push_kv_match_type(out, c.match_type);
+}
+
+fn push_kv_i32(out: &mut String, key: &str, value: i32) {
+    out.push('"');
+    out.push_str(key);
+    out.push_str("\":");
+    out.push_str(&value.to_string());
+}
+
+fn push_kv_match_type(out: &mut String, mt: inputx_scoring::MatchType) {
+    out.push_str("\"match_type\":");
+    match mt {
+        inputx_scoring::MatchType::Exact => out.push_str("\"Exact\""),
+        inputx_scoring::MatchType::Prefix(prox) => {
+            out.push_str(&format!("{{\"Prefix\":{prox}}}"))
+        }
+        inputx_scoring::MatchType::Fuzzy(cost) => {
+            out.push_str(&format!("{{\"Fuzzy\":{cost}}}"))
+        }
+        inputx_scoring::MatchType::Composed { bigram_links } => {
+            out.push_str(&format!("{{\"Composed\":{{\"bigram_links\":{bigram_links}}}}}"))
+        }
+    }
 }
 
 fn push_json_string(out: &mut String, s: &str) {
