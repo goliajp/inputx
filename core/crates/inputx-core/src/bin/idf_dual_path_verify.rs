@@ -53,13 +53,20 @@ struct Mismatch {
 }
 
 fn main() -> ExitCode {
-    let base = PathBuf::from("../data/private-dict/v0.0.1");
+    // v1.4.7 sub-phase B: .idf files moved out of the (now-deleted)
+    // monorepo-root `data/private-dict/v0.0.1/` snapshot dir into each
+    // cement crate's own `data/` so cargo publish can include them
+    // in the tarball. Run this binary from the `core/` workspace root.
+    let pinyin_idf = PathBuf::from("crates/inputx-pinyin-cement/data/words.idf");
+    let wubi_idf = PathBuf::from("crates/inputx-wubi-cement/data/words.idf");
+    let nihongo_jukugo_idf = PathBuf::from("crates/inputx-nihongo-cement/data/jukugo.idf");
+    let nihongo_kanji_idf = PathBuf::from("crates/inputx-nihongo-cement/data/kanji.idf");
     let mut total_fail = 0usize;
     let mut total_check = 0usize;
 
     // ---- Pinyin ----
-    eprintln!("\n[verify pinyin] ../data/private-dict/v0.0.1/pinyin/words.idf");
-    let reader = match IdfReader::open(base.join("pinyin/words.idf")) {
+    eprintln!("\n[verify pinyin] {}", pinyin_idf.display());
+    let reader = match IdfReader::open(&pinyin_idf) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("  open failed: {e:?}");
@@ -89,8 +96,8 @@ fn main() -> ExitCode {
     report_mismatches(&mismatches);
 
     // ---- Wubi ----
-    eprintln!("\n[verify wubi] ../data/private-dict/v0.0.1/wubi/words.idf");
-    let reader = match IdfReader::open(base.join("wubi/words.idf")) {
+    eprintln!("\n[verify wubi] {}", wubi_idf.display());
+    let reader = match IdfReader::open(&wubi_idf) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("  open failed: {e:?}");
@@ -121,8 +128,8 @@ fn main() -> ExitCode {
     report_mismatches(&mismatches);
 
     // ---- Nihongo Jukugo ----
-    eprintln!("\n[verify nihongo-jukugo] ../data/private-dict/v0.0.1/nihongo/jukugo.idf");
-    let reader = match IdfReader::open(base.join("nihongo/jukugo.idf")) {
+    eprintln!("\n[verify nihongo-jukugo] {}", nihongo_jukugo_idf.display());
+    let reader = match IdfReader::open(&nihongo_jukugo_idf) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("  open failed: {e:?}");
@@ -149,8 +156,8 @@ fn main() -> ExitCode {
     report_mismatches(&mismatches);
 
     // ---- Nihongo Kanji ----
-    eprintln!("\n[verify nihongo-kanji] ../data/private-dict/v0.0.1/nihongo/kanji.idf");
-    let reader = match IdfReader::open(base.join("nihongo/kanji.idf")) {
+    eprintln!("\n[verify nihongo-kanji] {}", nihongo_kanji_idf.display());
+    let reader = match IdfReader::open(&nihongo_kanji_idf) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("  open failed: {e:?}");

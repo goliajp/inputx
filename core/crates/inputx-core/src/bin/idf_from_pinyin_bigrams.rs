@@ -1,5 +1,5 @@
 //! `idf-from-pinyin-bigrams` — snapshot the pinyin bigram FST into
-//! NGMv1 at `data/private-dict/v0.0.1/pinyin/bigrams.ngm`.
+//! NGMv1 at `core/crates/inputx-pinyin-cement/data/bigrams.ngm`.
 //!
 //! Source: `inputx_pinyin::PinyinDict::iter_bigrams()` →
 //! `Vec<(prev, next, count)>` covering ~500k pairs from the embedded
@@ -18,7 +18,7 @@
 //!
 //! Usage:
 //!   cargo run --release --bin idf-from-pinyin-bigrams -- \
-//!       --output data/private-dict/v0.0.1/pinyin/bigrams.ngm
+//!       --output core/crates/inputx-pinyin-cement/data/bigrams.ngm
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -50,7 +50,7 @@ fn main() -> ExitCode {
         }
     }
     let out = output.unwrap_or_else(|| {
-        PathBuf::from("../data/private-dict/v0.0.1/pinyin/bigrams.ngm")
+        PathBuf::from("crates/inputx-pinyin-cement/data/bigrams.ngm")
     });
     match run(&out) {
         Ok(()) => ExitCode::SUCCESS,
