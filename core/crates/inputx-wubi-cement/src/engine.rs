@@ -101,6 +101,20 @@ impl WubiEngine {
         table::lookup_with_layer(self.buffer_str())
     }
 
+    /// Candidates with raw frequency exposed (separate from layer base ·
+    /// pref). Caller composes the orthodox three-axis fill:
+    ///   log_prior_q4 = Q4·ln(1 + freq)
+    ///   log_likelihood_q4 = Q4·ln(layer.base() · pref · layer_demote
+    ///                             · char_demote · wubi_length_modifier
+    ///                             · z_mult)
+    /// for v1.4.7 sort-key cutover to probability-native ranking.
+    pub fn candidates_with_freq_layer(&self) -> Vec<(String, inputx_wubi::Layer, u64)> {
+        if self.buffer.is_empty() {
+            return Vec::new();
+        }
+        table::lookup_with_freq_layer(self.buffer_str())
+    }
+
     /// Prefix-prediction candidates for the current buffer: `(word, freq,
     /// code_len)` for every dict entry whose code strictly extends the
     /// buffer (exact-code matches excluded). Caller composes the final

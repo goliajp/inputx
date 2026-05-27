@@ -99,6 +99,22 @@ pub fn lookup_with_layer(code: &str) -> Vec<(String, f64, inputx_wubi::Layer)> {
     all
 }
 
+/// Per-code lookup exposing raw frequency (separate from layer.base ·
+/// pref) — used by the v1.4.7 composite hot path for orthodox
+/// score decomposition into (log_prior_q4 = Q4·ln(1+freq),
+/// log_likelihood_q4 = Q4·ln(layer.base() · pref · demotes)). Rare-CJK
+/// filter applied uniformly with `lookup_with_layer`.
+pub fn lookup_with_freq_layer(
+    code: &str,
+) -> Vec<(String, inputx_wubi::Layer, u64)> {
+    let mut all: Vec<(String, inputx_wubi::Layer, u64)> = Vec::new();
+    dict().lookup_with_freq_layer_into(code, &mut all);
+    if !SHOW_RARE.load(Ordering::Relaxed) {
+        all.retain(|(w, _, _)| is_displayable(w));
+    }
+    all
+}
+
 /// Prefix-prediction lookup: `(word, freq, code_len)` for every dict
 /// entry whose code strictly extends `prefix` (no exact-code matches).
 /// Rare-CJK filter applied uniformly with [`lookup`]. Wired into the

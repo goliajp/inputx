@@ -302,10 +302,56 @@ impl PinyinAdapter {
         // the v1.4.7+ sort-key migration to Q4-log additive (then the
         // score field IS the log_prior + log_likelihood sum and round-
         // trip drift only matters at the rank-flip threshold).
-        let mut exact_scored: Vec<(String, f64)> = Vec::new();
-        self.engine.dict().lookup_with_scores_into(&self.buffer, &mut exact_scored);
-        let exact_map: std::collections::HashMap<String, f64> =
-            exact_scored.into_iter().collect();
+        // v1.4.7 sub-phase A2 step 2: orthodox three-axis
+        // decomposition for pinyin exact-match path. Source raw freq
+        // separately from PINYIN_PHRASE_BASE so log_prior_q4 / log
+        // _likelihood_q4 can split cleanly.
+        const PINYIN_PHRASE_BASE: f64 = 400_000.0;
+        const L0_PIN_MULTIPLIER: f64 = 1000.0;
+        let mut exact_freq: Vec<(String, u64)> = Vec::new();
+        self.engine
+            .dict()
+            .lookup_with_freq_into(&self.buffer, &mut exact_freq);
+        // L0 pin lookup — cement-level business rule re-applied here
+        // (facade's lookup_with_freq_into intentionally omits the pin
+        // promote so cement can decide the multiplier path).
+        let pinned: Option<String> = self
+            .engine
+            .dict()
+            .pinned_word(&self.buffer);
+        // Build (word, legacy_score) map + parallel (word, log_prior_q4,
+        // log_likelihood_q4) map so downstream chains can compose either.
+        let mut exact_map: std::collections::HashMap<String, f64> =
+            std::collections::HashMap::with_capacity(exact_freq.len());
+        let mut exact_components: std::collections::HashMap<String, super::merge::ScoreComponents> =
+            std::collections::HashMap::with_capacity(exact_freq.len());
+        for (word, freq) in &exact_freq {
+            let pin_mult = if pinned.as_deref() == Some(word.as_str()) {
+                L0_PIN_MULTIPLIER
+            } else {
+                1.0
+            };
+            // Legacy f64 (transitional): same shape as
+            // PinyinDict::lookup_with_scores_into output.
+            let legacy_score = (PINYIN_PHRASE_BASE + *freq as f64) * pin_mult;
+            // Orthodox Q4 log decomposition.
+            let log_prior_q4 = inputx_scoring::log_prior_from_freq(*freq);
+            let likelihood_linear = PINYIN_PHRASE_BASE * pin_mult;
+            let log_likelihood_q4 = (likelihood_linear
+                .max(1.0)
+                .ln()
+                * inputx_scoring::Q4 as f64)
+                .round() as i32;
+            exact_map.insert(word.clone(), legacy_score);
+            exact_components.insert(
+                word.clone(),
+                super::merge::ScoreComponents::three_axis(
+                    log_prior_q4,
+                    log_likelihood_q4,
+                    inputx_scoring::MatchType::Exact,
+                ),
+            );
+        }
         // Floor for non-exact (initials / prefix-completion) entries —
         // sits below the lowest natural exact-match score so exact
         // matches dominate. 1k chosen as "any positive but tiny".
@@ -398,7 +444,13 @@ impl PinyinAdapter {
                     let mt = inputx_scoring::MatchType::Composed { bigram_links: 0 };
                     (COMPOSED_FALLBACK_SCORE, Some(synth(COMPOSED_FALLBACK_SCORE, mt)))
                 } else if let Some(s) = exact_map.get(w).copied() {
-                    (s, Some(synth(s, inputx_scoring::MatchType::Exact)))
+                    // v1.4.7 A2 step 2: use the orthodox (log_prior_q4,
+                    // log_likelihood_q4) decomposition built upstream
+                    // from raw freq + PINYIN_PHRASE_BASE — not the
+                    // synth() shortcut. exact_components is guaranteed
+                    // to have the same key set as exact_map.
+                    let c = exact_components.get(w).copied();
+                    (s, c)
                 } else if let Some(s) = self.prefix_scored.get(w).copied() {
                     // CP-B prediction hit: pull the decomposition from the
                     // parallel components map so probe can render it.

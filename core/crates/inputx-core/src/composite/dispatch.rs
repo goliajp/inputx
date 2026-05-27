@@ -212,31 +212,82 @@ pub fn dispatch(
                 let freq = pinyin_dict.char_max_freq(c);
                 if freq >= CHAR_PROMINENT_FLOOR { 1.0 } else { RARE_CHAR_DEMOTE }
             };
-            let mut wubi_cands: Vec<Scored> = wubi
-                .candidates_with_layer()
+            // v1.4.7 sub-phase A2 step 1: orthodox three-axis
+            // decomposition replaces the v1.4.2 synthesize_three_axis
+            // shortcut (which lumped the entire legacy score into
+            // log_likelihood_q4, leaving log_prior_q4=0 and producing
+            // ranking inconsistent with predict-path candidates that
+            // properly split prior/likelihood).
+            //
+            // Now: log_prior_q4 = Q4·ln(1 + raw_freq) (matches the
+            // wubi prediction path's log_prior derivation), and
+            // log_likelihood_q4 = Q4·ln(layer.base() · pref ·
+            // layer_demote · char_demote · promote) (the per-path
+            // multiplicative chain; wubi_length_modifier + z_mult
+            // applied at merge chokepoint below via final_mult).
+            //
+            // facade `candidates_with_freq_layer` returns PURE per-
+            // entry data (word, layer, raw_freq) — no per-batch
+            // single-char promote or L0 pin. Those are wubi-specific
+            // business rules that this cement layer re-applies here.
+            //
+            // Legacy f64 `score` field still computed as before so the
+            // (transitional) f64-sort merge.rs keeps producing the
+            // v1.3 ranking; sort-key cutover to score_q4 happens in
+            // A2 step 3 after all three engines' fills are aligned.
+            let layer_prefs_default = inputx_wubi::DEFAULT_LAYER_PREFS;
+            let full_code = wubi.buffer_str().len() == 4;
+            let freq_layer = wubi.candidates_with_freq_layer();
+            // Single-char promote setup: at full code, a single-char
+            // entry whose freq exceeds the per-code max phrase freq
+            // gets ×100 boost (wubi 86 "full-code single-char wins"
+            // rule, replicating inputx_wubi::PinyinDict::
+            // lookup_with_scores_into's internal logic).
+            let max_phrase_freq: u64 = freq_layer
+                .iter()
+                .filter(|(w, _, _)| w.chars().count() > 1)
+                .map(|(_, _, f)| *f)
+                .max()
+                .unwrap_or(0);
+            let mut wubi_cands: Vec<Scored> = freq_layer
                 .into_iter()
-                .map(|(w, score, layer)| {
+                .map(|(w, layer, raw_freq)| {
+                    let pref = layer_prefs_default[layer.as_index()];
                     let layer_demote = match layer {
                         inputx_wubi::Layer::Auto => auto_demote,
                         inputx_wubi::Layer::Phrase => phrase_mult,
                         _ => 1.0,
                     };
                     let cd = char_demote(&w, layer);
-                    // v1.4.2 WU-γ schema fill: wubi exact code lookups
-                    // are full-code matches → MatchType::Exact. The
-                    // legacy f64 score is the multiplicative chain
-                    // `layer.base · pref + freq` × layer_demote ×
-                    // char_demote × wubi_length_modifier × z_mult (the
-                    // last two applied below by final_mult). We don't
-                    // yet have raw freq + layer-base split (waits for
-                    // v1.4.3 IDFv1), so synthesize a log-space view of
-                    // the legacy score — monotone-equivalent on rank.
-                    let final_score = score * layer_demote * cd;
-                    (
-                        w,
-                        final_score,
-                        Some(synthesize_three_axis(final_score, inputx_scoring::MatchType::Exact)),
-                    )
+                    let is_single = w.chars().count() == 1;
+                    let single_promote = if full_code && is_single && raw_freq > max_phrase_freq {
+                        100.0
+                    } else {
+                        1.0
+                    };
+                    // Legacy f64 score (transitional, drops post-A5):
+                    let base_score = (layer.base() as f64 * pref + raw_freq as f64) * single_promote;
+                    let final_score = base_score * layer_demote * cd;
+                    // Orthodox Q4 log decomposition. log_prior is the
+                    // frequency prior P(W); log_likelihood collapses all
+                    // multiplicative likelihood factors into log space.
+                    let log_prior_q4 = inputx_scoring::log_prior_from_freq(raw_freq);
+                    let likelihood_linear = layer.base() as f64
+                        * pref
+                        * layer_demote.max(f64::MIN_POSITIVE)
+                        * cd.max(f64::MIN_POSITIVE)
+                        * single_promote;
+                    let log_likelihood_q4 = (likelihood_linear
+                        .max(1.0)
+                        .ln()
+                        * inputx_scoring::Q4 as f64)
+                        .round() as i32;
+                    let components = ScoreComponents::three_axis(
+                        log_prior_q4,
+                        log_likelihood_q4,
+                        inputx_scoring::MatchType::Exact,
+                    );
+                    (w, final_score, Some(components))
                 })
                 .collect();
             // CP-C (v1.3 WU-α): attach wubi prefix-predictions. predict_score

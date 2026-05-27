@@ -396,6 +396,32 @@ impl WubiDict {
         results
     }
 
+    /// Per-code lookup exposing raw `freq` alongside [`Layer`] — used by
+    /// the v1.4.7 composite hot path for the orthodox score
+    /// decomposition (split log_prior_q4 = Q4·ln(1+freq) from
+    /// log_likelihood_q4 = Q4·ln(layer.base()·pref·demotes)). The
+    /// existing [`Self::lookup_with_layer_into`] returns the combined
+    /// `layer.base()·pref + freq` score; for Q4 log-space additive
+    /// sort key (PLAN.md L1 probability-native ranking) we need the
+    /// two terms unfused.
+    ///
+    /// Rare-CJK filter NOT applied here (caller decides; consistent
+    /// with `lookup_with_layer_into`).
+    pub fn lookup_with_freq_layer_into(
+        &self,
+        code: &str,
+        out: &mut Vec<(String, Layer, u64)>,
+    ) {
+        out.clear();
+        let lower = code.to_ascii_lowercase();
+        self.map.get_for_each(lower.as_bytes(), |word, value| {
+            if let Ok(s) = core::str::from_utf8(word) {
+                let (layer, freq) = unpack(value);
+                out.push((s.to_string(), layer, freq));
+            }
+        });
+    }
+
     /// Iterate every entry in the embedded dict, in FST traversal order
     /// (canonical lexicographic by `code` bytes; for a given code the
     /// internal layout sees `(code, word, packed_value)` triples). Used
