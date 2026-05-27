@@ -396,6 +396,30 @@ impl WubiDict {
         results
     }
 
+    /// Iterate every entry in the embedded dict, in FST traversal order
+    /// (canonical lexicographic by `code` bytes; for a given code the
+    /// internal layout sees `(code, word, packed_value)` triples). Used
+    /// by tools / snapshot binaries (e.g. v1.4.3 `idf-from-wubi-tables`)
+    /// that need to re-emit the full dict in another format. NOT a
+    /// runtime hot-path API — allocates one `(String, String)` pair per
+    /// entry (~135k for the embedded dict, ~5 MB allocation total).
+    ///
+    /// `layer` is the layered confidence band ([`Layer`]), `freq` is the
+    /// per-entry frequency score (post-`pack` / pre-`unpack`).
+    pub fn all_entries(&self) -> Vec<(String, String, Layer, u64)> {
+        let mut results: Vec<(String, String, Layer, u64)> = Vec::new();
+        self.map.prefix_for_each(b"", |code_bytes, word_bytes, value| {
+            if let (Ok(code), Ok(word)) = (
+                core::str::from_utf8(code_bytes),
+                core::str::from_utf8(word_bytes),
+            ) {
+                let (layer, freq) = unpack(value);
+                results.push((code.to_string(), word.to_string(), layer, freq));
+            }
+        });
+        results
+    }
+
     /// All `(code, word)` pairs with code starting with `prefix`, ordered by
     /// (effective L1 weight desc, code, word). Pins are NOT applied here —
     /// they're per-code and don't generalize across a prefix scan.

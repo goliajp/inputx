@@ -24,6 +24,11 @@ inputx-nihongo = { path = "../inputx-nihongo", version = "1.1" }
 # this schema; probe surfaces them; cement layer (v1.4.5+) will switch sort
 # key from legacy f64 to log-space additive.
 inputx-scoring = { path = "../inputx-scoring", version = "1.4" }
+# IDFv1 binary dict format (v1.4.3 WU-δ): used by the snapshot binaries
+# `idf-from-{pinyin,wubi,nihongo-jukugo,nihongo-kanji}` to write
+# `data/private-dict/v0.0.1/*.idf`. composite engine still reads legacy
+# .dict/.fsa at runtime — IDFv1 cutover is v1.4.6 cement carve-out work.
+inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
 # L0 export/import JSON is hand-rolled in composite/l0_json.rs (zero-dep
 # milestone, Stage A — see .claude/PLAN-self-built-fsa.md). No serde.
 
@@ -60,3 +65,27 @@ path = "src/bin/inputx_probe.rs"
 [[bin]]
 name = "inputx-trace"
 path = "src/bin/inputx_trace.rs"
+
+# v1.4.3 WU-δ snapshot binaries: read existing dict sources (pinyin.dict
+# FST / wubi text tables / nihongo const tables) and write IDFv1 .idf
+# files into data/private-dict/v0.0.1/. NOT engine-cutover — runtime
+# still reads legacy .dict/.fsa until v1.4.6.
+[[bin]]
+name = "idf-from-pinyin-dict"
+path = "src/bin/idf_from_pinyin_dict.rs"
+
+[[bin]]
+name = "idf-from-wubi-tables"
+path = "src/bin/idf_from_wubi_tables.rs"
+
+[[bin]]
+name = "idf-from-nihongo-jukugo"
+path = "src/bin/idf_from_nihongo_jukugo.rs"
+
+[[bin]]
+name = "idf-from-nihongo-kanji"
+path = "src/bin/idf_from_nihongo_kanji.rs"
+
+[[bin]]
+name = "idf-dual-path-verify"
+path = "src/bin/idf_dual_path_verify.rs"
