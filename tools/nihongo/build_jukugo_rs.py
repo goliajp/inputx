@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate `core/crates/inputx-jp/src/jukugo.rs` from the supplemental TSV."""
+"""Generate `core/crates/inputx-nihongo/src/jukugo.rs` from the supplemental TSV."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ SOURCES = [
     # Last so hand-curated rows win identity ties at equal freq.
     SUPP_DIR / "jp_jukugo_mozc_v1.tsv",
 ]
-OUT = ROOT / "core/crates/inputx-jp/src/jukugo.rs"
+OUT = ROOT / "core/crates/inputx-nihongo/src/jukugo.rs"
 
 
 def main() -> int:

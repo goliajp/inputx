@@ -17,7 +17,7 @@ inputx-pinyin = { workspace = true }
 # This dep is unconditional (no Cargo feature) because Inputx ships one
 # binary that handles the toggle at runtime via Session.enable_japanese;
 # size impact is small (≈few hundred KB of romaji + kanji static tables).
-inputx-jp = { path = "../inputx-jp", version = "1.1" }
+inputx-nihongo = { path = "../inputx-nihongo", version = "1.1" }
 # L0 export/import JSON is hand-rolled in composite/l0_json.rs (zero-dep
 # milestone, Stage A — see .claude/PLAN-self-built-fsa.md). No serde.
 

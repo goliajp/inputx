@@ -1025,7 +1025,7 @@ mod tests {
     fn japanese_only_high_kou_finds_kanji() {
         // The user's framing example: typing "kou" should surface 高 in
         // JapaneseOnly mode (kanji subset is codepoint-identical with CN
-        // simplified per the inputx-jp curation).
+        // simplified per the inputx-nihongo curation).
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::JapaneseOnly);
         typed(&mut e, b"kou");

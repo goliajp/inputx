@@ -11,7 +11,7 @@ Pipeline:
   1. Filter to 2-6 char PURE-kanji words (real noun jukugo; excludes okurigana
      like 食べる and compounds with kana like 東京都生まれ) under COST_MAX.
   2. Convert the hiragana reading to Inputx romaji (Hepburn canonical, matching
-     core/crates/inputx-jp/src/romaji.rs so the user's typed romaji hits it).
+     core/crates/inputx-nihongo/src/romaji.rs so the user's typed romaji hits it).
   3. cost -> freq (0-100, lower cost = higher freq).
   4. Dedup by (romaji, word) keeping the lowest cost (highest freq).
   5. Cross-check the converter against the hand-curated jp_jukugo_v1.tsv: for

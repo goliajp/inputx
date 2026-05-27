@@ -1,4 +1,4 @@
-//! Thin wrapper around [`inputx_jp::JapaneseEngine`] so the composite
+//! Thin wrapper around [`inputx_nihongo::JapaneseEngine`] so the composite
 //! layer can plug it next to `PinyinAdapter` with a matching shape:
 //! `handle_letter` / `backspace` / `escape` / `clear_all` / `is_composing`
 //! / `buffer_str` / `candidates` / `commit_index`.
@@ -9,13 +9,13 @@
 //! three engines uniformly without inputx-core taking a hard compile-
 //! time switch on whether JP is in the build.
 
-use inputx_jp::JapaneseEngine;
+use inputx_nihongo::JapaneseEngine;
 
 /// Filter: drop candidates that aren't usable IME output. Two rejection
 /// classes, both products of the engine's mechanical rendering rather than
 /// of real conversion:
 ///
-/// 1. **Residual ASCII letters.** `inputx_jp`'s Hepburn romaji→kana state
+/// 1. **Residual ASCII letters.** `inputx_nihongo`'s Hepburn romaji→kana state
 ///    machine treats unclaimed letters (e.g. `g` not followed by a vowel)
 ///    as literal Latin passthrough. For `gkih` it produces `g` →
 ///    (consumes `ki` as `き`) → `h` and emits `gきh` / `gキh` —
@@ -59,7 +59,7 @@ fn is_kanji(c: char) -> bool {
 /// `vaiorin` (ヴァイオリン), `pa-thi-` (パーティー) surface katakana ahead
 /// of hiragana — matching real JP convention for gairaigo.
 ///
-/// Patterns are the foreign-syllable subset of `inputx_jp::romaji::TABLE`.
+/// Patterns are the foreign-syllable subset of `inputx_nihongo::romaji::TABLE`.
 /// Order: longest first (so 3-letter matches lock before 2-letter could).
 /// Doesn't include kunrei-vs-Hepburn pairs (shi/si, chi/ti, tsu/tu, ji/zi):
 /// those are native JP, not foreign loanword markers.
@@ -139,7 +139,7 @@ impl JapaneseAdapter {
     }
 
     pub fn kanji_candidates(&self) -> Vec<String> {
-        use inputx_jp::KanaKind;
+        use inputx_nihongo::KanaKind;
         self.engine
             .candidates()
             .iter()
@@ -151,7 +151,7 @@ impl JapaneseAdapter {
 
     #[allow(dead_code)]
     pub fn kana_candidates(&self) -> Vec<String> {
-        use inputx_jp::KanaKind;
+        use inputx_nihongo::KanaKind;
         self.engine
             .candidates()
             .iter()
@@ -187,7 +187,7 @@ impl JapaneseAdapter {
     /// per-buffer via picking #2/#3 — that goes to PolishLog and gets
     /// rolled into next pipeline run.
     pub fn candidates_with_scores(&self) -> Vec<super::merge::Scored> {
-        use inputx_jp::KanaKind;
+        use inputx_nihongo::KanaKind;
         use crate::composite::scoring;
         // Short-buffer compose_sentence garbage filter (user polish-log
         // 2026-05-26, jieni): for short romaji buffers (< 8 chars), the

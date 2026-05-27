@@ -260,7 +260,7 @@ final class InputxController: IMKInputController {
         //
         // Previously `-` / `+` / `=` were paginate keys; those were freed
         // 2026-05-27 so `-` could be typed as chōonpu (ー) in JP mode
-        // (see Path B chōonpu skip below + inputx-jp engine `-` accept).
+        // (see Path B chōonpu skip below + inputx-nihongo engine `-` accept).
         // User: "`-` 是假名输入中的长音符号，必须要变成可输入的字符".
         if let panel = candidatePanel, panel.isVisible {
             let shifted = event.modifierFlags.contains(.shift)
