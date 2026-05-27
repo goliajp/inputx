@@ -77,6 +77,33 @@ dict.get_for_each(b"wo", |item, _v| got.push_str(std::str::from_utf8(item).unwra
 assert_eq!(got, "\u{6211}\u{63e1}"); // 我握
 ```
 
+## API stability
+
+The 1.x line follows semver:
+
+- **`Fsa` / `Dict` / `Builder` / `DictBuilder` public surface** — no
+  breaking changes within 1.x. New methods may be added as minor bumps.
+- **On-disk format** — header carries `magic = "IXFA"` + `version = 3`.
+  v3 is the only currently-emitted version; a future v4 reader will
+  still accept v3 buffers (`FsaError::BadVersion` is reserved for the
+  reverse — old reader, newer buffer).
+- **`#![no_std]` invariant** — building with `--no-default-features`
+  will continue to compile for `alloc`-only targets in the entire 1.x
+  line.
+- **Determinism** — `Builder::finish` is deterministic given the same
+  set of `(key, value)` pairs (regardless of insert order).
+
+Anything not on `pub` is internal — module layout, helper traits,
+serialization internals — and may change in any minor release.
+
+## Runnable examples
+
+```bash
+cargo run --release -p inputx-fsa --example build_and_lookup
+cargo run --release -p inputx-fsa --example prefix_scan
+cargo run --release -p inputx-fsa --example range_iter
+```
+
 ## License
 
 MIT OR Apache-2.0.
