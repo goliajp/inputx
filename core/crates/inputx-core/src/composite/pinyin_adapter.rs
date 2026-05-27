@@ -441,8 +441,21 @@ impl PinyinAdapter {
                     // that is NOT itself a dict word (用中 for yongzhong, 是嗯据库
                     // for shinjuku) drops to composed_base, below every exact word.
                     let s = exact_map.get(w).copied().unwrap_or(composed_base);
-                    let mt = inputx_scoring::MatchType::Composed { bigram_links: 1 };
-                    let c = super::merge::ScoreComponents::three_axis(0, to_log_q4(s), mt);
+                    // v1.4.7 A3 step 4a: when the composed-top coincides with a
+                    // real exact dict entry, reuse `exact_components` — those
+                    // carry the raw-freq log_prior_q4 the composed-only path
+                    // can't reconstruct. Without this, `score_q4` for the
+                    // exact-coinciding composition is `0 + Q4·ln(s)`, missing
+                    // the entire prior axis, and ranks below mechanical
+                    // Viterbi segmentations (种过, 生火, 点映 for zhongguo /
+                    // shenghuo / dianying) that scored lower in legacy f64
+                    // but identical in q4 once the prior is dropped. Only
+                    // fall back to synthetic `three_axis(0, …)` when w is a
+                    // forced segmentation (not a dict word).
+                    let c = exact_components.get(w).copied().unwrap_or_else(|| {
+                        let mt = inputx_scoring::MatchType::Composed { bigram_links: 1 };
+                        super::merge::ScoreComponents::three_axis(0, to_log_q4(s), mt)
+                    });
                     (s, Some(c))
                 } else if is_fallback {
                     // Path 5 last-resort Viterbi compose — no bigram support

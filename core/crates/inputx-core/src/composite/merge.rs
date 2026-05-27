@@ -447,29 +447,76 @@ pub fn merge(
     // `prior_correction.rs` for the contract. 1.0 (no-op) for any word not
     // in the table — overhead is one O(N) linear scan over a tiny list.
     //
-    // v1.4.6 sub-phase C3 note: this lambda KEPT through v1.4.6. Sub-
-    // phase B1 attempted to absorb the 6 multipliers into .idf
-    // log_prior_q4 directly (so this lambda could be deleted), but C3
-    // step 2 wiring revealed the legacy formula
-    // `(PINYIN_PHRASE_BASE + freq) × correction` ≠ post-B1 absorbed
-    // `PINYIN_PHRASE_BASE + freq × correction` — the base term is
-    // also multiplied in v1.3 (since correction is whole-score
-    // multiplicative), so absorbing only at the freq level loses the
-    // ×correction on PINYIN_PHRASE_BASE. Baseline broke at 继续 /
-    // 积蓄 ordering. Decision: REVERT the B1 absorb (rebuild .idf
-    // with un-corrected log_prior_q4), KEEP this lambda. True
-    // correction deletion happens at the v1.4.7+ sort-key cutover
-    // when score moves to Q4-log additive (then correction can be
-    // additive in log space, no base-vs-freq asymmetry).
-    let correct = |w: &str, s: f64| -> f64 {
-        s * super::prior_correction::correction_for(w)
+    // v1.4.7 A3 sort-key cutover: prior_correction is a Q4 log-additive
+    // boost on the prior axis (`components.log_prior_q4 += boost_q4`).
+    // Each canon polish-log entry's boost magnitude is calibrated to
+    // beat its competitor under the score_q4 sort key — see
+    // `prior_correction.rs` for per-entry rationale.
+    //
+    // The legacy f64 `score` field stays in sync via the linear
+    // equivalent `s *= exp(boost / Q4)` — transitional during the
+    // f64 → score_q4 cutover so the f64 tiebreaker downstream still
+    // reflects correction. A5 retires this lambda by baking the same
+    // Q4 boost into .idf log_prior at build time, eliminating the
+    // runtime fold and the prior_correction.rs module (PLAN.md L4
+    // trigger d).
+    //
+    // History: v1.4.6 B1 tried baking correction at the .idf level as a
+    // multiplier on `freq` (`PINYIN_PHRASE_BASE + freq × correction`)
+    // and broke baseline because legacy v1.3 sort used
+    // `(PINYIN_PHRASE_BASE + freq) × correction` (whole-score
+    // multiplicative). The current additive-in-log-space scheme
+    // sidesteps that base-vs-freq asymmetry entirely: log_prior_q4 is
+    // pure `Q4·ln(freq)` with no `base` floor mixed in, so adding a
+    // constant Q4 boost is unambiguous.
+    let correct = |w: &str, s: f64, c: Option<ScoreComponents>|
+            -> (f64, Option<ScoreComponents>) {
+        let boost_q4 = super::prior_correction::correction_for(w);
+        if boost_q4 == 0 {
+            return (s, c);
+        }
+        let mult_linear = (boost_q4 as f64 / inputx_scoring::Q4 as f64).exp();
+        let new_s = s * mult_linear;
+        let new_c = c.map(|mut comp| {
+            comp.log_prior_q4 = comp.log_prior_q4.saturating_add(boost_q4);
+            comp
+        });
+        (new_s, new_c)
     };
+    // v1.4.7 A3 step 4b: wubi engine-priority log_prior boost in mixed
+    // mode. Inputx is a wubi-first product ([[project-inputx-wubi-stone]]) —
+    // P(intent=wubi | mode=mixed) > P(intent=pinyin | mode=mixed) — and
+    // that intent prior must surface in the Bayesian score_q4 sort key.
+    // Without this boost, `log_prior(W) + log_likelihood(i|W)` lets high-
+    // freq pinyin chars (你 freq ~ M-range, log_prior ≈ 176 Q4) overrun
+    // wubi simcodes (Jianma2/3 base ≈ 730k/400k, log_lik ≈ 217/195 Q4)
+    // because Bayesian additive `prior + likelihood` doesn't dampen freq
+    // differences the way legacy `base + freq·mult` did (where `base`
+    // floor capped freq's swing).
+    //
+    // +15 Q4 (≈ ×2.6 linear) is calibrated so:
+    //   * Jianma1/2/3 simcodes (high LAYER_BASE → log_lik > 200) decisively
+    //     lead pinyin top phrases (post-boost ≥ 395 vs pinyin ≤ 388)
+    //   * Auto-layer wubi (LAYER_BASE 70k → log_lik 178) stays below
+    //     pinyin top phrases (post-boost ≤ 273 vs pinyin ≥ 388)
+    //   * Wubi-internal layer hierarchy preserved (uniform additive)
+    //
+    // Applied to log_prior_q4 only — legacy f64 `score` field stays
+    // untouched so the f64 tiebreaker continues to surface raw legacy
+    // ranking for q4 ties. A4-A5 will fold this boost into wubi-cement
+    // hot path / .idf log_prior at the cement cutover.
+    const WUBI_ENGINE_PRIOR_BOOST_Q4: i32 = 15;
     for (w, s, c) in wubi {
-        let s = correct(&w, demote(&w, s));
+        let (s, c) = correct(&w, demote(&w, s), c);
+        let c = c.map(|mut comp| {
+            comp.log_prior_q4 =
+                comp.log_prior_q4.saturating_add(WUBI_ENGINE_PRIOR_BOOST_Q4);
+            comp
+        });
         all.push(Candidate { word: w, source: Source::Wubi, score: s, components: c });
     }
     for (w, s, c) in pinyin {
-        let s = correct(&w, demote(&w, s));
+        let (s, c) = correct(&w, demote(&w, s), c);
         all.push(Candidate { word: w, source: Source::Pinyin, score: s, components: c });
     }
     for (w, s, c) in jp_kanji {
@@ -477,15 +524,35 @@ pub fn merge(
         // (whether a JP kanji happens to share form with TC is fine).
         // prior_correction still applies (JP words can also be in the
         // calibration table if user reports JP-side corpus skew).
-        let s = correct(&w, s);
+        let (s, c) = correct(&w, s, c);
         all.push(Candidate { word: w, source: Source::Japanese, score: s, components: c });
     }
     for (w, s, c) in jp_kana {
-        let s = correct(&w, s);
+        let (s, c) = correct(&w, s, c);
         all.push(Candidate { word: w, source: Source::Japanese, score: s, components: c });
     }
-    // Stable sort by score desc — ties keep input order (wubi first).
-    all.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    // v1.4.7 A3 sort-key cutover: primary key is now Q4 log-additive
+    // `score_q4() = log_prior_q4 + log_likelihood_q4` (Bayesian
+    // `P(W|i) ∝ P(i|W) · P(W)` rendered in log space). Tiebreakers:
+    // legacy f64 score desc, then word lex asc (deterministic). The
+    // remaining None-components case is post-commit prediction_buf
+    // (composite/engine.rs:697), which never flows through this merge —
+    // a defensive i32::MIN keeps any future None-source from leaking
+    // ahead of real candidates.
+    use std::cmp::Ordering;
+    all.sort_by(|a, b| {
+        let a_q4 = a.components.map(|c| c.score_q4()).unwrap_or(i32::MIN);
+        let b_q4 = b.components.map(|c| c.score_q4()).unwrap_or(i32::MIN);
+        match b_q4.cmp(&a_q4) {
+            Ordering::Equal => {}
+            ord => return ord,
+        }
+        match b.score.partial_cmp(&a.score).unwrap_or(Ordering::Equal) {
+            Ordering::Equal => {}
+            ord => return ord,
+        }
+        a.word.cmp(&b.word)
+    });
     // Dedupe by word — first-seen wins (higher score after sort).
     let mut seen = std::collections::HashSet::with_capacity(total_hint.min(MAX_PER_INPUT));
     let mut out: Vec<Candidate> = Vec::with_capacity(total_hint.min(MAX_PER_INPUT));

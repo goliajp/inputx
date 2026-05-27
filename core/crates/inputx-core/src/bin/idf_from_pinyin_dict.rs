@@ -23,28 +23,31 @@ use inputx_scoring::{log_prior_from_freq, MatchType};
 /// Mirror of `inputx_core::composite::prior_correction::PRIOR_CORRECTIONS`.
 /// Inlined here so this binary doesn't reach into a `pub(crate)`-deep
 /// composite path. The composite module retains the same table for the
-/// live runtime callsite in `composite/merge.rs` until v1.4.6 sub-phase
-/// D drops both (engine cutover stops going through merge.rs's
-/// `correct` lambda, and prior_correction.rs deletes).
+/// live runtime callsite in `composite/merge.rs` until v1.4.7 sub-phase
+/// A5 drops both (engine cutover stops going through merge.rs's
+/// `correct` lambda, and prior_correction.rs deletes — corrections then
+/// live exclusively as Q4 log-prior boosts baked into .idf at this
+/// snapshot binary's build time).
 ///
 /// Keep in lockstep with `composite/prior_correction.rs` until that
-/// file deletes. Each row carries the polish-log citation in the
-/// composite module's source (not duplicated here).
-const PRIOR_CORRECTIONS: &[(&str, f64)] = &[
-    ("继续", 2.0),
-    ("设计", 2.0),
-    ("理想", 2.0),
-    ("加载", 1.5),
-    ("具体", 1.5),
-    ("统一", 1.5),
+/// file deletes. v1.4.7 A3 schema: Q4 log-additive boost (i32), not
+/// f64 multiplier — see the composite module's source for per-entry
+/// polish-log citations + calibration rationale.
+const PRIOR_CORRECTIONS: &[(&str, i32)] = &[
+    ("继续", 17),
+    ("设计", 11),
+    ("理想", 11),
+    ("加载", 7),
+    ("具体", 7),
+    ("统一", 13),
 ];
 
-fn correction_for(word: &str) -> f64 {
+fn correction_for(word: &str) -> i32 {
     PRIOR_CORRECTIONS
         .iter()
         .find(|(w, _)| *w == word)
-        .map(|(_, m)| *m)
-        .unwrap_or(1.0)
+        .map(|(_, b)| *b)
+        .unwrap_or(0)
 }
 
 fn main() -> ExitCode {
