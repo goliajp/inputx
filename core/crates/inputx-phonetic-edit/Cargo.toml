@@ -1,0 +1,25 @@
+[package]
+name = "inputx-phonetic-edit"
+version = "1.4.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+description = "Weighted phonetic edit-distance — a Wagner-Fischer DP extended with arbitrary-length substitution pairs from a cost table. Ships a Mandarin Pinyin default table covering the canonical southern-dialect tolerances (zh↔z, sh↔s, ch↔c, n↔l, f↔h, r↔l, in↔ing, en↔eng, an↔ang)."
+authors = ["GOLIA K.K."]
+repository = "https://github.com/goliajp/inputx"
+homepage = "https://github.com/goliajp/inputx"
+keywords = ["levenshtein", "edit-distance", "pinyin", "phonetic", "fuzzy"]
+categories = ["algorithms", "text-processing", "no-std"]
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+default = ["std"]
+# Without `std`, the crate compiles as `#![no_std]` (alloc only); the DP
+# itself never touches std — only optional debug helpers do.
+std = []
+
+[dependencies]
+# Zero dependencies — same design point as inputx-fsa.
