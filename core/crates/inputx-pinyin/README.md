@@ -38,7 +38,7 @@ the full attribution chain.
 ```toml
 # Cargo.toml
 [dependencies]
-inputx-pinyin = "1.0"
+inputx-pinyin = "1.4"
 ```
 
 ```rust

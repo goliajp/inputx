@@ -1,24 +1,94 @@
 # inputx-nihongo-cement
 
-Japanese-specific consumer-engine cement for Inputx — built on top
-of the [`inputx-nihongo`](https://crates.io/crates/inputx-nihongo)
-facade plus [`inputx-dict-format`](https://crates.io/crates/inputx-dict-format)
-(IDFv1 dict reader).
+Japanese-specific consumer-engine cement for [Inputx](https://github.com/goliajp/inputx)
+— IDFv1-backed jukugo / kanji lookup adapter built on top of the
+[`inputx-nihongo`](https://crates.io/crates/inputx-nihongo) facade.
 
-## Public surface (v1.4.6 sub-phase C populates this)
+```toml
+[dependencies]
+inputx-nihongo-cement = "1.4"
+```
 
-- `NihongoIdfLookup` — IdfReader-driven jukugo / kanji lookup
-  adapter
-- chouonpu plumbing helpers
+## What's in the box
+
+- **`EMBEDDED_NIHONGO_JUKUGO_IDF`** (v1.4.7 sub-phase A4 step 3) —
+  process-embedded IDFv1 jukugo dict blob (~1.1 MB, 27,380
+  entries). Byte-equivalent to the facade's `JUKUGO_TABLE` const
+  table; the `idf-from-nihongo-jukugo` snapshot binary sources
+  both from the same data.
+- **`EMBEDDED_NIHONGO_KANJI_IDF`** (v1.4.7 sub-phase A4 step 3) —
+  process-embedded IDFv1 kanji dict blob (~40 KB, 1,666 `(reading,
+  kanji)` pairs — multi-reading expansion of 813 source kanji).
+- **`nihongo_jukugo_idf_reader()` / `nihongo_kanji_idf_reader()`**
+  — process-global `IdfReader` `OnceLock`s; the 1 MB jukugo parse
+  + sha256 verify amortizes once across the process, subsequent
+  `lookup(reading)` calls are O(|reading|) FST walks with zero per-
+  query allocation.
+
+## Quick start
+
+```rust
+use inputx_nihongo_cement::{
+    nihongo_jukugo_idf_reader, nihongo_kanji_idf_reader,
+};
+
+let jr = nihongo_jukugo_idf_reader();
+for entry in jr.lookup(b"shinjuku") {
+    println!(
+        "{} log_prior_q4={} raw_freq={}",
+        entry.word, entry.log_prior, entry.raw_freq,
+    );
+}
+// 新宿 log_prior_q4=N raw_freq=N
+
+// Prefix prediction — streaming visit; cement applies its own
+// ranking before truncation.
+jr.prefix_for_each_entry(b"shinjuk", |e| {
+    // e.word = "新宿", e.code = "shinjuku", e.raw_freq = N
+});
+
+let kr = nihongo_kanji_idf_reader();
+for entry in kr.lookup(b"nichi") {
+    println!("{} log_prior_q4={}", entry.word, entry.log_prior);
+}
+// 日 log_prior_q4=N (and other nichi-readings)
+```
 
 ## Architecture note
 
-The stateful `JapaneseAdapter` lives in `inputx-core/composite/` —
-it shares cross-engine `mode` + `scoring` + `merge` modules with
-wubi/pinyin paths, making it **composite root cement** (PLAN-stones-
-extract.md terminology). This crate contains only genuinely
-nihongo-specific helpers — anything a third-party JP IME consumer
-would copy verbatim.
+The stateful `JapaneseAdapter` (composite engine state machine —
+buffer, romaji → kana rendering, candidate compose) lives in
+`inputx-core/composite/`. It shares cross-engine `mode` + `scoring`
++ `merge` modules with wubi / pinyin paths, so by
+[`PLAN-stones-extract.md` "Cement catalog"](https://github.com/goliajp/inputx/blob/develop/.claude/PLAN-stones-extract.md)
+terminology that's **composite root cement** (lives in `inputx-core`,
+not here).
+
+### v1.4.7 scope note
+
+The Inputx composite hot path currently still calls
+`inputx_nihongo::JapaneseEngine::candidates()` — the facade engine's
+candidate generation bundles `jukugo::lookup_by_reading` +
+`kanji::lookup_by_reading` + `compose_sentence` + kana fallback +
+chōonpu plumbing (~500 LOC) with the per-session state machine in
+a way pinyin / wubi cement do not. Cutting that to the IDF readers
+here is a v1.4.8 facade refactor item — the readers are shipped
+now so the refactor can plug straight in without further
+infrastructure churn. Runtime behavior is identical regardless,
+because the IDF blobs and the facade const tables are byte-
+equivalent.
+
+## API stability
+
+The 1.x line follows semver:
+
+- **`nihongo_jukugo_idf_reader()` / `nihongo_kanji_idf_reader()`
+  signatures** — stable across 1.x.
+- **`EMBEDDED_NIHONGO_JUKUGO_IDF` / `EMBEDDED_NIHONGO_KANJI_IDF`
+  blob versions** — IDFv1 on the current 1.4 line. Reader stays
+  backward-compatible across IDFv1 sub-versions; the embedded blob
+  rebuilds with each release as the underlying `JUKUGO_TABLE` /
+  `KANJI_TABLE` content updates.
 
 ## License
 
