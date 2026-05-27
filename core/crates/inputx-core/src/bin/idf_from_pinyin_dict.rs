@@ -20,19 +20,25 @@ use inputx_dict_format::{EngineKind, EntryFlags, IdfBuilder};
 use inputx_pinyin::PinyinDict;
 use inputx_scoring::{log_prior_from_freq, MatchType};
 
-/// Mirror of `inputx_core::composite::prior_correction::PRIOR_CORRECTIONS`.
-/// Inlined here so this binary doesn't reach into a `pub(crate)`-deep
-/// composite path. The composite module retains the same table for the
-/// live runtime callsite in `composite/merge.rs` until v1.4.7 sub-phase
-/// A5 drops both (engine cutover stops going through merge.rs's
-/// `correct` lambda, and prior_correction.rs deletes — corrections then
-/// live exclusively as Q4 log-prior boosts baked into .idf at this
-/// snapshot binary's build time).
+/// User-curated polish-log Q4 log-prior boosts baked into the snapshot
+/// at build time (v1.4.7 sub-phase A5). The composite-runtime
+/// `prior_correction.rs` + `merge.rs::correct` lambda retired at the
+/// same step; corrections now live exclusively in `log_prior_q4` here,
+/// applied uniformly at IDF read time by the cement IdfReader path.
 ///
-/// Keep in lockstep with `composite/prior_correction.rs` until that
-/// file deletes. v1.4.7 A3 schema: Q4 log-additive boost (i32), not
-/// f64 multiplier — see the composite module's source for per-entry
-/// polish-log citations + calibration rationale.
+/// Boost rationale + per-entry polish-log citations: see the v1.4.7
+/// A3 commit (787b666) message and the now-deleted
+/// `composite/prior_correction.rs`. Calibration: each boost is the
+/// Q4 amount needed to clear the canon competitor under the Q4-log
+/// additive sort key (`score_q4 = log_prior + log_likelihood`) plus a
+/// small safety margin. Q4=16, so +11 ≈ ×2.0 linear, +17 ≈ ×2.9.
+///
+/// Keep entries sorted alphabetically by Chinese (for human review).
+/// New entries MUST add a regression test in `dispatch.rs` /
+/// `session.rs` pinning the expected ranking and cite the user
+/// polish-log case in the same commit. Prefer small boosts (≤17);
+/// anything larger suggests the corpus is fundamentally wrong about
+/// the word and the dict-pipeline T0 work should address it instead.
 const PRIOR_CORRECTIONS: &[(&str, i32)] = &[
     ("继续", 17),
     ("设计", 11),
@@ -101,21 +107,26 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     }
 
     let mut builder = IdfBuilder::new(EngineKind::Pinyin);
+    let mut baked_count = 0usize;
     for (code, word, raw_freq) in &entries {
-        // v1.4.6 sub-phase B1 (REVERTED at C3 step 2): an earlier
-        // attempt baked prior_correction multipliers into log_prior at
-        // snapshot time so the merge.rs `correct` lambda could be
-        // deleted. Math non-equivalence with the legacy formula
-        // `score = (PINYIN_PHRASE_BASE + freq) × correction` (base
-        // is also multiplied, not just freq) made the absorbed .idf
-        // + dropped lambda combination break baseline at 继续 / 积蓄
-        // ordering. Reverted: .idf carries un-corrected raw freq,
-        // merge.rs keeps the correct lambda. True correction deletion
-        // happens at v1.4.7+ when sort key moves to Q4-log additive
-        // (correction is additive in log space, no base-vs-freq
-        // asymmetry).
-        let _ = (word, correction_for); // keep symbols used while file lives.
-        let log_prior_q4 = log_prior_from_freq(*raw_freq);
+        // v1.4.7 sub-phase A5: prior_correction's Q4 boost is baked
+        // into `log_prior_q4` at snapshot build time. The merge.rs
+        // `correct` lambda + composite/prior_correction.rs retire in
+        // the same step — corrections live in the .idf, applied
+        // uniformly via the cement IdfReader path.
+        //
+        // Math safety under the Q4-log additive sort key: the
+        // correction is now additive in the same log space as the
+        // base prior (no base-vs-freq asymmetry that the v1.4.6 B1
+        // attempt tripped over). raw_freq is left UNBOOSTED — it's
+        // the lossless tiebreaker for same-bucket entries, not part
+        // of the prior signal; boosting it would corrupt the
+        // tiebreaker semantics.
+        let boost = correction_for(word);
+        if boost != 0 {
+            baked_count += 1;
+        }
+        let log_prior_q4 = log_prior_from_freq(*raw_freq) + boost;
         let log_prior_i16 = clamp_to_i16(log_prior_q4);
         // raw_freq saturates into u32 — corpus frequencies don't
         // reasonably exceed 2^32-1; clamp defensively in case a future
@@ -130,6 +141,10 @@ fn run(out_path: &Path) -> std::io::Result<()> {
             EntryFlags::default(),
         );
     }
+    eprintln!(
+        "[idf-from-pinyin-dict] baked prior_correction Q4 boosts into {baked_count} entries (table size: {})",
+        PRIOR_CORRECTIONS.len()
+    );
 
     eprintln!(
         "[idf-from-pinyin-dict] writing {} -> {}",
