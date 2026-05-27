@@ -350,7 +350,7 @@ mod tests {
     /// JapaneseOnly mode — user exclusively typing Japanese. Pinyin
     /// and wubi engines stay dormant. Top candidates must be JP
     /// (kanji / kana). Smoke coverage only — JP scoring details
-    /// covered by inputx-jp's own test suite.
+    /// covered by inputx-nihongo's own test suite.
     #[test]
     fn japanese_only_mode_produces_jp_candidates() {
         let cases: &[&str] = &[

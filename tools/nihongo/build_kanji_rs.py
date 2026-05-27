@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate `core/crates/inputx-jp/src/kanji.rs` from
+"""Generate `core/crates/inputx-nihongo/src/kanji.rs` from
 `tools/scoring/data/supplemental/jp_kanji_v1.tsv`.
 
 Input TSV:  kanji<TAB>readings<TAB>freq
@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 TSV = ROOT / "tools/scoring/data/supplemental/jp_kanji_v1.tsv"
-OUT = ROOT / "core/crates/inputx-jp/src/kanji.rs"
+OUT = ROOT / "core/crates/inputx-nihongo/src/kanji.rs"
 
 
 def is_cjk(c: str) -> bool:

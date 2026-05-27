@@ -757,7 +757,7 @@ mod tests {
         // (250k), beating mechanical kana (240k/200k).
         //
         // Two-part fix:
-        //   1. inputx-jp/src/romaji.rs: full foreign-loanword syllable table
+        //   1. inputx-nihongo/src/romaji.rs: full foreign-loanword syllable table
         //      (fa-row, va-row, wi/we, je, tsa-row, che/she, th*/dh*/tw*/dw*,
         //      kw*/gw*, fy*/vy*, wha-row, xa-row + la-alias).
         //   2. pinyin_adapter.rs Path 5: quality gate — when buffer.len() /
