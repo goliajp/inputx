@@ -1,0 +1,38 @@
+[package]
+name = "inputx-dict-format"
+version = "1.4.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+description = "IDFv1 binary dict format for IME engines — mmap zero-copy reader + deterministic writer. Probability-native (log_prior in Q4 fixed-point), versioned, sha256-verified. Shared format across pinyin / wubi / Japanese / Korean / Vietnamese / any code-to-word IME."
+authors = ["GOLIA K.K."]
+repository = "https://github.com/goliajp/inputx"
+homepage = "https://github.com/goliajp/inputx"
+keywords = ["ime", "dict", "mmap", "binary-format", "lookup"]
+categories = ["data-structures", "encoding", "parser-implementations"]
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+default = ["std"]
+# Without `std`, only the codec types + IdfReader compile (no_std + alloc
+# + memmap-via-caller). The IdfBuilder needs std for file I/O and is
+# behind the `std` feature.
+std = []
+
+[dependencies]
+# FST-backed code → entry_index index + reverse word index. Same crate
+# inputx-fsa v1.3 — already publish-ready since v1.4.1 polish.
+inputx-fsa = { path = "../inputx-fsa", version = "1.3" }
+# Probability-native scoring schema: MatchType + Q4 const reuse so the
+# IDFv1 entry.match_type byte matches the runtime enum.
+inputx-scoring = { path = "../inputx-scoring", version = "1.4" }
+# Zero-copy mmap loader. Production-grade, used by ripgrep et al.
+memmap2 = "0.9"
+# Header sha256_of_payload for build-reproducibility verification.
+sha2 = "0.10"
+
+[dev-dependencies]
+tempfile = "3"
