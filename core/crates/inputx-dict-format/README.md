@@ -36,8 +36,14 @@ stay a single implementation. Per-engine semantics ride in the
   8-byte alignment. Entries refer to byte offsets (u24).
 - **Entry table** — fixed 16 B per entry: `word_offset` (u24),
   `code_offset` (u24), `log_prior` (i16 Q4), `match_type` (u8 →
-  `inputx_scoring::MatchType` variant), `flags` (u8), `bigram_offset`
-  (u32, 0 if absent), 2 B reserved.
+  `inputx_scoring::MatchType` variant), `flags` (u8), `raw_freq`
+  (u32 — pre-quantization corpus freq, lossless tiebreaker for entries
+  that land in the same Q4 `log_prior` bucket; v1.4.7 schema bump
+  repurposed the previously-unused `bigram_offset` slot), 2 B reserved.
+- **EntryFlags** — `BLACKLIST` (bit 0), `CURATED_OVERRIDE` (bit 1),
+  `USER_ADDED` (bit 2), plus bits 5-7 `ENGINE_TAG_MASK` for an engine-
+  specific 3-bit payload (used by `EngineKind::Wubi` to carry the
+  `Layer` enum index; zero for other engines).
 - **FST code / word indexes** — `inputx_fsa::Fsa` blobs (code →
   entry_index, word → entry_index). v1.4.3 ships with empty indexes;
   reader falls back to a linear scan over the entry table. v1.4.6+

@@ -35,7 +35,7 @@ embedded.
 ```toml
 # Cargo.toml
 [dependencies]
-inputx-wubi = "1.0"
+inputx-wubi = "1.4"
 ```
 
 ```rust
