@@ -13,13 +13,31 @@ use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 
+use inputx_ngram::NgramTable;
 use inputx_pinyin::PinyinEngine;
+use inputx_pinyin_cement::{legacy_bigram_boost_from_ngm, EMBEDDED_BIGRAMS_NGM};
 
 use crate::rules::builtin::RepeatedLetterExpansion;
 use crate::rules::candidate::{CandidateRule, CandidateRuleEngine, RuleCandidate};
 use crate::rules::{Context, ContextFlags};
 use super::mode::Mode;
 use super::scoring;
+
+/// Process-global NgramTable parsed once from the embedded bigrams.ngm
+/// blob in `inputx-pinyin-cement`. Composite hot path uses this in
+/// place of `inputx_pinyin::PinyinDict::bigram_boost` (v1.4.6 sub-phase
+/// C2 cutover) — same Q4 log-prob data source, same legacy-units
+/// bonus formula via `legacy_bigram_boost_from_ngm`. Lazy-init
+/// because parsing the 595 KB blob + walking its sha256 trailer is
+/// ~1 ms and we don't want to pay that on every PinyinAdapter::new
+/// (a fresh adapter is created on every iOS Inputx session).
+fn embedded_bigrams_table() -> &'static NgramTable<&'static [u8]> {
+    static TABLE: OnceLock<NgramTable<&'static [u8]>> = OnceLock::new();
+    TABLE.get_or_init(|| {
+        NgramTable::from_bytes(EMBEDDED_BIGRAMS_NGM)
+            .expect("inputx-pinyin-cement EMBEDDED_BIGRAMS_NGM must be a valid NGMv1 blob")
+    })
+}
 
 /// Lazily-built CandidateRuleEngine carrying v3.0.2-migrated rules.
 /// Lives behind OnceLock so the priority sort runs once per process.
@@ -384,7 +402,24 @@ impl PinyinAdapter {
                     let s = NON_EXACT_FLOOR * 0.99f64.powi(i as i32);
                     (s, Some(synth(s, inputx_scoring::MatchType::Exact)))
                 };
-            let bigram_bonus = dict.bigram_boost(prev_committed, w);
+            // v1.4.6 sub-phase C2 cutover: source the bigram bonus
+            // from the NGMv1 cement table (data/private-dict/v0.0.1/
+            // pinyin/bigrams.ngm, embedded via inputx-pinyin-cement)
+            // instead of the facade's PinyinDict::bigram_boost (which
+            // reads inputx-pinyin's bundled bigrams.fsa). Same Q4
+            // log-prob source under the hood (PinyinDict::iter_bigrams
+            // generates .ngm by summing inter+intra FSTs); cement's
+            // `legacy_bigram_boost_from_ngm` inverts Q4 log → est count
+            // → re-applies the v1.3 calibration formula so the legacy
+            // f64 sort key sees comparable values during the cutover
+            // window. Sort-key proper cutover (legacy f64 → Q4 log
+            // additive) follows in sub-phase C3.
+            let _ = dict; // dict still in scope for path 5 below; ack the unused legacy reader.
+            let bigram_bonus = legacy_bigram_boost_from_ngm(
+                embedded_bigrams_table(),
+                prev_committed,
+                w,
+            );
             scored.push((w.clone(), base + bigram_bonus, components));
         }
         scored
@@ -606,16 +641,29 @@ impl PinyinAdapter {
             // the bigram table (corpus / private-dict work) OR doing
             // composition-level pruning against an LM (v2+ scope, see
             // PLAN-private-dict-snapshot.md vector ideas).
+            // v1.4.6 sub-phase C2: source bigram-support check from
+            // the NGMv1 cement table to match the new hot-path source.
+            // Using legacy_bigram_boost_from_ngm > 0.0 is the same
+            // "does the pair exist with non-zero count" test as the
+            // legacy dict.bigram_boost > 0.0; both are zero iff the
+            // (prev, next) key is absent from the underlying FST.
+            let ngm_table = embedded_bigrams_table();
             let bigrams_ok = match chain.len() {
                 0 | 1 => true,
                 2 => {
-                    let dict = self.engine.dict();
-                    dict.bigram_boost(Some(chain[0].as_str()), &chain[1]) > 0.0
+                    legacy_bigram_boost_from_ngm(
+                        ngm_table,
+                        Some(chain[0].as_str()),
+                        &chain[1],
+                    ) > 0.0
                 }
                 _ => {
-                    let dict = self.engine.dict();
                     (1..chain.len()).any(|i| {
-                        dict.bigram_boost(Some(chain[i - 1].as_str()), &chain[i]) > 0.0
+                        legacy_bigram_boost_from_ngm(
+                            ngm_table,
+                            Some(chain[i - 1].as_str()),
+                            &chain[i],
+                        ) > 0.0
                     })
                 }
             };
