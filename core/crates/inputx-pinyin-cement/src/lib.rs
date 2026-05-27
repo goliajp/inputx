@@ -28,4 +28,14 @@
 
 pub mod ngram;
 
-pub use ngram::bigram_boost_from_ngm;
+pub use ngram::{bigram_boost_from_ngm, legacy_bigram_boost_from_ngm};
+
+/// Embedded NGMv1 bigram blob for the pinyin engine, sourced from
+/// `data/private-dict/v0.0.1/pinyin/bigrams.ngm` at compile time.
+///
+/// Composite hot path (v1.4.6 sub-phase C2 onwards) loads this once
+/// via `inputx_ngram::NgramTable::from_bytes(EMBEDDED_BIGRAMS_NGM)` to
+/// replace the per-call `PinyinDict::bigram_boost` lookup against the
+/// facade's bundled `bigrams.fsa`.
+pub const EMBEDDED_BIGRAMS_NGM: &[u8] =
+    include_bytes!("../../../../data/private-dict/v0.0.1/pinyin/bigrams.ngm");

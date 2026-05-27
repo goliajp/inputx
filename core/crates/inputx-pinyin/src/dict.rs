@@ -769,27 +769,34 @@ impl PinyinDict {
     /// next_bytes` → `count u64`. We parse the key shape back into a
     /// `(prev, next)` pair on each emit.
     pub fn iter_bigrams(&self) -> Vec<(String, String, u64)> {
-        let Some(bigrams) = self.bigrams.as_ref() else {
-            return Vec::new();
-        };
-        let mut out: Vec<(String, String, u64)> = Vec::new();
-        bigrams.prefix_for_each(b"", |key, count| {
-            // Split on the first \0; rest is next.
-            let Some(sep) = key.iter().position(|&b| b == 0) else {
-                return;
-            };
-            let prev = &key[..sep];
-            let next = &key[sep + 1..];
-            if next.is_empty() {
-                return;
-            }
-            if let (Ok(p), Ok(n)) =
-                (core::str::from_utf8(prev), core::str::from_utf8(next))
-            {
-                out.push((p.to_string(), n.to_string(), count));
-            }
-        });
-        out
+        // v1.4.4 (initial): only iterated `self.bigrams.as_ref()` (the
+        // inter FST). v1.4.6 sub-phase C2 widened to sum inter + intra,
+        // mirroring the live `bigram_boost` (which also sums both —
+        // intra captures within-phrase co-occurrences like (你, 好) from
+        // the curated 你好 phrase entry, inter captures cross-sentence
+        // adjacency). Without summing, snapshot consumers (the NGMv1
+        // .ngm file in particular) would under-count and break the
+        // baseline fixture invariant during the v1.4.6 engine cutover.
+        use std::collections::HashMap;
+        let mut counts: HashMap<(String, String), u64> = HashMap::new();
+        for src in [self.bigrams.as_ref(), self.bigrams_intra.as_ref()].iter().flatten() {
+            src.prefix_for_each(b"", |key, count| {
+                let Some(sep) = key.iter().position(|&b| b == 0) else {
+                    return;
+                };
+                let prev = &key[..sep];
+                let next = &key[sep + 1..];
+                if next.is_empty() {
+                    return;
+                }
+                if let (Ok(p), Ok(n)) =
+                    (core::str::from_utf8(prev), core::str::from_utf8(next))
+                {
+                    *counts.entry((p.to_string(), n.to_string())).or_insert(0) += count;
+                }
+            });
+        }
+        counts.into_iter().map(|((p, n), c)| (p, n, c)).collect()
     }
 
     /// Predict the most likely next words given a just-committed `prev`
