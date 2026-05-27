@@ -17,6 +17,9 @@ members = [
     "crates/inputx-wubi-cement",
     "crates/inputx-pinyin-cement",
     "crates/inputx-nihongo-cement",
+    "crates/inputx-pinyin-data-core",
+    "crates/inputx-pinyin-data-bigrams",
+    "crates/inputx-pinyin-data-trigrams",
 ]
 
 [workspace.package]
