@@ -16,7 +16,7 @@
 //! - [`jianma`] — 一级简码 lookup.
 //!
 //! ```ignore
-//! use wubi::{encode, embedded_seed};
+//! use inputx_wubi::{encode, embedded_seed};
 //! for (ch, decomp) in embedded_seed() {
 //!     let code = encode(&decomp).unwrap();
 //!     println!("{ch}\t{code}");

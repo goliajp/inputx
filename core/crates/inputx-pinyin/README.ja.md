@@ -56,7 +56,7 @@ npm install @goliapkg/pinyin
 ### Rust
 
 ```rust
-use golia_pinyin::{PinyinEngine, PinyinDict};
+use inputx_pinyin::{PinyinEngine, PinyinDict};
 
 let eng = PinyinEngine::new();
 let dict = eng.dict();
@@ -76,10 +76,6 @@ dict.prefix_for_each("zho", |pinyin, word, freq| {
 // 3 回選ばれると、その input の L0 ピンに自動昇格する。
 dict.record_pick("zhongguo", "中国");
 ```
-
-> crates.io のパッケージ名は `inputx-pinyin` だが、lib 名は
-> `golia_pinyin` のままなので、コード中では `use golia_pinyin::...`
-> でそのままインポートできる。
 
 ## 性能
 

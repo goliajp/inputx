@@ -49,9 +49,9 @@ eng.importL0(JSON.parse(localStorage.getItem("wubi-l0") ?? "{}"));
 
 ## 含まれるもの
 
-- `wubi_wasm_bg.wasm` — FST + ランキング + L0 ロジック (約 3 MB)
-- `wubi_wasm.js` — ES module ラッパー
-- `wubi_wasm.d.ts` — TypeScript 型定義
+- `inputx_wubi_wasm_bg.wasm` — FST + ランキング + L0 ロジック (約 3 MB)
+- `inputx_wubi_wasm.js` — ES module ラッパー
+- `inputx_wubi_wasm.d.ts` — TypeScript 型定義
 - 135,822 件の辞書エントリ (字根 / 简码 / 词组 / 自動分解 CJK)
 
 ## ソースからビルド

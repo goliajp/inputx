@@ -14,7 +14,6 @@ keywords = ["wubi", "ime", "chinese", "input-method", "fst"]
 categories = ["text-processing", "internationalization", "encoding"]
 
 [lib]
-name = "wubi"
 crate-type = ["rlib", "cdylib", "staticlib"]
 
 [features]

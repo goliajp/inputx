@@ -802,11 +802,11 @@ impl CompositeEngine {
 
     /// Snapshot the pinyin sub-engine's L0 layer, or `None` if pinyin is
     /// dormant (WubiOnly mode and pinyin was never used).
-    pub fn pinyin_export_l0(&self) -> Option<golia_pinyin::L0Snapshot> {
+    pub fn pinyin_export_l0(&self) -> Option<inputx_pinyin::L0Snapshot> {
         Some(self.pinyin.export_l0())
     }
 
-    pub fn pinyin_import_l0(&self, snap: golia_pinyin::L0Snapshot) -> usize {
+    pub fn pinyin_import_l0(&self, snap: inputx_pinyin::L0Snapshot) -> usize {
         self.pinyin.import_l0(snap)
     }
 }

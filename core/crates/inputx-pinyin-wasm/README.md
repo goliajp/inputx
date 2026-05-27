@@ -48,9 +48,9 @@ eng.importL0(JSON.parse(localStorage.getItem("pinyin-l0") ?? "{}"));
 
 ## What ships
 
-- `golia_pinyin_wasm_bg.wasm` — engine + bootstrap FST (~100 KB)
-- `golia_pinyin_wasm.js` — ES-module wrapper
-- `golia_pinyin_wasm.d.ts` — TypeScript types
+- `inputx_pinyin_wasm_bg.wasm` — engine + bootstrap FST (~100 KB)
+- `inputx_pinyin_wasm.js` — ES-module wrapper
+- `inputx_pinyin_wasm.d.ts` — TypeScript types
 
 For the full 414K-entry dict (9 MB), rebuild without the
 `bootstrap_only` feature — see Build below.

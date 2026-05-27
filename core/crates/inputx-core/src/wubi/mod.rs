@@ -10,5 +10,5 @@ pub use table::{
     export_l0, import_l0, is_displayable, lookup_with_scores, set_show_rare, show_rare, warmup,
 };
 /// Re-export of the wubi snapshot type so hosts can build/destructure it
-/// without depending on the `wubi` crate directly.
-pub use wubi::L0Snapshot;
+/// without depending on the `inputx-wubi` crate directly.
+pub use inputx_wubi::L0Snapshot;

@@ -1,4 +1,4 @@
-//! Build-time codegen for golia-pinyin:
+//! Build-time codegen for inputx-pinyin:
 //! - `bootstrap.fst` — tiny FST built from `data/bootstrap.tsv` (~125
 //!   hand-curated entries, MIT-clean). Available behind the
 //!   `bootstrap_only` feature for fast tests / minimal builds.

@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use proptest::prelude::*;
 use proptest::sample;
 
-use golia_pinyin::{L0Snapshot, PROMOTE_THRESHOLD, PinyinDict};
+use inputx_pinyin::{L0Snapshot, PROMOTE_THRESHOLD, PinyinDict};
 
 /// A curated set of (pinyin, word) pairs known to exist in the embedded
 /// dictionary AND known to have ≥ 2 candidates per pinyin (gives

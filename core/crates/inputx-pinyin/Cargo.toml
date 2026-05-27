@@ -30,7 +30,6 @@ exclude = [
 ]
 
 [lib]
-name = "golia_pinyin"
 crate-type = ["rlib", "cdylib", "staticlib"]
 
 [dependencies]

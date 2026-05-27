@@ -47,7 +47,7 @@ npm install @goliapkg/wubi
 ### Rust
 
 ```rust
-use wubi::WubiDict;
+use inputx_wubi::WubiDict;
 
 let dict = WubiDict::embedded();
 
@@ -58,9 +58,6 @@ let candidates = dict.lookup("khlg");
 // 3 回選ばれると、自動的にその code の L0 デフォルトとしてピンされる。
 dict.record_pick("khlg", "跑车");
 ```
-
-> crates.io のパッケージ名は `inputx-wubi` だが、lib 名は `wubi` の
-> ままなので、コード中では `use wubi::...` でそのままインポートできる。
 
 ### JavaScript
 

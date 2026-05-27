@@ -94,7 +94,7 @@ impl WubiEngine {
     /// notably demoting low-confidence Auto / Phrase entries at short
     /// pinyin-shaped buffers without touching high-confidence
     /// Jianma1/2/3 + Zigen simcodes (the 伙-rule).
-    pub fn candidates_with_layer(&self) -> Vec<(String, f64, wubi::Layer)> {
+    pub fn candidates_with_layer(&self) -> Vec<(String, f64, inputx_wubi::Layer)> {
         if self.buffer.is_empty() {
             return Vec::new();
         }

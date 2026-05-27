@@ -180,8 +180,8 @@ pub fn dispatch(
             const CHAR_PROMINENT_FLOOR: u64 = 20_000;
             const RARE_CHAR_DEMOTE: f64 = 0.3;
             let pinyin_dict = pinyin.engine().dict();
-            let char_demote = |word: &str, layer: wubi::Layer| -> f64 {
-                if !matches!(layer, wubi::Layer::Jianma2 | wubi::Layer::Jianma3) {
+            let char_demote = |word: &str, layer: inputx_wubi::Layer| -> f64 {
+                if !matches!(layer, inputx_wubi::Layer::Jianma2 | inputx_wubi::Layer::Jianma3) {
                     return 1.0;
                 }
                 let mut chars = word.chars();
@@ -195,8 +195,8 @@ pub fn dispatch(
                 .into_iter()
                 .map(|(w, score, layer)| {
                     let layer_demote = match layer {
-                        wubi::Layer::Auto => auto_demote,
-                        wubi::Layer::Phrase => phrase_mult,
+                        inputx_wubi::Layer::Auto => auto_demote,
+                        inputx_wubi::Layer::Phrase => phrase_mult,
                         _ => 1.0,
                     };
                     let cd = char_demote(&w, layer);
@@ -1152,7 +1152,7 @@ mod tests {
         wubi_typed(&mut wubi, b"wo");
         let raw = wubi.candidates_with_layer();
         let jianma2_count = raw.iter()
-            .filter(|(_, _, l)| matches!(l, ::wubi::Layer::Jianma2))
+            .filter(|(_, _, l)| matches!(l, ::inputx_wubi::Layer::Jianma2))
             .count();
         // We don't enforce that Jianma2 entries EXIST for any specific
         // buffer (data-dependent); just enforce they survive demote.
@@ -1171,7 +1171,7 @@ mod tests {
             assert!(matches!(top_source, Some(Source::Wubi) | Some(Source::Pinyin)),
                 "expected wubi or pinyin source at top; got {top_source:?}");
             let jianma2_words: Vec<&str> = raw.iter()
-                .filter(|(_, _, l)| matches!(l, ::wubi::Layer::Jianma2))
+                .filter(|(_, _, l)| matches!(l, ::inputx_wubi::Layer::Jianma2))
                 .map(|(w, _, _)| w.as_str()).collect();
             for jm2 in &jianma2_words {
                 assert!(cands.iter().any(|c| c.word == *jm2),

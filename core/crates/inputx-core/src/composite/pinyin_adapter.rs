@@ -1,11 +1,11 @@
-//! `PinyinAdapter` — a inputx-core-conventions wrapper around `golia_pinyin`.
+//! `PinyinAdapter` — a inputx-core-conventions wrapper around `inputx_pinyin`.
 //!
 //! `WubiEngine` is letter-by-letter with an internal buffer (max 4 chars);
 //! `PinyinAdapter` mirrors that surface for pinyin (variable-length input,
 //! no auto-commit). Composite session drives both with the same lifecycle:
 //! `handle_letter` / `backspace` / `escape` / `candidates` / `commit_index`.
 //!
-//! Internally it skips `golia_pinyin::Session` and calls `PinyinDict`
+//! Internally it skips `inputx_pinyin::Session` and calls `PinyinDict`
 //! directly — the dict's `lookup_into` is allocation-friendly for hot
 //! per-keystroke refresh.
 
@@ -13,7 +13,7 @@ use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 
-use golia_pinyin::PinyinEngine;
+use inputx_pinyin::PinyinEngine;
 
 use crate::rules::builtin::RepeatedLetterExpansion;
 use crate::rules::candidate::{CandidateRule, CandidateRuleEngine, RuleCandidate};
@@ -406,7 +406,7 @@ impl PinyinAdapter {
         for trim in 1..=4.min(self.buffer.len() - 1) {
             let shorter = &self.buffer[..self.buffer.len() - trim];
             let suffix = &self.buffer[self.buffer.len() - trim..];
-            if !suffix_could_start_syllable(suffix, golia_pinyin::is_valid_syllable) {
+            if !suffix_could_start_syllable(suffix, inputx_pinyin::is_valid_syllable) {
                 continue;
             }
             if self.engine.dict().prefix_exists(shorter) {
@@ -499,12 +499,12 @@ impl PinyinAdapter {
 
     /// L0 snapshot (item 45 dual-engine export will combine this with
     /// the wubi snapshot per-engine).
-    pub fn export_l0(&self) -> golia_pinyin::L0Snapshot {
+    pub fn export_l0(&self) -> inputx_pinyin::L0Snapshot {
         self.engine.dict().export_l0()
     }
 
     /// L0 restore. Returns count of accepted pins.
-    pub fn import_l0(&self, snap: golia_pinyin::L0Snapshot) -> usize {
+    pub fn import_l0(&self, snap: inputx_pinyin::L0Snapshot) -> usize {
         self.engine.dict().import_l0(snap)
     }
 
@@ -1232,7 +1232,7 @@ fn compute_initials(pinyin: &str, expected_n: usize) -> Option<String> {
         let max_end = (i + 6).min(bytes.len());
         for end in (i + 1..=max_end).rev() {
             let cand = std::str::from_utf8(&bytes[i..end]).ok()?;
-            if golia_pinyin::is_valid_syllable(cand) {
+            if inputx_pinyin::is_valid_syllable(cand) {
                 found = Some(end);
                 break;
             }
