@@ -26,31 +26,90 @@ impl Source {
     }
 }
 
-/// Two-axis decomposition of a candidate's score under the probability
-/// framing (`P(W|i) = P(i|W) · P(W)`):
+/// Per-candidate score decomposition. Carries two parallel views:
 ///
-///   `score == base + prior · likelihood`
+/// 1. **v1.3 (base, prior, likelihood)** — the original linear-space
+///    decomposition for the `predict_score` chain. `score == base +
+///    prior · likelihood` holds bit-for-bit when filled. Populated by
+///    candidates that flow through `scoring::predict_score` (CP-A JP /
+///    CP-B pinyin / CP-C wubi prediction). Exact-dict / Viterbi-
+///    composed / fuzzy candidates may leave these zeroed (they have no
+///    natural (base, prior, likelihood) split pre-v1.4 architecture).
 ///
-/// Where:
-/// - `base` is the match-type floor (`LIKELIHOOD_*_BASE`).
-/// - `prior` is the P(W) freq contribution (`freq · PRIOR_FREQ_MULT_*`).
-/// - `likelihood` is the P(i|W) match-confidence factor (`proximity^K`
-///   for prefix-prediction; 1.0 for exact full-buffer matches when
-///   recorded).
+/// 2. **v1.4.2 (log_prior_q4, log_likelihood_q4, match_type)** — the
+///    probability-native log-space schema per `inputx-scoring`.
+///    `log_prior_q4 + log_likelihood_q4 = score_q4` (Bayesian
+///    `P(W|i) ∝ P(i|W) · P(W)` rendered in log space). Q4 fixed-point
+///    (`inputx_scoring::Q4 = 16`). Populated by ALL fill points in
+///    composite/{dispatch,pinyin_adapter,japanese_adapter}.rs (the
+///    v1.4.2 WU-γ retrofit, per PLAN.md L4 trigger b).
 ///
-/// Currently populated only by candidates that flow through
-/// `scoring::predict_score` (CP-A JP / CP-B pinyin / CP-C wubi
-/// prediction). Exact-dict / Viterbi-composed / fuzzy / fallback
-/// candidates leave `Candidate.components` as `None` — their scoring
-/// is still additive but the (base, prior, likelihood) split isn't
-/// uniformly meaningful pre-v1.4 architecture upgrade. `inputx-probe`
-/// surfaces this so the dev UI can show the decomposition where it
-/// exists and the raw score where it doesn't.
+/// The legacy f64 `score` in [`Scored`] stays the merge sort key for
+/// v1.4.2 — the (log_prior_q4, log_likelihood_q4) pair travels as
+/// metadata that the probe + future cement layer can consume. v1.4.5+
+/// flips sort key to `score_q4` (additive in log space).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ScoreComponents {
+    // v1.3 linear-space decomposition
     pub base: f64,
     pub prior: f64,
     pub likelihood: f64,
+    // v1.4.2 WU-γ log-space three-axis schema (inputx-scoring)
+    pub log_prior_q4: i32,
+    pub log_likelihood_q4: i32,
+    pub match_type: inputx_scoring::MatchType,
+}
+
+impl ScoreComponents {
+    /// Build a v1.4.2 three-axis-only ScoreComponents (v1.3 axes
+    /// zeroed). Used by fill points that don't have a natural (base,
+    /// prior, likelihood) chain but DO have a Bayesian (log_prior,
+    /// log_likelihood, match_type) classification — exact dict hits,
+    /// Viterbi compositions, fuzzy hits, JP per-kind bases.
+    pub fn three_axis(
+        log_prior_q4: i32,
+        log_likelihood_q4: i32,
+        match_type: inputx_scoring::MatchType,
+    ) -> Self {
+        Self {
+            base: 0.0,
+            prior: 0.0,
+            likelihood: 0.0,
+            log_prior_q4,
+            log_likelihood_q4,
+            match_type,
+        }
+    }
+
+    /// Build a v1.3 + v1.4.2 ScoreComponents from a (base, prior,
+    /// likelihood) linear chain plus the matching three-axis log-space
+    /// derivation. Used by the `predict_score_with_components` callers
+    /// — they have both views naturally because the chain is already
+    /// `base + (freq · freq_mult) · proximity^K` in linear space.
+    pub fn from_predict(
+        base: f64,
+        prior: f64,
+        likelihood: f64,
+        log_prior_q4: i32,
+        log_likelihood_q4: i32,
+        match_type: inputx_scoring::MatchType,
+    ) -> Self {
+        Self {
+            base,
+            prior,
+            likelihood,
+            log_prior_q4,
+            log_likelihood_q4,
+            match_type,
+        }
+    }
+
+    /// Q4 log-space additive sort key (v1.4.5+ cement-layer cutover
+    /// target). Returns `log_prior_q4 + log_likelihood_q4` — the
+    /// Bayesian `score(W|i)` under the inputx-scoring schema.
+    pub fn score_q4(&self) -> i32 {
+        self.log_prior_q4.saturating_add(self.log_likelihood_q4)
+    }
 }
 
 /// One candidate with its source engine + unified score. The score is
