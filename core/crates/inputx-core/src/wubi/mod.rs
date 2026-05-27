@@ -1,14 +1,14 @@
-//! Wubi 86 engine.
+//! Backwards-compat re-export shim for the v1.4.5 wubi cement carve-out.
+//!
+//! All wubi engine code (WubiEngine state machine, table lookups,
+//! L0 export/import, auto-commit policy) now lives in the dedicated
+//! `inputx-wubi-cement` crate. This shim re-exports the same surface
+//! so `inputx_core::wubi::*` continues to work for downstream consumers
+//! (Session, composite engine, baseline tests) without touching every
+//! callsite during the v1.4.5 mechanical carve.
+//!
+//! Direct consumers may import from `inputx_wubi_cement` instead; the
+//! shim stays for one cycle while we audit downstreams, then deletes
+//! in v1.4.6 cement cutover.
 
-mod engine;
-mod table;
-
-pub use engine::{AutoCommitPolicy, WubiEngine};
-/// L0 persistence — re-exported for host wiring (Session also exposes them
-/// as instance methods for cleaner call sites).
-pub use table::{
-    export_l0, import_l0, is_displayable, lookup_with_scores, set_show_rare, show_rare, warmup,
-};
-/// Re-export of the wubi snapshot type so hosts can build/destructure it
-/// without depending on the `inputx-wubi` crate directly.
-pub use inputx_wubi::L0Snapshot;
+pub use inputx_wubi_cement::*;
