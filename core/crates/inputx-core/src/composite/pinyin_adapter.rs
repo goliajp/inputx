@@ -16,6 +16,13 @@ use std::sync::{Arc, OnceLock};
 use inputx_ngram::NgramTable;
 use inputx_pinyin::PinyinEngine;
 use inputx_pinyin_cement::{legacy_bigram_boost_from_ngm, EMBEDDED_BIGRAMS_NGM};
+// v1.4.6 sub-phase C3 prepared infrastructure: estimated_freq_from_log
+// _prior + EMBEDDED_PINYIN_IDF + IdfReader wiring were attempted in C3
+// step 2 but reverted (~0.5% Q4 round-trip drift breaks strict
+// baseline diff zero). The v1.4.7+ sort-key cutover (Q4-log additive
+// sort, no f64 score drift concern) can re-import them from
+// inputx_pinyin_cement::{estimated_freq_from_log_prior,
+// EMBEDDED_PINYIN_IDF} + inputx_dict_format::IdfReader.
 
 use crate::rules::builtin::RepeatedLetterExpansion;
 use crate::rules::candidate::{CandidateRule, CandidateRuleEngine, RuleCandidate};
@@ -38,6 +45,13 @@ fn embedded_bigrams_table() -> &'static NgramTable<&'static [u8]> {
             .expect("inputx-pinyin-cement EMBEDDED_BIGRAMS_NGM must be a valid NGMv1 blob")
     })
 }
+
+// v1.4.6 sub-phase C3 step 2 prepared but REVERTED: helpers
+// embedded_pinyin_idf() / PINYIN_PHRASE_BASE / L0_PIN_MULTIPLIER were
+// staged here for the .idf-sourced lookup_with_scores_into swap.
+// Round-trip Q4 drift breaks the strict diff-zero baseline gate;
+// v1.4.7+ sort-key cutover (Q4-log additive) will re-stage them.
+// Removed to keep the live code surface clean.
 
 /// Lazily-built CandidateRuleEngine carrying v3.0.2-migrated rules.
 /// Lives behind OnceLock so the priority sort runs once per process.
@@ -278,6 +292,16 @@ impl PinyinAdapter {
         // floor so the cross-engine merge still ranks them.
         let mut scored: Vec<super::merge::Scored> =
             Vec::with_capacity(self.candidates.len());
+        // v1.4.6 sub-phase C3 step 2 (REVERTED 2026-05-27, see commit
+        // message): an attempt swapped this line for IdfReader-driven
+        // exact-match scores. Round-trip Q4 inversion introduces ~0.5%
+        // score drift per candidate; while ranking is preserved across
+        // the 69-entry baseline, the strict "diff zero on score" gate
+        // breaks (jixu top1 949304 → 953758, etc.). Reverting to legacy
+        // PinyinDict::lookup_with_scores_into. True C3 cutover requires
+        // the v1.4.7+ sort-key migration to Q4-log additive (then the
+        // score field IS the log_prior + log_likelihood sum and round-
+        // trip drift only matters at the rank-flip threshold).
         let mut exact_scored: Vec<(String, f64)> = Vec::new();
         self.engine.dict().lookup_with_scores_into(&self.buffer, &mut exact_scored);
         let exact_map: std::collections::HashMap<String, f64> =
