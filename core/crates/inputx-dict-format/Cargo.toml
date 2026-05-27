@@ -25,7 +25,7 @@ std = []
 [dependencies]
 # FST-backed code → entry_index index + reverse word index. Same crate
 # inputx-fsa v1.3 — already publish-ready since v1.4.1 polish.
-inputx-fsa = { path = "../inputx-fsa", version = "1.3" }
+inputx-fsa = { path = "../inputx-fsa", version = "1.3", default-features = false }
 # Probability-native scoring schema: MatchType + Q4 const reuse so the
 # IDFv1 entry.match_type byte matches the runtime enum.
 inputx-scoring = { path = "../inputx-scoring", version = "1.4" }

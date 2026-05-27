@@ -20,36 +20,36 @@
 
 generated_at = "2026-05-27"
 format_version = 1
-tool_version = "inputx-dict-format 1.4.0"
+tool_version = "inputx-dict-format 1.4.0 (with FST code index — v1.4.6 C1)"
 
 [pinyin]
 path = "pinyin/words.idf"
-file_sha256 = "fcd325fdcd59416a3dff7299a2c1d0cd30ce83a82569c89b05d7591a3328635c"
-size_bytes = 7439120
+file_sha256 = "83702c73783293e4ed1a10788a775e5be0e55ff2d19d4374a5083be7c0428917"
+size_bytes = 9011166
 entry_count = 237354
-source = "inputx-pinyin embedded pinyin.dict (PinyinDict::embedded)"
+source = "inputx-pinyin embedded pinyin.dict (PinyinDict::embedded) + prior_correction multipliers absorbed (v1.4.6 sub-phase B1)"
 engine_kind = "Pinyin"
 
 [wubi]
 path = "wubi/words.idf"
-file_sha256 = "6f77aa2d7897a2188938de2ebc05eff4cf17cf2fd2229f11d200f966d0cfa06f"
-size_bytes = 3478520
+file_sha256 = "110ee55c6a27ffea32ff2574ef88a3ccf943fd04b248fd3c540645d32609036f"
+size_bytes = 4387469
 entry_count = 135822
 source = "inputx-wubi embedded dict (WubiDict::embedded — jianma1 + zigen + jianma2/3 + auto + phrases)"
 engine_kind = "Wubi"
 
 [nihongo.jukugo]
 path = "nihongo/jukugo.idf"
-file_sha256 = "cdc7bc7c2d19994d7c543bc4a6dbd14337653d06134d71f31fa870311d47e810"
-size_bytes = 937720
+file_sha256 = "faeb944425a75ecd82dc697a990ffe6d7bd2ba5411cde3712cb1491aab2d6bab"
+size_bytes = 1147958
 entry_count = 27380
 source = "inputx-nihongo JUKUGO_TABLE const table"
 engine_kind = "NihongoJukugo"
 
 [nihongo.kanji]
 path = "nihongo/kanji.idf"
-file_sha256 = "cb22fc5518f423aefba4a28913c3aacd593569e93793784a13ad36d71fc6a3aa"
-size_bytes = 34472
+file_sha256 = "b91c44372ca69230def17797f2c9a572809f286261346d69c539d3db64678275"
+size_bytes = 40305
 entry_count = 1666
 source = "inputx-nihongo KANJI_TABLE const table (multi-reading: 813 kanji → 1666 (reading, kanji) pairs)"
 engine_kind = "NihongoKanji"
@@ -62,6 +62,13 @@ engine_kind = "NihongoKanji"
 # - idf-dual-path-verify run on 2026-05-27: 800 samples (200 per
 #   engine), 0 mismatches, all log_prior within ±1 Q4 of
 #   inputx_scoring::log_prior_from_freq(source_freq).
-# - FST code/word index sections are EMPTY in v1.4.3 — IdfReader
-#   falls back to linear scan over the entry table. v1.4.6 cement
-#   carve-out populates the FST blobs for hot-path latency.
+# - FST code index sections POPULATED in v1.4.6 sub-phase C1
+#   (was empty in v1.4.3 ship). IdfReader::lookup +
+#   IdfReader::prefix_top_k_fst now walk the FST for O(|code|)
+#   lookups instead of O(entry_count) linear scan. File size grew
+#   ~22% to accommodate the FST blob (pinyin +1.6 MB, wubi
+#   +0.9 MB, jukugo +212 KB, kanji +6 KB).
+# - FST word index (find_by_word) stays empty — that path is only
+#   used by L0 join + blacklist post-merge (not the hot keystroke
+#   path), so linear scan is acceptable. Future polish wave may
+#   add it.
