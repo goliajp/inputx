@@ -752,7 +752,21 @@ impl CompositeEngine {
         let cand = self.cand_buf.get(index).cloned()?;
         match cand.source {
             super::merge::Source::Wubi => {
-                self.wubi.commit_index(self.wubi_index_for(&cand.word)?);
+                if let Some(idx) = self.wubi_index_for(&cand.word) {
+                    self.wubi.commit_index(idx);
+                }
+                // else: prediction commit — `word` came from wubi prefix
+                // prediction (e.g. `jeg → 明天` mid-typing), so it isn't
+                // in `WubiEngine.candidates()` (which only holds exact
+                // dict entries for the current buffer). The unconditional
+                // `wubi.clear_all()` below handles buffer reset; the
+                // L0 per-code advance is skipped because we don't have
+                // the prediction's full code here yet — adding prediction
+                // L0 records via `WubiDict::find_by_word` is on the
+                // v1.4.7+ prefix-prediction backlog (per [[prefix-prediction-backlog]]).
+                // The merge layer's returned `cand.word` still bubbles
+                // back as the commit text below — same UX as exact-path
+                // commit, just without per-code L0 reinforcement.
             }
             super::merge::Source::Pinyin => {
                 self.pinyin.commit_index(self.pinyin_index_for(&cand.word)?);
