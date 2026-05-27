@@ -12,6 +12,8 @@ members = [
     "crates/inputx-phonetic-edit",
     "crates/inputx-scoring",
     "crates/inputx-dict-format",
+    "crates/inputx-ngram",
+    "crates/inputx-l0",
 ]
 
 [workspace.package]
