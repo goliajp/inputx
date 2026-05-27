@@ -22,7 +22,8 @@ inputx-pinyin = { workspace = true }
 inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
 # NGMv1 n-gram lookup (v1.4.4 stone) for bigram_boost.
 inputx-ngram = { path = "../inputx-ngram", version = "1.4" }
-# Probability-native scoring schema (v1.4.2 stone).
+# Probability-native scoring schema (v1.4.2 stone). Source of truth
+# for Q4 fixed-point constants used in `freq.rs` round-trip helpers.
 inputx-scoring = { path = "../inputx-scoring", version = "1.4" }
 
 [dev-dependencies]
