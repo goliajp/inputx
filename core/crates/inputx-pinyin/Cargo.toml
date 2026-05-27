@@ -15,8 +15,14 @@ categories = ["text-processing", "internationalization", "encoding"]
 # Heavy intermediate data files: regeneratable from
 # tools/{fetch_unihan,fetch_jieba_dict,fetch_corpus,build_weights,build_fst}.
 # Excluding them keeps the published crate under crates.io's size cap.
-# Maintainers regenerate locally; the canonical FST `data/pinyin.fst` IS
-# included (15 MB) and is the single source of truth for the published dict.
+# Maintainers regenerate locally.
+#
+# v1.4.7 sub-phase B (Strategy C): the four published binary blobs
+# (pinyin.dict / bigrams.fsa / bigrams_intra.fsa / trigrams.dict)
+# moved out of `data/` into the sibling `inputx-pinyin-data-{core,
+# bigrams,trigrams}` data stones, so the facade publishes light
+# (< 1 MiB compressed) and consumers can opt out of bigrams /
+# trigrams via the matching feature flags.
 exclude = [
     "data/unihan/",
     "data/jieba/",
@@ -25,8 +31,13 @@ exclude = [
     "data/phrases_jieba.tsv",
     "data/phrases_composed.tsv",
     "data/heteronyms_candidates.tsv",
+    "data/heteronyms_curated.tsv",
     "data/readings.tsv",
-    "data/weights/weights.tsv",
+    "data/weights/",
+    "data/pypinyin_phrases.json",
+    # data/bootstrap.tsv stays IN the package — build.rs reads it
+    # when the `bootstrap_only` feature is enabled to generate the
+    # tiny FST (~125 entries, 1.7 KB).
 ]
 
 [lib]
@@ -36,6 +47,25 @@ crate-type = ["rlib", "cdylib", "staticlib"]
 # Self-built zero-dependency index — fully replaces fst on the pinyin read
 # path (main dict = Dict, n-grams = Fsa). See .claude/PLAN-self-built-fsa.md.
 inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
+
+# Embedded core pinyin.dict — split out of this crate's `data/` in
+# v1.4.7 sub-phase B (Strategy C) so the facade stays under crates.io's
+# per-crate upload limit. Required; not gated by a feature.
+inputx-pinyin-data-core = { path = "../inputx-pinyin-data-core", version = "1.4" }
+
+# Optional embedded bigram FSAs — `default-on` via the `bigrams`
+# feature. Drop the dep entirely with `default-features = false` to
+# publish-ship without the ~6 MB bigram blob (the facade still
+# compiles: PinyinDict::bigram_boost returns 0 and Viterbi falls
+# back to corpus-freq-only ordering).
+inputx-pinyin-data-bigrams = { path = "../inputx-pinyin-data-bigrams", version = "1.4", optional = true }
+
+# Optional embedded word-trigram dict — `default-on` via the
+# `trigrams` feature. Drop with `default-features = false` to
+# publish-ship without the ~13 MB trigram blob (the facade still
+# compiles: PinyinDict::predict_next_words_context returns an empty
+# Vec).
+inputx-pinyin-data-trigrams = { path = "../inputx-pinyin-data-trigrams", version = "1.4", optional = true }
 
 # tools-only deps (gated behind `tools` feature)
 ureq = { version = "2", optional = true }
@@ -70,7 +100,15 @@ name = "lookup"
 harness = false
 
 [features]
-default = []
+default = ["bigrams", "trigrams"]
+# v1.4.7 sub-phase B: opt-in feature flags for the bigrams / trigrams
+# data stones. Both default-on so consumers writing `inputx-pinyin =
+# "1.4"` get the full historical engine surface (bigram boost +
+# context-aware next-word prediction) unchanged. Disable with
+# `default-features = false` to shrink the dependency closure to just
+# inputx-pinyin-data-core (the required ~4 MB exact-syllable dict).
+bigrams = ["dep:inputx-pinyin-data-bigrams"]
+trigrams = ["dep:inputx-pinyin-data-trigrams"]
 # Pulls in the maintainer-only tool binaries (`unihan-extract-readings`,
 # `pinyin-fetch-corpus`, `pinyin-build-weights`, etc.) and their heavyweight
 # deps. Library consumers don't need this; only data pipeline runs

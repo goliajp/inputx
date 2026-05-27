@@ -39,8 +39,11 @@ use crate::ranking::{L0Inner, L0Snapshot, PROMOTE_THRESHOLD};
 // Why pre-built vs build.rs-generated: keeps the published crate under
 // crates.io's size cap by letting us exclude the heavy intermediate TSV
 // files (weights.tsv 23 MB, readings.tsv 13 MB, etc.) from the package.
+// v1.4.7 sub-phase B (Strategy C): the embedded dict blob moved out
+// of `../data/pinyin.dict` into the sibling `inputx-pinyin-data-core`
+// crate so the facade publishes light.
 #[cfg(not(feature = "bootstrap_only"))]
-const DICT_BYTES: &[u8] = include_bytes!("../data/pinyin.dict");
+const DICT_BYTES: &[u8] = inputx_pinyin_data_core::EMBEDDED_PINYIN_DICT;
 
 #[cfg(feature = "bootstrap_only")]
 const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/bootstrap.dict"));
@@ -51,10 +54,15 @@ const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/bootstrap.di
 /// next-word prediction — chains built from this set are real
 /// "what word followed what word" patterns, not character pairs from
 /// within a single phrase.
-#[cfg(not(feature = "bootstrap_only"))]
-const BIGRAMS_BYTES: &[u8] = include_bytes!("../data/bigrams.fsa");
+// v1.4.7 sub-phase B (Strategy C): the embedded bigrams moved out
+// of `../data/bigrams.fsa` into `inputx-pinyin-data-bigrams`, gated
+// behind the `bigrams` feature flag (default-on). With the flag off
+// the dict still loads — `PinyinDict::bigram_boost` returns 0 and
+// Viterbi falls back to corpus-freq-only composition ordering.
+#[cfg(all(not(feature = "bootstrap_only"), feature = "bigrams"))]
+const BIGRAMS_BYTES: &[u8] = inputx_pinyin_data_bigrams::EMBEDDED_BIGRAMS;
 
-#[cfg(feature = "bootstrap_only")]
+#[cfg(any(feature = "bootstrap_only", not(feature = "bigrams")))]
 const BIGRAMS_BYTES: &[u8] = &[];
 
 /// Intra-token char-bigram FST: keys = `<a>\0<b>` where `a` and `b`
@@ -65,19 +73,23 @@ const BIGRAMS_BYTES: &[u8] = &[];
 /// continuations and spawning predictions from them produces chains
 /// like 椒→粉→碎→机构 that look superficially plausible but are
 /// globally nonsense).
-#[cfg(not(feature = "bootstrap_only"))]
-const BIGRAMS_INTRA_BYTES: &[u8] = include_bytes!("../data/bigrams_intra.fsa");
+#[cfg(all(not(feature = "bootstrap_only"), feature = "bigrams"))]
+const BIGRAMS_INTRA_BYTES: &[u8] = inputx_pinyin_data_bigrams::EMBEDDED_BIGRAMS_INTRA;
 
-#[cfg(feature = "bootstrap_only")]
+#[cfg(any(feature = "bootstrap_only", not(feature = "bigrams")))]
 const BIGRAMS_INTRA_BYTES: &[u8] = &[];
 
 /// Inter-token word-trigram FST: keys = `<a>\0<b>\0<c>`, all three
 /// distinct jieba tokens. Used by `predict_next_words_context` for
 /// sentence-level coherent next-word prediction.
-#[cfg(not(feature = "bootstrap_only"))]
-const TRIGRAMS_BYTES: &[u8] = include_bytes!("../data/trigrams.dict");
+// v1.4.7 sub-phase B (Strategy C): trigrams moved into the
+// `inputx-pinyin-data-trigrams` stone, gated behind the `trigrams`
+// feature flag (default-on). With the flag off the dict still loads
+// — `PinyinDict::predict_next_words_context` returns an empty Vec.
+#[cfg(all(not(feature = "bootstrap_only"), feature = "trigrams"))]
+const TRIGRAMS_BYTES: &[u8] = inputx_pinyin_data_trigrams::EMBEDDED_TRIGRAMS;
 
-#[cfg(feature = "bootstrap_only")]
+#[cfg(any(feature = "bootstrap_only", not(feature = "trigrams")))]
 const TRIGRAMS_BYTES: &[u8] = &[];
 
 
