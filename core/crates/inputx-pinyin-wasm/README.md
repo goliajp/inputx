@@ -72,8 +72,21 @@ wasm-pack build core/crates/inputx-pinyin-wasm \
     --no-default-features --target web --release
 ```
 
+## API stability
+
+The 1.x line follows semver:
+
+- **`PinyinEngine` constructor + method set** — no breaking changes
+  within 1.x. New methods may be added as minor bumps.
+- **`exportL0` / `importL0` JSON shape** —
+  `{ pins: [[pinyin, word]], pickCounts: [[pinyin, word, n]] }` —
+  stable across 1.x.
+- **`bootstrap_only` feature** — stable on/off semantics; bundles
+  ship with whichever the publisher chose at wasm-pack build time.
+
 ## See also
 
 - Native Rust crate: [`inputx-pinyin`](../inputx-pinyin/)
 - Parent IME repo: [Inputx](https://github.com/goliajp/inputx)
-- Sibling wubi engine: [`@goliapkg/wubi`](../inputx-wubi-wasm/)
+- Sibling engines: [`@goliapkg/wubi`](../inputx-wubi-wasm/) ·
+  [`@goliapkg/nihongo`](../inputx-nihongo-wasm/)
