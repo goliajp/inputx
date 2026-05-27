@@ -477,6 +477,37 @@ mod tests {
     }
 
     #[test]
+    fn chouonpu_backspace_returns_to_same_candidates() {
+        // User polish-log 2026-05-27: "删除的时候与输入的时候，一样的码
+        // 不一样的候选". Concretely: type `fa-----` (5 chouonpu), record
+        // candidates; backspace 3 times (removing 3 `-`), then type 3 `-`
+        // back; buffer is `fa-----` again — but candidates differ. This
+        // indicates one of the sub-engines (wubi/pinyin/jp) isn't being
+        // backspaced symmetrically with typing, so state drifts across
+        // a backspace-then-retype cycle.
+        let mut sess = s();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_japanese_enabled(true);
+        // Phase A: type fa-----
+        for b in b"fa" { assert!(sess.handle_key(*b as u32, 0)); }
+        for _ in 0..5 { assert!(sess.handle_key(b'-' as u32, 0)); }
+        let preedit_a = sess.preedit().to_string();
+        let cands_a: Vec<String> = sess.candidates().iter().cloned().collect();
+        // Phase B: backspace 3 times (delete trailing 3 `-`)
+        for _ in 0..3 {
+            assert!(sess.handle_key(0x08, 0)); // BS
+        }
+        // Phase C: retype the 3 `-` back
+        for _ in 0..3 { assert!(sess.handle_key(b'-' as u32, 0)); }
+        let preedit_b = sess.preedit().to_string();
+        let cands_b: Vec<String> = sess.candidates().iter().cloned().collect();
+        assert_eq!(preedit_a, preedit_b,
+            "preedit must be identical after backspace-then-retype; got A={preedit_a:?} B={preedit_b:?}");
+        assert_eq!(cands_a, cands_b,
+            "candidates must be identical after backspace-then-retype; got\n  A={cands_a:?}\n  B={cands_b:?}");
+    }
+
+    #[test]
     fn chouonpu_hyphen_extends_jp_composition() {
         // User polish 2026-05-27: `-` must be typeable as chōonpu (ー) in
         // JP mode. Mozc-standard romaji for コーヒー is `ko-hi-` (chōonpu
