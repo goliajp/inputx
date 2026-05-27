@@ -398,6 +398,24 @@ impl PinyinDict {
         true
     }
 
+    /// Per-code lookup exposing raw `freq` directly — companion to
+    /// [`Self::lookup_with_scores_into`] which fuses `PINYIN_PHRASE_BASE
+    /// + freq` plus L0 pin promote into a single f64 score. v1.4.7
+    /// composite hot path needs the unfused freq for orthodox Q4 log
+    /// decomposition (log_prior_q4 = Q4·ln(1+freq); log_likelihood_q4
+    /// = Q4·ln(PINYIN_PHRASE_BASE) + per-path multiplicative log
+    /// factors). No L0 pin promote applied here — that's a cement-
+    /// level business rule the composite layer re-applies.
+    pub fn lookup_with_freq_into(&self, pinyin: &str, out: &mut Vec<(String, u64)>) {
+        out.clear();
+        let lower = lower_str(pinyin);
+        self.map.get_for_each(lower.as_bytes(), |word, freq| {
+            if let Ok(s) = core::str::from_utf8(word) {
+                out.push((s.to_string(), freq));
+            }
+        });
+    }
+
     /// Scored variant of `lookup_into`. Same ordering rules (freq desc,
     /// L0 pin promoted to position 0) but emits `(word, score)` tuples
     /// so the composite-layer merge can do unified cross-engine sort.
