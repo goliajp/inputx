@@ -35,6 +35,11 @@ inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
 # reads inputx-pinyin's embedded bigrams.fsa at runtime — IDFv1 cement
 # cutover is v1.4.6.
 inputx-ngram = { path = "../inputx-ngram", version = "1.4" }
+# Pinyin-specific cement (v1.4.6 sub-phase A1): embeds bigrams.ngm +
+# exposes bigram_boost_from_ngm + legacy_bigram_boost_from_ngm helpers.
+# Composite hot path uses the legacy helper as a 1:1 replacement for
+# inputx_pinyin::PinyinDict::bigram_boost (v1.4.6 sub-phase C2 wiring).
+inputx-pinyin-cement = { path = "../inputx-pinyin-cement", version = "1.4" }
 # Wubi consumer-engine cement (v1.4.5 WU-ζ carve-out): WubiEngine
 # state machine + L0 export/import + auto-commit policy. Pre-v1.4.5
 # this code lived as `inputx_core::wubi`; the carve splits the
