@@ -1,0 +1,26 @@
+[package]
+name = "inputx-scoring"
+version = "1.4.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+description = "Probability-native candidate scoring primitive — Bayesian score = log_prior + log_likelihood, Q4 fixed-point. The schema any IME (Mandarin / Japanese / Wubi / Romaji / Hangul) can use to rank candidates by P(W|i) = P(i|W) · P(W) in log-space."
+authors = ["GOLIA K.K."]
+repository = "https://github.com/goliajp/inputx"
+homepage = "https://github.com/goliajp/inputx"
+keywords = ["ime", "bayesian", "scoring", "ranking", "log-likelihood"]
+categories = ["algorithms", "text-processing", "no-std"]
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+default = ["std"]
+# Without `std`, the crate compiles as `#![no_std]` (alloc only). The
+# schema itself is no_std clean — only optional helpers / Display impls
+# touch std for formatting.
+std = []
+
+[dependencies]
+# Zero dependencies — same design point as inputx-fsa / inputx-phonetic-edit.
