@@ -55,6 +55,14 @@ pub struct Entry<'a> {
     pub word: &'a str,
     pub code: &'a str,
     pub log_prior: i16,
+    /// Pre-quantization corpus frequency. Added v1.4.7 sub-phase A4
+    /// as a lossless tiebreaker for entries that share the same Q4
+    /// `log_prior` bucket — without it, cement-side cement can only
+    /// recover an estimated freq via `exp(log_prior/Q4) - 1`, which
+    /// collides exactly for bucket-mates. `0` on legacy / synthetic
+    /// .idf blobs (the byte slot was previously an unused
+    /// `bigram_offset` placeholder, always zero).
+    pub raw_freq: u32,
     pub match_type: inputx_scoring::MatchType,
     pub flags: EntryFlags,
 }
@@ -280,6 +288,53 @@ impl<B: AsRef<[u8]>> IdfReader<B> {
         hits
     }
 
+    /// Streaming visit of all entries whose `code` starts with `prefix`,
+    /// FST-indexed (O(matching codes) instead of O(entry_count)). The
+    /// callback receives each [`Entry`] by value (`Copy`), so callers
+    /// can build their own ranking / top-k / cement-business-rule re-
+    /// score over the result stream without paying for an interim
+    /// `Vec` allocation or a fixed sort policy. Visit order is the
+    /// FST's prefix-walk order (code-asc), with per-code multi-reading
+    /// entries in entry-table order.
+    ///
+    /// Cement-level use case: the composite pinyin adapter's
+    /// `push_prefix_top_k` and `single_letter_cache` need raw freq
+    /// (via `estimated_freq_from_log_prior`) + word-length bias +
+    /// proximity factor applied per entry before ranking — a fixed
+    /// `prefix_top_k_fst` sort by `log_prior` desc would either drop
+    /// would-be winners or force the cement to scan the full entry
+    /// table to recover what FST already knows.
+    ///
+    /// Falls back to a linear scan + filter on v1.4.3-era files without
+    /// a populated FST section.
+    pub fn prefix_for_each_entry<'a, F: FnMut(Entry<'a>)>(
+        &'a self,
+        prefix: &[u8],
+        mut visit: F,
+    ) {
+        if let Some(fst_bytes) = self.fst_code_index_bytes()
+            && let Ok(fst) = inputx_fsa::Fsa::new(fst_bytes)
+        {
+            let total = self.header.entry_count as u64;
+            fst.prefix_for_each(prefix, |code, first_idx| {
+                let mut idx = first_idx;
+                while idx < total {
+                    let Some(e) = self.entry_at(idx as u32) else { break; };
+                    if e.code.as_bytes() != code { break; }
+                    visit(e);
+                    idx += 1;
+                }
+            });
+            return;
+        }
+        // Linear scan fallback (v1.4.3-era files with empty FST section).
+        for entry in self.entries() {
+            if entry.code.as_bytes().starts_with(prefix) {
+                visit(entry);
+            }
+        }
+    }
+
     // ---- legacy / linear-scan path ----
 
     /// Original linear-scan top-k (v1.4.3 fallback).
@@ -334,6 +389,7 @@ fn decode_entry<'a>(rec: &EntryRecord, pool: &'a [u8]) -> Entry<'a> {
         word,
         code,
         log_prior: rec.log_prior,
+        raw_freq: rec.raw_freq,
         match_type: decode_match_type(rec.match_type),
         flags: EntryFlags(rec.flags),
     }
