@@ -70,10 +70,32 @@ impl EntryFlags {
     pub const BLACKLIST: u8 = 1 << 0;
     pub const CURATED_OVERRIDE: u8 = 1 << 1;
     pub const USER_ADDED: u8 = 1 << 2;
+    /// Bits 5-7 carry an engine-specific 3-bit enum payload (0-7). For
+    /// wubi entries (added v1.4.7 sub-phase A4 step 2): the
+    /// `inputx_wubi::Layer` enum index, so cement-side fills can
+    /// recover (word, layer, raw_freq) tuples without re-reading the
+    /// facade dict. For non-wubi engines it stays zero. Decoders
+    /// querying this should pair it with the IDF's `engine_kind`
+    /// header byte; the field is otherwise just opaque bits.
+    pub const ENGINE_TAG_MASK: u8 = 0b1110_0000;
+    pub const ENGINE_TAG_SHIFT: u8 = 5;
 
     pub fn is_blacklisted(self) -> bool { self.0 & Self::BLACKLIST != 0 }
     pub fn is_curated_override(self) -> bool { self.0 & Self::CURATED_OVERRIDE != 0 }
     pub fn is_user_added(self) -> bool { self.0 & Self::USER_ADDED != 0 }
+    /// Return the 3-bit engine-specific tag (bits 5-7). For wubi this
+    /// is the `Layer` enum's `as_index()`.
+    pub fn engine_tag(self) -> u8 {
+        (self.0 & Self::ENGINE_TAG_MASK) >> Self::ENGINE_TAG_SHIFT
+    }
+    /// Set the 3-bit engine-specific tag while preserving the other
+    /// bits. `tag` is clamped to 3 bits (`& 0b111`); callers passing
+    /// out-of-range values lose the upper bits silently — keep the
+    /// caller's enum strictly ≤ 7.
+    pub fn with_engine_tag(self, tag: u8) -> Self {
+        let cleared = self.0 & !Self::ENGINE_TAG_MASK;
+        Self(cleared | ((tag & 0b111) << Self::ENGINE_TAG_SHIFT))
+    }
 }
 
 /// Header, mirrors the on-disk 64-byte layout exactly. All integer
