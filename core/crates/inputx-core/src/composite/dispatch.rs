@@ -4,18 +4,40 @@
 //! candidate lists combine into the merged output.
 
 use super::japanese_adapter::JapaneseAdapter;
-use super::merge::{Candidate, Scored, merge};
+use super::merge::{Candidate, ScoreComponents, Scored, merge};
 use super::mode::Mode;
 use super::pinyin_adapter::PinyinAdapter;
 use super::scoring;
 use crate::wubi::WubiEngine;
 
-/// Wrap legacy `(word, score)` pairs as `Scored` tuples with `None`
-/// components. Used at every choke-point where an upstream adapter
-/// still returns the legacy shape; the decomposition stays empty until
-/// that adapter migrates to emit `ScoreComponents`.
-fn no_components(v: Vec<(String, f64)>) -> Vec<Scored> {
-    v.into_iter().map(|(w, s)| (w, s, None)).collect()
+/// v1.4.2 WU-γ schema-fill helper: synthesize a three-axis log-space
+/// view of a legacy `(word, score)` pair when the upstream adapter
+/// doesn't have a natural (freq, base) split available. Sets
+/// `log_prior_q4 = 0` + `log_likelihood_q4 = Q4·ln(score)` so the
+/// log-space sort key `score_q4()` is monotone-equivalent to the legacy
+/// f64 score (sort behavior preserved across the v1.4.5+ cutover).
+/// `MatchType` is supplied by the caller — wubi exact code lookups pass
+/// `Exact`, predictions pass `Prefix`, etc.
+fn synthesize_three_axis(score: f64, match_type: inputx_scoring::MatchType) -> ScoreComponents {
+    let log_likelihood_q4 =
+        (score.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
+    ScoreComponents::three_axis(0, log_likelihood_q4, match_type)
+}
+
+/// Wrap legacy `(word, score)` pairs as `Scored` tuples. Every fill
+/// point in the composite dispatch goes through here, [`merge`], or one
+/// of the adapter `candidates_with_scores` methods — all of which now
+/// emit three-axis `ScoreComponents` per PLAN.md L4 trigger b.
+///
+/// `match_type` is the caller's classification: `Exact` for full-code
+/// dict lookups, `Prefix(prox_milli)` for prefix completions, etc.
+fn wrap_legacy(
+    v: Vec<(String, f64)>,
+    match_type: inputx_scoring::MatchType,
+) -> Vec<Scored> {
+    v.into_iter()
+        .map(|(w, s)| (w, s, Some(synthesize_three_axis(s, match_type))))
+        .collect()
 }
 
 /// Compute the merged candidate list for the current state.
@@ -66,7 +88,7 @@ pub fn dispatch(
             let w = if jp_chouonpu_lockout {
                 vec![]
             } else {
-                no_components(wubi.candidates_with_scores())
+                wrap_legacy(wubi.candidates_with_scores(), inputx_scoring::MatchType::Exact)
             };
             merge(w, vec![], jp_kanji, jp_kana)
         }
@@ -200,12 +222,21 @@ pub fn dispatch(
                         _ => 1.0,
                     };
                     let cd = char_demote(&w, layer);
-                    // Exact wubi candidates don't yet have a clean (base,
-                    // prior, likelihood) split — score is `layer.base ·
-                    // prefs + freq` multiplied by several layer/char/length
-                    // factors. v1.4 architecture upgrade will decompose
-                    // them; for v1.3 they stay None.
-                    (w, score * layer_demote * cd, None)
+                    // v1.4.2 WU-γ schema fill: wubi exact code lookups
+                    // are full-code matches → MatchType::Exact. The
+                    // legacy f64 score is the multiplicative chain
+                    // `layer.base · pref + freq` × layer_demote ×
+                    // char_demote × wubi_length_modifier × z_mult (the
+                    // last two applied below by final_mult). We don't
+                    // yet have raw freq + layer-base split (waits for
+                    // v1.4.3 IDFv1), so synthesize a log-space view of
+                    // the legacy score — monotone-equivalent on rank.
+                    let final_score = score * layer_demote * cd;
+                    (
+                        w,
+                        final_score,
+                        Some(synthesize_three_axis(final_score, inputx_scoring::MatchType::Exact)),
+                    )
                 })
                 .collect();
             // CP-C (v1.3 WU-α): attach wubi prefix-predictions. predict_score

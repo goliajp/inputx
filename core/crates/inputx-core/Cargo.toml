@@ -18,6 +18,12 @@ inputx-pinyin = { workspace = true }
 # binary that handles the toggle at runtime via Session.enable_japanese;
 # size impact is small (≈few hundred KB of romaji + kanji static tables).
 inputx-nihongo = { path = "../inputx-nihongo", version = "1.1" }
+# Probability-native scoring schema (v1.4.2 WU-γ): Candidate / MatchType /
+# Q4 / score / log_prior_from_freq / derive_log_likelihood. composite/merge.rs
+# ScoreComponents embeds (log_prior_q4, log_likelihood_q4, match_type) per
+# this schema; probe surfaces them; cement layer (v1.4.5+) will switch sort
+# key from legacy f64 to log-space additive.
+inputx-scoring = { path = "../inputx-scoring", version = "1.4" }
 # L0 export/import JSON is hand-rolled in composite/l0_json.rs (zero-dep
 # milestone, Stage A — see .claude/PLAN-self-built-fsa.md). No serde.
 

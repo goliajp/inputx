@@ -320,19 +320,26 @@ impl PinyinAdapter {
             let min_exact = exact_map.values().copied().fold(f64::INFINITY, f64::min);
             (min_exact - 1.0).min(COMPOSED_SCORE)
         };
+        // v1.4.2 WU-γ schema fill: classify each path → MatchType +
+        // synthesize a log-space view of the base score. The CP-B
+        // prediction path keeps its `prefix_components` decomposition
+        // (which already carries (base, prior, likelihood) AND the
+        // log-space three-axis from `predict_score_with_components`).
+        // Every other path gets `log_likelihood_q4 = Q4·ln(base)` —
+        // rank-monotone-equivalent to the legacy f64 sort key so the
+        // v1.4.5+ cement-layer cutover to `score_q4()` preserves rank.
+        // The bigram_bonus is added AFTER and not folded into
+        // components — it's a cross-engine context signal, not part of
+        // P(i|W) for this adapter.
+        let synth = |s: f64, mt: inputx_scoring::MatchType| -> super::merge::ScoreComponents {
+            let log_likelihood_q4 =
+                (s.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
+            super::merge::ScoreComponents::three_axis(0, log_likelihood_q4, mt)
+        };
         for (i, w) in self.candidates.iter().enumerate() {
             let is_composed = Some(w.as_str()) == self.composed_sentence.as_deref();
             let is_fallback = Some(w.as_str()) == self.fallback_composition.as_deref();
             let is_fuzzy = self.fuzzy_candidates.contains(w);
-            // (base, components) — components attached only on the CP-B
-            // prefix-prediction path (Path 3 multi-letter predict_score).
-            // All other paths leave it None; their scoring isn't yet a
-            // clean (base, prior, likelihood) split (composed/fuzzy/exact
-            // are flat additive bases, not probability-decomposed). The
-            // bigram_bonus added below is a cross-engine signal and does
-            // NOT enter components — `score` field carries it; probe
-            // surfaces both so the bonus is implicit (score − (base +
-            // prior · likelihood) == bigram_bonus when components is Some).
             let (base, components): (f64, Option<super::merge::ScoreComponents>) =
                 if is_composed {
                     // A composition that coincides with a real exact dict word
@@ -340,11 +347,16 @@ impl PinyinAdapter {
                     // is a genuine word, not forced junk. Only a segmentation
                     // that is NOT itself a dict word (用中 for yongzhong, 是嗯据库
                     // for shinjuku) drops to composed_base, below every exact word.
-                    (exact_map.get(w).copied().unwrap_or(composed_base), None)
+                    let s = exact_map.get(w).copied().unwrap_or(composed_base);
+                    let mt = inputx_scoring::MatchType::Composed { bigram_links: 1 };
+                    (s, Some(synth(s, mt)))
                 } else if is_fallback {
-                    (COMPOSED_FALLBACK_SCORE, None)
+                    // Path 5 last-resort Viterbi compose — no bigram support
+                    // (gated to short buffers where no real composition fits).
+                    let mt = inputx_scoring::MatchType::Composed { bigram_links: 0 };
+                    (COMPOSED_FALLBACK_SCORE, Some(synth(COMPOSED_FALLBACK_SCORE, mt)))
                 } else if let Some(s) = exact_map.get(w).copied() {
-                    (s, None)
+                    (s, Some(synth(s, inputx_scoring::MatchType::Exact)))
                 } else if let Some(s) = self.prefix_scored.get(w).copied() {
                     // CP-B prediction hit: pull the decomposition from the
                     // parallel components map so probe can render it.
@@ -358,9 +370,19 @@ impl PinyinAdapter {
                     // bottom-tier fuzzy.
                     (s, self.prefix_components.get(w).copied())
                 } else if is_fuzzy {
-                    (FUZZY_BASE * FUZZY_DISCOUNT, None)
+                    // Synthesized cost 300 milli matches v1.3 FUZZY_DISCOUNT
+                    // 0.3 (in linear space). When inputx-phonetic-edit
+                    // (v1.4.1 stone) is wired into the fuzzy path — post-
+                    // v1.4 polish backlog — this becomes the real
+                    // edit_cost_milli.
+                    let s = FUZZY_BASE * FUZZY_DISCOUNT;
+                    (s, Some(synth(s, inputx_scoring::MatchType::Fuzzy(300))))
                 } else {
-                    (NON_EXACT_FLOOR * 0.99f64.powi(i as i32), None)
+                    // NON_EXACT_FLOOR tier — degenerate; mark Exact for
+                    // schema purposes (these are dead-tier candidates
+                    // ranking at the bottom of the list).
+                    let s = NON_EXACT_FLOOR * 0.99f64.powi(i as i32);
+                    (s, Some(synth(s, inputx_scoring::MatchType::Exact)))
                 };
             let bigram_bonus = dict.bigram_boost(prev_committed, w);
             scored.push((w.clone(), base + bigram_bonus, components));

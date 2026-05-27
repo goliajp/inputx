@@ -428,9 +428,23 @@ pub fn predict_score_with_components(
     let prior = (freq as f64) * freq_mult;
     let likelihood = proximity.powf(LIKELIHOOD_PREDICT_PROXIMITY_K);
     let score = base + prior * likelihood;
+    // v1.4.2 WU-γ three-axis log-space view of the same chain. Producers
+    // emit MatchType::Prefix(proximity_milli); proximity=1.0 collapses
+    // to MatchType::Exact-equivalent (decay = 0). `freq` drives the
+    // log_prior; `base` (already a positive number in linear space, the
+    // per-engine LIKELIHOOD_*_BASE) becomes the log_likelihood floor.
+    let log_prior_q4 = inputx_scoring::log_prior_from_freq(freq);
+    let base_log_q4 = (base.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
+    let prox_milli = (proximity.clamp(0.0, 1.0) * 1000.0).round() as u16;
+    let match_type = inputx_scoring::MatchType::Prefix(prox_milli);
+    let log_likelihood_q4 =
+        inputx_scoring::derive_log_likelihood(base_log_q4, match_type);
     (
         score,
-        crate::composite::merge::ScoreComponents { base, prior, likelihood },
+        crate::composite::merge::ScoreComponents::from_predict(
+            base, prior, likelihood,
+            log_prior_q4, log_likelihood_q4, match_type,
+        ),
     )
 }
 

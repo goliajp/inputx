@@ -232,6 +232,16 @@ impl JapaneseAdapter {
             .filter(|c| is_jp_clean(&c.word))
             .filter(|c| !(short_buffer && c.composed))
             .map(|c| {
+                // v1.4.2 WU-γ schema fill: synthesize a log-space view of
+                // the per-kind base score so every JP candidate carries
+                // (log_prior_q4, log_likelihood_q4, match_type) per the
+                // inputx-scoring schema. log_likelihood_q4 = Q4·ln(score)
+                // is rank-monotone-equivalent to the legacy sort key.
+                let synth = |s: f64, mt: inputx_scoring::MatchType| -> super::merge::ScoreComponents {
+                    let log_likelihood_q4 =
+                        (s.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
+                    super::merge::ScoreComponents::three_axis(0, log_likelihood_q4, mt)
+                };
                 // compose_sentence products score below real Chinese words
                 // (so 時へ時 never pollutes the top of jieji/jieshou) and are
                 // never promoted. Two tiers, split by whether the product is
@@ -248,7 +258,11 @@ impl JapaneseAdapter {
                     } else {
                         scoring::LIKELIHOOD_JP_COMPOSED_BASE
                     };
-                    return (c.word.clone(), s, None);
+                    // bigram_links=0 — JP compose is mechanical, no bigram
+                    // chain support (cf. pinyin which gates compose on
+                    // ≥1 bigram link).
+                    let mt = inputx_scoring::MatchType::Composed { bigram_links: 0 };
+                    return (c.word.clone(), s, Some(synth(s, mt)));
                 }
                 // base = per-kind floor; freq-weighted add lifts high-freq
                 // JP above rare Chinese (per user rule: JP base < wubi/
@@ -304,7 +318,7 @@ impl JapaneseAdapter {
                 // `base + freq·freq_mult·proximity^K` shape. See
                 // PLAN-prefix-prediction §4 and PLAN-probabilistic-model.
                 let proximity = c.proximity_milli as f64 / 1000.0;
-                let (pre_promote, components) = scoring::predict_score_with_components(
+                let (pre_promote, mut components) = scoring::predict_score_with_components(
                     base,
                     c.freq as u64,
                     scoring::PRIOR_FREQ_MULT_JP,
@@ -313,11 +327,21 @@ impl JapaneseAdapter {
                 // Predictions (proximity < 1) never ride the full-match promote.
                 let mult = if c.proximity_milli >= 1000 { promote } else { 1.0 };
                 let score = pre_promote * mult;
-                // Components keep the un-promoted (base, prior, likelihood)
-                // shape from predict_score: probe shows score (post-promote)
-                // alongside the decomposition, the promote factor is then
-                // implicit (score / (base + prior · likelihood) == promote
-                // when components is Some).
+                // v1.4.2 WU-γ: full-match promote folds into log_likelihood
+                // (multiplicative in linear space → additive in log space).
+                // Without this, score_q4() would not equal the legacy sort
+                // key in rank order at the post-promote tier; the cement
+                // layer cutover (v1.4.5+) needs the promote represented
+                // in the log-space view. The v1.3 (base, prior, likelihood)
+                // legacy view intentionally stays UN-promoted — the
+                // user-visible `score` then carries the promote implicitly
+                // (`score / (base + prior · likelihood) == promote`).
+                if mult > 1.0 {
+                    let delta_q4 =
+                        (mult.ln() * inputx_scoring::Q4 as f64).round() as i32;
+                    components.log_likelihood_q4 =
+                        components.log_likelihood_q4.saturating_add(delta_q4);
+                }
                 (c.word.clone(), score, Some(components))
             })
             .collect()
