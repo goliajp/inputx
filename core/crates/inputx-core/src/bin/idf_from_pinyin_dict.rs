@@ -20,6 +20,33 @@ use inputx_dict_format::{EngineKind, EntryFlags, IdfBuilder};
 use inputx_pinyin::PinyinDict;
 use inputx_scoring::{log_prior_from_freq, MatchType};
 
+/// Mirror of `inputx_core::composite::prior_correction::PRIOR_CORRECTIONS`.
+/// Inlined here so this binary doesn't reach into a `pub(crate)`-deep
+/// composite path. The composite module retains the same table for the
+/// live runtime callsite in `composite/merge.rs` until v1.4.6 sub-phase
+/// D drops both (engine cutover stops going through merge.rs's
+/// `correct` lambda, and prior_correction.rs deletes).
+///
+/// Keep in lockstep with `composite/prior_correction.rs` until that
+/// file deletes. Each row carries the polish-log citation in the
+/// composite module's source (not duplicated here).
+const PRIOR_CORRECTIONS: &[(&str, f64)] = &[
+    ("继续", 2.0),
+    ("设计", 2.0),
+    ("理想", 2.0),
+    ("加载", 1.5),
+    ("具体", 1.5),
+    ("统一", 1.5),
+];
+
+fn correction_for(word: &str) -> f64 {
+    PRIOR_CORRECTIONS
+        .iter()
+        .find(|(w, _)| *w == word)
+        .map(|(_, m)| *m)
+        .unwrap_or(1.0)
+}
+
 fn main() -> ExitCode {
     let mut output: Option<PathBuf> = None;
     let mut args = std::env::args().skip(1);
@@ -71,13 +98,29 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     }
 
     let mut builder = IdfBuilder::new(EngineKind::Pinyin);
+    let mut corrected = 0usize;
     for (code, word, raw_freq) in &entries {
-        // Q4 · ln(1 + raw_freq) — the same canonical baseline that
-        // `inputx_scoring::log_prior_from_freq` produces. We do NOT
-        // normalize by total_corpus here because that subtracts a
-        // constant across all entries (rank-invariant) and reduces
-        // log_prior dynamic range unnecessarily.
-        let log_prior_q4 = log_prior_from_freq(*raw_freq);
+        // v1.4.6 sub-phase B1: absorb prior_correction multiplier into
+        // log_prior at snapshot time. The 6 corrected words (继续 / 设计
+        // / 理想 / 加载 / 具体 / 统一, all ×1.5-×2.0) currently get the
+        // multiplier via composite/merge.rs's `correct = |w, s| s *
+        // correction_for(w)` lambda at every score step. Baking the
+        // multiplier into log_prior here lets sub-phase C (engine
+        // cutover only reads .idf) drop the lambda + delete
+        // prior_correction.rs without changing ranking.
+        //
+        // Mapping: legacy `score = (base + freq · mult) · correction` →
+        // .idf log_prior = Q4 · ln(1 + freq · correction). Strict
+        // mathematical non-equivalence (additive in linear vs log-space
+        // factor), but rank-preserving for the 6 entries (correction is
+        // monotone scalar > 1.0; multiplying freq monotone-preserves
+        // log_prior ordering within the engine).
+        let correction = correction_for(word);
+        let effective_freq = ((*raw_freq as f64) * correction).round() as u64;
+        if correction != 1.0 {
+            corrected += 1;
+        }
+        let log_prior_q4 = log_prior_from_freq(effective_freq);
         let log_prior_i16 = clamp_to_i16(log_prior_q4);
         builder.add_entry(
             code,
@@ -87,6 +130,9 @@ fn run(out_path: &Path) -> std::io::Result<()> {
             EntryFlags::default(),
         );
     }
+    eprintln!(
+        "[idf-from-pinyin-dict] applied prior_correction to {corrected} entries",
+    );
 
     eprintln!(
         "[idf-from-pinyin-dict] writing {} -> {}",

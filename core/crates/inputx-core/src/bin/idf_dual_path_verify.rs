@@ -36,6 +36,28 @@ const SAMPLE_COUNT: usize = 200;
 /// the source-derived value. ±1 covers `f64::ln`-then-round symmetry.
 const Q4_TOLERANCE: i32 = 1;
 
+/// v1.4.6 sub-phase B1: idf-from-pinyin-dict bakes prior_correction
+/// multipliers into log_prior at snapshot time. Mirror the table here
+/// so dual-path verify recovers the same expected log_prior for these
+/// 6 entries instead of flagging them as ranking-drift mismatches.
+/// Keep in lockstep with PRIOR_CORRECTIONS in idf_from_pinyin_dict.rs.
+const PRIOR_CORRECTIONS_VERIFY: &[(&str, f64)] = &[
+    ("继续", 2.0),
+    ("设计", 2.0),
+    ("理想", 2.0),
+    ("加载", 1.5),
+    ("具体", 1.5),
+    ("统一", 1.5),
+];
+
+fn pinyin_correction_for(word: &str) -> f64 {
+    PRIOR_CORRECTIONS_VERIFY
+        .iter()
+        .find(|(w, _)| *w == word)
+        .map(|(_, m)| *m)
+        .unwrap_or(1.0)
+}
+
 #[derive(Default)]
 struct Mismatch {
     code: String,
@@ -62,9 +84,16 @@ fn main() -> ExitCode {
     let pinyin_dict = PinyinDict::embedded();
     let all_pinyin = pinyin_dict.prefix_with_freq("");
     // Build a fast lookup table (code, word) → freq for sample matching.
+    // Apply prior_correction multiplier on raw_freq so the verify
+    // pipeline matches the snapshot binary's pre-log step. Without this,
+    // 继续/设计/理想/加载/具体/统一 flag as drift (their .idf log_prior
+    // reflects raw_freq × correction, source dict gives raw_freq only).
     let pinyin_lookup: std::collections::HashMap<(String, String), u64> = all_pinyin
         .iter()
-        .map(|(c, w, f)| ((c.clone(), w.clone()), *f))
+        .map(|(c, w, f)| {
+            let corrected = ((*f as f64) * pinyin_correction_for(w)).round() as u64;
+            ((c.clone(), w.clone()), corrected)
+        })
         .collect();
     let mismatches = verify_engine(&reader, SAMPLE_COUNT, |code, word| {
         pinyin_lookup
