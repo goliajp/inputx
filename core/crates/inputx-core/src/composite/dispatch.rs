@@ -992,11 +992,13 @@ mod tests {
         // v1.6 cleanup (user 2026-05-28 "improve 不是 hack" directive):
         // the historical runtime blacklist of 片你 has been replaced by
         // dict-level baked additions in idf-from-pinyin-dict.rs's
-        // BAKED_ADDITIONS table — the 4 legitimate variants 骗你 / 便你 /
-        // 偏你 / 篇你 are now native Path-1 exact-match entries, which
-        // gates off Path-5 K-best composition entirely (Path 5 only fires
-        // when self.candidates.is_empty()). 片你 no longer generates at
-        // all — no runtime drop list needed.
+        // BAKED_ADDITIONS table.
+        //
+        // v1.6.5 polish (user 2026-05-28 follow-up): 便你 / 篇你 dropped
+        // from BAKED_ADDITIONS — 便你 is an awkward non-collocation, 篇你
+        // isn't a Chinese phrase at all. Only 骗你 and 偏你 remain as
+        // Path-1 exact-match entries; the other variants get suppressed
+        // naturally by Path-5 K-best's zero-bigram (pian, ni) gating.
         use crate::composite::engine::CompositeEngine;
         use crate::wubi::AutoCommitPolicy;
         let mut e = CompositeEngine::new();
@@ -1005,24 +1007,20 @@ mod tests {
         for b in b"pianni" { let _ = e.handle_letter(*b); }
         let cands = e.candidates();
         let top: Vec<&str> = cands.iter().take(8).map(|c| c.word.as_str()).collect();
-        // K-best fanout: at least 3 distinct pian+ni alternates must
-        // surface so the user can pick the right one.
-        let pian_compositions = ["便你", "骗你", "偏你", "篇你"];
-        let visible = pian_compositions.iter()
-            .filter(|w| cands.iter().any(|c| &c.word.as_str() == *w))
-            .count();
-        assert!(visible >= 3,
-            "Dict baked additions must expose ≥3 pian+ni alternates; \
-             got top={top:?}");
-        // 骗你 specifically must be visible (the user-flagged target).
-        assert!(cands.iter().any(|c| c.word == "骗你"),
-            "骗你 must surface as a Path-1 dict entry; got top={top:?}");
-        // 片你 must NOT appear (Path-1 dict entries gate off K-best
-        // Path 5 which historically generated 片你 as a single-char
-        // composition).
-        assert!(!cands.iter().any(|c| c.word == "片你"),
-            "片你 must not appear (Path 5 K-best should be gated off by \
-             Path-1 baked dict entries); got top={top:?}");
+        // Both legitimate pian+ni variants must surface as Path-1 entries.
+        for want in ["骗你", "偏你"] {
+            assert!(cands.iter().any(|c| c.word == want),
+                "{want} must surface as a Path-1 dict entry; got top={top:?}");
+        }
+        // Illegitimate variants must NOT appear: 片你 / 便你 / 篇你 are
+        // either non-words or awkward non-collocations, and Path-5
+        // K-best (the only fallback path) is gated off whenever Path-1
+        // produces any candidates.
+        for forbidden in ["片你", "便你", "篇你"] {
+            assert!(!cands.iter().any(|c| c.word == forbidden),
+                "{forbidden} must not appear (not a real phrase / awkward \
+                 collocation); got top={top:?}");
+        }
     }
 
     #[test]
