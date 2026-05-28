@@ -1,5 +1,5 @@
 //! `idf-from-nihongo-kanji` — snapshot the embedded kanji table into
-//! IDFv1 at `core/crates/inputx-nihongo-cement/data/kanji.idf`.
+//! IDFv1 at `core/crates/inputx-nihongo-data-kanji/data/kanji.idf`.
 //!
 //! Source: `inputx_nihongo::kanji::KANJI_TABLE`. Each entry has 1+
 //! Hepburn romaji readings + a single `char` kanji + `freq` (0-100).
@@ -10,7 +10,7 @@
 //!
 //! Usage:
 //!   cargo run --release --bin idf-from-nihongo-kanji -- \
-//!       --output core/crates/inputx-nihongo-cement/data/kanji.idf
+//!       --output core/crates/inputx-nihongo-data-kanji/data/kanji.idf
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -36,7 +36,7 @@ fn main() -> ExitCode {
         }
     }
     let out = output.unwrap_or_else(|| {
-        PathBuf::from("crates/inputx-nihongo-cement/data/kanji.idf")
+        PathBuf::from("crates/inputx-nihongo-data-kanji/data/kanji.idf")
     });
     match run(&out) {
         Ok(()) => ExitCode::SUCCESS,

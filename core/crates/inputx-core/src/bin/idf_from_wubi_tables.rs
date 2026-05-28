@@ -1,5 +1,5 @@
 //! `idf-from-wubi-tables` — snapshot the embedded Wubi 86 dict into
-//! IDFv1 at `core/crates/inputx-wubi-cement/data/words.idf`.
+//! IDFv1 at `core/crates/inputx-wubi-data/data/words.idf`.
 //!
 //! Source: `inputx_wubi::WubiDict::embedded().all_entries()` →
 //! `Vec<(code, word, Layer, freq)>` covering all ~135k entries
@@ -13,7 +13,7 @@
 //!
 //! Usage:
 //!   cargo run --release --bin idf-from-wubi-tables -- \
-//!       --output core/crates/inputx-wubi-cement/data/words.idf
+//!       --output core/crates/inputx-wubi-data/data/words.idf
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -39,7 +39,7 @@ fn main() -> ExitCode {
         }
     }
     let out = output.unwrap_or_else(|| {
-        PathBuf::from("crates/inputx-wubi-cement/data/words.idf")
+        PathBuf::from("crates/inputx-wubi-data/data/words.idf")
     });
     match run(&out) {
         Ok(()) => ExitCode::SUCCESS,

@@ -57,10 +57,10 @@ fn main() -> ExitCode {
     // monorepo-root `data/private-dict/v0.0.1/` snapshot dir into each
     // cement crate's own `data/` so cargo publish can include them
     // in the tarball. Run this binary from the `core/` workspace root.
-    let pinyin_idf = PathBuf::from("crates/inputx-pinyin-cement/data/words.idf");
-    let wubi_idf = PathBuf::from("crates/inputx-wubi-cement/data/words.idf");
-    let nihongo_jukugo_idf = PathBuf::from("crates/inputx-nihongo-cement/data/jukugo.idf");
-    let nihongo_kanji_idf = PathBuf::from("crates/inputx-nihongo-cement/data/kanji.idf");
+    let pinyin_idf = PathBuf::from("crates/inputx-pinyin-helpers/data/words.idf");
+    let wubi_idf = PathBuf::from("crates/inputx-wubi-data/data/words.idf");
+    let nihongo_jukugo_idf = PathBuf::from("crates/inputx-nihongo-data-jukugo/data/jukugo.idf");
+    let nihongo_kanji_idf = PathBuf::from("crates/inputx-nihongo-data-kanji/data/kanji.idf");
     let mut total_fail = 0usize;
     let mut total_check = 0usize;
 
