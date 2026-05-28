@@ -1,5 +1,5 @@
 //! `idf-from-pinyin-dict` — snapshot the current pinyin dict (.dict /
-//! FST) into IDFv1 binary at `core/crates/inputx-pinyin-cement/data/words.idf`.
+//! FST) into IDFv1 binary at `core/crates/inputx-pinyin-helpers/data/words.idf`.
 //!
 //! Reads every entry via `PinyinDict::prefix_with_freq("")` (~237k
 //! tuples), computes `log_prior = Q4 · ln(raw_freq / total_corpus)`,
@@ -8,9 +8,9 @@
 //!
 //! Usage:
 //!   cargo run --release --bin idf-from-pinyin-dict -- \
-//!       --output core/crates/inputx-pinyin-cement/data/words.idf
+//!       --output core/crates/inputx-pinyin-helpers/data/words.idf
 //!
-//! Default output path is `core/crates/inputx-pinyin-cement/data/words.idf`
+//! Default output path is `core/crates/inputx-pinyin-helpers/data/words.idf`
 //! relative to the workspace root (cwd when invoked from `core/`).
 
 use std::path::{Path, PathBuf};
@@ -56,6 +56,42 @@ fn correction_for(word: &str) -> i32 {
         .unwrap_or(0)
 }
 
+/// Build-time dict additions — `(code, word, raw_freq)` triples
+/// injected into the IDF snapshot for entries the upstream
+/// `inputx-pinyin` dict pipeline does not (yet) capture as native
+/// phrase entries, but where polish-log evidence shows the absence
+/// regresses real IME behavior.
+///
+/// Pattern (v1.6+ "improve, not hack" per user 2026-05-28): when a
+/// composition / K-best path generates pollution that a runtime
+/// blacklist would otherwise need to drop, prefer adding the
+/// LEGITIMATE alternatives to the dict here. Once Path 1 exact-
+/// match returns results, Path 5 K-best is gated off and the
+/// pollution never generates.
+///
+/// Calibration: `raw_freq` chosen at the LOW end of natural
+/// corpus frequency for these phrases (real corpus rarely has the
+/// data; we synthesize at plausible values). The `(PINYIN_PHRASE_
+/// BASE + raw_freq) * pin_mult` Path-1 score floor is enough to
+/// beat any synthesized K-best fallback score (~250k).
+///
+/// MUST add a regression test in `dispatch.rs` pinning the
+/// expected behavior + cite the polish-log case in the same
+/// commit. Keep entries grouped by polish-log buffer + sorted.
+const BAKED_ADDITIONS: &[(&str, &str, u64)] = &[
+    // 2026-05-28 user polish-log (pianni → 4 variants natively):
+    // pre-bake, `pianni` had no Path-1 exact hits — Path 5 K-best
+    // composed (片) + (你) as the highest single-char freq pair, and
+    // the historical blacklist had to drop 片你 explicitly. With
+    // these 4 phrase entries baked, Path-1 surfaces 骗你 / 偏你 /
+    // 便你 / 篇你 in freq order, Path 5 gates off, 片你 never
+    // generates. (片你 is excluded — it's not a real Chinese phrase.)
+    ("pianni", "骗你", 500),
+    ("pianni", "便你", 200),
+    ("pianni", "偏你", 100),
+    ("pianni", "篇你", 50),
+];
+
 fn main() -> ExitCode {
     let mut output: Option<PathBuf> = None;
     let mut args = std::env::args().skip(1);
@@ -70,7 +106,7 @@ fn main() -> ExitCode {
                      \n\
                      Snapshot inputx-pinyin's bundled dict into IDFv1.\n\
                      \n\
-                     Default output: core/crates/inputx-pinyin-cement/data/words.idf"
+                     Default output: core/crates/inputx-pinyin-helpers/data/words.idf"
                 );
                 return ExitCode::SUCCESS;
             }
@@ -81,7 +117,7 @@ fn main() -> ExitCode {
         }
     }
     let out = output.unwrap_or_else(|| {
-        PathBuf::from("crates/inputx-pinyin-cement/data/words.idf")
+        PathBuf::from("crates/inputx-pinyin-helpers/data/words.idf")
     });
     match run(&out) {
         Ok(()) => ExitCode::SUCCESS,
@@ -144,6 +180,28 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     eprintln!(
         "[idf-from-pinyin-dict] baked prior_correction Q4 boosts into {baked_count} entries (table size: {})",
         PRIOR_CORRECTIONS.len()
+    );
+
+    // Build-time dict additions: inject synthetic phrase entries
+    // for polish-log cases the upstream dict pipeline does not
+    // capture natively. Path-1 exact-match will surface these and
+    // gate off Path-5 K-best composition pollution.
+    for (code, word, raw_freq) in BAKED_ADDITIONS {
+        let log_prior_q4 = log_prior_from_freq(*raw_freq);
+        let log_prior_i16 = clamp_to_i16(log_prior_q4);
+        let raw_freq_u32 = (*raw_freq).min(u32::MAX as u64) as u32;
+        builder.add_entry(
+            code,
+            word,
+            log_prior_i16,
+            raw_freq_u32,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
+    }
+    eprintln!(
+        "[idf-from-pinyin-dict] baked dict additions: {} entries",
+        BAKED_ADDITIONS.len()
     );
 
     eprintln!(

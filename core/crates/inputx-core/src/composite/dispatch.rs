@@ -987,15 +987,16 @@ mod tests {
     #[test]
     fn mixed_pianni_kbest_exposes_pian_alternates() {
         // User-reported 2026-05-26 (polish-log): pianni originally surfaced
-        // only 片你 / ぴあんに / ピアンニ — no 骗你. Two layered fixes:
-        //   1. K-best Viterbi: dp[j] retains top-K instead of 1-best so
-        //      the (pian-char) alternates (便 骗 偏 篇) are reachable past
-        //      the freq-greedy 片. Makes 骗你/便你/偏你/篇你 visible.
-        //   2. Blacklist of 片你 (user 2026-05-26: "片你加进去就解决,
-        //      不开 dict ad-hoc patch 口子"): "片你" isn't a real phrase
-        //      and shouldn't appear in any context, so the merge layer
-        //      drops it unconditionally. Letting the user pick from the
-        //      remaining alternates.
+        // only 片你 / ぴあんに / ピアンニ — no 骗你.
+        //
+        // v1.6 cleanup (user 2026-05-28 "improve 不是 hack" directive):
+        // the historical runtime blacklist of 片你 has been replaced by
+        // dict-level baked additions in idf-from-pinyin-dict.rs's
+        // BAKED_ADDITIONS table — the 4 legitimate variants 骗你 / 便你 /
+        // 偏你 / 篇你 are now native Path-1 exact-match entries, which
+        // gates off Path-5 K-best composition entirely (Path 5 only fires
+        // when self.candidates.is_empty()). 片你 no longer generates at
+        // all — no runtime drop list needed.
         use crate::composite::engine::CompositeEngine;
         use crate::wubi::AutoCommitPolicy;
         let mut e = CompositeEngine::new();
@@ -1011,14 +1012,17 @@ mod tests {
             .filter(|w| cands.iter().any(|c| &c.word.as_str() == *w))
             .count();
         assert!(visible >= 3,
-            "K-best Viterbi must expose ≥3 pian+ni alternates (excluding \
-             blacklisted 片你); got top={top:?}");
+            "Dict baked additions must expose ≥3 pian+ni alternates; \
+             got top={top:?}");
         // 骗你 specifically must be visible (the user-flagged target).
         assert!(cands.iter().any(|c| c.word == "骗你"),
-            "骗你 must surface as a fallback composition; got top={top:?}");
-        // 片你 must NOT appear (blacklisted as it's not a real phrase).
+            "骗你 must surface as a Path-1 dict entry; got top={top:?}");
+        // 片你 must NOT appear (Path-1 dict entries gate off K-best
+        // Path 5 which historically generated 片你 as a single-char
+        // composition).
         assert!(!cands.iter().any(|c| c.word == "片你"),
-            "片你 must be blacklisted out; got top={top:?}");
+            "片你 must not appear (Path 5 K-best should be gated off by \
+             Path-1 baked dict entries); got top={top:?}");
     }
 
     #[test]
