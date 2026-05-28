@@ -1003,16 +1003,25 @@ impl PinyinAdapter {
                 // compositions (kaopu→靠谱, nihaomawojiao→你好吗我叫,
                 // pianni→骗你) average ≥ 2.0 pinyin chars per output char —
                 // because real pinyin syllables are 2-3 chars and STEP_PENALTY
-                // favors multi-char dict entries. When the top composition is
-                // below the 2.0 ratio threshold, suppress fallback_composition
-                // — candidates_with_scores then leaves it at NON_EXACT_FLOOR
-                // tier (much lower than COMPOSED_FALLBACK_SCORE=250k), so JP
-                // kana / katakana surfaces ahead of mechanical pinyin garbage
-                // in Mixed+JP mode (per user rule: low-quality pinyin yields
-                // to kana — kana count is small, real cost is one rank slip).
+                // favors multi-char dict entries.
+                //
+                // v1.6.6 (user polish-log 2026-05-29, `rokuman` → 儿哦库曼
+                // etc): the ratio < 2.0 branch now SUPPRESSES the entire
+                // K-best fanout, not just `fallback_composition`. Before
+                // v1.6.6, the gate only blocked the top1 from claiming
+                // COMPOSED_FALLBACK_SCORE (250k); the 5 K-best comps still
+                // pushed into `self.candidates` and surfaced at
+                // NON_EXACT_FLOOR (1000) — visible to the user as a
+                // crowd of mechanical pinyin garbage below the legitimate
+                // kana / katakana. The gate's whole point is "this buffer
+                // isn't real Chinese pinyin", so no K-best comp under the
+                // ratio threshold deserves a candidate slot — not even at
+                // the bottom of the list.
+                //
                 // Empirical from `_explore_composition_scores`:
                 //   famiriaare (10 pinyin / 6 chars) ratio 1.67 → MECHANICAL
-                //   shinjuku   ( 8 pinyin / 4 chars) ratio 2.00 → borderline (blacklist handles separately)
+                //   rokuman    ( 7 pinyin / 4 chars) ratio 1.75 → MECHANICAL
+                //   shinjuku   ( 8 pinyin / 4 chars) ratio 2.00 → borderline (separate compose_sentence quality gate handles)
                 //   kaopu      ( 5 pinyin / 2 chars) ratio 2.50 → REAL
                 //   nihaomawojiao (13/5) ratio 2.60 → REAL
                 let top_chars = top.chars().count().max(1);
@@ -1025,12 +1034,16 @@ impl PinyinAdapter {
                     // visible to the user as 60-percentile fallbacks if the
                     // top is wrong, without crowding the #1 spot.
                     self.fallback_composition = Some(top.clone());
+                    for (_, sentence) in comps {
+                        if !self.candidates.iter().any(|w| w == &sentence) {
+                            self.candidates.push(sentence);
+                        }
+                    }
                 }
-            }
-            for (_, sentence) in comps {
-                if !self.candidates.iter().any(|w| w == &sentence) {
-                    self.candidates.push(sentence);
-                }
+                // ratio < 2.0: drop all K-best comps. self.candidates stays
+                // empty for this path; in Mixed+JP, the kana / katakana
+                // candidates from japanese_adapter still surface via the
+                // cross-engine dispatch merge.
             }
             // NOTE: the proper home for common words like 靠谱/榨干 is the
             // dict itself (coverage — dict-pipeline T0); this is the safety
