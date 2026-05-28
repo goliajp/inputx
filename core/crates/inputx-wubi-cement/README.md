@@ -1,9 +1,29 @@
 # inputx-wubi-cement
 
-Wubi-specific engine cement for [Inputx](https://github.com/goliajp/inputx)
-— a ready-to-drive `WubiEngine` state machine plus an IDFv1-backed
-lookup path so the composite IME never reaches into the facade dict
-on the keystroke hot path.
+> **⚠ DEPRECATED at v2.0 (2026-05).** The v1.5 cycle's D11 taxonomy
+> correction reclassified "cement" as **application source code, not
+> a published crate**. v1.5.2 carved the `WubiEngine` state machine +
+> `AutoCommitPolicy` out of this crate into the Inputx monorepo's
+> `inputx-core/src/wubi/engine.rs`. v2.0.0 publishes the post-carve
+> state (engine types removed; only data + lookup helpers remain).
+>
+> **Migration path**:
+>
+> - **Need WubiEngine** (state machine, handle_letter, auto-commit,
+>   commit_index): copy [`inputx-core/src/wubi/engine.rs`](https://github.com/goliajp/inputx/blob/develop/core/crates/inputx-core/src/wubi/engine.rs)
+>   into your application. It's a self-contained 370 LOC state
+>   machine over this crate's stone-style helpers; copy it because
+>   per the new taxonomy it IS your application's wubi cement.
+> - **Just need data + lookup**: keep this crate for the
+>   `EMBEDDED_WUBI_IDF` const, `wubi_idf_reader()` `OnceLock` reader,
+>   `layer_from_idf_tag` helper, and the `lookup` / `lookup_with_*`
+>   / `prefix_predictions` / `record_pick` table fns. A future
+>   `inputx-wubi-data` stone (v1.6 backlog) will adopt these under
+>   the correct taxonomy name; this crate is the holding pattern.
+
+Wubi-specific data + lookup helpers for the [Inputx](https://github.com/goliajp/inputx)
+IME. Post-v1.5.2 surface is stone-quality (no business glue, no
+per-session state).
 
 ```toml
 [dependencies]

@@ -1,8 +1,29 @@
 # inputx-nihongo-cement
 
-Japanese-specific consumer-engine cement for [Inputx](https://github.com/goliajp/inputx)
-— IDFv1-backed jukugo / kanji lookup adapter built on top of the
-[`inputx-nihongo`](https://crates.io/crates/inputx-nihongo) facade.
+> **⚠ DEPRECATED at 1.4.1 (2026-05).** The v1.5 cycle's D11
+> taxonomy correction reclassified "cement" as **application source
+> code, not a published crate**. This crate ships pure data +
+> reader helpers (no application glue, no per-session state) — by
+> the new taxonomy that's data stones, mis-named.
+>
+> **Migration path (v1.6 backlog)**:
+>
+> - `EMBEDDED_NIHONGO_JUKUGO_IDF` + `nihongo_jukugo_idf_reader` →
+>   future `inputx-nihongo-data-jukugo` stone.
+> - `EMBEDDED_NIHONGO_KANJI_IDF` + `nihongo_kanji_idf_reader` →
+>   future `inputx-nihongo-data-kanji` stone.
+> - v1.5.1 WU-κ moved the Japanese state machine + candidate
+>   generation OUT of `inputx_nihongo::JapaneseEngine` and INTO the
+>   Inputx monorepo's `inputx-core/src/japanese/`. Application
+>   consumers needing a stateful JP engine should copy
+>   [`inputx-core/src/japanese/`](https://github.com/goliajp/inputx/tree/develop/core/crates/inputx-core/src/japanese)
+>   per the cement-as-application-source taxonomy.
+>
+> v1.4.1 is just a deprecation marker on the existing 1.4.0 code —
+> no API or content change; safe to upgrade.
+
+Japanese-specific data + lookup helpers for the [Inputx](https://github.com/goliajp/inputx)
+IME.
 
 ```toml
 [dependencies]
