@@ -15,7 +15,7 @@
 //! result in committed text return `Option<String>` directly. The
 //! `Session` layer is the single owner of pending-commit state.
 
-use inputx_wubi_cement as cement;
+use inputx_wubi_data as cement;
 
 /// Policy controlling when the engine auto-commits without explicit user
 /// selection. Default: `OnFourCodesIfUnique`.
