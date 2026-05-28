@@ -1024,6 +1024,54 @@ mod tests {
     }
 
     #[test]
+    fn mixed_liangle_surfaces_凉了_not_两肋() {
+        // User polish-log (2026-05-28): typing `liangle` surfaced 两肋 as
+        // top1 even though 两肋's modern reading is `lianglei`. Source
+        // dict's readings.tsv keeps the archaic "lè" reading of 肋 alive,
+        // so phrases_composed.tsv emits (liangle, 两肋, 3) — that
+        // pollution flowed straight through facade `PinyinDict::
+        // lookup_into` into Path 1, masking the legitimate `liang+了`
+        // composition.
+        //
+        // v1.6.5 fix is a three-layer dict orthodox:
+        //   (b1) BAKED_EXCLUSIONS in idf-from-pinyin-dict drops the
+        //        (liangle, 两肋) cement IDF entry.
+        //   (b2) BAKED_ADDITIONS inserts (liangle, 凉了, 500) so a real
+        //        Path-1 exact-match candidate exists, gating off Path-3
+        //        prefix-completion's leak of (lianglei, 两肋) under the
+        //        liangle prefix.
+        //   (c)  composite/pinyin_adapter.rs Path 1 fill cuts over from
+        //        facade `lookup_into` to `pinyin_idf_reader().lookup` —
+        //        without this, baked additions in cement IDF never reach
+        //        `self.candidates` when the facade source has any entry
+        //        (typically polluted) for the same code.
+        //
+        // The lianglei buffer is unaffected: 两类 / 两肋 both surface there
+        // because "肋" reads "lèi" in modern mainstream Chinese.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let cands_for = |buf: &[u8]| -> Vec<String> {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::Mixed);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            for b in buf { let _ = e.handle_letter(*b); }
+            e.candidates().iter().map(|c| c.word.clone()).collect()
+        };
+        let liangle = cands_for(b"liangle");
+        let lianglei = cands_for(b"lianglei");
+        // liangle: 凉了 must be top1, 两肋 must NOT appear at all.
+        assert_eq!(liangle.first().map(String::as_str), Some("凉了"),
+            "liangle top1 must be 凉了; got {liangle:?}");
+        assert!(!liangle.iter().any(|w| w == "两肋"),
+            "liangle must not surface 两肋 (archaic-reading pollution); got {liangle:?}");
+        // lianglei: 两类 top1, 两肋 also present (legitimate modern reading).
+        assert_eq!(lianglei.first().map(String::as_str), Some("两类"),
+            "lianglei top1 must be 两类; got {lianglei:?}");
+        assert!(lianglei.iter().any(|w| w == "两肋"),
+            "lianglei must still surface 两肋 (legitimate lèi reading); got {lianglei:?}");
+    }
+
+    #[test]
     fn jp_prefix_prediction_rises_with_proximity() {
         // PLAN-prefix-prediction CP-A (user 2026-05-26 "我想做"): as the user
         // types toward a jukugo it's predicted and rises with proximity.
