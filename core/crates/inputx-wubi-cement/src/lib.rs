@@ -16,17 +16,21 @@
 //! # Public surface (1:1 with the pre-v1.4.5 `inputx_core::wubi`
 //! module so the carve-out is a pure mechanical rename for consumers).
 
-mod engine;
 mod table;
 
 use std::sync::OnceLock;
 
 use inputx_dict_format::IdfReader;
 
-pub use engine::{AutoCommitPolicy, WubiEngine};
+// v1.5.2 WU-λ carve-out: WubiEngine state machine + AutoCommitPolicy
+// moved INTO the Inputx application (`inputx-core::wubi`) per the v1.5
+// D11 taxonomy correction (cement = application source, NOT a
+// published crate). This crate keeps only stone-quality data + lookup
+// helpers — no per-session state, no auto-commit policy.
 pub use table::{
-    export_l0, import_l0, is_displayable, lookup_with_scores, set_show_rare,
-    show_rare, warmup,
+    export_l0, import_l0, is_displayable, lookup, lookup_with_freq_layer,
+    lookup_with_layer, lookup_with_scores, prefix_predictions, record_pick,
+    set_show_rare, show_rare, warmup,
 };
 /// Re-export of the wubi L0 snapshot type so hosts can build /
 /// destructure it without depending on the `inputx-wubi` crate
