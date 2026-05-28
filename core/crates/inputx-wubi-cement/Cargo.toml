@@ -1,11 +1,11 @@
 [package]
 name = "inputx-wubi-cement"
-version = "1.4.0"
+version = "2.0.0"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-description = "Wubi-specific business glue (consumer-engine cement) for Inputx — stateful WubiEngine wrapping inputx-wubi facade primitives, L0 export/import JSON, auto-commit policy. Use this if you want a ready-to-drive Wubi IME engine; use `inputx-wubi` (the facade) if you just need the codec / dict / layer primitives."
+description = "[DEPRECATED v2.0 → see inputx-wubi-data in v1.6 backlog] Wubi data + IDF reader + layer helpers. The stateful WubiEngine state machine was carved out of this crate in v1.5.2 — for engine code, copy from the Inputx monorepo's inputx-core/src/wubi/engine.rs (the cement-as-application-source taxonomy correction)."
 authors = ["GOLIA K.K."]
 repository = "https://github.com/goliajp/inputx"
 homepage = "https://github.com/goliajp/inputx"

@@ -1,6 +1,25 @@
 # inputx-pinyin-cement
 
-Pinyin-specific consumer-engine cement for [Inputx](https://github.com/goliajp/inputx).
+> **⚠ DEPRECATED at 1.4.1 (2026-05).** The v1.5 cycle's D11
+> taxonomy correction reclassified "cement" as **application source
+> code, not a published crate**. This crate actually ships pure
+> data + stateless helpers (no application glue, no per-session
+> state) — by the new taxonomy that's stones, just mis-named.
+>
+> **Migration path (v1.6 backlog)**:
+>
+> - `EMBEDDED_PINYIN_IDF` + `EMBEDDED_BIGRAMS_NGM` → future
+>   `inputx-pinyin-data-words` + reuse of existing
+>   `inputx-pinyin-data-bigrams` data stones.
+> - `bigram_boost_from_ngm` / `legacy_bigram_boost_from_ngm` /
+>   `estimated_freq_from_log_prior` / `pinyin_idf_reader` → future
+>   `inputx-pinyin-helpers` stone.
+>
+> v1.4.1 is just a deprecation marker on the existing 1.4.0 code —
+> no API or content change; safe to upgrade.
+
+Pinyin-specific data + lookup helpers for the [Inputx](https://github.com/goliajp/inputx)
+IME.
 
 ```toml
 [dependencies]

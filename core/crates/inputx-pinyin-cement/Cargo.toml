@@ -1,11 +1,11 @@
 [package]
 name = "inputx-pinyin-cement"
-version = "1.4.0"
+version = "1.4.1"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-description = "Pinyin-specific consumer-engine cement for Inputx — IDFv1-backed lookup adapter, bigram-boost wire helper (NGMv1), L0 (per-user pin) JSON export/import. Sits on top of the `inputx-pinyin` facade + `inputx-dict-format` + `inputx-ngram`."
+description = "[DEPRECATED 1.4.1 → see inputx-pinyin-helpers in v1.6 backlog] Pinyin IDF + NGM data + lookup helpers (bigram_boost, estimated_freq_from_log_prior, pinyin_idf_reader). The -cement suffix is a v1.4 taxonomy mis-naming — this crate ships pure data + stateless helpers (no application glue), classifies as a stone. Migration: depend directly on what you need."
 authors = ["GOLIA K.K."]
 repository = "https://github.com/goliajp/inputx"
 homepage = "https://github.com/goliajp/inputx"

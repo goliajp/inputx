@@ -1,11 +1,11 @@
 [package]
 name = "inputx-nihongo-cement"
-version = "1.4.0"
+version = "1.4.1"
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-description = "Japanese-specific consumer-engine cement for Inputx — IDFv1-backed jukugo / kanji lookup adapter, romaji-to-kana plumbing helpers. Sits on top of the `inputx-nihongo` facade + `inputx-dict-format`."
+description = "[DEPRECATED 1.4.1 → see inputx-nihongo-data-jukugo + inputx-nihongo-data-kanji in v1.6 backlog] Japanese IDF data + reader helpers. The -cement suffix is a v1.4 taxonomy mis-naming — this crate ships pure data + stateless helpers (no application glue), classifies as data stones."
 authors = ["GOLIA K.K."]
 repository = "https://github.com/goliajp/inputx"
 homepage = "https://github.com/goliajp/inputx"
