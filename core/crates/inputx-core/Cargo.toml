@@ -45,7 +45,7 @@ inputx-pinyin-cement = { path = "../inputx-pinyin-cement", version = "1.4" }
 # this code lived as `inputx_core::wubi`; the carve splits the
 # Inputx-specific business glue out of inputx-core so third-party
 # Wubi IME implementers can pull the cement directly.
-inputx-wubi-cement = { path = "../inputx-wubi-cement", version = "2.0" }
+inputx-wubi-cement = { path = "../inputx-wubi-cement", version = "2.0.1" }
 # Nihongo cement IDF readers (v1.4.7 A4 step 3 infrastructure).
 # v1.5.1 WU-κ uses these for the composite-side JapaneseEngine carve-
 # out — composite/japanese reads jukugo / kanji corpus through
