@@ -21,6 +21,10 @@ members = [
     "crates/inputx-pinyin-data-bigrams",
     "crates/inputx-pinyin-data-trigrams",
     "crates/inputx-nihongo-wasm",
+    "crates/inputx-wubi-data",
+    "crates/inputx-nihongo-data-jukugo",
+    "crates/inputx-nihongo-data-kanji",
+    "crates/inputx-pinyin-helpers",
 ]
 
 [workspace.package]

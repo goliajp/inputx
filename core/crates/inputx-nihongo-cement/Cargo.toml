@@ -16,10 +16,9 @@ categories = ["text-processing"]
 crate-type = ["rlib"]
 
 [dependencies]
-# Nihongo facade — romaji / kanji / jukugo / brands / counters /
-# engine / session primitives.
-inputx-nihongo = { path = "../inputx-nihongo", version = "1.1" }
-# IDFv1 dict reader + builder (v1.4.3 stone).
-inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
-# Probability-native scoring schema (v1.4.2 stone).
-inputx-scoring = { path = "../inputx-scoring", version = "1.4" }
+# v1.6 thin re-export shim: this crate now `pub use` both halves of
+# the split (jukugo + kanji). Historical 1.4.x consumers continue to
+# compile transparently; new code should depend on the matching
+# `-data-jukugo` / `-data-kanji` stone(s) directly per use case.
+inputx-nihongo-data-jukugo = { path = "../inputx-nihongo-data-jukugo", version = "1.6" }
+inputx-nihongo-data-kanji = { path = "../inputx-nihongo-data-kanji", version = "1.6" }
