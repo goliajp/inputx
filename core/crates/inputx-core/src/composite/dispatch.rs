@@ -1072,6 +1072,64 @@ mod tests {
     }
 
     #[test]
+    fn mixed_jp_low_ratio_kbest_fully_suppressed() {
+        // User polish-log (2026-05-29, `rokuman`): pinyin Path-5 K-best
+        // was force-segmenting Japanese romaji buffers into mechanical
+        // single-char Chinese compositions (儿哦库曼 / 儿噢库曼 / 儿喔
+        // 库曼 / 儿哦苦满 / 儿哦哭满) and surfacing all 5 K-best variants
+        // at NON_EXACT_FLOOR (1000) tier, below the legitimate kana
+        // candidates but visible in the list as garbage.
+        //
+        // The ratio < 2.0 quality gate previously only suppressed the
+        // top1's `fallback_composition` promotion (which would have
+        // claimed COMPOSED_FALLBACK_SCORE 250k tier); the K-best comps
+        // themselves still pushed into self.candidates. v1.6.6 fix
+        // (composite/pinyin_adapter.rs): move the `for (_, sentence)
+        // in comps push` block inside the `if ratio >= 2.0` branch so
+        // mechanical garbage never enters self.candidates at all.
+        //
+        // Ratios verified empirically by _explore_composition_scores:
+        //   rokuman    (7/4 = 1.75) MECHANICAL — gate triggers
+        //   famiriaare (10/6 = 1.67) MECHANICAL — gate triggers
+        //   kaopu      (5/2 = 2.50) REAL — gate passes, 靠谱 surfaces
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let cands_for = |buf: &[u8], jp: bool| -> Vec<String> {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::Mixed);
+            e.set_japanese_enabled(jp);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            for b in buf { let _ = e.handle_letter(*b); }
+            e.candidates().iter().map(|c| c.word.clone()).collect()
+        };
+        let is_han = |c: char| ('\u{4E00}'..='\u{9FFF}').contains(&c);
+        // rokuman + jp: no Han-character candidates at all (gate suppresses
+        // all K-best comps; legitimate Han jukugo entries — if/when added —
+        // would be unaffected since they come from JapaneseEngine, not
+        // pinyin Path-5).
+        let rokuman = cands_for(b"rokuman", true);
+        for w in &rokuman {
+            assert!(!w.chars().any(is_han),
+                "rokuman --jp must not surface Han-char K-best garbage; \
+                 got {w:?} in {rokuman:?}");
+        }
+        // famiriaare + jp: same — historical 法弥日呵呵热 etc all gone.
+        let famiriaare = cands_for(b"famiriaare", true);
+        for w in &famiriaare {
+            assert!(!w.chars().any(is_han),
+                "famiriaare --jp must not surface Han-char K-best garbage; \
+                 got {w:?} in {famiriaare:?}");
+        }
+        // Positive sanity: kaopu still surfaces 靠谱 (ratio 2.5 ≥ 2.0,
+        // gate passes). Verifies the gate didn't over-suppress real
+        // compositions.
+        let kaopu = cands_for(b"kaopu", false);
+        assert!(kaopu.iter().any(|w| w == "靠谱"),
+            "kaopu must still surface 靠谱 (ratio 2.5, K-best gate passes); \
+             got {kaopu:?}");
+    }
+
+    #[test]
     fn jp_prefix_prediction_rises_with_proximity() {
         // PLAN-prefix-prediction CP-A (user 2026-05-26 "我想做"): as the user
         // types toward a jukugo it's predicted and rises with proximity.
