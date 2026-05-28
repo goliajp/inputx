@@ -13,7 +13,8 @@
 //! `JUKUGO_TABLE.freq` / `KANJI_TABLE.freq` straight into that field,
 //! so byte-equivalent values come back out.
 
-use inputx_nihongo_cement::{nihongo_jukugo_idf_reader, nihongo_kanji_idf_reader};
+use inputx_nihongo_data_jukugo::nihongo_jukugo_idf_reader;
+use inputx_nihongo_data_kanji::nihongo_kanji_idf_reader;
 
 /// Owned `(kanji, freq)` rows whose jukugo reading exactly matches
 /// `romaji`. Multi-reading kanji return one row per (reading, kanji)

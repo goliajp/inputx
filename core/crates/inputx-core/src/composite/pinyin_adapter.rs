@@ -15,7 +15,7 @@ use std::sync::{Arc, OnceLock};
 
 use inputx_ngram::NgramTable;
 use inputx_pinyin::PinyinEngine;
-use inputx_pinyin_cement::{
+use inputx_pinyin_helpers::{
     legacy_bigram_boost_from_ngm, pinyin_idf_reader, EMBEDDED_BIGRAMS_NGM,
 };
 
