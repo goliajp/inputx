@@ -1,0 +1,25 @@
+[package]
+name = "inputx-wubi-data"
+version = "1.6.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+description = "Embedded Wubi 86 IDFv1 dict blob + IdfReader OnceLock + Layer-from-EntryFlags helper for the inputx-wubi engine. Pure data + stateless lookup helpers (no application glue, no per-session state); successor to inputx-wubi-cement under the v1.5 D11 taxonomy correction (cement = application source, not a published crate)."
+authors = ["GOLIA K.K."]
+repository = "https://github.com/goliajp/inputx"
+homepage = "https://github.com/goliajp/inputx"
+keywords = ["wubi", "ime", "chinese", "data", "embedded"]
+categories = ["text-processing", "internationalization"]
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+# Wubi facade — Layer enum + dict primitives for the IDF entry decode
+# helpers (layer_from_idf_tag returns inputx_wubi::Layer).
+inputx-wubi = { workspace = true }
+# IDFv1 binary dict reader (v1.4.3 stone).
+inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
+# Q4 fixed-point constants for log_prior_q4 round-trip helpers.
+inputx-scoring = { path = "../inputx-scoring", version = "1.4" }

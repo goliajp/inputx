@@ -16,15 +16,7 @@ categories = ["text-processing"]
 crate-type = ["rlib"]
 
 [dependencies]
-# Pinyin facade — codec / dict / syllable / fuzzy / engine primitives.
-inputx-pinyin = { workspace = true }
-# IDFv1 dict reader + builder (v1.4.3 stone).
-inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
-# NGMv1 n-gram lookup (v1.4.4 stone) for bigram_boost.
-inputx-ngram = { path = "../inputx-ngram", version = "1.4" }
-# Probability-native scoring schema (v1.4.2 stone). Source of truth
-# for Q4 fixed-point constants used in `freq.rs` round-trip helpers.
-inputx-scoring = { path = "../inputx-scoring", version = "1.4" }
-
-[dev-dependencies]
-tempfile = "3"
+# v1.6 thin re-export shim: `pub use inputx_pinyin_helpers::*;` only.
+# Historical 1.4.x consumers continue to compile transparently; new
+# code should depend on inputx-pinyin-helpers directly.
+inputx-pinyin-helpers = { path = "../inputx-pinyin-helpers", version = "1.6" }

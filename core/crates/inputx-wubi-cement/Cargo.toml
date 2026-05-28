@@ -16,14 +16,7 @@ categories = ["text-processing"]
 crate-type = ["rlib"]
 
 [dependencies]
-# Wubi engine primitives (codec / decomp / dict / jianma / layer / stroke /
-# zigen). This cement crate is the consumer of that facade.
-inputx-wubi = { workspace = true }
-# IDFv1 dict reader (v1.4.3 stone) — v1.4.7 sub-phase A4 step 2: wubi
-# cement-level lookups (lookup_with_freq_layer / prefix_predictions)
-# route through EMBEDDED_WUBI_IDF instead of the facade dict.
-inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
-# Q4 fixed-point constants for log_prior reconstruction (used by
-# downstream consumers, kept on cement-level to keep the facade dep
-# graph minimal).
-inputx-scoring = { path = "../inputx-scoring", version = "1.4" }
+# v1.6 thin re-export shim: this crate now `pub use inputx_wubi_data::*;`
+# only. Historical (1.4.x / 2.0.0) consumers continue to compile
+# transparently; new code should depend on inputx-wubi-data directly.
+inputx-wubi-data = { path = "../inputx-wubi-data", version = "1.6" }
