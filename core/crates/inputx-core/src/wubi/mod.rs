@@ -1,14 +1,26 @@
-//! Backwards-compat re-export shim for the v1.4.5 wubi cement carve-out.
+//! Composite-side wubi engine (v1.5.2 WU-λ carve-out).
 //!
-//! All wubi engine code (WubiEngine state machine, table lookups,
-//! L0 export/import, auto-commit policy) now lives in the dedicated
-//! `inputx-wubi-cement` crate. This shim re-exports the same surface
-//! so `inputx_core::wubi::*` continues to work for downstream consumers
-//! (Session, composite engine, baseline tests) without touching every
-//! callsite during the v1.4.5 mechanical carve.
+//! Pre-v1.4.5 the WubiEngine state machine + table helpers lived
+//! directly inside `inputx-core::wubi`. v1.4.5 WU-ζ moved everything
+//! out to `inputx-wubi-cement` and left this file as a re-export
+//! shim. v1.5.2 WU-λ moves the state machine back IN per the v1.5
+//! D11 taxonomy correction (cement = application source, NOT a
+//! published crate); data + low-level lookup helpers
+//! (`EMBEDDED_WUBI_IDF`, `wubi_idf_reader`, `layer_from_idf_tag`,
+//! `lookup` / `lookup_with_scores` / `lookup_with_layer` /
+//! `lookup_with_freq_layer` / `prefix_predictions` / `record_pick` /
+//! `export_l0` / `import_l0` / `set_show_rare` / `show_rare` /
+//! `warmup` / `is_displayable`) stay in `inputx-wubi-cement` as
+//! stone-quality reusable helpers.
 //!
-//! Direct consumers may import from `inputx_wubi_cement` instead; the
-//! shim stays for one cycle while we audit downstreams, then deletes
-//! in v1.4.6 cement cutover.
+//! Public surface remains 1:1 with the v1.4.5 carve so downstream
+//! consumers (Session, composite engine, baseline tests) don't see
+//! any rename / move noise.
 
-pub use inputx_wubi_cement::*;
+mod engine;
+
+pub use engine::{AutoCommitPolicy, WubiEngine};
+pub use inputx_wubi_cement::{
+    export_l0, import_l0, is_displayable, lookup_with_scores, set_show_rare,
+    show_rare, warmup, L0Snapshot,
+};
