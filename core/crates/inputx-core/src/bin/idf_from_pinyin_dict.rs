@@ -79,17 +79,19 @@ fn correction_for(word: &str) -> i32 {
 /// expected behavior + cite the polish-log case in the same
 /// commit. Keep entries grouped by polish-log buffer + sorted.
 const BAKED_ADDITIONS: &[(&str, &str, u64)] = &[
-    // 2026-05-28 user polish-log (pianni → 4 variants natively):
+    // 2026-05-28 user polish-log (pianni → semantically valid variants):
     // pre-bake, `pianni` had no Path-1 exact hits — Path 5 K-best
     // composed (片) + (你) as the highest single-char freq pair, and
     // the historical blacklist had to drop 片你 explicitly. With
-    // these 4 phrase entries baked, Path-1 surfaces 骗你 / 偏你 /
-    // 便你 / 篇你 in freq order, Path 5 gates off, 片你 never
-    // generates. (片你 is excluded — it's not a real Chinese phrase.)
+    // these phrase entries baked, Path-1 surfaces 骗你 / 偏你 in
+    // freq order, Path 5 gates off, 片你 never generates.
+    //
+    // 便你 / 篇你 dropped per user 2026-05-28 follow-up: 便你 is an
+    // awkward non-collocation, 篇你 isn't a Chinese phrase at all.
+    // Excluded entries get suppressed by Path-5 K-best's (pian, ni)
+    // zero-bigram gating, so removing them from this table is enough.
     ("pianni", "骗你", 500),
-    ("pianni", "便你", 200),
     ("pianni", "偏你", 100),
-    ("pianni", "篇你", 50),
 ];
 
 fn main() -> ExitCode {
