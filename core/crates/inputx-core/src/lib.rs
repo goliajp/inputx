@@ -21,6 +21,7 @@ pub mod rules;
 // `locale` and `wubi` are `pub` so the sibling `inputx-core-ffi` crate can
 // reach `inputx_core::locale::punct::*`, `inputx_core::wubi::set_show_rare`,
 // etc. Direct Rust consumers should prefer the curated re-exports below.
+pub mod japanese;
 pub mod locale;
 pub mod wubi;
 

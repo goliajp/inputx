@@ -46,6 +46,13 @@ inputx-pinyin-cement = { path = "../inputx-pinyin-cement", version = "1.4" }
 # Inputx-specific business glue out of inputx-core so third-party
 # Wubi IME implementers can pull the cement directly.
 inputx-wubi-cement = { path = "../inputx-wubi-cement", version = "1.4" }
+# Nihongo cement IDF readers (v1.4.7 A4 step 3 infrastructure).
+# v1.5.1 WU-κ uses these for the composite-side JapaneseEngine carve-
+# out — composite/japanese reads jukugo / kanji corpus through
+# nihongo_jukugo_idf_reader / nihongo_kanji_idf_reader, replacing the
+# facade JUKUGO_TABLE / KANJI_TABLE const-table path so the composite
+# engine satisfies "engine 只读 .idf" gate also for nihongo.
+inputx-nihongo-cement = { path = "../inputx-nihongo-cement", version = "1.4" }
 # L0 export/import JSON is hand-rolled in composite/l0_json.rs (zero-dep
 # milestone, Stage A — see .claude/PLAN-self-built-fsa.md). No serde.
 

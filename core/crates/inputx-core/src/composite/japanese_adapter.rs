@@ -1,5 +1,8 @@
-//! Thin wrapper around [`inputx_nihongo::JapaneseEngine`] so the composite
-//! layer can plug it next to `PinyinAdapter` with a matching shape:
+//! Thin wrapper around the composite-side [`crate::japanese::JapaneseEngine`]
+//! (v1.5.1 WU-κ carved out of `inputx_nihongo::JapaneseEngine` —
+//! same API surface, jukugo / kanji lookups now route through IDF
+//! readers instead of facade const tables) so the composite layer
+//! can plug it next to `PinyinAdapter` with a matching shape:
 //! `handle_letter` / `backspace` / `escape` / `clear_all` / `is_composing`
 //! / `buffer_str` / `candidates` / `commit_index`.
 //!
@@ -9,7 +12,13 @@
 //! three engines uniformly without inputx-core taking a hard compile-
 //! time switch on whether JP is in the build.
 
-use inputx_nihongo::JapaneseEngine;
+// v1.5.1 WU-κ carve-out: composite-side JapaneseEngine reads jukugo /
+// kanji corpus through cement IDF readers instead of the facade
+// `JUKUGO_TABLE` / `KANJI_TABLE` const tables. Facade
+// `inputx_nihongo::JapaneseEngine` stays intact for direct-facade
+// consumers (notably `inputx-nihongo-wasm`); see
+// `crate::japanese::mod` for the carve-out rationale.
+use crate::japanese::JapaneseEngine;
 
 /// Filter: drop candidates that aren't usable IME output. Two rejection
 /// classes, both products of the engine's mechanical rendering rather than
