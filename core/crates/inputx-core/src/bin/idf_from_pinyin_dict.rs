@@ -78,6 +78,31 @@ fn correction_for(word: &str) -> i32 {
 /// MUST add a regression test in `dispatch.rs` pinning the
 /// expected behavior + cite the polish-log case in the same
 /// commit. Keep entries grouped by polish-log buffer + sorted.
+/// Build-time dict exclusions — `(code, word)` pairs to drop during
+/// IDF snapshot. Use for source-dict pollution that polish-log shows
+/// regresses real IME behavior — typically rare archaic readings of
+/// Chinese characters that the upstream `inputx-pinyin` corpus still
+/// expands into phrase entries.
+///
+/// Pattern: when a phrase entry exists under a code that does NOT
+/// match the character's modern mainstream reading (e.g. archaic
+///异读 surviving in the corpus), excluding the entry lets Path-5
+/// K-best composition surface the correct phrase naturally.
+///
+/// MUST add a regression test in `dispatch.rs` pinning the polished
+/// behavior + cite the polish-log case in the same commit.
+const BAKED_EXCLUSIONS: &[(&str, &str)] = &[
+    // 2026-05-28 user polish-log: typing `liangle` surfaced 两肋 as a
+    // Path-1 Exact match, gating off Path-5 K-best → 凉了 never
+    // generated. Source dict (readings.tsv:18800) maps "两肋" to BOTH
+    // `liangle` and `lianglei` because "肋" has an archaic "lè" reading
+    // that survives in jieba phrase data; modern mainstream reads "lèi"
+    // only. Dropping (liangle, 两肋) lets K-best compose 凉+了 → 凉了
+    // surfaces naturally. (lianglei, 两肋) is kept — that mapping is
+    // legitimate per modern reading.
+    ("liangle", "两肋"),
+];
+
 const BAKED_ADDITIONS: &[(&str, &str, u64)] = &[
     // 2026-05-28 user polish-log (pianni → semantically valid variants):
     // pre-bake, `pianni` had no Path-1 exact hits — Path 5 K-best
@@ -92,6 +117,20 @@ const BAKED_ADDITIONS: &[(&str, &str, u64)] = &[
     // zero-bigram gating, so removing them from this table is enough.
     ("pianni", "骗你", 500),
     ("pianni", "偏你", 100),
+
+    // 2026-05-28 user polish-log (liangle → expected 凉了):
+    // "凉了" isn't a frozen phrase in upstream jieba data ("了" is
+    // a particle, not lexicalised), so the source dict has no
+    // (liangle, 凉了) entry. Combined with the (liangle, 两肋)
+    // 异读 pollution being excluded above, K-best would normally
+    // step in to compose 凉+了 — but Path-3 prefix-completion
+    // still surfaces "两肋" via (lianglei, 两肋), which keeps
+    // self.candidates non-empty and gates Path-5 K-best off.
+    // Baking 凉了 as a Path-1 exact match makes has_non_specula-
+    // tive_candidate=true, which gates prefix-completion off in
+    // turn (per the lianxiang 2026-05-22 rule), so 两肋 also no
+    // longer surfaces under liangle.
+    ("liangle", "凉了", 500),
 ];
 
 fn main() -> ExitCode {
@@ -146,7 +185,15 @@ fn run(out_path: &Path) -> std::io::Result<()> {
 
     let mut builder = IdfBuilder::new(EngineKind::Pinyin);
     let mut baked_count = 0usize;
+    let mut excluded_count = 0usize;
     for (code, word, raw_freq) in &entries {
+        if BAKED_EXCLUSIONS
+            .iter()
+            .any(|(ex_code, ex_word)| ex_code == code && ex_word == word)
+        {
+            excluded_count += 1;
+            continue;
+        }
         // v1.4.7 sub-phase A5: prior_correction's Q4 boost is baked
         // into `log_prior_q4` at snapshot build time. The merge.rs
         // `correct` lambda + composite/prior_correction.rs retire in
@@ -183,6 +230,10 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         "[idf-from-pinyin-dict] baked prior_correction Q4 boosts into {baked_count} entries (table size: {})",
         PRIOR_CORRECTIONS.len()
     );
+    eprintln!(
+        "[idf-from-pinyin-dict] excluded {excluded_count} polluted entries (table size: {})",
+        BAKED_EXCLUSIONS.len()
+    );
 
     // Build-time dict additions: inject synthetic phrase entries
     // for polish-log cases the upstream dict pipeline does not
@@ -211,13 +262,14 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         builder.pending_count(),
         out_path.display()
     );
+    let final_count = entry_count - excluded_count + BAKED_ADDITIONS.len();
     let sha = builder.build(out_path)?;
     let sha_hex: String = sha.iter().map(|b| format!("{b:02x}")).collect();
     let size = std::fs::metadata(out_path)?.len();
     println!(
         "wrote {} ({} entries, {} bytes, sha256 {})",
         out_path.display(),
-        entry_count,
+        final_count,
         size,
         sha_hex
     );

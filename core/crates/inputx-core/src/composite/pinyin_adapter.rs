@@ -799,12 +799,22 @@ impl PinyinAdapter {
         // Path 1: exact-syllable lookup (含 fuzzy / tone-strip / heteronym
         // collapsing). Buffer must already parse as one or more valid
         // pinyin syllables; partial-syllable input like "zho" returns ∅.
-        let mut exact_buf: Vec<String> = Vec::new();
-        self.engine
-            .dict()
-            .lookup_into(&self.buffer, &mut exact_buf);
+        //
+        // v1.6.5 (user polish-log 2026-05-28, liangle→凉了): switched
+        // fill source from facade `PinyinDict::lookup_into` to the
+        // cement IdfReader. The two sets diverge by exactly the
+        // BAKED_ADDITIONS + BAKED_EXCLUSIONS in idf-from-pinyin-dict
+        // (cement IDF = facade entries − exclusions + additions);
+        // since v1.4.7 A4 step 1 the score-time path already reads
+        // cement IDF, leaving Path 1 fill on the facade source meant
+        // baked additions never reached `self.candidates` when the
+        // facade source had any (typically polluted) entry for the
+        // same code. Per-entry ordering doesn't matter — the L0 pin
+        // pull-to-front and the legacy `freq desc` ordering both
+        // happen in `candidates_with_scores`, not here.
         let mut seen: HashSet<String> = HashSet::with_capacity(64);
-        for w in exact_buf {
+        for entry in pinyin_idf_reader().lookup(self.buffer.as_bytes()) {
+            let w = entry.word.to_string();
             if seen.insert(w.clone()) {
                 self.candidates.push(w);
                 self.has_non_speculative_candidate = true;
