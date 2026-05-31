@@ -45,21 +45,49 @@ for arg in "$@"; do
     [[ "$arg" == "--no-dock" ]] && RESTART_DOCK=0
 done
 
+copy_one() {
+    local src="$1"
+    local dst="$2"
+    if [[ ! -f "$src" ]]; then
+        echo "[hot-patch] ✗ source $src missing" >&2
+        exit 1
+    fi
+    cp "$src" "$dst"
+    local sha=$(shasum "$src" | awk '{print $1}' | cut -c1-12)
+    echo "[hot-patch] ✓ $(basename "$src") ($sha)"
+}
+
 case "$KIND" in
     icon)
-        SRC="mac/Resources/inputx_app_icon.icns"
-        DST="$APP/Contents/Resources/inputx_app_icon.icns"
-        if [[ ! -f "$SRC" ]]; then
-            echo "[hot-patch] ✗ source $SRC missing — run python3 mac/generate_icon.py" >&2
-            exit 1
-        fi
-        cp "$SRC" "$DST"
-        SRC_SHA=$(shasum "$SRC" | awk '{print $1}' | cut -c1-12)
-        echo "[hot-patch] ✓ icon copied ($SRC_SHA)"
+        copy_one "mac/Resources/inputx_app_icon.icns" "$APP/Contents/Resources/inputx_app_icon.icns"
+        ;;
+    menu-icon)
+        # `inputx_menu_icon.tiff` is the per-IME indicator shown in
+        # System Settings → 文本输入 → 输入法 + the menu-bar input
+        # picker. Distinct from the bundle .icns (which is for Dock
+        # / Finder). 32×32 template TIFF (RGBA, black on transparent,
+        # TISIconIsTemplate=true). Wired in Info.plist as
+        # `tsInputMethodIconFileKey` + `tsInputModeMenuIconFileKey`
+        # + `tsInputModePaletteIconFileKey`.
+        copy_one "mac/Resources/inputx_menu_icon.tiff" "$APP/Contents/Resources/inputx_menu_icon.tiff"
+        # TIS caches the indicator. Purge IntlDataCache + restart
+        # TextInputMenuAgent so the new TIFF gets re-read.
+        CACHE=$(getconf DARWIN_USER_CACHE_DIR 2>/dev/null || echo /tmp)
+        rm -f "$CACHE"/com.apple.IntlDataCache.le* 2>/dev/null || true
+        killall TextInputMenuAgent 2>/dev/null || true
+        echo "[hot-patch] ✓ IntlDataCache purged + TextInputMenuAgent restarted"
+        ;;
+    all)
+        copy_one "mac/Resources/inputx_app_icon.icns" "$APP/Contents/Resources/inputx_app_icon.icns"
+        copy_one "mac/Resources/inputx_menu_icon.tiff" "$APP/Contents/Resources/inputx_menu_icon.tiff"
+        CACHE=$(getconf DARWIN_USER_CACHE_DIR 2>/dev/null || echo /tmp)
+        rm -f "$CACHE"/com.apple.IntlDataCache.le* 2>/dev/null || true
+        killall TextInputMenuAgent 2>/dev/null || true
+        echo "[hot-patch] ✓ IntlDataCache purged + TextInputMenuAgent restarted"
         ;;
     "")
         echo "Usage: $0 <kind> [--no-dock]" >&2
-        echo "  kinds: icon" >&2
+        echo "  kinds: icon | menu-icon | all" >&2
         exit 2
         ;;
     *)
