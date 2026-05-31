@@ -42,6 +42,44 @@ final class CandidatePanel {
     /// keystroke that didn't change candidates). Cleared by `hide()` so
     /// re-show always rebuilds.
     private var lastRenderedFingerprint: String = ""
+    /// Render-width of the widest visible word at the last layout pass.
+    /// Used to skip `layoutSubtreeIfNeeded` + `fittingSize` + `setFrame`
+    /// when the new page's widest word still fits — non-shrinking panel
+    /// behaviour matches Apple/搜狗/微信 IMEs and keeps the window
+    /// from jittering as candidate sets vary. Reset by `hide()`.
+    private var cachedMaxWordRenderWidth: CGFloat = 0
+    /// Cached attributes for the `NSString.size(withAttributes:)`
+    /// measure pass below — building the dict on every refresh would
+    /// itself eat a few µs × pageSize.
+    private static let wordMeasureAttrs: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: 15)
+    ]
+    /// Per-word render-width cache. Each unique candidate word is
+    /// measured exactly once across the IME's lifetime — subsequent
+    /// refreshes look up O(1). PerfTimer showed the raw measure pass
+    /// at ~1.2ms p50 (10× NSString.size per refresh); the cache
+    /// collapses that to a single dict lookup on the common case
+    /// where most page words have already been seen.
+    private var wordWidthCache: [String: CGFloat] = [:]
+    /// One-time AL-calibrated overhead between the widest word's
+    /// render width and the panel's content-view width:
+    /// `contentWidth - widestWordRenderWidth`. Hand-rolled vs. the
+    /// existing constraint stack the overhead comes out to:
+    ///   stack edgeInsets.left (8) + row leading-padding (6) +
+    ///   numberLabel width (14) + gap (8) + wordLabel trailing-pad (8)
+    ///   + stack edgeInsets.right (8) = 52pt.
+    /// We measure it empirically on first refresh (one AL pass) to
+    /// survive any future constraint tweak without recomputing the
+    /// constant by hand. After calibration the layout block becomes
+    /// pure arithmetic — no `layoutSubtreeIfNeeded`, no `fittingSize`.
+    private var calibratedWidthOverhead: CGFloat?
+    /// One-time AL-calibrated panel height. With 10 fixed-height rows
+    /// (22pt each), 9× 1pt stack spacing, 6+4 stack edgeInsets, a
+    /// stack→footer gap of 2pt, footer intrinsic (~13pt for a
+    /// 10pt-font label), and footer bottom-inset of 4pt, the total
+    /// settles around 258pt. Always populated together with
+    /// `calibratedWidthOverhead`.
+    private var calibratedFrameHeight: CGFloat?
     private weak var lastClient: AnyObject?
 
     /// Which edge of the panel stays put when the row count changes
@@ -170,21 +208,26 @@ final class CandidatePanel {
         // anchor at the FRESH caret, not the stale prediction anchor.
         let wasPrediction = isPredictionMode
         isPredictionMode = false
-        let count = session.candidateCount
-        guard count > 0, let preedit = session.preedit, !preedit.isEmpty else {
+        let (count, preeditOpt): (Int, String?) = PerfTimer.measure("session.count+preedit") {
+            (session.candidateCount, session.preedit)
+        }
+        guard count > 0, let preedit = preeditOpt, !preedit.isEmpty else {
             hide()
             return
         }
 
-        var words: [String] = []
-        words.reserveCapacity(count)
-        for i in 0..<count {
-            if let w = session.candidate(at: i) {
-                words.append(w)
-            }
-        }
         let cap = 50
-        if words.count > cap { words.removeLast(words.count - cap) }
+        let words: [String] = PerfTimer.measure("session.candidate(at:)×N") {
+            var ws: [String] = []
+            let n = min(count, cap)
+            ws.reserveCapacity(n)
+            for i in 0..<n {
+                if let w = session.candidate(at: i) {
+                    ws.append(w)
+                }
+            }
+            return ws
+        }
         if words != current {
             current = words
             pageIndex = 0
@@ -208,6 +251,7 @@ final class CandidatePanel {
         pageIndex = 0
         selectedInPage = 0
         lastRenderedFingerprint = ""
+        cachedMaxWordRenderWidth = 0
         if window.isVisible { window.orderOut(nil) }
     }
 
@@ -381,15 +425,43 @@ final class CandidatePanel {
             }
         }
 
-        for i in 0..<Self.pageSize {
-            let absIdx = start + i
-            let hasWord = absIdx < current.count
-            let label = hasWord ? ((i == Self.pageSize - 1) ? "0" : String(i + 1)) : ""
-            let word = hasWord ? current[absIdx] : ""
-            rowViews[i].update(numberLabel: label, word: word)
+        let newMaxWidth: CGFloat = PerfTimer.measure("rR.measureMaxWidth") {
+            var w: CGFloat = 0
+            for i in 0..<Self.pageSize {
+                let absIdx = start + i
+                if absIdx < current.count {
+                    let word = current[absIdx]
+                    let ww: CGFloat
+                    if let cached = wordWidthCache[word] {
+                        ww = cached
+                    } else {
+                        ww = (word as NSString)
+                            .size(withAttributes: Self.wordMeasureAttrs).width
+                        wordWidthCache[word] = ww
+                    }
+                    if ww > w { w = ww }
+                }
+            }
+            return w
         }
-        updateRowHighlight()
-        updateFooter()
+
+        PerfTimer.measure("rR.updateRowContent") {
+            for i in 0..<Self.pageSize {
+                let absIdx = start + i
+                let hasWord = absIdx < current.count
+                let label = hasWord ? ((i == Self.pageSize - 1) ? "0" : String(i + 1)) : ""
+                let word = hasWord ? current[absIdx] : ""
+                rowViews[i].update(numberLabel: label, word: word)
+            }
+        }
+        PerfTimer.measure("rR.highlight") { updateRowHighlight() }
+        PerfTimer.measure("rR.footer") { updateFooter() }
+
+        if window.isVisible && newMaxWidth <= cachedMaxWordRenderWidth {
+            FileHandle.standardError.write(Data("[perf] rR.widthFitHit\n".utf8))
+            return
+        }
+        cachedMaxWordRenderWidth = newMaxWidth
 
         // Window sizing + positioning. With 10 slots always populated,
         // the *AL-intrinsic* height of the content is constant — but it
@@ -407,9 +479,25 @@ final class CandidatePanel {
         // shift origin.y to keep the panel's TOP edge in place — drifting
         // the anchored BOTTOM down by the inflation delta on every
         // refresh. User-reported "第二个字符输入还是会下偏" 2026-05-23.
-        window.contentView?.layoutSubtreeIfNeeded()
-        let fitting = window.contentView?.fittingSize
-            ?? NSSize(width: 110, height: 22 * CGFloat(Self.pageSize) + 10 + 16)
+        // First-refresh calibration: do exactly one AL fittingSize pass
+        // to lock down `widthOverhead` (panel width − widest-word
+        // render width) and `frameHeight` (constant for 10 fixed-
+        // height rows). All subsequent refreshes compute width from
+        // the formula and skip AL entirely — measured ~3ms p50 cost
+        // (layoutSubtreeIfNeeded ~1.4ms + fittingSize ~1.6ms) on
+        // post-recycling baseline, this drops it to a few µs of arith.
+        if calibratedWidthOverhead == nil || calibratedFrameHeight == nil {
+            PerfTimer.measure("rR.calibrate") {
+                window.contentView?.layoutSubtreeIfNeeded()
+                let fitting = window.contentView?.fittingSize
+                    ?? NSSize(width: 110, height: 258)
+                calibratedWidthOverhead = max(0, fitting.width - newMaxWidth)
+                calibratedFrameHeight = fitting.height
+            }
+        }
+        let widthOverhead = calibratedWidthOverhead ?? 52
+        let frameHeight = calibratedFrameHeight ?? 258
+
         // v1.5 width-aware (user 2026-05-24: "字数超过 3 个，候选列表
         // 应该要变宽"). NSTextField .byTruncatingTail was hiding long
         // candidates at fixed 110pt width. Now panel auto-widens to fit
@@ -417,8 +505,8 @@ final class CandidatePanel {
         // it from spanning the screen.
         let MIN_WIDTH: CGFloat = 110
         let MAX_WIDTH: CGFloat = 360
-        let actualW = max(MIN_WIDTH, min(MAX_WIDTH, fitting.width))
-        let actualH = fitting.height
+        let actualW = max(MIN_WIDTH, min(MAX_WIDTH, newMaxWidth + widthOverhead))
+        let actualH = frameHeight
         var f = window.frame
         let widthChanged = abs(f.size.width - actualW) > 0.5
         f.size.width = actualW
@@ -432,7 +520,9 @@ final class CandidatePanel {
         if widthChanged, let s = NSScreen.screens.first(where: { $0.frame.contains(NSPoint(x: f.origin.x, y: f.origin.y)) })?.visibleFrame {
             f.origin.x = min(max(s.minX, f.origin.x), s.maxX - f.size.width)
         }
-        window.setFrame(f, display: true)
+        PerfTimer.measure("rR.setFrame") {
+            window.setFrame(f, display: true)
+        }
     }
 
     private func updateRowHighlight() {
@@ -550,6 +640,15 @@ private final class CandidateRow: NSView {
     private let numberLabel: NSTextField
     private let wordLabel: NSTextField
     private let bg: NSView
+    /// Cached highlight state. `setHighlighted` short-circuits when
+    /// called with the same value — AppKit's `NSTextField.textColor`
+    /// + `CALayer.backgroundColor` setters trigger invalidation /
+    /// redraw even when the value is identical, so the no-op call
+    /// path was costing ~1.8ms per refresh across the 10 rows
+    /// (`/tmp/inputx.err.log` PerfTimer dumps showed
+    /// `rebuildRows min=1.81ms` even on fingerprint-early-out
+    /// paths where only the highlight pass ran).
+    private var isHighlightedState: Bool = false
 
     init(numberLabel num: String, word: String) {
         // Background highlight layer.
@@ -606,6 +705,8 @@ private final class CandidateRow: NSView {
     }
 
     func setHighlighted(_ on: Bool) {
+        if isHighlightedState == on { return }
+        isHighlightedState = on
         bg.layer?.backgroundColor = on
             ? NSColor.selectedContentBackgroundColor.cgColor
             : NSColor.clear.cgColor
