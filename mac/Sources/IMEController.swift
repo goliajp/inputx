@@ -162,20 +162,33 @@ final class InputxController: IMKInputController {
         else { return false }
         var codepoint = firstScalar.value
 
-        // Shift+digit re-anchor (user-reported 2026-05-24: shift+1 was
-        // committing candidate #1 instead of inserting '!').
-        // `charactersIgnoringModifiers` returns the digit (0-9) even when
-        // shift is held — but on US/JP/etc keyboards shift+digit produces
-        // a symbol (!@#$%^&*()). Without this remap, Path A would route
-        // shift+1 as candidate-pick #1 and the symbol the user actually
-        // typed would be dropped on the floor.
+        // Shift+non-letter re-anchor. `charactersIgnoringModifiers`
+        // returns the unshifted ASCII (digit / punct) even when shift
+        // is held — but on US/JP/etc keyboards shift+non-letter
+        // produces a different glyph that needs to flow through the
+        // CJK punct mapping (or Path A's candidate-pick branch for
+        // digits).
         //
-        // Scope: only affects digit codepoints. Shift+letter (uppercase)
-        // and shift+other-punct paths are unchanged — both already
-        // produce a sensible codepoint via the unmodified char and
-        // engine canonicalization handles case.
+        // Originally only covered digits (2026-05-24 fix: shift+1 was
+        // committing candidate #1 instead of inserting '!'). 2026-05-31
+        // user-reported: shift+; produced 全角; instead of 全角:. The
+        // root cause is the same — the unshifted char `;` flows into
+        // Path B's `:→:`-less semicolon mapping. Extended scope to
+        // also cover punct keys so shift+;/'/,/./[/]/-/etc. all reach
+        // the locale punct table as their shifted-key form.
+        //
+        // Letters stay unchanged: shift+a → 'A' is harmless because
+        // the engine lowercases internally; routing through this path
+        // would set codepoint=0x41 which the engine handles same as
+        // 0x61. We exclude option/ctrl/cmd modifier combos to avoid
+        // remapping dead-key / shortcut chars.
         if event.modifierFlags.contains(.shift),
-           (0x30...0x39).contains(codepoint),
+           !event.modifierFlags.contains(.option),
+           !event.modifierFlags.contains(.control),
+           !event.modifierFlags.contains(.command),
+           codepoint < 0x80,
+           !(0x41...0x5A).contains(codepoint),   // not uppercase letter
+           !(0x61...0x7A).contains(codepoint),   // not lowercase letter
            let typed = event.characters,
            let typedScalar = typed.unicodeScalars.first {
             codepoint = typedScalar.value
