@@ -136,6 +136,22 @@ final class InputxController: IMKInputController {
             return handleFlagsChanged(event: event, client: sender)
         }
         guard event.type == .keyDown else { return false }
+        // Measure IMK→Swift dispatch latency (kernel + IMK pipeline
+        // cost upstream of our handler — the part the user perceives
+        // as "switch-to-IME first-keystroke lag" that's invisible to
+        // CandidatePanel PerfTimer). NSEvent.timestamp is in the same
+        // base as ProcessInfo.processInfo.systemUptime (seconds since
+        // boot), so the delta is wall-clock from keyDown to handle()
+        // entry.
+        let imkLatencyMs = (ProcessInfo.processInfo.systemUptime - event.timestamp) * 1000
+        PerfTimer.record(label: "IMK.dispatch", ms: imkLatencyMs)
+        // Total Swift handler latency (Path A/B/C dispatch + engine
+        // FFI + candidate panel refresh + host text insertion).
+        let handlerStart = CFAbsoluteTimeGetCurrent()
+        defer {
+            let elapsed = (CFAbsoluteTimeGetCurrent() - handlerStart) * 1000
+            PerfTimer.record(label: "IMEController.handle", ms: elapsed)
+        }
         // Any keyDown disarms the shift detector — shift wasn't alone.
         shiftDetector.observeKeyDown()
 

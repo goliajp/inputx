@@ -35,6 +35,16 @@ enum PerfTimer {
     private static let queue = DispatchQueue(label: "jp.golia.inputmethod.perf")
     private static var buckets: [String: [Double]] = [:]
 
+    /// Record a pre-measured duration into a label's rolling window.
+    /// Use this when the elapsed time is captured outside of a
+    /// `measure { }` closure — e.g., for `defer`-based handler-exit
+    /// timing or for upstream-latency measurements where the start
+    /// time comes from an external source (NSEvent.timestamp etc.).
+    static func record(label: String, ms: Double) {
+        guard enabled else { return }
+        record(label, ms: ms)
+    }
+
     private static func record(_ label: String, ms: Double) {
         queue.async {
             var arr = buckets[label] ?? []
