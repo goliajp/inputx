@@ -56,45 +56,86 @@ let INPUTX_SOURCE_ID = "jp.golia.inputmethod.wubi.zh"
 // ──────────────────────────────────────────────────────────────────────
 // 1. Open TextEdit + new document
 // ──────────────────────────────────────────────────────────────────────
-func activateTextEditWithFreshDoc() {
-    // Force-quit any existing TextEdit so its IMK client is freshly
-    // bound to whatever Inputx PID is currently active. A stale TextEdit
-    // process holding an IMK connection to a dead-or-replaced Inputx
-    // PID is the failure mode that left bench runs with empty
-    // PerfTimer logs (host's keystrokes never reach our handle()).
-    let quit = Process()
-    quit.launchPath = "/usr/bin/osascript"
-    quit.arguments = ["-e", "tell application \"TextEdit\" to quit saving no"]
-    quit.standardOutput = FileHandle.nullDevice
-    quit.standardError = FileHandle.nullDevice
-    quit.launch()
-    quit.waitUntilExit()
-    Thread.sleep(forTimeInterval: 0.5)
+// Disable TextEdit's "Resume on relaunch" once, persistently. Without
+// this even our `close saving no` + `quit saving no` calls below let
+// TextEdit's Versions framework restore the typed-into doc next
+// launch — visible as a pile-up of "未命名 N" windows that grows by
+// one each bench. Idempotent; runs every bench cycle for safety.
+func disableTextEditResume() {
+    let d = Process()
+    d.launchPath = "/usr/bin/defaults"
+    d.arguments = ["write", "com.apple.TextEdit", "NSQuitAlwaysKeepsWindows", "-bool", "false"]
+    d.standardOutput = FileHandle.nullDevice
+    d.standardError = FileHandle.nullDevice
+    d.launch()
+    d.waitUntilExit()
+}
 
-    // Fresh launch.
+/// Path to the temp file we type into. Tracked so the cleanup step
+/// can delete it after `close saving no` (TextEdit doesn't unlink
+/// the underlying file even when discarding changes).
+var benchTempPath: String = ""
+
+func activateTextEditWithFreshDoc() {
+    disableTextEditResume()
+    // Force-quit any existing TextEdit. AppleScript's `quit saving no`
+    // is best-effort and can leave a zombie; pkill is the hard fence.
+    // Sequence: ask-nicely → wait → hard-kill if still alive → wait
+    // for process death before proceeding.
+    let askNicely = Process()
+    askNicely.launchPath = "/usr/bin/osascript"
+    askNicely.arguments = ["-e", "tell application \"TextEdit\" to quit saving no"]
+    askNicely.standardOutput = FileHandle.nullDevice
+    askNicely.standardError = FileHandle.nullDevice
+    askNicely.launch()
+    askNicely.waitUntilExit()
+    Thread.sleep(forTimeInterval: 0.4)
+    let hardKill = Process()
+    hardKill.launchPath = "/usr/bin/pkill"
+    hardKill.arguments = ["-x", "TextEdit"]
+    hardKill.standardOutput = FileHandle.nullDevice
+    hardKill.standardError = FileHandle.nullDevice
+    hardKill.launch()
+    hardKill.waitUntilExit()
+    // Spin until TextEdit is actually gone (max 3 s).
+    for _ in 0..<30 {
+        let probe = Process()
+        probe.launchPath = "/usr/bin/pgrep"
+        probe.arguments = ["-x", "TextEdit"]
+        probe.standardOutput = FileHandle.nullDevice
+        probe.launch()
+        probe.waitUntilExit()
+        if probe.terminationStatus != 0 { break }
+        Thread.sleep(forTimeInterval: 0.1)
+    }
+
+    // Wipe any leftover TextEdit state from prior runs: autosave
+    // info, "recently opened" list, anything that could trigger a
+    // restored window when we relaunch.
+    let textEditContainer = NSHomeDirectory()
+        + "/Library/Containers/com.apple.TextEdit/Data/Library"
+    try? FileManager.default.removeItem(atPath: textEditContainer + "/Autosave Information")
+    try? FileManager.default.removeItem(atPath: textEditContainer + "/Saved Application State")
+
+    // Create an empty temp file. Using a real file (not an untitled
+    // "make new document") lets us delete it after typing — no
+    // autosave artifacts piling up across runs.
+    benchTempPath = "/tmp/inputx-bench.txt"
+    do {
+        try "".write(toFile: benchTempPath, atomically: true, encoding: .utf8)
+    } catch {
+        fputs("[bench-auto] ERR: can't create temp file: \(error)\n", stderr)
+        exit(2)
+    }
+
+    // open -a TextEdit <file> — launches + focuses the file's window.
     let activate = Process()
     activate.launchPath = "/usr/bin/open"
-    activate.arguments = ["-a", "TextEdit"]
+    activate.arguments = ["-a", "TextEdit", benchTempPath]
     activate.launch()
     activate.waitUntilExit()
-    Thread.sleep(forTimeInterval: 0.5)
-
-    let script = """
-    tell application "TextEdit"
-        activate
-        make new document
-    end tell
-    """
-    let osascript = Process()
-    osascript.launchPath = "/usr/bin/osascript"
-    osascript.arguments = ["-e", script]
-    // Drop osascript's stdout (the document name); shell wrapper
-    // expects bench-auto's stdout to be empty so JSON-from-bash is clean.
-    osascript.standardOutput = FileHandle.nullDevice
-    osascript.launch()
-    osascript.waitUntilExit()
-    Thread.sleep(forTimeInterval: 0.5)
-    fputs("[bench-auto] TextEdit fresh doc focused\n", stderr)
+    Thread.sleep(forTimeInterval: 0.8)
+    fputs("[bench-auto] TextEdit focused on \(benchTempPath)\n", stderr)
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -181,8 +222,8 @@ do {
 // Let any pending refresh / IPC drain so PerfTimer flushes.
 Thread.sleep(forTimeInterval: 1.0)
 
-// Cleanup: close all TextEdit documents without saving + quit the app.
-// Leaves no "未命名 N" artifacts piling up across runs.
+// Cleanup: close all TextEdit windows without saving, quit the app,
+// then unlink the temp file we typed into so no artifact remains.
 let cleanupScript = """
 tell application "TextEdit"
     try
@@ -198,4 +239,15 @@ cleanup.standardOutput = FileHandle.nullDevice
 cleanup.standardError = FileHandle.nullDevice
 cleanup.launch()
 cleanup.waitUntilExit()
-fputs("[bench-auto] done (TextEdit closed)\n", stderr)
+Thread.sleep(forTimeInterval: 0.3)
+
+if !benchTempPath.isEmpty {
+    try? FileManager.default.removeItem(atPath: benchTempPath)
+}
+// Also purge any TextEdit autosave artifact tied to our temp path
+// (macOS's NSDocument framework keeps a sibling .versions/ entry).
+let autosaveRoot = NSHomeDirectory()
+    + "/Library/Containers/com.apple.TextEdit/Data/Library/Autosave Information"
+try? FileManager.default.removeItem(atPath: autosaveRoot)
+
+fputs("[bench-auto] done (TextEdit closed, temp file unlinked)\n", stderr)
