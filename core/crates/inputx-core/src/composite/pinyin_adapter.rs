@@ -17,6 +17,7 @@ use inputx_ngram::NgramTable;
 use inputx_pinyin::PinyinEngine;
 use inputx_pinyin_helpers::{
     legacy_bigram_boost_from_ngm, pinyin_idf_reader, EMBEDDED_BIGRAMS_NGM,
+    EMBEDDED_PINYIN_IDF,
 };
 
 use crate::rules::builtin::RepeatedLetterExpansion;
@@ -39,6 +40,28 @@ fn embedded_bigrams_table() -> &'static NgramTable<&'static [u8]> {
         NgramTable::from_bytes(EMBEDDED_BIGRAMS_NGM)
             .expect("inputx-pinyin-cement EMBEDDED_BIGRAMS_NGM must be a valid NGMv1 blob")
     })
+}
+
+/// Touch one byte per 4 KB page across `blob` so the OS keeps the
+/// region in the working set even under memory pressure. Used by
+/// `warmup()` to pre-fault all the `include_bytes!`-baked dict
+/// pages — without this, evicted pages re-fault on first keystroke
+/// after a pressure event for 10-50ms each.
+///
+/// `std::hint::black_box` defeats LLVM's dead-store / dead-read
+/// elimination so the byte loads can't be optimized away.
+fn warm_embedded_blob(blob: &'static [u8]) {
+    let mut sum: u8 = 0;
+    let mut i = 0;
+    let page = 4096;
+    while i < blob.len() {
+        sum = sum.wrapping_add(blob[i]);
+        i += page;
+    }
+    if blob.len() > 0 {
+        sum = sum.wrapping_add(blob[blob.len() - 1]);
+    }
+    std::hint::black_box(sum);
 }
 
 // v1.4.7 sub-phase A4 step 1 cutover (this commit): exact / fuzzy /
@@ -241,6 +264,27 @@ impl PinyinAdapter {
         for c in ['z', 'h', 's', 'j', 'x', 'c', 'q', 'b', 'p', 'm'] {
             let _ = single_letter_cache(c);
         }
+
+        // v1.6.6 IO/mem-pressure hardening (user 2026-05-31 raised:
+        // "之前 IO / mem 占用大的时候卡得不行"). The dict blobs are
+        // `include_bytes!`-baked into the binary's .rodata; macOS
+        // treats them as on-disk pages that can be evicted under
+        // memory pressure and re-faulted on next access — 10-50ms
+        // stalls per page on a busy system. Force-touch one byte
+        // per 4 KB page on each blob so the OS keeps them in the
+        // working set across pressure events.
+        //
+        // Cost: ~1 byte read per page × ~3000 pages total across the
+        // 5 embedded blobs ≈ a few hundred µs at startup. Pays for
+        // itself on the first IO-pressure spike.
+        warm_embedded_blob(EMBEDDED_BIGRAMS_NGM);
+        warm_embedded_blob(EMBEDDED_PINYIN_IDF);
+        // Build the inputx-ngram `OnceLock<HashMap>` ctx index now —
+        // first `log_prob` call otherwise pays ~10-20ms to walk the
+        // 64k-entry triplet table and bucket by ctx (per 7534b33's
+        // lazy-index commit). Driving one realistic bigram query
+        // forces the build; subsequent lookups are O(1).
+        let _ = embedded_bigrams_table().log_prob(&["的"], "");
     }
 
     pub fn buffer_str(&self) -> &str {
