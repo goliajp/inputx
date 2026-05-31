@@ -520,8 +520,10 @@ final class CandidatePanel {
         }
         lastRenderedFingerprint = fingerprint
 
-        // Lazy first-time row creation. After this point the recycling
-        // fast path runs forever (or until `hide()` clears state).
+        // Lazy first-time row creation. Defensive — `preWarmRows` in
+        // `init()` already builds the 10 rows, so this branch
+        // shouldn't fire post-init. Kept for the safety net case
+        // where rowViews got detached somehow.
         if rowViews.count != Self.pageSize {
             for v in rowViews { stack.removeArrangedSubview(v); v.removeFromSuperview() }
             rowViews.removeAll()
@@ -839,60 +841,45 @@ private final class CandidateRow: NSView {
         self.bg = bgView
         self.numberLabel = n
         self.wordLabel = w
-        super.init(frame: NSRect(x: 0, y: 0, width: 90, height: 22))
+        super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         addSubview(bgView)
         addSubview(n)
         addSubview(w)
-        // L1: no AL constraints inside the row. `layout()` below
-        // positions subviews via direct frame math. This eliminates
-        // the constraint-engine resolution that fires every time
-        // `stringValue` changes (and propagates up through the row's
-        // intrinsic-content-size invalidation). The outer NSStackView
-        // still queries this row's `intrinsicContentSize` once per
-        // panel-width change, which we serve from the override below
-        // — but per-content-change AL work is gone.
+        bgView.translatesAutoresizingMaskIntoConstraints = false
+        n.translatesAutoresizingMaskIntoConstraints = false
+        w.translatesAutoresizingMaskIntoConstraints = false
+        // L1 reverted 2026-05-31: the manual `layout()` override +
+        // `intrinsicContentSize=noIntrinsicMetric` approach didn't
+        // give NSStackView a clean width-propagation path. Even with
+        // an explicit `row.widthAnchor == stack.widthAnchor - 16`
+        // pin, the row's bounds.width didn't track the resized
+        // window (user reported long-word truncation post-L1). The
+        // perf gain (~0.7 ms p50 on rebuildRows) wasn't worth the
+        // visual regression. Restoring the 12-constraint internal
+        // chain that lets wordLabel.intrinsicContentSize push the
+        // row to the right width.
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 22),
+            widthAnchor.constraint(greaterThanOrEqualToConstant: 90),
+
+            bgView.topAnchor.constraint(equalTo: topAnchor, constant: 1),
+            bgView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -1),
+            bgView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            bgView.trailingAnchor.constraint(equalTo: trailingAnchor),
+
+            n.leadingAnchor.constraint(equalTo: bgView.leadingAnchor, constant: 6),
+            n.centerYAnchor.constraint(equalTo: bgView.centerYAnchor),
+            n.widthAnchor.constraint(equalToConstant: 14),
+
+            w.leadingAnchor.constraint(equalTo: n.trailingAnchor, constant: 8),
+            w.centerYAnchor.constraint(equalTo: bgView.centerYAnchor),
+            w.trailingAnchor.constraint(equalTo: bgView.trailingAnchor, constant: -8),
+        ])
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) not used")
-    }
-
-    /// Fixed 22pt height + min 90pt width so NSStackView lays the row
-    /// out without needing AL constraints inside. Width grows beyond
-    /// 90pt purely by NSStackView's `.leading` alignment + the panel
-    /// width formula; the row's `layout()` reads `bounds.width` to
-    /// position the wordLabel to the right edge.
-    override var intrinsicContentSize: NSSize {
-        NSSize(width: NSView.noIntrinsicMetric, height: 22)
-    }
-
-    override func layout() {
-        super.layout()
-        let h = bounds.height
-        let w = bounds.width
-        // Background fills row with 1pt top/bottom inset to leave
-        // breathing room between adjacent highlighted rows.
-        bg.frame = NSRect(x: 0, y: 1, width: w, height: max(0, h - 2))
-        // Number badge: x=6, width=14, vertically centered.
-        let nH: CGFloat = 18
-        numberLabel.frame = NSRect(
-            x: 6,
-            y: (h - nH) / 2,
-            width: 14,
-            height: nH
-        )
-        // Word label: after numberLabel + 8pt gap, ends 8pt from row trailing.
-        let wordX: CGFloat = 6 + 14 + 8
-        let wordTrailingPad: CGFloat = 8
-        let wordH: CGFloat = 22
-        let wordW = max(0, w - wordX - wordTrailingPad)
-        wordLabel.frame = NSRect(
-            x: wordX,
-            y: (h - wordH) / 2,
-            width: wordW,
-            height: wordH
-        )
     }
 
     func setHighlighted(_ on: Bool) {
