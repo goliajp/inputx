@@ -35,6 +35,13 @@ final class CandidatePanel {
     private let stack: NSStackView
     private let footer: NSTextField
 
+    /// Whether the panel is currently visually hidden (alpha = 0).
+    /// We use alpha toggling instead of orderOut/orderFront because
+    /// orderFront has a ~3-9ms compositor / backing-store setup cost
+    /// that the user perceives as "switch-to-Inputx 第一次卡". Keeping
+    /// the window resident in the window list at alpha 0 collapses the
+    /// show cost to a single CALayer property write.
+    private var visualHidden: Bool = true
     private var rowViews: [CandidateRow] = []
     /// Last-rendered `(pageIndex, current.count, current[pageStart..<pageEnd])`
     /// fingerprint. Lets `_rebuildRows` early-out when nothing the user
@@ -241,17 +248,18 @@ final class CandidatePanel {
         //    state.
         window.contentView?.layoutSubtreeIfNeeded()
 
-        // 4. Pre-warm the window-server's panel setup by doing one
-        //    invisible orderFront → orderOut cycle off-screen. The
-        //    first real `orderFront(nil)` would otherwise trigger
-        //    shadow rendering, compositor-tier registration, and
-        //    backing-store allocation — all of which add up to ~10ms
-        //    of latency on the first time the panel actually shows.
-        //    Position off-screen so no pixel flash leaks to user.
+        // 4. Pre-warm the window-server's panel setup AND leave the
+        //    window resident-but-invisible (alpha 0) so subsequent
+        //    show/hide cycles are cheap CALayer alpha writes instead
+        //    of the ~3-9ms orderFront compositor setup cost. Set the
+        //    frame off-screen first so even a brief alpha glitch
+        //    doesn't leak pixels to the user.
         let offScreen = NSRect(x: -10000, y: -10000, width: 110, height: 258)
         window.setFrame(offScreen, display: true)
+        window.alphaValue = 0
+        window.ignoresMouseEvents = true
         window.orderFront(nil)
-        window.orderOut(nil)
+        visualHidden = true
 
         // 5. Clear the warmup content from rows so the first real
         //    refresh sees a known baseline (empty) state.
@@ -316,13 +324,33 @@ final class CandidatePanel {
         // Reposition when transitioning out of prediction mode — the
         // caret moved while predictions were on (commit advanced it),
         // so the new typing session must anchor at the fresh caret.
-        let firstShow = !window.isVisible
+        let firstShow = visualHidden
         let needsReposition = firstShow || wasPrediction
         rebuildRows()
         if needsReposition {
-            positionNear(client: client)
-            if !window.isVisible { window.orderFront(nil) }
+            PerfTimer.measure("refresh.positionNear") {
+                positionNear(client: client)
+            }
         }
+        if visualHidden {
+            PerfTimer.measure("refresh.show") {
+                showVisually()
+            }
+        }
+    }
+
+    private func showVisually() {
+        if !visualHidden { return }
+        window.alphaValue = 1
+        window.ignoresMouseEvents = false
+        visualHidden = false
+    }
+
+    private func hideVisually() {
+        if visualHidden { return }
+        window.alphaValue = 0
+        window.ignoresMouseEvents = true
+        visualHidden = true
     }
 
     func hide() {
@@ -332,7 +360,7 @@ final class CandidatePanel {
         selectedInPage = 0
         lastRenderedFingerprint = ""
         cachedMaxWordRenderWidth = 0
-        if window.isVisible { window.orderOut(nil) }
+        hideVisually()
     }
 
     /// Show the panel populated with 联想 (next-word) predictions
@@ -364,7 +392,7 @@ final class CandidatePanel {
         // sticking at the original anchor. This is the
         // post-commit equivalent of "fresh session = fresh position".
         positionNear(client: client)
-        if !window.isVisible { window.orderFront(nil) }
+        showVisually()
     }
 
     var isVisible: Bool { !current.isEmpty }
@@ -504,24 +532,61 @@ final class CandidatePanel {
             }
         }
 
-        let newMaxWidth: CGFloat = PerfTimer.measure("rR.measureMaxWidth") {
-            var w: CGFloat = 0
+        // Two-phase measurement (L2 optimization, 2026-05-31). The
+        // typical case is "all page words fit the cached max width"
+        // (widthFitHit fires → early-out). For that case we don't
+        // need the *exact* new max — we only need to verify that no
+        // word exceeds the cached threshold. So:
+        //   Phase 1: scan words in order, short-circuit the moment
+        //            any one exceeds `cachedMaxWordRenderWidth`.
+        //            On full sweep without breach → widthFitHit
+        //            fires below; we never compute the exact max.
+        //   Phase 2: only when phase 1 found a breach do we measure
+        //            ALL words to determine the new max for setFrame.
+        //
+        // Pre-L2: ~1.12 ms p50 measuring all 10 words upfront on
+        // every refresh. Post-L2: phase 1 typically short-circuits
+        // on hit or stops at first miss; phase 2 only runs on the
+        // ~40% of refreshes where width actually needs to grow.
+        var newMaxWidth: CGFloat = 0
+        var phase1Breach = false
+        PerfTimer.measure("rR.measurePhase1") {
+            let threshold = cachedMaxWordRenderWidth
             for i in 0..<Self.pageSize {
                 let absIdx = start + i
-                if absIdx < current.count {
+                guard absIdx < current.count else { continue }
+                let word = current[absIdx]
+                let ww: CGFloat
+                if let cached = wordWidthCache[word] {
+                    ww = cached
+                } else {
+                    ww = (word as NSString)
+                        .size(withAttributes: Self.wordMeasureAttrs).width
+                    wordWidthCache[word] = ww
+                }
+                if ww > threshold {
+                    phase1Breach = true
+                    if ww > newMaxWidth { newMaxWidth = ww }
+                    break
+                }
+                if ww > newMaxWidth { newMaxWidth = ww }
+            }
+        }
+        if phase1Breach {
+            PerfTimer.measure("rR.measurePhase2") {
+                for i in 0..<Self.pageSize {
+                    let absIdx = start + i
+                    guard absIdx < current.count else { continue }
                     let word = current[absIdx]
-                    let ww: CGFloat
-                    if let cached = wordWidthCache[word] {
-                        ww = cached
-                    } else {
-                        ww = (word as NSString)
+                    let ww = wordWidthCache[word] ?? {
+                        let m = (word as NSString)
                             .size(withAttributes: Self.wordMeasureAttrs).width
-                        wordWidthCache[word] = ww
-                    }
-                    if ww > w { w = ww }
+                        wordWidthCache[word] = m
+                        return m
+                    }()
+                    if ww > newMaxWidth { newMaxWidth = ww }
                 }
             }
-            return w
         }
 
         PerfTimer.measure("rR.updateRowContent") {
@@ -536,7 +601,7 @@ final class CandidatePanel {
         PerfTimer.measure("rR.highlight") { updateRowHighlight() }
         PerfTimer.measure("rR.footer") { updateFooter() }
 
-        if window.isVisible && newMaxWidth <= cachedMaxWordRenderWidth {
+        if !visualHidden && newMaxWidth <= cachedMaxWordRenderWidth {
             FileHandle.standardError.write(Data("[perf] rR.widthFitHit\n".utf8))
             return
         }
