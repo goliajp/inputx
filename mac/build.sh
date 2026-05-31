@@ -56,6 +56,7 @@ SWIFT_SOURCES=(
     Sources/InputModeToast.swift
     Sources/SettingsWindow.swift
     Sources/PolishLog.swift
+    Sources/PerfTimer.swift
 )
 # swiftc refuses cross-arch .swiftmodule loads, so compile each arch
 # against the matching-arch SPM bin-path's Modules/ directory.

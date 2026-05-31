@@ -36,6 +36,12 @@ final class CandidatePanel {
     private let footer: NSTextField
 
     private var rowViews: [CandidateRow] = []
+    /// Last-rendered `(pageIndex, current.count, current[pageStart..<pageEnd])`
+    /// fingerprint. Lets `_rebuildRows` early-out when nothing the user
+    /// would see changed (a same-page, same-content refresh, e.g.
+    /// keystroke that didn't change candidates). Cleared by `hide()` so
+    /// re-show always rebuilds.
+    private var lastRenderedFingerprint: String = ""
     private weak var lastClient: AnyObject?
 
     /// Which edge of the panel stays put when the row count changes
@@ -148,6 +154,12 @@ final class CandidatePanel {
     /// IMK's `attributes(forCharacterIndex:)` reported subtly different
     /// caret rects each call. Sticky positioning per session = stable.
     func refresh(session: InputxSession, client: AnyObject?) {
+        PerfTimer.measure("CandidatePanel.refresh") {
+            self._refresh(session: session, client: client)
+        }
+    }
+
+    private func _refresh(session: InputxSession, client: AnyObject?) {
         lastClient = client
         // Refresh always exits prediction mode — predictions only show
         // when there's NO buffer; a normal refresh means buffer changed
@@ -195,6 +207,7 @@ final class CandidatePanel {
         isPredictionMode = false
         pageIndex = 0
         selectedInPage = 0
+        lastRenderedFingerprint = ""
         if window.isVisible { window.orderOut(nil) }
     }
 
@@ -307,9 +320,12 @@ final class CandidatePanel {
     // ------------------------------------------------------------- UI build
 
     private func rebuildRows() {
-        for v in rowViews { stack.removeArrangedSubview(v); v.removeFromSuperview() }
-        rowViews.removeAll()
+        PerfTimer.measure("CandidatePanel.rebuildRows") {
+            self._rebuildRows()
+        }
+    }
 
+    private func _rebuildRows() {
         // Always populate ALL 10 slots, even when the current page has
         // fewer candidates (last page, short candidate set). Empty slots
         // get empty label + empty word — they still occupy a standard-
@@ -321,15 +337,56 @@ final class CandidatePanel {
         // candidates flex across pages or keystrokes. The empty label
         // ("" not "5"/"0"/etc.) also keeps the unused 1-9/0 numerals from
         // showing in slots that have no candidate.
+        //
+        // Recycling: the 10 row views are created once (first refresh)
+        // and reused across every subsequent refresh. Per-call work is
+        // `update(numberLabel:word:)` on each row — a couple of
+        // `stringValue` setters that no-op on equal strings — plus the
+        // highlight + footer updates + AL sizing pass below. Pre-recycle
+        // this function was the dominant per-keystroke cost (p50 ~16ms,
+        // p95 ~22ms per /tmp/inputx.err.log PerfTimer dumps, 2026-05-31);
+        // each refresh tore down 10 rows × (3 subviews + 12 constraints)
+        // and rebuilt them. Recycling collapses that to ~10 string
+        // compares + a single subtree layout.
         let start = pageIndex * Self.pageSize
+
+        // Early-out: if the page is showing the exact same content as
+        // last refresh, AppKit doesn't need to do anything. The caller
+        // still handles positioning (`needsReposition`) outside this
+        // function, so layout-relevant side effects aren't skipped.
+        var fingerprint = "\(pageIndex)|"
+        for i in 0..<Self.pageSize {
+            let absIdx = start + i
+            if absIdx < current.count {
+                fingerprint.append(current[absIdx])
+            }
+            fingerprint.append("|")
+        }
+        if fingerprint == lastRenderedFingerprint && rowViews.count == Self.pageSize {
+            updateRowHighlight()
+            updateFooter()
+            return
+        }
+        lastRenderedFingerprint = fingerprint
+
+        // Lazy first-time row creation. After this point the recycling
+        // fast path runs forever (or until `hide()` clears state).
+        if rowViews.count != Self.pageSize {
+            for v in rowViews { stack.removeArrangedSubview(v); v.removeFromSuperview() }
+            rowViews.removeAll()
+            for _ in 0..<Self.pageSize {
+                let row = CandidateRow(numberLabel: "", word: "")
+                stack.addArrangedSubview(row)
+                rowViews.append(row)
+            }
+        }
+
         for i in 0..<Self.pageSize {
             let absIdx = start + i
             let hasWord = absIdx < current.count
             let label = hasWord ? ((i == Self.pageSize - 1) ? "0" : String(i + 1)) : ""
             let word = hasWord ? current[absIdx] : ""
-            let row = CandidateRow(numberLabel: label, word: word)
-            stack.addArrangedSubview(row)
-            rowViews.append(row)
+            rowViews[i].update(numberLabel: label, word: word)
         }
         updateRowHighlight()
         updateFooter()
@@ -556,5 +613,19 @@ private final class CandidateRow: NSView {
         numberLabel.textColor = on
             ? .selectedMenuItemTextColor.withAlphaComponent(0.8)
             : .secondaryLabelColor
+    }
+
+    /// Repoint an already-laid-out row at new content. Avoids the
+    /// teardown+reconstruction cost of building a fresh `CandidateRow`
+    /// (3 subviews + 12 constraints) on every keystroke. Used by
+    /// `_rebuildRows`'s recycling fast path. No-ops on identical
+    /// strings to skip the AppKit textStorage invalidate / redraw.
+    func update(numberLabel num: String, word: String) {
+        if numberLabel.stringValue != num {
+            numberLabel.stringValue = num
+        }
+        if wordLabel.stringValue != word {
+            wordLabel.stringValue = word
+        }
     }
 }
