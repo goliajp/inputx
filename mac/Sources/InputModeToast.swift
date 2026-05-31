@@ -3,7 +3,7 @@ import InputxKit
 
 /// Brief HUD shown when the user toggles `InputxInputMode` via shift
 /// single-click. Standard macOS HUD style — rounded translucent square
-/// at screen center with a large glyph ("入" for CJK, "A" for EN),
+/// at screen center with a large glyph ("五" for CJK, "A" for EN),
 /// shown for ~600ms then faded out over ~200ms.
 ///
 /// Single-instance. IMK invokes `handle()` (and thus toggleInputMode)
@@ -21,7 +21,7 @@ final class InputModeToast {
 
     /// Show the toast for the given mode, replacing any in-flight toast.
     func show(mode: InputxInputMode) {
-        let glyph = (mode == .cjk) ? "入" : "A"
+        let glyph = (mode == .cjk) ? "五" : "A"
         let p = ensurePanel()
         p.setGlyph(glyph)
         p.centerOnActiveScreen()
