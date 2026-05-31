@@ -203,6 +203,17 @@ impl Triplet {
 pub struct NgramTable<B: AsRef<[u8]>> {
     bytes: B,
     header: Header,
+    /// Lazy in-memory ctx → triplet-range index. Built on first call
+    /// to `log_prob` / `top_k`. Eliminates the O(N) linear scan that
+    /// dominates per-keystroke cost in the IME runtime (~96% of main-
+    /// thread time per `sample(1)` on a real session).
+    ///
+    /// On-disk header reserves an FST ctx index section which the
+    /// v1.4.4 snapshot tooling left empty (see header docs); until
+    /// that's wired through the writer, the reader builds an
+    /// equivalent map at load-on-first-use here.
+    #[cfg(feature = "std")]
+    ctx_index: std::sync::OnceLock<std::collections::HashMap<std::vec::Vec<u8>, (u32, u32)>>,
 }
 
 impl<B: AsRef<[u8]>> NgramTable<B> {
@@ -243,7 +254,12 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
                 return Err(OpenError::Sha256Mismatch);
             }
         }
-        Ok(Self { bytes, header })
+        Ok(Self {
+            bytes,
+            header,
+            #[cfg(feature = "std")]
+            ctx_index: std::sync::OnceLock::new(),
+        })
     }
 
     pub fn header(&self) -> &Header { &self.header }
@@ -256,14 +272,30 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
     /// context or the (ctx, next) pair is missing from the table.
     pub fn log_prob(&self, ctx: &[&str], next: &str) -> Option<i16> {
         let ctx_blob = encode_ctx(ctx);
-        for t in self.triplets() {
-            let stored_ctx = read_string(self.string_pool(), t.ctx_offset);
-            let stored_next = read_string(self.string_pool(), t.next_offset);
-            if stored_ctx == ctx_blob && stored_next == next {
-                return Some(t.log_prob);
+        #[cfg(feature = "std")]
+        {
+            let &(start, count) = self.ctx_index().get(ctx_blob.as_bytes())?;
+            let pool = self.string_pool();
+            let next_bytes = next.as_bytes();
+            for i in start..start + count {
+                let t = self.triplet_at(i as usize);
+                if read_string_bytes(pool, t.next_offset) == next_bytes {
+                    return Some(t.log_prob);
+                }
             }
+            None
         }
-        None
+        #[cfg(not(feature = "std"))]
+        {
+            for t in self.triplets() {
+                let stored_ctx = read_string(self.string_pool(), t.ctx_offset);
+                let stored_next = read_string(self.string_pool(), t.next_offset);
+                if stored_ctx == ctx_blob && stored_next == next {
+                    return Some(t.log_prob);
+                }
+            }
+            None
+        }
     }
 
     /// Top-`k` next-word continuations for a given context, ordered by
@@ -274,16 +306,86 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
         }
         let ctx_blob = encode_ctx(ctx);
         let mut all: Vec<(String, i16)> = Vec::new();
-        for t in self.triplets() {
-            let stored_ctx = read_string(self.string_pool(), t.ctx_offset);
-            if stored_ctx == ctx_blob {
-                let stored_next = read_string(self.string_pool(), t.next_offset).to_string();
-                all.push((stored_next, t.log_prob));
+        #[cfg(feature = "std")]
+        {
+            if let Some(&(start, count)) = self.ctx_index().get(ctx_blob.as_bytes()) {
+                let pool = self.string_pool();
+                for i in start..start + count {
+                    let t = self.triplet_at(i as usize);
+                    let stored_next = read_string(pool, t.next_offset).to_string();
+                    all.push((stored_next, t.log_prob));
+                }
+            }
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            for t in self.triplets() {
+                let stored_ctx = read_string(self.string_pool(), t.ctx_offset);
+                if stored_ctx == ctx_blob {
+                    let stored_next = read_string(self.string_pool(), t.next_offset).to_string();
+                    all.push((stored_next, t.log_prob));
+                }
             }
         }
         all.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
         all.truncate(k);
         all
+    }
+
+    /// Parse the `i`-th triplet directly (no iterator overhead). Used
+    /// by the hot path once `ctx_index()` has located the contiguous
+    /// triplet range for a given ctx.
+    fn triplet_at(&self, i: usize) -> Triplet {
+        let buf = self.bytes.as_ref();
+        let off = self.header.triplet_table_offset as usize + i * TRIPLET_SIZE;
+        let bytes: [u8; TRIPLET_SIZE] = buf[off..off + TRIPLET_SIZE]
+            .try_into()
+            .expect("triplet slice");
+        Triplet::parse(&bytes)
+    }
+
+    /// Lazy ctx → (first_triplet_idx, count) index. Built on first call;
+    /// subsequent calls are O(1) HashMap lookups.
+    ///
+    /// Triplets on disk are sorted by (ctx_offset, log_prob desc, next),
+    /// so same-ctx_offset triplets form contiguous runs. The builder
+    /// walks the triplet table once, batching by ctx_offset, and
+    /// records the (first_idx, count) per ctx blob. Construction cost
+    /// is O(N) where N = entry_count, amortized across all lookups
+    /// for the lifetime of the table (mmap'd once per process).
+    #[cfg(feature = "std")]
+    fn ctx_index(&self) -> &std::collections::HashMap<std::vec::Vec<u8>, (u32, u32)> {
+        self.ctx_index.get_or_init(|| {
+            use std::collections::HashMap;
+            let mut map: HashMap<std::vec::Vec<u8>, (u32, u32)> = HashMap::new();
+            let pool = self.string_pool();
+            let n = self.header.entry_count;
+            if n == 0 {
+                return map;
+            }
+            let mut current_offset: u32 = u32::MAX;
+            let mut current_start: u32 = 0;
+            for i in 0..n {
+                let t = self.triplet_at(i as usize);
+                if t.ctx_offset != current_offset {
+                    if current_offset != u32::MAX {
+                        let count = i - current_start;
+                        let blob = read_string_bytes(pool, current_offset).to_vec();
+                        if !blob.is_empty() {
+                            map.insert(blob, (current_start, count));
+                        }
+                    }
+                    current_offset = t.ctx_offset;
+                    current_start = i;
+                }
+            }
+            let count = n - current_start;
+            let blob = read_string_bytes(pool, current_offset).to_vec();
+            if !blob.is_empty() {
+                map.insert(blob, (current_start, count));
+            }
+            map
+        })
     }
 
     fn string_pool(&self) -> &[u8] {
@@ -293,6 +395,7 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
         &buf[s..e]
     }
 
+    #[cfg_attr(feature = "std", allow(dead_code))]
     fn triplets(&self) -> impl Iterator<Item = Triplet> + '_ {
         let buf = self.bytes.as_ref();
         let off = self.header.triplet_table_offset as usize;
@@ -322,6 +425,22 @@ fn read_string(pool: &[u8], offset: u32) -> &str {
     let rest = &pool[s..];
     let end = rest.iter().position(|&b| b == 0).unwrap_or(rest.len());
     core::str::from_utf8(&rest[..end]).unwrap_or("")
+}
+
+/// Hot-path string slice without UTF-8 validation. The pool was
+/// written as deduplicated, null-terminated UTF-8 by `NgramBuilder`;
+/// integrity is already vouched for by the file-level sha256 trailer
+/// (checked once in `from_bytes`), so per-call `from_utf8` here is
+/// pure overhead. Returns raw bytes for byte-equality comparison
+/// against the query (which is the only operation in `log_prob`'s
+/// hot loop). On sample profiles this single change removes ~25% of
+/// per-keystroke main-thread cost.
+fn read_string_bytes(pool: &[u8], offset: u32) -> &[u8] {
+    let s = offset as usize;
+    if s >= pool.len() { return &[]; }
+    let rest = &pool[s..];
+    let end = rest.iter().position(|&b| b == 0).unwrap_or(rest.len());
+    &rest[..end]
 }
 
 /// Encode a context (1+ words) as a single string-pool blob. For
