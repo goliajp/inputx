@@ -394,17 +394,16 @@ final class CandidatePanel {
         // compares + a single subtree layout.
         let start = pageIndex * Self.pageSize
 
-        // Early-out: if the page is showing the exact same content as
-        // last refresh, AppKit doesn't need to do anything. The caller
-        // still handles positioning (`needsReposition`) outside this
-        // function, so layout-relevant side effects aren't skipped.
-        var fingerprint = "\(pageIndex)|"
-        for i in 0..<Self.pageSize {
-            let absIdx = start + i
-            if absIdx < current.count {
-                fingerprint.append(current[absIdx])
+        let fingerprint: String = PerfTimer.measure("rR.fingerprint") {
+            var fp = "\(pageIndex)|"
+            for i in 0..<Self.pageSize {
+                let absIdx = start + i
+                if absIdx < current.count {
+                    fp.append(current[absIdx])
+                }
+                fp.append("|")
             }
-            fingerprint.append("|")
+            return fp
         }
         if fingerprint == lastRenderedFingerprint && rowViews.count == Self.pageSize {
             updateRowHighlight()
@@ -503,25 +502,37 @@ final class CandidatePanel {
         // candidates at fixed 110pt width. Now panel auto-widens to fit
         // the longest candidate, clamped [110, MAX_PANEL_WIDTH] to keep
         // it from spanning the screen.
-        let MIN_WIDTH: CGFloat = 110
-        let MAX_WIDTH: CGFloat = 360
-        let actualW = max(MIN_WIDTH, min(MAX_WIDTH, newMaxWidth + widthOverhead))
-        let actualH = frameHeight
-        var f = window.frame
-        let widthChanged = abs(f.size.width - actualW) > 0.5
-        f.size.width = actualW
-        f.size.height = actualH
-        switch anchorEdge {
-        case .top:    f.origin.y = anchorY - actualH
-        case .bottom: f.origin.y = anchorY
-        }
-        // Width changed → re-clamp originX so the panel doesn't fall
-        // off the screen right edge (extends leftward when needed).
-        if widthChanged, let s = NSScreen.screens.first(where: { $0.frame.contains(NSPoint(x: f.origin.x, y: f.origin.y)) })?.visibleFrame {
-            f.origin.x = min(max(s.minX, f.origin.x), s.maxX - f.size.width)
-        }
-        PerfTimer.measure("rR.setFrame") {
-            window.setFrame(f, display: true)
+        PerfTimer.measure("rR.frameBlock") {
+            let MIN_WIDTH: CGFloat = 110
+            let MAX_WIDTH: CGFloat = 360
+            let actualW = max(MIN_WIDTH, min(MAX_WIDTH, newMaxWidth + widthOverhead))
+            let actualH = frameHeight
+            var f = window.frame
+            let widthChanged = abs(f.size.width - actualW) > 0.5
+            f.size.width = actualW
+            f.size.height = actualH
+            switch anchorEdge {
+            case .top:    f.origin.y = anchorY - actualH
+            case .bottom: f.origin.y = anchorY
+            }
+            // Width changed → re-clamp originX so the panel doesn't fall
+            // off the screen right edge (extends leftward when needed).
+            if widthChanged, let s = NSScreen.screens.first(where: { $0.frame.contains(NSPoint(x: f.origin.x, y: f.origin.y)) })?.visibleFrame {
+                f.origin.x = min(max(s.minX, f.origin.x), s.maxX - f.size.width)
+            }
+            PerfTimer.measure("rR.setFrame") {
+                // `display: false` — window resizes immediately but the
+                // panel's subviews (NSVisualEffectView, 10 rows, footer)
+                // redraw lazily on the next runloop display pass.
+                // Measured `display: true` cost: 2.68ms p50 of the
+                // frameBlock 2.75ms (97% of the cost). For an IME panel
+                // that's only growing in width by a few pt to fit a
+                // longer candidate, deferring display is visually
+                // imperceptible (next runloop turn flushes the redraw
+                // queue within one frame), but saves ~2.5ms per
+                // width-fit-miss refresh.
+                window.setFrame(f, display: false)
+            }
         }
     }
 
