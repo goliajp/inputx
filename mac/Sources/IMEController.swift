@@ -47,6 +47,19 @@ final class InputxController: IMKInputController {
         // Pay the FST / 简拼-index cold-start cost up front so the first
         // measured keystroke doesn't take ~1-2 s.
         session.warmup()
+        // Return malloc free-list memory back to the OS now that the
+        // one-time warmup build (initials index HashMap, FST traversal
+        // scratch buffers, IDF reader setup, glyph-cache population)
+        // has dropped out of scope. Without this the build's ~25 MB
+        // of temp allocations stay reserved as a free-list "hole" in
+        // libmalloc — `vmmap` phys_footprint reports the freed pages
+        // as still resident even though the live heap is much smaller
+        // (heap-tool numbers don't account for malloc fragmentation).
+        // Calling `malloc_zone_pressure_relief(nil, 0)` asks all zones
+        // to release as many free pages back to the OS as possible.
+        // One-time post-warmup call; ~few-ms cost, well within the
+        // launchd startup window before the user can type.
+        malloc_zone_pressure_relief(nil, 0)
         // Re-hydrate user-learning state from the on-disk JSON store.
         inputxL0Storage.load(into: session)
         // Process-global rare-CJK toggle reads from prefs at startup.
