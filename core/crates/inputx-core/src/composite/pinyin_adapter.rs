@@ -97,7 +97,63 @@ fn candidate_rule_engine() -> &'static CandidateRuleEngine {
 /// of full-pinyin lookup. Shared across all `PinyinAdapter` instances
 /// in the same process via `Arc` so only one process pays the ~1-2s
 /// build cost.
-static INITIALS_INDEX: OnceLock<Arc<HashMap<String, Vec<String>>>> = OnceLock::new();
+///
+/// Storage (v1.6.x compaction, A/B'd via scripts/bench-auto.sh against
+/// 089e026-baseline3): single flat byte pool + embedded FSA. Replaces
+/// the prior `HashMap<String, Vec<String>>` which held ~400k separately-
+/// allocated `String` items (`malloc_history --callTree` showed it as
+/// the single biggest heap contributor at ~20 MB / 60% of total Rust
+/// heap on this PinyinAdapter::warmup chain).
+static INITIALS_INDEX: OnceLock<Arc<InitialsIndex>> = OnceLock::new();
+
+/// Compact replacement for `HashMap<String, Vec<String>>`. All matching
+/// words across every initials bucket are stored back-to-back in
+/// `word_pool` as `[u16 length-LE][utf-8 bytes...]` records. The `fsa`
+/// (`inputx_fsa::Fsa`) maps initials_bytes → packed `(first_word_offset
+/// in low 32 bits | count in high 32 bits)`, both addressing the pool.
+/// Lookups return an iterator that walks the pool slice in place — no
+/// heap allocation per `next()`. Consumer copies to `String` only when
+/// it needs an owned value.
+struct InitialsIndex {
+    word_pool: Vec<u8>,
+    fsa_bytes: Vec<u8>,
+}
+
+struct InitialsMatches<'a> {
+    pool: &'a [u8],
+    offset: usize,
+    remaining: usize,
+}
+
+impl<'a> Iterator for InitialsMatches<'a> {
+    type Item = &'a str;
+    fn next(&mut self) -> Option<&'a str> {
+        if self.remaining == 0 { return None; }
+        if self.offset + 2 > self.pool.len() { return None; }
+        let len = u16::from_le_bytes([self.pool[self.offset], self.pool[self.offset + 1]])
+            as usize;
+        let start = self.offset + 2;
+        let end = start + len;
+        if end > self.pool.len() { return None; }
+        self.offset = end;
+        self.remaining -= 1;
+        std::str::from_utf8(&self.pool[start..end]).ok()
+    }
+}
+
+impl InitialsIndex {
+    fn get(&self, initials: &[u8]) -> Option<InitialsMatches<'_>> {
+        let fsa = inputx_fsa::Fsa::new(&self.fsa_bytes[..]).ok()?;
+        let value = fsa.get(initials)?;
+        let first_offset = (value & 0xFFFF_FFFF) as u32 as usize;
+        let count = (value >> 32) as u32 as usize;
+        Some(InitialsMatches {
+            pool: &self.word_pool,
+            offset: first_offset,
+            remaining: count,
+        })
+    }
+}
 
 /// Wrapper providing inputx-core's stateful-engine surface around the
 /// pinyin dict.
@@ -893,13 +949,15 @@ impl PinyinAdapter {
                 .take_while(|c| !matches!(*c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v'))
                 .collect();
             let suffix_len = self.buffer.len() - consonant_prefix.len();
-            if consonant_prefix.len() == 2 && suffix_len >= 2
-                && let Some(matches) = initials_index(&self.engine).get(&consonant_prefix)
-            {
-                for w in matches.iter().take(50) {
-                    if seen.insert(w.clone()) {
-                        self.candidates.push(w.clone());
-                        self.fuzzy_candidates.insert(w.clone());
+            if consonant_prefix.len() == 2 && suffix_len >= 2 {
+                let idx = initials_index(&self.engine);
+                if let Some(matches) = idx.get(consonant_prefix.as_bytes()) {
+                    for w in matches.take(50) {
+                        let owned = w.to_owned();
+                        if seen.insert(owned.clone()) {
+                            self.candidates.push(owned.clone());
+                            self.fuzzy_candidates.insert(owned);
+                        }
                     }
                 }
             }
@@ -947,13 +1005,15 @@ impl PinyinAdapter {
         // `hhh → 哈哈哈`, `zg → 中国`. Uses process-global lazy initials
         // index. Skipped when input has vowels (would be a valid syllable
         // start handled by Path 3).
-        if looks_like_initials(&self.buffer)
-            && let Some(matches) = initials_index(&self.engine).get(&self.buffer)
-        {
-            for w in matches.iter().take(200) {
-                if seen.insert(w.clone()) {
-                    self.candidates.push(w.clone());
-                    self.has_non_speculative_candidate = true;
+        if looks_like_initials(&self.buffer) {
+            let idx = initials_index(&self.engine);
+            if let Some(matches) = idx.get(self.buffer.as_bytes()) {
+                for w in matches.take(200) {
+                    let owned = w.to_owned();
+                    if seen.insert(owned.clone()) {
+                        self.candidates.push(owned);
+                        self.has_non_speculative_candidate = true;
+                    }
                 }
             }
         }
@@ -1383,13 +1443,13 @@ fn looks_like_initials(s: &str) -> bool {
 ///
 /// One-time cost (~1-2s on iPhone) — paid on first 简拼-style query;
 /// subsequent queries are O(1) HashMap lookup + small Vec extend.
-fn initials_index(seed_engine: &PinyinEngine) -> Arc<HashMap<String, Vec<String>>> {
+fn initials_index(seed_engine: &PinyinEngine) -> Arc<InitialsIndex> {
     INITIALS_INDEX
         .get_or_init(|| Arc::new(build_initials_index(seed_engine)))
         .clone()
 }
 
-fn build_initials_index(engine: &PinyinEngine) -> HashMap<String, Vec<String>> {
+fn build_initials_index(engine: &PinyinEngine) -> InitialsIndex {
     // Single-pass scan: bucket multi-char entries by initials, AND collect
     // single-char entries into a char-quality table. The char table feeds
     // a secondary ranking score that down-weights phrases composed of
@@ -1436,37 +1496,60 @@ fn build_initials_index(engine: &PinyinEngine) -> HashMap<String, Vec<String>> {
     //
     // To avoid u64 overflow on long phrases (5 chars × 100k each ≈ 1e25),
     // compute geometric mean in f64 then quantize back.
-    tmp.into_iter()
-        .map(|(initials, bucket)| {
-            let mut scored: Vec<(String, u64)> = bucket
-                .into_iter()
-                .map(|(word, freq)| {
-                    let chars: Vec<char> = word.chars().collect();
-                    let n = chars.len() as f64;
-                    let log_sum: f64 = chars
-                        .iter()
-                        .map(|c| {
-                            // +1 to avoid log(0) when char is missing from
-                            // single-char entries (rare CJK / extension chars).
-                            // Use natural log; geometric mean is exp(sum/n).
-                            let cf = char_freq.get(c).copied().unwrap_or(0);
-                            ((cf + 1) as f64).ln()
-                        })
-                        .sum();
-                    let geomean = (log_sum / n).exp();
-                    // Combined score: phrase freq weighted by char-quality
-                    // factor. sqrt() softens the multiplier so a uniformly
-                    // common-char phrase doesn't dwarf a high-phrase-freq
-                    // entry that happens to use one less-common char.
-                    let combined = (freq as f64) * geomean.sqrt();
-                    (word, combined as u64)
-                })
-                .collect();
-            scored.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-            let words: Vec<String> = scored.into_iter().map(|(w, _)| w).collect();
-            (initials, words)
-        })
-        .collect()
+    // Compact storage path (v1.6.x). Per-bucket: compute char-quality-
+    // weighted score, sort. Then flatten ALL buckets' words into a
+    // single byte pool + build an FSA mapping initials → (offset,
+    // count) into the pool. Replaces a `HashMap<String, Vec<String>>`
+    // (~20 MB / 400k Strings) with a single `Vec<u8>` (~3 MB) + a
+    // single FSA byte buffer.
+    use inputx_fsa::Builder as FsaBuilder;
+    let mut word_pool: Vec<u8> = Vec::with_capacity(1 << 22); // ~4 MB hint
+    let mut fsa = FsaBuilder::new();
+    for (initials, bucket) in tmp {
+        let mut scored: Vec<(String, u64)> = bucket
+            .into_iter()
+            .map(|(word, freq)| {
+                let chars: Vec<char> = word.chars().collect();
+                let n = chars.len() as f64;
+                let log_sum: f64 = chars
+                    .iter()
+                    .map(|c| {
+                        // +1 to avoid log(0) when char is missing from
+                        // single-char entries (rare CJK / extension chars).
+                        let cf = char_freq.get(c).copied().unwrap_or(0);
+                        ((cf + 1) as f64).ln()
+                    })
+                    .sum();
+                let geomean = (log_sum / n).exp();
+                // Combined score: phrase freq weighted by char-quality
+                // factor. sqrt() softens the multiplier so a uniformly
+                // common-char phrase doesn't dwarf a high-phrase-freq
+                // entry that happens to use one less-common char.
+                let combined = (freq as f64) * geomean.sqrt();
+                (word, combined as u64)
+            })
+            .collect();
+        scored.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+
+        let first_offset = word_pool.len() as u32;
+        let mut count: u32 = 0;
+        for (w, _) in &scored {
+            let bytes = w.as_bytes();
+            if bytes.len() > u16::MAX as usize {
+                continue;  // defensive — won't happen for IME candidates
+            }
+            word_pool.extend_from_slice(&(bytes.len() as u16).to_le_bytes());
+            word_pool.extend_from_slice(bytes);
+            count += 1;
+        }
+        let value = (first_offset as u64) | ((count as u64) << 32);
+        fsa.insert(initials.as_bytes(), value);
+    }
+    word_pool.shrink_to_fit();
+    InitialsIndex {
+        word_pool,
+        fsa_bytes: fsa.finish(),
+    }
 }
 
 /// Greedy left-to-right syllable segmentation of `pinyin`, taking the
