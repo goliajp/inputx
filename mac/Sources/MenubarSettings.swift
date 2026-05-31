@@ -17,9 +17,11 @@ final class MenubarSettings {
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            // U+5165 "入" — visual mnemonic for CJK input. Flipped to "A"
-            // while the controller is in EN mode (see `handleModeChanged`).
-            button.title = "入"
+            // U+4E94 "五" — visual mnemonic for 五笔 input (Inputx's
+            // primary engine). Flipped to "A" while the controller is
+            // in EN mode (see `handleModeChanged`). Previously "入"
+            // which collided visually with Apple's system input switcher.
+            button.title = "五"
             button.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
         }
         statusItem.menu = menu
@@ -43,7 +45,7 @@ final class MenubarSettings {
               let mode = InputxInputMode(rawValue: raw)
         else { return }
         if let button = statusItem.button {
-            button.title = (mode == .cjk) ? "入" : "A"
+            button.title = (mode == .cjk) ? "五" : "A"
         }
     }
 
@@ -52,7 +54,7 @@ final class MenubarSettings {
 
         // First-class "open settings" entry — opens the SwiftUI window
         // where every toggle is laid out at once. Promotes discoverability
-        // since two "入" glyphs (Apple's system input switcher + our
+        // since "入" glyph (Apple's system input switcher) collided with our
         // NSStatusItem) currently look identical and confuse users.
         let openSettings = NSMenuItem(
             title: "Inputx 设置…",
