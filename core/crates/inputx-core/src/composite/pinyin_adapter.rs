@@ -2186,6 +2186,105 @@ mod tests {
         );
     }
 
+    // ------------------------------------------------------------------
+    // Realistic-load perfgate — exercises `candidates_with_scores` with
+    // a non-None `prev_committed`, which is the path the IME runtime
+    // actually walks per keystroke once the user has committed any
+    // prior word. The bare-`handle_letter` perfgate above misses this
+    // because it never threads a prev_word through, so the bigram-
+    // boost call short-circuits at `let Some(prev) = prev else
+    // { return 0 }`.
+    //
+    // Regression caught by adding this fixture: v1.4.6 NGMv1 cutover
+    // (commit 399b142) put `legacy_bigram_boost_from_ngm` on the
+    // refresh path, but the underlying `NgramTable::log_prob` was an
+    // O(N) full-table linear scan with two utf8 validations per
+    // triplet. Per-keystroke cost ballooned to ~100ms under realistic
+    // candidate counts (sample(1) on PID 5930, 2026-05-31). Fixed by
+    // adding a lazy ctx → triplet-range index in inputx-ngram (the
+    // FST ctx index section in the on-disk format reserves space for
+    // this; the writer hasn't populated it yet so the reader builds
+    // an in-memory equivalent on first use).
+    //
+    // Budget is looser than the bare-handle_letter gate (32ms p95 vs
+    // 16ms) because this fixture also runs scoring + cross-engine
+    // merge prep on each iteration, which inflates the wall-clock
+    // even when the bigram-boost path is cheap. A 2× regression
+    // there would still surface as p95 > 32ms.
+    #[test]
+    #[cfg_attr(not(feature = "perfgate"), ignore = "run via scripts/perf_isolated.sh")]
+    fn perfgate_candidates_with_scores_prev_committed() {
+        let mut warmer = PinyinAdapter::new();
+        warmer.warmup();
+        // Trigger lazy ctx-index build inside the bigrams NGM table by
+        // doing one no-op scored call. Subsequent timed iterations
+        // measure steady-state cost only.
+        let _ = warmer.candidates_with_scores(Some("我"));
+
+        const ITER: usize = 30;
+        const MAX_BUDGET_NS: u128 = 32_000_000; // 32 ms p95
+
+        // (buffer, prev_word) pairs. prev_word is a common Chinese
+        // word the bigrams table is guaranteed to have entries for —
+        // picked to land on the slow path the regression exposed.
+        let probes: &[(&str, &str)] = &[
+            ("zhongguo", "我"),
+            ("women", "你"),
+            ("nihaoma", "今天"),
+            ("yongbuliao", "你"),
+            ("nihaomawojiao", "我们"),
+        ];
+
+        let mut all_passed = true;
+        for (input, prev) in probes {
+            let bytes = input.as_bytes();
+            let mut times: Vec<u128> = Vec::with_capacity(ITER);
+
+            for _ in 0..ITER {
+                let mut a = PinyinAdapter::new();
+                for &b in bytes {
+                    a.handle_letter(b);
+                }
+                // Time the scoring path with a real prev_committed —
+                // this is what the runtime invokes per keystroke once
+                // the user has committed any prior word.
+                let start = std::time::Instant::now();
+                let _ = a.candidates_with_scores(Some(prev));
+                times.push(start.elapsed().as_nanos());
+            }
+
+            times.sort_unstable();
+            let min = times[0];
+            let p50 = times[times.len() / 2];
+            let p95 = times[(times.len() * 95) / 100];
+            let max = *times.last().unwrap();
+
+            eprintln!(
+                "perfgate-scored {input:>14} (prev={prev}): \
+                 min={:>5.2}ms p50={:>5.2}ms p95={:>5.2}ms max={:>5.2}ms",
+                min as f64 / 1_000_000.0,
+                p50 as f64 / 1_000_000.0,
+                p95 as f64 / 1_000_000.0,
+                max as f64 / 1_000_000.0,
+            );
+
+            if !cfg!(debug_assertions) && p95 > MAX_BUDGET_NS {
+                eprintln!(
+                    "  ^^ FAIL: p95 {:.2}ms exceeds {}ms scored-path budget — \
+                     bigram-boost or scoring path has regressed",
+                    p95 as f64 / 1_000_000.0,
+                    MAX_BUDGET_NS / 1_000_000
+                );
+                all_passed = false;
+            }
+        }
+
+        assert!(
+            all_passed || cfg!(debug_assertions),
+            "scored-path perfgate failed — see eprintln output above"
+        );
+    }
+
     #[test]
     fn initials_skipped_when_full_pinyin_matches() {
         // "women" is valid pinyin AND would also pass the initials check
