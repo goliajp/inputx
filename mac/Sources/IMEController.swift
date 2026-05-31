@@ -667,33 +667,69 @@ final class InputxController: IMKInputController {
 
     private func commitText(_ text: String, to sender: Any?) {
         guard let client = sender as? IMKTextInput else { return }
-        client.insertText(
-            text,
-            replacementRange: NSRange(location: NSNotFound, length: 0)
-        )
+        // Host accepted the text + cleared its marked-text area; sync our
+        // cache so the next `updatePreedit("")` correctly recognizes the
+        // host as already-cleared and short-circuits.
+        lastPreeditSent = nil
+        PerfTimer.measure("IMK.insertText") {
+            client.insertText(
+                text,
+                replacementRange: NSRange(location: NSNotFound, length: 0)
+            )
+        }
     }
+
+    /// Last preedit string actually delivered to the host via
+    /// `setMarkedText`. `updatePreedit` consults this cache to skip
+    /// the IMK IPC when the new preedit matches — each `setMarkedText`
+    /// is a cross-process round-trip (PerfTimer measured ~1ms p50),
+    /// and the 9 different `updatePreedit` call sites in `handle`
+    /// occasionally fire back-to-back with the same content (commit
+    /// drain → predictions setup → refresh, all touching the same
+    /// empty/active preedit). `nil` means "host's marked-text area is
+    /// known empty" (right after launch, post-commit, post-deactivate).
+    private var lastPreeditSent: String? = nil
 
     private func updatePreedit(client sender: Any?) {
         guard let client = sender as? IMKTextInput else { return }
-        if let preedit = session.preedit, !preedit.isEmpty {
-            let attr = NSAttributedString(string: preedit)
+        let preedit = session.preedit ?? ""
+        if preedit.isEmpty {
+            // No marked text. Skip the IPC if the host is already cleared.
+            if lastPreeditSent == nil { return }
+            lastPreeditSent = nil
+            PerfTimer.measure("IMK.setMarkedText(clear)") {
+                client.setMarkedText(
+                    NSAttributedString(string: ""),
+                    selectionRange: NSRange(location: 0, length: 0),
+                    replacementRange: NSRange(location: NSNotFound, length: 0)
+                )
+            }
+            return
+        }
+        // Skip the IPC if the host already has this exact preedit string.
+        if lastPreeditSent == preedit { return }
+        lastPreeditSent = preedit
+        let attr = NSAttributedString(string: preedit)
+        PerfTimer.measure("IMK.setMarkedText(update)") {
             client.setMarkedText(
                 attr,
                 selectionRange: NSRange(location: preedit.count, length: 0),
                 replacementRange: NSRange(location: NSNotFound, length: 0)
             )
-        } else {
-            clearMarkedText(client: sender)
         }
     }
 
     private func clearMarkedText(client sender: Any?) {
         guard let client = sender as? IMKTextInput else { return }
-        client.setMarkedText(
-            NSAttributedString(string: ""),
-            selectionRange: NSRange(location: 0, length: 0),
-            replacementRange: NSRange(location: NSNotFound, length: 0)
-        )
+        if lastPreeditSent == nil { return }
+        lastPreeditSent = nil
+        PerfTimer.measure("IMK.setMarkedText(clear)") {
+            client.setMarkedText(
+                NSAttributedString(string: ""),
+                selectionRange: NSRange(location: 0, length: 0),
+                replacementRange: NSRange(location: NSNotFound, length: 0)
+            )
+        }
     }
 }
 
