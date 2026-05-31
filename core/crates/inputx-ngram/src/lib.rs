@@ -208,12 +208,35 @@ pub struct NgramTable<B: AsRef<[u8]>> {
     /// dominates per-keystroke cost in the IME runtime (~96% of main-
     /// thread time per `sample(1)` on a real session).
     ///
+    /// Memory layout: `Vec<CtxIndexEntry>` sorted by ctx string content
+    /// (resolved through `string_pool[ctx_offset..]`). Binary search by
+    /// the query's ctx bytes. 12 bytes per entry; for a 50k-ctx bigram
+    /// table that's ~600 KB plus one Vec alloc — vs the prior
+    /// `HashMap<Vec<u8>, _>` design which churned 50k Vec<u8> allocs
+    /// + HashMap bucket overhead for ~3 MB on the heap. Lookup is now
+    /// O(log N) (~16 byte-compares for 50k entries) instead of O(1)
+    /// hash, a few hundred ns worth of speed traded for ~2.4 MB heap.
+    ///
     /// On-disk header reserves an FST ctx index section which the
     /// v1.4.4 snapshot tooling left empty (see header docs); until
-    /// that's wired through the writer, the reader builds an
-    /// equivalent map at load-on-first-use here.
+    /// that's wired through the writer, the reader builds this
+    /// in-memory equivalent at load-on-first-use.
     #[cfg(feature = "std")]
-    ctx_index: std::sync::OnceLock<std::collections::HashMap<std::vec::Vec<u8>, (u32, u32)>>,
+    ctx_index: std::sync::OnceLock<std::vec::Vec<CtxIndexEntry>>,
+}
+
+/// Compact ctx-index entry — 12 bytes, stored in a sorted `Vec`
+/// resolved against the string pool via `ctx_offset` at compare time.
+#[derive(Copy, Clone, Debug)]
+#[cfg(feature = "std")]
+struct CtxIndexEntry {
+    /// Offset into `string_pool` to the null-terminated ctx string.
+    ctx_offset: u32,
+    /// Index of the first triplet for this ctx in the sorted
+    /// triplet table.
+    first_idx: u32,
+    /// Number of consecutive triplets sharing this ctx.
+    count: u32,
 }
 
 impl<B: AsRef<[u8]>> NgramTable<B> {
@@ -261,6 +284,9 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
             ctx_index: std::sync::OnceLock::new(),
         })
     }
+    // `ctx_index` is now `OnceLock<Vec<CtxIndexEntry>>` per the field
+    // declaration — the `OnceLock::new()` above initializes the new
+    // type identically.
 
     pub fn header(&self) -> &Header { &self.header }
     pub fn max_n(&self) -> u8 { self.header.max_n }
@@ -274,10 +300,10 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
         let ctx_blob = encode_ctx(ctx);
         #[cfg(feature = "std")]
         {
-            let &(start, count) = self.ctx_index().get(ctx_blob.as_bytes())?;
+            let entry = self.find_ctx(ctx_blob.as_bytes())?;
             let pool = self.string_pool();
             let next_bytes = next.as_bytes();
-            for i in start..start + count {
+            for i in entry.first_idx..entry.first_idx + entry.count {
                 let t = self.triplet_at(i as usize);
                 if read_string_bytes(pool, t.next_offset) == next_bytes {
                     return Some(t.log_prob);
@@ -308,9 +334,9 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
         let mut all: Vec<(String, i16)> = Vec::new();
         #[cfg(feature = "std")]
         {
-            if let Some(&(start, count)) = self.ctx_index().get(ctx_blob.as_bytes()) {
+            if let Some(entry) = self.find_ctx(ctx_blob.as_bytes()) {
                 let pool = self.string_pool();
-                for i in start..start + count {
+                for i in entry.first_idx..entry.first_idx + entry.count {
                     let t = self.triplet_at(i as usize);
                     let stored_next = read_string(pool, t.next_offset).to_string();
                     all.push((stored_next, t.log_prob));
@@ -345,24 +371,26 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
     }
 
     /// Lazy ctx → (first_triplet_idx, count) index. Built on first call;
-    /// subsequent calls are O(1) HashMap lookups.
+    /// subsequent calls find the entry via binary search.
     ///
     /// Triplets on disk are sorted by (ctx_offset, log_prob desc, next),
     /// so same-ctx_offset triplets form contiguous runs. The builder
-    /// walks the triplet table once, batching by ctx_offset, and
-    /// records the (first_idx, count) per ctx blob. Construction cost
-    /// is O(N) where N = entry_count, amortized across all lookups
+    /// walks the triplet table once batching by ctx_offset, then sorts
+    /// the resulting entries by ctx string content (resolved through
+    /// the string pool) so binary search by ctx bytes works.
+    ///
+    /// Construction cost: O(N) walk + O(M log M) sort, where N =
+    /// entry_count and M = unique ctxs. Amortized across all lookups
     /// for the lifetime of the table (mmap'd once per process).
     #[cfg(feature = "std")]
-    fn ctx_index(&self) -> &std::collections::HashMap<std::vec::Vec<u8>, (u32, u32)> {
+    fn ctx_index(&self) -> &[CtxIndexEntry] {
         self.ctx_index.get_or_init(|| {
-            use std::collections::HashMap;
-            let mut map: HashMap<std::vec::Vec<u8>, (u32, u32)> = HashMap::new();
             let pool = self.string_pool();
             let n = self.header.entry_count;
             if n == 0 {
-                return map;
+                return std::vec::Vec::new();
             }
+            let mut entries: std::vec::Vec<CtxIndexEntry> = std::vec::Vec::new();
             let mut current_offset: u32 = u32::MAX;
             let mut current_start: u32 = 0;
             for i in 0..n {
@@ -370,9 +398,14 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
                 if t.ctx_offset != current_offset {
                     if current_offset != u32::MAX {
                         let count = i - current_start;
-                        let blob = read_string_bytes(pool, current_offset).to_vec();
-                        if !blob.is_empty() {
-                            map.insert(blob, (current_start, count));
+                        // Skip the (rare) empty-ctx case — pool offset
+                        // pointing at a leading \0 byte.
+                        if !read_string_bytes(pool, current_offset).is_empty() {
+                            entries.push(CtxIndexEntry {
+                                ctx_offset: current_offset,
+                                first_idx: current_start,
+                                count,
+                            });
                         }
                     }
                     current_offset = t.ctx_offset;
@@ -380,12 +413,39 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
                 }
             }
             let count = n - current_start;
-            let blob = read_string_bytes(pool, current_offset).to_vec();
-            if !blob.is_empty() {
-                map.insert(blob, (current_start, count));
+            if !read_string_bytes(pool, current_offset).is_empty() {
+                entries.push(CtxIndexEntry {
+                    ctx_offset: current_offset,
+                    first_idx: current_start,
+                    count,
+                });
             }
-            map
+            // Sort by ctx string content so binary search by ctx bytes
+            // (in `find_ctx`) is correct.
+            entries.sort_by(|a, b| {
+                let pa = read_string_bytes(pool, a.ctx_offset);
+                let pb = read_string_bytes(pool, b.ctx_offset);
+                pa.cmp(pb)
+            });
+            entries.shrink_to_fit();
+            entries
         })
+    }
+
+    /// Binary search the ctx index for an entry whose stored ctx bytes
+    /// equal `target`. Returns the resolved entry, not just an index,
+    /// so callers can use `first_idx` / `count` directly.
+    #[cfg(feature = "std")]
+    fn find_ctx(&self, target: &[u8]) -> Option<CtxIndexEntry> {
+        let entries = self.ctx_index();
+        let pool = self.string_pool();
+        let idx = entries
+            .binary_search_by(|e| {
+                let stored = read_string_bytes(pool, e.ctx_offset);
+                stored.cmp(target)
+            })
+            .ok()?;
+        Some(entries[idx])
     }
 
     fn string_pool(&self) -> &[u8] {
