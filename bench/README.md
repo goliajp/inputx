@@ -4,21 +4,22 @@ Reproducible measurement points for evaluating Inputx against other macOS
 input methods. All numbers below are wall-clock per single keystroke,
 captured with the methodology described in each section.
 
-## Quick reference (2026-05-31, develop @ a95d39f, post L1)
+## Quick reference (2026-05-31, develop @ fdafa46, post L1 revert + FST-in-NGM)
 
 | Metric | Inputx | Apple Pinyin | Sogou (3rd-party reports) | vChewing |
 |---|---|---|---|---|
-| Keystroke latency p50 (Swift refresh) | **0.95 ms** | ~5-10 ms | ~5-15 ms | ~3-8 ms |
-| Keystroke latency p95 (Swift refresh) | **3.2 ms** | ~10-15 ms | ~15-30 ms | ~10-15 ms |
-| Full handler p50 (IMEController.handle) | **1.67 ms** | n/a | n/a | n/a |
-| Full handler p95 (IMEController.handle) | **5.5 ms** | n/a | n/a | n/a |
-| IMK→Swift dispatch p95 | **0.20 ms** | n/a (macOS limit) | n/a | n/a |
+| Keystroke latency p50 (Swift refresh) | **1.51 ms** | ~5-10 ms | ~5-15 ms | ~3-8 ms |
+| Keystroke latency p95 (Swift refresh) | **5.7 ms** | ~10-15 ms | ~15-30 ms | ~10-15 ms |
+| Full handler p50 (IMEController.handle) | **1.79 ms** | n/a | n/a | n/a |
+| Full handler p95 (IMEController.handle) | **7.7 ms** | n/a | n/a | n/a |
+| IMK→Swift dispatch p95 | **0.49 ms** | n/a (macOS limit) | n/a | n/a |
 | Rust engine refresh_candidates p95 | **0.18 ms** | n/a (Apple) | n/a | n/a |
 | Idle CPU | **0.0 %** | 0 % | 0-1 % | 0 % |
-| Phys footprint (vmmap, fully warm) | **53.5 MB** (peak 76 MB) | ~30-50 MB | ~80-100 MB | ~30-40 MB |
+| Phys footprint (vmmap, fully warm) | **48–54 MB** (peak 76 MB) | ~30-50 MB | ~80-100 MB | ~30-40 MB |
 | Cold-start lag on first keystroke | none (eager pre-warm + glyph cache fill) | minor | minor | none |
 | Switch-to-IME cold lag | ~30 ms host-IMK-client first-IPC (dev-only after reinstall; production stays warm via launchd KeepAlive) | similar | similar | similar |
-| IO/mem pressure sensitivity | hardened (warmup pre-faults all dict pages + ngram ctx_index pre-built) | unknown | reportedly degrades | unknown |
+| IO/mem pressure sensitivity | hardened (warmup pre-faults all dict pages; ngram ctx index FST embedded in NGM file, mmap-resident) | unknown | reportedly degrades | unknown |
+| CPU pressure (8 cores at 100%) | refresh p50 stays within 1.04× of uncontended baseline; p95 stays under one frame | unknown | unknown | unknown |
 
 Comparison numbers are best-effort third-party estimates as of 2026-05;
 absolute values vary by hardware and macOS version. The Inputx column is
@@ -130,4 +131,6 @@ Pass criteria (target):
 | 6960c3e | (cold-start) | Rust warmup expanded for IO/mem-pressure hardening |
 | 1170c7c | (cold-start) | CandidatePanel eager pre-warm + setFrame skip + glyph cache pre-fill |
 | 5a5ba81 | 1.4 → 0.92 ms p50 (refresh); 17.85 → 5.04 ms max | alpha-toggle show/hide replaces orderFront (window-server compositor cost 3-9 ms gone); + L2 two-phase width measure; + IMK.dispatch instrumentation |
-| a95d39f | 1.62 → 0.93 ms p50 (rebuildRows) | L1: CandidateRow internal AL constraints → manual `layout()` (kills AL re-propagate on stringValue changes) |
+| a95d39f → fdafa46 (revert) | (no net change) | L1 attempt: CandidateRow internal AL → manual `layout()`. Reverted — NSStackView didn't propagate width to rows post-removal of internal constraint chain; long candidates truncated. Accepted ~0.7 ms p50 regression as the correct trade for visual correctness. |
+| 1ad6d13 | ~−2.1 MB phys footprint, −36k allocations | ngram ctx_index `HashMap<Vec<u8>,_>` → sorted `Vec<CtxIndexEntry>` + binary search (50k Vec<u8> key allocs gone). |
+| 21a3ca1 | ~−800 KB heap, +155 KB binary | inputx-ngram NGMv1 FST ctx index — was reserved but never written. Now built at NGM-build time and embedded; reader uses `inputx_fsa::Fsa::get` on mmap'd bytes (zero heap alloc, O(\|ctx\|) lookup). |
