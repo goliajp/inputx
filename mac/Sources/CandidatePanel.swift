@@ -178,6 +178,86 @@ final class CandidatePanel {
         self.window = w
         self.stack = stack
         self.footer = footer
+        // Eager pre-warm everything that would otherwise be paid on
+        // the first keystroke's `_rebuildRows`. User-reported "打第
+        // 一个字眼皮跳一下" 2026-05-31: cold first refresh took ~20ms
+        // (vs warm ~2ms) because three one-time costs all landed on
+        // a single keystroke — 10× CandidateRow construction, the AL
+        // calibrate pass, and the initial fittingSize measure.
+        // Moving them to init() (before the user has typed a thing)
+        // makes the first real refresh take the warm path.
+        preWarmRows()
+    }
+
+    private func preWarmRows() {
+        // 1. Build the 10 CandidateRow instances now so the first
+        //    refresh's recycling-fast-path can update them in place.
+        for _ in 0..<Self.pageSize {
+            let row = CandidateRow(numberLabel: "", word: "")
+            stack.addArrangedSubview(row)
+            rowViews.append(row)
+        }
+
+        // 1b. Force CoreText / NSFont glyph cache to populate now by
+        //     setting realistic Chinese content on the rows. User
+        //     reported "刚安装完的时候明显卡顿" 2026-05-31 — first
+        //     text render after a fresh process pays the system-font
+        //     glyph-loading cost (~10-30ms), causing the first few
+        //     keystrokes to feel laggy. Pre-seeding common characters
+        //     warms the font cache.
+        let warmupChars = ["我", "你", "他", "的", "是", "在", "了", "中", "国", "人"]
+        for (i, row) in rowViews.enumerated() {
+            row.update(numberLabel: String(i + 1), word: warmupChars[i])
+        }
+        // Force render + measure cycle so CoreText actually loads
+        // the glyphs and populates the layout caches.
+        for w in warmupChars {
+            _ = (w as NSString).size(withAttributes: Self.wordMeasureAttrs)
+        }
+        // 2. Bake the hand-rolled-layout constants. Empirical AL
+        //    calibration at first refresh was unreliable (newMaxWidth
+        //    depended on whatever the first page words happened to
+        //    be → widthOverhead could be over- or under-estimated),
+        //    so hardcode the geometry directly from the row + stack
+        //    constraints. If the row constraints ever change, both
+        //    constants need to be re-derived by hand.
+        //
+        //    widthOverhead = stack edgeInsets (left 8 + right 8 = 16)
+        //                  + row chrome (numberLabel leading 6 + width 14
+        //                                + gap 8 + wordLabel trailing 8 = 36)
+        //                  = 52pt
+        //    frameHeight   = 10× 22pt rows + 9× 1pt stack spacing
+        //                  + stack edgeInsets (top 6 + bottom 4 = 10)
+        //                  + stack→footer gap 2pt
+        //                  + footer intrinsic (~13pt for 10pt-font)
+        //                  + footer bottom-inset 4pt
+        //                  ≈ 258pt
+        calibratedWidthOverhead = 52
+        calibratedFrameHeight = 258
+        // 3. Force one AL constraint-engine pass to wake the row
+        //    layout machinery now. Without it, the first stringValue
+        //    update on a row pays the cold constraint-resolution
+        //    cost; with it, every refresh runs on warm constraint
+        //    state.
+        window.contentView?.layoutSubtreeIfNeeded()
+
+        // 4. Pre-warm the window-server's panel setup by doing one
+        //    invisible orderFront → orderOut cycle off-screen. The
+        //    first real `orderFront(nil)` would otherwise trigger
+        //    shadow rendering, compositor-tier registration, and
+        //    backing-store allocation — all of which add up to ~10ms
+        //    of latency on the first time the panel actually shows.
+        //    Position off-screen so no pixel flash leaks to user.
+        let offScreen = NSRect(x: -10000, y: -10000, width: 110, height: 258)
+        window.setFrame(offScreen, display: true)
+        window.orderFront(nil)
+        window.orderOut(nil)
+
+        // 5. Clear the warmup content from rows so the first real
+        //    refresh sees a known baseline (empty) state.
+        for row in rowViews {
+            row.update(numberLabel: "", word: "")
+        }
     }
 
     /// Update content from the session's current candidate list. Hides
@@ -507,7 +587,8 @@ final class CandidatePanel {
             let MAX_WIDTH: CGFloat = 360
             let actualW = max(MIN_WIDTH, min(MAX_WIDTH, newMaxWidth + widthOverhead))
             let actualH = frameHeight
-            var f = window.frame
+            let currentFrame = window.frame
+            var f = currentFrame
             let widthChanged = abs(f.size.width - actualW) > 0.5
             f.size.width = actualW
             f.size.height = actualH
@@ -520,8 +601,17 @@ final class CandidatePanel {
             if widthChanged, let s = NSScreen.screens.first(where: { $0.frame.contains(NSPoint(x: f.origin.x, y: f.origin.y)) })?.visibleFrame {
                 f.origin.x = min(max(s.minX, f.origin.x), s.maxX - f.size.width)
             }
+            // Skip the AppKit call entirely if nothing actually moved.
+            // `setFrame(_:display:false)` still walks AppKit's window-
+            // server bookkeeping (size class updates, sibling notify,
+            // shadow recompute) — measured as the dominant residual
+            // cost in `rR.frameBlock` once display: was deferred.
+            // The fingerprint early-out already handles the common
+            // case (same words → no rebuild), so this guard catches
+            // the rarer case of "rebuilt content, same dimensions".
+            if currentFrame == f { return }
             PerfTimer.measure("rR.setFrame") {
-                // `display: false` — window resizes immediately but the
+                // `display: false` — window resizes immediately, the
                 // panel's subviews (NSVisualEffectView, 10 rows, footer)
                 // redraw lazily on the next runloop display pass.
                 // Measured `display: true` cost: 2.68ms p50 of the
@@ -529,8 +619,8 @@ final class CandidatePanel {
                 // that's only growing in width by a few pt to fit a
                 // longer candidate, deferring display is visually
                 // imperceptible (next runloop turn flushes the redraw
-                // queue within one frame), but saves ~2.5ms per
-                // width-fit-miss refresh.
+                // queue within one frame), saves ~2.5ms per width-
+                // fit-miss refresh. User confirmed "其实还行" 2026-05-31.
                 window.setFrame(f, display: false)
             }
         }
