@@ -432,11 +432,32 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
         })
     }
 
-    /// Binary search the ctx index for an entry whose stored ctx bytes
-    /// equal `target`. Returns the resolved entry, not just an index,
-    /// so callers can use `first_idx` / `count` directly.
+    /// Resolve a ctx-bytes query to its triplet range. Prefers the
+    /// FST embedded in the NGM file (zero heap allocation, O(|ctx|)
+    /// traversal of mmap'd state automata). Falls back to the
+    /// in-memory sorted-vec binary search when the FST section is
+    /// empty — only happens with NGM files generated before the v1.6
+    /// perf push.
     #[cfg(feature = "std")]
     fn find_ctx(&self, target: &[u8]) -> Option<CtxIndexEntry> {
+        // Fast path: embedded FST. Lookup walks the mmap'd FSA bytes
+        // directly — no heap allocation.
+        if self.header.fst_ctx_index_size > 0 {
+            let buf = self.bytes.as_ref();
+            let off = self.header.fst_ctx_index_offset as usize;
+            let sz = self.header.fst_ctx_index_size as usize;
+            if let Ok(fsa) = inputx_fsa::Fsa::new(&buf[off..off + sz]) {
+                let value = fsa.get(target)?;
+                let first_idx = (value & 0xFFFF_FFFF) as u32;
+                let count = (value >> 32) as u32;
+                return Some(CtxIndexEntry {
+                    ctx_offset: 0,  // unused on the FST path
+                    first_idx,
+                    count,
+                });
+            }
+        }
+        // Fallback: in-memory sorted Vec built at first use.
         let entries = self.ctx_index();
         let pool = self.string_pool();
         let idx = entries
@@ -606,8 +627,48 @@ mod writer {
                 triplet_bytes.extend_from_slice(&t.to_bytes());
             }
 
-            // FST ctx index — empty in v1.4.4 (linear scan fallback in reader).
-            let fst_ctx_index: Vec<u8> = Vec::new();
+            // FST ctx index — populated since the v1.6.x perf push.
+            // Maps ctx_bytes → packed `(first_idx u32 in low 32 bits |
+            // count u32 in high 32 bits)`. Reader uses this for
+            // zero-alloc O(|ctx|) lookups straight from the mmap'd
+            // region; the in-memory ctx-index path stays only as a
+            // backward-compat fallback for older NGM files that left
+            // this section empty.
+            //
+            // The entries are already sorted by (ctx asc, log_prob
+            // desc, next asc), so contiguous same-ctx runs give us
+            // (first_idx, count) directly without a second pass.
+            let fst_ctx_index: Vec<u8> = {
+                use inputx_fsa::Builder as FsaBuilder;
+                let mut fsa = FsaBuilder::new();
+                let mut current_ctx: Option<&str> = None;
+                let mut current_start: u32 = 0;
+                for (i, (ctx, _, _)) in self.entries.iter().enumerate() {
+                    let i = i as u32;
+                    let same = matches!(current_ctx, Some(c) if c == ctx.as_str());
+                    if !same {
+                        if let Some(prev) = current_ctx {
+                            let count = i - current_start;
+                            let value = (current_start as u64)
+                                | ((count as u64) << 32);
+                            fsa.insert(prev.as_bytes(), value);
+                        }
+                        current_ctx = Some(ctx.as_str());
+                        current_start = i;
+                    }
+                }
+                if let Some(prev) = current_ctx {
+                    let count = entry_count - current_start;
+                    let value = (current_start as u64)
+                        | ((count as u64) << 32);
+                    fsa.insert(prev.as_bytes(), value);
+                }
+                fsa.finish()
+            };
+            // No trailing padding: FST is the last section in the
+            // file, and `Fsa::new` (the reader) reads `value_count *
+            // value_width` from the END of its input slice, so any
+            // trailing zeros would be mis-interpreted as values.
 
             // Layout.
             let string_pool_offset = FULL_HEADER_SIZE as u32;
