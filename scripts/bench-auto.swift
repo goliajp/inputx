@@ -51,7 +51,22 @@ let KEY_CODES: [Character: CGKeyCode] = [
 let SPACE_KEYCODE: CGKeyCode = 49
 let RETURN_KEYCODE: CGKeyCode = 36
 
-let INPUTX_SOURCE_ID = "jp.golia.inputmethod.wubi.zh"
+// Bundle ID — stable. We discover the actual TIS source ID at runtime
+// by enumerating sources and finding the input-mode entry under this
+// bundle (the one whose ID is `<bundle>.zh` or longer — never the
+// bundle ID itself, which is a separate entry TIS emits for the
+// host).
+//
+// Pre-Gate-3 (commit 714d41b, 2026-06-01) the Info.plist declared
+// `TISInputSourceID` explicitly, pinning the source ID to
+// `jp.golia.inputmethod.wubi.zh`. Removing that key (to fix the
+// picker-tile icon) made macOS fall back to "bundle + key" derivation,
+// yielding `jp.golia.inputmethod.wubi.wubi.zh` (the InputModes key is
+// `jp.golia.inputmethod.wubi.zh` so TIS prepends bundle, doubling
+// the suffix). The actual source ID drifts whenever the Info.plist
+// is reshaped for picker / TCC / switcher reasons — so the driver
+// must discover, not hardcode.
+let INPUTX_BUNDLE_ID = "jp.golia.inputmethod.wubi"
 
 // ──────────────────────────────────────────────────────────────────────
 // 1. Open TextEdit + new document
@@ -141,30 +156,46 @@ func activateTextEditWithFreshDoc() {
 // ──────────────────────────────────────────────────────────────────────
 // 2. TIS — select Inputx as active input source
 // ──────────────────────────────────────────────────────────────────────
-func selectInputxInputSource() -> Bool {
+/// Find the Inputx input-mode source under our bundle.
+///
+/// Matches any source whose ID starts with `<bundle>.` (i.e. the
+/// input-mode entries — not the bundle's own host entry). This way
+/// the driver survives Info.plist shape changes that shift the exact
+/// source ID suffix (see commit 714d41b for the dual-`.wubi.zh`
+/// regression that motivated the dynamic lookup).
+func findInputxSource() -> TISInputSource? {
     guard let raw = TISCreateInputSourceList(nil, false)?.takeRetainedValue() else {
-        fputs("[bench-auto] ERR: TISCreateInputSourceList returned nil\n", stderr)
-        return false
+        return nil
     }
     let sources = raw as NSArray as! [TISInputSource]
+    let modePrefix = INPUTX_BUNDLE_ID + "."
     for src in sources {
         let idPtr = TISGetInputSourceProperty(src, kTISPropertyInputSourceID)
         guard let idStr = idPtr.map({ Unmanaged<CFString>.fromOpaque($0).takeUnretainedValue() as String })
         else { continue }
-        if idStr == INPUTX_SOURCE_ID {
-            let status = TISSelectInputSource(src)
-            if status == noErr {
-                fputs("[bench-auto] selected Inputx as active input source\n", stderr)
-                Thread.sleep(forTimeInterval: 0.5)
-                return true
-            } else {
-                fputs("[bench-auto] ERR: TISSelectInputSource status=\(status)\n", stderr)
-                return false
-            }
+        if idStr.hasPrefix(modePrefix) {
+            return src
         }
     }
-    fputs("[bench-auto] ERR: Inputx input source (\(INPUTX_SOURCE_ID)) not in installed list\n", stderr)
-    return false
+    return nil
+}
+
+func selectInputxInputSource() -> Bool {
+    guard let src = findInputxSource() else {
+        fputs("[bench-auto] ERR: no input mode under bundle \(INPUTX_BUNDLE_ID) found in TIS list\n", stderr)
+        return false
+    }
+    let idPtr = TISGetInputSourceProperty(src, kTISPropertyInputSourceID)
+    let idStr = idPtr.map({ Unmanaged<CFString>.fromOpaque($0).takeUnretainedValue() as String }) ?? "?"
+    let status = TISSelectInputSource(src)
+    if status == noErr {
+        fputs("[bench-auto] selected Inputx (\(idStr)) as active input source\n", stderr)
+        Thread.sleep(forTimeInterval: 0.5)
+        return true
+    } else {
+        fputs("[bench-auto] ERR: TISSelectInputSource status=\(status)\n", stderr)
+        return false
+    }
 }
 
 // ──────────────────────────────────────────────────────────────────────
