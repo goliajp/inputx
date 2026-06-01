@@ -187,7 +187,15 @@ pub struct PinyinAdapter {
     /// `candidates_with_scores` can apply a score discount — a fuzzy
     /// match is plausibly what the user meant but shouldn't beat an
     /// exact match in mixed lists.
-    fuzzy_candidates: HashSet<String>,
+    ///
+    /// v1.8.0 WU-ν: value is the `inputx_phonetic_edit::edit_distance`
+    /// from the typed buffer to the variant that matched in the dict.
+    /// Path 1a (initials) defaults to `0.3` (no real phonetic
+    /// distance — the user typed shorthand, not a typo), matching the
+    /// pre-v1.8 flat-discount behavior. Path 1b (fuzzy variants) emits
+    /// the real distance so closer typos rank higher than distant
+    /// ones at the same dict head.
+    fuzzy_candidates: HashMap<String, f64>,
     /// The Path 5 last-resort Viterbi composition (short non-lexeme buffer
     /// with no other candidate — e.g. `kaopu`→靠谱). `Some` only when that
     /// fallback fired. Scored in `candidates_with_scores` at
@@ -263,7 +271,7 @@ impl PinyinAdapter {
             candidates: Vec::with_capacity(16),
             has_non_speculative_candidate: false,
             composed_sentence: None,
-            fuzzy_candidates: HashSet::new(),
+            fuzzy_candidates: HashMap::new(),
             fallback_composition: None,
             prefix_scored: HashMap::new(),
             prefix_components: HashMap::new(),
@@ -562,7 +570,8 @@ impl PinyinAdapter {
         for (i, w) in self.candidates.iter().enumerate() {
             let is_composed = Some(w.as_str()) == self.composed_sentence.as_deref();
             let is_fallback = Some(w.as_str()) == self.fallback_composition.as_deref();
-            let is_fuzzy = self.fuzzy_candidates.contains(w);
+            let fuzzy_edit_distance: Option<f64> = self.fuzzy_candidates.get(w).copied();
+            let is_fuzzy = fuzzy_edit_distance.is_some();
             let (base, components): (f64, Option<super::merge::ScoreComponents>) =
                 if is_composed {
                     // A composition that coincides with a real exact dict word
@@ -614,19 +623,40 @@ impl PinyinAdapter {
                     // 发明 should rank as prediction for `famin`, not as
                     // bottom-tier fuzzy.
                     (s, self.prefix_components.get(w).copied())
-                } else if is_fuzzy {
-                    // Synthesized cost 300 milli matches v1.3 FUZZY_DISCOUNT
-                    // 0.3 (in linear space). When inputx-phonetic-edit
-                    // (v1.4.1 stone) is wired into the fuzzy path — post-
-                    // v1.4 polish backlog — this becomes the real
-                    // edit_cost_milli. Fuzzy candidates currently arrive
-                    // via `lookup_into` without freq attached (Path 1b/1c
-                    // initials/dialect-swap loops), so log_prior_q4 = 0;
-                    // wiring fuzzy through `lookup_with_freq_into` is its
-                    // own polish step, separate from this reshape.
+                } else if let Some(distance) = fuzzy_edit_distance {
+                    // v1.8.0 WU-ν: fuzzy candidates carry their real
+                    // `inputx_phonetic_edit::edit_distance` from the
+                    // typed buffer to the variant that hit. Map
+                    // distance → `MatchType::Fuzzy(cost_milli)` and
+                    // derive the log_likelihood via
+                    // `EngineWeights::fuzzy_likelihood_floor_q4 +
+                    // ln(1 − cost/1000)·Q4`. Closer typos pay less
+                    // decay; the canonical fuzzy distance of 0.3
+                    // (single zh↔z swap) reproduces the pre-v1.8
+                    // flat-discount log_likelihood when cost_milli ≈
+                    // 700.
+                    //
+                    // The legacy linear-space `score` field stays at
+                    // `FUZZY_BASE * FUZZY_DISCOUNT` so the merge's
+                    // f64-tiebreaker behavior is unchanged — only the
+                    // Q4 log-likelihood (primary sort) responds to
+                    // edit_distance.
+                    let weights = inputx_scoring::EngineWeights::inputx_default();
+                    // Linear distance → cost_milli mapping, clamped
+                    // to 999 (the Fuzzy(1000) edge case would push
+                    // ln(0) = -inf which the scoring crate caps
+                    // upstream, but explicit min keeps the schema
+                    // intent honest).
+                    let cost_milli = ((distance * 1000.0).round() as i32)
+                        .clamp(0, 999) as u16;
+                    let mt = inputx_scoring::MatchType::Fuzzy(cost_milli);
+                    let log_likelihood_q4 = inputx_scoring::derive_log_likelihood(
+                        weights.fuzzy_likelihood_floor_q4,
+                        mt,
+                    );
                     let s = FUZZY_BASE * FUZZY_DISCOUNT;
                     let c = super::merge::ScoreComponents::three_axis(
-                        pinyin_floor, to_log_q4(s), inputx_scoring::MatchType::Fuzzy(300),
+                        pinyin_floor, log_likelihood_q4, mt,
                     );
                     (s, Some(c))
                 } else {
@@ -972,7 +1002,14 @@ impl PinyinAdapter {
                         let owned = w.to_owned();
                         if seen.insert(owned.clone()) {
                             self.candidates.push(owned.clone());
-                            self.fuzzy_candidates.insert(owned);
+                            // Initials path: no phonetic edit-distance
+                            // semantic — the user typed shorthand, not
+                            // a typo. Default to 0.3 (the legacy
+                            // FUZZY_DISCOUNT-equivalent canonical
+                            // fuzzy distance) so the cross-engine
+                            // ranking reproduces the pre-v1.8 flat-
+                            // discount behavior for initials hits.
+                            self.fuzzy_candidates.insert(owned, 0.3);
                         }
                     }
                 }
@@ -1001,6 +1038,18 @@ impl PinyinAdapter {
                 if variant == self.buffer {
                     continue;
                 }
+                // v1.8.0 WU-ν: real weighted phonetic edit-distance
+                // from the typed buffer to the variant that matched.
+                // Each fuzzy candidate carries its own distance so
+                // closer typos (in↔ing at 0.2) rank above looser
+                // swaps (multi-pair edits compounding > 0.5). Pre-
+                // v1.8 every fuzzy hit shared a flat 0.3 discount
+                // regardless of how far the variant strayed.
+                let distance = inputx_phonetic_edit::edit_distance(
+                    &self.buffer,
+                    &variant,
+                    &inputx_phonetic_edit::MANDARIN_DEFAULT,
+                );
                 // v1.4.7 A4 step 1: fuzzy variant lookup routes
                 // through cement IdfReader. Fuzzy candidates carry no
                 // freq downstream (they hit the FUZZY_BASE *
@@ -1011,7 +1060,7 @@ impl PinyinAdapter {
                     let w = entry.word.to_string();
                     if seen.insert(w.clone()) {
                         self.candidates.push(w.clone());
-                        self.fuzzy_candidates.insert(w);
+                        self.fuzzy_candidates.insert(w, distance);
                     }
                 }
             }

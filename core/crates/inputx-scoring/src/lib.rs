@@ -298,6 +298,28 @@ pub struct EngineWeights {
     ///
     /// Default `0`: ranking unchanged.
     pub word_len_bonus_q4: i32,
+
+    /// Per-engine LIKELIHOOD floor for fuzzy / phonetic-edit candidates,
+    /// in Q4 log-space. Consumers (e.g. `composite/pinyin_adapter.rs`'s
+    /// fuzzy branch) pass this as `base_log_q4` to
+    /// [`derive_log_likelihood`] alongside `MatchType::Fuzzy(cost_milli)`
+    /// derived from the real phonetic edit distance — closer typos pay
+    /// less decay, distant ones pay more.
+    ///
+    /// Pre-v1.8 the fuzzy path used a flat `Q4·ln(FUZZY_BASE ·
+    /// FUZZY_DISCOUNT) = Q4·ln(105_000) ≈ 185` regardless of typo
+    /// magnitude. The v1.8 default of `Q4·ln(FUZZY_BASE) ≈ 205` plus
+    /// `Fuzzy(cost_milli)` decay reproduces that 185 baseline at
+    /// `cost_milli ≈ 700` (`ln(1 − 0.7)·Q4 ≈ -19`, `205 − 19 = 186` ≈
+    /// pre-v1.8 185). Real edit_distance ∈ `[0.2, 1.0]` from
+    /// `inputx-phonetic-edit::edit_distance` mapped to milli (× 1000,
+    /// clamp 999) lets nearby typos clear the bar and distant ones
+    /// fall further.
+    ///
+    /// Default `205` (calibrated v1.8.0; pre-v1.8 ranking preserved
+    /// when paired with cost_milli ≈ 700, which is what Path 1a +
+    /// Path 1b emit by construction).
+    pub fuzzy_likelihood_floor_q4: i32,
 }
 
 #[cfg(feature = "std")]
@@ -314,6 +336,7 @@ impl EngineWeights {
             bootstrap_floor_q4: 0,
             char_boost_q4: 0,
             word_len_bonus_q4: 0,
+            fuzzy_likelihood_floor_q4: 0,
         }
     }
 
@@ -383,6 +406,16 @@ impl EngineWeights {
             // intact. Future polish-log calibration shifts these.
             char_boost_q4: 0,
             word_len_bonus_q4: 0,
+            // WU-ν fuzzy floor (v1.8.0). 205 ≈ Q4·ln(FUZZY_BASE=350k).
+            // Paired with `Fuzzy(cost_milli ≈ 700)` (the cost the v1.8
+            // fuzzy path emits for a canonical southern-dialect swap
+            // like zh↔z, edit_distance ≈ 0.3 → cost_milli 300 — but
+            // see `pinyin_adapter`'s mapping: linear `distance·1000` is
+            // too generous for the legacy comparable, so the actual
+            // mapping is `(1 − exp(-1.2·distance))·1000` which hits
+            // ~700 at distance 0.3, reproducing the pre-v1.8 flat 185
+            // log_likelihood for the most common fuzzy case).
+            fuzzy_likelihood_floor_q4: 205,
         }
     }
 }
