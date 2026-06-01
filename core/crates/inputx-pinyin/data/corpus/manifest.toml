@@ -81,11 +81,3 @@ weight      = 3.0
 license     = "MIT"
 description = "LCCC-base (Large-scale Cleaned Chinese Conversation, thu-coai, 2020) — 6.8M Weibo/social-media dialogues (32.8M utterances, ~232M chars). Modern colloquial signal closest to the IME's primary register (chat). Fills the post-2010 colloquial gap that SUBTLEX-CH (2010 subtitles) and wiki/news (written) miss: 搞定/给力/吐槽 etc. jump from two-digit to thousands of occurrences. We redistribute only the irreversible derived word-frequency statistics, never the source text — same posture as SUBTLEX-CH (subtitle-derived freq table). jieba-tokenized utterances are de-spaced at scan time so Aho-Corasick matches multi-char words."
 format      = "jsonl_dialog"
-
-[corpus.zho_opensubtitles_v2018]
-url         = "https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2018/mono/zh_cn.txt.gz"
-sha256      = "6714021a39b65d44b616d7eb1aba0b2f5127fe0ce4891ba908357c890ff0784e"
-weight      = 3.0
-license     = "CC-BY 4.0"
-description = "OPUS-OpenSubtitles v2018 zh_cn monolingual (172MB gzipped, ~19M subtitle lines, ~150M chars). Modern (post-2010) film & TV dialog text, complementing SUBTLEX-CH (older 2010 subtitles) and LCCC (Weibo chat) — together they form a 3-source colloquial signal stack covering the casual-register IME use cases that wiki/news under-cover. Same redistribution posture as the other corpora — we ship derived freq statistics only, never the source text. v1.9.0 WU-π.b corpus pivot per docs/v1.9.0-vNEXT-audit.md. Citation: P. Lison and J. Tiedemann (2016), 'OpenSubtitles2016: Extracting Large Parallel Corpora from Movie and TV Subtitles', LREC."
-format      = "gzip"
