@@ -1,5 +1,15 @@
 # Polish architecture — design target for v1.10 → v1.12 (pre-v2.0)
 
+> **Implementation status 2026-06-01**:
+> - v1.10 ✅ shipped (tag `v1.10.0`, commit `ecae7cb`) — single-TOML for 30+ ranking 公式
+> - v1.11 ✅ shipped (tag `v1.11.0`, commit `9fd3bbf`) — Makefile + polish-cli + dict-sync-trap fix
+> - v1.12 ✅ framework shipped (commit pending) — telemetry-driven calibrate framework; real-data calibration runs require polish-log accumulation
+>
+> The v2.0-前 终态 per user 2026-06-01 directive is now achieved: every
+> ranking polish action is either (a) a TOML / TSV diff, (b) a
+> polish-cli invocation, or (c) a calibrate-tool batch — none require
+> Rust source edits.
+
 > **User directive 2026-06-01**: "我希望之后就可以安心人工 polish，是真正的
 > 会调整语料/评分而不是 hack patch 了".
 >
