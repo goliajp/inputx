@@ -648,6 +648,40 @@ mod tests {
         run("polish_log", cases, pinyin_top, pinyin_top10);
     }
 
+    /// Class-A polish "the word should appear in top-N" assertions.
+    /// Differs from leads-at-#0 cases (above) — these are entries
+    /// added with a lower-than-peer freq so they're visible but not
+    /// claiming #0. Update when user polish-logs a `("buffer", "word",
+    /// expected_max_rank)` triple.
+    #[test]
+    fn polish_log_added_words_visible() {
+        // Format: (buffer, word, must-be-in-top-N).
+        let cases: &[(&str, &str, usize)] = &[
+            // User polish-log 2026-06-01: "julei 要加 聚类 巨累". User
+            // listed 巨累 AFTER 聚类 so it ships at a lower freq tier
+            // (30k vs 50k); visible in top-5 but never leads.
+            ("julei", "巨累", 5),
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for (buf, word, max_rank) in cases {
+            let top10 = pinyin_top10(buf.as_bytes());
+            let actual_rank = top10.iter().position(|w| w == word);
+            match actual_rank {
+                Some(r) if r < *max_rank => {} // pass
+                Some(r) => failures.push(format!(
+                    "  {buf:<10} expected `{word}` in top-{max_rank}, found at rank {r}  (top10={top10:?})"
+                )),
+                None => failures.push(format!(
+                    "  {buf:<10} expected `{word}` in top-{max_rank}, NOT FOUND  (top10={top10:?})"
+                )),
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} polish-log added-word cases failed:\n{}",
+                failures.len(), failures.join("\n"));
+        }
+    }
+
     // ───────────────────────────────────────────────────────────
     // No traditional characters in top-5 for common single
     // syllables (t2s strip + bigram/trigram filter).
