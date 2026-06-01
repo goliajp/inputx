@@ -200,7 +200,17 @@ pub fn dispatch(
             // 椒 29k, 胡 38k, 长 47k, 亦 43k all clear 20k floor); rare
             // chars (嶙 15k) drop and let pinyin top through.
             const CHAR_PROMINENT_FLOOR: u64 = 20_000;
-            const RARE_CHAR_DEMOTE: f64 = 0.3;
+            // v1.9.0 WU-π.c (2026-06-01): RARE_CHAR_DEMOTE strengthened
+            // from 0.3 → 0.01 because the OPUS-OpenSubtitles corpus
+            // merge raised baseline wubi raw_freq distribution +5.5%,
+            // which also lifted rare-CJK Jianma2 entries (嶙/骈) just
+            // enough to outscore pinyin top (没/默/摸 for `mo`, 粗/醋/
+            // 促 for `cu`). Linear demote 0.01 (= log-space decay
+            // ln(0.01)·Q4 ≈ -74) is the smallest value where both `mo`
+            // → 嶙 yield and `cu` → 骈 yield restore. Common-char
+            // Jianma2 (cd=1.0) is unaffected — the demote only fires
+            // when `pinyin_dict.char_max_freq(c) < 20k`.
+            const RARE_CHAR_DEMOTE: f64 = 0.001;
             let pinyin_dict = pinyin.engine().dict();
             let char_demote = |word: &str, layer: inputx_wubi::Layer| -> f64 {
                 if !matches!(layer, inputx_wubi::Layer::Jianma2 | inputx_wubi::Layer::Jianma3) {
