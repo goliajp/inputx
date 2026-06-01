@@ -424,6 +424,7 @@ pub fn predict_score_with_components(
     freq: u64,
     freq_mult: f64,
     proximity: f64,
+    corpus_total: u64,
 ) -> (f64, crate::composite::merge::ScoreComponents) {
     let prior = (freq as f64) * freq_mult;
     let likelihood = proximity.powf(LIKELIHOOD_PREDICT_PROXIMITY_K);
@@ -433,7 +434,14 @@ pub fn predict_score_with_components(
     // to MatchType::Exact-equivalent (decay = 0). `freq` drives the
     // log_prior; `base` (already a positive number in linear space, the
     // per-engine LIKELIHOOD_*_BASE) becomes the log_likelihood floor.
-    let log_prior_q4 = inputx_scoring::log_prior_from_freq(freq);
+    //
+    // v1.7.4: log_prior is a real log-probability against the calling
+    // engine's corpus total — the caller knows its engine and passes
+    // the right `corpus_total` (e.g. `wubi_corpus_total()` from
+    // `inputx-wubi-data`, `pinyin_corpus_total()` from
+    // `inputx-pinyin-helpers`, `nihongo_jukugo_corpus_total()` /
+    // `nihongo_kanji_corpus_total()` for JP).
+    let log_prior_q4 = inputx_scoring::log_prob_corpus_from_freq(freq, corpus_total);
     let base_log_q4 = (base.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
     let prox_milli = (proximity.clamp(0.0, 1.0) * 1000.0).round() as u16;
     let match_type = inputx_scoring::MatchType::Prefix(prox_milli);
@@ -487,7 +495,12 @@ mod tests {
         ];
         for &(base, freq, mult, proximity) in cases {
             let plain = predict_score(base, freq, mult, proximity);
-            let (split, c) = predict_score_with_components(base, freq, mult, proximity);
+            // Dummy corpus_total — the linear-space `score` and the
+            // (base, prior, likelihood) invariant are independent of
+            // the v1.7.4 `log_prob_corpus` shift; the log-space axes
+            // shift uniformly per engine but the linear chain is
+            // unchanged.
+            let (split, c) = predict_score_with_components(base, freq, mult, proximity, 1_000_000);
             assert_eq!(plain, split,
                 "predict_score and _with_components must agree for ({base}, {freq}, {mult}, {proximity})");
             let recomputed = c.base + c.prior * c.likelihood;

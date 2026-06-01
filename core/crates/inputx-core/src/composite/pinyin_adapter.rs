@@ -543,6 +543,22 @@ impl PinyinAdapter {
         let to_log_q4 = |s: f64| -> i32 {
             (s.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32
         };
+        // v1.7.4: synthetic fill sites (composed-sentence, Path-5
+        // fallback, fuzzy, NON_EXACT_FLOOR) have no raw corpus freq —
+        // pre-v1.7.4 they set `log_prior_q4 = 0` which meant "log(1+0) =
+        // no signal" in the unnormalized world. Under real
+        // log-probability semantics, `log_prior_q4 = 0` means "log P(W)
+        // = 0 → probability 1" which makes synthetic candidates dominate
+        // the merge — the opposite of intent. The corpus-floor
+        // `log_prob_corpus_from_freq(0, total)` ≈ `-Q4·ln(1+total)` is
+        // the new "no signal" baseline: a freq-0 entry under the
+        // pinyin corpus, placing the synthetic at the worst possible
+        // prior. This restores the legacy below-real-entries ranking
+        // for synthetic candidates without per-site bespoke offsets.
+        let pinyin_floor = inputx_scoring::log_prob_corpus_from_freq(
+            0,
+            inputx_pinyin_helpers::pinyin_corpus_total(),
+        );
         for (i, w) in self.candidates.iter().enumerate() {
             let is_composed = Some(w.as_str()) == self.composed_sentence.as_deref();
             let is_fallback = Some(w.as_str()) == self.fallback_composition.as_deref();
@@ -568,7 +584,7 @@ impl PinyinAdapter {
                     // forced segmentation (not a dict word).
                     let c = exact_components.get(w).copied().unwrap_or_else(|| {
                         let mt = inputx_scoring::MatchType::Composed { bigram_links: 1 };
-                        super::merge::ScoreComponents::three_axis(0, to_log_q4(s), mt)
+                        super::merge::ScoreComponents::three_axis(pinyin_floor, to_log_q4(s), mt)
                     });
                     (s, Some(c))
                 } else if is_fallback {
@@ -576,7 +592,7 @@ impl PinyinAdapter {
                     // (gated to short buffers where no real composition fits).
                     let mt = inputx_scoring::MatchType::Composed { bigram_links: 0 };
                     let c = super::merge::ScoreComponents::three_axis(
-                        0, to_log_q4(COMPOSED_FALLBACK_SCORE), mt,
+                        pinyin_floor, to_log_q4(COMPOSED_FALLBACK_SCORE), mt,
                     );
                     (COMPOSED_FALLBACK_SCORE, Some(c))
                 } else if let Some(s) = exact_map.get(w).copied() {
@@ -610,7 +626,7 @@ impl PinyinAdapter {
                     // own polish step, separate from this reshape.
                     let s = FUZZY_BASE * FUZZY_DISCOUNT;
                     let c = super::merge::ScoreComponents::three_axis(
-                        0, to_log_q4(s), inputx_scoring::MatchType::Fuzzy(300),
+                        pinyin_floor, to_log_q4(s), inputx_scoring::MatchType::Fuzzy(300),
                     );
                     (s, Some(c))
                 } else {
@@ -619,7 +635,7 @@ impl PinyinAdapter {
                     // ranking at the bottom of the list).
                     let s = NON_EXACT_FLOOR * 0.99f64.powi(i as i32);
                     let c = super::merge::ScoreComponents::three_axis(
-                        0, to_log_q4(s), inputx_scoring::MatchType::Exact,
+                        pinyin_floor, to_log_q4(s), inputx_scoring::MatchType::Exact,
                     );
                     (s, Some(c))
                 };
@@ -1355,6 +1371,7 @@ fn push_prefix_top_k(
             raw_freq as u64,
             scoring::PRIOR_FREQ_MULT_PINYIN,
             proximity,
+            inputx_pinyin_helpers::pinyin_corpus_total(),
         );
         out_scored.insert(word.clone(), score);
         out_components.insert(word.clone(), components);

@@ -5,11 +5,15 @@
 //! `Vec<(code, word, Layer, freq)>` covering all ~135k entries
 //! (jianma1 + zigen + jianma2/3 + auto + phrases).
 //!
-//! `log_prior = Q4 · ln(layer.base() + freq)` — the same multiplicative
-//! shape the runtime uses (`layer.base() · pref + freq`), with pref
-//! collapsed to 1.0. Layer base bands (per `inputx_wubi::LAYER_BASE`):
-//! Jianma1=1M, Jianma2=800k, Jianma3=600k, Zigen=500k, Phrase=400k,
-//! Auto=70k. Q4·ln gives ~221 for Jianma1, ~209 for Auto.
+//! `log_prior = inputx_scoring::log_prob_corpus_from_freq(raw_freq,
+//! Σraw_freq)` — a real log-probability `Q4·ln((1+freq)/(1+total))`.
+//! Cross-engine comparable with pinyin / nihongo .idf log_prior fields
+//! (v1.7.4 megachange). Layer signal lives in `EntryFlags::engine_tag`,
+//! not in the prior — the runtime synth in `composite/dispatch.rs`
+//! recombines `(layer.base · pref · demotes)` into `log_likelihood_q4`,
+//! and the cross-engine merge weighs simcode prominence via
+//! `EngineWeights::simcode_boost_q4` rather than baking it into the
+//! data primitive.
 //!
 //! Usage:
 //!   cargo run --release --bin idf-from-wubi-tables -- \
@@ -19,7 +23,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use inputx_dict_format::{EngineKind, EntryFlags, IdfBuilder};
-use inputx_scoring::{MatchType, Q4};
+use inputx_scoring::{log_prob_corpus_from_freq, MatchType};
 use inputx_wubi::WubiDict;
 
 fn main() -> ExitCode {
@@ -61,10 +65,18 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         std::fs::create_dir_all(parent)?;
     }
 
+    // v1.7.4: corpus-total denominator = Σ raw_freq across all .idf
+    // entries. Wubi raw_freq spans 0 (bootstrap 字根 entries) up to
+    // ~50k for top-frequency words — most entries cluster low, so the
+    // total is on the ~tens-of-millions scale. This MUST match what
+    // `inputx_wubi_data::wubi_corpus_total()` computes at runtime by
+    // scanning the same .idf — they iterate the same entries, no
+    // filtering on either side.
+    let total_corpus: u64 = entries.iter().map(|(_, _, _, f)| *f).sum();
+    eprintln!("[idf-from-wubi-tables] corpus total raw_freq = {total_corpus}");
     let mut builder = IdfBuilder::new(EngineKind::Wubi);
     for (code, word, layer, freq) in &entries {
-        let effective = layer.base().saturating_add(*freq);
-        let log_q4 = ((effective.max(1) as f64).ln() * Q4 as f64).round() as i32;
+        let log_q4 = log_prob_corpus_from_freq(*freq, total_corpus);
         let log_prior_i16 = log_q4.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
         // raw_freq carries the per-entry frequency from the wubi dict
         // (the same `freq` field facade `lookup_with_freq_layer_into`

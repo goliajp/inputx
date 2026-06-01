@@ -58,6 +58,14 @@ pub struct ScoreComponents {
     pub log_prior_q4: i32,
     pub log_likelihood_q4: i32,
     pub match_type: inputx_scoring::MatchType,
+    /// v1.7.4 — wubi 简码 (Jianma1/2/3) marker. The cross-engine merge
+    /// looks at this when folding `EngineWeights::simcode_boost_q4` to
+    /// lift only top-tier wubi entries above pinyin top while still
+    /// letting rare-CJK Jianma2 entries (`蒌`/`㻋` etc.) yield to the
+    /// common pinyin char at the same buffer. Wubi fill sites set this
+    /// based on `inputx_wubi::Layer`; pinyin / JP fill sites leave it
+    /// false.
+    pub is_simcode: bool,
 }
 
 impl ScoreComponents {
@@ -78,6 +86,27 @@ impl ScoreComponents {
             log_prior_q4,
             log_likelihood_q4,
             match_type,
+            is_simcode: false,
+        }
+    }
+
+    /// Same as [`three_axis`] but tags the candidate as a wubi simcode
+    /// (Jianma1/2/3). Used at the dispatch.rs fill site so the
+    /// cross-engine merge can apply `simcode_boost_q4` selectively.
+    pub fn three_axis_simcode(
+        log_prior_q4: i32,
+        log_likelihood_q4: i32,
+        match_type: inputx_scoring::MatchType,
+        is_simcode: bool,
+    ) -> Self {
+        Self {
+            base: 0.0,
+            prior: 0.0,
+            likelihood: 0.0,
+            log_prior_q4,
+            log_likelihood_q4,
+            match_type,
+            is_simcode,
         }
     }
 
@@ -101,6 +130,7 @@ impl ScoreComponents {
             log_prior_q4,
             log_likelihood_q4,
             match_type,
+            is_simcode: false,
         }
     }
 
@@ -452,36 +482,29 @@ pub fn merge(
     // affects the Bayesian Q4 sort key, which is now the primary
     // sort. PLAN.md L4 v1.4.6→v1.4.7 trigger (d) satisfied.
     //
-    // v1.4.7 A3 step 4b: wubi engine-priority log_prior boost in mixed
-    // mode. Inputx is a wubi-first product ([[project-inputx-wubi-stone]]) —
-    // P(intent=wubi | mode=mixed) > P(intent=pinyin | mode=mixed) — and
-    // that intent prior must surface in the Bayesian score_q4 sort key.
-    // Without this boost, `log_prior(W) + log_likelihood(i|W)` lets high-
-    // freq pinyin chars (你 freq ~ M-range, log_prior ≈ 176 Q4) overrun
-    // wubi simcodes (Jianma2/3 base ≈ 730k/400k, log_lik ≈ 217/195 Q4)
-    // because Bayesian additive `prior + likelihood` doesn't dampen freq
-    // differences the way legacy `base + freq·mult` did (where `base`
-    // floor capped freq's swing).
+    // v1.7.4 megachange: cross-engine merge sorts by
+    // `inputx_scoring::compute_score(data, &EngineWeights::inputx_default())`.
+    // The pre-v1.7.4 hardcoded `WUBI_ENGINE_PRIOR_BOOST_Q4 = 15` is now
+    // expressed as `EngineWeights::engine_boost_q4[Wubi]`, calibrated
+    // jointly with the corpus-total shift that moved every log_prior
+    // into real `log P(W)` space.
     //
-    // +15 Q4 (≈ ×2.6 linear) is calibrated so:
-    //   * Jianma1/2/3 simcodes (high LAYER_BASE → log_lik > 200) decisively
-    //     lead pinyin top phrases (post-boost ≥ 395 vs pinyin ≤ 388)
-    //   * Auto-layer wubi (LAYER_BASE 70k → log_lik 178) stays below
-    //     pinyin top phrases (post-boost ≤ 273 vs pinyin ≥ 388)
-    //   * Wubi-internal layer hierarchy preserved (uniform additive)
+    // The per-engine boost compensates for two effects bundled together:
+    //   1. The legacy +15 Q4 "Inputx wubi-first" intent prior.
+    //   2. The differential `-Q4·ln(1+T_engine)` shift introduced by
+    //      `log_prob_corpus_from_freq` — each engine's corpus_total
+    //      yields a different uniform shift, so engines with smaller
+    //      corpora come out systematically higher in log-prob space.
+    // Calibration is hand-tuned against the 24 baseline tests; see the
+    // weight values in `EngineWeights::inputx_default()` for the
+    // precise mapping.
     //
-    // Applied to log_prior_q4 only — legacy f64 `score` field stays
-    // untouched so the f64 tiebreaker continues to surface raw legacy
-    // ranking for q4 ties. A4-A5 will fold this boost into wubi-cement
-    // hot path / .idf log_prior at the cement cutover.
-    const WUBI_ENGINE_PRIOR_BOOST_Q4: i32 = 15;
+    // The legacy f64 `score` field stays untouched and continues to
+    // serve as the secondary tiebreaker — the post-v1.7.4 sort key is
+    // `compute_score` desc, then f64 score desc, then word lex asc.
+    let weights = inputx_scoring::EngineWeights::inputx_default();
     for (w, s, c) in wubi {
         let s = demote(&w, s);
-        let c = c.map(|mut comp| {
-            comp.log_prior_q4 =
-                comp.log_prior_q4.saturating_add(WUBI_ENGINE_PRIOR_BOOST_Q4);
-            comp
-        });
         all.push(Candidate { word: w, source: Source::Wubi, score: s, components: c });
     }
     for (w, s, c) in pinyin {
@@ -500,18 +523,47 @@ pub fn merge(
     for (w, s, c) in jp_kana {
         all.push(Candidate { word: w, source: Source::Japanese, score: s, components: c });
     }
-    // v1.4.7 A3 sort-key cutover: primary key is now Q4 log-additive
-    // `score_q4() = log_prior_q4 + log_likelihood_q4` (Bayesian
-    // `P(W|i) ∝ P(i|W) · P(W)` rendered in log space). Tiebreakers:
-    // legacy f64 score desc, then word lex asc (deterministic). The
-    // remaining None-components case is post-commit prediction_buf
-    // (composite/engine.rs:697), which never flows through this merge —
-    // a defensive i32::MIN keeps any future None-source from leaking
-    // ahead of real candidates.
+    // v1.7.4 sort key — `compute_score(data, &weights)` folds:
+    //   * log_prob_corpus_q4 (real log-probability, cross-engine
+    //     comparable)
+    //   * log_likelihood_q4 (match-shape / per-engine likelihood)
+    //   * engine_boost_q4[source] (per-engine preference)
+    //   * simcode_boost_q4 if is_simcode (currently 0; layer.base
+    //     already carries wubi simcode prominence in log_likelihood_q4)
+    //   * bootstrap_floor_q4 override for is_bootstrap entries
+    //     (currently 0; freq=0 entries get an explicit floor below)
+    // Defensive i32::MIN keeps None-components candidates (e.g. the
+    // legacy prediction_buf path) at the bottom of the merge.
+    let compose = |c: &Candidate| -> i32 {
+        let Some(comp) = c.components else { return i32::MIN };
+        let source = match c.source {
+            Source::Wubi => inputx_scoring::Source::Wubi,
+            Source::Pinyin => inputx_scoring::Source::Pinyin,
+            Source::Japanese => inputx_scoring::Source::Japanese,
+        };
+        // is_simcode / is_bootstrap aren't carried on ScoreComponents
+        // pre-v1.7.4 (no callsite needed them). For now both flags are
+        // false at compose time — the wubi simcode prominence is
+        // already encoded in `log_likelihood_q4` via `layer.base()` in
+        // dispatch.rs, and bootstrap (freq=0 字根 / Zigen) entries
+        // similarly route through the same log_likelihood path. If
+        // either weight becomes meaningfully nonzero in
+        // `inputx_default()`, attach the flags on ScoreComponents at
+        // the dispatch.rs / pinyin_adapter.rs / japanese_adapter.rs
+        // fill sites.
+        let data = inputx_scoring::CandidateData {
+            log_prob_corpus_q4: comp.log_prior_q4,
+            log_likelihood_q4: comp.log_likelihood_q4,
+            source,
+            is_bootstrap: false,
+            is_simcode: comp.is_simcode,
+        };
+        inputx_scoring::compute_score(&data, &weights)
+    };
     use std::cmp::Ordering;
     all.sort_by(|a, b| {
-        let a_q4 = a.components.map(|c| c.score_q4()).unwrap_or(i32::MIN);
-        let b_q4 = b.components.map(|c| c.score_q4()).unwrap_or(i32::MIN);
+        let a_q4 = compose(a);
+        let b_q4 = compose(b);
         match b_q4.cmp(&a_q4) {
             Ordering::Equal => {}
             ord => return ord,

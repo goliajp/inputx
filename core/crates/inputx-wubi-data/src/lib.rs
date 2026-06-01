@@ -73,6 +73,26 @@ pub fn wubi_idf_reader() -> &'static IdfReader<&'static [u8]> {
     })
 }
 
+/// Sum of `raw_freq` across all entries in [`EMBEDDED_WUBI_IDF`]. The
+/// corpus-total denominator for [`inputx_scoring::log_prob_corpus_from_freq`]
+/// on the wubi engine. Process-global `OnceLock` — computed once via a
+/// linear scan of the .idf, then memoized.
+///
+/// This MUST match the total the builder bin used when baking the
+/// `log_prior_q4` field: see `idf_from_wubi_tables.rs`. Both compute
+/// `Σ raw_freq` over the same set of entries (the .idf is built from
+/// the embedded wubi dict with no filtering), so they agree by
+/// construction.
+pub fn wubi_corpus_total() -> u64 {
+    static TOTAL: OnceLock<u64> = OnceLock::new();
+    *TOTAL.get_or_init(|| {
+        wubi_idf_reader()
+            .entries()
+            .map(|e| e.raw_freq as u64)
+            .sum()
+    })
+}
+
 /// Decode an IDF wubi entry's `EntryFlags::engine_tag()` back into
 /// the originating `inputx_wubi::Layer` variant. Falls back to
 /// `Layer::Auto` on out-of-range bytes (defensive — the writer only
