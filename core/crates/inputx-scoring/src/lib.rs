@@ -1,19 +1,72 @@
 //! `inputx-scoring` — probability-native candidate scoring primitive.
 //!
-//! # The schema
+//! # The three-layer scoring model (v1.7.2)
 //!
-//! Every candidate carries two log-space scalars and a typed match
-//! classification:
+//! The ranking pipeline is intentionally factored into three layers,
+//! each with a separate type, separate ownership, and a separate
+//! lifecycle:
 //!
 //! ```text
-//!     score(W | i) = log_prior(W) + log_likelihood(i | W)
+//!     ┌───────────────────┐     ┌──────────────────┐
+//!     │ static data       │     │ runtime config   │
+//!     │ (per candidate,   │     │ (per session /   │
+//!     │  baked into .idf  │     │  per user prefs) │
+//!     │  at build time)   │     │                  │
+//!     │                   │     │ EngineWeights {  │
+//!     │ CandidateData {   │     │  engine_boost_q4 │
+//!     │  log_prob_corpus  │     │  simcode_boost   │
+//!     │  source / layer   │     │  bootstrap_floor │
+//!     │  is_bootstrap     │     │  ...             │
+//!     │  is_simcode       │     │ }                │
+//!     │  match_type       │     │                  │
+//!     │  log_likelihood   │     │                  │
+//!     │ }                 │     │                  │
+//!     └─────────┬─────────┘     └────────┬─────────┘
+//!               │                        │
+//!               └──────── compute_score(data, weights) ──→ i32
+//!                                                          ▲
+//!                                  this is the only value  │
+//!                                  comparison ever looks at┘
 //! ```
 //!
-//! This is the Bayesian decomposition `P(W|i) ∝ P(i|W) · P(W)` rendered
-//! in log space — addition replaces multiplication, comparison stays
-//! monotone, and the two factors can be assigned independently by
-//! producers (dictionaries, n-grams, fuzzy matchers, …) without
-//! coordinating a single global formula.
+//! **Why this matters**: candidates carry **data assets** (intrinsic,
+//! durable, stored on disk). Sessions carry **weights** (dynamic,
+//! configurable, user-tunable). Ranking compares **computed scores**
+//! — the output of folding the two together — not raw data and not
+//! raw weights. Mixing the three (e.g. baking engine preferences into
+//! the .idf log_prior) loses configurability; ignoring weights at
+//! compare time loses the user-tuning surface; comparing data directly
+//! across engines without normalization (the legacy `log_prior_from_freq`
+//! path) loses cross-engine fairness.
+//!
+//! # Static data primitives
+//!
+//! - [`log_prob_corpus_from_freq`] — `Q4·ln((1+freq)/(1+total))`,
+//!   a real log probability in [-∞, 0]. This is the **data primitive**:
+//!   producers bake it into `.idf` at build time so consumers don't
+//!   need the corpus total at runtime.
+//!
+//! # Dynamic weights
+//!
+//! - [`EngineWeights`] — per-session knobs. `neutral()` = no-op
+//!   (compute_score reproduces the legacy additive `score()`).
+//!   `inputx_default()` = production defaults (五笔 simcode boost,
+//!   bootstrap floor for 字根 entries, etc.).
+//!
+//! # Compute
+//!
+//! - [`compute_score`] — folds [`CandidateData`] + [`EngineWeights`]
+//!   into the i32 sort key. Pure function, no I/O.
+//! - [`score`] — legacy shortcut: `c.log_prior + c.log_likelihood`,
+//!   equivalent to `compute_score(c.into(), &EngineWeights::neutral())`
+//!   minus the source/layer pathways.
+//!
+//! # Legacy data primitive (kept transitional)
+//!
+//! - [`log_prior_from_freq`] — `Q4·ln(1 + freq)`. **Not** a log
+//!   probability (missing the `- ln(total)` term). The name is
+//!   honored for transitional compatibility; new callers should use
+//!   [`log_prob_corpus_from_freq`] with the engine's known total.
 //!
 //! Both terms are `i32` Q4 fixed-point. One log unit = [`Q4`] (= 16)
 //! integer steps. The Q4 choice trades resolution for headroom: scores
@@ -21,16 +74,11 @@
 //! while staying precise enough that ranking-relevant gaps (~0.0625 in
 //! log space) survive quantization.
 //!
-//! # Public surface
-//!
-//! - [`Source`]  — which engine produced the candidate
-//! - [`MatchType`] — how the typed input maps to the candidate
-//! - [`Candidate`] — a (word, log_prior, log_likelihood, match_type, source) tuple
-//! - [`score`] — `log_prior + log_likelihood`, the sort key
-//! - [`Q4`] — log-to-integer scale (= 16)
-//!
 //! Scoring policy lives in the consumer (IME engine cement); this
-//! crate provides only the schema and the additive sort key.
+//! crate provides only the schema, the data primitives, the weight
+//! struct, and the compose function. **No production-grade weight
+//! values live here** — those go in the per-engine cement / facade
+//! that knows its session context.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -151,43 +199,153 @@ pub fn log_prior_from_freq(freq: u64) -> i32 {
     (ln * (Q4 as f64)).round() as i32
 }
 
-/// Per-source linear shift applied to `log_prior_from_freq` to bring
-/// pinyin / wubi / japanese log-priors into a common comparable
-/// space. Today these are all zero — `log_prior_from_freq_with_source`
-/// is byte-identical to `log_prior_from_freq` regardless of `source`
-/// — so the framework is in place without changing any ranking. v1.7.3
-/// / v1.8 will fit non-zero shifts from corpus log-frequency
-/// distributions (per [[PLAN-v1.7]] D20 / D21 — linear shift + scale,
-/// no ML, defaults preserved until explicit cutover).
+/// Q4 log-probability derived from a corpus-relative frequency.
+/// Returns `Q4 · ln((1 + freq) / (1 + corpus_total))`, the **real
+/// log probability** of seeing this word given the source corpus.
+/// Values are in `[-∞, 0]` (Q4-scaled negative integers).
 ///
-/// **Why the framework lands now (v1.7.2) before the values change**:
-/// existing callers (`idf-from-pinyin-dict` / `idf-from-wubi-tables` /
-/// `idf-from-nihongo-jukugo` / `idf-from-nihongo-kanji`) bake the
-/// `log_prior` into `.idf` snapshots at build time. To enable
-/// source-aware fitting we need every caller to be able to receive
-/// the source enum without having to widen its API again later. Ship
-/// the API now, fit later.
+/// **The data primitive that should be baked into `.idf` snapshots**
+/// (replacing the historical [`log_prior_from_freq`] which is missing
+/// the `- ln(total)` term and is therefore an unnormalized log-score,
+/// not a log-probability — see crate-level doc).
 ///
-/// Q4 fixed point: a shift of `+16` ≈ ×2.7 linear (`e^1`), `-16` ≈ ÷2.7.
-#[cfg(feature = "std")]
-const LOG_PRIOR_SHIFT_Q4: [i32; 3] = [
-    0, // Source::Wubi (= 0)
-    0, // Source::Pinyin (= 1)
-    0, // Source::Japanese (= 2)
-];
-
-/// Source-aware Q4 log prior. Identical to `log_prior_from_freq(freq)`
-/// when the per-source shift is 0 (today's default). Future fits
-/// (v1.7.3+) tune the shifts so cross-source candidate comparison in
-/// the composite engine becomes apples-to-apples.
+/// `corpus_total = 0` returns 0 (safety floor: degenerate "empty
+/// corpus" case where the formula would divide by 0 in linear space).
+/// Producers should always pass the engine's true corpus total when
+/// available.
 ///
-/// Producers should migrate to this entry point; the source-less
-/// `log_prior_from_freq` stays available indefinitely as the
-/// no_std-friendly primitive.
+/// Comparable across engines: pinyin's `log_prob_corpus_from_freq(f,
+/// 2_612_233_621)` is on the same numeric axis as wubi's
+/// `log_prob_corpus_from_freq(f, wubi_total)`, which is exactly what
+/// makes cross-engine ranking in [`compute_score`] sound.
 #[cfg(feature = "std")]
 #[inline]
-pub fn log_prior_from_freq_with_source(freq: u64, source: Source) -> i32 {
-    log_prior_from_freq(freq) + LOG_PRIOR_SHIFT_Q4[source as usize]
+pub fn log_prob_corpus_from_freq(freq: u64, corpus_total: u64) -> i32 {
+    if corpus_total == 0 {
+        return 0;
+    }
+    let ratio = ((freq as f64) + 1.0) / ((corpus_total as f64) + 1.0);
+    (ratio.ln() * (Q4 as f64)).round() as i32
+}
+
+// ─── Dynamic weights (runtime config) ──────────────────────────────────
+
+/// Per-session runtime knobs that the comparison layer applies on top
+/// of per-candidate static data. Defaults are encoded in [`EngineWeights::neutral`]
+/// (no-op, identity) and [`EngineWeights::inputx_default`] (production:
+/// 五笔 simcode boost, bootstrap-entry floor, …).
+///
+/// **Mental model**: weights are **how the user / IME session
+/// configures the ranker**, not what the dict knows. Changing weights
+/// at runtime alters ranking without re-baking any `.idf` bytes. This
+/// is the surface telemetry / per-user learning will eventually drive.
+#[cfg(feature = "std")]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct EngineWeights {
+    /// Per-engine additive log-space boost. Indexed by [`Source`] as
+    /// `u8`: `[Wubi, Pinyin, Japanese]`. A `+Q4` entry ≈ ×2.7 linear.
+    /// Use to express "in mixed mode, 五笔 candidates lead pinyin
+    /// fallback" as an explicit numeric weight rather than a hidden
+    /// ordering rule.
+    pub engine_boost_q4: [i32; 3],
+
+    /// Extra boost applied to wubi 简码 (Jianma1/2/3) candidates on
+    /// top of `engine_boost_q4[Wubi]`. Captures the "五笔 simcode
+    /// 常用字必须 lead" product promise as a numeric weight, not a
+    /// runtime branch.
+    pub simcode_boost_q4: i32,
+
+    /// Replacement log-prob for bootstrap entries (e.g. 字根表
+    /// entries whose source freq is 0 because they're prescriptive,
+    /// not corpus-derived). Without this floor, `log_prob_corpus`
+    /// would assign them the worst possible probability (≈ ln(1/total))
+    /// even though they're hand-curated lead candidates.
+    ///
+    /// A typical value is the corpus log-prob of a median-rank entry
+    /// (e.g. `-15 · Q4`), but the production value lives in the
+    /// engine cement that knows its own corpus distribution.
+    pub bootstrap_floor_q4: i32,
+}
+
+#[cfg(feature = "std")]
+impl EngineWeights {
+    /// Identity / no-op weights. `compute_score(data, &neutral())`
+    /// is equivalent to `data.log_prob_corpus + data.log_likelihood`
+    /// — exactly the legacy [`score`] sum, with no cross-engine
+    /// preference and no simcode boost. Useful for baseline parity
+    /// tests and for callers that opt out of weighted ranking.
+    pub const fn neutral() -> Self {
+        Self {
+            engine_boost_q4: [0; 3],
+            simcode_boost_q4: 0,
+            bootstrap_floor_q4: 0,
+        }
+    }
+
+    /// Production-default weight set for Inputx (placeholder values;
+    /// real calibration happens in the per-engine cement once it
+    /// owns its corpus_total + has user-polish-log telemetry to fit
+    /// from). Today all zeros so behavior matches `neutral()`.
+    ///
+    /// Future calibration goes here (or, more likely, in a builder
+    /// in each engine's cement crate that constructs this struct
+    /// from a user-defaults dict + telemetry stats).
+    pub const fn inputx_default() -> Self {
+        Self::neutral()
+    }
+}
+
+// ─── Compose (compute the comparison value) ────────────────────────────
+
+/// The composed candidate value: static data fields the ranker actually
+/// needs to see at compare time. Producers fill these from .idf reads
+/// or runtime knowledge.
+///
+/// Intentionally separate from [`Candidate`] (the schema for legacy
+/// callers) — `CandidateData` carries the **richer** fields that
+/// `compute_score` needs (`is_simcode`, `is_bootstrap`), whereas
+/// `Candidate` is the historical no_std-clean tuple.
+#[cfg(feature = "std")]
+#[derive(Copy, Clone, Debug)]
+pub struct CandidateData {
+    /// Q4 log P(W) relative to this engine's corpus, from
+    /// [`log_prob_corpus_from_freq`]. Cross-engine comparable.
+    pub log_prob_corpus_q4: i32,
+    /// Q4 log P(i | W), the match likelihood term.
+    pub log_likelihood_q4: i32,
+    /// Which engine produced this candidate.
+    pub source: Source,
+    /// Whether this entry came from a prescriptive bootstrap source
+    /// (字根表 / simcode table) rather than corpus frequency counts.
+    pub is_bootstrap: bool,
+    /// Whether this is a wubi 简码 (Jianma1/2/3) candidate. Producers
+    /// for other engines pass `false`.
+    pub is_simcode: bool,
+}
+
+/// Fold static data + dynamic weights into the i32 sort key.
+///
+/// Pure function. The returned value is what comparison sees and
+/// nothing else. Identity property: with [`EngineWeights::neutral`]
+/// and `is_bootstrap=false`, `compute_score(data, &neutral())` ==
+/// `data.log_prob_corpus_q4 + data.log_likelihood_q4` (matches the
+/// legacy [`score`] sum).
+#[cfg(feature = "std")]
+#[inline]
+pub fn compute_score(data: &CandidateData, weights: &EngineWeights) -> i32 {
+    // Bootstrap entries: corpus freq doesn't represent their real
+    // prior. Override the data's log_prob_corpus with the
+    // session-configured floor before composing.
+    let log_prob = if data.is_bootstrap {
+        weights.bootstrap_floor_q4
+    } else {
+        data.log_prob_corpus_q4
+    };
+
+    log_prob
+        + data.log_likelihood_q4
+        + weights.engine_boost_q4[data.source as usize]
+        + if data.is_simcode { weights.simcode_boost_q4 } else { 0 }
 }
 
 /// Q4 log-likelihood derived from a match-type classification.
@@ -327,25 +485,118 @@ mod tests {
         assert!(f50000 > log_prior_from_freq(1000), "monotone in freq");
     }
 
-    /// v1.7.2 framework invariant: while `LOG_PRIOR_SHIFT_Q4` is all
-    /// zeros, `log_prior_from_freq_with_source` must be byte-identical
-    /// to `log_prior_from_freq` for every source. Any future change
-    /// that flips a shift nonzero MUST flip this test together so the
-    /// "default is identity" guarantee is auditable.
+    /// `log_prob_corpus_from_freq` is the data primitive — a real log
+    /// probability, monotone increasing in `freq`, monotone decreasing
+    /// in `corpus_total`. Returns ≤ 0 (a probability ≤ 1 in log space).
+    /// `corpus_total = 0` floors at 0 (no division-by-zero crash).
     #[cfg(feature = "std")]
     #[test]
-    fn log_prior_from_freq_with_source_is_identity_at_zero_shift() {
+    fn log_prob_corpus_from_freq_real_log_probability() {
+        // Empty corpus floor
+        assert_eq!(log_prob_corpus_from_freq(0, 0), 0);
+        assert_eq!(log_prob_corpus_from_freq(100, 0), 0);
+
+        // freq=0 in a real corpus → ln(1/(1+total)), very negative
+        let p_zero = log_prob_corpus_from_freq(0, 1_000_000);
+        assert!(p_zero < -100, "ln(1/1e6) · Q4 ≈ -221; got {p_zero}");
+
+        // Same freq, larger corpus → smaller (more negative) log-prob
+        let a = log_prob_corpus_from_freq(100, 1_000_000);
+        let b = log_prob_corpus_from_freq(100, 1_000_000_000);
+        assert!(b < a, "{b} < {a}: same freq, larger total → smaller P");
+
+        // Monotone in freq within same corpus
+        let c = log_prob_corpus_from_freq(10, 1_000_000);
+        let d = log_prob_corpus_from_freq(1000, 1_000_000);
+        assert!(d > c, "freq up → log_prob up: {d} > {c}");
+
+        // Probability ≤ 1 → log_prob ≤ 0 always (with non-empty total).
+        for &(f, t) in &[(1u64, 100u64), (50, 100), (99, 100), (100, 100)] {
+            let p = log_prob_corpus_from_freq(f, t);
+            assert!(p <= 0, "log P(W) must be ≤ 0; got {p} for ({f}, {t})");
+        }
+    }
+
+    /// `compute_score` identity property: with neutral weights and a
+    /// non-bootstrap entry, the composed score equals the legacy
+    /// `log_prior + log_likelihood` sum. Future weight values are
+    /// expected to break this, but with `neutral()` it must hold —
+    /// this is what lets us land the framework without disturbing
+    /// any existing baseline.
+    #[cfg(feature = "std")]
+    #[test]
+    fn compute_score_neutral_is_legacy_sum() {
+        let weights = EngineWeights::neutral();
         for source in [Source::Wubi, Source::Pinyin, Source::Japanese] {
-            assert_eq!(LOG_PRIOR_SHIFT_Q4[source as usize], 0,
-                "if you change LOG_PRIOR_SHIFT_Q4 update this test in the same commit");
-            for freq in [0u64, 1, 100, 1_000, 50_000, 1_000_000] {
-                assert_eq!(
-                    log_prior_from_freq_with_source(freq, source),
-                    log_prior_from_freq(freq),
-                    "source={source:?} freq={freq}",
-                );
+            for &(prior, lik) in &[(0, 0), (50, 50), (-200, 100), (10_000, -10)] {
+                let data = CandidateData {
+                    log_prob_corpus_q4: prior,
+                    log_likelihood_q4: lik,
+                    source,
+                    is_bootstrap: false,
+                    is_simcode: false,
+                };
+                assert_eq!(compute_score(&data, &weights), prior + lik,
+                    "neutral weights must collapse to log_prior + log_likelihood");
             }
         }
+    }
+
+    /// `compute_score` actually USES the weights: nonzero engine_boost
+    /// shifts the result. Sanity-checks that the wiring isn't dead code.
+    #[cfg(feature = "std")]
+    #[test]
+    fn compute_score_engine_boost_applies() {
+        let data = CandidateData {
+            log_prob_corpus_q4: -100,
+            log_likelihood_q4: 50,
+            source: Source::Wubi,
+            is_bootstrap: false,
+            is_simcode: false,
+        };
+        let mut weights = EngineWeights::neutral();
+        let baseline = compute_score(&data, &weights);
+        weights.engine_boost_q4[Source::Wubi as usize] = 32; // +2 log = ×7.4 linear
+        let boosted = compute_score(&data, &weights);
+        assert_eq!(boosted - baseline, 32, "engine_boost_q4 must add additively");
+    }
+
+    /// `compute_score` simcode boost only fires for simcode entries.
+    #[cfg(feature = "std")]
+    #[test]
+    fn compute_score_simcode_boost_only_for_simcode() {
+        let mut weights = EngineWeights::neutral();
+        weights.simcode_boost_q4 = 64;
+        let common = CandidateData {
+            log_prob_corpus_q4: -100,
+            log_likelihood_q4: 0,
+            source: Source::Wubi,
+            is_bootstrap: false,
+            is_simcode: false,
+        };
+        let simcode = CandidateData { is_simcode: true, ..common };
+        assert_eq!(compute_score(&common, &weights), -100);
+        assert_eq!(compute_score(&simcode, &weights), -100 + 64);
+    }
+
+    /// `compute_score` bootstrap-floor overrides `log_prob_corpus_q4`
+    /// for bootstrap entries. Without it, 字根表 entries (freq=0)
+    /// would land at the worst log-prob and lose to every corpus
+    /// word — defeating their hand-curated priority.
+    #[cfg(feature = "std")]
+    #[test]
+    fn compute_score_bootstrap_floor_overrides_log_prob() {
+        let mut weights = EngineWeights::neutral();
+        weights.bootstrap_floor_q4 = -50;
+        let data = CandidateData {
+            log_prob_corpus_q4: -300, // would lose to any corpus entry
+            log_likelihood_q4: 0,
+            source: Source::Wubi,
+            is_bootstrap: true,
+            is_simcode: false,
+        };
+        // floor (-50) replaces log_prob_corpus_q4 (-300), so score is -50, not -300.
+        assert_eq!(compute_score(&data, &weights), -50);
     }
 
     #[cfg(feature = "std")]
