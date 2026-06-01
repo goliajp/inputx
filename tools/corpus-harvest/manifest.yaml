@@ -1,0 +1,35 @@
+# Inputx corpus harvest — source manifest
+#
+# Each source row defines: where data comes from, what license governs it,
+# how often we refresh, and which harvester script handles it. Stable
+# config — content changes by re-running the harvester at a fresh `date`,
+# the manifest entries themselves only change when adding/dropping sources.
+#
+# Output format (per harvester, written to output/<source-name>/<date>.tsv):
+#   word<TAB>count<TAB>source<TAB>fetched_at
+# Sorted by count descending. Header row: `word\tcount\tsource\tfetched_at`.
+#
+# License discipline (per [[PLAN-v1.7]] D19): only MIT / Apache / CC0 /
+# CC BY-SA / public-domain sources. Document each entry in LICENSES.md
+# with attribution requirements (CC BY-SA needs share-alike on derivative
+# dicts; public domain doesn't).
+
+version: 1
+sources:
+  - name: zh-wikipedia
+    license: CC-BY-SA-4.0
+    refresh: monthly
+    harvester: harvest_zh_wikipedia.py
+    # Wikipedia ships several dump variants. We use "stub-meta-current"
+    # (~20MB compressed, ~80MB extracted) for fast reproducibility +
+    # full word coverage — it includes the most recent revision of each
+    # article. The full "pages-articles-multistream" dump (~3GB) gives
+    # richer per-revision history but redundant for word-count
+    # purposes.
+    url_template: "https://dumps.wikimedia.org/zhwiki/{date}/zhwiki-{date}-pages-articles1.xml-p1p187712.bz2"
+    # Fallback to latest-abstract (~150MB) if the above 404s. Updated
+    # by harvest_zh_wikipedia.py automatically.
+    url_fallback: "https://dumps.wikimedia.org/zhwiki/latest/zhwiki-latest-abstract.xml.gz"
+    # Sample date to use when running without --date. Pick a known-good
+    # historical date so dev runs are deterministic.
+    sample_date: "20260501"
