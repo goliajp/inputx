@@ -18,7 +18,17 @@ use inputx_fsa::DictBuilder;
 fn main() {
     let crate_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let mut weights_path = crate_dir.join("data/weights/weights.tsv");
-    let mut dict_path = crate_dir.join("data/pinyin.dict");
+    // v1.11 WU-γ: write directly to inputx-pinyin-data-core's
+    // `data/pinyin.dict` — the single source of truth post-v1.11.
+    // Pre-v1.11 we wrote to the facade's `data/pinyin.dict` AND
+    // required a manual copy step to inputx-pinyin-data-core, a
+    // sync trap that bit v1.9.0 WU-π.c. Resolving relative to the
+    // facade's CARGO_MANIFEST_DIR keeps the path stable across
+    // workspace setups.
+    let mut dict_path = crate_dir
+        .parent()
+        .expect("inputx-pinyin parent dir")
+        .join("inputx-pinyin-data-core/data/pinyin.dict");
     let mut use_overlays = true;
 
     // --weights/--out override the defaults so the CP3 pipeline can build a

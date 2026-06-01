@@ -16,6 +16,16 @@
 
 #![no_std]
 
+// v1.11 WU-γ: the dict blob lives at `data/pinyin.dict` inside THIS
+// crate (single source of truth, post-v1.11). Pre-v1.11 the file was
+// also duplicated at `inputx-pinyin/data/pinyin.dict` and the two
+// had to be kept in sync manually after every `pinyin-build-dict`
+// run — a sync trap that bit v1.9.0 WU-π.c. v1.11 removes the
+// duplicate from the facade crate; `inputx-pinyin/build.rs` now
+// reads from this crate's `data/pinyin.dict` directly via the
+// CARGO_MANIFEST_DIR of `inputx-pinyin-data-core` (resolved at
+// build time through `dep:inputx-pinyin-data-core`).
+
 /// Embedded core Pinyin dict, in the
 /// [`inputx_fsa::Dict`](https://docs.rs/inputx-fsa) binary format.
 /// Pass directly to `inputx_pinyin::PinyinDict::embedded` (which is
