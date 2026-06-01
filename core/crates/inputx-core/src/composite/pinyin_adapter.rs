@@ -1222,7 +1222,10 @@ impl PinyinAdapter {
             // enough that even pathological short-buffer cases finish in
             // microseconds (perfgate-validated).
             let comps = self.engine.dict().top_k_compositions(&self.buffer, 5);
-            if let Some((_, top)) = comps.first() {
+            // Clone `top` so the borrow of `comps` ends before the
+            // `for (_, sentence) in comps` move below.
+            let top_owned: Option<String> = comps.first().map(|(_, t)| t.clone());
+            if let Some(top) = top_owned.as_ref() {
                 // Quality gate (user polish-log 2026-05-27, famiriaare):
                 // foreign-romaji inputs (`famiriaare` → 法弥日呵呵热) get
                 // composed from single-pinyin char dict entries that score as
@@ -1261,7 +1264,67 @@ impl PinyinAdapter {
                     // visible to the user as 60-percentile fallbacks if the
                     // top is wrong, without crowding the #1 spot.
                     self.fallback_composition = Some(top.clone());
+                    // Per-alternate bigram gate (user polish-log 2026-06-01,
+                    // `julei` produced 句累/局累 from K-best alternates that
+                    // joined single-char dict entries with zero corpus bigram
+                    // support). The Path-5 quality gate at line ~970 already
+                    // applies this check to `composed_sentence` (top-1) — extend
+                    // it to every K-best alternate so mechanical char-concat
+                    // products can't sneak in through the NON_EXACT_FLOOR tier.
+                    //
+                    // Heuristic chain reconstruction: K-best alternates from
+                    // `top_k_compositions` are typically built from single-char
+                    // dict entries (Viterbi prefers them for last-resort
+                    // composition), so iterating chars of the sentence string
+                    // approximates the chain. For 2-char alternates (the
+                    // dominant case here — `julei` → `句累`), this is exact.
+                    // Multi-char dict entries that K-best stitches together (a
+                    // rare case under Path-5's empty-candidates gate) get
+                    // checked at char granularity, which is stricter than the
+                    // entry boundary — acceptable since this whole path is
+                    // last-resort and the strict check just drops more low-
+                    // confidence stuff.
+                    let ngm_table = embedded_bigrams_table();
+                    let alternate_bigrams_ok = |sentence: &str| -> bool {
+                        let chars: Vec<String> = sentence
+                            .chars()
+                            .map(|c| c.to_string())
+                            .collect();
+                        match chars.len() {
+                            0 | 1 => true,
+                            2 => {
+                                legacy_bigram_boost_from_ngm(
+                                    ngm_table,
+                                    Some(chars[0].as_str()),
+                                    &chars[1],
+                                ) > 0.0
+                            }
+                            _ => {
+                                (1..chars.len()).any(|i| {
+                                    legacy_bigram_boost_from_ngm(
+                                        ngm_table,
+                                        Some(chars[i - 1].as_str()),
+                                        &chars[i],
+                                    ) > 0.0
+                                })
+                            }
+                        }
+                    };
                     for (_, sentence) in comps {
+                        // Top-1 (fallback_composition) is exempt — it already
+                        // passed the per-char score floor at the
+                        // composed_sentence quality gate (line ~989), and the
+                        // ratio>=2.0 check it's living under is a separate
+                        // mechanical-pinyin filter. Dropping it here would
+                        // double-gate and over-fire on real fallbacks like
+                        // 靠谱.
+                        if &sentence == top {
+                            self.candidates.push(sentence);
+                            continue;
+                        }
+                        if !alternate_bigrams_ok(&sentence) {
+                            continue;
+                        }
                         if !self.candidates.iter().any(|w| w == &sentence) {
                             self.candidates.push(sentence);
                         }
