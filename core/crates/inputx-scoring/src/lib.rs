@@ -125,6 +125,19 @@ pub enum MatchType {
     /// Viterbi / DP composer. Payload: `bigram_links` = `chain_len − 1`,
     /// the number of segment-to-segment bigram joins.
     Composed { bigram_links: u8 },
+    /// Typed input used as shorthand initials (e.g. `zg` → `中国` where
+    /// the user typed initial consonants only). Distinguished from
+    /// `Prefix` because initials shorthand skips entire syllable
+    /// nuclei, not just trailing characters — the proximity decay is
+    /// gentler (`K = 1`) than `Prefix`'s `K = 3`.
+    ///
+    /// Payload: `typed_len` (number of initial-letter characters the
+    /// user typed) + `full_len` (estimated full pinyin length of the
+    /// candidate's reading, typically `word.chars().count() * 4` since
+    /// average pinyin syllable ≈ 4 ASCII letters). Both clipped to u8;
+    /// `typed_len ≥ full_len` collapses to no-decay (treated as a
+    /// fully-typed initials shorthand).
+    Initials { typed_len: u8, full_len: u8 },
 }
 
 /// One scored candidate. Word lifetime is `'a` so consumers can pass
@@ -320,6 +333,26 @@ pub struct EngineWeights {
     /// when paired with cost_milli ≈ 700, which is what Path 1a +
     /// Path 1b emit by construction).
     pub fuzzy_likelihood_floor_q4: i32,
+
+    /// Per-engine LIKELIHOOD floor for initials-shorthand candidates,
+    /// in Q4 log-space. Consumers (e.g. `composite/pinyin_adapter.rs`'s
+    /// initials Path 1c) pass this as `base_log_q4` to
+    /// [`derive_log_likelihood`] alongside `MatchType::Initials {
+    /// typed_len, full_len }` derived from the typed buffer's initial
+    /// consonant cluster vs. the candidate's estimated full pinyin
+    /// length.
+    ///
+    /// Pre-v1.8.0 initials candidates went through the
+    /// NON_EXACT_FLOOR tier (~`Q4·ln(1000) ≈ 110`); v1.8.0 inadvertent-
+    /// ly routed them through the fuzzy tier at the canonical-fuzzy
+    /// log_likelihood (~199 ≈ `Q4·ln(0.3·350k)`). v1.8.1 surfaces
+    /// initials as its own tier with explicit proximity decay
+    /// (`K = 1` per `derive_log_likelihood`'s `MatchType::Initials`
+    /// branch), defaulting to `221 ≈ Q4·ln(450k)` so the typical
+    /// case `typed_len = 2, full_len = 8` (2-letter abbrev of a
+    /// 2-char compound) lands at `221 + ln(0.25)·16 ≈ 199`, matching
+    /// the v1.8.0 ranking for initials candidates.
+    pub initials_likelihood_base_q4: i32,
 }
 
 #[cfg(feature = "std")]
@@ -337,6 +370,7 @@ impl EngineWeights {
             char_boost_q4: 0,
             word_len_bonus_q4: 0,
             fuzzy_likelihood_floor_q4: 0,
+            initials_likelihood_base_q4: 0,
         }
     }
 
@@ -416,6 +450,18 @@ impl EngineWeights {
             // ~700 at distance 0.3, reproducing the pre-v1.8 flat 185
             // log_likelihood for the most common fuzzy case).
             fuzzy_likelihood_floor_q4: 205,
+            // WU-ξ initials base (v1.8.1). 221 ≈ Q4·ln(450k). Paired
+            // with `MatchType::Initials { typed_len=2, full_len=8 }`
+            // (the typical 2-letter abbreviation of a 2-char
+            // compound) yields `221 + ln(0.25)·16 ≈ 199`, reproducing
+            // the v1.8.0-inadvertent ranking of initials at the
+            // canonical-fuzzy tier. Longer words (4-char phrases via
+            // 4 initials) get more decay (proximity → 0.125, decay
+            // → -33 Q4, log_lik → 188) — correct: more letters typed
+            // = more confident the user meant initials, BUT the word
+            // is longer so the abbreviation is less unique → net
+            // decay is right.
+            initials_likelihood_base_q4: 221,
         }
     }
 }
@@ -539,6 +585,28 @@ pub fn derive_log_likelihood(base_log_q4: i32, mt: MatchType) -> i32 {
         MatchType::Composed { bigram_links } => {
             let extra_links = bigram_links.saturating_sub(1) as f64;
             let decay_q4 = (extra_links * LN_COMPOSED_PER_LINK * q4).round() as i32;
+            base_log_q4 + decay_q4
+        }
+        MatchType::Initials { typed_len, full_len } => {
+            // Initials shorthand: user typed N initial-letter
+            // characters as an abbreviation for a multi-syllable word
+            // with full pinyin length M ≈ chars · 4. Proximity =
+            // `typed_len / full_len` (clipped to (0, 1]). Decay K=1
+            // (linear in log-space, gentler than Prefix's K=3) — the
+            // typed/full ratio for 2-letter initials of a 2-char word
+            // is already small (≈ 0.25), the K=3 prefix decay
+            // (`ln(0.25^3) ≈ -66 Q4`) would crush initials below
+            // anything useful; K=1 (`ln(0.25) ≈ -22 Q4`) keeps them
+            // ranked as plausible-but-low-confidence alternates.
+            //
+            // `typed_len ≥ full_len` (degenerate: user typed more
+            // than the full reading) collapses to proximity=1, no
+            // decay.
+            if typed_len == 0 || full_len == 0 {
+                return base_log_q4;
+            }
+            let prox = (typed_len as f64 / full_len as f64).min(1.0);
+            let decay_q4 = (prox.ln() * q4).round() as i32;
             base_log_q4 + decay_q4
         }
     }
@@ -793,6 +861,51 @@ mod tests {
         assert_eq!(compute_score(&mk(2), &weights), -50 + 10);
         // count=4 → +(4-1)·10 = +30
         assert_eq!(compute_score(&mk(4), &weights), -50 + 30);
+    }
+
+    /// WU-ξ (v1.8.1): `MatchType::Initials` decay is gentler than
+    /// `MatchType::Prefix` (K=1 vs K=3) at the same `typed/full`
+    /// proximity, because initials shorthand skips entire syllable
+    /// nuclei (each abbreviation step is a much larger "leap" than a
+    /// prefix-completion truncation).
+    #[cfg(feature = "std")]
+    #[test]
+    fn derive_log_likelihood_initials_gentler_than_prefix() {
+        let base = 221;
+        // Same nominal proximity (2/8 = 25%) — Initials should decay
+        // less than Prefix (250 prox_milli) because K=1 not 3.
+        let init = derive_log_likelihood(base, MatchType::Initials { typed_len: 2, full_len: 8 });
+        let pref = derive_log_likelihood(base, MatchType::Prefix(250));
+        assert!(init > pref,
+            "Initials decay (K=1) must be gentler than Prefix decay (K=3) at same proximity; got init={init} pref={pref}");
+        // Typical pinyin initials case lands at ~199 (the calibration
+        // target for inputx_default()).
+        assert!((196..=202).contains(&init),
+            "typical 2/8 initials decay should land near 199; got {init}");
+    }
+
+    /// WU-ξ: degenerate inputs (typed_len ≥ full_len, or zero) collapse
+    /// to the exact case (no decay) rather than panicking or going
+    /// negative.
+    #[cfg(feature = "std")]
+    #[test]
+    fn derive_log_likelihood_initials_degenerate_no_decay() {
+        let base = 100;
+        // typed_len > full_len → proximity clamped to 1.0 → no decay.
+        assert_eq!(
+            derive_log_likelihood(base, MatchType::Initials { typed_len: 8, full_len: 4 }),
+            base,
+            "typed >= full collapses to no decay"
+        );
+        // zero typed_len/full_len → no decay (defensive).
+        assert_eq!(
+            derive_log_likelihood(base, MatchType::Initials { typed_len: 0, full_len: 4 }),
+            base,
+        );
+        assert_eq!(
+            derive_log_likelihood(base, MatchType::Initials { typed_len: 4, full_len: 0 }),
+            base,
+        );
     }
 
     /// Neutral weights leave word_char_count irrelevant — the v1.7.5
