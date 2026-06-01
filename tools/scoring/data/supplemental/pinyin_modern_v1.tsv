@@ -336,7 +336,13 @@ lianlu	链路	50000
 liebian	裂变	50000
 lietou	猎头	50000
 liudongxing	流动性	50000
-lixiang	立项	50000
+# Removed 2026-06-01 per user polish-log: lixiang 立项 50000 was
+# pushing 立项 above the base-corpus 理想 (35653) for `lixiang`,
+# but 理想 is the everyday-usage top. The pre-2026-06-01 comment in
+# dict::tests::lookup_lixiang_lixiang_leads claimed this entry was
+# already removed; the claim was wrong — purge_modern_overlap.py's
+# changes never landed in the shipped TSV. Plain data fix (corpus
+# polish), no hack patch.
 longtou	龙头	50000
 longtougu	龙头股	50000
 loudou	漏斗	50000
