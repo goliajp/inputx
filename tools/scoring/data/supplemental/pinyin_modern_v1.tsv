@@ -325,6 +325,11 @@ jujiabangong	居家办公	50000
 # Added 2026-06-01 per user polish-log: julei → 聚类 missing entirely.
 # Tier matches other tech terms (算法/数据库 = 60k, 数据流 = 45k).
 julei	聚类	50000
+# Added 2026-06-01 per same polish-log: julei → 巨累 (colloquial
+# intensifier 巨 + 累, "really tired"). User listed it AFTER 聚类,
+# implying lower priority — 30k = below 聚类 but above the K-best
+# fallback tier.
+julei	巨累	30000
 junxian	均线	50000
 ke	磕	50000
 kesi	渴死	50000
