@@ -190,7 +190,46 @@ When creating a new test:
 
 Run `cargo test -p inputx-core --lib <new_test_name>` (or the existing test that contains the new row) to confirm it passes.
 
-## Step 5 — Commit
+## Step 5 — Auto-deploy to mac IME (safe reinstall)
+
+After baseline passes and BEFORE committing, ship the change to the
+live mac IME so the user sees the polish immediately. **Use
+`mac/reinstall-safe.sh`, never plain `reinstall.sh`** — the safe
+wrapper does:
+
+1. Snapshot the currently-running bundle to `Inputx.app.bak-<timestamp>`.
+2. Run `reinstall.sh` (which rebuilds + swaps the bundle).
+3. Wait 5s for crash window, verify PID is alive AND unchanged
+   (no crash + LaunchAgent respawn cycle).
+4. **On failure (no PID / PID shifted / reinstall.sh errored): tear
+   down the broken install, restore the backup, rebootstrap the
+   LaunchAgent against the restored bundle, exit non-zero.**
+5. On success: drop the backup, exit zero.
+
+```sh
+mac/reinstall-safe.sh
+```
+
+If `reinstall-safe.sh` exits non-zero — the previous Inputx version
+is still running (rolled back), but the polish data change is sitting
+in the working tree uncommitted. Two paths:
+
+- **The polish change is correct but the build hit a transient issue**
+  (sccache desync, cargo lock race, etc.): try again with `mac/reinstall-safe.sh`
+  once. If still failing, STOP and report — escalate to the user.
+- **The polish change broke the build somehow** (e.g. a TOML row that
+  build_dict rejects with a panic — extremely rare since polish only
+  touches overlays): revert the data change, report to user. The
+  polish-rebuild step at Step 3 should have caught this — if it
+  didn't, that's a polish-rebuild gap, file it.
+
+NEVER skip `mac/reinstall-safe.sh` for "fast iteration". The user has
+been burned multiple times by reinstalls that succeeded mid-script
+but left the IME in a half-deployed state where text input across the
+OS stops working. The 5s health window + backup is the defense; the
+polish skill must always go through it.
+
+## Step 6 — Commit
 
 One commit per polish action. Message structure:
 
@@ -223,7 +262,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
 
 Then `git push origin develop`. If the polish breaks something that requires multi-step recovery, **stop and report — do not amend or revert**; the user decides.
 
-## Step 6 — Handle "polish accidentally broke baseline"
+## Step 7 — Handle "polish accidentally broke baseline"
 
 If `make polish-rebuild` fails (baseline test regression), three paths:
 
@@ -239,6 +278,7 @@ If `make polish-rebuild` fails (baseline test regression), three paths:
 - **Boost values picked from thin air**: always derive from `weights.tsv` peer freq (B) or current cutoff (A/C). Magnitude justification goes in the commit message.
 - **Mixing class B and C in one TSV**: `quickfix_boost.tsv` is for boosts, `quickfix_demote.tsv` is for demotes. Don't put a low value in boost expecting MIN semantics — boost is MAX.
 - **Skipping `make polish-rebuild`**: every polish action MUST run through the rebuild + baseline gate before commit.
+- **Skipping `mac/reinstall-safe.sh`**: every polish action MUST deploy to the live IME before commit. Plain `reinstall.sh` is also forbidden — must use the safe wrapper with backup + health-window check, because reinstall failures have historically left the OS unable to accept text input. The 5s health window + automatic rollback is the user-protection contract.
 
 ## On framework extensions
 
