@@ -50,30 +50,82 @@ change. This doc's goal is **make every polish look like that**.
 
 ## Current hack surface (the polish gap)
 
-### Hack point 1 — `dispatch.rs` `const`-tier scoring magic
+### Hack point 1 — **~30 ranking-magic constants scattered across `composite/*.rs`**
+
+The polish-relevant numeric constants today live in **four Rust
+source files** (`dispatch.rs` + `pinyin_adapter.rs` + `scoring.rs` +
+`merge.rs`). Each one was hand-picked by trial-and-error and bound
+into the Rust source — touching any of them requires `cargo build`
+and a Rust edit. Per the user 2026-06-01 directive these are "公式"
+= data, not algorithm.
+
+Full inventory (auditable via `grep -nE "const [A-Z_]+: f64|i32|u64" core/crates/inputx-core/src/composite/*.rs`):
 
 ```text
-core/crates/inputx-core/src/composite/dispatch.rs
-  const RARE_CHAR_DEMOTE: f64 = 0.001    (was 0.3 pre-v1.9.0)
-  const CHAR_PROMINENT_FLOOR: u64 = 20_000
-  let auto_demote = match pinyin_len { 1 => 0.01, 2 => 0.05,
-                                       3 => 0.10, _ => 0.20 };
-  let phrase_mult = if pinyin_intent {
-      if full_code { LIKELIHOOD_WUBI_FULL_CODE_PROMOTE } else { 0.5 };
-  };
-  let single_promote = if full_code && is_single && raw_freq > max_phrase_freq
-                       { 100.0 } else { 1.0 };
+composite/dispatch.rs                   (per-buffer + per-layer policy)
+  CHAR_PROMINENT_FLOOR        20_000     freq threshold below = rare char
+  RARE_CHAR_DEMOTE            0.001      linear discount on rare Jianma2/3
+  auto_demote                 [0.01/0.05/0.10/0.20 by pinyin_len 1-4]
+  phrase_mult                 0.5 (speculative) | FULL_CODE_PROMOTE
+  single_promote              100.0 (full_code single-char Jianma1 hint)
+
+composite/pinyin_adapter.rs             (per-path tier floors)
+  PINYIN_PHRASE_BASE          400_000    Path-1 exact base
+  L0_PIN_MULTIPLIER           1000       user-pinned boost
+  NON_EXACT_FLOOR             1000       degenerate-tier base
+  COMPOSED_SCORE              500_000    long-buffer Viterbi sentence
+  COMPOSED_FALLBACK_SCORE     250_000    short-buffer Path-5 last-resort
+  FUZZY_BASE                  350_000    pre-discount fuzzy floor
+  FUZZY_DISCOUNT              0.3        multiplier on FUZZY_BASE
+  COMPOSED_QUALITY_FLOOR      -15_000    Viterbi log-quality cutoff
+
+composite/scoring.rs                    (per-engine + per-match-shape policy)
+  LIKELIHOOD_JP_JUKUGO_BASE        200_000     jukugo dict tier
+  LIKELIHOOD_JP_SINGLE_KANJI_BASE  100_000     single-kanji dict tier
+  LIKELIHOOD_JP_HIRAGANA_BASE      150_000     kana fallback tier
+  LIKELIHOOD_JP_KATAKANA_BASE      110_000     kana fallback tier
+  LIKELIHOOD_JP_COMPOSED_BASE      130_000     JP Viterbi compose tier
+  LIKELIHOOD_JP_COMPOSED_KANJI_BASE 280_000    JP compose pure-kanji bonus
+  LIKELIHOOD_JP_FULL_MATCH_PROMOTE 1.3         exact-buffer JP boost
+  LIKELIHOOD_PINYIN_PREDICT_BASE   180_000     CP-B prefix-prediction tier
+  LIKELIHOOD_WUBI_PREDICT_BASE     50_000      CP-C wubi-prediction tier
+  LIKELIHOOD_WUBI_FULL_CODE_PROMOTE 1.1        4-letter-buffer wubi boost
+  LIKELIHOOD_WUBI_SINGLE_CHAR_PROMOTE_MULT 100 single-char Jianma1 boost
+  LIKELIHOOD_TC_DEMOTE_MULT        1e-3        traditional-char demote
+  LIKELIHOOD_ENGINE_MULT_{WUBI,PINYIN,JP} 1.0  legacy per-engine knobs
+  LIKELIHOOD_PREDICT_PROXIMITY_K   3.0         prefix decay exponent K
+  PRIOR_FREQ_MULT_JP               3000        JP freq-to-prior conversion
+  PRIOR_FREQ_MULT_{PINYIN,WUBI}    1.0         zh freq-to-prior conversion
+
+composite/merge.rs                      (cross-engine merge policy)
+  TC_DEMOTE_FULL              3549-char OpenCC marker set (data file)
+  contains_demote_tc(w)       hand-rolled membership test
+                              → multiplier = LIKELIHOOD_TC_DEMOTE_MULT
 ```
 
-Every one of these is a polish knob that disguises as code. Touching
-them requires editing `dispatch.rs` — the v1.9.0 corpus-merge
-regression chain ended up doing exactly this (RARE_CHAR_DEMOTE 0.3 →
-0.001 in commit dfc46c5, since reverted) because there was no clean
-"调评分" surface for the relevant axis.
+Add to these the **already-in-EngineWeights 9 knobs** (engine_boost /
+simcode_boost / bootstrap_floor / char_boost / word_len_bonus /
+fuzzy_floor / initials_base / viterbi_decay / + the v1.7 anchors)
+and you have **~30 numeric polish-axis values**. v1.10's job is to
+make them a **single data asset**, not Rust source.
 
-**Target**: every numeric constant in dispatch.rs that influences
-ranking moves to `EngineWeights`. Code only computes; configuration
-lives in one struct.
+The v1.9.0 corpus-merge regression chain (RARE_CHAR_DEMOTE 0.3 →
+0.001 in commit dfc46c5, since reverted) proved the cost of this
+arrangement concretely — there was no clean "调评分" surface so the
+fix had to be a `dispatch.rs` edit.
+
+**Target**: a **single TOML file** —
+`core/crates/inputx-scoring/data/engine_weights.toml` — holds **every**
+ranking-magic numeric constant from the four source files above.
+Rust code only reads from this TOML (build-time via `build.rs` →
+generates `inputx_default()`); users polish by editing the TOML and
+running `make polish-rebuild`. No `cargo build` needed for a polish
+action.
+
+The TOML structure mirrors the per-file decomposition above (sections
+for `dispatch` / `pinyin_path` / `scoring_bases` / `merge`) so users
+can find a constant by scope. Every entry is one row with a default,
+a comment explaining what it influences, and a permissible range.
 
 ### Hack point 2 — `merge.rs` per-source overrides
 
@@ -189,23 +241,182 @@ intervention only when:
 
 ## Path to the target — sub-cycle plan
 
-### v1.10 — Promote dispatch.rs hardcodes to EngineWeights
+### v1.10 — Collect all ranking "公式" into a single TOML data file
 
-**Goal**: every numeric constant in `dispatch.rs` that influences
-ranking lives in `EngineWeights`. After this cycle a polish that
-adjusts ranking on any axis touches `inputx_default()` exclusively
-— no dispatch.rs edits.
+**Goal**: every numeric constant in `composite/{dispatch,
+pinyin_adapter, scoring, merge}.rs` that affects ranking lives in
+**one TOML file** loaded at build time. Rust code only consumes;
+configuration lives in data. After this cycle a polish that adjusts
+"公式" touches `engine_weights.toml` exclusively — no Rust edits.
 
-| WU | Move | Knob name |
+#### Target file layout
+
+`core/crates/inputx-scoring/data/engine_weights.toml`:
+
+```toml
+# Inputx ranking formula — single source of truth. Edit, rebuild
+# (`make polish-rebuild`), run baseline. Never touch Rust to adjust
+# these.
+
+[engine_weights]
+# v1.7-v1.8 calibration knobs (existing in inputx_default()).
+engine_boost_q4 = [8, 0, -100]
+simcode_boost_q4 = 0
+bootstrap_floor_q4 = 0
+char_boost_q4 = 0
+word_len_bonus_q4 = 0
+fuzzy_likelihood_floor_q4 = 205
+initials_likelihood_base_q4 = 221
+viterbi_link_decay_q4 = -6
+
+[dispatch.wubi]
+char_prominent_floor_freq = 20_000
+rare_char_demote = 0.001
+auto_layer_demote = [0.01, 0.05, 0.10, 0.20]   # per pinyin_len 1..4
+phrase_speculative_demote = 0.5
+full_code_single_char_promote = 100.0
+
+[pinyin_path]
+phrase_base = 400_000
+l0_pin_multiplier = 1000
+non_exact_floor = 1000
+composed_score = 500_000
+composed_fallback_score = 250_000
+fuzzy_base = 350_000
+fuzzy_discount = 0.3
+composed_quality_floor = -15_000
+
+[scoring.jp]
+jukugo_base = 200_000
+single_kanji_base = 100_000
+hiragana_base = 150_000
+katakana_base = 110_000
+composed_base = 130_000
+composed_kanji_base = 280_000
+full_match_promote = 1.3
+prior_freq_mult = 3000
+
+[scoring.match_shape]
+predict_proximity_k = 3.0           # prefix-completion decay exponent
+predict_base_pinyin = 180_000
+predict_base_wubi = 50_000
+
+[scoring.cross_engine]
+wubi_full_code_promote = 1.1
+wubi_single_char_promote_mult = 100.0
+tc_demote_mult = 1e-3
+# Per-engine legacy multipliers; usually 1.0
+engine_mult_wubi = 1.0
+engine_mult_pinyin = 1.0
+engine_mult_jp = 1.0
+```
+
+#### Wire path
+
+1. **`inputx-scoring` build.rs**: read `data/engine_weights.toml`
+   at build time, emit `engine_weights_generated.rs` with
+   `pub const fn inputx_default() -> EngineWeights` + a parallel
+   `pub mod scoring_consts { pub const ... }` module of the per-
+   formula values. `cargo:rerun-if-changed` watches the TOML.
+2. **`inputx-scoring` `src/lib.rs`**: `include!` the generated
+   constants, expose them as `pub use`. EngineWeights schema gains
+   ~20 new fields (the ranking-magic constants previously in
+   `composite/*.rs`).
+3. **`composite/{dispatch,pinyin_adapter,scoring,merge}.rs`**:
+   replace every `const FOO: f64 = 0.3;` with
+   `inputx_scoring::scoring_consts::FOO` (or
+   `weights.dispatch_wubi_rare_char_demote` for EngineWeights-routed
+   knobs). Baseline must stay byte-identical to commit `309de56`.
+4. **Polish workflow** post-v1.10: editing `engine_weights.toml`
+   + `make polish-rebuild` is sufficient for any single-value
+   ranking-formula change. No `git diff` shows up in `composite/*.rs`.
+
+#### WU plan
+
+| WU | Scope | Risk |
 |---|---|---|
-| α | `RARE_CHAR_DEMOTE` | `wubi_rare_char_demote_q4` (default = ln(0.001)·16 ≈ -110) |
-| β | `CHAR_PROMINENT_FLOOR` | `wubi_char_prominent_floor_freq` (default 20_000) |
-| γ | `auto_demote` (per-len table) | `wubi_auto_layer_demote_q4: [i32; 4]` (per pinyin_len 1..4) |
-| δ | `phrase_mult` (speculative 0.5 / full_code promote) | `wubi_phrase_speculative_demote_q4` + reuse `LIKELIHOOD_WUBI_FULL_CODE_PROMOTE` |
-| ε | `single_promote` 100.0 (single-char Jianma1 hint) | `wubi_single_char_full_code_promote_q4` |
+| α | scaffold: build.rs + engine_weights.toml + generated module | low (no behavior change yet) |
+| β | move `composite/scoring.rs` consts to TOML | medium (consumers in 3 adapter files) |
+| γ | move `composite/pinyin_adapter.rs` per-path floors | medium |
+| δ | move `composite/dispatch.rs` per-layer policy | medium (RARE_CHAR_DEMOTE etc.) |
+| ε | move `composite/merge.rs` TC demote magnitude | low |
+| ζ | verify byte-identical baseline + lib (gate before commit) | gate |
 
-Estimated: **2-3 days**. Mostly mechanical (add field, set default,
-replace `const` with `weights.foo`, verify baseline byte-identical).
+Estimated: **3-4 days** (was 2-3 — bigger scope than the original
+dispatch-only plan). All WU steps preserve baseline by construction
+since defaults match current consts exactly.
+
+#### Post-v1.10 polish workflow examples (concrete)
+
+To verify the design intent matches the user 2026-06-01 directive
+("调语料 / 评分 / 公式 …这些纯数据资产"), here are the 4 polish-
+action classes and what each looks like post-v1.10:
+
+**A. "Fix this ranking" (single buffer mis-rank)**
+```
+# Mac-IME-用户 reports: `lixiang` should give 理想 not 立项
+$ inputx-polish pick lixiang 理想 --reason "user-report-2026-06-15"
+[polish] current ranking: 立项 #0, 理想 #1
+[polish] writing quickfix_boost.tsv:
+           lixiang  理想  +12000   (minimum boost to flip)
+[polish] running make polish-rebuild ... ok
+[polish] running baseline tests ... ok (24/24, 288/0)
+[polish] committed: "polish(pinyin): lixiang → 理想 (user 2026-06-15)"
+```
+Nothing in Rust source changes. The fix is 1 TSV row.
+
+**B. "Fix a formula value" (calibration)**
+```
+# Audit shows wubi 简码 was outranking pinyin top for some short
+# buffers. Bump simcode_boost slightly.
+
+# Open engine_weights.toml, change one line:
+-  simcode_boost_q4 = 0
++  simcode_boost_q4 = 4         # +0.25 nat = ~×1.3 linear
+
+$ make polish-rebuild
+[polish] regen .idf ... ok
+[polish] running baseline tests ... ok (24/24, 288/0)
+$ git commit -am "polish(weights): simcode_boost +4 for short-buffer wubi"
+```
+Nothing in Rust changes. Polish is a TOML diff + a baseline pass.
+
+**C. "Fix a corpus mix"**
+```
+# Modern social-media slang is missing. Add chat-style corpus.
+# Edit core/crates/inputx-pinyin/data/corpus/manifest.toml:
+
++  [corpus.zho_weibo_v2026]
++  url = "..."
++  sha256 = "..."
++  weight = 2.0   # half-weight of colloquial stack — minor signal
++  format = "frequency_list"
++  license = "MIT"
+
+$ cargo run --bin pinyin-fetch-corpus
+$ make polish-rebuild
+[polish] running baseline tests ... ok (24/24, 288/0)
+```
+
+**D. "Fix a missing word" (dict gap)**
+```
+# Wubi dict missing 不是. Audit log identified this.
+$ inputx-polish add-phrase 不是 --engine wubi
+[polish] wubi-86 encoder: 不是 → code 'gijg'
+[polish] adding to phrases.txt
+[polish] running make polish-rebuild ... ok
+[polish] running baseline tests ... ok (24/24, 288/0)
+[polish] committed: "polish(wubi): add phrase 不是 → gijg"
+```
+
+**What user NEVER does post-v1.10**:
+- Edit `composite/dispatch.rs` / `merge.rs` / `scoring.rs`
+- Manually compute a boost magnitude
+- Manually compute a wubi-86 phrase code
+- Sync `pinyin-data-core/data/pinyin.dict` separately
+
+If a polish needs Rust changes, that's a signal the framework is
+missing a knob — file an architecture bug, don't write the hack.
 
 ### v1.11 — polish-log → overlay automation
 
