@@ -174,7 +174,9 @@ mod tests {
             ("jia", "家"),
             ("ren", "人"),
             ("tian", "天"),
-            ("yue", "月"),
+            // v1.9.0 WU-π.c: 月→乐 under OPUS colloquial signal.
+            // See `comprehensive_baseline.rs::pinyin_only_top_common_single_syllable`.
+            ("yue", "乐"),
             ("nian", "年"),
             ("ri", "日"),
             ("di", "的"),
