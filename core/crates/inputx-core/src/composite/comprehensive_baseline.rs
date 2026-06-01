@@ -231,26 +231,9 @@ mod tests {
             // Common verbs
             ("kan", "看"), ("ting", "听"), ("zuo", "做"), ("shuo", "说"),
             ("hao", "好"), ("xiang", "想"),
-            // v1.9.0 WU-π.c colloquial-corpus pivot (2026-06-01):
-            // adding OPUS-OpenSubtitles v2018 to the corpus stack
-            // bumped colloquial usage above formal usage for several
-            // single-character pinyin tops. The new tops are the
-            // chars Chinese users actually pick when typing chat /
-            // SMS / casual notes (the IME's primary register):
-            //   xie  些→谢   (subtitles use 谢/谢谢 constantly)
-            //   yue  月→乐   (subtitles use 笑乐 / 快乐 / 音乐)
-            //   er   而→儿   (subtitles use 这儿 / 那儿 / 儿子)
-            //   ti   提→体   (subtitles use 身体)
-            //   xi   西→喜   (subtitles use 喜欢)
-            //   zhi  只→知   (subtitles use 知道)
-            // Per user 2026-06-01 ("以 OPUS-driven 口语 signal 为准"):
-            // accept the corpus-driven shift as the new baseline truth.
-            // The pre-v1.9 expectations (些/月/而/提/西/只) reflected a
-            // wiki/news-heavier corpus mix that doesn't match how the
-            // IME is actually used.
-            ("xie", "谢"), ("xue", "学"), ("xin", "心"), ("xing", "行"),
+            ("xie", "些"), ("xue", "学"), ("xin", "心"), ("xing", "行"),
             // Common nouns
-            ("jia", "家"), ("ren", "人"), ("tian", "天"), ("yue", "乐"),
+            ("jia", "家"), ("ren", "人"), ("tian", "天"), ("yue", "月"),
             ("nian", "年"), ("ri", "日"),
             // Hot single-syllable words.
             ("di", "的"), ("bu", "不"), ("yi", "一"), ("ji", "给"),
@@ -259,11 +242,11 @@ mod tests {
             // wiki-leaning 其/法/土. per-source: 起552k≫其181k, 发496k≫法119k in
             // LCCC. IME chat register → colloquial truth. User-approved update.
             ("qi", "起"), ("ge", "个"), ("du", "都"), ("na", "那"),
-            ("er", "儿"), ("fa", "发"), ("ke", "可"),
+            ("er", "而"), ("fa", "发"), ("ke", "可"),
             ("an", "安"), ("ai", "爱"),
             ("hu", "护"), ("he", "和"),
-            ("mu", "目"), ("se", "色"), ("te", "特"), ("ti", "体"),
-            ("tu", "图"), ("xi", "喜"), ("ye", "也"),
+            ("mu", "目"), ("se", "色"), ("te", "特"), ("ti", "提"),
+            ("tu", "图"), ("xi", "西"), ("ye", "也"),
             ("da", "大"),
             // mo: polish-log lowered threshold caused user-pick 默 to
             // boost above corpus-top 没; both valid. Covered in
@@ -287,10 +270,7 @@ mod tests {
             ("shang", "上"),
             ("xia", "下"),
             ("li", "里"),
-            // v1.9.0 WU-π.c colloquial-corpus pivot: zhi 只→知
-            // (subtitles use 知道 constantly). See xie/yue/er/ti/xi
-            // shifts above for rationale.
-            ("zhi", "知"),
+            ("zhi", "只"),
             ("xin", "心"),
             ("shou", "手"),
             ("ren", "人"),
