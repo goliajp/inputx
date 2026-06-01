@@ -551,12 +551,21 @@ pub fn merge(
         // `inputx_default()`, attach the flags on ScoreComponents at
         // the dispatch.rs / pinyin_adapter.rs / japanese_adapter.rs
         // fill sites.
+        // v1.7.5 WU-τ: word_char_count drives `char_boost_q4` /
+        // `word_len_bonus_q4`. Computed inline from `c.word` rather
+        // than threaded through every ScoreComponents fill site —
+        // the candidate's word is right here in `Candidate`. Saturate
+        // to u8 (pathological 256+ char words pin to MAX; production
+        // words are ≤ ~10 chars). Counts UTF-8 chars not bytes —
+        // multi-byte CJK characters count as one each.
+        let word_char_count: u8 = c.word.chars().count().min(u8::MAX as usize) as u8;
         let data = inputx_scoring::CandidateData {
             log_prob_corpus_q4: comp.log_prior_q4,
             log_likelihood_q4: comp.log_likelihood_q4,
             source,
             is_bootstrap: false,
             is_simcode: comp.is_simcode,
+            word_char_count,
         };
         inputx_scoring::compute_score(&data, &weights)
     };

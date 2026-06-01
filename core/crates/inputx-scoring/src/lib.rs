@@ -265,6 +265,39 @@ pub struct EngineWeights {
     /// (e.g. `-15 · Q4`), but the production value lives in the
     /// engine cement that knows its own corpus distribution.
     pub bootstrap_floor_q4: i32,
+
+    /// Single-character candidate boost — applied when
+    /// [`CandidateData::word_char_count`] `== 1`.
+    ///
+    /// Today's PRIOR architecture (corpus log-prob + per-engine boost)
+    /// treats single-char vs multi-char candidates identically. A
+    /// single common char (e.g. 我 raw_freq ~ M) and a multi-char
+    /// phrase (e.g. 我们 raw_freq ~ M) compete in the same log-prior
+    /// space; under additive `prior + likelihood`, multi-char tends
+    /// to win on rare ties thanks to longer ngram boost. WU-τ surfaces
+    /// the char-vs-word weighting as an explicit knob so polish-log
+    /// telemetry can calibrate the gap rather than relying on
+    /// implicit bigram-bonus side effects.
+    ///
+    /// Default `0`: behavior identical to pre-v1.7.5 (knob lives in
+    /// the struct, doesn't move ranking until calibrated).
+    pub char_boost_q4: i32,
+
+    /// Per-extra-character bonus for multi-character candidates —
+    /// applied as `(word_char_count − 1) · word_len_bonus_q4` when
+    /// `word_char_count > 1`. A 2-char word gets `× 1`, a 3-char word
+    /// `× 2`, etc.
+    ///
+    /// Captures the v1.5.3 implicit "longer phrases lead on ties"
+    /// effect (bigram bonus accumulating per link) as an explicit
+    /// length-graded weight. The product spec (PLAN.md §v1.7.3 WU-τ)
+    /// expresses this as `log_prior_word = log_freq + W_WORD ·
+    /// len_bonus(len)` — the implementation collapses `len_bonus(len)`
+    /// to `(len − 1)` for simplicity, leaving room for a richer
+    /// piecewise schedule once telemetry argues for one.
+    ///
+    /// Default `0`: ranking unchanged.
+    pub word_len_bonus_q4: i32,
 }
 
 #[cfg(feature = "std")]
@@ -279,6 +312,8 @@ impl EngineWeights {
             engine_boost_q4: [0; 3],
             simcode_boost_q4: 0,
             bootstrap_floor_q4: 0,
+            char_boost_q4: 0,
+            word_len_bonus_q4: 0,
         }
     }
 
@@ -344,6 +379,10 @@ impl EngineWeights {
             // tight.
             simcode_boost_q4: 0,
             bootstrap_floor_q4: 0,
+            // WU-τ knobs (v1.7.5) — both 0 keeps post-v1.7.4 ranking
+            // intact. Future polish-log calibration shifts these.
+            char_boost_q4: 0,
+            word_len_bonus_q4: 0,
         }
     }
 }
@@ -374,6 +413,16 @@ pub struct CandidateData {
     /// Whether this is a wubi 简码 (Jianma1/2/3) candidate. Producers
     /// for other engines pass `false`.
     pub is_simcode: bool,
+    /// Length of the candidate word in characters (UTF-8 code points,
+    /// matching `word.chars().count()`). Saturates to `u8::MAX` for
+    /// pathological inputs; production words are ≤ ~10 chars.
+    ///
+    /// Drives [`EngineWeights::char_boost_q4`] (when `== 1`) and
+    /// [`EngineWeights::word_len_bonus_q4`] (when `> 1`, scaled by
+    /// `count − 1`). Fill sites compute this once per candidate and
+    /// pass it through; the compose layer doesn't re-walk the word
+    /// string.
+    pub word_char_count: u8,
 }
 
 /// Fold static data + dynamic weights into the i32 sort key.
@@ -395,10 +444,21 @@ pub fn compute_score(data: &CandidateData, weights: &EngineWeights) -> i32 {
         data.log_prob_corpus_q4
     };
 
+    // WU-τ (v1.7.5): char vs word length weight. Single-character
+    // candidates get a flat `char_boost_q4`; multi-character ones get
+    // `(count − 1) · word_len_bonus_q4`. Both default to 0 so the
+    // knobs are inert until calibrated.
+    let length_weight = if data.word_char_count <= 1 {
+        weights.char_boost_q4
+    } else {
+        (data.word_char_count as i32 - 1).saturating_mul(weights.word_len_bonus_q4)
+    };
+
     log_prob
         + data.log_likelihood_q4
         + weights.engine_boost_q4[data.source as usize]
         + if data.is_simcode { weights.simcode_boost_q4 } else { 0 }
+        + length_weight
 }
 
 /// Q4 log-likelihood derived from a match-type classification.
@@ -588,6 +648,7 @@ mod tests {
                     source,
                     is_bootstrap: false,
                     is_simcode: false,
+                    word_char_count: 1,
                 };
                 assert_eq!(compute_score(&data, &weights), prior + lik,
                     "neutral weights must collapse to log_prior + log_likelihood");
@@ -606,6 +667,7 @@ mod tests {
             source: Source::Wubi,
             is_bootstrap: false,
             is_simcode: false,
+            word_char_count: 1,
         };
         let mut weights = EngineWeights::neutral();
         let baseline = compute_score(&data, &weights);
@@ -626,6 +688,7 @@ mod tests {
             source: Source::Wubi,
             is_bootstrap: false,
             is_simcode: false,
+            word_char_count: 1,
         };
         let simcode = CandidateData { is_simcode: true, ..common };
         assert_eq!(compute_score(&common, &weights), -100);
@@ -647,9 +710,77 @@ mod tests {
             source: Source::Wubi,
             is_bootstrap: true,
             is_simcode: false,
+            word_char_count: 1,
         };
         // floor (-50) replaces log_prob_corpus_q4 (-300), so score is -50, not -300.
         assert_eq!(compute_score(&data, &weights), -50);
+    }
+
+    /// WU-τ (v1.7.5): `char_boost_q4` fires only for single-character
+    /// candidates; multi-character ones get `(count − 1) ·
+    /// word_len_bonus_q4` instead. Both default to 0, keeping the v1.7.4
+    /// baseline invariant intact.
+    #[cfg(feature = "std")]
+    #[test]
+    fn compute_score_char_boost_fires_only_for_single_char() {
+        let mut weights = EngineWeights::neutral();
+        weights.char_boost_q4 = 40;
+        let single = CandidateData {
+            log_prob_corpus_q4: -50,
+            log_likelihood_q4: 0,
+            source: Source::Pinyin,
+            is_bootstrap: false,
+            is_simcode: false,
+            word_char_count: 1,
+        };
+        let multi = CandidateData { word_char_count: 3, ..single };
+        // single-char gets +40; multi-char does NOT get char_boost.
+        assert_eq!(compute_score(&single, &weights), -50 + 40);
+        assert_eq!(compute_score(&multi, &weights), -50, "multi-char must not see char_boost");
+    }
+
+    /// WU-τ (v1.7.5): `word_len_bonus_q4` scales linearly with extra
+    /// characters; `count == 1` candidates ignore it.
+    #[cfg(feature = "std")]
+    #[test]
+    fn compute_score_word_len_bonus_scales_with_count() {
+        let mut weights = EngineWeights::neutral();
+        weights.word_len_bonus_q4 = 10;
+        let mk = |count: u8| CandidateData {
+            log_prob_corpus_q4: -50,
+            log_likelihood_q4: 0,
+            source: Source::Pinyin,
+            is_bootstrap: false,
+            is_simcode: false,
+            word_char_count: count,
+        };
+        // count=1 → no bonus (single-char path falls through to char_boost which is 0).
+        assert_eq!(compute_score(&mk(1), &weights), -50);
+        // count=2 → +(2-1)·10 = +10
+        assert_eq!(compute_score(&mk(2), &weights), -50 + 10);
+        // count=4 → +(4-1)·10 = +30
+        assert_eq!(compute_score(&mk(4), &weights), -50 + 30);
+    }
+
+    /// Neutral weights leave word_char_count irrelevant — the v1.7.5
+    /// identity property (compute_score == log_prob + log_likelihood)
+    /// holds across char counts.
+    #[cfg(feature = "std")]
+    #[test]
+    fn compute_score_neutral_is_count_invariant() {
+        let weights = EngineWeights::neutral();
+        for count in [1u8, 2, 5, 10, 50, u8::MAX] {
+            let data = CandidateData {
+                log_prob_corpus_q4: -100,
+                log_likelihood_q4: 50,
+                source: Source::Pinyin,
+                is_bootstrap: false,
+                is_simcode: false,
+                word_char_count: count,
+            };
+            assert_eq!(compute_score(&data, &weights), -50,
+                "neutral weights must give -100+50=-50 regardless of word_char_count (got count={count})");
+        }
     }
 
     #[cfg(feature = "std")]
