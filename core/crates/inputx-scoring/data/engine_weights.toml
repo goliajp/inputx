@@ -1,0 +1,176 @@
+# Inputx ranking formula — single source of truth (v1.10).
+#
+# Every value here directly affects candidate ranking. Edit, then
+# run `make polish-rebuild` (or the equivalent
+# `cargo run --bin pinyin-build-dict && cargo run --bin
+#  idf-from-pinyin-dict && cargo run --bin idf-from-wubi-tables &&
+#  cargo test -p inputx-core --lib baseline`). Baseline tests are the
+# gate — drift here without a paired baseline-test update is a
+# regression by definition.
+#
+# Schema is consumed by `inputx-scoring/build.rs` which emits a
+# `$OUT_DIR/engine_weights_generated.rs` module of const literals.
+# Consumers (composite/*, idf-from-*, etc.) read through that module
+# rather than redefining their own constants.
+#
+# This file holds the v1.7-v1.8-shipped 9 EngineWeights knobs verbatim
+# from `inputx_default()`'s pre-v1.10 in-source defaults — v1.10's WU-α
+# scaffold reflects current behavior byte-identically. Subsequent WUs
+# (β/γ/δ/ε) add the per-formula constants from composite/scoring.rs,
+# composite/pinyin_adapter.rs, composite/dispatch.rs, and
+# composite/merge.rs — see `docs/POLISH-ARCHITECTURE.md` for the full
+# polish-workflow design.
+
+# ─── EngineWeights — v1.7-v1.8 calibration knobs ──────────────────
+# Indexed-by-Source values list as `[wubi, pinyin, japanese]`.
+
+[engine_weights]
+# Per-engine additive log-space boost (Q4 = 16 = 1 natural log unit).
+# +Q4 ≈ ×2.7 linear. Set to express "wubi-first in mixed mode" without
+# code branches.
+engine_boost_q4 = [8, 0, -100]
+
+# Wubi 简码 (Jianma1/2/3) extra boost on top of engine_boost_q4[Wubi].
+# Currently 0 — wubi simcode prominence rides on layer.base already
+# encoded in log_likelihood_q4 via the dispatch path's likelihood_linear.
+simcode_boost_q4 = 0
+
+# Replacement log-prob for bootstrap entries (字根表 etc., freq=0).
+# Without this floor `log_prob_corpus(0, total)` would give them the
+# worst possible probability. 0 = use the corpus floor unchanged.
+bootstrap_floor_q4 = 0
+
+# WU-τ char vs word length weighting (v1.7.5). Both default 0 —
+# polish-log telemetry calibrates these post-v1.12.
+char_boost_q4 = 0
+word_len_bonus_q4 = 0
+
+# WU-ν fuzzy / edit-distance floor (v1.8.0). 205 ≈ Q4·ln(FUZZY_BASE
+# = 350k). Paired with MatchType::Fuzzy(cost_milli ≈ 700) at the
+# canonical southern-dialect swap distance to reproduce pre-v1.8 flat
+# discount.
+fuzzy_likelihood_floor_q4 = 205
+
+# WU-ξ initials shorthand base (v1.8.1). 221 ≈ Q4·ln(450k). Paired
+# with MatchType::Initials(typed_len=2, full_len=8) yields ~199,
+# matching the v1.8.0-inadvertent initials ranking.
+initials_likelihood_base_q4 = 221
+
+# WU-ο Viterbi link decay (v1.8.2). -6 ≈ round(ln(0.7)·Q4).
+# Per-extra-bigram-link composition penalty.
+viterbi_link_decay_q4 = -6
+
+# ─── WU-δ: composite/dispatch.rs per-buffer + per-layer policy ────
+# These constants drive the wubi candidate-synthesis pipeline: which
+# layer demotes when (auto/phrase/rare-char), what counts as a
+# "prominent" char by pinyin freq, when full-code single-char hint
+# fires. Pre-v1.10 they lived as `const`s inside `dispatch.rs` —
+# moved here so polish can tune them without code edits.
+
+[dispatch.wubi]
+# Pinyin freq threshold below which a Jianma2/3 char is considered
+# rare. Rare chars get the linear demote below. v1.4 score-driven
+# fix for the "rare-CJK Jianma2 outranking pinyin top" class.
+char_prominent_floor_freq = 20_000
+# Linear-space multiplier on rare Jianma2/3 likelihood. 0.3 was the
+# pre-v1.7 calibration; v1.9.0 corpus-merge experimentation pushed
+# it to 0.001 then reverted. Default 0.3 = legacy ship behavior.
+rare_char_demote = 0.3
+# Per-pinyin-len Auto-layer demote, indexed by pinyin_len 1..4.
+# Shorter buffers = more ambiguity = stronger demote.
+auto_layer_demote = [0.01, 0.05, 0.10, 0.20]
+# Speculative-buffer Phrase demote: under pinyin_intent + buffer < 4
+# codes, Phrase candidates get ×0.5 to avoid crowding out pinyin.
+phrase_speculative_demote = 0.5
+# Single-char Jianma1 hint promote: at full code (buffer.len() == 4)
+# a single-char entry whose freq exceeds the per-code max phrase freq
+# gets this multiplier. 100.0 reinforces wubi-86 "full-code single-
+# char wins" rule.
+full_code_single_char_promote = 100.0
+
+# ─── WU-β: composite/scoring.rs ranking-formula constants ─────────
+# Per-engine + per-match-shape + per-cross-engine policy values.
+# Pre-v1.10 these lived as `pub const FOO: f64` blocks in
+# `core/crates/inputx-core/src/composite/scoring.rs`; v1.10 routes
+# them through this TOML.
+
+[scoring.jp]
+# Per-tier likelihood floors (linear-space) for JP candidate paths.
+jukugo_base = 200_000.0
+single_kanji_base = 100_000.0
+hiragana_base = 150_000.0
+katakana_base = 110_000.0
+composed_base = 130_000.0
+composed_kanji_base = 280_000.0
+# Multiplier applied to the dict-entry base when typed buffer EXACTLY
+# spells a dict reading (proximity = 1.0).
+full_match_promote = 1.3
+# Conversion factor for the JP per-candidate freq (small integers from
+# the const tables) → prior contribution. Tuned to put 88-freq jukugo
+# at ~ 200k + 88 × 3000 = 464k linear total.
+prior_freq_mult = 3000.0
+
+[scoring.match_shape]
+# Prefix-completion decay exponent: `decay = proximity^K`. K=3 makes
+# distant prefixes (proximity=0.5) drop ~×0.125 vs an exact (×1.0).
+predict_proximity_k = 3.0
+# Prediction-tier bases (linear) per engine.
+predict_base_pinyin = 180_000.0
+predict_base_wubi = 50_000.0
+
+[scoring.zh]
+# Pinyin / wubi prior freq multiplier. Default 1.0 — corpus freq IS
+# the prior, no extra scaling. Reserved for future per-engine
+# normalization if needed.
+prior_freq_mult_pinyin = 1.0
+prior_freq_mult_wubi = 1.0
+
+# ─── WU-γ: composite/pinyin_adapter.rs per-path tier floors ───────
+# These set how high each tier (exact / composed / fallback / fuzzy /
+# floor) starts in linear space before per-engine multipliers run.
+
+[pinyin_path]
+# Path 1 (exact dict match) base — every pinyin exact-match candidate's
+# legacy f64 score = phrase_base + raw_freq * pin_mult.
+phrase_base = 400_000.0
+# L0 user-pin multiplier — when a candidate has been manually pinned
+# for the typed buffer, its score is multiplied by this.
+l0_pin_multiplier = 1000.0
+# Degenerate-tier floor — for candidates that don't fit any other
+# path. Decays per i (`* 0.99^i`). Effectively "show last".
+non_exact_floor = 1000.0
+# Long-buffer Viterbi composition (real sentence-shaped input).
+composed_score = 500_000.0
+# Short-buffer last-resort Path 5 composition (e.g. kaopu → 靠谱
+# when no exact). Sits above mechanical JP kana but below real dict.
+composed_fallback_score = 250_000.0
+# Pre-discount fuzzy floor (gets multiplied by fuzzy_discount).
+fuzzy_base = 350_000.0
+# Linear-space discount on FUZZY_BASE for fuzzy-tier candidates.
+# 0.3 = ×0.7 below FUZZY_BASE; calibrated against pre-v1.8 behavior.
+fuzzy_discount = 0.3
+# Composition-quality cutoff: Viterbi paths whose log_quality falls
+# below this drop entirely (never shown). Negative since quality is
+# a log-prob.
+composed_quality_floor = -15_000.0
+
+[scoring.cross_engine]
+# Wubi full-code (4-letter buffer) promote — small boost for users
+# completing a real wubi code vs mid-typing.
+wubi_full_code_promote = 1.1
+# Wubi single-char Jianma1 promote multiplier under full-code: a
+# single-char entry whose freq exceeds the per-code max phrase freq
+# gets ×100 to reinforce the "g→一" mapping in mixed mode.
+wubi_single_char_promote_mult = 100.0
+# Traditional-Chinese demote: when a candidate contains any TC marker
+# char (per `core/crates/inputx-core/data/tc_chars_demote.txt`), its
+# score is multiplied by this. 1e-3 = essentially banished to the
+# bottom, kept only as last-resort fallback.
+tc_demote_mult = 1.0e-3
+# Per-engine legacy multipliers, all 1.0 in production. Reserved for
+# future calibration if any engine's overall confidence needs shifting
+# independently of engine_boost_q4 (these are linear-space, the
+# Q4 boost is log-space).
+engine_mult_wubi = 1.0
+engine_mult_pinyin = 1.0
+engine_mult_jp = 1.0

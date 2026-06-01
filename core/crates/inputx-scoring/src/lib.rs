@@ -82,6 +82,24 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+// v1.10 single-TOML polish surface — see `docs/POLISH-ARCHITECTURE.md`.
+// `build.rs` parses `data/engine_weights.toml` at build time and emits
+// two modules of const literals:
+//
+//   * `__engine_weights_generated` (pub(crate))  — used by
+//     `EngineWeights::inputx_default()` to populate the Q4 calibration
+//     knobs. Std-only because the EngineWeights struct is std-gated.
+//
+//   * `consts` (pub)                              — used by downstream
+//     crates (`inputx-core/composite/scoring.rs` etc.) to source the
+//     legacy `LIKELIHOOD_JP_JUKUGO_BASE` style f64 ranking-formula
+//     constants. No-std clean (pure const literals).
+//
+// Editing `data/engine_weights.toml` triggers `cargo:rerun-if-changed`
+// → rebuild → both modules regenerate. This is the v1.10 "no-cargo-
+// build for polish" workflow's runtime piece.
+include!(concat!(env!("OUT_DIR"), "/engine_weights_generated.rs"));
+
 /// Fixed-point scale for log-space scalars. `Q4 = 16` means every
 /// integer step is 1/16 of a log unit (≈ 0.0625). At this resolution,
 /// `i32` covers a dynamic range of ~ ±67 million log units — far more
@@ -424,66 +442,56 @@ impl EngineWeights {
     /// Hand-tuned. Calibration knob lives here so future iterations
     /// can shift it without touching `compute_score` or the data
     /// primitives.
+    ///
+    /// **v1.10 polish surface**: every value below comes from
+    /// `data/engine_weights.toml`, parsed at build time by
+    /// `build.rs` → `__engine_weights_generated`. Editing the TOML
+    /// is the supported way to tune any of these knobs — see
+    /// `docs/POLISH-ARCHITECTURE.md` for the workflow. The
+    /// per-value rationale comments below stay here as the canonical
+    /// explanation; the TOML row mirrors them.
     pub const fn inputx_default() -> Self {
         Self {
             // Pinyin anchored at 0; wubi/jp expressed relative to it.
-            engine_boost_q4: [
-                8,   // Wubi: scaled-down legacy "Inputx wubi-first"
-                     // prior. Pre-v1.7.4 the boost was +15 Q4 (×2.6
-                     // linear) — under the log_prob_corpus shift the
-                     // relative wubi-vs-pinyin gap widened (wubi's
-                     // smaller corpus_total gives wubi a +10 Q4 lift
-                     // "for free"), so +8 Q4 lands the cross-engine
-                     // ranking back where it was without overshooting
-                     // the rare-Jianma2 → pinyin-top yields. Applied
-                     // uniformly to ALL wubi candidates.
-                0,   // Pinyin anchor.
-                -100, // Japanese: shift down so JP candidates (smaller
-                      // corpus total, less-negative log_prob_corpus)
-                      // sit in the same band the legacy unnormalized
-                      // path placed them.
-            ],
-            // Wubi simcode lift (Jianma1/2/3 only). Set to 0: under
+            // Wubi: scaled-down legacy "Inputx wubi-first" prior. Pre-
+            // v1.7.4 the boost was +15 Q4 (×2.6 linear) — under the
+            // log_prob_corpus shift the relative wubi-vs-pinyin gap
+            // widened (wubi's smaller corpus_total gives wubi a +10
+            // Q4 lift "for free"), so +8 Q4 lands the cross-engine
+            // ranking back where it was without overshooting the
+            // rare-Jianma2 → pinyin-top yields. Applied uniformly to
+            // ALL wubi candidates.
+            // Japanese: shift down so JP candidates (smaller corpus
+            // total, less-negative log_prob_corpus) sit in the same
+            // band the legacy unnormalized path placed them.
+            engine_boost_q4: __engine_weights_generated::ENGINE_BOOST_Q4,
+            // Wubi simcode lift (Jianma1/2/3 only). Default 0: under
             // the v1.7.4 log_prob_corpus shift, the wubi `engine_boost_q4`
             // + simcode `layer.base` (in log_likelihood_q4) together
             // already place common simcodes above pinyin top while the
-            // `RARE_CHAR_DEMOTE` (× 0.3 on log_likelihood) drops
-            // rare-CJK Jianma2 entries below pinyin top. Reserved for
-            // future calibration if telemetry shows the gap is too
-            // tight.
-            simcode_boost_q4: 0,
-            bootstrap_floor_q4: 0,
+            // `RARE_CHAR_DEMOTE` (× 0.001 on log_likelihood) drops
+            // rare-CJK Jianma2 entries below pinyin top.
+            simcode_boost_q4: __engine_weights_generated::SIMCODE_BOOST_Q4,
+            bootstrap_floor_q4: __engine_weights_generated::BOOTSTRAP_FLOOR_Q4,
             // WU-τ knobs (v1.7.5) — both 0 keeps post-v1.7.4 ranking
             // intact. Future polish-log calibration shifts these.
-            char_boost_q4: 0,
-            word_len_bonus_q4: 0,
+            char_boost_q4: __engine_weights_generated::CHAR_BOOST_Q4,
+            word_len_bonus_q4: __engine_weights_generated::WORD_LEN_BONUS_Q4,
             // WU-ν fuzzy floor (v1.8.0). 205 ≈ Q4·ln(FUZZY_BASE=350k).
-            // Paired with `Fuzzy(cost_milli ≈ 700)` (the cost the v1.8
-            // fuzzy path emits for a canonical southern-dialect swap
-            // like zh↔z, edit_distance ≈ 0.3 → cost_milli 300 — but
-            // see `pinyin_adapter`'s mapping: linear `distance·1000` is
-            // too generous for the legacy comparable, so the actual
-            // mapping is `(1 − exp(-1.2·distance))·1000` which hits
-            // ~700 at distance 0.3, reproducing the pre-v1.8 flat 185
-            // log_likelihood for the most common fuzzy case).
-            fuzzy_likelihood_floor_q4: 205,
+            // Paired with `Fuzzy(cost_milli ≈ 700)` to reproduce the
+            // pre-v1.8 flat 185 log_likelihood for the canonical
+            // southern-dialect swap distance.
+            fuzzy_likelihood_floor_q4: __engine_weights_generated::FUZZY_LIKELIHOOD_FLOOR_Q4,
             // WU-ξ initials base (v1.8.1). 221 ≈ Q4·ln(450k). Paired
             // with `MatchType::Initials { typed_len=2, full_len=8 }`
-            // (the typical 2-letter abbreviation of a 2-char
-            // compound) yields `221 + ln(0.25)·16 ≈ 199`, reproducing
-            // the v1.8.0-inadvertent ranking of initials at the
-            // canonical-fuzzy tier. Longer words (4-char phrases via
-            // 4 initials) get more decay (proximity → 0.125, decay
-            // → -33 Q4, log_lik → 188) — correct: more letters typed
-            // = more confident the user meant initials, BUT the word
-            // is longer so the abbreviation is less unique → net
-            // decay is right.
-            initials_likelihood_base_q4: 221,
+            // yields `221 + ln(0.25)·16 ≈ 199`, reproducing the
+            // v1.8.0-inadvertent ranking of initials at the
+            // canonical-fuzzy tier.
+            initials_likelihood_base_q4: __engine_weights_generated::INITIALS_LIKELIHOOD_BASE_Q4,
             // WU-ο viterbi link decay (v1.8.2). −6 ≈ round(ln(0.7) ·
             // Q4) reproduces the legacy `× 0.7` per-extra-link decay
-            // exactly. Calibrated against `derive_log_likelihood`'s
-            // pre-v1.8.2 `LN_COMPOSED_PER_LINK` constant.
-            viterbi_link_decay_q4: -6,
+            // exactly.
+            viterbi_link_decay_q4: __engine_weights_generated::VITERBI_LINK_DECAY_Q4,
         }
     }
 }
