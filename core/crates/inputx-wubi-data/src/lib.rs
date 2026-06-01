@@ -43,8 +43,8 @@ use inputx_dict_format::IdfReader;
 
 pub use table::{
     export_l0, import_l0, is_displayable, lookup, lookup_with_freq_layer,
-    lookup_with_layer, lookup_with_scores, prefix_predictions, record_pick,
-    set_show_rare, show_rare, warmup,
+    lookup_with_layer, lookup_with_scores, pinned_word, prefix_predictions,
+    record_pick, set_show_rare, show_rare, warmup,
 };
 /// Re-export of the wubi L0 snapshot type so hosts can build /
 /// destructure it without depending on the `inputx-wubi` crate

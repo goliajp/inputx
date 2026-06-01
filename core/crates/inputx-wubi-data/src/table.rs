@@ -170,6 +170,14 @@ pub fn record_pick(code: &str, word: &str) {
     dict().record_pick(code, word);
 }
 
+/// User-pinned word for `code`, if any. Cement passthrough so the
+/// composite dispatch layer can re-apply the L0 pin × 1000 promotion
+/// when wubi candidates come from `lookup_with_freq_layer` (which
+/// returns raw per-entry data without pin promotion baked in).
+pub fn pinned_word(code: &str) -> Option<String> {
+    dict().pinned_word(code)
+}
+
 /// Snapshot the current L0 state (pins + pending pick counts + layer
 /// prefs) for host-side persistence. Host stores it however it wants
 /// (UserDefaults on Apple platforms, IndexedDB in web, etc.) and feeds

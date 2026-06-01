@@ -124,6 +124,21 @@ impl WubiEngine {
         cement::lookup_with_freq_layer(self.buffer_str())
     }
 
+    /// User-pinned word for the *current* wubi buffer, if any. The
+    /// composite dispatch layer re-applies the L0 pin × 1000 multiplier
+    /// because `candidates_with_freq_layer` returns raw per-entry data
+    /// without pin promotion baked in (pre-v1.10 the wubi facade's own
+    /// `lookup_with_scores_into` baked it; cement-layer carve moved the
+    /// per-engine business rules into composite/dispatch.rs but missed
+    /// the pin re-apply — fixed in the same v1.10 cycle once symptoms
+    /// surfaced).
+    pub fn pinned_word_for_buffer(&self) -> Option<String> {
+        if self.buffer.is_empty() {
+            return None;
+        }
+        cement::pinned_word(self.buffer_str())
+    }
+
     /// Prefix-prediction candidates for the current buffer:
     /// `(word, freq, code_len)` for every dict entry whose code
     /// strictly extends the buffer (exact-code matches excluded).
