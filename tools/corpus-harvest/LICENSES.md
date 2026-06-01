@@ -30,6 +30,32 @@ content.
 - **What we use**: page text → word-segmented counts. No per-page
   metadata, no edit history, no user info.
 
+### zh-opensubtitles
+
+- **License**: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+  via OPUS-OpenSubtitles distribution.
+- **Source**: [OPUS-OpenSubtitles v2018](https://opus.nlpl.eu/OpenSubtitles-v2018.php)
+  monolingual zh_cn dump
+  (`https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2018/mono/zh_cn.txt.gz`).
+- **Attribution**: required at the *dataset* level — Inputx
+  derivative dict must include a notice that OPUS-OpenSubtitles
+  v2018 was used. Citation form (per OPUS-OS recommendation):
+  *P. Lison and J. Tiedemann, 2016, OpenSubtitles2016: Extracting
+  Large Parallel Corpora from Movie and TV Subtitles, LREC*. Add
+  alongside the wiki attribution row in any dict ship that uses this
+  source.
+- **Share-alike**: CC BY 4.0 does NOT require share-alike on
+  derivatives (unlike CC BY-SA). Aggregate frequency tables derived
+  from this corpus can ship under any inputx-compatible license,
+  provided attribution is preserved.
+- **What we use**: subtitle line text → word-segmented counts via
+  jieba. No per-subtitle metadata, no movie/show titles, no speaker
+  attribution.
+- **Why this source**: subtitles are colloquial dialog text — the
+  freq distribution matches the casual conversational register that
+  IME users actually type. Complements wiki's formal-prose bias
+  (per `docs/v1.9.0-vNEXT-audit.md`).
+
 ## Excluded sources (license-incompatible)
 
 The following common Chinese corpora are explicitly **not** eligible:
