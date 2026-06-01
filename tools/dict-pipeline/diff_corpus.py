@@ -49,10 +49,62 @@ WEIGHTS_SCHEMA = {
 }
 
 
-def load_harvest(path: Path) -> dict[str, int]:
+def load_tc_chars() -> set[str]:
+    """Load the 3549-char traditional-Chinese marker set from
+    `core/crates/inputx-core/data/tc_chars_demote.txt` (OpenCC t2s-
+    derived; ships in the inputx-core crate as the TC-demote check).
+    Each line is one TC character. Used to filter TC-dominant harvest
+    rows that pollute the diff report's "new entries" top with words
+    the shipped dict already covers under their simplified form.
+
+    Empty set if the data file is missing — graceful degradation, the
+    diff still works but TC noise won't be filtered.
+    """
+    # Path resolved relative to this script's location so the pipeline
+    # works regardless of cwd. `dict-pipeline/diff_corpus.py` →
+    # `repo_root` = parent.parent.parent.
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    tc_path = repo_root / "core" / "crates" / "inputx-core" / "data" / "tc_chars_demote.txt"
+    if not tc_path.exists():
+        sys.stderr.write(f"WARNING: tc_chars_demote.txt not found at {tc_path}\n")
+        return set()
+    chars: set[str] = set()
+    with open(tc_path, encoding="utf-8") as f:
+        for line in f:
+            ch = line.strip()
+            if ch:
+                chars.add(ch)
+    return chars
+
+
+def has_tc_char(word: str, tc_chars: set[str]) -> bool:
+    """True if any character in `word` is in the TC-marker set —
+    i.e., the harvest extracted a TC-written word that the shipped
+    dict only stores in simplified form. v1.9.0 WU-π.a: filter these
+    out at load time so the diff isn't dominated by TC↔SC noise.
+
+    Note: this is a *filter*, not a t2s *converter*. A real OpenCC-
+    grade t2s would map 於→于 and aggregate the wiki freq onto the
+    simplified entry. The filter approach is the pragmatic minimum:
+    pre-v1.9.0 zh-wiki-vs-pinyin diff's top "new entries" was 90% TC
+    chars; the filter restores signal at the cost of dropping the TC
+    freq contribution entirely.
+    """
+    if not tc_chars:
+        return False
+    return any(c in tc_chars for c in word)
+
+
+def load_harvest(path: Path, tc_chars: set[str] | None = None) -> dict[str, int]:
     """Returns word → count (aggregated; harvest is already
-    word-level, but defensive sum in case input has dupes)."""
+    word-level, but defensive sum in case input has dupes).
+
+    v1.9.0 WU-π.a: when `tc_chars` is supplied, rows containing any
+    TC marker character are filtered out. Reasoning + caveats: see
+    [`has_tc_char`].
+    """
     counts: dict[str, int] = defaultdict(int)
+    tc_filtered = 0
     with open(path, encoding="utf-8") as f:
         header = next(f, None)  # skip header row
         if header and not header.startswith("word\tcount"):
@@ -63,10 +115,16 @@ def load_harvest(path: Path) -> dict[str, int]:
             parts = line.rstrip("\n").split("\t")
             if len(parts) < 2:
                 continue
+            word = parts[0]
+            if tc_chars and has_tc_char(word, tc_chars):
+                tc_filtered += 1
+                continue
             try:
-                counts[parts[0]] += int(parts[1])
+                counts[word] += int(parts[1])
             except ValueError:
                 continue
+    if tc_chars:
+        sys.stderr.write(f"  TC-filtered: {tc_filtered:,} rows skipped\n")
     return dict(counts)
 
 
@@ -122,10 +180,22 @@ def main():
                          "differs by at least this much between harvest and "
                          "weights. Default 1000 (so noise from low-freq "
                          "ranks is suppressed).")
+    ap.add_argument("--no-tc-filter", action="store_true",
+                    help="Disable the traditional-Chinese filter on harvest "
+                         "rows. Default behavior (filter ON) drops any "
+                         "harvest entry containing a TC marker character "
+                         "(per inputx-core's tc_chars_demote.txt) so the "
+                         "diff's 'new entries' isn't dominated by TC↔SC "
+                         "noise. Disable when diffing a corpus that's "
+                         "guaranteed simplified (a CC0 mainland dataset, "
+                         "say).")
     args = ap.parse_args()
 
+    tc_chars = set() if args.no_tc_filter else load_tc_chars()
     sys.stderr.write(f"Loading harvest:  {args.harvest}\n")
-    harvest = load_harvest(args.harvest)
+    if tc_chars:
+        sys.stderr.write(f"  TC-filter ON ({len(tc_chars):,} marker chars loaded)\n")
+    harvest = load_harvest(args.harvest, tc_chars)
     sys.stderr.write(f"  {len(harvest):,} words\n")
 
     sys.stderr.write(f"Loading weights:  {args.weights} (schema={args.weights_schema})\n")
