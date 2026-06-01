@@ -151,6 +151,45 @@ pub fn log_prior_from_freq(freq: u64) -> i32 {
     (ln * (Q4 as f64)).round() as i32
 }
 
+/// Per-source linear shift applied to `log_prior_from_freq` to bring
+/// pinyin / wubi / japanese log-priors into a common comparable
+/// space. Today these are all zero — `log_prior_from_freq_with_source`
+/// is byte-identical to `log_prior_from_freq` regardless of `source`
+/// — so the framework is in place without changing any ranking. v1.7.3
+/// / v1.8 will fit non-zero shifts from corpus log-frequency
+/// distributions (per [[PLAN-v1.7]] D20 / D21 — linear shift + scale,
+/// no ML, defaults preserved until explicit cutover).
+///
+/// **Why the framework lands now (v1.7.2) before the values change**:
+/// existing callers (`idf-from-pinyin-dict` / `idf-from-wubi-tables` /
+/// `idf-from-nihongo-jukugo` / `idf-from-nihongo-kanji`) bake the
+/// `log_prior` into `.idf` snapshots at build time. To enable
+/// source-aware fitting we need every caller to be able to receive
+/// the source enum without having to widen its API again later. Ship
+/// the API now, fit later.
+///
+/// Q4 fixed point: a shift of `+16` ≈ ×2.7 linear (`e^1`), `-16` ≈ ÷2.7.
+#[cfg(feature = "std")]
+const LOG_PRIOR_SHIFT_Q4: [i32; 3] = [
+    0, // Source::Wubi (= 0)
+    0, // Source::Pinyin (= 1)
+    0, // Source::Japanese (= 2)
+];
+
+/// Source-aware Q4 log prior. Identical to `log_prior_from_freq(freq)`
+/// when the per-source shift is 0 (today's default). Future fits
+/// (v1.7.3+) tune the shifts so cross-source candidate comparison in
+/// the composite engine becomes apples-to-apples.
+///
+/// Producers should migrate to this entry point; the source-less
+/// `log_prior_from_freq` stays available indefinitely as the
+/// no_std-friendly primitive.
+#[cfg(feature = "std")]
+#[inline]
+pub fn log_prior_from_freq_with_source(freq: u64, source: Source) -> i32 {
+    log_prior_from_freq(freq) + LOG_PRIOR_SHIFT_Q4[source as usize]
+}
+
 /// Q4 log-likelihood derived from a match-type classification.
 ///
 /// `base_log_q4` is the producer-chosen per-engine / per-kind likelihood
@@ -286,6 +325,27 @@ mod tests {
         assert!((110..=112).contains(&f1000), "ln(1001)·16 ≈ 110; got {f1000}");
         let f50000 = log_prior_from_freq(50_000);
         assert!(f50000 > log_prior_from_freq(1000), "monotone in freq");
+    }
+
+    /// v1.7.2 framework invariant: while `LOG_PRIOR_SHIFT_Q4` is all
+    /// zeros, `log_prior_from_freq_with_source` must be byte-identical
+    /// to `log_prior_from_freq` for every source. Any future change
+    /// that flips a shift nonzero MUST flip this test together so the
+    /// "default is identity" guarantee is auditable.
+    #[cfg(feature = "std")]
+    #[test]
+    fn log_prior_from_freq_with_source_is_identity_at_zero_shift() {
+        for source in [Source::Wubi, Source::Pinyin, Source::Japanese] {
+            assert_eq!(LOG_PRIOR_SHIFT_Q4[source as usize], 0,
+                "if you change LOG_PRIOR_SHIFT_Q4 update this test in the same commit");
+            for freq in [0u64, 1, 100, 1_000, 50_000, 1_000_000] {
+                assert_eq!(
+                    log_prior_from_freq_with_source(freq, source),
+                    log_prior_from_freq(freq),
+                    "source={source:?} freq={freq}",
+                );
+            }
+        }
     }
 
     #[cfg(feature = "std")]
