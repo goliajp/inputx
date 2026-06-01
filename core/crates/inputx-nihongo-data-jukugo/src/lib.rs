@@ -39,6 +39,20 @@ pub fn nihongo_jukugo_idf_reader() -> &'static IdfReader<&'static [u8]> {
     })
 }
 
+/// Sum of `raw_freq` across all entries in
+/// [`EMBEDDED_NIHONGO_JUKUGO_IDF`]. Corpus-total denominator for
+/// [`inputx_scoring::log_prob_corpus_from_freq`] on the JP jukugo
+/// engine path. Process-global `OnceLock`.
+pub fn nihongo_jukugo_corpus_total() -> u64 {
+    static TOTAL: OnceLock<u64> = OnceLock::new();
+    *TOTAL.get_or_init(|| {
+        nihongo_jukugo_idf_reader()
+            .entries()
+            .map(|e| e.raw_freq as u64)
+            .sum()
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

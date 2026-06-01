@@ -271,8 +271,19 @@ impl JapaneseAdapter {
                     // emitted at the source, no synth helper indirection.
                     let log_likelihood_q4 =
                         (s.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
+                    // v1.7.4: compose products with no raw corpus freq
+                    // get the freq-0 floor `log_prob_corpus_from_freq(0,
+                    // total)` so they sit at the bottom of the prior
+                    // axis (matching the legacy below-real-entries
+                    // intent). Reuse the jukugo total since JP compose
+                    // products are jukugo-shaped (multi-char kanji
+                    // compounds + particle splices).
+                    let log_prior_q4 = inputx_scoring::log_prob_corpus_from_freq(
+                        0,
+                        inputx_nihongo_data_jukugo::nihongo_jukugo_corpus_total(),
+                    );
                     let components = super::merge::ScoreComponents::three_axis(
-                        0, log_likelihood_q4, mt,
+                        log_prior_q4, log_likelihood_q4, mt,
                     );
                     return (c.word.clone(), s, Some(components));
                 }
@@ -330,11 +341,35 @@ impl JapaneseAdapter {
                 // `base + freq·freq_mult·proximity^K` shape. See
                 // PLAN-prefix-prediction §4 and PLAN-probabilistic-model.
                 let proximity = c.proximity_milli as f64 / 1000.0;
+                // v1.7.4: JP corpus_total picks the engine matching
+                // the candidate's origin:
+                //   * multi-char kanji (jukugo) → jukugo.idf total
+                //   * single-char kanji         → kanji.idf total
+                //   * Hiragana/Katakana renders → jukugo.idf total
+                //     (kana have no native corpus signal but the kana
+                //     `c.freq` carries the underlying kanji's freq for
+                //     ranking; the much-larger jukugo total presses
+                //     their log_prior into the bottom band where kana
+                //     belongs in the merge, below real kanji entries).
+                let corpus_total = match c.kind {
+                    KanaKind::Kanji
+                        if c.word.chars().count() > 1 && !is_pure_kana(&c.word) =>
+                    {
+                        inputx_nihongo_data_jukugo::nihongo_jukugo_corpus_total()
+                    }
+                    KanaKind::Kanji => {
+                        inputx_nihongo_data_kanji::nihongo_kanji_corpus_total()
+                    }
+                    KanaKind::Hiragana | KanaKind::Katakana => {
+                        inputx_nihongo_data_jukugo::nihongo_jukugo_corpus_total()
+                    }
+                };
                 let (pre_promote, mut components) = scoring::predict_score_with_components(
                     base,
                     c.freq as u64,
                     scoring::PRIOR_FREQ_MULT_JP,
                     proximity,
+                    corpus_total,
                 );
                 // Predictions (proximity < 1) never ride the full-match promote.
                 let mult = if c.proximity_milli >= 1000 { promote } else { 1.0 };

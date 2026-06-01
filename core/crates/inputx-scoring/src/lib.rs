@@ -282,16 +282,69 @@ impl EngineWeights {
         }
     }
 
-    /// Production-default weight set for Inputx (placeholder values;
-    /// real calibration happens in the per-engine cement once it
-    /// owns its corpus_total + has user-polish-log telemetry to fit
-    /// from). Today all zeros so behavior matches `neutral()`.
+    /// Production-default weight set for Inputx. Calibrated v1.7.4
+    /// against the 24-test baseline + the comprehensive Jianma1/2/3
+    /// regression matrix, after the global migration of `log_prior_q4`
+    /// from `Q4·ln(1+freq)` (unnormalized) to real log-probability
+    /// `Q4·ln((1+freq)/(1+corpus_total))` per engine.
     ///
-    /// Future calibration goes here (or, more likely, in a builder
-    /// in each engine's cement crate that constructs this struct
-    /// from a user-defaults dict + telemetry stats).
+    /// Why nonzero values: each engine's `log_prob_corpus_q4` is now
+    /// shifted by `-Q4·ln(1+T_engine)` relative to the legacy
+    /// unnormalized score (pinyin T ≈ 2.6e9 → shift ≈ -343, wubi T ≈
+    /// 1.23e9 → shift ≈ -333, jukugo T ≈ 1.1e6 → shift ≈ -224, kanji T
+    /// ≈ 78k → shift ≈ -180). To keep within-engine ranking unchanged
+    /// AND restore the legacy cross-engine relationships (notably the
+    /// Inputx-五笔 product promise "wubi-first in mixed mode"), the
+    /// per-source boost bundles both effects:
+    ///
+    ///   engine_boost_q4[Wubi]     = legacy +15 plus enough to offset
+    ///                               wubi simcodes' very-low raw_freq
+    ///                               (their corpus log-prob is highly
+    ///                               negative; the layer.base term in
+    ///                               log_likelihood carries the lift,
+    ///                               but the boost re-asserts wubi-
+    ///                               first across the cross-engine
+    ///                               compare).
+    ///   engine_boost_q4[Pinyin]   = 0 (anchor)
+    ///   engine_boost_q4[Japanese] = small downshift to match the JP
+    ///                               corpus's much smaller total (JP
+    ///                               log_prob_corpus is less negative;
+    ///                               without the offset, JP would float
+    ///                               above pinyin in mixed mode).
+    ///
+    /// Hand-tuned. Calibration knob lives here so future iterations
+    /// can shift it without touching `compute_score` or the data
+    /// primitives.
     pub const fn inputx_default() -> Self {
-        Self::neutral()
+        Self {
+            // Pinyin anchored at 0; wubi/jp expressed relative to it.
+            engine_boost_q4: [
+                8,   // Wubi: scaled-down legacy "Inputx wubi-first"
+                     // prior. Pre-v1.7.4 the boost was +15 Q4 (×2.6
+                     // linear) — under the log_prob_corpus shift the
+                     // relative wubi-vs-pinyin gap widened (wubi's
+                     // smaller corpus_total gives wubi a +10 Q4 lift
+                     // "for free"), so +8 Q4 lands the cross-engine
+                     // ranking back where it was without overshooting
+                     // the rare-Jianma2 → pinyin-top yields. Applied
+                     // uniformly to ALL wubi candidates.
+                0,   // Pinyin anchor.
+                -100, // Japanese: shift down so JP candidates (smaller
+                      // corpus total, less-negative log_prob_corpus)
+                      // sit in the same band the legacy unnormalized
+                      // path placed them.
+            ],
+            // Wubi simcode lift (Jianma1/2/3 only). Set to 0: under
+            // the v1.7.4 log_prob_corpus shift, the wubi `engine_boost_q4`
+            // + simcode `layer.base` (in log_likelihood_q4) together
+            // already place common simcodes above pinyin top while the
+            // `RARE_CHAR_DEMOTE` (× 0.3 on log_likelihood) drops
+            // rare-CJK Jianma2 entries below pinyin top. Reserved for
+            // future calibration if telemetry shows the gap is too
+            // tight.
+            simcode_boost_q4: 0,
+            bootstrap_floor_q4: 0,
+        }
     }
 }
 

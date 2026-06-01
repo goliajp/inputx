@@ -77,6 +77,25 @@ pub fn pinyin_idf_reader() -> &'static IdfReader<&'static [u8]> {
     })
 }
 
+/// Sum of `raw_freq` across all entries in [`EMBEDDED_PINYIN_IDF`].
+/// The corpus-total denominator for
+/// [`inputx_scoring::log_prob_corpus_from_freq`] on the pinyin engine.
+/// Process-global `OnceLock` — computed once via a linear scan of the
+/// .idf, then memoized.
+///
+/// MUST agree with the total `idf_from_pinyin_dict.rs` uses when
+/// baking `log_prior_q4` — both compute `Σ raw_freq` over the same set
+/// of entries (post-exclusions + additions, the actual .idf rows).
+pub fn pinyin_corpus_total() -> u64 {
+    static TOTAL: OnceLock<u64> = OnceLock::new();
+    *TOTAL.get_or_init(|| {
+        pinyin_idf_reader()
+            .entries()
+            .map(|e| e.raw_freq as u64)
+            .sum()
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

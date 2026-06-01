@@ -17,7 +17,7 @@ use std::process::ExitCode;
 
 use inputx_dict_format::{EngineKind, EntryFlags, IdfBuilder};
 use inputx_nihongo::kanji::KANJI_TABLE;
-use inputx_scoring::{log_prior_from_freq, MatchType};
+use inputx_scoring::{log_prob_corpus_from_freq, MatchType};
 
 fn main() -> ExitCode {
     let mut output: Option<PathBuf> = None;
@@ -53,6 +53,18 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     if let Some(parent) = out_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
+    // v1.7.4: log_prior is now a real log-probability —
+    // `Q4·ln((1+freq)/(1+total))`. The total denominator is `Σ raw_freq`
+    // across actually-written entries (each (kanji × reading) row
+    // contributes `e.freq`, so a multi-reading kanji counts `freq`
+    // once per reading, matching what the .idf rows will sum to).
+    let total_corpus: u64 = KANJI_TABLE
+        .iter()
+        .map(|e| (e.readings.len() as u64) * (e.freq as u64))
+        .sum();
+    eprintln!(
+        "[idf-from-nihongo-kanji] corpus total raw_freq (Σ over rows) = {total_corpus}"
+    );
     let mut builder = IdfBuilder::new(EngineKind::NihongoKanji);
     // Pre-allocate a single owned buffer for the kanji char-as-string.
     // `char::encode_utf8` writes into a 4-byte stack buffer; we then
@@ -61,7 +73,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     for e in KANJI_TABLE {
         let mut buf = [0u8; 4];
         let kanji_str = e.kanji.encode_utf8(&mut buf).to_string();
-        let log_q4 = log_prior_from_freq(e.freq as u64);
+        let log_q4 = log_prob_corpus_from_freq(e.freq as u64, total_corpus);
         let log_prior_i16 = log_q4.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
         for reading in e.readings {
             builder.add_entry(

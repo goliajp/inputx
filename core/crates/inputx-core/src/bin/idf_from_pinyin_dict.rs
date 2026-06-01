@@ -18,7 +18,7 @@ use std::process::ExitCode;
 
 use inputx_dict_format::{EngineKind, EntryFlags, IdfBuilder};
 use inputx_pinyin::PinyinDict;
-use inputx_scoring::{log_prior_from_freq, MatchType};
+use inputx_scoring::{log_prob_corpus_from_freq, MatchType};
 
 /// User-curated polish-log Q4 log-prior boosts baked into the snapshot
 /// at build time (v1.4.7 sub-phase A5). The composite-runtime
@@ -174,9 +174,22 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     let dict = PinyinDict::embedded();
     let entries = dict.prefix_with_freq("");
     let entry_count = entries.len();
-    let total_corpus: u128 = entries.iter().map(|(_, _, f)| *f as u128).sum();
+    // v1.7.4: corpus_total = Σ raw_freq across the entries we'll
+    // actually write (source minus BAKED_EXCLUSIONS plus BAKED_ADDITIONS).
+    // The runtime `pinyin_corpus_total()` scans the .idf and sees the
+    // same rows — by construction the two totals agree.
+    let excluded_freq: u64 = entries
+        .iter()
+        .filter(|(code, word, _)| {
+            BAKED_EXCLUSIONS.iter().any(|(ec, ew)| ec == code && ew == word)
+        })
+        .map(|(_, _, f)| *f)
+        .sum();
+    let added_freq: u64 = BAKED_ADDITIONS.iter().map(|(_, _, f)| *f).sum();
+    let source_total: u64 = entries.iter().map(|(_, _, f)| *f).sum();
+    let total_corpus: u64 = source_total - excluded_freq + added_freq;
     eprintln!(
-        "[idf-from-pinyin-dict] loaded {entry_count} entries, total corpus freq = {total_corpus}"
+        "[idf-from-pinyin-dict] loaded {entry_count} entries, source raw_freq sum = {source_total}, post-edit corpus total = {total_corpus}"
     );
 
     if let Some(parent) = out_path.parent() {
@@ -211,7 +224,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         if boost != 0 {
             baked_count += 1;
         }
-        let log_prior_q4 = log_prior_from_freq(*raw_freq) + boost;
+        let log_prior_q4 = log_prob_corpus_from_freq(*raw_freq, total_corpus) + boost;
         let log_prior_i16 = clamp_to_i16(log_prior_q4);
         // raw_freq saturates into u32 — corpus frequencies don't
         // reasonably exceed 2^32-1; clamp defensively in case a future
@@ -240,7 +253,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     // capture natively. Path-1 exact-match will surface these and
     // gate off Path-5 K-best composition pollution.
     for (code, word, raw_freq) in BAKED_ADDITIONS {
-        let log_prior_q4 = log_prior_from_freq(*raw_freq);
+        let log_prior_q4 = log_prob_corpus_from_freq(*raw_freq, total_corpus);
         let log_prior_i16 = clamp_to_i16(log_prior_q4);
         let raw_freq_u32 = (*raw_freq).min(u32::MAX as u64) as u32;
         builder.add_entry(

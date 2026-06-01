@@ -271,7 +271,19 @@ pub fn dispatch(
                     // Orthodox Q4 log decomposition. log_prior is the
                     // frequency prior P(W); log_likelihood collapses all
                     // multiplicative likelihood factors into log space.
-                    let log_prior_q4 = inputx_scoring::log_prior_from_freq(raw_freq);
+                    //
+                    // v1.7.4 megachange: real log-probability
+                    // `Q4·ln((1+raw_freq)/(1+Σ wubi raw_freq))` instead
+                    // of the unnormalized `Q4·ln(1+raw_freq)`. Within-
+                    // wubi ordering is unaffected (uniform shift per
+                    // engine); cross-engine ordering is now governed by
+                    // `EngineWeights::engine_boost_q4[Wubi]` in
+                    // composite/merge.rs rather than the implicit
+                    // freq-scale difference between engines.
+                    let log_prior_q4 = inputx_scoring::log_prob_corpus_from_freq(
+                        raw_freq,
+                        inputx_wubi_data::wubi_corpus_total(),
+                    );
                     let likelihood_linear = layer.base() as f64
                         * pref
                         * layer_demote.max(f64::MIN_POSITIVE)
@@ -282,10 +294,23 @@ pub fn dispatch(
                         .ln()
                         * inputx_scoring::Q4 as f64)
                         .round() as i32;
-                    let components = ScoreComponents::three_axis(
+                    // v1.7.4: tag Jianma1/2/3 candidates as simcodes so
+                    // the cross-engine merge can apply
+                    // `EngineWeights::simcode_boost_q4` selectively —
+                    // common simcodes get the wubi-first lift, but
+                    // raw-freq-low entries (rare-CJK Jianma2) still
+                    // yield to common pinyin top.
+                    let is_simcode = matches!(
+                        layer,
+                        inputx_wubi::Layer::Jianma1
+                            | inputx_wubi::Layer::Jianma2
+                            | inputx_wubi::Layer::Jianma3,
+                    );
+                    let components = ScoreComponents::three_axis_simcode(
                         log_prior_q4,
                         log_likelihood_q4,
                         inputx_scoring::MatchType::Exact,
+                        is_simcode,
                     );
                     (w, final_score, Some(components))
                 })
@@ -334,6 +359,7 @@ pub fn dispatch(
                         freq,
                         scoring::PRIOR_FREQ_MULT_WUBI,
                         proximity,
+                        inputx_wubi_data::wubi_corpus_total(),
                     );
                     wubi_cands.push((word, score, Some(components)));
                 }
