@@ -101,11 +101,11 @@
 /// Below wubi/pinyin Phrase base (400k) so default ordering favors Chinese;
 /// freq boost lets high-frequency jukugo (日本/今日/学校/会社) climb above
 /// rare Chinese candidates.
-pub const LIKELIHOOD_JP_JUKUGO_BASE: f64 = 200_000.0;
+pub const LIKELIHOOD_JP_JUKUGO_BASE: f64 = inputx_scoring::consts::LIKELIHOOD_JP_JUKUGO_BASE;
 
 /// **LIKELIHOOD** — base for JP single-kanji match. Below jukugo (single
 /// chars typically less specific than compounds), still below Chinese bases.
-pub const LIKELIHOOD_JP_SINGLE_KANJI_BASE: f64 = 100_000.0;
+pub const LIKELIHOOD_JP_SINGLE_KANJI_BASE: f64 = inputx_scoring::consts::LIKELIHOOD_JP_SINGLE_KANJI_BASE;
 
 /// **LIKELIHOOD** — base for JP hiragana (mechanical romaji→kana rendering).
 /// Tuned 2026-05-24 from 200k → 150k after user-reported `di → ぢ #1
@@ -115,13 +115,13 @@ pub const LIKELIHOOD_JP_SINGLE_KANJI_BASE: f64 = 100_000.0;
 /// JP top < Chinese top". `え` at 'e' (low freq) lands at 150k, still
 /// visible mid-list (rank 3-6 typical), so the え-recovery regression
 /// stays fixed without overpowering pinyin.
-pub const LIKELIHOOD_JP_HIRAGANA_BASE: f64 = 150_000.0;
+pub const LIKELIHOOD_JP_HIRAGANA_BASE: f64 = inputx_scoring::consts::LIKELIHOOD_JP_HIRAGANA_BASE;
 
 /// **LIKELIHOOD** — base for JP katakana. Below hiragana (less common as
 /// the default romaji rendering). Tuned 150k → 110k for the same reason
 /// as hiragana: top katakana = 110k + 300k = 410k, comfortably under
 /// pinyin top.
-pub const LIKELIHOOD_JP_KATAKANA_BASE: f64 = 110_000.0;
+pub const LIKELIHOOD_JP_KATAKANA_BASE: f64 = inputx_scoring::consts::LIKELIHOOD_JP_KATAKANA_BASE;
 
 /// **PRIOR** — multiplier on the per-entry freq value (P(W) scaling for
 /// JP engine). Calibrated so top JP entries (freq 100) land at base +
@@ -129,7 +129,7 @@ pub const LIKELIHOOD_JP_KATAKANA_BASE: f64 = 110_000.0;
 /// katakana = 410k — both below pinyin top (~465k for common particles
 /// like 的/了/是) while staying above pinyin rare (~410k+) so confident
 /// JP picks aren't drowned out.
-pub const PRIOR_FREQ_MULT_JP: f64 = 3000.0;
+pub const PRIOR_FREQ_MULT_JP: f64 = inputx_scoring::consts::PRIOR_FREQ_MULT_JP;
 
 /// **PRIOR** — multiplier on the per-entry freq value for the **pinyin
 /// engine**. Pinyin dict entries already carry corpus-derived freq at a
@@ -137,14 +137,14 @@ pub const PRIOR_FREQ_MULT_JP: f64 = 3000.0;
 /// Phrase base 400k (top pinyin words land near 400k + freq, see
 /// `inputx_pinyin::PinyinDict::lookup_with_scores_into`). This factor
 /// stays 1.0 unless cross-engine calibration says otherwise.
-pub const PRIOR_FREQ_MULT_PINYIN: f64 = 1.0;
+pub const PRIOR_FREQ_MULT_PINYIN: f64 = inputx_scoring::consts::PRIOR_FREQ_MULT_PINYIN;
 
 /// **PRIOR** — multiplier on the per-entry freq value for the **wubi
 /// engine** in prefix-prediction. Wubi raw freq (from the embedded FST)
 /// already sits on a corpus-scaled axis where the bare value reads as a
 /// score contribution; 1.0 keeps it. See `LIKELIHOOD_WUBI_PREDICT_BASE`
 /// for the calibration of the additive floor.
-pub const PRIOR_FREQ_MULT_WUBI: f64 = 1.0;
+pub const PRIOR_FREQ_MULT_WUBI: f64 = inputx_scoring::consts::PRIOR_FREQ_MULT_WUBI;
 
 /// **LIKELIHOOD** — base for wubi prefix-prediction candidates (typed
 /// buffer is a **prefix** of the candidate's full wubi code, not an exact
@@ -164,7 +164,7 @@ pub const PRIOR_FREQ_MULT_WUBI: f64 = 1.0;
 /// Predictions are subject to the same `wubi_length_modifier` cutoff,
 /// so they silently vanish past `CUTOFF_WUBI_MAX_BUFFER_LEN` (4 chars).
 /// Wired into `predict_score()` via `dispatch.rs`.
-pub const LIKELIHOOD_WUBI_PREDICT_BASE: f64 = 50_000.0;
+pub const LIKELIHOOD_WUBI_PREDICT_BASE: f64 = inputx_scoring::consts::LIKELIHOOD_WUBI_PREDICT_BASE;
 
 /// **LIKELIHOOD** — base for pinyin prefix-prediction candidates
 /// (typed buffer is a **prefix** of the candidate's full pinyin, not a
@@ -201,7 +201,7 @@ pub const LIKELIHOOD_WUBI_PREDICT_BASE: f64 = 50_000.0;
 /// (`has_non_speculative_candidate == false`), so exact matches like
 /// `lianxiang → 联想` are not affected (2026-05-22 user rule). Wired
 /// into `predict_score()` below.
-pub const LIKELIHOOD_PINYIN_PREDICT_BASE: f64 = 180_000.0;
+pub const LIKELIHOOD_PINYIN_PREDICT_BASE: f64 = inputx_scoring::consts::LIKELIHOOD_PINYIN_PREDICT_BASE;
 
 /// **LIKELIHOOD** — JP full-match PROMOTE: multiplier applied to *every*
 /// JP candidate's score when the buffer yields a real full-buffer 熟語
@@ -220,7 +220,7 @@ pub const LIKELIHOOD_PINYIN_PREDICT_BASE: f64 = 180_000.0;
 /// input (no jukugo) is untouched. Bounded so it only matters for long
 /// romaji buffers (jukugo ≥ ~4 chars ⇒ wubi already zeroed by
 /// wubi_length_modifier; no simcode collision).
-pub const LIKELIHOOD_JP_FULL_MATCH_PROMOTE: f64 = 1.3;
+pub const LIKELIHOOD_JP_FULL_MATCH_PROMOTE: f64 = inputx_scoring::consts::LIKELIHOOD_JP_FULL_MATCH_PROMOTE;
 
 /// **LIKELIHOOD** — exponent on prefix-prediction proximity
 /// (`typed_len / full_reading_len`). A predicted candidate's freq
@@ -230,7 +230,7 @@ pub const LIKELIHOOD_JP_FULL_MATCH_PROMOTE: f64 = 1.3;
 /// closer to the word. K=3 (草案): 0.875→0.67, 0.5→0.125, 0.375→0.05.
 /// In the probability framing this IS `P(i|W)` for prefix matches.
 /// Tune in CP-A calibration. See PLAN-prefix-prediction.md §4.
-pub const LIKELIHOOD_PREDICT_PROXIMITY_K: f64 = 3.0;
+pub const LIKELIHOOD_PREDICT_PROXIMITY_K: f64 = inputx_scoring::consts::LIKELIHOOD_PREDICT_PROXIMITY_K;
 
 /// **LIKELIHOOD** — base for `compose_sentence` products (mechanical
 /// content+particle sentence guesses: 私は for watashiwa, but junk like
@@ -245,7 +245,7 @@ pub const LIKELIHOOD_PREDICT_PROXIMITY_K: f64 = 3.0;
 /// floor keeps the whole compose group beneath real candidates. Above
 /// katakana (110k) so a composed sentence still beats a bare mechanical
 /// kana rendering.
-pub const LIKELIHOOD_JP_COMPOSED_BASE: f64 = 130_000.0;
+pub const LIKELIHOOD_JP_COMPOSED_BASE: f64 = inputx_scoring::consts::LIKELIHOOD_JP_COMPOSED_BASE;
 
 /// **LIKELIHOOD** — base for a PURE-KANJI compose product — specifically
 /// the "jukugo + category-suffix kanji" path (東京+都 = 東京都, 大阪+府 =
@@ -262,7 +262,7 @@ pub const LIKELIHOOD_JP_COMPOSED_BASE: f64 = 130_000.0;
 /// (It can edge a very-low-freq real jukugo, freq<27 → <280k; acceptable
 /// — 東京都 is a legit reading.) Pure-kanji vs has-kana split is done by
 /// inspecting the word in japanese_adapter (no extra field).
-pub const LIKELIHOOD_JP_COMPOSED_KANJI_BASE: f64 = 280_000.0;
+pub const LIKELIHOOD_JP_COMPOSED_KANJI_BASE: f64 = inputx_scoring::consts::LIKELIHOOD_JP_COMPOSED_KANJI_BASE;
 
 /// **CUTOFF** — past this input length (pinyin-buffer chars), wubi
 /// candidate scores get multiplied by 0.0 via `wubi_length_modifier`.
@@ -277,7 +277,7 @@ pub const CUTOFF_WUBI_MAX_BUFFER_LEN: usize = 4;
 /// equivalent exists. In the probability framing: when the user types
 /// SC-friendly input, a TC candidate has much lower P(i|W) than its SC
 /// sibling.
-pub const LIKELIHOOD_TC_DEMOTE_MULT: f64 = 1e-3;
+pub const LIKELIHOOD_TC_DEMOTE_MULT: f64 = inputx_scoring::consts::LIKELIHOOD_TC_DEMOTE_MULT;
 
 /// **LIKELIHOOD** — wubi-first PROMOTE for a full-code (4-key) exact wubi
 /// **Phrase** hit when the user is simultaneously typing a valid pinyin
@@ -297,7 +297,7 @@ pub const LIKELIHOOD_TC_DEMOTE_MULT: f64 = 1e-3;
 /// Bounded below the Zigen base (500k) so wubi-internal layering is
 /// untouched. NOT applied to speculative short buffers (those keep the
 /// 0.5 demote) nor to Auto junk.
-pub const LIKELIHOOD_WUBI_FULL_CODE_PROMOTE: f64 = 1.1;
+pub const LIKELIHOOD_WUBI_FULL_CODE_PROMOTE: f64 = inputx_scoring::consts::LIKELIHOOD_WUBI_FULL_CODE_PROMOTE;
 
 /// **PRIOR** — multiplier applied to L0-pinned words inside the engine's
 /// `lookup_with_scores_into`. Brings any pin above any natural score:
@@ -316,7 +316,7 @@ pub const PRIOR_L0_PIN_MULT: f64 = 1000.0;
 /// than the phrase. Documentation constant; promotion currently lives
 /// inside wubi engine's own scoring.
 #[allow(dead_code)]
-pub const LIKELIHOOD_WUBI_SINGLE_CHAR_PROMOTE_MULT: f64 = 100.0;
+pub const LIKELIHOOD_WUBI_SINGLE_CHAR_PROMOTE_MULT: f64 = inputx_scoring::consts::LIKELIHOOD_WUBI_SINGLE_CHAR_PROMOTE_MULT;
 
 /// **MARKER** — diagnostic anchor recognizing "this is a wubi Jianma1
 /// hit". Used by FFI / diagnostic code. Equals `LAYER_BASE[Jianma1]` in
@@ -345,11 +345,11 @@ pub fn wubi_length_modifier(input_len: usize) -> f64 {
 /// calibration if the (prior, likelihood) split needs an additional
 /// per-engine confidence scale.
 #[allow(dead_code)]
-pub const LIKELIHOOD_ENGINE_MULT_WUBI: f64 = 1.0;
+pub const LIKELIHOOD_ENGINE_MULT_WUBI: f64 = inputx_scoring::consts::LIKELIHOOD_ENGINE_MULT_WUBI;
 #[allow(dead_code)]
-pub const LIKELIHOOD_ENGINE_MULT_PINYIN: f64 = 1.0;
+pub const LIKELIHOOD_ENGINE_MULT_PINYIN: f64 = inputx_scoring::consts::LIKELIHOOD_ENGINE_MULT_PINYIN;
 #[allow(dead_code)]
-pub const LIKELIHOOD_ENGINE_MULT_JP: f64 = 1.0;
+pub const LIKELIHOOD_ENGINE_MULT_JP: f64 = inputx_scoring::consts::LIKELIHOOD_ENGINE_MULT_JP;
 
 /// **LIKELIHOOD** — length bias for **prefix-completion** ranking (bare
 /// letter / partial syllable, e.g. `q`). At a single-syllable EXACT code

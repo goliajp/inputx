@@ -23,4 +23,11 @@ default = ["std"]
 std = []
 
 [dependencies]
-# Zero dependencies — same design point as inputx-fsa / inputx-phonetic-edit.
+# Zero runtime dependencies — same design point as inputx-fsa /
+# inputx-phonetic-edit. Build-dep `toml` is hidden from consumers.
+
+[build-dependencies]
+# v1.10: parse `data/engine_weights.toml` at build time and emit
+# generated const literals. Runtime-irrelevant — toml-rs doesn't ship
+# in the published crate's binary footprint.
+toml = { version = "0.8", default-features = false, features = ["parse"] }

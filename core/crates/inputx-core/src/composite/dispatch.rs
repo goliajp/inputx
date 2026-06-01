@@ -162,13 +162,12 @@ pub fn dispatch(
             // Jianma simcodes (1/2/3) + Zigen stay at ×1.0 — 伙-rule:
             // "我们是五笔输入法，你这样把'伙'这个正牌五笔输入都干到 13 位
             // 去了肯定不行". Simcodes are NOT in Auto/Phrase.
+            // v1.10: per-len table sourced from
+            // `inputx-scoring/data/engine_weights.toml`
+            // [dispatch.wubi].auto_layer_demote — index 0..3 = pinyin_len 1..4.
             let auto_demote = if pinyin_intent {
-                match pinyin_len {
-                    1 => 0.01,
-                    2 => 0.05,
-                    3 => 0.10,
-                    _ => 0.20,
-                }
+                let idx = (pinyin_len.saturating_sub(1)).min(3);
+                inputx_scoring::consts::WUBI_AUTO_LAYER_DEMOTE[idx]
             } else { 1.0 };
             // Phrase-layer multiplier under pinyin_intent:
             //   * speculative short buffer (< 4 codes) → 0.5 demote. The
@@ -185,7 +184,11 @@ pub fn dispatch(
             //     clearly-higher-freq pinyin word 继续 under 曳光弹).
             let full_code = pinyin_len == scoring::CUTOFF_WUBI_MAX_BUFFER_LEN;
             let phrase_mult = if pinyin_intent {
-                if full_code { scoring::LIKELIHOOD_WUBI_FULL_CODE_PROMOTE } else { 0.5 }
+                if full_code {
+                    scoring::LIKELIHOOD_WUBI_FULL_CODE_PROMOTE
+                } else {
+                    inputx_scoring::consts::WUBI_PHRASE_SPECULATIVE_DEMOTE
+                }
             } else {
                 1.0
             };
@@ -199,8 +202,12 @@ pub fn dispatch(
             // freq (左 41k, 表 47k, 能 56k, 就 57k, 伙 35k, 悄 27k,
             // 椒 29k, 胡 38k, 长 47k, 亦 43k all clear 20k floor); rare
             // chars (嶙 15k) drop and let pinyin top through.
-            const CHAR_PROMINENT_FLOOR: u64 = 20_000;
-            const RARE_CHAR_DEMOTE: f64 = 0.3;
+            // v1.10: values sourced from
+            // `inputx-scoring/data/engine_weights.toml` [dispatch.wubi]
+            // section. Polish via TOML edit, not code edit.
+            const CHAR_PROMINENT_FLOOR: u64 =
+                inputx_scoring::consts::WUBI_CHAR_PROMINENT_FLOOR_FREQ;
+            const RARE_CHAR_DEMOTE: f64 = inputx_scoring::consts::WUBI_RARE_CHAR_DEMOTE;
             let pinyin_dict = pinyin.engine().dict();
             let char_demote = |word: &str, layer: inputx_wubi::Layer| -> f64 {
                 if !matches!(layer, inputx_wubi::Layer::Jianma2 | inputx_wubi::Layer::Jianma3) {
@@ -261,7 +268,7 @@ pub fn dispatch(
                     let cd = char_demote(&w, layer);
                     let is_single = w.chars().count() == 1;
                     let single_promote = if full_code && is_single && raw_freq > max_phrase_freq {
-                        100.0
+                        inputx_scoring::consts::WUBI_FULL_CODE_SINGLE_CHAR_PROMOTE
                     } else {
                         1.0
                     };

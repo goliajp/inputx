@@ -429,8 +429,8 @@ impl PinyinAdapter {
         // v1.4.7 A3 cut the primary sort key to `score_q4`. The
         // estimated_freq round-trip drift (~0.5%) that blocked the
         // v1.4.6 C3 attempt no longer flips ranking.
-        const PINYIN_PHRASE_BASE: f64 = 400_000.0;
-        const L0_PIN_MULTIPLIER: f64 = 1000.0;
+        const PINYIN_PHRASE_BASE: f64 = inputx_scoring::consts::PINYIN_PHRASE_BASE;
+        const L0_PIN_MULTIPLIER: f64 = inputx_scoring::consts::L0_PIN_MULTIPLIER;
         let exact_entries = pinyin_idf_reader().lookup(self.buffer.as_bytes());
         // L0 pin lookup — cement-level state, intentionally orthogonal
         // to the corpus snapshot in EMBEDDED_PINYIN_IDF.
@@ -485,7 +485,7 @@ impl PinyinAdapter {
         // Floor for non-exact (initials / prefix-completion) entries —
         // sits below the lowest natural exact-match score so exact
         // matches dominate. 1k chosen as "any positive but tiny".
-        const NON_EXACT_FLOOR: f64 = 1000.0;
+        const NON_EXACT_FLOOR: f64 = inputx_scoring::consts::NON_EXACT_FLOOR;
         // Decay non-exact entries by position so the original within-
         // path ordering is preserved at the bottom of the merged list.
         let dict = self.engine.dict();
@@ -494,7 +494,7 @@ impl PinyinAdapter {
         // the Viterbi result wins #0 for long buffers, but stays well
         // below wubi simcodes (~600k-1M) so simcodes can still take
         // priority when both engines have a strong claim.
-        const COMPOSED_SCORE: f64 = 500_000.0;
+        const COMPOSED_SCORE: f64 = inputx_scoring::consts::COMPOSED_SCORE;
         // Path 5 last-resort composition (kaopu→靠谱). Sits ABOVE mechanical
         // JP kana (scoring::LIKELIHOOD_JP_HIRAGANA_BASE = 150k, katakana 110k, +freq×3k
         // — but mechanical renders carry freq 0) so a word composed from real
@@ -504,7 +504,7 @@ impl PinyinAdapter {
         // itself is empty, so this never leapfrogs a real pinyin candidate.
         // Real common words (靠谱/榨干) belong IN the dict (coverage —
         // dict-pipeline T0); once there they score as real words, above this.
-        const COMPOSED_FALLBACK_SCORE: f64 = 250_000.0;
+        const COMPOSED_FALLBACK_SCORE: f64 = inputx_scoring::consts::COMPOSED_FALLBACK_SCORE;
         // Fuzzy-match discount: a candidate that only matched after
         // initial-prefix fuzzy expansion (z↔zh, f↔h, etc.) is a typo-
         // correction guess — the user typed something close to, but not
@@ -518,13 +518,13 @@ impl PinyinAdapter {
         // match. Calibration: FUZZY_BASE * FUZZY_DISCOUNT = 350k * 0.3
         // = 105k, comfortably below prediction min 180k and JP exact
         // 240k.
-        const FUZZY_DISCOUNT: f64 = 0.3;
+        const FUZZY_DISCOUNT: f64 = inputx_scoring::consts::FUZZY_DISCOUNT;
         // Fuzzy candidates need a synthetic base if they have no exact
         // dict entry at the typed buffer — they DO have an entry at the
         // fuzzy-variant buffer (`zhongguo` for typed `zongguo`), but
         // exact_map (built from `lookup_with_scores_into(self.buffer)`)
         // only sees the typed-buffer entries. Give them a mid-tier base.
-        const FUZZY_BASE: f64 = 350_000.0;
+        const FUZZY_BASE: f64 = inputx_scoring::consts::FUZZY_BASE;
         // Composition base. Junk compositions (是嗯据库) are already dropped at
         // generation by the per-char quality gate in refresh_candidates, so a
         // composed_sentence reaching here is good. When an exact full-buffer
@@ -939,7 +939,7 @@ impl PinyinAdapter {
             // 是嗯据库 (~−22k/char for the Japanese romaji `shinjuku`) vs
             // a real sentence ~−11k/char (你好吗我叫). Drop at generation
             // so it never becomes a candidate.
-            const COMPOSED_QUALITY_FLOOR: f64 = -15_000.0;
+            const COMPOSED_QUALITY_FLOOR: f64 = inputx_scoring::consts::COMPOSED_QUALITY_FLOOR;
             let per_char = score / (self.buffer.chars().count().max(1) as f64);
             //
             // Tier 2 — cross-segment bigram support (user 2026-05-27,
