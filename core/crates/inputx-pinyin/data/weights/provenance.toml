@@ -4,18 +4,22 @@
 # the same SHAs MUST yield byte-identical weights.tsv.
 
 [generator]
-script_sha256   = "e3fc969438d89ea9b6b3f5c939d6d7f1954c86b50301fbbef3f53045cb485724"
-manifest_sha256 = "3a43f5edb3c011f013547d0c1b1c30f76209bdda6a855534e82f891e5612e172"
+script_sha256   = "b9d5a5c13174787d8a0208f1a9eba71587fe9a0bc71a58ff37fd5355be524a8e"
+manifest_sha256 = "9ea93e58f1323ef27b562f737d7816f763846f4dc97dc3d107cfcde4b5791dc1"
 rules_sha256    = "dfb207da0d251b426bd936a430aff519de43652efb0c532570a5fd24d372841e"
-readings_sha256 = "7d92c5204bb4f9cb5de265c83e0a7e9bb5caf6476a452cfb1419ce8bbcebbf10"
+readings_sha256 = "a229546eee288d3f9bc13ce4aedf6eaa6a363de86c4ef96fde7c923cedf4787c"
 
 [output]
-entries = 414325
-corpora = 3
+entries = 433569
+corpora = 5
 
 [corpora]
+zho_lccc_base.sha256 = "2162e0ed923fba62329cabf7e1493fbe59248afc94a62508e4abdea61e624627"
+zho_lccc_base.weight = 3
 zho_news_2020_100k.sha256 = "ba219ac3a5b9e13f2653690ab67a03a184cab6019cbbb374791fd4cc7446a7e1"
 zho_news_2020_100k.weight = 3
+zho_opensubtitles_v2018.sha256 = "6714021a39b65d44b616d7eb1aba0b2f5127fe0ce4891ba908357c890ff0784e"
+zho_opensubtitles_v2018.weight = 3
 zho_subtlex_ch_wf.sha256 = "086536450b1f77d0c7ff3ac0fc8375897162ace807d3167bec48b4c493434077"
 zho_subtlex_ch_wf.weight = 3
 zho_wikipedia_2018_1m.sha256 = "1fa674cd44842c16ee724f9c57d6b3a3cc4493e83e59b4fba2768213184fdfd4"

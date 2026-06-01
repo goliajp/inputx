@@ -69,3 +69,16 @@ license     = "CC-BY 4.0"
 description = "SUBTLEX-CH-WF (Cai & Brysbaert 2010, PLOS ONE 10.1371/journal.pone.0010729) — Chinese word frequency from 33.5M chars of film subtitles; byte-identical mirror of PLOS supplementary"
 format      = "frequency_list"
 encoding    = "gb18030"
+
+[corpus.zho_opensubtitles_v2018]
+url         = "https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2018/mono/zh_cn.txt.gz"
+sha256      = "6714021a39b65d44b616d7eb1aba0b2f5127fe0ce4891ba908357c890ff0784e"
+# Weight 0.6 mirrors SUBTLEX-CH-WF rationale: subtitle dialog gets the
+# same magnitude contribution as wiki/news (1.0). OPUS v2018 is ~5×
+# larger than SUBTLEX-CH-WF (172MB vs 9MB compressed), but the raw scan
+# matches dict words via substring not frequency-list parsing, so the
+# magnitude is naturally tempered by token spread.
+weight      = 0.6
+license     = "CC-BY 4.0"
+description = "OPUS-OpenSubtitles v2018 zh_cn monolingual (172MB gzipped, ~19M subtitle lines, ~150M chars). Modern (post-2010) film & TV dialog, complementing SUBTLEX-CH (older 2010 subtitles) — together they form the colloquial signal stack. Same redistribution posture: we ship derived freq stats only, never the source text. v1.9.0 WU-π.b corpus pivot per docs/v1.9.0-vNEXT-audit.md. Citation: P. Lison and J. Tiedemann (2016), 'OpenSubtitles2016: Extracting Large Parallel Corpora from Movie and TV Subtitles', LREC."
+format      = "gzip"
