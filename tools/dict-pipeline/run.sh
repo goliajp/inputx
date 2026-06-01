@@ -8,9 +8,12 @@
 #      Output: tools/dict-pipeline/output/<source>-vs-<engine>/{new,dropped,freq}.tsv
 #   3. Print summary table.
 #
-# What it does NOT do (yet — v1.7.1.c / v1.8):
-#   - rebuild .idf files (vNEXT snapshot) from fresh corpus + dict merge
-#   - automatically verify baseline_quality_test invariant
+# What it does NOT do (yet — v1.8):
+#   - merge fresh corpus into build_weights stage (today: vNEXT snapshot
+#     is byte-identical to shipped because input data unchanged; serves
+#     as path verification + baseline invariant proof)
+#   - automatically run baseline_quality_test (manual: cargo test
+#     -p inputx-core --lib baseline)
 #   - sequence multiple harvest dates / sources beyond zh-wikipedia
 #
 # Usage:
@@ -83,5 +86,40 @@ for ENGINE in "${ENGINES[@]}"; do
     printf "  %-35s  %12d  %12d  %12d\n" "${SOURCE}-vs-${ENGINE}" "$NEW" "$DROP" "$FREQ"
 done
 
+
+# 3. vNEXT .idf snapshot — rebuild from current dict source
+# Skipped in --dry-run (cargo build is expensive).
+if [[ -z "$DRY_RUN_FLAG" ]]; then
+    echo ""
+    echo "[dict-pipeline] vNEXT .idf snapshot rebuild"
+    mkdir -p data/private-dict/vNEXT/pinyin data/private-dict/vNEXT/wubi
+    pushd core >/dev/null
+    cargo run --release --bin idf-from-pinyin-dict -- \
+        --output ../data/private-dict/vNEXT/pinyin/words.idf 2>&1 \
+        | grep -E "^wrote|loaded|baked" | tail -4
+    cargo run --release --bin idf-from-wubi-tables -- \
+        --output ../data/private-dict/vNEXT/wubi/words.idf 2>&1 \
+        | grep -E "^wrote|loaded" | tail -3
+    popd >/dev/null
+    # Verify byte-identical vs shipped (proves baseline invariant — same
+    # input bytes → same .idf bytes, so ranking can't have drifted).
+    echo ""
+    echo "[dict-pipeline] vNEXT byte-identity check (vs shipped .idf):"
+    for engine in pinyin wubi; do
+        shipped_idf="core/crates/inputx-${engine}-$([[ $engine == pinyin ]] && echo helpers || echo data)/data/words.idf"
+        vnext_idf="data/private-dict/vNEXT/${engine}/words.idf"
+        if [[ -f "$shipped_idf" && -f "$vnext_idf" ]]; then
+            shipped_sha=$(shasum "$shipped_idf" | awk '{print $1}')
+            vnext_sha=$(shasum "$vnext_idf" | awk '{print $1}')
+            if [[ "$shipped_sha" == "$vnext_sha" ]]; then
+                printf "  %-7s ✓ byte-identical (sha %s)\n" "$engine" "${vnext_sha:0:12}"
+            else
+                printf "  %-7s ✗ DIFFER (shipped=%s vNEXT=%s)\n" "$engine" "${shipped_sha:0:12}" "${vnext_sha:0:12}"
+            fi
+        fi
+    done
+fi
+
 echo ""
 echo "[dict-pipeline] reports: tools/dict-pipeline/output/*"
+echo "[dict-pipeline] vNEXT:   data/private-dict/vNEXT/*"
