@@ -74,16 +74,27 @@ case "$KIND" in
         # TextInputMenuAgent so the new TIFF gets re-read.
         CACHE=$(getconf DARWIN_USER_CACHE_DIR 2>/dev/null || echo /tmp)
         rm -f "$CACHE"/com.apple.IntlDataCache.le* 2>/dev/null || true
-        killall TextInputMenuAgent 2>/dev/null || true
-        echo "[hot-patch] ✓ IntlDataCache purged + TextInputMenuAgent restarted"
+        # `killall` silently fails on SIP-protected system services on
+        # macOS 26 — must `kill -9` by PID. launchd respawns both.
+        # TextInputSwitcher must also be reset so the Ctrl+Space switcher
+        # HUD reads the new tiff (it lazy-loads tiff from IntlDataCache
+        # which we just deleted).
+        for proc in TextInputMenuAgent TextInputSwitcher; do
+            pid=$(pgrep -x "$proc" | head -1)
+            [[ -n "$pid" ]] && kill -9 "$pid" 2>/dev/null || true
+        done
+        echo "[hot-patch] ✓ IntlDataCache purged + TextInputMenuAgent + TextInputSwitcher restarted"
         ;;
     all)
         copy_one "mac/Resources/inputx_app_icon.icns" "$APP/Contents/Resources/inputx_app_icon.icns"
         copy_one "mac/Resources/inputx_menu_icon.tiff" "$APP/Contents/Resources/inputx_menu_icon.tiff"
         CACHE=$(getconf DARWIN_USER_CACHE_DIR 2>/dev/null || echo /tmp)
         rm -f "$CACHE"/com.apple.IntlDataCache.le* 2>/dev/null || true
-        killall TextInputMenuAgent 2>/dev/null || true
-        echo "[hot-patch] ✓ IntlDataCache purged + TextInputMenuAgent restarted"
+        for proc in TextInputMenuAgent TextInputSwitcher; do
+            pid=$(pgrep -x "$proc" | head -1)
+            [[ -n "$pid" ]] && kill -9 "$pid" 2>/dev/null || true
+        done
+        echo "[hot-patch] ✓ IntlDataCache purged + TextInputMenuAgent + TextInputSwitcher restarted"
         ;;
     "")
         echo "Usage: $0 <kind> [--no-dock]" >&2
