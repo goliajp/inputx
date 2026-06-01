@@ -190,12 +190,19 @@ pub struct PinyinAdapter {
     ///
     /// v1.8.0 WU-ν: value is the `inputx_phonetic_edit::edit_distance`
     /// from the typed buffer to the variant that matched in the dict.
-    /// Path 1a (initials) defaults to `0.3` (no real phonetic
-    /// distance — the user typed shorthand, not a typo), matching the
-    /// pre-v1.8 flat-discount behavior. Path 1b (fuzzy variants) emits
-    /// the real distance so closer typos rank higher than distant
-    /// ones at the same dict head.
+    /// Path 1b (fuzzy variants) emits the real distance so closer
+    /// typos rank higher than distant ones at the same dict head.
+    /// (Pre-v1.8.1 Path 1a initials also lived here at a fixed 0.3;
+    /// v1.8.1 carved initials out into [`initials_candidates`].)
     fuzzy_candidates: HashMap<String, f64>,
+    /// v1.8.1 WU-ξ: candidates that arrived via Path 1c initials-
+    /// shorthand lookup (`zg → 中国` style). Value is the
+    /// `(typed_len, full_len)` pair driving
+    /// `MatchType::Initials { typed_len, full_len }`'s proximity
+    /// decay — `typed_len = consonant_prefix.len()` (how many initial
+    /// letters the user typed), `full_len = word.chars().count() * 4`
+    /// (estimated full pinyin length, average syllable ≈ 4 ASCII).
+    initials_candidates: HashMap<String, (u8, u8)>,
     /// The Path 5 last-resort Viterbi composition (short non-lexeme buffer
     /// with no other candidate — e.g. `kaopu`→靠谱). `Some` only when that
     /// fallback fired. Scored in `candidates_with_scores` at
@@ -272,6 +279,7 @@ impl PinyinAdapter {
             has_non_speculative_candidate: false,
             composed_sentence: None,
             fuzzy_candidates: HashMap::new(),
+            initials_candidates: HashMap::new(),
             fallback_composition: None,
             prefix_scored: HashMap::new(),
             prefix_components: HashMap::new(),
@@ -571,7 +579,8 @@ impl PinyinAdapter {
             let is_composed = Some(w.as_str()) == self.composed_sentence.as_deref();
             let is_fallback = Some(w.as_str()) == self.fallback_composition.as_deref();
             let fuzzy_edit_distance: Option<f64> = self.fuzzy_candidates.get(w).copied();
-            let is_fuzzy = fuzzy_edit_distance.is_some();
+            let _is_fuzzy = fuzzy_edit_distance.is_some();
+            let initials_lens: Option<(u8, u8)> = self.initials_candidates.get(w).copied();
             let (base, components): (f64, Option<super::merge::ScoreComponents>) =
                 if is_composed {
                     // A composition that coincides with a real exact dict word
@@ -623,6 +632,29 @@ impl PinyinAdapter {
                     // 发明 should rank as prediction for `famin`, not as
                     // bottom-tier fuzzy.
                     (s, self.prefix_components.get(w).copied())
+                } else if let Some((typed_len, full_len)) = initials_lens {
+                    // v1.8.1 WU-ξ: initials shorthand has its own
+                    // LIKELIHOOD tier (`MatchType::Initials`),
+                    // distinct from fuzzy. The proximity decay is
+                    // gentler than Prefix (K=1 vs K=3) — the user
+                    // typed initial letters as an abbreviation, which
+                    // is more confident than a multi-edit typo.
+                    let weights = inputx_scoring::EngineWeights::inputx_default();
+                    let mt = inputx_scoring::MatchType::Initials { typed_len, full_len };
+                    let log_likelihood_q4 = inputx_scoring::derive_log_likelihood(
+                        weights.initials_likelihood_base_q4,
+                        mt,
+                    );
+                    // Legacy f64 `score` stays at NON_EXACT_FLOOR-
+                    // tier — pre-v1.8.1 initials lived here, and the
+                    // f64 field is the secondary tiebreaker only, so
+                    // not disturbing it keeps the merge's tertiary
+                    // ordering identical.
+                    let s = NON_EXACT_FLOOR * 0.99f64.powi(i as i32);
+                    let c = super::merge::ScoreComponents::three_axis(
+                        pinyin_floor, log_likelihood_q4, mt,
+                    );
+                    (s, Some(c))
                 } else if let Some(distance) = fuzzy_edit_distance {
                     // v1.8.0 WU-ν: fuzzy candidates carry their real
                     // `inputx_phonetic_edit::edit_distance` from the
@@ -837,6 +869,7 @@ impl PinyinAdapter {
         self.has_non_speculative_candidate = false;
         self.composed_sentence = None;
         self.fuzzy_candidates.clear();
+        self.initials_candidates.clear();
         self.fallback_composition = None;
         self.prefix_scored.clear();
         self.prefix_components.clear();
@@ -998,18 +1031,24 @@ impl PinyinAdapter {
             if consonant_prefix.len() == 2 && suffix_len >= 2 {
                 let idx = initials_index(&self.engine);
                 if let Some(matches) = idx.get(consonant_prefix.as_bytes()) {
+                    let typed_len = consonant_prefix.len().min(u8::MAX as usize) as u8;
                     for w in matches.take(50) {
                         let owned = w.to_owned();
                         if seen.insert(owned.clone()) {
+                            // v1.8.1 WU-ξ: initials shorthand has its
+                            // own `MatchType::Initials` tier (not
+                            // fuzzy). Estimate `full_len = chars · 4`
+                            // since average pinyin syllable ≈ 4 ASCII
+                            // letters (中 = "zhong" = 5, 国 = "guo"
+                            // = 3, avg 4). proximity = typed/full
+                            // drives the K=1 decay in
+                            // `derive_log_likelihood`.
+                            let full_len_estimate =
+                                (owned.chars().count().saturating_mul(4))
+                                    .min(u8::MAX as usize) as u8;
                             self.candidates.push(owned.clone());
-                            // Initials path: no phonetic edit-distance
-                            // semantic — the user typed shorthand, not
-                            // a typo. Default to 0.3 (the legacy
-                            // FUZZY_DISCOUNT-equivalent canonical
-                            // fuzzy distance) so the cross-engine
-                            // ranking reproduces the pre-v1.8 flat-
-                            // discount behavior for initials hits.
-                            self.fuzzy_candidates.insert(owned, 0.3);
+                            self.initials_candidates
+                                .insert(owned, (typed_len, full_len_estimate));
                         }
                     }
                 }

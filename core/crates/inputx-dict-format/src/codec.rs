@@ -282,6 +282,13 @@ pub fn encode_match_type(mt: inputx_scoring::MatchType) -> u8 {
         inputx_scoring::MatchType::Prefix(_) => 1,
         inputx_scoring::MatchType::Fuzzy(_) => 2,
         inputx_scoring::MatchType::Composed { .. } => 3,
+        // v1.8.1: Initials is a runtime-only classification (the user
+        // typed shorthand, the dict entry itself is just exact words).
+        // Round-trip not meaningful — encoder treats it as Exact, and
+        // runtime fill sites attach the (typed_len, full_len) tag
+        // freshly each time. Reserved slot 4 ensures the .idf
+        // schema can carry it later without renumbering.
+        inputx_scoring::MatchType::Initials { .. } => 4,
     }
 }
 
@@ -293,6 +300,7 @@ pub fn decode_match_type(b: u8) -> inputx_scoring::MatchType {
         1 => inputx_scoring::MatchType::Prefix(0),
         2 => inputx_scoring::MatchType::Fuzzy(0),
         3 => inputx_scoring::MatchType::Composed { bigram_links: 0 },
+        4 => inputx_scoring::MatchType::Initials { typed_len: 0, full_len: 0 },
         _ => inputx_scoring::MatchType::Exact, // forward-compat: unknown → Exact
     }
 }
