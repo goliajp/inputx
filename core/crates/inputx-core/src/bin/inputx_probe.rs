@@ -223,6 +223,11 @@ fn push_kv_match_type(out: &mut String, mt: inputx_scoring::MatchType) {
         inputx_scoring::MatchType::Composed { bigram_links } => {
             out.push_str(&format!("{{\"Composed\":{{\"bigram_links\":{bigram_links}}}}}"))
         }
+        inputx_scoring::MatchType::Initials { typed_len, full_len } => {
+            out.push_str(&format!(
+                "{{\"Initials\":{{\"typed_len\":{typed_len},\"full_len\":{full_len}}}}}"
+            ))
+        }
     }
 }
 
