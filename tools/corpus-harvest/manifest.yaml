@@ -33,3 +33,18 @@ sources:
     # Sample date to use when running without --date. Pick a known-good
     # historical date so dev runs are deterministic.
     sample_date: "20260501"
+
+  - name: zh-opensubtitles
+    license: CC-BY-4.0
+    # Refresh tied to OPUS releases — v2018 is the current stable dump.
+    # When OPUS publishes a new monolingual zh release, bump
+    # `dump_version` in the harvester script.
+    refresh: per-opus-release
+    harvester: harvest_zh_opensubtitles.py
+    # Stable frozen URL — OPUS-OpenSubtitles v2018 zh_cn monolingual.
+    # Used by IME corpus harvest because subtitle dialog matches the
+    # casual conversational register that IME users actually type
+    # (vs. wiki's formal-prose bias — see docs/v1.9.0-vNEXT-audit.md
+    # for the rationale).
+    url: "https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2018/mono/zh_cn.txt.gz"
+    dump_version: "OPUS-v2018"
