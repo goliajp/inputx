@@ -508,6 +508,15 @@ impl WubiDict {
         false
     }
 
+    /// User-pinned word for `code`, if any. Used by the composite
+    /// dispatch layer to re-apply the L0 pin promotion when wubi
+    /// candidates are sourced from the `lookup_with_freq_layer` path
+    /// (raw per-entry data, no pin baked in).
+    pub fn pinned_word(&self, code: &str) -> Option<String> {
+        let lower = code.to_ascii_lowercase();
+        self.l0.read().ok().and_then(|g| g.pins.get(&lower).cloned())
+    }
+
     /// Force-pin a word without going through the pick counter. Validates
     /// against L1; returns whether the pin was applied.
     pub fn pin(&self, code: &str, word: &str) -> bool {

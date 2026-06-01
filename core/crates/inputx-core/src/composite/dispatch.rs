@@ -245,6 +245,19 @@ pub fn dispatch(
             let layer_prefs_default = inputx_wubi::DEFAULT_LAYER_PREFS;
             let full_code = wubi.buffer_str().len() == 4;
             let freq_layer = wubi.candidates_with_freq_layer();
+            // L0 pin re-apply: `candidates_with_freq_layer` returns raw
+            // per-entry data without pin promotion baked in (cement-
+            // layer carve, per the doc comment at the top of this map
+            // closure). Mirror PinyinAdapter's L0_PIN_MULTIPLIER × 1000
+            // semantics — must be re-applied here to both the legacy
+            // f64 score AND `likelihood_linear` so the Q4 primary
+            // sort key (`log_likelihood_q4`) sees the boost. Without
+            // this re-apply, wubi L0 pin had ZERO effect on the
+            // cross-engine merge — a user pinning `("yi", "就")` saw
+            // their pinned word lose to pinyin candidates because the
+            // pinyin side DOES apply its pin in pinyin_adapter.rs.
+            // Mirrors pinyin_adapter.rs:449-450 + 463 + 469-470.
+            let wubi_pinned: Option<String> = wubi.pinned_word_for_buffer();
             // Single-char promote setup: at full code, a single-char
             // entry whose freq exceeds the per-code max phrase freq
             // gets ×100 boost (wubi 86 "full-code single-char wins"
@@ -272,9 +285,14 @@ pub fn dispatch(
                     } else {
                         1.0
                     };
+                    let pin_mult = if wubi_pinned.as_deref() == Some(w.as_str()) {
+                        inputx_scoring::consts::L0_PIN_MULTIPLIER
+                    } else {
+                        1.0
+                    };
                     // Legacy f64 score (transitional, drops post-A5):
                     let base_score = (layer.base() as f64 * pref + raw_freq as f64) * single_promote;
-                    let final_score = base_score * layer_demote * cd;
+                    let final_score = base_score * layer_demote * cd * pin_mult;
                     // Orthodox Q4 log decomposition. log_prior is the
                     // frequency prior P(W); log_likelihood collapses all
                     // multiplicative likelihood factors into log space.
@@ -295,7 +313,8 @@ pub fn dispatch(
                         * pref
                         * layer_demote.max(f64::MIN_POSITIVE)
                         * cd.max(f64::MIN_POSITIVE)
-                        * single_promote;
+                        * single_promote
+                        * pin_mult;
                     let log_likelihood_q4 = (likelihood_linear
                         .max(1.0)
                         .ln()

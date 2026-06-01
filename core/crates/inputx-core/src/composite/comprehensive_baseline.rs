@@ -715,6 +715,78 @@ mod tests {
         }
     }
 
+    // ───────────────────────────────────────────────────────────
+    // Wubi L0 pin regression — process-global wubi dict requires
+    // serialized access; we save + restore the snapshot to avoid
+    // leaking to other parallel tests.
+    //
+    // Pre-fix bug (2026-06-02): the v1.4.7 cement-layer carve moved
+    // wubi business rules from `inputx_wubi::PinyinDict::
+    // lookup_with_scores_into` into composite/dispatch.rs, but only
+    // re-applied `single_promote` — L0 pin × 1000 was forgotten. Net
+    // result: any wubi pin was a no-op for the cross-engine merge.
+    // User report: "no matter how many times I pick `就` for `yi`,
+    // it never beats pinned pinyin `以`" — symptom #1 was `就` losing
+    // to pinned `以`; symptom #2 was random unpinned pinyin like
+    // `已` / `亦` / `意` flipping at rank #1 (bigram-from-prev-
+    // committed jitter, by design but invisible to the user once `就`
+    // is stably at #0).
+    //
+    // jianma2_common_chars_lead_in_mixed already covers `("yi", "就")`
+    // for the cold (no L0) case. This test covers the WITH-pin case
+    // where competing pinyin pins exist — `就` must STILL lead.
+    // ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn wubi_pin_honored_in_mixed_mode_even_against_pinyin_pin() {
+        use inputx_wubi::L0Snapshot as WubiL0;
+
+        // Snapshot global wubi L0 + restore on exit so this doesn't
+        // leak to other parallel baseline tests.
+        let saved = inputx_wubi_data::export_l0();
+
+        // Test L0: pin yi → 就 in wubi side.
+        let test_snap = WubiL0 {
+            pins: vec![("yi".to_string(), "就".to_string())],
+            pick_counts: vec![],
+            layer_prefs: inputx_wubi::DEFAULT_LAYER_PREFS,
+        };
+        let accepted = inputx_wubi_data::import_l0(test_snap);
+        assert!(accepted >= 1, "wubi L0 pin should be accepted");
+
+        // Build CompositeEngine + pin pinyin yi → 以 too (the user
+        // had both pins active). Pinyin pin sits on the per-engine
+        // adapter so each fresh CompositeEngine starts empty —
+        // import via the session-style API would also work but
+        // we go direct since we already have the engine handle.
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        let pinyin_snap = inputx_pinyin::L0Snapshot {
+            pins: vec![("yi".to_string(), "以".to_string())],
+            pick_counts: vec![],
+        };
+        e.pinyin_import_l0(pinyin_snap);
+
+        for b in b"yi" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e.candidates().iter().take(10).map(|c| c.word.clone()).collect();
+        let top = top10.first().cloned().unwrap_or_default();
+
+        // Restore global wubi L0 BEFORE any assert that might panic,
+        // so the cleanup runs in both paths.
+        inputx_wubi_data::import_l0(saved);
+
+        assert_eq!(
+            top, "就",
+            "wubi L0 pin yi→就 must lead in Mixed mode even when pinyin L0 \
+             pins yi→以. Wubi is the IME-first engine; the user's wubi pin \
+             encodes muscle memory that pinyin pin must not override. \
+             Got top10={top10:?}"
+        );
+    }
+
     #[test]
     fn no_traditional_in_top5_for_common_pinyin() {
         // List of (pinyin, traditional_blocklist) — traditional forms
