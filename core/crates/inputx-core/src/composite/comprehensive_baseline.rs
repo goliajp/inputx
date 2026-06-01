@@ -302,6 +302,11 @@ mod tests {
             ("jingji", "经济"),
             ("dianhua", "电话"), ("dianshi", "电视"), ("dianying", "电影"),
             ("yinyue", "音乐"), ("xinwen", "新闻"),
+            // Polish-log 2026-06-01: julei → 聚类 (cluster — was missing
+            // from weights.tsv entirely; only `juleifenxi 聚类分析` existed
+            // at freq=0. Added to pinyin_modern_v1.tsv at 50k, matching
+            // peer tech terms like 算法/数据库).
+            ("julei", "聚类"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }

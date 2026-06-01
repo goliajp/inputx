@@ -37,24 +37,40 @@ help:
 #   4. Rebuild every .idf snapshot from the new dict.
 #   5. Run baseline tests as a gate.
 polish-rebuild:
-	@echo "[polish] (1/5) rebuild weights from corpus + overlays"
-	cd core && cargo run --features tools --release --bin pinyin-build-weights
-	cd core && cargo run --features tools --release --bin wubi-build-weights
-	@echo "[polish] (2/4) rebuild pinyin.dict (writes directly to inputx-pinyin-data-core, v1.11 WU-γ)"
+	@echo "[polish] (1/3) rebuild pinyin.dict from committed weights.tsv + overlays"
+	@# DO NOT rebuild weights.tsv here. v1.11 reproducibility audit
+	@# (2026-06-01) found `pinyin-build-weights` is non-deterministic
+	@# (re-running with no manifest changes produces ~270k row diff
+	@# vs committed). Until that's fixed, the committed weights.tsv
+	@# IS the source of truth for polish — only overlays + dict +
+	@# .idf get rebuilt. Use `make rebuild-weights` explicitly when
+	@# corpus manifest changes.
 	cd core && cargo run --features tools --release --bin pinyin-build-dict
-	@echo "[polish] (3/4) rebuild .idf snapshots"
+	@echo "[polish] (2/3) rebuild .idf snapshots"
 	cd core && cargo run --release --bin idf-from-pinyin-dict
 	cd core && cargo run --release --bin idf-from-wubi-tables
 	cd core && cargo run --release --bin idf-from-nihongo-kanji
 	cd core && cargo run --release --bin idf-from-nihongo-jukugo
-	@echo "[polish] (4/4) baseline gate"
+	@echo "[polish] (3/3) baseline gate"
 	$(MAKE) baseline
 	@echo "[polish] ✓ rebuild complete + baseline green"
 
+# Explicit weights rebuild — corpus manifest changed, or audit run.
+# Expect a large weights.tsv diff vs committed (build_weights is
+# non-deterministic across runs); review before committing.
+rebuild-weights:
+	@echo "[rebuild-weights] regenerating from corpus + manifest"
+	cd core && cargo run --features tools --release --bin pinyin-build-weights
+	cd core && cargo run --features tools --release --bin wubi-build-weights
+	@echo "[rebuild-weights] WARN: weights.tsv likely differs from committed; review diff"
+	@echo "[rebuild-weights] then run: make polish-rebuild"
+
 baseline:
-	cd core && cargo test -p inputx-scoring --lib --release -- --quiet 2>&1 | tail -3
-	cd core && cargo test -p inputx-core --lib baseline --release 2>&1 | tail -3
-	cd core && cargo test -p inputx-core --lib --release 2>&1 | tail -3
+	cd core && cargo test -p inputx-scoring --lib --release 2>&1 | tail -3
+	cd core && cargo test -p inputx-core --lib baseline --release 2>&1 | tail -3 | tee /tmp/baseline-out
+	@grep -q "test result: ok" /tmp/baseline-out || (echo "[baseline] FAIL — see output above" && exit 1)
+	cd core && cargo test -p inputx-core --lib --release 2>&1 | tail -3 | tee /tmp/lib-out
+	@grep -q "test result: ok" /tmp/lib-out || (echo "[baseline] lib FAIL — see output above" && exit 1)
 
 # Re-run the build chain and compare the resulting .idf SHAs against
 # the committed bytes. Detects "I forgot to commit the regenerated
