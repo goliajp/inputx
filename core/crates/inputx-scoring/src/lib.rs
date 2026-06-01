@@ -353,6 +353,22 @@ pub struct EngineWeights {
     /// 2-char compound) lands at `221 + ln(0.25)·16 ≈ 199`, matching
     /// the v1.8.0 ranking for initials candidates.
     pub initials_likelihood_base_q4: i32,
+
+    /// Per-extra-link decay for Viterbi-composed candidates, in Q4
+    /// log-space. Applied as `(bigram_links − 1) · viterbi_link_decay_q4`
+    /// (zero for `bigram_links ≤ 1`, i.e. exact / single-segment).
+    ///
+    /// Pre-v1.8.2 this lived as the hardcoded `LN_COMPOSED_PER_LINK =
+    /// f64::ln(0.7)` constant inside [`derive_log_likelihood`] —
+    /// elevated here so polish-log telemetry can tune the
+    /// per-link confidence penalty. Default `-6` reproduces
+    /// `round(ln(0.7) · Q4) = -6 Q4` ≈ `× 0.7` linear per link.
+    ///
+    /// Negative = decay (each extra link makes the composition less
+    /// likely); positive = boost (unusual; would suggest the engine
+    /// trusts longer chains more, which contradicts the Bayesian
+    /// `P(W_1, W_2, ..., W_n) ≤ P(W_i)` intuition).
+    pub viterbi_link_decay_q4: i32,
 }
 
 #[cfg(feature = "std")]
@@ -371,6 +387,7 @@ impl EngineWeights {
             word_len_bonus_q4: 0,
             fuzzy_likelihood_floor_q4: 0,
             initials_likelihood_base_q4: 0,
+            viterbi_link_decay_q4: 0,
         }
     }
 
@@ -462,6 +479,11 @@ impl EngineWeights {
             // is longer so the abbreviation is less unique → net
             // decay is right.
             initials_likelihood_base_q4: 221,
+            // WU-ο viterbi link decay (v1.8.2). −6 ≈ round(ln(0.7) ·
+            // Q4) reproduces the legacy `× 0.7` per-extra-link decay
+            // exactly. Calibrated against `derive_log_likelihood`'s
+            // pre-v1.8.2 `LN_COMPOSED_PER_LINK` constant.
+            viterbi_link_decay_q4: -6,
         }
     }
 }

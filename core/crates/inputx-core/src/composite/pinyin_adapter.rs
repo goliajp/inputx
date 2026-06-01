@@ -16,8 +16,8 @@ use std::sync::{Arc, OnceLock};
 use inputx_ngram::NgramTable;
 use inputx_pinyin::PinyinEngine;
 use inputx_pinyin_helpers::{
-    legacy_bigram_boost_from_ngm, pinyin_idf_reader, EMBEDDED_BIGRAMS_NGM,
-    EMBEDDED_PINYIN_IDF,
+    bigram_boost_from_ngm, legacy_bigram_boost_from_ngm, pinyin_idf_reader,
+    EMBEDDED_BIGRAMS_NGM, EMBEDDED_PINYIN_IDF,
 };
 
 use crate::rules::builtin::RepeatedLetterExpansion;
@@ -719,6 +719,25 @@ impl PinyinAdapter {
                 prev_committed,
                 w,
             );
+            // v1.8.2 WU-ο: bigram boost flows into log_likelihood_q4
+            // too — the Q4 sort key (primary) finally sees the same
+            // bigram signal the legacy f64 (tiebreaker) has had since
+            // v1.3. Pre-v1.8.2 these axes diverged for any candidate
+            // following a `prev_committed`, so the Q4 ranking
+            // disagreed with the f64 ranking exactly when bigram
+            // context mattered most. `bigram_boost_from_ngm` returns
+            // an i16 in Q4 log-space (`Q4 · ln(count)`), zero when
+            // `prev_committed` is None or the pair is unseen — so
+            // cold-session ranking is unchanged.
+            let bigram_q4 = bigram_boost_from_ngm(
+                embedded_bigrams_table(),
+                prev_committed,
+                w,
+            ) as i32;
+            let components = components.map(|mut c| {
+                c.log_likelihood_q4 = c.log_likelihood_q4.saturating_add(bigram_q4);
+                c
+            });
             scored.push((w.clone(), base + bigram_bonus, components));
         }
         scored
