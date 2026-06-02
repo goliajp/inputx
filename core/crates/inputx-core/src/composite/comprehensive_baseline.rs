@@ -1132,6 +1132,13 @@ mod tests {
     fn rare_wubi_phrases_absent_from_mixed_top10() {
         let cases: &[(&str, &[&str])] = &[
             ("jixu", &["曳光弹"]),
+            // 2026-06-03 sweep: 4-letter wubi phrases coinciding with
+            // common pinyin syllables — wubi tier score outranked pinyin
+            // single-char top of each buffer.
+            ("yong", &["恋情"]),
+            ("deng", &["有情"]),
+            ("geng", &["表情"]),
+            ("tong", &["释怀"]),
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
