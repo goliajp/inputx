@@ -1084,4 +1084,34 @@ mod tests {
             panic!("{} traditional-leak cases failed:\n{}", failures.len(), failures.join("\n"));
         }
     }
+
+    // ───────────────────────────────────────────────────────────
+    // Mixed-mode: rare/obscure wubi phrases must not contaminate
+    // top-10 for common pinyin buffers. User report 2026-06-03:
+    // "jixu 还是有曳光弹在第三，这个词太生僻了我感觉，要么根本不
+    // 需要，要么应该 level 很低" — wubi has no demote overlay
+    // (Class C wubi unsupported), so Class D deletion from
+    // phrases.txt is the only path. This test pins the deletion.
+    // ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn rare_wubi_phrases_absent_from_mixed_top10() {
+        let cases: &[(&str, &[&str])] = &[
+            ("jixu", &["曳光弹"]),
+        ];
+        let mut failures = Vec::new();
+        for (buf, blocklist) in cases {
+            let top10 = mixed_top10(buf.as_bytes());
+            for bad in *blocklist {
+                if top10.iter().any(|w| w == bad) {
+                    failures.push(format!(
+                        "  {buf}: rare wubi {bad} in mixed top10 — top10={top10:?}"
+                    ));
+                }
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} rare-wubi-noise cases failed:\n{}", failures.len(), failures.join("\n"));
+        }
+    }
 }
