@@ -1148,4 +1148,33 @@ mod tests {
             panic!("{} rare-wubi-noise cases failed:\n{}", failures.len(), failures.join("\n"));
         }
     }
+
+    // ───────────────────────────────────────────────────────────
+    // Pinyin corpus noise (jieba sub-word artifacts, archaic
+    // readings, etc.) — must not appear in mixed top10. Backed by
+    // BAKED_EXCLUSIONS in idf_from_pinyin_dict.rs.
+    // ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn corpus_noise_absent_from_mixed_top10() {
+        let cases: &[(&str, &[&str])] = &[
+            // User polish-log 2026-06-03: "cipin 次贫不应该存在" —
+            // jieba sub-word noise (次 + 贫), not a real Chinese phrase.
+            ("cipin", &["次贫"]),
+        ];
+        let mut failures = Vec::new();
+        for (buf, blocklist) in cases {
+            let top10 = mixed_top10(buf.as_bytes());
+            for bad in *blocklist {
+                if top10.iter().any(|w| w == bad) {
+                    failures.push(format!(
+                        "  {buf}: corpus noise {bad} in mixed top10 — top10={top10:?}"
+                    ));
+                }
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} corpus-noise cases failed:\n{}", failures.len(), failures.join("\n"));
+        }
+    }
 }
