@@ -481,19 +481,43 @@ impl PinyinAdapter {
                 * inputx_scoring::Q4 as f64)
                 .round() as i32;
             exact_map.insert(word.to_string(), legacy_score);
-            // WU-ψ tier assignment for pinyin exact-match candidates:
-            //   - pinned → 0 (user assertion)
-            //   - exact buffer match → 1 (all exact hits land in tier 1;
-            //     within-tier ordering by raw_freq desc handles "top
-            //     common" vs "rest of homophones" automatically)
+            // WU-ψ tier assignment for pinyin exact-match candidates
+            // (WU-ψ phase 7 — freq-band split):
+            //   - pinned                                 → 0 (user assertion)
+            //   - multi-char phrase (word_chars >= 2)    → 1 (phrase always
+            //                                              tier 1 so e.g.
+            //                                              `women → 我们`
+            //                                              beats JP かな)
+            //   - single char, raw_freq >= 20k           → 1 (top common)
+            //   - single char, raw_freq >= 5k            → 2 (mid common)
+            //   - single char, raw_freq >= 1k            → 3 (uncommon)
+            //   - single char, raw_freq < 1k             → 5 (rare-CJK;
+            //                                              yields to JP
+            //                                              basic kana per
+            //                                              user report
+            //                                              2026-06-02 sai)
             //
-            // Phase 5: per-(buffer, word) overlay can override the
-            // natural rule (e.g. lift `juti 具体` to tier 0 so the
-            // polish-log prior boost survives the wubi engine_offset).
+            // Threshold 20k is the same CHAR_PROMINENT_FLOOR wubi already
+            // uses for its rare-vs-prominent split (see
+            // `[dispatch.wubi].char_prominent_floor_freq` in
+            // engine_weights.toml). 5k / 1k chosen so the bands roughly
+            // halve the corpus per step.
+            //
+            // Phase 5: per-(buffer, word) tier_overlay.tsv can override
+            // any of these natural tiers (e.g. `juti 具体 0`).
+            let word_chars = word.chars().count();
             let natural_tier: u8 = if pinned.as_deref() == Some(word) {
                 0
-            } else {
+            } else if word_chars >= 2 {
                 1
+            } else if entry.raw_freq >= 20_000 {
+                1
+            } else if entry.raw_freq >= 5_000 {
+                2
+            } else if entry.raw_freq >= 1_000 {
+                3
+            } else {
+                5
             };
             let tier_pinyin: u8 = inputx_scoring::tier_overlay::get(
                 &self.buffer,
