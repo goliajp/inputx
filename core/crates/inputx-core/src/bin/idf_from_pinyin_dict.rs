@@ -101,6 +101,16 @@ const BAKED_EXCLUSIONS: &[(&str, &str)] = &[
     // surfaces naturally. (lianglei, 两肋) is kept — that mapping is
     // legitimate per modern reading.
     ("liangle", "两肋"),
+
+    // 2026-06-03 user polish-log: `jile` led with 极了 (freq 33555 from
+    // 好极了/棒极了 compound bleed in jieba data), pushing 极乐 to #1
+    // and 寄了 nowhere. "极了" is a bound suffix, not a free word —
+    // standalone "jile" shouldn't surface it. Dropping (jile, 极了)
+    // lets 极乐 lead naturally; (jile, 寄了) is BAKED below at
+    // freq 500 so internet-slang 寄了 surfaces in top-10 below 极乐.
+    // Compounds like 棒极了 (bangjile) keep their entry and are
+    // untouched.
+    ("jile", "极了"),
 ];
 
 const BAKED_ADDITIONS: &[(&str, &str, u64)] = &[
@@ -131,6 +141,15 @@ const BAKED_ADDITIONS: &[(&str, &str, u64)] = &[
     // turn (per the lianxiang 2026-05-22 rule), so 两肋 also no
     // longer surfaces under liangle.
     ("liangle", "凉了", 500),
+
+    // 2026-06-03 user polish-log (jile → 寄了): "寄了" is internet
+    // slang ("done for / screwed"), not in upstream jieba phrase data.
+    // Combined with (jile, 极了) being excluded above, K-best would
+    // normally compose 寄+了 — but at freq 500 we bake it explicitly
+    // as a Path-1 exact so it lands deterministically in top-10 below
+    // 极乐 (legitimate jile phrase, freq 19502). User accepted either
+    // 极乐 or 寄了 leading; baking at 500 keeps 极乐 #0.
+    ("jile", "寄了", 500),
 ];
 
 fn main() -> ExitCode {

@@ -1189,6 +1189,48 @@ mod tests {
     }
 
     #[test]
+    fn mixed_jile_surfaces_极乐_寄了_not_极了() {
+        // User polish-log (2026-06-03): typing `jile` led with 极了 (jieba
+        // compound bleed — 极了 is a bound suffix only appearing after
+        // adjectives like 好极了/棒极了, not a standalone word). 极乐 sat
+        // at #1, 寄了 (internet slang "done for") was absent because it
+        // isn't in upstream jieba data at all.
+        //
+        // Fix uses the same liangle pattern (above):
+        //   BAKED_EXCLUSIONS drops (jile, 极了) so standalone jile no
+        //   longer surfaces the bound suffix. Compound entries (bangjile,
+        //   haojile, …) keep 极了 and are untouched.
+        //   BAKED_ADDITIONS inserts (jile, 寄了, 500) so the internet
+        //   slang surfaces deterministically in top-N below 极乐
+        //   (legitimate jile phrase, freq 19502).
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let cands_for = |buf: &[u8]| -> Vec<String> {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::Mixed);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            for b in buf { let _ = e.handle_letter(*b); }
+            e.candidates().iter().map(|c| c.word.clone()).collect()
+        };
+        let jile = cands_for(b"jile");
+        // jile: 极乐 must lead, 寄了 must surface in top-10, 极了 must NOT appear.
+        assert_eq!(jile.first().map(String::as_str), Some("极乐"),
+            "jile top1 must be 极乐 (legitimate phrase); got {jile:?}");
+        let top10: Vec<&str> = jile.iter().take(10).map(String::as_str).collect();
+        assert!(top10.contains(&"寄了"),
+            "jile top10 must include 寄了 (baked at freq 500); got {top10:?}");
+        assert!(!jile.iter().any(|w| w == "极了"),
+            "jile must not surface 极了 (compound-bleed from 好极了/棒极了); got {jile:?}");
+        // bangjile / haojile must still produce 棒极了 / 好极了 — compounds untouched.
+        let bangjile = cands_for(b"bangjile");
+        let haojile = cands_for(b"haojile");
+        assert!(bangjile.iter().any(|w| w == "棒极了"),
+            "bangjile must still surface 棒极了; got {bangjile:?}");
+        assert!(haojile.iter().any(|w| w == "好极了"),
+            "haojile must still surface 好极了; got {haojile:?}");
+    }
+
+    #[test]
     fn mixed_jp_low_ratio_kbest_fully_suppressed() {
         // User polish-log (2026-05-29, `rokuman`): pinyin Path-5 K-best
         // was force-segmenting Japanese romaji buffers into mechanical
