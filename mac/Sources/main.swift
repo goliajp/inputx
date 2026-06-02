@@ -41,56 +41,31 @@ if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "install" {
         let id = Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
         return modeIDs.contains(id)
     }
-    // TISRegisterInputSource policy:
-    //  - 0 rows matching expected mode IDs → fresh install, register.
-    //  - exactly 1 row per expected mode ID → already correct, do nothing.
-    //  - 2+ rows for an expected mode ID → previous-policy duplicates;
-    //    disable extras + re-register.
+    // TISRegisterInputSource policy — single contract:
+    //   - 0 rows match expected mode IDs → register (this is the
+    //     first-install path; macOS will prompt for TCC consent).
+    //   - exactly 1 row per expected mode ID → already registered,
+    //     do not re-register (TIS appends; re-register creates
+    //     duplicates).
+    //   - any other state (duplicates, orphan IDs with our bundle
+    //     prefix, etc.) → FAIL. Caller (mac/reinstall.py) detects
+    //     this earlier and instructs the user to run `--clean`.
     //
-    // PLUS: orphan cleanup. macOS TIS may carry rows for our bundle
-    // ID under STALE mode IDs from earlier bundle versions (notably
-    // the `jp.golia.inputmethod.wubi.wubi.zh` doubled-segment ID that
-    // showed up before the per-mode `TISInputSourceID` was added —
-    // 2026-06-02 fix). Any row whose ID is OURS by bundle prefix but
-    // is NOT in the current expected `modeIDs` set is an orphan from
-    // a prior bundle layout; disable it so it can't conflict with the
-    // clean re-registration. The bundle's top-level `TISInputSourceID`
-    // is also expected and skipped (it's not a selectable mode).
-    let bundleID = Bundle.main.bundleIdentifier ?? ""
-    let topLevelID = Bundle.main.infoDictionary?["TISInputSourceID"] as? String ?? ""
-    let isOurs: (String) -> Bool = { id in
-        id == bundleID || id == topLevelID || id.hasPrefix(bundleID + ".")
-    }
-    func srcID(_ src: TISInputSource) -> String? {
-        guard let p = TISGetInputSourceProperty(src, kTISPropertyInputSourceID) else { return nil }
-        return Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
-    }
-    var orphansDisabled = 0
-    for src in all {
-        guard let id = srcID(src) else { continue }
-        if isOurs(id) && id != topLevelID && !modeIDs.contains(id) {
-            _ = TISDisableInputSource(src)
-            orphansDisabled += 1
-        }
-    }
-    if orphansDisabled > 0 {
-        NSLog("Inputx install: disabled \(orphansDisabled) orphan TIS row(s) from prior bundle layouts")
-    }
-
+    // Pre-2026-06-02 commits had orphan cleanup + duplicate dedupe
+    // here as defensive bandaids for a different bug (missing
+    // TISInputSourceID in Info.plist + an "always re-register"
+    // policy that compounded the mess). Per project rule
+    // (no-defensive-programming): root cause fixed in d6cdc52,
+    // bandaids removed here.
     let alreadyRegistered = all.filter(match)
-    var duplicatesByID: [String: Int] = [:]
-    for src in alreadyRegistered {
-        guard let id = srcID(src) else { continue }
-        duplicatesByID[id, default: 0] += 1
+    if alreadyRegistered.count > modeIDs.count {
+        NSLog("Inputx install: REFUSING to install — TIS has "
+            + "\(alreadyRegistered.count) rows for \(modeIDs.count) "
+            + "expected mode IDs (duplicates or orphans). Run "
+            + "`mac/reinstall.py --clean` then retry.")
+        exit(1)
     }
-    let hasDuplicates = duplicatesByID.values.contains { $0 > 1 }
-    if hasDuplicates {
-        NSLog("Inputx install: detected duplicate TIS rows, disabling + re-registering")
-        for src in alreadyRegistered {
-            _ = TISDisableInputSource(src)
-        }
-    }
-    if alreadyRegistered.isEmpty || hasDuplicates {
+    if alreadyRegistered.isEmpty {
         let status = TISRegisterInputSource(Bundle.main.bundleURL as CFURL)
         guard status == noErr else {
             NSLog("Inputx install: TISRegisterInputSource failed OSStatus=\(status)")
@@ -102,9 +77,7 @@ if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "install" {
     for src in postRegister {
         TISEnableInputSource(src)
     }
-    NSLog("Inputx install: \(postRegister.count) mode(s) registered + enabled "
-        + "(had \(alreadyRegistered.count) pre-existing, duplicates=\(hasDuplicates), "
-        + "orphans cleaned=\(orphansDisabled))")
+    NSLog("Inputx install: \(postRegister.count) mode(s) registered + enabled")
     exit(0)
 }
 

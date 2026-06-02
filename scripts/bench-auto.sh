@@ -9,7 +9,7 @@
 # runs across commits can be compared apples-to-apples.
 #
 # Pre-conditions:
-#   - Inputx is installed + LaunchAgent-managed (./mac/reinstall.sh)
+#   - Inputx is installed + LaunchAgent-managed (mac/reinstall.py)
 #   - Inputx is enabled in System Settings → Keyboard → Input Sources
 #   - Terminal / IDE running this script has accessibility permission
 #     (System Settings → Privacy & Security → Accessibility)
@@ -76,12 +76,11 @@ for attempt in 1 2 3; do
     sleep 1
     # Force-clear log so old registration errors don't false-positive verify
     : > "$LOG"
-    # reinstall-safe.sh wraps reinstall.sh with the full IntlDataCache
-    # invalidation + TIS orphan cleanup + duplicate dedupe pass. The bare
-    # reinstall.sh skips parts of that (covered by reinstall-safe's
-    # post-window block), which previously left a doubled `wubi.wubi.zh`
-    # TIS row that broke menu switchability across bench sessions.
-    (cd mac && ./reinstall-safe.sh > /tmp/bench-reinstall.log 2>&1) || {
+    # mac/reinstall.py is the single canonical install entry point —
+    # auto-detects first vs reinstall, runs with safety net (backup +
+    # 5s health window + rollback). No `|| true` fallbacks; failures
+    # surface via non-zero exit and the captured log.
+    (cd mac && ./reinstall.py > /tmp/bench-reinstall.log 2>&1) || {
         echo "[bench-auto]   reinstall failed; see /tmp/bench-reinstall.log" >&2
         continue
     }
