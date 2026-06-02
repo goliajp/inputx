@@ -269,6 +269,49 @@ pub fn dispatch(
                 .map(|(_, _, f)| *f)
                 .max()
                 .unwrap_or(0);
+            // Prominent simcode winner — the wubi 二级简码 / 三级简码 / 一级简码
+            // single-char candidate that should structurally lead in Mixed
+            // mode (muscle-memory contract: "五笔只要不是难检字，在二级简码
+            //肯定是不能输给拼音的"). Computed BEFORE consuming freq_layer
+            // in the .map below.
+            //
+            // Eligibility:
+            //   - is_simcode (Layer = Jianma1 | 2 | 3)
+            //   - char_demote(word, layer) == 1.0 — i.e., target char is
+            //     above CHAR_PROMINENT_FLOOR (就 yes, 峭 no). Rare-CJK
+            //     simcodes (峭 at `mie`) intentionally yield to pinyin
+            //     top via the existing demote, so they stay out of this
+            //     structural promotion path too.
+            //
+            // Ranking among eligible: highest layer.base + raw_freq.
+            // Approximation of the final_score below; sufficient because
+            // wubi candidates within the same buffer typically share one
+            // simcode layer (the Jianma table is per-code unique among
+            // simcodes) — usually one winner, no tie to break.
+            //
+            // Why structural (not "just boost the score"): pinyin bigram
+            // from prev_committed contributes up to +200 Q4 to pinyin
+            // candidates' log_likelihood_q4 (see pinyin_adapter.rs:732-740).
+            // ANY fixed multiplier on the wubi side can be flanked by a
+            // strong-enough bigram pair. The muscle-memory rule requires
+            // an unconditional #0, not a "usually wins" #0.
+            let prominent_simcode_winner: Option<String> = freq_layer
+                .iter()
+                .filter(|(w, layer, _freq)| {
+                    let is_simcode = matches!(
+                        layer,
+                        inputx_wubi::Layer::Jianma1
+                            | inputx_wubi::Layer::Jianma2
+                            | inputx_wubi::Layer::Jianma3,
+                    );
+                    is_simcode && char_demote(w, *layer) == 1.0
+                })
+                .max_by(|a, b| {
+                    let sa = a.1.base() as f64 + a.2 as f64;
+                    let sb = b.1.base() as f64 + b.2 as f64;
+                    sa.partial_cmp(&sb).unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .map(|(w, _, _)| w.clone());
             let mut wubi_cands: Vec<Scored> = freq_layer
                 .into_iter()
                 .map(|(w, layer, raw_freq)| {
@@ -411,31 +454,40 @@ pub fn dispatch(
                 jp_kanji,
                 jp_kana,
             );
-            // Wubi L0 pin = absolute #0 (muscle-memory contract).
+            // Structural #0 in Mixed mode (muscle-memory contract).
             //
             // The Q4 score-based sort that `merge` uses can be flanked
-            // by pinyin bigram boost from `prev_committed`: pinned wubi
-            // gets ×1000 likelihood (≈ +110 Q4) and pinned pinyin gets
-            // the same, but pinyin candidates ALSO collect a bigram
-            // additive in log-space (≈ +100-200 Q4 for common pairs).
-            // Net result: a user who types `用` then `yi` sees `以`
-            // (pinyin pin + (用,以) bigram) outrank `就` (wubi pin) —
-            // exactly opposite the wubi-first muscle-memory contract.
-            //
-            // Structural promotion is the right shape here, not yet
-            // another scoring constant: pin is a USER ASSERTION, not a
-            // statistical hint. It must dominate any context signal,
-            // not "usually" beat it. Score-based competition by design
-            // lets corpus / context features creep in; lifting the
-            // pinned wubi word out of the sort entirely is the only
+            // by pinyin bigram boost from `prev_committed`: a common-
+            // pair bigram like (用, 以) contributes +100-200 Q4 to the
+            // pinyin candidate, which can outrun even the pin × 1000
+            // multiplier (+110 Q4 in log space). The wubi-first rule
+            // is non-negotiable in this codebase though — pin is a
+            // USER ASSERTION (1), and a prominent simcode encodes
+            // muscle memory (2). Both must dominate any context
+            // signal, not "usually" beat it. Score-based competition
+            // by design lets corpus features creep in; lifting the
+            // chosen wubi word out of the sort entirely is the only
             // way to make the contract bulletproof.
+            //
+            // Priority order:
+            //   1. wubi L0 pin (explicit user training)        — beats
+            //   2. prominent wubi simcode (二级/三级/一级简码 of a
+            //      non-rare char) — beats
+            //   3. everything else (pinyin bigram, JP, etc.)
+            //
+            // Rare-CJK simcodes (峭 etc.) are NOT in (2); they continue
+            // to yield to pinyin top per the existing char_demote +
+            // rare_jianma2_chars_yield_to_pinyin_top invariant.
             //
             // Scope: Mixed only — WubiOnly already has no pinyin
             // competition, PinyinOnly skips this branch.
-            if let Some(pin) = wubi_pinned.as_deref()
+            let target: Option<&str> = wubi_pinned
+                .as_deref()
+                .or(prominent_simcode_winner.as_deref());
+            if let Some(t) = target
                 && let Some(idx) = merged
                     .iter()
-                    .position(|c| c.source == Source::Wubi && c.word == pin)
+                    .position(|c| c.source == Source::Wubi && c.word == t)
                 && idx > 0
             {
                 let p = merged.remove(idx);
