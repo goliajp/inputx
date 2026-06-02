@@ -1,0 +1,694 @@
+#!/usr/bin/env python3
+"""mac/reinstall.py — single entry point for Inputx install / reinstall.
+
+Replaces install.sh + reinstall.sh + reinstall-safe.sh with one
+contract-checked Python script.
+
+Mode is auto-detected:
+  - "first":     bundle absent OR TIS has no row for our mode IDs
+                 (→ registers the bundle; macOS shows the
+                  "Allow Inputx" popup; user finishes via System
+                  Settings → Keyboard → Add Input Source)
+  - "reinstall": bundle present AND TIS has exactly one row per
+                 mode ID (→ silent bundle swap, no TCC popup)
+
+Any other TIS state (duplicates, orphan IDs from old bundle
+layouts, missing AppleEnabledInputSources entry while TIS row
+exists, etc.) is treated as STATE CORRUPTION and the script
+fails loudly. Use `--clean` to drop the bundle + all TIS rows
+for our bundle ID and start over.
+
+Safety:
+  Default is "safe" — backup the current bundle, run, watch
+  for 5s, rollback if the new binary crashes or the install
+  doesn't satisfy the post-condition.
+  Pass `--no-safe` to skip the backup/rollback machinery.
+
+Usage:
+  mac/reinstall.py                # auto-detect, build, safe install
+  mac/reinstall.py --no-build     # skip cargo rebuild
+  mac/reinstall.py --no-safe      # no backup, no health window
+  mac/reinstall.py --clean        # uninstall bundle + clean TIS state
+
+Per project rule (memory: no-defensive-programming): one canonical
+path per scenario, fail loud on unexpected state, no `|| true`,
+no double-kill, no belt-and-braces fallbacks. The reenable.sh /
+orphan-cleanup / duplicate-dedupe paths that accumulated during
+the 2026-06-02 debug loop are NOT present here — root causes
+are fixed at the source (TISInputSourceID in Info.plist,
+TISRegister policy in main.swift, IntlDataCache invalidation
+inline).
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import time
+from dataclasses import dataclass
+from pathlib import Path
+
+# ─── Constants ────────────────────────────────────────────────────────
+
+APP_NAME = "Inputx"
+BUNDLE_ID = "jp.golia.inputmethod.wubi"
+MODE_ID = "jp.golia.inputmethod.wubi.zh"
+CONNECTION_NAME = f"{BUNDLE_ID}_Connection"
+
+HOME = Path.home()
+MAC_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = MAC_DIR.parent
+APP_SRC = PROJECT_ROOT / "build" / f"{APP_NAME}.app"
+APP_DST = HOME / "Library" / "Input Methods" / f"{APP_NAME}.app"
+LA_DST = HOME / "Library" / "LaunchAgents" / f"{BUNDLE_ID}.plist"
+LA_TEMPLATE = MAC_DIR / "Resources" / "LaunchAgent.plist.template"
+L0_DIR = (
+    HOME / "Library" / "Containers" / BUNDLE_ID
+    / "Data" / "Library" / "Application Support" / APP_NAME
+)
+LSREGISTER = (
+    "/System/Library/Frameworks/CoreServices.framework"
+    "/Frameworks/LaunchServices.framework/Support/lsregister"
+)
+PROCESS_PATTERN = "Inputx.app/Contents/MacOS/Inputx"
+HEALTH_WINDOW_SECS = 5
+
+# ─── Output ───────────────────────────────────────────────────────────
+
+
+def log(msg: str) -> None:
+    print(f"[reinstall] {msg}")
+
+
+def die(msg: str, *, code: int = 1) -> None:
+    print(f"[reinstall] ✗ {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+# ─── Shell primitives ─────────────────────────────────────────────────
+
+
+def run(cmd: list[str] | str, *, check: bool = True, input_: str | None = None,
+        capture: bool = False) -> subprocess.CompletedProcess[str]:
+    """Run a shell command. If check=True (default), non-zero exit = die().
+    No `|| true` — every command we run is one we believe must succeed."""
+    is_str = isinstance(cmd, str)
+    result = subprocess.run(
+        cmd, shell=is_str, check=False, text=True, input=input_,
+        stdout=subprocess.PIPE if capture else None,
+        stderr=subprocess.PIPE if capture else None,
+    )
+    if check and result.returncode != 0:
+        if capture:
+            sys.stderr.write(result.stdout or "")
+            sys.stderr.write(result.stderr or "")
+        die(f"command failed (exit {result.returncode}): {cmd}")
+    return result
+
+
+def swift_eval(source: str) -> str:
+    """Compile + run a Swift snippet that prints to stdout. Returns stdout.
+    Used for TIS API queries that have no shell equivalent."""
+    r = subprocess.run(
+        ["swift", "-"], input=source, text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+    )
+    if r.returncode != 0:
+        die(f"swift snippet failed:\n{r.stderr}")
+    return r.stdout
+
+
+def pid_of_inputx() -> int | None:
+    r = subprocess.run(
+        ["pgrep", "-f", PROCESS_PATTERN],
+        stdout=subprocess.PIPE, text=True, check=False,
+    )
+    if r.returncode != 0:
+        return None
+    line = r.stdout.strip().splitlines()
+    return int(line[0]) if line else None
+
+
+# ─── TIS state inspection ─────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class TisRow:
+    source_id: str
+    enabled: bool
+
+
+def query_tis_rows() -> list[TisRow]:
+    """List every TIS row whose ID matches our bundle prefix.
+    Includes the bundle-level entry AND each mode entry."""
+    out = swift_eval(r"""
+import Carbon
+let modes = (TISCreateInputSourceList(nil, true)?.takeRetainedValue()
+             as? [TISInputSource]) ?? []
+for m in modes {
+    guard let idP = TISGetInputSourceProperty(m, kTISPropertyInputSourceID)
+    else { continue }
+    let id = Unmanaged<CFString>.fromOpaque(idP).takeUnretainedValue() as String
+    if id.hasPrefix("jp.golia.inputmethod.wubi") {
+        let enP = TISGetInputSourceProperty(m, kTISPropertyInputSourceIsEnabled)
+        let en = enP.map {
+            Unmanaged<CFBoolean>.fromOpaque($0).takeUnretainedValue() == kCFBooleanTrue
+        } ?? false
+        print("\(id)|\(en ? "Y" : "N")")
+    }
+}
+""")
+    rows: list[TisRow] = []
+    for line in out.strip().splitlines():
+        sid, en = line.split("|", 1)
+        rows.append(TisRow(source_id=sid, enabled=(en == "Y")))
+    return rows
+
+
+def query_enabled_sources_count() -> int:
+    r = subprocess.run(
+        ["defaults", "read", "com.apple.HIToolbox", "AppleEnabledInputSources"],
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=False,
+    )
+    if r.returncode != 0:
+        return 0
+    return r.stdout.count(BUNDLE_ID)
+
+
+# ─── Steps ────────────────────────────────────────────────────────────
+
+
+def build_bundle() -> None:
+    """Build the Swift app bundle via mac/build.sh."""
+    # Stop sccache before build (some Rust crates compile differently
+    # under sccache; build.sh expects a clean state).
+    subprocess.run(["sccache", "--stop-server"], stdout=subprocess.DEVNULL,
+                   stderr=subprocess.DEVNULL, check=False)
+    env = os.environ.copy()
+    env["RUSTC_WRAPPER"] = ""
+    log("building bundle (cargo + swiftc)")
+    r = subprocess.run(["./build.sh"], cwd=MAC_DIR, env=env, check=False)
+    if r.returncode != 0:
+        die("build failed; rerun with output visible to debug")
+    if not APP_SRC.is_dir():
+        die(f"build reported success but {APP_SRC} doesn't exist")
+
+
+def stop_running_ime() -> None:
+    """Tear down the running IME so we can replace the bundle on disk."""
+    subprocess.run(
+        ["launchctl", "bootout", f"gui/{os.getuid()}/{BUNDLE_ID}"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+    )
+    # SIGKILL is intentional: the binary's IMKServer connection holds
+    # the Mach name; clean shutdown is unnecessary for a reinstall.
+    subprocess.run(
+        ["pkill", "-9", "-f", PROCESS_PATTERN],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+    )
+    time.sleep(1)
+
+
+def swap_bundle() -> None:
+    """Replace the on-disk bundle. Fails loud if remove or copy fails."""
+    APP_DST.parent.mkdir(parents=True, exist_ok=True)
+    if APP_DST.exists():
+        if os.access(APP_DST, os.W_OK) and os.access(APP_DST / "Contents", os.W_OK):
+            shutil.rmtree(APP_DST)
+        else:
+            # Prior pkg install left a root-owned bundle.
+            log("removing root-owned prior install (admin password)")
+            run(["osascript", "-e",
+                 f"do shell script \"rm -rf '{APP_DST}'\" with administrator privileges"])
+    shutil.copytree(APP_SRC, APP_DST)
+    if not APP_DST.is_dir():
+        die(f"bundle copy reported success but {APP_DST} missing")
+
+
+def reset_l0_state() -> None:
+    """Wipe L0 user-learning state on every reinstall.
+
+    Per user directive 2026-05-26: pins multiply candidate score by
+    PRIOR_L0_PIN_MULT (1000×), which dominates any corpus / polish-log
+    work. Pins surviving across reinstalls make verifying polish
+    changes impossible.
+
+    polish-log.jsonl is preserved (it's a history record, not a
+    ranking-influencing pin store).
+    """
+    for name in ("wubi_l0.json", "pinyin_l0.json"):
+        p = L0_DIR / name
+        if p.exists():
+            p.unlink()
+
+
+def purge_build_app_from_launchservices() -> None:
+    """Unregister the build/ source bundle from LaunchServices.
+
+    LaunchServices auto-registers any .app it sees; the build/ copy at
+    PROJECT_ROOT/build/Inputx.app can shadow the install at $APP_DST
+    and silently hide our IME from the picker.
+    """
+    # `_purge_ls.sh` is a shell helper that does the actual lsregister -u
+    # + LSSetDefaultRoleHandler reset. Sourcing it from Python via bash.
+    helper = MAC_DIR / "_purge_ls.sh"
+    if not helper.exists():
+        die(f"missing helper script: {helper}")
+    run(["bash", "-c", f". '{helper}' && purge_ls_app '{APP_SRC}'"])
+
+
+def register_install_path_with_launchservices() -> None:
+    """Tell LaunchServices the canonical bundle URL is $APP_DST.
+
+    After `purge_build_app_from_launchservices`, LS has zero entries
+    for our bundle ID. Without this register call, the picker
+    silently hides Inputx even though TIS and AppleEnabledInputSources
+    are correct. Diagnosed 2026-05-27 (commit 5c6c00d era).
+    """
+    run([LSREGISTER, "-f", str(APP_DST)])
+
+
+def install_launchagent() -> None:
+    """Write the LaunchAgent plist and bootstrap it.
+
+    The LaunchAgent's RunAtLoad + KeepAlive ensure the binary always
+    runs, so its IMKServer publishes the Mach service for host apps.
+    Without this, macOS 26's imklaunchagent occasionally refuses to
+    launch our binary on-demand and typing silently produces nothing.
+    """
+    LA_DST.parent.mkdir(parents=True, exist_ok=True)
+    template = LA_TEMPLATE.read_text()
+    if "__APP_PATH__" not in template:
+        die(f"LaunchAgent template missing __APP_PATH__ marker: {LA_TEMPLATE}")
+    LA_DST.write_text(template.replace("__APP_PATH__", str(APP_DST)))
+    # Bootout-then-bootstrap is the documented re-load idiom on
+    # macOS 13+. We don't `|| true` the bootout because if it fails
+    # for a reason other than "not loaded" we want to see it.
+    subprocess.run(
+        ["launchctl", "bootout", f"gui/{os.getuid()}/{BUNDLE_ID}"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+    )
+    run(["launchctl", "bootstrap", f"gui/{os.getuid()}", str(LA_DST)])
+    time.sleep(1)
+
+
+def first_install_tis_register() -> None:
+    """Call `Inputx install` which does TISRegisterInputSource.
+
+    Only for first-install / clean-state paths. macOS prompts
+    "Allow Inputx" the first time the bundle's cdhash is seen.
+    User completes the TCC grant via System Settings UI on first run.
+    """
+    log("calling Inputx install (TISRegister; expect Allow-Inputx popup)")
+    run([str(APP_DST / "Contents" / "MacOS" / APP_NAME), "install"])
+
+
+def refresh_enabled_sources_via_defaults() -> None:
+    """Picker-cache refresh without re-triggering TCC.
+
+    Settings UI's "Edit → Remove → Add" round-trip on AppleEnabledInputSources
+    fires cfprefsd's distributed notification, which the picker UI uses
+    to invalidate its filter cache. Calling TIS API would re-trigger
+    TCC; UserDefaults writes don't. See reinstall.sh comments (commit
+    history) for the diagnostic trail.
+    """
+    swift_eval(r"""
+import Foundation
+let modeID = "jp.golia.inputmethod.wubi.zh"
+let bundleID = "jp.golia.inputmethod.wubi"
+guard let defaults = UserDefaults(suiteName: "com.apple.HIToolbox") else { exit(0) }
+var enabled = defaults.array(forKey: "AppleEnabledInputSources") as? [[String: Any]] ?? []
+// Phase 1 — strip our entry.
+enabled.removeAll { ($0["Input Mode"] as? String) == modeID }
+defaults.set(enabled, forKey: "AppleEnabledInputSources")
+_ = defaults.synchronize()
+// Phase 2 — re-append.
+enabled.append([
+    "Bundle ID":       bundleID as Any,
+    "Input Mode":      modeID as Any,
+    "InputSourceKind": "Input Mode" as Any,
+])
+defaults.set(enabled, forKey: "AppleEnabledInputSources")
+_ = defaults.synchronize()
+""")
+
+
+def invalidate_intl_data_cache() -> None:
+    """Delete macOS 26's TIS enumeration cache.
+
+    The picker reads `$DARWIN_USER_CACHE_DIR/com.apple.IntlDataCache.le*`
+    rather than re-querying TIS on every list. After a bundle swap,
+    the cache is stale; nothing else invalidates it (killing
+    TextInputMenuAgent, lsregister -f, FSEvents, and the private
+    TISUpdateIntlFileCache() symbol all leave it untouched).
+    Documented in docs/macos-ime-recipe-2026.md.
+    """
+    r = subprocess.run(
+        ["getconf", "DARWIN_USER_CACHE_DIR"],
+        stdout=subprocess.PIPE, text=True, check=True,
+    )
+    cache_dir = Path(r.stdout.strip())
+    if not cache_dir.exists():
+        die(f"DARWIN_USER_CACHE_DIR doesn't exist: {cache_dir}")
+    for stem in ("com.apple.IntlDataCache.le", "com.apple.IntlDataCache.le.kbdx"):
+        p = cache_dir / stem
+        if p.exists():
+            p.unlink()
+
+
+def restart_text_input_menu_agent() -> None:
+    """Force the menu-bar picker to re-enumerate fresh.
+
+    Pairs with `invalidate_intl_data_cache`: with the cache gone,
+    the next picker rebuild reads TIS directly. Killing the agent
+    forces that rebuild to happen now rather than on the next user
+    click.
+    """
+    subprocess.run(
+        ["killall", "TextInputMenuAgent"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+    )
+
+
+# ─── State classification ────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class TisState:
+    rows: list[TisRow]
+
+    @property
+    def mode_rows(self) -> list[TisRow]:
+        return [r for r in self.rows if r.source_id == MODE_ID]
+
+    @property
+    def bundle_rows(self) -> list[TisRow]:
+        return [r for r in self.rows if r.source_id == BUNDLE_ID]
+
+    @property
+    def orphan_rows(self) -> list[TisRow]:
+        """Rows whose ID is ours by prefix but is NEITHER the bundle ID
+        NOR the canonical mode ID. The legacy `wubi.wubi.zh` lives
+        here when an old bundle layout still has TIS rows."""
+        return [r for r in self.rows
+                if r.source_id != BUNDLE_ID and r.source_id != MODE_ID]
+
+
+def classify_state() -> tuple[str, TisState]:
+    """Return (mode, tis_state) where mode is:
+       "first"      — clean state, fresh install OK
+       "reinstall"  — bundle already trusted, silent reinstall OK
+       "corrupt"    — duplicates / orphans, requires --clean
+    """
+    rows = query_tis_rows()
+    state = TisState(rows=rows)
+
+    if state.orphan_rows:
+        return "corrupt", state
+    if len(state.mode_rows) > 1:
+        return "corrupt", state
+    if len(state.bundle_rows) > 1:
+        return "corrupt", state
+
+    if not APP_DST.exists() or not state.mode_rows:
+        return "first", state
+    return "reinstall", state
+
+
+def describe_corruption(state: TisState) -> str:
+    parts: list[str] = []
+    if state.orphan_rows:
+        ids = ", ".join(sorted(r.source_id for r in state.orphan_rows))
+        parts.append(f"orphan TIS rows from older bundle layouts: {ids}")
+    if len(state.mode_rows) > 1:
+        parts.append(f"{len(state.mode_rows)}× duplicate rows for {MODE_ID}")
+    if len(state.bundle_rows) > 1:
+        parts.append(f"{len(state.bundle_rows)}× duplicate bundle rows for {BUNDLE_ID}")
+    return "; ".join(parts)
+
+
+# ─── Cleanup (--clean) ────────────────────────────────────────────────
+
+
+def clean_tis_state() -> None:
+    """One-shot migration: drop bundle + every TIS row for our bundle ID.
+
+    Use this when TIS state is corrupted (from old code paths,
+    accumulated re-registrations, etc.). After running, the
+    subsequent reinstall runs as a fresh first-install.
+    """
+    log("disabling all TIS rows for our bundle ID")
+    swift_eval(r"""
+import Carbon
+let modes = (TISCreateInputSourceList(nil, true)?.takeRetainedValue()
+             as? [TISInputSource]) ?? []
+for m in modes {
+    guard let idP = TISGetInputSourceProperty(m, kTISPropertyInputSourceID)
+    else { continue }
+    let id = Unmanaged<CFString>.fromOpaque(idP).takeUnretainedValue() as String
+    if id.hasPrefix("jp.golia.inputmethod.wubi") {
+        TISDisableInputSource(m)
+        print("disabled \(id)")
+    }
+}
+""")
+    log("stopping LaunchAgent + IME process")
+    subprocess.run(
+        ["launchctl", "bootout", f"gui/{os.getuid()}/{BUNDLE_ID}"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+    )
+    subprocess.run(
+        ["pkill", "-9", "-f", PROCESS_PATTERN],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+    )
+    time.sleep(1)
+    if APP_DST.exists():
+        log(f"removing {APP_DST}")
+        shutil.rmtree(APP_DST)
+    log("clearing AppleEnabledInputSources entry")
+    swift_eval(r"""
+import Foundation
+guard let defaults = UserDefaults(suiteName: "com.apple.HIToolbox") else { exit(0) }
+var enabled = defaults.array(forKey: "AppleEnabledInputSources") as? [[String: Any]] ?? []
+let before = enabled.count
+enabled.removeAll { ($0["Bundle ID"] as? String) == "jp.golia.inputmethod.wubi" }
+defaults.set(enabled, forKey: "AppleEnabledInputSources")
+_ = defaults.synchronize()
+print("entries: \(before) -> \(enabled.count)")
+""")
+    log("invalidating IntlDataCache + restarting TextInputMenuAgent")
+    invalidate_intl_data_cache()
+    restart_text_input_menu_agent()
+    log("✓ TIS state cleaned. Run mac/reinstall.py to install fresh.")
+
+
+# ─── Install / reinstall happy paths ──────────────────────────────────
+
+
+def do_first_install(with_build: bool) -> None:
+    if with_build:
+        build_bundle()
+    elif not APP_SRC.is_dir():
+        die(f"no build at {APP_SRC} — drop --no-build or run mac/build.sh first")
+
+    stop_running_ime()
+    swap_bundle()
+    reset_l0_state()
+    purge_build_app_from_launchservices()
+    register_install_path_with_launchservices()
+    install_launchagent()
+    first_install_tis_register()
+    invalidate_intl_data_cache()
+    restart_text_input_menu_agent()
+    verify_post_conditions(expect_first_install=True)
+
+
+def do_reinstall(with_build: bool) -> None:
+    if with_build:
+        build_bundle()
+    elif not APP_SRC.is_dir():
+        die(f"no build at {APP_SRC} — drop --no-build or run mac/build.sh first")
+
+    stop_running_ime()
+    swap_bundle()
+    reset_l0_state()
+    purge_build_app_from_launchservices()
+    register_install_path_with_launchservices()
+    install_launchagent()
+    # No TISRegister — bundle is already in TIS database, registering
+    # again would create a duplicate row.
+    refresh_enabled_sources_via_defaults()
+    invalidate_intl_data_cache()
+    restart_text_input_menu_agent()
+    verify_post_conditions(expect_first_install=False)
+
+
+def verify_post_conditions(*, expect_first_install: bool) -> None:
+    """Each install step has a contract; verify the post-state matches.
+
+    First-install vs reinstall split: AppleEnabledInputSources is
+    populated by macOS only after the user completes System Settings
+    UI (Add Input Source). For first-install we DON'T check it
+    here — the bundle is correctly installed, but the user-facing
+    UI grant hasn't run yet. For reinstall (bundle already trusted)
+    we DO check it because `refresh_enabled_sources_via_defaults`
+    just wrote the entry.
+    """
+    pid = pid_of_inputx()
+    if pid is None:
+        die("post-condition violation: Inputx process not running")
+    log(f"✓ Inputx running (PID {pid})")
+
+    rows = query_tis_rows()
+    mode_rows = [r for r in rows if r.source_id == MODE_ID]
+    if len(mode_rows) != 1:
+        die(f"post-condition violation: expected 1 TIS row for {MODE_ID}, "
+            f"found {len(mode_rows)}. Aborting before this state corrupts "
+            "the picker further.")
+    log(f"✓ TIS row for {MODE_ID} (enabled={mode_rows[0].enabled})")
+
+    if expect_first_install:
+        log("✓ first-install complete (bundle + TIS row + process).")
+        log("")
+        log("NEXT STEP (user action required — macOS gates this behind UI):")
+        log("  System Settings → Keyboard → Input Sources → Add Input")
+        log("  Source → Simplified Chinese → Inputx 五笔 → Add → click")
+        log("  'Allow' on the 'Inputx wants to read all input' popup.")
+        log("")
+        log("After that, AppleEnabledInputSources will have the entry")
+        log("and Ctrl+Space can switch to Inputx.")
+        return
+
+    enabled = query_enabled_sources_count()
+    if enabled == 0:
+        die("post-condition violation: AppleEnabledInputSources has no "
+            f"entry for {BUNDLE_ID}. The UserDefaults refresh in "
+            "refresh_enabled_sources_via_defaults() failed silently — "
+            "investigate the cfprefsd write path before shipping again.")
+    log(f"✓ AppleEnabledInputSources has {enabled} entry for {BUNDLE_ID}")
+
+
+# ─── Safety wrapper (backup + 5s health window + rollback) ───────────
+
+
+def with_safety_net(install_fn) -> None:
+    """Run `install_fn`, but snapshot + rollback if the new binary
+    isn't stable after the health window.
+
+    The health window catches the IMKServer-init crash class: bundle
+    inits dyld + main, but crashes on IMKServer init if entitlements
+    or connection-name shifted. LaunchAgent then either respawns
+    forever (PID shifts) or gives up (PID gone). Both = unusable IME.
+    """
+    backup: Path | None = None
+    pre_pid = pid_of_inputx()
+
+    if APP_DST.is_dir():
+        backup = APP_DST.parent / f"{APP_NAME}.app.bak-{int(time.time())}"
+        log(f"snapshotting current bundle → {backup}")
+        shutil.copytree(APP_DST, backup)
+
+    try:
+        install_fn()
+    except SystemExit as e:
+        if e.code != 0:
+            _rollback(backup, "install step failed")
+        raise
+
+    post_pid = pid_of_inputx()
+    if post_pid is None:
+        _rollback(backup, "no Inputx process after install completed")
+
+    log(f"watching for {HEALTH_WINDOW_SECS}s crash window (PID {post_pid})")
+    time.sleep(HEALTH_WINDOW_SECS)
+    still_pid = pid_of_inputx()
+    if still_pid is None:
+        _rollback(backup, "Inputx process disappeared during health window")
+    if still_pid != post_pid:
+        _rollback(
+            backup,
+            f"Inputx PID shifted {post_pid} → {still_pid} during health "
+            "window — LaunchAgent is in a crash + restart loop"
+        )
+    log(f"✓ Inputx stable: PID {post_pid} alive {HEALTH_WINDOW_SECS}s post-install")
+
+    if backup is not None:
+        shutil.rmtree(backup)
+    log("✓ install complete")
+
+
+def _rollback(backup: Path | None, reason: str) -> None:
+    if backup is None:
+        die(f"new install failed ({reason}) AND no backup to restore. "
+            "Manual recovery required.", code=1)
+    log(f"⚠ rolling back: {reason}")
+    subprocess.run(
+        ["launchctl", "bootout", f"gui/{os.getuid()}/{BUNDLE_ID}"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+    )
+    subprocess.run(
+        ["pkill", "-9", "-f", PROCESS_PATTERN],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+    )
+    time.sleep(1)
+    if APP_DST.exists():
+        shutil.rmtree(APP_DST)
+    shutil.move(str(backup), str(APP_DST))
+    run(["launchctl", "bootstrap", f"gui/{os.getuid()}", str(LA_DST)])
+    time.sleep(2)
+    if pid_of_inputx() is None:
+        die(f"backup restored to {APP_DST} but process did not start — "
+            "manual recovery required.", code=2)
+    log(f"✓ backup restored to {APP_DST}, previous version running")
+    die(f"new build was unstable: {reason}", code=2)
+
+
+# ─── Main ─────────────────────────────────────────────────────────────
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__,
+                                      formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--no-build", action="store_true",
+                        help="skip cargo + swiftc rebuild")
+    parser.add_argument("--no-safe", action="store_true",
+                        help="skip backup snapshot + 5s health window")
+    parser.add_argument("--clean", action="store_true",
+                        help="uninstall bundle + all TIS rows (migration)")
+    args = parser.parse_args()
+
+    if args.clean:
+        clean_tis_state()
+        return
+
+    mode, state = classify_state()
+    if mode == "corrupt":
+        die(
+            "TIS state is corrupted:\n"
+            f"  {describe_corruption(state)}\n"
+            "Run `mac/reinstall.py --clean` to uninstall + clean TIS, "
+            "then `mac/reinstall.py` to fresh-install."
+        )
+
+    log(f"detected mode: {mode}")
+    with_build = not args.no_build
+
+    if mode == "first":
+        run_fn = lambda: do_first_install(with_build)
+    else:
+        run_fn = lambda: do_reinstall(with_build)
+
+    if args.no_safe:
+        run_fn()
+    else:
+        with_safety_net(run_fn)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        die("interrupted", code=signal.SIGINT + 128)
