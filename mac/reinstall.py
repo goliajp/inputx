@@ -6,23 +6,33 @@ contract-checked Python script.
 
 Mode is auto-detected:
   - "first":     bundle absent OR TIS has no row for our mode IDs
-                 (→ registers the bundle; macOS shows the
-                  "Allow Inputx" popup; user finishes via System
-                  Settings → Keyboard → Add Input Source)
-  - "reinstall": bundle present AND TIS has exactly one row per
-                 mode ID (→ silent bundle swap, no TCC popup)
+                 → drops bundle + LaunchAgent, then USER must do
+                   System Settings → Keyboard → 文本输入 → 编辑 → +
+                   → 简体中文 → Inputx 五笔 → 添加 + click Allow.
+                   That single UI step is what registers TIS, writes
+                   AppleEnabledInputSources, AND grants the macOS
+                   third-party-IME TCC trust (which is the gate the
+                   menu picker filters on). No programmatic shortcut
+                   exists — macOS locks it behind UI.
+  - "reinstall": bundle present AND TIS already has a row for our
+                 mode ID (Settings registered it on the previous
+                 first-install) → silent bundle swap + LaunchAgent
+                 re-bootstrap. No TISRegister call (would duplicate
+                 the row). No AppleEnabledInputSources write
+                 (Settings owns it). TCC trust persists across
+                 bundle cdhash changes as long as the bundle ID
+                 stays the same — which it does.
 
-Any other TIS state (duplicates, orphan IDs from old bundle
-layouts, missing AppleEnabledInputSources entry while TIS row
-exists, etc.) is treated as STATE CORRUPTION and the script
-fails loudly. Use `--clean` to drop the bundle + all TIS rows
-for our bundle ID and start over.
+Any other TIS state (duplicates of the canonical mode ID, orphan
+IDs from old bundle layouts like the pre-d6cdc52 `wubi.wubi.zh`)
+is treated as STATE CORRUPTION and the script fails loudly.
+Use `--clean` to drop the bundle + all TIS rows for our bundle ID
+and start over (then a single Settings Add re-registers cleanly).
 
 Safety:
   Default is "safe" — backup the current bundle, run, watch
   for 5s, rollback if the new binary crashes or the install
-  doesn't satisfy the post-condition.
-  Pass `--no-safe` to skip the backup/rollback machinery.
+  doesn't satisfy the post-condition. Pass `--no-safe` to skip.
 
 Usage:
   mac/reinstall.py                # auto-detect, build, safe install
@@ -31,13 +41,18 @@ Usage:
   mac/reinstall.py --clean        # uninstall bundle + clean TIS state
 
 Per project rule (memory: no-defensive-programming): one canonical
-path per scenario, fail loud on unexpected state, no `|| true`,
-no double-kill, no belt-and-braces fallbacks. The reenable.sh /
-orphan-cleanup / duplicate-dedupe paths that accumulated during
-the 2026-06-02 debug loop are NOT present here — root causes
-are fixed at the source (TISInputSourceID in Info.plist,
-TISRegister policy in main.swift, IntlDataCache invalidation
-inline).
+path per scenario, fail loud on unexpected state. The reenable.sh,
+orphan TIS cleanup, duplicate dedupe, post-window double cache
+delete, refresh_enabled_sources_via_defaults round-trip, and
+defensive `|| true`s that accumulated during the 2026-06-02 debug
+loop are NOT present here. Root causes were each fixed at source:
+  - `wubi.wubi.zh` mode ID was from missing per-mode TISInputSourceID
+    in Info.plist (fixed d6cdc52)
+  - TIS duplicate rows were from BOTH our `Inputx install` AND
+    Settings UI's Add calling TISRegister (fixed here by removing
+    our TISRegister call entirely — Settings owns that side)
+  - Stale IntlDataCache was a macOS 26 cache that needed explicit
+    deletion on bundle swap (fixed inline in this script)
 """
 from __future__ import annotations
 
@@ -295,47 +310,6 @@ def install_launchagent() -> None:
     time.sleep(1)
 
 
-def first_install_tis_register() -> None:
-    """Call `Inputx install` which does TISRegisterInputSource.
-
-    Only for first-install / clean-state paths. macOS prompts
-    "Allow Inputx" the first time the bundle's cdhash is seen.
-    User completes the TCC grant via System Settings UI on first run.
-    """
-    log("calling Inputx install (TISRegister; expect Allow-Inputx popup)")
-    run([str(APP_DST / "Contents" / "MacOS" / APP_NAME), "install"])
-
-
-def refresh_enabled_sources_via_defaults() -> None:
-    """Picker-cache refresh without re-triggering TCC.
-
-    Settings UI's "Edit → Remove → Add" round-trip on AppleEnabledInputSources
-    fires cfprefsd's distributed notification, which the picker UI uses
-    to invalidate its filter cache. Calling TIS API would re-trigger
-    TCC; UserDefaults writes don't. See reinstall.sh comments (commit
-    history) for the diagnostic trail.
-    """
-    swift_eval(r"""
-import Foundation
-let modeID = "jp.golia.inputmethod.wubi.zh"
-let bundleID = "jp.golia.inputmethod.wubi"
-guard let defaults = UserDefaults(suiteName: "com.apple.HIToolbox") else { exit(0) }
-var enabled = defaults.array(forKey: "AppleEnabledInputSources") as? [[String: Any]] ?? []
-// Phase 1 — strip our entry.
-enabled.removeAll { ($0["Input Mode"] as? String) == modeID }
-defaults.set(enabled, forKey: "AppleEnabledInputSources")
-_ = defaults.synchronize()
-// Phase 2 — re-append.
-enabled.append([
-    "Bundle ID":       bundleID as Any,
-    "Input Mode":      modeID as Any,
-    "InputSourceKind": "Input Mode" as Any,
-])
-defaults.set(enabled, forKey: "AppleEnabledInputSources")
-_ = defaults.synchronize()
-""")
-
-
 def invalidate_intl_data_cache() -> None:
     """Delete macOS 26's TIS enumeration cache.
 
@@ -489,6 +463,21 @@ print("entries: \(before) -> \(enabled.count)")
 
 
 def do_first_install(with_build: bool) -> None:
+    """First install: drop the bundle + LaunchAgent, then hand off to
+    System Settings UI for TIS register + TCC trust grant.
+
+    Why not TISRegister from here: macOS gates the TCC "Allow Inputx
+    to read all input" popup behind Settings UI's Add Input Source
+    button — there's no programmatic equivalent. Calling
+    TISRegisterInputSource from us would just create a TIS row
+    without the trust grant, and the picker would still filter us
+    out. Settings UI's Add path covers both TIS register AND TCC
+    trust in one user action.
+
+    The duplicate-row problem (Settings Add + our TISRegister
+    both creating rows) is also avoided by this division: only
+    Settings owns the TIS register call.
+    """
     if with_build:
         build_bundle()
     elif not APP_SRC.is_dir():
@@ -500,13 +489,29 @@ def do_first_install(with_build: bool) -> None:
     purge_build_app_from_launchservices()
     register_install_path_with_launchservices()
     install_launchagent()
-    first_install_tis_register()
-    invalidate_intl_data_cache()
-    restart_text_input_menu_agent()
-    verify_post_conditions(expect_first_install=True)
+
+    log("✓ first-install scaffolding complete (bundle + LaunchAgent + LS).")
+    log("")
+    log("NEXT STEP (mandatory, macOS gates this behind UI):")
+    log("  System Settings → Keyboard → 文本输入 → Input Sources → 编辑")
+    log("  → +  → 简体中文 → Inputx 五笔 → 添加")
+    log("  → click \"Allow\" on the 'Inputx wants to read all input' popup.")
+    log("")
+    log("After that single action, TCC trust is granted, Inputx appears")
+    log("in the menu picker, and every subsequent `mac/reinstall.py` runs")
+    log("silently (no popup) until the bundle ID changes again.")
 
 
 def do_reinstall(with_build: bool) -> None:
+    """Silent reinstall: bundle is already trusted (TIS row exists,
+    TCC grant exists, AppleEnabledInputSources entry exists, all
+    written by the user's earlier Settings Add). We only swap the
+    bundle on disk + re-bootstrap the LaunchAgent.
+
+    Explicitly NOT done here (would create duplicates / re-trigger TCC):
+      - `Inputx install` / TISRegisterInputSource
+      - `refresh_enabled_sources_via_defaults` (Settings already owns this)
+    """
     if with_build:
         build_bundle()
     elif not APP_SRC.is_dir():
@@ -518,9 +523,6 @@ def do_reinstall(with_build: bool) -> None:
     purge_build_app_from_launchservices()
     register_install_path_with_launchservices()
     install_launchagent()
-    # No TISRegister — bundle is already in TIS database, registering
-    # again would create a duplicate row.
-    refresh_enabled_sources_via_defaults()
     invalidate_intl_data_cache()
     restart_text_input_menu_agent()
     verify_post_conditions(expect_first_install=False)
