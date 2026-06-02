@@ -251,7 +251,10 @@ impl PinyinDict {
     pub fn lookup_into(&self, pinyin: &str, out: &mut Vec<String>) {
         out.clear();
 
-        let lower = pinyin.to_ascii_lowercase();
+        // Use `lower_str` (not raw `to_ascii_lowercase`) so the lue↔lve /
+        // nue↔nve alias collapse fires here too — `celue` queries the
+        // same FST key as `celve`.
+        let lower = lower_str(pinyin);
         // Dict items come freq-desc (then item-asc), matching the old
         // `sort_by_key(Reverse(freq))` stable order — no re-sort. Streamed
         // (no intermediate Vec / per-item copy).
@@ -263,7 +266,7 @@ impl PinyinDict {
 
         // L0 pin: pull to position 0 if present.
         if let Ok(l0) = self.l0.read()
-            && let Some(pref) = l0.pins.get(&lower_str(pinyin))
+            && let Some(pref) = l0.pins.get(&lower)
             && let Some(idx) = out.iter().position(|w| w == pref)
             && idx > 0
         {
@@ -279,14 +282,17 @@ impl PinyinDict {
     /// otherwise allocate tens of thousands of `(String, String)` pairs
     /// only to throw them away.
     pub fn prefix_exists(&self, prefix: &str) -> bool {
+        // Normalize via `lower_str` so lue/nue alias collapses to lve/nve
+        // for prefix checks too (otherwise `prefix_exists("celue")`
+        // misses the `celve…` family of entries).
         self.map
-            .contains_prefix(prefix.to_ascii_lowercase().as_bytes())
+            .contains_prefix(lower_str(prefix).as_bytes())
     }
 
     /// All `(pinyin, word)` pairs with pinyin starting with `prefix`. Ordered
     /// by (pinyin asc, word asc) — useful for prefix completion suggestions.
     pub fn prefix(&self, prefix: &str) -> Vec<(String, String)> {
-        let lower = prefix.to_ascii_lowercase();
+        let lower = lower_str(prefix);
         let mut results: Vec<(String, String)> = Vec::new();
         self.map.prefix_for_each(lower.as_bytes(), |code, word, _freq| {
             if let (Ok(pinyin), Ok(word)) =
@@ -334,7 +340,7 @@ impl PinyinDict {
     where
         F: FnMut(&[u8], &[u8], u64),
     {
-        let lower = prefix.to_ascii_lowercase();
+        let lower = lower_str(prefix);
         self.map
             .prefix_for_each(lower.as_bytes(), |code, word, value| {
                 visit(code, word, value);
@@ -352,7 +358,7 @@ impl PinyinDict {
     /// allocates a `Vec<(String, String, u64)>` plus 2 `String`s per entry,
     /// which is ~5MB / ~50ms on short prefixes like `"z"`.
     pub fn prefix_with_freq(&self, prefix: &str) -> Vec<(String, String, u64)> {
-        let lower = prefix.to_ascii_lowercase();
+        let lower = lower_str(prefix);
         let mut results: Vec<(String, String, u64)> = Vec::new();
         self.map.prefix_for_each(lower.as_bytes(), |code, word, value| {
             if let (Ok(pinyin), Ok(word)) =
@@ -781,7 +787,7 @@ impl PinyinDict {
     /// own 400k base inflates many-segment paths).
     fn lookup_raw_into(&self, pinyin: &str, out: &mut Vec<(String, u64)>) {
         out.clear();
-        let lower = pinyin.to_ascii_lowercase();
+        let lower = lower_str(pinyin);
         self.map.get_for_each(lower.as_bytes(), |word, freq| {
             if let Ok(s) = core::str::from_utf8(word) {
                 out.push((s.to_string(), freq));
@@ -1074,8 +1080,41 @@ impl PinyinDict {
     }
 }
 
+/// Canonicalize a pinyin lookup key.
+///
+/// 1. Lowercase ASCII letters (engine convention — dict stores lowercase).
+/// 2. Collapse `lüe`/`nüe` alias spellings `lue`/`nue` to the canonical
+///    `lve`/`nve` used by the dict. Sogou/Google Pinyin both accept the
+///    `u`-spelling for these two syllables; users typing `celue` expect
+///    the same candidates as `celve` (策略). The dict + L0 pin map both
+///    use this key, so write-side (`pin`, `record_pick`) and read-side
+///    (`lookup_*`) flow through the same normalization — no asymmetry.
+///
+/// The `j/q/x/y + ü` cases are already canonical-`u` (jue/que/xue/yue),
+/// so they need no alias. The `l/n + ü` carve-out is the only spot
+/// where Mandarin pinyin disambiguates `u` vs `ü` (lu/lü, nu/nü) — and
+/// the IME-vs-strict-orthography mismatch lives entirely there.
+///
+/// Exposed publicly as `inputx_pinyin::normalize_lookup_key` so cement /
+/// composite-layer call sites (which query the embedded IDF directly,
+/// bypassing `PinyinDict::lookup_into`) can normalize uniformly.
+pub fn normalize_lookup_key(s: &str) -> String {
+    let mut out = s.to_ascii_lowercase();
+    // Apply alias normalization only when the trigger substring is
+    // present (avoids the allocation/scan on the 99%+ of buffers
+    // that contain neither). Order matters only if `lue` and `nue`
+    // could overlap, which they can't.
+    if out.contains("lue") {
+        out = out.replace("lue", "lve");
+    }
+    if out.contains("nue") {
+        out = out.replace("nue", "nve");
+    }
+    out
+}
+
 fn lower_str(s: &str) -> String {
-    s.to_ascii_lowercase()
+    normalize_lookup_key(s)
 }
 
 #[cfg(test)]

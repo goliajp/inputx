@@ -43,7 +43,7 @@ pub mod segmenter;
 pub mod session;
 pub mod syllable;
 
-pub use dict::PinyinDict;
+pub use dict::{PinyinDict, normalize_lookup_key};
 pub use encode::{char_to_pinyin, covered_char_count};
 pub use engine::PinyinEngine;
 pub use fuzzy::FuzzyConfig;

@@ -787,6 +787,24 @@ mod tests {
         );
     }
 
+    // ───────────────────────────────────────────────────────────
+    // lüe / nüe alias normalization (user 2026-06-02: "celue 策略，
+    // 这种级别的拼音词怎么也没有"). Dict stores under lve/nve; users
+    // type lue/nue per Sogou/Google convention. lower_str collapses
+    // the alias so both spellings hit the same FST key.
+    // ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn lue_alias_resolves_to_lve_for_common_words() {
+        let cases: &[(&str, &str)] = &[
+            ("celue", "策略"),     // canonical lve: celve
+            ("celve", "策略"),     // canonical spelling still works
+            ("nuedai", "虐待"),    // canonical nve: nvedai
+            ("nvedai", "虐待"),    // canonical spelling still works
+        ];
+        run("lue_nue_alias", cases, pinyin_top, pinyin_top10);
+    }
+
     #[test]
     fn no_traditional_in_top5_for_common_pinyin() {
         // List of (pinyin, traditional_blocklist) — traditional forms

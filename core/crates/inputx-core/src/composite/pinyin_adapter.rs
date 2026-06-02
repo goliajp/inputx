@@ -431,7 +431,15 @@ impl PinyinAdapter {
         // v1.4.6 C3 attempt no longer flips ranking.
         const PINYIN_PHRASE_BASE: f64 = inputx_scoring::consts::PINYIN_PHRASE_BASE;
         const L0_PIN_MULTIPLIER: f64 = inputx_scoring::consts::L0_PIN_MULTIPLIER;
-        let exact_entries = pinyin_idf_reader().lookup(self.buffer.as_bytes());
+        // Normalize buffer for FST/IDF queries — collapses lue/nue
+        // alias spellings to lve/nve so the embedded IDF (keyed under
+        // lve/nve) is reachable from a user who typed lue/nue. The
+        // PinyinDict methods normalize internally; the cement IDF
+        // reader is a separate flat byte store with no normalization
+        // of its own, so the call site has to feed it the canonical
+        // key. See `inputx_pinyin::normalize_lookup_key` for the rule.
+        let lookup_buf = inputx_pinyin::normalize_lookup_key(&self.buffer);
+        let exact_entries = pinyin_idf_reader().lookup(lookup_buf.as_bytes());
         // L0 pin lookup — cement-level state, intentionally orthogonal
         // to the corpus snapshot in EMBEDDED_PINYIN_IDF.
         let pinned: Option<String> = self
@@ -1011,7 +1019,8 @@ impl PinyinAdapter {
         // pull-to-front and the legacy `freq desc` ordering both
         // happen in `candidates_with_scores`, not here.
         let mut seen: HashSet<String> = HashSet::with_capacity(64);
-        for entry in pinyin_idf_reader().lookup(self.buffer.as_bytes()) {
+        let lookup_buf = inputx_pinyin::normalize_lookup_key(&self.buffer);
+        for entry in pinyin_idf_reader().lookup(lookup_buf.as_bytes()) {
             let w = entry.word.to_string();
             if seen.insert(w.clone()) {
                 self.candidates.push(w);
