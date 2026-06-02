@@ -1172,6 +1172,12 @@ mod tests {
             // 不能解释也不应该存在" — obscure place name (Jinggangshan
             // town); too rare for daily IME use.
             ("ciping", &["茨坪"]),
+            // 2026-06-03 sweep — pinyin secondary-reading pollution
+            // at top1 of common single-syllables.
+            ("kuai", &["会"]),
+            ("shen", &["什"]),
+            ("zhuo", &["着"]),
+            ("zhao", &["着"]),
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
