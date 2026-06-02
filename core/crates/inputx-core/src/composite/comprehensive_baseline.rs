@@ -713,6 +713,14 @@ mod tests {
             // 次品 stays #0 (correctly common). 词频 boosted via
             // quickfix_boost.tsv to land above 疵品.
             ("cipin", "词频", "疵品"),
+            // User polish-log 2026-06-03: "xian jiao 肯定要改，这两
+            // 个可以出现但肯定不能在第一个". 见/觉 are valid secondary
+            // readings (xiàn / jiào, e.g. 显见 / 睡觉) but their
+            // dominant readings are jiàn / jué — corpus freq from
+            // dominant-reading compounds shouldn't push them above
+            // mainstream-reading singletons 现 / 叫.
+            ("xian", "现", "见"),
+            ("jiao", "叫", "觉"),
         ];
         let mut failures: Vec<String> = Vec::new();
         for (buf, higher, lower) in cases {
