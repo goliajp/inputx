@@ -508,9 +508,16 @@ mod tests {
     /// surface in PinyinOnly mode top10.
     #[test]
     fn viterbi_composition_surfaces_for_long_buffers() {
+        // Each entry MUST have ceil((N-1)/2) bigram-table-present
+        // links to survive the stricter quality gate added 2026-06-02
+        // (user report: kakarimasu force-segmentation). Real Chinese
+        // compositions clear this easily — `用不了` (用不, 不了),
+        // `中国人` (中国, 国人). Mechanical force-segmentations like
+        // `你好吗我叫` (chain has only 0-1 corpus-supported bigrams
+        // out of 3 links) drop, matching user's explicit judgment
+        // (`你好吗我叫 这也不算是个句子, 这个其实也不应该出现`).
         let cases: &[(&str, &str)] = &[
             ("yongbuliao", "用不了"),     // user-reported 2026-05-24
-            ("nihaomawojiao", "你好吗我叫"),  // v0.4 phase A
             ("zhongguoren", "中国人"),
         ];
         let mut failures = Vec::new();
@@ -561,11 +568,19 @@ mod tests {
             "xianzai", "shijian", "wenti", "dongxi", "difang",
             // Three-syllable.
             "buguoshi", "fenkuaikai", "shihaohao",
-            // Long pinyin (Viterbi territory).
-            "nihaomawojiao", "yongbuliao",
-            // wodemingzi excluded — Viterbi has no path for it given
-            // current dict (mingzi 名字 + wodming — no good split).
-            // Test ascii_fallback path instead via ascii_fallback_fires.
+            // Long pinyin (Viterbi territory). Each kept buffer
+            // forms a real Chinese composition that passes the
+            // ceil((N-1)/2) bigram-density gate.
+            "yongbuliao",
+            // `nihaomawojiao` removed 2026-06-02 — user judgment:
+            // "你好吗我叫 这也不算是个句子, 这个其实也不应该出现".
+            // The chain (你好-吗-我-叫) has fewer than ceil(3/2)=2
+            // corpus-present bigram links, so the stricter gate
+            // drops it; empty-result is the correct behavior.
+            // `wodemingzi` excluded — Viterbi has no path for it
+            // given current dict (mingzi 名字 + wodming — no good
+            // split). Test ascii_fallback path instead via
+            // ascii_fallback_fires.
         ];
         let mut failures = Vec::new();
         for code in codes {
@@ -915,6 +930,58 @@ mod tests {
     // tools/scoring/data/polish_reports/tier_overlay.tsv; removing
     // the overlay row should make the test fail loudly.
     // ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn pinyin_force_segmentation_dropped_for_jp_romaji() {
+        // User report 2026-06-02 kakarimasu screenshot: top #0 was
+        // 卡卡日马苏 (mechanical ka-ka-ri-ma-su → 卡-卡-日-马-苏
+        // segmentation), beating かかります. User: "这个的中文结果
+        // 似乎是无效的，根本不应该出现".
+        //
+        // Pre-fix: Path 5 fallback's `alternate_bigrams_ok` used a
+        // LENIENT "≥1 link non-zero" rule AND exempted top-1
+        // (fallback_composition) from the gate entirely. The chain
+        // (卡, 卡, 日, 马, 苏) had ONE corpus-present bigram (马, 苏)
+        // because "马苏" is a Chinese celebrity name — enough under
+        // the lenient rule, and the top-1 exemption let it through
+        // anyway.
+        //
+        // Post-fix (phase 7): ceil((N-1)/2) majority rule applied
+        // uniformly to both composed_sentence and the Path 5
+        // fallback; top-1 exemption removed.
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"kakarimasu" { let _ = e.handle_letter(*b); }
+        let top10: Vec<String> = e.candidates().iter().take(10).map(|c| c.word.clone()).collect();
+        // The garbage force-segmentation must NOT appear in top-10.
+        assert!(!top10.contains(&"卡卡日马苏".to_string()),
+            "kakarimasu must drop the mechanical 卡卡日马苏 \
+             force-segmentation; got top10={top10:?}");
+        // かかります / カカリマス must lead (the real JP rendering).
+        let top = top10.first().cloned().unwrap_or_default();
+        assert!(top == "かかります" || top == "カカリマス",
+            "kakarimasu top must be JP basic kana, got {top:?} \
+             (top10={top10:?})");
+    }
+
+    #[test]
+    fn pinyin_real_fallback_composition_still_surfaces() {
+        // Sibling guard for the force-segmentation fix: `kaopu` is a
+        // real Chinese fallback composition (靠谱; (靠, 谱) has corpus
+        // support). The stricter bigram gate must NOT drop it.
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"kaopu" { let _ = e.handle_letter(*b); }
+        let top = e.candidates().first().map(|c| c.word.clone()).unwrap_or_default();
+        assert_eq!(top, "靠谱",
+            "kaopu must still surface 靠谱 fallback composition \
+             after the stricter bigram gate (real bigram support \
+             from corpus)");
+    }
 
     #[test]
     fn pinyin_rare_cjk_chars_yield_to_jp_basic_kana() {
