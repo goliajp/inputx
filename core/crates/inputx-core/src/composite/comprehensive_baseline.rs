@@ -702,6 +702,40 @@ mod tests {
         }
     }
 
+    /// Class-B polish "X outranks Y but isn't necessarily #0" assertions —
+    /// for cases where user wants A above B without claiming top1 (top1
+    /// is held by a third candidate that's correctly leading).
+    #[test]
+    fn polish_log_relative_ordering() {
+        // Format: (buffer, higher, lower).
+        let cases: &[(&str, &str, &str)] = &[
+            // User polish-log 2026-06-03: "cipin 词频应该高于疵品".
+            // 次品 stays #0 (correctly common). 词频 boosted via
+            // quickfix_boost.tsv to land above 疵品.
+            ("cipin", "词频", "疵品"),
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for (buf, higher, lower) in cases {
+            let top10 = pinyin_top10(buf.as_bytes());
+            let hi_rank = top10.iter().position(|w| w == higher);
+            let lo_rank = top10.iter().position(|w| w == lower);
+            match (hi_rank, lo_rank) {
+                (Some(h), Some(l)) if h < l => {} // pass
+                (Some(h), Some(l)) => failures.push(format!(
+                    "  {buf:<10} expected `{higher}` (rank {h}) above `{lower}` (rank {l}); top10={top10:?}"
+                )),
+                (None, _) => failures.push(format!(
+                    "  {buf:<10} `{higher}` not in top10; top10={top10:?}"
+                )),
+                (_, None) => {} // lower missing is fine — higher still wins
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} polish-log ordering cases failed:\n{}",
+                failures.len(), failures.join("\n"));
+        }
+    }
+
     // ───────────────────────────────────────────────────────────
     // No traditional characters in top-5 for common single
     // syllables (t2s strip + bigram/trigram filter).
