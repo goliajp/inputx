@@ -135,7 +135,34 @@ if [ "${ROLLBACK:-0}" -eq 1 ]; then
   fi
 fi
 
-# Step 5: drop the backup, succeed.
+# Step 5a: post-health-window menu refresh + switchability verification.
+#
+# reinstall.sh kills TextInputMenuAgent inline (just after writing TIS
+# state), but a race can leave the menu re-spawning into a STALE view
+# while TIS is still settling — the user then sees "Inputx 五笔
+# missing from the keyboard menu" even though defaults read shows
+# the mode is enabled. Kill the menu agent AGAIN here, after the
+# health window: TIS state has fully settled, the respawn boots
+# against the post-reinstall picture.
+#
+# Then verify the mode is actually in AppleEnabledInputSources — if
+# not, restore via reenable.sh (the same recovery path reinstall.sh
+# uses, applied as a belt-and-braces sweep so a flaky TIS write
+# doesn't reach the user as "can't switch to Inputx").
+killall TextInputMenuAgent >>"$LOG" 2>&1 || true
+ENABLED_COUNT=$(defaults read com.apple.HIToolbox AppleEnabledInputSources 2>/dev/null \
+                | grep -c "jp.golia.inputmethod.wubi" || true)
+if [ "$ENABLED_COUNT" -eq 0 ]; then
+  warn "Inputx not in AppleEnabledInputSources after reinstall — running reenable.sh"
+  if ! ./scripts/reenable.sh >>"$LOG" 2>&1; then
+    fail "switchability recovery failed — IME not in menu bar"
+  fi
+  log "✓ reenable.sh restored Inputx to the input source list"
+else
+  log "✓ Inputx switchable from menu bar (${ENABLED_COUNT} mode entry)"
+fi
+
+# Step 5b: drop the backup, succeed.
 if [ "$BACKUP_TAKEN" -eq 1 ]; then
   log "removing backup $APP_BAK"
   rm -rf "$APP_BAK" 2>>"$LOG" || warn "could not delete backup — manual cleanup needed"
