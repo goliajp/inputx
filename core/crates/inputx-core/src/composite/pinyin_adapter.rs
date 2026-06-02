@@ -1014,30 +1014,33 @@ impl PinyinAdapter {
             const COMPOSED_QUALITY_FLOOR: f64 = inputx_scoring::consts::COMPOSED_QUALITY_FLOOR;
             let per_char = score / (self.buffer.chars().count().max(1) as f64);
             //
-            // Tier 2 — cross-segment bigram support (user 2026-05-27,
-            // `houxuanqu` → 候选+去): chain length ≥ 2 means at least one
-            // cross-segment join. Calibrate by chain length:
-            //   - 2 segments (1 link): STRICT — the single link MUST have
-            //     bigram support. Otherwise it's a freq-greedy mechanical
-            //     concat (候选 multi-char + 去 single-char with (候选, 去)
-            //     bigram == 0). User rule: 候选去 NOT OK, ASCII fallback OK.
-            //   - 3+ segments (multi-link): LENIENT — at least ONE link
-            //     must have bigram support. Allows corpus gaps in long
-            //     real sentences (你好吗我叫 might have (吗, 我) == 0
-            //     while (你好, 吗) and (我, 叫) are non-zero). Otherwise
-            //     real sentences fall through to NON_EXACT_FLOOR tier
-            //     when one bigram entry is incidentally missing.
+            // Tier 2 — cross-segment bigram support. Calibrate by chain
+            // length (user reports: houxuanqu 2026-05-27, kakarimasu
+            // 2026-06-02):
             //
-            // Tighter check requires either fixing the missing bigram in
-            // the bigram table (corpus / private-dict work) OR doing
-            // composition-level pruning against an LM (v2+ scope, see
-            // PLAN-private-dict-snapshot.md vector ideas).
-            // v1.4.6 sub-phase C2: source bigram-support check from
-            // the NGMv1 cement table to match the new hot-path source.
-            // Using legacy_bigram_boost_from_ngm > 0.0 is the same
-            // "does the pair exist with non-zero count" test as the
-            // legacy dict.bigram_boost > 0.0; both are zero iff the
-            // (prev, next) key is absent from the underlying FST.
+            //   - 0 / 1 segments: trivially true (nothing to gate).
+            //   - 2 segments (1 link): STRICT — the link MUST have
+            //     bigram support. `候选去` mechanical concat where
+            //     (候选, 去) bigram == 0 → drops. `候选词` where
+            //     (候选, 词) > 0 → keeps.
+            //   - 3+ segments (N-1 links): MAJORITY — at least
+            //     ceil((N-1)/2) links must have non-zero bigram
+            //     support. Half-coverage threshold means a real long
+            //     sentence with a couple of corpus gaps still passes,
+            //     but a mechanical force-segmentation where most pairs
+            //     are zero fails. `卡-卡-日-马-苏` (kakarimasu, 4
+            //     links, only 1 non-zero) → drops. `你好-吗-我-叫`
+            //     (3 links, may be all zero or 1-non-zero depending on
+            //     corpus) → likely drops too, which the user has
+            //     confirmed is fine (mechanical phrases like 你好吗我叫
+            //     aren't actually sentences — corpus shouldn't surface
+            //     them either).
+            //
+            // The old "any single link non-zero" rule was too lenient
+            // for 5+ segments: kakarimasu had 4 links and only
+            // (马, 苏) [Chinese celebrity name "马苏"] had non-zero
+            // bigram, which was enough to ship the garbage 卡卡日马苏
+            // — clearly worse than letting JP's かかります win.
             let ngm_table = embedded_bigrams_table();
             let bigrams_ok = match chain.len() {
                 0 | 1 => true,
@@ -1048,14 +1051,19 @@ impl PinyinAdapter {
                         &chain[1],
                     ) > 0.0
                 }
-                _ => {
-                    (1..chain.len()).any(|i| {
+                n => {
+                    let links = n - 1;
+                    let non_zero = (1..n).filter(|&i| {
                         legacy_bigram_boost_from_ngm(
                             ngm_table,
                             Some(chain[i - 1].as_str()),
                             &chain[i],
                         ) > 0.0
-                    })
+                    }).count();
+                    // Ceil-half: 3 segs → 1 needed, 4 segs → 2, 5 segs
+                    // → 2, 6 segs → 3.
+                    let needed = (links + 1) / 2;
+                    non_zero >= needed
                 }
             };
             if per_char >= COMPOSED_QUALITY_FLOOR && bigrams_ok {
@@ -1357,13 +1365,21 @@ impl PinyinAdapter {
                     // entry boundary — acceptable since this whole path is
                     // last-resort and the strict check just drops more low-
                     // confidence stuff.
+                    // alternate_bigrams_ok — uses the SAME ceil((N-1)/2)
+                    // majority rule as the composed_sentence gate
+                    // above. Kept in sync so a candidate that passes
+                    // ratio>=2.0 but is still a force-segmentation
+                    // (e.g. `卡-卡-日-马-苏` from `kakarimasu` —
+                    // ratio exactly 2.0, only (马,苏) is corpus-present)
+                    // can't sneak in through this last-resort path.
                     let ngm_table = embedded_bigrams_table();
                     let alternate_bigrams_ok = |sentence: &str| -> bool {
                         let chars: Vec<String> = sentence
                             .chars()
                             .map(|c| c.to_string())
                             .collect();
-                        match chars.len() {
+                        let n = chars.len();
+                        match n {
                             0 | 1 => true,
                             2 => {
                                 legacy_bigram_boost_from_ngm(
@@ -1373,26 +1389,37 @@ impl PinyinAdapter {
                                 ) > 0.0
                             }
                             _ => {
-                                (1..chars.len()).any(|i| {
+                                let non_zero = (1..n).filter(|&i| {
                                     legacy_bigram_boost_from_ngm(
                                         ngm_table,
                                         Some(chars[i - 1].as_str()),
                                         &chars[i],
                                     ) > 0.0
-                                })
+                                }).count();
+                                let needed = n / 2; // (links+1)/2 = (n-1+1)/2 = n/2
+                                non_zero >= needed
                             }
                         }
                     };
+                    // top-1 (fallback_composition) NO LONGER exempt
+                    // (user report 2026-06-02 `kakarimasu` → 卡卡日马苏).
+                    // The earlier exemption rationale ("already passed
+                    // composed_sentence quality gate") was wrong for
+                    // Path 5 fallback: that path fires PRECISELY when
+                    // composed_sentence is empty (Path 5 only runs
+                    // when exact dict matches and composed_sentence
+                    // both came up dry). Top-1 has to pass the gate
+                    // on its own merits; `靠谱` does ((靠, 谱) > 0),
+                    // mechanical force-segmentations don't.
+                    if !alternate_bigrams_ok(top) {
+                        self.fallback_composition = None;
+                    }
                     for (_, sentence) in comps {
-                        // Top-1 (fallback_composition) is exempt — it already
-                        // passed the per-char score floor at the
-                        // composed_sentence quality gate (line ~989), and the
-                        // ratio>=2.0 check it's living under is a separate
-                        // mechanical-pinyin filter. Dropping it here would
-                        // double-gate and over-fire on real fallbacks like
-                        // 靠谱.
                         if &sentence == top {
-                            self.candidates.push(sentence);
+                            // Already gated above; push if survived.
+                            if self.fallback_composition.is_some() {
+                                self.candidates.push(sentence);
+                            }
                             continue;
                         }
                         if !alternate_bigrams_ok(&sentence) {
@@ -1885,22 +1912,30 @@ mod tests {
     }
 
     #[test]
-    fn viterbi_kicks_in_for_long_buffer() {
+    fn viterbi_rejects_mechanical_force_segmentation() {
+        // Updated 2026-06-02 (user report on `kakarimasu` →
+        // 卡卡日马苏): the previous assertion that Viterbi MUST fire
+        // for `nihaomawojiao` (你好吗我叫) was wrong per user's
+        // refined judgment — "你好吗我叫 这也不算是个句子, 这个其实
+        // 也不应该出现". Both that and `卡-卡-日-马-苏` are mechanical
+        // force-segmentations that the LENIENT (≥1 link non-zero)
+        // bigram gate let through; the stricter ceil((N-1)/2)-link
+        // majority gate now drops them.
+        //
+        // This test pins the new behavior: nihaomawojiao gets NO
+        // composed_sentence (no real Chinese sentence backing in
+        // the bigram corpus). If future bigram-corpus work makes
+        // `(你好, 吗) / (吗, 我) / (我, 叫)` all non-zero, this test
+        // would flip — at which point the assertion is the truth
+        // about what the corpus says, and the test should track it.
         let mut a = PinyinAdapter::new();
-        // 13-byte buffer — well past the 8-byte threshold for Viterbi.
         for b in b"nihaomawojiao" {
             a.handle_letter(*b);
         }
-        // Composed should be set, and surface at the top of candidates.
-        let composed = a.composed_sentence.clone();
-        assert!(composed.is_some(),
-            "expected Viterbi composition for long buffer; got None");
-        let composed = composed.unwrap();
-        assert!(composed.chars().all(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)),
-            "expected pure-CJK composed sentence, got {composed:?}");
-        // Composed candidate should be at #0 of the candidate list.
-        assert_eq!(a.candidates().first().cloned(), Some(composed),
-            "composed sentence should be at top of candidates");
+        assert!(a.composed_sentence.is_none(),
+            "nihaomawojiao should NOT surface composed_sentence under \
+             the ceil((N-1)/2) majority gate; got {:?}",
+            a.composed_sentence);
     }
 
     #[test]

@@ -835,13 +835,18 @@ mod tests {
         let top5: Vec<&str> = e.candidates().iter().take(5).map(|c| c.word.as_str()).collect();
         assert!(!top5.contains(&"是嗯据库"),
             "junk composition 是嗯据库 must not be top-5 for shinjuku; got {top5:?}");
-        // real sentence survives: nihaomawojiao → 你好吗我叫 #1
+        // real sentence survives: yongbuliao → 用不了
+        // (Updated 2026-06-02: previously used nihaomawojiao →
+        // 你好吗我叫, but per user judgment "你好吗我叫 这也不算是
+        // 个句子" the stricter bigram gate now drops it. Use
+        // yongbuliao instead — a genuine composition where the
+        // chain bigrams (用不, 不了) clear the ceil((N-1)/2) gate.)
         let mut e2 = CompositeEngine::new();
         e2.set_mode(Mode::Mixed);
         e2.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in b"nihaomawojiao" { let _ = e2.handle_letter(*b); }
-        assert_eq!(e2.candidates().first().map(|c| c.word.as_str()), Some("你好吗我叫"),
-            "real composed sentence must still lead nihaomawojiao");
+        for b in b"yongbuliao" { let _ = e2.handle_letter(*b); }
+        assert_eq!(e2.candidates().first().map(|c| c.word.as_str()), Some("用不了"),
+            "real composed sentence must still lead yongbuliao");
     }
 
     #[test]
