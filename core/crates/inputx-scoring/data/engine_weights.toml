@@ -89,15 +89,11 @@ tier_names = [
 # Indexed-by-Source values list as `[wubi, pinyin, japanese]`.
 
 [engine_weights]
-# Per-engine additive log-space boost (Q4 = 16 = 1 natural log unit).
-# +Q4 ≈ ×2.7 linear. Set to express "wubi-first in mixed mode" without
-# code branches.
-engine_boost_q4 = [8, 0, -100]
-
-# Wubi 简码 (Jianma1/2/3) extra boost on top of engine_boost_q4[Wubi].
-# Currently 0 — wubi simcode prominence rides on layer.base already
-# encoded in log_likelihood_q4 via the dispatch path's likelihood_linear.
-simcode_boost_q4 = 0
+# WU-ψ phase 6: engine_boost_q4 + simcode_boost_q4 retired. The
+# tier × engine table (see [tier_engine_base] above) now expresses
+# both "wubi-first in mixed mode" (engine_offset within tier) and
+# "wubi simcode 常用字必须 lead" (natural tier 0 assignment in
+# composite/dispatch.rs).
 
 # Replacement log-prob for bootstrap entries (字根表 etc., freq=0).
 # Without this floor `log_prob_corpus(0, total)` would give them the

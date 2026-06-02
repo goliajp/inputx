@@ -312,19 +312,6 @@ pub fn log_prob_corpus_from_freq(freq: u64, corpus_total: u64) -> i32 {
 #[cfg(feature = "std")]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct EngineWeights {
-    /// Per-engine additive log-space boost. Indexed by [`Source`] as
-    /// `u8`: `[Wubi, Pinyin, Japanese]`. A `+Q4` entry ≈ ×2.7 linear.
-    /// Use to express "in mixed mode, 五笔 candidates lead pinyin
-    /// fallback" as an explicit numeric weight rather than a hidden
-    /// ordering rule.
-    pub engine_boost_q4: [i32; 3],
-
-    /// Extra boost applied to wubi 简码 (Jianma1/2/3) candidates on
-    /// top of `engine_boost_q4[Wubi]`. Captures the "五笔 simcode
-    /// 常用字必须 lead" product promise as a numeric weight, not a
-    /// runtime branch.
-    pub simcode_boost_q4: i32,
-
     /// Replacement log-prob for bootstrap entries (e.g. 字根表
     /// entries whose source freq is 0 because they're prescriptive,
     /// not corpus-derived). Without this floor, `log_prob_corpus`
@@ -437,8 +424,6 @@ impl EngineWeights {
     /// tests and for callers that opt out of weighted ranking.
     pub const fn neutral() -> Self {
         Self {
-            engine_boost_q4: [0; 3],
-            simcode_boost_q4: 0,
             bootstrap_floor_q4: 0,
             char_boost_q4: 0,
             word_len_bonus_q4: 0,
@@ -500,17 +485,6 @@ impl EngineWeights {
             // ranking back where it was without overshooting the
             // rare-Jianma2 → pinyin-top yields. Applied uniformly to
             // ALL wubi candidates.
-            // Japanese: shift down so JP candidates (smaller corpus
-            // total, less-negative log_prob_corpus) sit in the same
-            // band the legacy unnormalized path placed them.
-            engine_boost_q4: __engine_weights_generated::ENGINE_BOOST_Q4,
-            // Wubi simcode lift (Jianma1/2/3 only). Default 0: under
-            // the v1.7.4 log_prob_corpus shift, the wubi `engine_boost_q4`
-            // + simcode `layer.base` (in log_likelihood_q4) together
-            // already place common simcodes above pinyin top while the
-            // `RARE_CHAR_DEMOTE` (× 0.001 on log_likelihood) drops
-            // rare-CJK Jianma2 entries below pinyin top.
-            simcode_boost_q4: __engine_weights_generated::SIMCODE_BOOST_Q4,
             bootstrap_floor_q4: __engine_weights_generated::BOOTSTRAP_FLOOR_Q4,
             // WU-τ knobs (v1.7.5) — both 0 keeps post-v1.7.4 ranking
             // intact. Future polish-log calibration shifts these.
@@ -558,9 +532,6 @@ pub struct CandidateData {
     /// Whether this entry came from a prescriptive bootstrap source
     /// (字根表 / simcode table) rather than corpus frequency counts.
     pub is_bootstrap: bool,
-    /// Whether this is a wubi 简码 (Jianma1/2/3) candidate. Producers
-    /// for other engines pass `false`.
-    pub is_simcode: bool,
     /// Length of the candidate word in characters (UTF-8 code points,
     /// matching `word.chars().count()`). Saturates to `u8::MAX` for
     /// pathological inputs; production words are ≤ ~10 chars.
@@ -571,27 +542,24 @@ pub struct CandidateData {
     /// pass it through; the compose layer doesn't re-walk the word
     /// string.
     pub word_char_count: u8,
-    /// WU-ψ (v1.11) tier assignment, or `None` to use the legacy
-    /// `log_prior + log_likelihood + engine_boost` formula.
+    /// WU-ψ (v1.11) tier assignment (0..=9). Drives the primary axis
+    /// of [`compute_score`]: `tier_base_q4(tier, source) +
+    /// within_tier_q4(prior, likelihood)`. Producers are required
+    /// to assign a tier — the legacy `engine_boost + simcode_boost`
+    /// path retired in phase 6.
     ///
-    /// When `Some(t)`, `compute_score` uses the tier-based formula:
-    ///   tier_base_q4(t, source) + within_tier_q4(prior, likelihood)
-    /// where within_tier_q4 is clamped to [0, WITHIN_TIER_MAX_Q4],
-    /// guaranteeing tier-N candidates always outrank tier-N+1.
-    ///
-    /// Phase-1 default: `None` everywhere; legacy formula in effect.
-    /// Subsequent phases progressively set tier per engine; once all
-    /// engines opt in, the legacy path is retired (phase 5).
-    pub tier: Option<u8>,
+    /// Default for general-purpose constructors that don't know
+    /// the right tier is `4` (standard); call sites override via
+    /// `with_tier` or pick a specific tier constructor.
+    pub tier: u8,
 }
 
 /// Fold static data + dynamic weights into the i32 sort key.
 ///
-/// Pure function. The returned value is what comparison sees and
-/// nothing else. Identity property: with [`EngineWeights::neutral`]
-/// and `is_bootstrap=false`, `compute_score(data, &neutral())` ==
-/// `data.log_prob_corpus_q4 + data.log_likelihood_q4` (matches the
-/// legacy [`score`] sum).
+/// Pure function. Returns `tier_base_q4(tier, source) +
+/// within_tier_q4(prior, likelihood, length_weight)`. The tier_base
+/// dominates so cross-tier ordering is structural; within-tier
+/// uses the clamped sum of the corpus / engine signals.
 #[cfg(feature = "std")]
 #[inline]
 pub fn compute_score(data: &CandidateData, weights: &EngineWeights) -> i32 {
@@ -615,24 +583,9 @@ pub fn compute_score(data: &CandidateData, weights: &EngineWeights) -> i32 {
     };
 
     let within_axes = log_prob + data.log_likelihood_q4 + length_weight;
-
-    // WU-ψ (v1.11): tier-based scoring when producer opted in. The
-    // tier_base dominates; within-tier ordering uses a clamped version
-    // of (log_prior + log_likelihood + length_weight) so engines'
-    // commonness signals still differentiate same-tier candidates
-    // without crossing tier boundaries.
-    if let Some(t) = data.tier {
-        let tier_base =
-            tier::tier_base_q4(t, data.source as u8);
-        let within = within_tier_clamp(within_axes);
-        return tier_base + within;
-    }
-
-    // Legacy path (phase 1 default; retired in phase 5 once all
-    // engines opt in).
-    within_axes
-        + weights.engine_boost_q4[data.source as usize]
-        + if data.is_simcode { weights.simcode_boost_q4 } else { 0 }
+    let tier_base = tier::tier_base_q4(data.tier, data.source as u8);
+    let within = within_tier_clamp(within_axes);
+    tier_base + within
 }
 
 /// Clamp `within_axes` (raw Q4 sum from prior + likelihood + length)
@@ -847,72 +800,49 @@ mod tests {
         }
     }
 
-    /// `compute_score` identity property: with neutral weights and a
-    /// non-bootstrap entry, the composed score equals the legacy
-    /// `log_prior + log_likelihood` sum. Future weight values are
-    /// expected to break this, but with `neutral()` it must hold —
-    /// this is what lets us land the framework without disturbing
-    /// any existing baseline.
+    /// Helper: build a minimal CandidateData with tier specified.
     #[cfg(feature = "std")]
-    #[test]
-    fn compute_score_neutral_is_legacy_sum() {
-        let weights = EngineWeights::neutral();
-        for source in [Source::Wubi, Source::Pinyin, Source::Japanese] {
-            for &(prior, lik) in &[(0, 0), (50, 50), (-200, 100), (10_000, -10)] {
-                let data = CandidateData {
-                    log_prob_corpus_q4: prior,
-                    log_likelihood_q4: lik,
-                    source,
-                    is_bootstrap: false,
-                    is_simcode: false,
-                    word_char_count: 1,
-                    tier: None,
-                };
-                assert_eq!(compute_score(&data, &weights), prior + lik,
-                    "neutral weights must collapse to log_prior + log_likelihood");
-            }
+    fn mk_cd(prior: i32, lik: i32, source: Source, tier: u8) -> CandidateData {
+        CandidateData {
+            log_prob_corpus_q4: prior,
+            log_likelihood_q4: lik,
+            source,
+            is_bootstrap: false,
+            word_char_count: 1,
+            tier,
         }
     }
 
-    /// `compute_score` actually USES the weights: nonzero engine_boost
-    /// shifts the result. Sanity-checks that the wiring isn't dead code.
+    /// WU-ψ structural invariant: a candidate at a lower-numbered
+    /// tier ALWAYS outranks one at a higher-numbered tier, regardless
+    /// of how extreme the within-tier axes get. The tier × engine
+    /// table guarantees this by setting `tier_gap_q4 ≫
+    /// within_tier_max_q4`.
     #[cfg(feature = "std")]
     #[test]
-    fn compute_score_engine_boost_applies() {
-        let data = CandidateData {
-            log_prob_corpus_q4: -100,
-            log_likelihood_q4: 50,
-            source: Source::Wubi,
-            is_bootstrap: false,
-            is_simcode: false,
-            word_char_count: 1,
-            tier: None,
-        };
-        let mut weights = EngineWeights::neutral();
-        let baseline = compute_score(&data, &weights);
-        weights.engine_boost_q4[Source::Wubi as usize] = 32; // +2 log = ×7.4 linear
-        let boosted = compute_score(&data, &weights);
-        assert_eq!(boosted - baseline, 32, "engine_boost_q4 must add additively");
+    fn compute_score_tier_dominates_within() {
+        let weights = EngineWeights::neutral();
+        // Tier 1 wubi with terrible within-axes vs tier 5 wubi with
+        // max within-axes: tier 1 still wins.
+        let tier1_bad = mk_cd(-10_000, 0, Source::Wubi, 1);
+        let tier5_great = mk_cd(10_000, 10_000, Source::Wubi, 5);
+        assert!(
+            compute_score(&tier1_bad, &weights) > compute_score(&tier5_great, &weights),
+            "tier 1 must dominate tier 5 even with adversarial within-axes"
+        );
     }
 
-    /// `compute_score` simcode boost only fires for simcode entries.
+    /// WU-ψ engine ordering within a tier: wubi > pinyin > nihongo.
+    /// Same tier, same axes — engine_offset decides.
     #[cfg(feature = "std")]
     #[test]
-    fn compute_score_simcode_boost_only_for_simcode() {
-        let mut weights = EngineWeights::neutral();
-        weights.simcode_boost_q4 = 64;
-        let common = CandidateData {
-            log_prob_corpus_q4: -100,
-            log_likelihood_q4: 0,
-            source: Source::Wubi,
-            is_bootstrap: false,
-            is_simcode: false,
-            word_char_count: 1,
-            tier: None,
-        };
-        let simcode = CandidateData { is_simcode: true, ..common };
-        assert_eq!(compute_score(&common, &weights), -100);
-        assert_eq!(compute_score(&simcode, &weights), -100 + 64);
+    fn compute_score_engine_offset_orders_w_p_n_within_tier() {
+        let weights = EngineWeights::neutral();
+        let w = compute_score(&mk_cd(0, 0, Source::Wubi, 1), &weights);
+        let p = compute_score(&mk_cd(0, 0, Source::Pinyin, 1), &weights);
+        let n = compute_score(&mk_cd(0, 0, Source::Japanese, 1), &weights);
+        assert!(w > p, "wubi must lead pinyin within same tier (w={w} p={p})");
+        assert!(p > n, "pinyin must lead nihongo within same tier (p={p} n={n})");
     }
 
     /// `compute_score` bootstrap-floor overrides `log_prob_corpus_q4`
@@ -922,19 +852,25 @@ mod tests {
     #[cfg(feature = "std")]
     #[test]
     fn compute_score_bootstrap_floor_overrides_log_prob() {
+        // Bootstrap floor REPLACES `log_prob_corpus_q4` for bootstrap
+        // entries. Pick axes that leave the within-tier clamp room
+        // for the delta to surface (raw axes land in [0, 100]).
         let mut weights = EngineWeights::neutral();
-        weights.bootstrap_floor_q4 = -50;
-        let data = CandidateData {
-            log_prob_corpus_q4: -300, // would lose to any corpus entry
-            log_likelihood_q4: 0,
-            source: Source::Wubi,
-            is_bootstrap: true,
-            is_simcode: false,
-            word_char_count: 1,
-            tier: None,
-        };
-        // floor (-50) replaces log_prob_corpus_q4 (-300), so score is -50, not -300.
-        assert_eq!(compute_score(&data, &weights), -50);
+        weights.bootstrap_floor_q4 = 50;
+        let mut data = mk_cd(10, 30, Source::Wubi, 4);
+        data.is_bootstrap = true;
+        // log_prob 10 + lik 30 = 40 (within clamp). With floor=50:
+        // 50 + 30 = 80 (within clamp). Delta = 40.
+        let baseline = compute_score(&data, &EngineWeights::neutral());
+        let with_floor = compute_score(&data, &weights);
+        // neutral baseline forces log_prob = 0 (neutral.bootstrap_floor_q4 = 0
+        // overrides the +10 in data). with_floor sets log_prob = 50.
+        // Delta = 50.
+        assert_eq!(
+            with_floor - baseline,
+            50,
+            "bootstrap floor replaces log_prob (0 → 50)"
+        );
     }
 
     /// WU-τ (v1.7.5): `char_boost_q4` fires only for single-character
@@ -946,19 +882,15 @@ mod tests {
     fn compute_score_char_boost_fires_only_for_single_char() {
         let mut weights = EngineWeights::neutral();
         weights.char_boost_q4 = 40;
-        let single = CandidateData {
-            log_prob_corpus_q4: -50,
-            log_likelihood_q4: 0,
-            source: Source::Pinyin,
-            is_bootstrap: false,
-            is_simcode: false,
-            word_char_count: 1,
-            tier: None,
-        };
-        let multi = CandidateData { word_char_count: 3, ..single };
-        // single-char gets +40; multi-char does NOT get char_boost.
-        assert_eq!(compute_score(&single, &weights), -50 + 40);
-        assert_eq!(compute_score(&multi, &weights), -50, "multi-char must not see char_boost");
+        // Pick axes that leave the within-tier clamp room for the
+        // +40 boost to land cleanly (raw axes 10+0 = 10 → boost
+        // lifts to 50, both in [0, 100]).
+        let single = mk_cd(10, 0, Source::Pinyin, 4);
+        let mut multi = single;
+        multi.word_char_count = 3;
+        let s = compute_score(&single, &weights);
+        let m = compute_score(&multi, &weights);
+        assert_eq!(s - m, 40, "char_boost must apply to single-char only");
     }
 
     /// WU-τ (v1.7.5): `word_len_bonus_q4` scales linearly with extra
@@ -968,21 +900,18 @@ mod tests {
     fn compute_score_word_len_bonus_scales_with_count() {
         let mut weights = EngineWeights::neutral();
         weights.word_len_bonus_q4 = 10;
-        let mk = |count: u8| CandidateData {
-            log_prob_corpus_q4: -50,
-            log_likelihood_q4: 0,
-            source: Source::Pinyin,
-            is_bootstrap: false,
-            is_simcode: false,
-            word_char_count: count,
-            tier: None,
+        // Axes 10+0=10 in clamp; boost adds (count-1)·10 → 0/10/30
+        // all stay in [0, 100].
+        let mk = |count: u8| {
+            let mut d = mk_cd(10, 0, Source::Pinyin, 4);
+            d.word_char_count = count;
+            d
         };
-        // count=1 → no bonus (single-char path falls through to char_boost which is 0).
-        assert_eq!(compute_score(&mk(1), &weights), -50);
-        // count=2 → +(2-1)·10 = +10
-        assert_eq!(compute_score(&mk(2), &weights), -50 + 10);
-        // count=4 → +(4-1)·10 = +30
-        assert_eq!(compute_score(&mk(4), &weights), -50 + 30);
+        let s1 = compute_score(&mk(1), &weights);
+        let s2 = compute_score(&mk(2), &weights);
+        let s4 = compute_score(&mk(4), &weights);
+        assert_eq!(s2 - s1, 10, "count=2 adds +10 over count=1");
+        assert_eq!(s4 - s1, 30, "count=4 adds +30 over count=1");
     }
 
     /// WU-ξ (v1.8.1): `MatchType::Initials` decay is gentler than
@@ -1037,18 +966,18 @@ mod tests {
     #[test]
     fn compute_score_neutral_is_count_invariant() {
         let weights = EngineWeights::neutral();
-        for count in [1u8, 2, 5, 10, 50, u8::MAX] {
-            let data = CandidateData {
-                log_prob_corpus_q4: -100,
-                log_likelihood_q4: 50,
-                source: Source::Pinyin,
-                is_bootstrap: false,
-                is_simcode: false,
-                word_char_count: count,
-                tier: None,
-            };
-            assert_eq!(compute_score(&data, &weights), -50,
-                "neutral weights must give -100+50=-50 regardless of word_char_count (got count={count})");
+        // Axes 10+30=40 in clamp range; neutral weights ⇒
+        // word_char_count is inert regardless of value.
+        let pin = {
+            let mut d = mk_cd(10, 30, Source::Pinyin, 4);
+            d.word_char_count = 1;
+            compute_score(&d, &weights)
+        };
+        for count in [2u8, 5, 10, 50, u8::MAX] {
+            let mut d = mk_cd(10, 30, Source::Pinyin, 4);
+            d.word_char_count = count;
+            assert_eq!(compute_score(&d, &weights), pin,
+                "neutral weights must be count-invariant (got count={count})");
         }
     }
 

@@ -58,21 +58,14 @@ pub struct ScoreComponents {
     pub log_prior_q4: i32,
     pub log_likelihood_q4: i32,
     pub match_type: inputx_scoring::MatchType,
-    /// v1.7.4 — wubi 简码 (Jianma1/2/3) marker. The cross-engine merge
-    /// looks at this when folding `EngineWeights::simcode_boost_q4` to
-    /// lift only top-tier wubi entries above pinyin top while still
-    /// letting rare-CJK Jianma2 entries (`蒌`/`㻋` etc.) yield to the
-    /// common pinyin char at the same buffer. Wubi fill sites set this
-    /// based on `inputx_wubi::Layer`; pinyin / JP fill sites leave it
-    /// false.
-    pub is_simcode: bool,
-    /// WU-ψ (v1.11) tier assignment, or `None` to use the legacy
-    /// score formula. See [`inputx_scoring::CandidateData::tier`].
+    /// WU-ψ tier assignment (0..=9). See
+    /// [`inputx_scoring::CandidateData::tier`].
     ///
-    /// Phase-1 default: every constructor sets this to `None`; later
-    /// phases set tier per engine. Once all engines opt in (phase 5)
-    /// the field becomes mandatory and the legacy path is retired.
-    pub tier: Option<u8>,
+    /// Drives the primary axis of the cross-engine merge sort:
+    /// candidates in a lower-numbered tier always outrank those in a
+    /// higher-numbered tier, regardless of engine or within-tier
+    /// freq / likelihood differences.
+    pub tier: u8,
 }
 
 impl ScoreComponents {
@@ -93,35 +86,14 @@ impl ScoreComponents {
             log_prior_q4,
             log_likelihood_q4,
             match_type,
-            is_simcode: false,
-            tier: None,
-        }
-    }
-
-    /// Same as [`three_axis`] but tags the candidate as a wubi simcode
-    /// (Jianma1/2/3). Used at the dispatch.rs fill site so the
-    /// cross-engine merge can apply `simcode_boost_q4` selectively.
-    pub fn three_axis_simcode(
-        log_prior_q4: i32,
-        log_likelihood_q4: i32,
-        match_type: inputx_scoring::MatchType,
-        is_simcode: bool,
-    ) -> Self {
-        Self {
-            base: 0.0,
-            prior: 0.0,
-            likelihood: 0.0,
-            log_prior_q4,
-            log_likelihood_q4,
-            match_type,
-            is_simcode,
-            tier: None,
+            tier: 4,
         }
     }
 
     /// WU-ψ (v1.11) tiered constructor — same shape as [`three_axis`]
-    /// but assigns the candidate to a specific tier. Producers that
-    /// opt into the tier-based primary sort use this.
+    /// but assigns the candidate to a specific tier. Preferred by
+    /// post-phase-2 adapters; `three_axis` defaults to tier 4 when
+    /// the call site doesn't have a natural tier to assign.
     pub fn three_axis_tiered(
         log_prior_q4: i32,
         log_likelihood_q4: i32,
@@ -135,8 +107,7 @@ impl ScoreComponents {
             log_prior_q4,
             log_likelihood_q4,
             match_type,
-            is_simcode: false,
-            tier: Some(tier),
+            tier,
         }
     }
 
@@ -160,8 +131,7 @@ impl ScoreComponents {
             log_prior_q4,
             log_likelihood_q4,
             match_type,
-            is_simcode: false,
-            tier: None,
+            tier: 4,
         }
     }
 
@@ -170,7 +140,7 @@ impl ScoreComponents {
     /// `from_predict`) and the adapter needs to opt the result into
     /// tier-based scoring after the fact.
     pub fn with_tier(mut self, tier: u8) -> Self {
-        self.tier = Some(tier);
+        self.tier = tier;
         self
     }
 
@@ -568,8 +538,8 @@ pub fn merge(
     //     comparable)
     //   * log_likelihood_q4 (match-shape / per-engine likelihood)
     //   * engine_boost_q4[source] (per-engine preference)
-    //   * simcode_boost_q4 if is_simcode (currently 0; layer.base
-    //     already carries wubi simcode prominence in log_likelihood_q4)
+    // (WU-ψ phase 6: simcode_boost_q4 retired; wubi simcodes opt
+    // into tier 0 directly via dispatch.rs natural rule.)
     //   * bootstrap_floor_q4 override for is_bootstrap entries
     //     (currently 0; freq=0 entries get an explicit floor below)
     // Defensive i32::MIN keeps None-components candidates (e.g. the
@@ -581,16 +551,9 @@ pub fn merge(
             Source::Pinyin => inputx_scoring::Source::Pinyin,
             Source::Japanese => inputx_scoring::Source::Japanese,
         };
-        // is_simcode / is_bootstrap aren't carried on ScoreComponents
-        // pre-v1.7.4 (no callsite needed them). For now both flags are
-        // false at compose time — the wubi simcode prominence is
-        // already encoded in `log_likelihood_q4` via `layer.base()` in
-        // dispatch.rs, and bootstrap (freq=0 字根 / Zigen) entries
-        // similarly route through the same log_likelihood path. If
-        // either weight becomes meaningfully nonzero in
-        // `inputx_default()`, attach the flags on ScoreComponents at
-        // the dispatch.rs / pinyin_adapter.rs / japanese_adapter.rs
-        // fill sites.
+        // is_bootstrap retained on CandidateData for the bootstrap_floor_q4
+        // override path; compose-time default is false (字根 / Zigen
+        // entries route through tier 1 in dispatch.rs naturally).
         // v1.7.5 WU-τ: word_char_count drives `char_boost_q4` /
         // `word_len_bonus_q4`. Computed inline from `c.word` rather
         // than threaded through every ScoreComponents fill site —
@@ -604,7 +567,6 @@ pub fn merge(
             log_likelihood_q4: comp.log_likelihood_q4,
             source,
             is_bootstrap: false,
-            is_simcode: comp.is_simcode,
             word_char_count,
             tier: comp.tier,
         };
