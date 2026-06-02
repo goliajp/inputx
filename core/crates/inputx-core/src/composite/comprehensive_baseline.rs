@@ -861,6 +861,54 @@ mod tests {
         );
     }
 
+    #[test]
+    fn prominent_wubi_simcode_leads_in_mixed_mode_even_with_prev_committed() {
+        // User 2026-06-02: typing `用` then `yi` showed `以` at #0,
+        // `就` at #2 — even WITHOUT any L0 pin. The (用, 以) bigram
+        // boost in pinyin_adapter.rs was outranking wubi 就's natural
+        // simcode advantage. User: "yi 还是以在就前面，前面如果没有
+        // 任何输入的时候，'就' 才能在第一，这不对".
+        //
+        // Rule: 就 is a prominent Jianma2 simcode (passes CHAR_PROMINENT_
+        // FLOOR=20k); per the "wubi-first muscle memory" contract it
+        // must lead #0 in Mixed mode regardless of pinyin bigram context.
+        //
+        // Distinct from the pin-based test above — this case has NO L0
+        // state at all, so the structural promotion in dispatch.rs
+        // must trigger via the prominent_simcode_winner branch (not
+        // wubi_pinned).
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+
+        // Step 1 — commit 用 to set prev_committed for the bigram path.
+        for b in b"yong" {
+            let _ = e.handle_letter(*b);
+        }
+        let yong_idx = e
+            .candidates()
+            .iter()
+            .position(|c| c.word == "用")
+            .expect("用 should appear at #N for buffer yong");
+        let committed = e.commit_index(yong_idx);
+        assert_eq!(committed.as_deref(), Some("用"));
+
+        // Step 2 — type yi. Without the structural promotion, pinyin
+        // 以 wins via bigram(用, 以); with the promotion, 就 leads.
+        for b in b"yi" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e.candidates().iter().take(10).map(|c| c.word.clone()).collect();
+        let top = top10.first().cloned().unwrap_or_default();
+        assert_eq!(
+            top, "就",
+            "prominent wubi Jianma2 `就` (yi) must lead #0 in Mixed \
+             mode regardless of prev_committed bigram context. Cold \
+             session works correctly via natural sort; this test \
+             guards the WITH-context regression. Got top10={top10:?}"
+        );
+    }
+
     // ───────────────────────────────────────────────────────────
     // lüe / nüe alias normalization (user 2026-06-02: "celue 策略，
     // 这种级别的拼音词怎么也没有"). Dict stores under lve/nve; users
