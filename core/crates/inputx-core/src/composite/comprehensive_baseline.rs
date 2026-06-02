@@ -1157,6 +1157,43 @@ mod tests {
     }
 
     // ───────────────────────────────────────────────────────────
+    // Wubi jianma2 (二级简码) single-char noise for common pinyin
+    // syllables. Demoted via wubi weights.tsv raw_freq → 0.
+    // ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn rare_wubi_simcode_chars_absent_from_mixed_top5() {
+        // 2026-06-03 sweep — rare-CJK / traditional-form wubi simcode
+        // chars hijacking common pinyin syllables. wubi simcode_boost
+        // pushed them above pinyin top1 even at low raw_freq; setting
+        // raw_freq → 0 in wubi weights.tsv demotes them out of the
+        // user-visible top-5. They still appear deeper in top-10
+        // (kept in dict for pure-wubi users typing the full 4-letter
+        // code), so this test checks top-5 only.
+        let cases: &[(&str, &[&str])] = &[
+            ("hang", &["虛"]),    // traditional form, daily-use 虚 at hao+xu
+            ("rang", &["拒"]),    // 拒 reads "jù", not "rang"
+            ("yang", &["讵", "詎"]),  // 讵 "jù" (rare) + traditional 詎
+        ];
+        let mut failures = Vec::new();
+        for (buf, blocklist) in cases {
+            let top10 = mixed_top10(buf.as_bytes());
+            let top5: &[String] = if top10.len() < 5 { &top10[..] } else { &top10[..5] };
+            for bad in *blocklist {
+                if top5.iter().any(|w| w == bad) {
+                    failures.push(format!(
+                        "  {buf}: rare wubi simcode {bad} in mixed top5 — top5={top5:?}"
+                    ));
+                }
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} wubi-simcode-noise cases failed:\n{}",
+                failures.len(), failures.join("\n"));
+        }
+    }
+
+    // ───────────────────────────────────────────────────────────
     // Pinyin corpus noise (jieba sub-word artifacts, archaic
     // readings, etc.) — must not appear in mixed top10. Backed by
     // BAKED_EXCLUSIONS in idf_from_pinyin_dict.rs.
