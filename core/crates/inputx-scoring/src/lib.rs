@@ -100,6 +100,14 @@
 // build for polish" workflow's runtime piece.
 include!(concat!(env!("OUT_DIR"), "/engine_weights_generated.rs"));
 
+/// WU-ψ (v1.11) tier × engine base score lookup. Generated from
+/// `[tier_engine_base]` in `engine_weights.toml`.
+///
+/// Producers set [`CandidateData::tier`] to opt into tier-based
+/// ranking; [`compute_score`] folds `tier_base_q4(tier, source) +
+/// within_tier_q4` as the primary axis.
+pub use tier as tier_table;
+
 /// Fixed-point scale for log-space scalars. `Q4 = 16` means every
 /// integer step is 1/16 of a log unit (≈ 0.0625). At this resolution,
 /// `i32` covers a dynamic range of ~ ±67 million log units — far more
@@ -532,6 +540,18 @@ pub struct CandidateData {
     /// pass it through; the compose layer doesn't re-walk the word
     /// string.
     pub word_char_count: u8,
+    /// WU-ψ (v1.11) tier assignment, or `None` to use the legacy
+    /// `log_prior + log_likelihood + engine_boost` formula.
+    ///
+    /// When `Some(t)`, `compute_score` uses the tier-based formula:
+    ///   tier_base_q4(t, source) + within_tier_q4(prior, likelihood)
+    /// where within_tier_q4 is clamped to [0, WITHIN_TIER_MAX_Q4],
+    /// guaranteeing tier-N candidates always outrank tier-N+1.
+    ///
+    /// Phase-1 default: `None` everywhere; legacy formula in effect.
+    /// Subsequent phases progressively set tier per engine; once all
+    /// engines opt in, the legacy path is retired (phase 5).
+    pub tier: Option<u8>,
 }
 
 /// Fold static data + dynamic weights into the i32 sort key.
@@ -563,11 +583,46 @@ pub fn compute_score(data: &CandidateData, weights: &EngineWeights) -> i32 {
         (data.word_char_count as i32 - 1).saturating_mul(weights.word_len_bonus_q4)
     };
 
-    log_prob
-        + data.log_likelihood_q4
+    let within_axes = log_prob + data.log_likelihood_q4 + length_weight;
+
+    // WU-ψ (v1.11): tier-based scoring when producer opted in. The
+    // tier_base dominates; within-tier ordering uses a clamped version
+    // of (log_prior + log_likelihood + length_weight) so engines'
+    // commonness signals still differentiate same-tier candidates
+    // without crossing tier boundaries.
+    if let Some(t) = data.tier {
+        let tier_base =
+            tier::tier_base_q4(t, data.source as u8);
+        let within = within_tier_clamp(within_axes);
+        return tier_base + within;
+    }
+
+    // Legacy path (phase 1 default; retired in phase 5 once all
+    // engines opt in).
+    within_axes
         + weights.engine_boost_q4[data.source as usize]
         + if data.is_simcode { weights.simcode_boost_q4 } else { 0 }
-        + length_weight
+}
+
+/// Clamp `within_axes` (raw Q4 sum from prior + likelihood + length)
+/// into the `[0, WITHIN_TIER_MAX_Q4]` band used by tier-mode scoring.
+///
+/// The raw axes can range widely (prior is negative log-prob, ~ -200
+/// to +50 Q4; likelihood is positive, ~ +170 to +340 Q4). The clamp
+/// shifts and caps that range into the tier's reserved sub-band so
+/// no candidate ever crosses its tier boundary.
+///
+/// Calibration: subtract a per-formula floor (`WITHIN_TIER_AXES_FLOOR
+/// = 0` for now — within-tier sort uses raw axes, the clamp just
+/// prevents pathological overflow). Tunable as the tier system
+/// matures in phases 3/4.
+#[cfg(feature = "std")]
+#[inline]
+fn within_tier_clamp(axes_q4: i32) -> i32 {
+    let max = tier::WITHIN_TIER_MAX_Q4;
+    // Treat negative axes as 0 (some bootstrap entries can underflow);
+    // saturate at max (very-high-freq prior + max likelihood).
+    axes_q4.max(0).min(max)
 }
 
 /// Q4 log-likelihood derived from a match-type classification.
@@ -780,6 +835,7 @@ mod tests {
                     is_bootstrap: false,
                     is_simcode: false,
                     word_char_count: 1,
+                    tier: None,
                 };
                 assert_eq!(compute_score(&data, &weights), prior + lik,
                     "neutral weights must collapse to log_prior + log_likelihood");
@@ -799,6 +855,7 @@ mod tests {
             is_bootstrap: false,
             is_simcode: false,
             word_char_count: 1,
+            tier: None,
         };
         let mut weights = EngineWeights::neutral();
         let baseline = compute_score(&data, &weights);
@@ -820,6 +877,7 @@ mod tests {
             is_bootstrap: false,
             is_simcode: false,
             word_char_count: 1,
+            tier: None,
         };
         let simcode = CandidateData { is_simcode: true, ..common };
         assert_eq!(compute_score(&common, &weights), -100);
@@ -842,6 +900,7 @@ mod tests {
             is_bootstrap: true,
             is_simcode: false,
             word_char_count: 1,
+            tier: None,
         };
         // floor (-50) replaces log_prob_corpus_q4 (-300), so score is -50, not -300.
         assert_eq!(compute_score(&data, &weights), -50);
@@ -863,6 +922,7 @@ mod tests {
             is_bootstrap: false,
             is_simcode: false,
             word_char_count: 1,
+            tier: None,
         };
         let multi = CandidateData { word_char_count: 3, ..single };
         // single-char gets +40; multi-char does NOT get char_boost.
@@ -884,6 +944,7 @@ mod tests {
             is_bootstrap: false,
             is_simcode: false,
             word_char_count: count,
+            tier: None,
         };
         // count=1 → no bonus (single-char path falls through to char_boost which is 0).
         assert_eq!(compute_score(&mk(1), &weights), -50);
@@ -953,6 +1014,7 @@ mod tests {
                 is_bootstrap: false,
                 is_simcode: false,
                 word_char_count: count,
+                tier: None,
             };
             assert_eq!(compute_score(&data, &weights), -50,
                 "neutral weights must give -100+50=-50 regardless of word_char_count (got count={count})");

@@ -21,6 +21,68 @@
 # composite/merge.rs — see `docs/POLISH-ARCHITECTURE.md` for the full
 # polish-workflow design.
 
+# ─── Tier × Engine base score table (v1.11 WU-ψ) ──────────────────
+#
+# Two-axis score authority: every candidate's primary sort key is
+#   final_q4 = tier_base[tier][engine] + within_tier_q4
+# where `within_tier_q4 ∈ [0, within_tier_max_q4]` is a clamped
+# function of (log_prior_q4, log_likelihood_q4) — i.e. WITHIN a tier,
+# the engine's own commonness signal still distinguishes candidates,
+# but it cannot CROSS tier boundaries because `tier_gap_q4` ≫
+# `within_tier_max_q4`.
+#
+# Engine offset within a tier expresses the base hierarchy
+# w > p > n (五笔 > 拼音 > 日语 in Mixed mode). It is small relative
+# to the tier gap — same-tier candidates from different engines stay
+# close, but the order is deterministic.
+#
+# Adjustment paths:
+#   A. Move a (buffer, word) to a different tier  → adapter logic OR
+#                                                   tier_overlay.tsv
+#   B. Reorder within a tier                       → adjust freq /
+#                                                   quickfix overlays
+#
+# No per-engine carve-outs (no engine_boost_q4 "lift wubi"; no
+# simcode_boost_q4 "lift simcodes"). All of those reduce to a tier
+# assignment — wubi prominent simcode = tier 1, JP basic kana =
+# tier 1, etc. — and the table here.
+
+[tier_engine_base]
+# Distance between adjacent tiers, in Q4 log-space. 200 Q4 ≈ ×270k
+# linear — must vastly exceed `within_tier_max_q4` to guarantee no
+# cross-tier overlap.
+tier_gap_q4 = 200
+
+# Distance between engines within a tier, in Q4 log-space. 10 Q4 ≈
+# ×1.86 linear — small enough to feel "close" to the user, large
+# enough to be deterministic. Order: wubi (+2·offset), pinyin
+# (+1·offset), nihongo (+0).
+engine_gap_q4 = 10
+
+# Hard ceiling on within-tier score variance. Must satisfy
+# `within_tier_max_q4 < tier_gap_q4` (with margin) so a tier-N
+# candidate at max within-tier never reaches tier-N-1 at min.
+within_tier_max_q4 = 150
+
+# Tier count (0 .. tier_count). 10 tiers gives fine-grained control
+# without becoming unmanageable. Semantic naming below.
+tier_count = 10
+
+# Semantic names for each tier (purely documentation; tier IDs are
+# what code references). Listed top → bottom (tier 0 = highest).
+tier_names = [
+    "absolute",        # 0  pin / structural top
+    "top",             # 1  buffer-best common: wubi 简码 prominent / pinyin top single char / JP basic kana
+    "phrase",          # 2  full-buffer phrase match
+    "common",          # 3  mid-freq character / common kanji
+    "standard",        # 4  standard dict entries
+    "less_common",     # 5  lower-freq / rare-CJK simcode yields here
+    "rare",            # 6  rare characters
+    "specialty",       # 7  prefix predictions
+    "predict",         # 8  speculative / longer-tail prediction
+    "longtail",        # 9  fuzzy / initials / last-resort
+]
+
 # ─── EngineWeights — v1.7-v1.8 calibration knobs ──────────────────
 # Indexed-by-Source values list as `[wubi, pinyin, japanese]`.
 
