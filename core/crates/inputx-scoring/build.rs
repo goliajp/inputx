@@ -41,16 +41,10 @@ fn main() {
         .and_then(|v| v.as_table())
         .unwrap_or_else(|| panic!("engine_weights.toml: missing [engine_weights] table"));
 
-    let engine_boost_q4 = ew
-        .get("engine_boost_q4")
-        .and_then(|v| v.as_array())
-        .unwrap_or_else(|| panic!("engine_weights.engine_boost_q4 missing or not array"));
-    let mut eb = [0i32; 3];
-    for (i, v) in engine_boost_q4.iter().enumerate().take(3) {
-        eb[i] = v.as_integer().unwrap_or_else(|| {
-            panic!("engine_boost_q4[{i}] not integer")
-        }) as i32;
-    }
+    // engine_boost_q4 + simcode_boost_q4: retired in WU-ψ phase 6.
+    // The tier × engine table subsumes both ("wubi-first via tier_base
+    // engine offset", "simcode lift via tier 0 assignment"). TOML rows
+    // for these fields can be deleted at the user's convenience.
 
     // WU-ψ tier × engine base table (v1.11).
     let teb = parsed
@@ -78,7 +72,6 @@ fn main() {
         );
     }
 
-    let simcode_boost_q4 = read_i32(ew, "simcode_boost_q4");
     let bootstrap_floor_q4 = read_i32(ew, "bootstrap_floor_q4");
     let char_boost_q4 = read_i32(ew, "char_boost_q4");
     let word_len_bonus_q4 = read_i32(ew, "word_len_bonus_q4");
@@ -179,8 +172,6 @@ fn main() {
 /// embedded at build time. `EngineWeights::inputx_default()` reads
 /// from this module.
 pub(crate) mod __engine_weights_generated {{
-    pub const ENGINE_BOOST_Q4: [i32; 3] = [{eb0}, {eb1}, {eb2}];
-    pub const SIMCODE_BOOST_Q4: i32 = {simcode};
     pub const BOOTSTRAP_FLOOR_Q4: i32 = {bootstrap};
     pub const CHAR_BOOST_Q4: i32 = {char_b};
     pub const WORD_LEN_BONUS_Q4: i32 = {word_len};
@@ -287,10 +278,6 @@ pub mod consts {{
     pub const WUBI_FULL_CODE_SINGLE_CHAR_PROMOTE: f64 = {dw_sgl};
 }}
 "#,
-        eb0 = eb[0],
-        eb1 = eb[1],
-        eb2 = eb[2],
-        simcode = simcode_boost_q4,
         bootstrap = bootstrap_floor_q4,
         char_b = char_boost_q4,
         word_len = word_len_bonus_q4,

@@ -330,18 +330,6 @@ pub fn dispatch(
                         .ln()
                         * inputx_scoring::Q4 as f64)
                         .round() as i32;
-                    // v1.7.4: tag Jianma1/2/3 candidates as simcodes so
-                    // the cross-engine merge can apply
-                    // `EngineWeights::simcode_boost_q4` selectively —
-                    // common simcodes get the wubi-first lift, but
-                    // raw-freq-low entries (rare-CJK Jianma2) still
-                    // yield to common pinyin top.
-                    let is_simcode = matches!(
-                        layer,
-                        inputx_wubi::Layer::Jianma1
-                            | inputx_wubi::Layer::Jianma2
-                            | inputx_wubi::Layer::Jianma3,
-                    );
                     // WU-ψ tier assignment for wubi candidates:
                     //   - pinned → 0 (user assertion)
                     //   - prominent simcode (Jianma + char_demote=1.0) → 0
@@ -390,9 +378,6 @@ pub fn dispatch(
                         inputx_scoring::MatchType::Exact,
                         tier_wubi,
                     );
-                    // is_simcode flag retained for callers still on the
-                    // legacy path — Phase 5 retires it when tier is mandatory.
-                    let _ = is_simcode;
                     (w, final_score, Some(components))
                 })
                 .collect();
