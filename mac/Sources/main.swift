@@ -41,13 +41,27 @@ if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "install" {
         let id = Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
         return modeIDs.contains(id)
     }
-    let alreadyRegistered = all.filter(match)
-    if alreadyRegistered.isEmpty {
-        let status = TISRegisterInputSource(Bundle.main.bundleURL as CFURL)
-        guard status == noErr else {
-            NSLog("Inputx install: TISRegisterInputSource failed OSStatus=\(status)")
-            exit(1)
-        }
+    // ALWAYS call TISRegisterInputSource — including when the
+    // bundle ID is already in the TIS database. Skipping
+    // re-registration on "already there" leaves the TIS row
+    // pinned to the PREVIOUS bundle's metadata (cdhash, mtime,
+    // mode dict snapshot), and the keyboard menu picker filters
+    // the current on-disk bundle out as a mismatch. Symptom:
+    // reinstall succeeds, every gate verifies (defaults read,
+    // codesign --verify, IntlDataCache invalidated, agents
+    // restarted) — but Inputx silently vanishes from the menu,
+    // and System Settings → Remove → Re-Add (which DOES call
+    // TISDeregister + TISRegister) is the only fix that sticks.
+    //
+    // TISRegisterInputSource is idempotent on the API surface
+    // (noErr on re-register of an existing bundle) but its
+    // side effect is what we want: the TIS row is rewritten
+    // against the current bundle on disk.
+    let _ = all.filter(match) // kept for ordering / parity with the old code
+    let status = TISRegisterInputSource(Bundle.main.bundleURL as CFURL)
+    guard status == noErr else {
+        NSLog("Inputx install: TISRegisterInputSource failed OSStatus=\(status)")
+        exit(1)
     }
     let postRegister = ((TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource]) ?? [])
         .filter(match)
