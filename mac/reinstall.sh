@@ -162,10 +162,28 @@ defaults.set(enabled, forKey: "AppleEnabledInputSources")
 _ = defaults.synchronize()
 SWIFT
 
-# 5b. Restart TextInputMenuAgent so picker respawns AFTER the TIS state
-#     transition above — guarantees the picker process inits from the
-#     post-flip TIS state even if it had been listening when the
-#     notification fired.
+# 5b. Invalidate IntlDataCache — the macOS 26 cache that holds the
+#     TIS enumeration result. Surviving this cache is what lets a
+#     reinstalled bundle silently vanish from the keyboard menu
+#     picker even though every other gate (TIS db, defaults,
+#     codesign, LaunchAgent) checks out. Documented in
+#     docs/macos-ime-recipe-2026.md. Deletion is the only reliable
+#     invalidation — neither `killall TextInputMenuAgent`,
+#     `lsregister -f`, FSEvents, nor `TISUpdateIntlFileCache()`
+#     actually clear it.
+#
+#     Belongs in reinstall.sh (not just reinstall-safe.sh) so every
+#     caller — reinstall-safe, bench-auto, manual runs — picks up
+#     the invalidation. Otherwise bench-auto's 3-run loop racks up
+#     stale-cache regressions every session.
+CACHE_DIR=$(getconf DARWIN_USER_CACHE_DIR 2>/dev/null || echo "")
+if [ -n "$CACHE_DIR" ]; then
+  rm -f "${CACHE_DIR}"com.apple.IntlDataCache.le* >>"$LOG" 2>&1 || true
+fi
+
+# 5c. Restart TextInputMenuAgent so picker respawns AFTER the TIS
+#     state transition above + the IntlDataCache invalidation.
+#     Guarantees the picker process inits fresh.
 killall TextInputMenuAgent >>"$LOG" 2>&1 || true
 
 # 6. Verify the binary is running.
