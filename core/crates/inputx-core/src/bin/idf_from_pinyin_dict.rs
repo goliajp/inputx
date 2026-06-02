@@ -116,6 +116,13 @@ const BAKED_EXCLUSIONS: &[(&str, &str)] = &[
     // "次贫" isn't an established Chinese phrase — likely jieba noise
     // (次 + 贫 sub-word). User: "次贫不应该存在". Drop it.
     ("cipin", "次贫"),
+
+    // 2026-06-03 user polish-log: `ciping` surfaced 茨坪 at #1.
+    // 茨坪 is an obscure place name (a town in Jinggangshan, Jiangxi
+    // — Mao's mountain-base era). User: "茨坪是什么？如果不能解释也
+    // 不应该存在". Too obscure for daily IME use; user expectation is
+    // 瓷瓶 / 磁瓶 lead. Drop it.
+    ("ciping", "茨坪"),
 ];
 
 const BAKED_ADDITIONS: &[(&str, &str, u64)] = &[
