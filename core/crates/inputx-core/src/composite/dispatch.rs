@@ -4,7 +4,7 @@
 //! candidate lists combine into the merged output.
 
 use super::japanese_adapter::JapaneseAdapter;
-use super::merge::{Candidate, ScoreComponents, Scored, merge};
+use super::merge::{Candidate, ScoreComponents, Scored, Source, merge};
 use super::mode::Mode;
 use super::pinyin_adapter::PinyinAdapter;
 use super::scoring;
@@ -405,7 +405,43 @@ pub fn dispatch(
                     *s *= final_mult;
                 }
             }
-            merge(wubi_cands, pinyin.candidates_with_scores(prev_committed), jp_kanji, jp_kana)
+            let mut merged = merge(
+                wubi_cands,
+                pinyin.candidates_with_scores(prev_committed),
+                jp_kanji,
+                jp_kana,
+            );
+            // Wubi L0 pin = absolute #0 (muscle-memory contract).
+            //
+            // The Q4 score-based sort that `merge` uses can be flanked
+            // by pinyin bigram boost from `prev_committed`: pinned wubi
+            // gets ×1000 likelihood (≈ +110 Q4) and pinned pinyin gets
+            // the same, but pinyin candidates ALSO collect a bigram
+            // additive in log-space (≈ +100-200 Q4 for common pairs).
+            // Net result: a user who types `用` then `yi` sees `以`
+            // (pinyin pin + (用,以) bigram) outrank `就` (wubi pin) —
+            // exactly opposite the wubi-first muscle-memory contract.
+            //
+            // Structural promotion is the right shape here, not yet
+            // another scoring constant: pin is a USER ASSERTION, not a
+            // statistical hint. It must dominate any context signal,
+            // not "usually" beat it. Score-based competition by design
+            // lets corpus / context features creep in; lifting the
+            // pinned wubi word out of the sort entirely is the only
+            // way to make the contract bulletproof.
+            //
+            // Scope: Mixed only — WubiOnly already has no pinyin
+            // competition, PinyinOnly skips this branch.
+            if let Some(pin) = wubi_pinned.as_deref()
+                && let Some(idx) = merged
+                    .iter()
+                    .position(|c| c.source == Source::Wubi && c.word == pin)
+                && idx > 0
+            {
+                let p = merged.remove(idx);
+                merged.insert(0, p);
+            }
+            merged
         }
     }
 }
