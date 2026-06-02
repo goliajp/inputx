@@ -123,6 +123,17 @@ const BAKED_EXCLUSIONS: &[(&str, &str)] = &[
     // 不应该存在". Too obscure for daily IME use; user expectation is
     // 瓷瓶 / 磁瓶 lead. Drop it.
     ("ciping", "茨坪"),
+
+    // 2026-06-03 80-buffer sweep — pinyin secondary-reading pollution
+    // at top1 of common single-syllables. Each is a character whose
+    // mainstream reading is something else; the secondary reading
+    // bleeds in from compound corpus freq. Compound entries (kuaiji,
+    // shenme, zhuozhuang, zhaoji, etc.) live under their own codes
+    // and are NOT affected by these exclusions.
+    ("kuai", "会"),     // 会 is "huì"; "kuài" reading from 会计 corpus bleed
+    ("shen", "什"),     // 什 is "shén" only in 什么; standalone 什 leading 身/神 is wrong
+    ("zhuo", "着"),     // 着 is "zhe" (particle) > "zhuó"; 桌/卓 should lead zhuo
+    ("zhao", "着"),     // 着 "zháo" (着急) is rare standalone; 找/招 should lead zhao
 ];
 
 const BAKED_ADDITIONS: &[(&str, &str, u64)] = &[
