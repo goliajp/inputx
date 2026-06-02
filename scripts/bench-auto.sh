@@ -76,8 +76,12 @@ for attempt in 1 2 3; do
     sleep 1
     # Force-clear log so old registration errors don't false-positive verify
     : > "$LOG"
-    # reinstall.sh handles launchctl bootstrap + LaunchAgent respawn + stderr redirect
-    (cd mac && ./reinstall.sh > /tmp/bench-reinstall.log 2>&1) || {
+    # reinstall-safe.sh wraps reinstall.sh with the full IntlDataCache
+    # invalidation + TIS orphan cleanup + duplicate dedupe pass. The bare
+    # reinstall.sh skips parts of that (covered by reinstall-safe's
+    # post-window block), which previously left a doubled `wubi.wubi.zh`
+    # TIS row that broke menu switchability across bench sessions.
+    (cd mac && ./reinstall-safe.sh > /tmp/bench-reinstall.log 2>&1) || {
         echo "[bench-auto]   reinstall failed; see /tmp/bench-reinstall.log" >&2
         continue
     }
