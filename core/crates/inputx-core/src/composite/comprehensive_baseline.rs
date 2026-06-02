@@ -917,6 +917,41 @@ mod tests {
     // ───────────────────────────────────────────────────────────
 
     #[test]
+    fn pinyin_rare_cjk_chars_yield_to_jp_basic_kana() {
+        // User report 2026-06-02 sai screenshot: 8 pinyin rare-CJK chars
+        // (噻 腮 鳃 嘥 簺 僿 plus 2 more) sat above JP basic kana さい.
+        // Pre-fix: phase 2 design lumped ALL pinyin exact matches into
+        // tier 1 — within-tier engine_offset put pinyin ahead of JP
+        // regardless of how rare the char was.
+        //
+        // Post-fix (phase 7): single-char tier band by raw_freq —
+        //   >= 20k → tier 1 (top common)
+        //   >= 5k  → tier 2
+        //   >= 1k  → tier 3
+        //   < 1k   → tier 5 (rare-CJK; yields to JP basic kana tier 1)
+        //
+        // Assertion: JP hiragana さい appears in top-10 with JP enabled
+        // in Mixed mode AND the rare-CJK chars (嘥 簺 僿 鳃) are below it.
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"sai" { let _ = e.handle_letter(*b); }
+        let cands = e.candidates();
+        let top10: Vec<String> = cands.iter().take(10).map(|c| c.word.clone()).collect();
+        let sai_idx = top10.iter().position(|w| w == "さい");
+        assert!(sai_idx.is_some(), "さい must be in top-10 for `sai`; got top10={top10:?}");
+        let sai_pos = sai_idx.unwrap();
+        for rare in ["嘥", "簺", "僿", "鳃"] {
+            if let Some(pos) = top10.iter().position(|w| w == rare) {
+                assert!(pos > sai_pos,
+                    "rare-CJK pinyin char `{rare}` must rank BELOW JP basic kana さい \
+                     (got rare at #{pos}, さい at #{sai_pos}); top10={top10:?}");
+            }
+        }
+    }
+
+    #[test]
     fn tier_overlay_lifts_juti_juti_to_top() {
         // juti 具体 → tier 0 overrides the natural tier-1 + wubi
         // engine_offset advantage that 暗送秋波 had post-phase-2.
