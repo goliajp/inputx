@@ -910,6 +910,29 @@ mod tests {
     }
 
     // ───────────────────────────────────────────────────────────
+    // WU-ψ phase 5 — tier overlay regression coverage. Each (buffer,
+    // word, expected_position) case below MUST be reflected in
+    // tools/scoring/data/polish_reports/tier_overlay.tsv; removing
+    // the overlay row should make the test fail loudly.
+    // ───────────────────────────────────────────────────────────
+
+    #[test]
+    fn tier_overlay_lifts_juti_juti_to_top() {
+        // juti 具体 → tier 0 overrides the natural tier-1 + wubi
+        // engine_offset advantage that 暗送秋波 had post-phase-2.
+        let cases: &[(&str, &str)] = &[("juti", "具体")];
+        run("tier_overlay_juti", cases, mixed_top, mixed_top10);
+    }
+
+    #[test]
+    fn tier_overlay_demotes_mi_qiao_so_mi_米_leads() {
+        // mi 峭 → tier 5 demotion; pinyin 米 (tier 1) wins the
+        // top slot.
+        let cases: &[(&str, &str)] = &[("mi", "米")];
+        run("tier_overlay_mi", cases, mixed_top, mixed_top10);
+    }
+
+    // ───────────────────────────────────────────────────────────
     // lüe / nüe alias normalization (user 2026-06-02: "celue 策略，
     // 这种级别的拼音词怎么也没有"). Dict stores under lve/nve; users
     // type lue/nue per Sogou/Google convention. lower_str collapses

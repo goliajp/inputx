@@ -21,7 +21,12 @@ use crate::wubi::WubiEngine;
 fn synthesize_three_axis(score: f64, match_type: inputx_scoring::MatchType) -> ScoreComponents {
     let log_likelihood_q4 =
         (score.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
-    ScoreComponents::three_axis(0, log_likelihood_q4, match_type)
+    // WU-ψ phase 5: tag WubiOnly's wrap_legacy candidates with
+    // tier 1 (exact-match tier). They're dict hits at the typed
+    // code — same tier as pinyin exact + JP basic kana — so the
+    // cross-engine merge has a single scoring formula for every
+    // candidate it sees (legacy compute_score path now retired).
+    ScoreComponents::three_axis_tiered(0, log_likelihood_q4, match_type, 1)
 }
 
 /// Wrap legacy `(word, score)` pairs as `Scored` tuples. Every fill
@@ -355,7 +360,11 @@ pub fn dispatch(
                     //   - Auto → 4 (lower-confidence auto-decomposed)
                     let single_promote_fires =
                         full_code && is_single && raw_freq > max_phrase_freq;
-                    let tier_wubi: u8 = if wubi_pinned.as_deref() == Some(w.as_str()) {
+                    // Overlay (phase 5): per-(buffer, word) tier
+                    // override beats every natural rule below. Buffer
+                    // is the typed input (wubi.buffer_str()) — same
+                    // semantics as how the user sees it.
+                    let natural_tier: u8 = if wubi_pinned.as_deref() == Some(w.as_str()) {
                         0
                     } else if single_promote_fires {
                         0
@@ -371,6 +380,10 @@ pub fn dispatch(
                             inputx_wubi::Layer::Auto => 4,
                         }
                     };
+                    let tier_wubi: u8 = inputx_scoring::tier_overlay::get(
+                        wubi.buffer_str(),
+                        w.as_str(),
+                    ).unwrap_or(natural_tier);
                     let components = ScoreComponents::three_axis_tiered(
                         log_prior_q4,
                         log_likelihood_q4,
@@ -717,9 +730,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "WU-ψ phase 5: needs tier_overlay.tsv to lift 具体 to tier 0; \
-                under tier system, within-tier polish-log boosts (≤ +6 Q4) \
-                cannot overcome wubi engine_offset (+30 Q4) at same tier"]
     fn mixed_juti_jutiu_design_concept_leads_over_wubi_phrase() {
         // User polish-log 2026-05-26: juti (4-letter wubi full code +
         // valid pinyin) showed 暗送秋波 #1 / 具体 #2. wubi 暗送秋波 is a

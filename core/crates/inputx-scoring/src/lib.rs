@@ -108,6 +108,37 @@ include!(concat!(env!("OUT_DIR"), "/engine_weights_generated.rs"));
 /// within_tier_q4` as the primary axis.
 pub use tier as tier_table;
 
+/// WU-ψ phase 5 — per-(buffer, word) tier overlay. Generated from
+/// `tools/scoring/data/polish_reports/tier_overlay.tsv` at build
+/// time. Adapters consult this BEFORE applying their natural tier
+/// rule; when the overlay returns `Some(t)`, the candidate gets tier
+/// `t` regardless of layer / freq / etc.
+///
+/// Lookup is binary-search over a sorted `(buffer_lc, word, tier)`
+/// table — O(log n) per call, sufficient for the per-keystroke hot
+/// path with the table size expected to stay in the low hundreds.
+pub mod tier_overlay {
+    include!(concat!(env!("OUT_DIR"), "/tier_overlay_generated.rs"));
+
+    /// Lookup the overlay tier for `(buffer, word)`, or `None` if
+    /// no override is registered. `buffer` is lowercased internally
+    /// to match the build-time key normalization.
+    pub fn get(buffer: &str, word: &str) -> Option<u8> {
+        let buf_lc = buffer.to_ascii_lowercase();
+        TIER_OVERLAY_ROWS
+            .binary_search_by(|(b, w, _t)| {
+                (*b).cmp(buf_lc.as_str()).then_with(|| (*w).cmp(word))
+            })
+            .ok()
+            .map(|i| TIER_OVERLAY_ROWS[i].2)
+    }
+
+    /// Number of overlay entries currently registered (diagnostic).
+    pub fn count() -> usize {
+        TIER_OVERLAY_ROWS.len()
+    }
+}
+
 /// Fixed-point scale for log-space scalars. `Q4 = 16` means every
 /// integer step is 1/16 of a log unit (≈ 0.0625). At this resolution,
 /// `i32` covers a dynamic range of ~ ±67 million log units — far more

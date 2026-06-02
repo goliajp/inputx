@@ -487,18 +487,18 @@ impl PinyinAdapter {
             //     within-tier ordering by raw_freq desc handles "top
             //     common" vs "rest of homophones" automatically)
             //
-            // Putting EVERY exact match in tier 1 (rather than splitting
-            // single-char/phrase or freq-banding) preserves the legacy
-            // user contract that pinyin tier 1 ≥ JP basic kana tier 1
-            // for the same buffer — otherwise a buffer like `women`
-            // would see JP `をめん` (tier 1) beat phrase 我们 (lower tier).
-            // Sub-tier polish (e.g. demote rare exact hits) deferred to
-            // tier_overlay.tsv (phase 5).
-            let tier_pinyin: u8 = if pinned.as_deref() == Some(word) {
+            // Phase 5: per-(buffer, word) overlay can override the
+            // natural rule (e.g. lift `juti 具体` to tier 0 so the
+            // polish-log prior boost survives the wubi engine_offset).
+            let natural_tier: u8 = if pinned.as_deref() == Some(word) {
                 0
             } else {
                 1
             };
+            let tier_pinyin: u8 = inputx_scoring::tier_overlay::get(
+                &self.buffer,
+                word,
+            ).unwrap_or(natural_tier);
             exact_components.insert(
                 word.to_string(),
                 super::merge::ScoreComponents::three_axis_tiered(

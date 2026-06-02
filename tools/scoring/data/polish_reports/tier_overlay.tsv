@@ -1,0 +1,26 @@
+# WU-ψ phase 5 — tier overlay.
+#
+# Override the per-engine adapter's natural tier assignment for a
+# specific (buffer, word) pair. Use this when the candidate's
+# observable commonness (corpus freq, polish-log boost, ...) doesn't
+# match the engine's structural rules — e.g., a pinyin candidate
+# whose polish-log boost can't overcome the wubi engine_offset
+# within its natural tier, or a rare-CJK wubi simcode whose pinyin
+# char-freq narrowly passes CHAR_PROMINENT_FLOOR but the user
+# treats as a yielder anyway.
+#
+# Format:
+#   <buffer>\t<word>\t<tier>\t# <reason>
+#
+# `buffer` is the typed input (pinyin or wubi shape — the buffer the
+# user actually typed). `word` is the candidate string. `tier` is
+# 0..=9 (0 = absolute top, 9 = longtail).
+#
+# Lookup is exact-match on (buffer, word). Buffer is lowercased
+# before comparison. Empty values / comments (`#`) are skipped.
+#
+# Sort order within this file is alphabetical by buffer for diff
+# friendliness — DO NOT rely on file order at lookup time.
+
+juti	具体	0	# polish-log prior_correction × 1.5 was lost in tier-1 within-tier sort; promote to absolute. Phase 5 introduced.
+mi	峭	5	# 峭's pinyin char-freq ≥ CHAR_PROMINENT_FLOOR but user 2026-06-02 reports `mi` should give 米 #0, not 峭. Demote to rare-CJK tier so pinyin top wins.
