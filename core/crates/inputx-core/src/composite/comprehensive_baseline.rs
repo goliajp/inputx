@@ -1178,6 +1178,22 @@ mod tests {
             ("shen", &["什"]),
             ("zhuo", &["着"]),
             ("zhao", &["着"]),
+            // 2026-06-03 sweep — jieba sub-word / homophone-noise.
+            ("xianzai", &["先在", "先宰", "先载"]),
+            ("zhege", &["这歌", "哲哥", "著各"]),
+            ("yige", &["一格", "亿个", "毅哥", "一歌", "翼各"]),
+            ("keyi", &["可意", "课以"]),
+            ("tamen", &["塔门"]),
+            ("meiyou", &["没油", "魅友"]),
+            ("shihou", &["狮吼"]),
+            ("haishi", &["嗨氏"]),
+            ("jintian", &["津田"]),
+            ("kandao", &["砍到", "砍倒", "刊到"]),
+            ("wenti", &["吻替"]),
+            ("haiyou", &["嗨呦"]),
+            ("ruguo", &["入锅", "辱国"]),
+            ("suoyi", &["缩衣", "索移", "所译"]),
+            ("ziji", &["子鸡"]),
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {

@@ -134,6 +134,42 @@ const BAKED_EXCLUSIONS: &[(&str, &str)] = &[
     ("shen", "什"),     // 什 is "shén" only in 什么; standalone 什 leading 身/神 is wrong
     ("zhuo", "着"),     // 着 is "zhe" (particle) > "zhuó"; 桌/卓 should lead zhuo
     ("zhao", "着"),     // 着 "zháo" (着急) is rare standalone; 找/招 should lead zhao
+
+    // 2026-06-03 80-buffer sweep — jieba sub-word / homophone-noise
+    // entries cluttering top-5 of common multi-syllable buffers.
+    // All are pinyin-source entries with non-trivial corpus freq but
+    // no daily-use meaning: garbled names, sub-word fragments, very
+    // rare collocations. Compounds and 4+ syllable buffers unaffected.
+    ("xianzai", "先在"),
+    ("xianzai", "先宰"),
+    ("xianzai", "先载"),
+    ("zhege", "这歌"),
+    ("zhege", "哲哥"),
+    ("zhege", "著各"),
+    ("yige", "一格"),
+    ("yige", "亿个"),
+    ("yige", "毅哥"),
+    ("yige", "一歌"),
+    ("yige", "翼各"),
+    ("keyi", "可意"),
+    ("keyi", "课以"),
+    ("tamen", "塔门"),
+    ("meiyou", "没油"),
+    ("meiyou", "魅友"),
+    ("shihou", "狮吼"),
+    ("haishi", "嗨氏"),
+    ("jintian", "津田"),
+    ("kandao", "砍到"),    // 砍刀 (real word) kept
+    ("kandao", "砍倒"),
+    ("kandao", "刊到"),
+    ("wenti", "吻替"),
+    ("haiyou", "嗨呦"),
+    ("ruguo", "入锅"),
+    ("ruguo", "辱国"),
+    ("suoyi", "缩衣"),     // 蓑衣 (real word) kept
+    ("suoyi", "索移"),
+    ("suoyi", "所译"),
+    ("ziji", "子鸡"),
 ];
 
 const BAKED_ADDITIONS: &[(&str, &str, u64)] = &[
