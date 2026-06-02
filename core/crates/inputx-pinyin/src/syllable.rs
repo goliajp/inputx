@@ -54,12 +54,12 @@ pub static VALID_SYLLABLES: &[&str] = &[
     // n
     "na", "ne", "nai", "nei", "nao", "nou", "nan", "nen", "nang", "neng", "nong",
     "ni", "nie", "niao", "niu", "nian", "nin", "niang", "ning",
-    "nu", "nuo", "nuan",
+    "nu", "nue", "nuo", "nuan",
     "nv", "nve",
     // l
     "la", "le", "lai", "lei", "lao", "lou", "lan", "lang", "leng", "long",
     "li", "lia", "lie", "liao", "liu", "lian", "lin", "liang", "ling",
-    "lu", "luo", "luan", "lun",
+    "lu", "lue", "luo", "luan", "lun",
     "lv", "lve",
     // g
     "ga", "ge", "gai", "gei", "gao", "gou", "gan", "gen", "gang", "geng", "gong",
@@ -121,10 +121,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn count_is_403() {
-        // 403 = strict standard inventory; marginal forms (zhei, lo, kei, rua)
-        // tracked for v0.2 once corpus data shows real-world usage.
-        assert_eq!(count(), 403, "expected 403 canonical Mandarin syllables");
+    fn count_is_405() {
+        // 405 = 403 strict standard inventory + 2 alias forms (lue, nue)
+        // for `lüe`/`nüe` so users typing `celue`/`nuedai` get the same
+        // candidates as `celve`/`nvedai`. The dict still stores under
+        // `lve`/`nve` only; `lower_str` normalizes `lue→lve`, `nue→nve`
+        // at lookup so the two spellings collapse to one storage key.
+        // Marginal forms (zhei, lo, kei, rua) tracked for v0.2 once
+        // corpus data shows real-world usage.
+        assert_eq!(count(), 405, "expected 405 syllables (403 canonical + lue/nue aliases)");
     }
 
     #[test]
@@ -166,6 +171,17 @@ mod tests {
         assert!(is_valid("lv"));
         assert!(is_valid("nve"));
         assert!(is_valid("lve"));
+    }
+
+    #[test]
+    fn lue_nue_alias_form_recognized() {
+        // User-friendly aliases for `lüe` / `nüe` — most modern IMEs
+        // (Sogou, Google Pinyin) accept both `lue/lve` and `nue/nve`.
+        // Dict lookup normalizes back to lve/nve, but segmenter MUST
+        // accept the lue/nue spelling here or buffers like `celue`
+        // can't be split into `ce + lue`.
+        assert!(is_valid("lue"));
+        assert!(is_valid("nue"));
     }
 
     #[test]
