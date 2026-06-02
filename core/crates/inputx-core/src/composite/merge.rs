@@ -66,6 +66,13 @@ pub struct ScoreComponents {
     /// based on `inputx_wubi::Layer`; pinyin / JP fill sites leave it
     /// false.
     pub is_simcode: bool,
+    /// WU-ψ (v1.11) tier assignment, or `None` to use the legacy
+    /// score formula. See [`inputx_scoring::CandidateData::tier`].
+    ///
+    /// Phase-1 default: every constructor sets this to `None`; later
+    /// phases set tier per engine. Once all engines opt in (phase 5)
+    /// the field becomes mandatory and the legacy path is retired.
+    pub tier: Option<u8>,
 }
 
 impl ScoreComponents {
@@ -87,6 +94,7 @@ impl ScoreComponents {
             log_likelihood_q4,
             match_type,
             is_simcode: false,
+            tier: None,
         }
     }
 
@@ -107,6 +115,28 @@ impl ScoreComponents {
             log_likelihood_q4,
             match_type,
             is_simcode,
+            tier: None,
+        }
+    }
+
+    /// WU-ψ (v1.11) tiered constructor — same shape as [`three_axis`]
+    /// but assigns the candidate to a specific tier. Producers that
+    /// opt into the tier-based primary sort use this.
+    pub fn three_axis_tiered(
+        log_prior_q4: i32,
+        log_likelihood_q4: i32,
+        match_type: inputx_scoring::MatchType,
+        tier: u8,
+    ) -> Self {
+        Self {
+            base: 0.0,
+            prior: 0.0,
+            likelihood: 0.0,
+            log_prior_q4,
+            log_likelihood_q4,
+            match_type,
+            is_simcode: false,
+            tier: Some(tier),
         }
     }
 
@@ -131,6 +161,7 @@ impl ScoreComponents {
             log_likelihood_q4,
             match_type,
             is_simcode: false,
+            tier: None,
         }
     }
 
@@ -566,6 +597,7 @@ pub fn merge(
             is_bootstrap: false,
             is_simcode: comp.is_simcode,
             word_char_count,
+            tier: comp.tier,
         };
         inputx_scoring::compute_score(&data, &weights)
     };

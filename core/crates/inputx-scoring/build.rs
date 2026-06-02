@@ -43,6 +43,33 @@ fn main() {
         }) as i32;
     }
 
+    // WU-ψ tier × engine base table (v1.11).
+    let teb = parsed
+        .get("tier_engine_base")
+        .and_then(|v| v.as_table())
+        .unwrap_or_else(|| panic!("[tier_engine_base] section missing"));
+    let tier_gap_q4 = read_i32(teb, "tier_gap_q4");
+    let engine_gap_q4 = read_i32(teb, "engine_gap_q4");
+    let within_tier_max_q4 = read_i32(teb, "within_tier_max_q4");
+    let tier_count = read_i32(teb, "tier_count");
+    if tier_count <= 0 || tier_count > 32 {
+        panic!("tier_count must be in (0, 32]; got {tier_count}");
+    }
+    if within_tier_max_q4 >= tier_gap_q4 {
+        panic!(
+            "within_tier_max_q4 ({within_tier_max_q4}) must be < tier_gap_q4 ({tier_gap_q4}) — \
+             otherwise within-tier variance crosses tier boundaries"
+        );
+    }
+    if engine_gap_q4 * 3 >= within_tier_max_q4 {
+        // engine offset spans 0..=2 (3 engines), so 2*engine_gap should
+        // be much smaller than within-tier max for engines to feel "close"
+        // within a tier. Catch egregious misconfigurations.
+        panic!(
+            "engine_gap_q4 ({engine_gap_q4}) × 3 must be < within_tier_max_q4 ({within_tier_max_q4})"
+        );
+    }
+
     let simcode_boost_q4 = read_i32(ew, "simcode_boost_q4");
     let bootstrap_floor_q4 = read_i32(ew, "bootstrap_floor_q4");
     let char_boost_q4 = read_i32(ew, "char_boost_q4");
@@ -154,6 +181,56 @@ pub(crate) mod __engine_weights_generated {{
     pub const VITERBI_LINK_DECAY_Q4: i32 = {viterbi};
 }}
 
+/// WU-ψ tier × engine base score table (v1.11). All values in Q4
+/// log-space. `TIER_BASE_Q4[tier][engine]` = the floor score for
+/// any candidate placed in `tier` produced by `engine`, with the
+/// caveat that within-tier ordering uses an additional clamped
+/// `within_tier_q4 ∈ [0, WITHIN_TIER_MAX_Q4]`.
+///
+/// Derived from `[tier_engine_base]` in `engine_weights.toml`:
+///   row(tier) = TIER_GAP_Q4 × (TIER_COUNT − 1 − tier)
+///   engine(src) = ENGINE_GAP_Q4 × (offset_for_source(src))
+/// where wubi → +2·gap, pinyin → +1·gap, nihongo → +0.
+/// Tier 0 is highest (top of candidates list).
+pub mod tier {{
+    pub const TIER_GAP_Q4: i32 = {tier_gap_q4};
+    pub const ENGINE_GAP_Q4: i32 = {engine_gap_q4};
+    pub const WITHIN_TIER_MAX_Q4: i32 = {within_tier_max_q4};
+    pub const TIER_COUNT: usize = {tier_count};
+
+    /// Per-source engine offset in the row. wubi gets the largest
+    /// (highest rank within a tier), nihongo gets 0.
+    /// Indexed as Source::* `as usize` — must match
+    /// crate::Source layout.
+    pub const ENGINE_OFFSET_Q4: [i32; 3] = [
+        2 * ENGINE_GAP_Q4,  // [0] Wubi
+        1 * ENGINE_GAP_Q4,  // [1] Pinyin
+        0 * ENGINE_GAP_Q4,  // [2] Japanese
+    ];
+
+    /// Lookup the base Q4 score for `(tier, source)`.
+    ///
+    /// Saturates: `tier >= TIER_COUNT` is treated as the bottom tier,
+    /// `source as usize >= 3` is treated as Japanese (the floor).
+    /// Producers should pass valid tiers; the saturation is a guard
+    /// against out-of-range u8 values without panicking the hot path.
+    #[inline]
+    pub const fn tier_base_q4(tier: u8, source_idx: u8) -> i32 {{
+        let t = if (tier as usize) >= TIER_COUNT {{
+            TIER_COUNT - 1
+        }} else {{
+            tier as usize
+        }};
+        let s = if (source_idx as usize) >= 3 {{
+            2
+        }} else {{
+            source_idx as usize
+        }};
+        TIER_GAP_Q4 * (TIER_COUNT as i32 - 1 - t as i32)
+            + ENGINE_OFFSET_Q4[s]
+    }}
+}}
+
 /// Polish-formula constants — every value in
 /// `data/engine_weights.toml`'s `[scoring.*]` sections, surfaced for
 /// cross-crate consumers. `composite/scoring.rs` (in `inputx-core`)
@@ -212,6 +289,10 @@ pub mod consts {{
         fuzzy = fuzzy_likelihood_floor_q4,
         initials = initials_likelihood_base_q4,
         viterbi = viterbi_link_decay_q4,
+        tier_gap_q4 = tier_gap_q4,
+        engine_gap_q4 = engine_gap_q4,
+        within_tier_max_q4 = within_tier_max_q4,
+        tier_count = tier_count,
         jp_jukugo_base = fmt_f64(jp_jukugo_base),
         jp_single_kanji_base = fmt_f64(jp_single_kanji_base),
         jp_hiragana_base = fmt_f64(jp_hiragana_base),
