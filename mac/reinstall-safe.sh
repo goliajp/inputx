@@ -135,20 +135,37 @@ if [ "${ROLLBACK:-0}" -eq 1 ]; then
   fi
 fi
 
-# Step 5a: post-health-window menu refresh + switchability verification.
+# Step 5a: invalidate IntlDataCache + post-window menu refresh.
 #
+# macOS 26 caches the TIS enumeration result in
+#   $DARWIN_USER_CACHE_DIR/com.apple.IntlDataCache.le[+.kbdx]
+# These ~175KB files survive `killall TextInputMenuAgent`,
+# `lsregister -f`, FSEvents, distributed notifications, AND the
+# private `TISUpdateIntlFileCache()` HIToolbox export. After a
+# reinstall whose only effect on the cache key is "bundle mtime
+# changed", the picker reads the STALE cache and the user sees
+# "Inputx 五笔 missing from the keyboard menu" — even though
+# AppleEnabledInputSources, the IME process, the LaunchAgent, and
+# `tsregister` all check out. Documented in docs/macos-ime-recipe-
+# 2026.md ("symptom: Bundle id already contains `inputmethod`,
+# picker still doesn't show after reinstall").
+#
+# Deletion is the only reliable invalidation. Menu agent kill
+# after deletion makes the picker re-enumerate fresh.
+CACHE_DIR=$(getconf DARWIN_USER_CACHE_DIR 2>/dev/null || echo "")
+if [ -n "$CACHE_DIR" ]; then
+  rm -f "${CACHE_DIR}"com.apple.IntlDataCache.le* >>"$LOG" 2>&1 || true
+  log "✓ invalidated IntlDataCache (TIS enumeration cache)"
+fi
+
 # reinstall.sh kills TextInputMenuAgent inline (just after writing TIS
 # state), but a race can leave the menu re-spawning into a STALE view
-# while TIS is still settling — the user then sees "Inputx 五笔
-# missing from the keyboard menu" even though defaults read shows
-# the mode is enabled. Kill the menu agent AGAIN here, after the
-# health window: TIS state has fully settled, the respawn boots
-# against the post-reinstall picture.
+# while TIS is still settling. Kill the menu agent AGAIN here, after
+# the health window AND after the cache delete: TIS state settled,
+# enum cache invalidated, respawn boots fresh.
 #
 # Then verify the mode is actually in AppleEnabledInputSources — if
-# not, restore via reenable.sh (the same recovery path reinstall.sh
-# uses, applied as a belt-and-braces sweep so a flaky TIS write
-# doesn't reach the user as "can't switch to Inputx").
+# not, restore via reenable.sh.
 killall TextInputMenuAgent >>"$LOG" 2>&1 || true
 ENABLED_COUNT=$(defaults read com.apple.HIToolbox AppleEnabledInputSources 2>/dev/null \
                 | grep -c "jp.golia.inputmethod.wubi" || true)
