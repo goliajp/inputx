@@ -41,34 +41,44 @@ if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "install" {
         let id = Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
         return modeIDs.contains(id)
     }
-    // ALWAYS call TISRegisterInputSource — including when the
-    // bundle ID is already in the TIS database. Skipping
-    // re-registration on "already there" leaves the TIS row
-    // pinned to the PREVIOUS bundle's metadata (cdhash, mtime,
-    // mode dict snapshot), and the keyboard menu picker filters
-    // the current on-disk bundle out as a mismatch. Symptom:
-    // reinstall succeeds, every gate verifies (defaults read,
-    // codesign --verify, IntlDataCache invalidated, agents
-    // restarted) — but Inputx silently vanishes from the menu,
-    // and System Settings → Remove → Re-Add (which DOES call
-    // TISDeregister + TISRegister) is the only fix that sticks.
+    // TISRegisterInputSource policy:
+    //  - 0 rows in TIS for our mode IDs → fresh install, register.
+    //  - exactly 1 row per mode ID → already correctly registered;
+    //    skip re-register to avoid creating duplicates (TIS does not
+    //    de-dup on re-register; each call APPENDS a new row).
+    //  - 2+ duplicate rows → previous incorrect-policy run left
+    //    duplicates; disable all, then re-register exactly once.
     //
-    // TISRegisterInputSource is idempotent on the API surface
-    // (noErr on re-register of an existing bundle) but its
-    // side effect is what we want: the TIS row is rewritten
-    // against the current bundle on disk.
-    let _ = all.filter(match) // kept for ordering / parity with the old code
-    let status = TISRegisterInputSource(Bundle.main.bundleURL as CFURL)
-    guard status == noErr else {
-        NSLog("Inputx install: TISRegisterInputSource failed OSStatus=\(status)")
-        exit(1)
+    // Discovered 2026-06-02 (commit dbe764f's "always re-register"
+    // policy accumulated duplicates after every bench-auto run,
+    // confused the picker, and left Inputx un-selectable).
+    let alreadyRegistered = all.filter(match)
+    var duplicatesByID: [String: Int] = [:]
+    for src in alreadyRegistered {
+        guard let p = TISGetInputSourceProperty(src, kTISPropertyInputSourceID) else { continue }
+        let id = Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
+        duplicatesByID[id, default: 0] += 1
+    }
+    let hasDuplicates = duplicatesByID.values.contains { $0 > 1 }
+    if hasDuplicates {
+        NSLog("Inputx install: detected duplicate TIS rows, disabling + re-registering")
+        for src in alreadyRegistered {
+            _ = TISDisableInputSource(src)
+        }
+    }
+    if alreadyRegistered.isEmpty || hasDuplicates {
+        let status = TISRegisterInputSource(Bundle.main.bundleURL as CFURL)
+        guard status == noErr else {
+            NSLog("Inputx install: TISRegisterInputSource failed OSStatus=\(status)")
+            exit(1)
+        }
     }
     let postRegister = ((TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource]) ?? [])
         .filter(match)
     for src in postRegister {
         TISEnableInputSource(src)
     }
-    NSLog("Inputx install: \(postRegister.count) mode(s) registered + enabled")
+    NSLog("Inputx install: \(postRegister.count) mode(s) registered + enabled (had \(alreadyRegistered.count) pre-existing, duplicates=\(hasDuplicates))")
     exit(0)
 }
 
