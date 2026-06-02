@@ -42,21 +42,45 @@ if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "install" {
         return modeIDs.contains(id)
     }
     // TISRegisterInputSource policy:
-    //  - 0 rows in TIS for our mode IDs → fresh install, register.
-    //  - exactly 1 row per mode ID → already correctly registered;
-    //    skip re-register to avoid creating duplicates (TIS does not
-    //    de-dup on re-register; each call APPENDS a new row).
-    //  - 2+ duplicate rows → previous incorrect-policy run left
-    //    duplicates; disable all, then re-register exactly once.
+    //  - 0 rows matching expected mode IDs → fresh install, register.
+    //  - exactly 1 row per expected mode ID → already correct, do nothing.
+    //  - 2+ rows for an expected mode ID → previous-policy duplicates;
+    //    disable extras + re-register.
     //
-    // Discovered 2026-06-02 (commit dbe764f's "always re-register"
-    // policy accumulated duplicates after every bench-auto run,
-    // confused the picker, and left Inputx un-selectable).
+    // PLUS: orphan cleanup. macOS TIS may carry rows for our bundle
+    // ID under STALE mode IDs from earlier bundle versions (notably
+    // the `jp.golia.inputmethod.wubi.wubi.zh` doubled-segment ID that
+    // showed up before the per-mode `TISInputSourceID` was added —
+    // 2026-06-02 fix). Any row whose ID is OURS by bundle prefix but
+    // is NOT in the current expected `modeIDs` set is an orphan from
+    // a prior bundle layout; disable it so it can't conflict with the
+    // clean re-registration. The bundle's top-level `TISInputSourceID`
+    // is also expected and skipped (it's not a selectable mode).
+    let bundleID = Bundle.main.bundleIdentifier ?? ""
+    let topLevelID = Bundle.main.infoDictionary?["TISInputSourceID"] as? String ?? ""
+    let isOurs: (String) -> Bool = { id in
+        id == bundleID || id == topLevelID || id.hasPrefix(bundleID + ".")
+    }
+    func srcID(_ src: TISInputSource) -> String? {
+        guard let p = TISGetInputSourceProperty(src, kTISPropertyInputSourceID) else { return nil }
+        return Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
+    }
+    var orphansDisabled = 0
+    for src in all {
+        guard let id = srcID(src) else { continue }
+        if isOurs(id) && id != topLevelID && !modeIDs.contains(id) {
+            _ = TISDisableInputSource(src)
+            orphansDisabled += 1
+        }
+    }
+    if orphansDisabled > 0 {
+        NSLog("Inputx install: disabled \(orphansDisabled) orphan TIS row(s) from prior bundle layouts")
+    }
+
     let alreadyRegistered = all.filter(match)
     var duplicatesByID: [String: Int] = [:]
     for src in alreadyRegistered {
-        guard let p = TISGetInputSourceProperty(src, kTISPropertyInputSourceID) else { continue }
-        let id = Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
+        guard let id = srcID(src) else { continue }
         duplicatesByID[id, default: 0] += 1
     }
     let hasDuplicates = duplicatesByID.values.contains { $0 > 1 }
@@ -78,7 +102,9 @@ if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "install" {
     for src in postRegister {
         TISEnableInputSource(src)
     }
-    NSLog("Inputx install: \(postRegister.count) mode(s) registered + enabled (had \(alreadyRegistered.count) pre-existing, duplicates=\(hasDuplicates))")
+    NSLog("Inputx install: \(postRegister.count) mode(s) registered + enabled "
+        + "(had \(alreadyRegistered.count) pre-existing, duplicates=\(hasDuplicates), "
+        + "orphans cleaned=\(orphansDisabled))")
     exit(0)
 }
 
