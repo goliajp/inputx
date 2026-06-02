@@ -111,6 +111,11 @@ const BAKED_EXCLUSIONS: &[(&str, &str)] = &[
     // Compounds like 棒极了 (bangjile) keep their entry and are
     // untouched.
     ("jile", "极了"),
+
+    // 2026-06-03 user polish-log: `cipin` surfaced 次贫 at #3.
+    // "次贫" isn't an established Chinese phrase — likely jieba noise
+    // (次 + 贫 sub-word). User: "次贫不应该存在". Drop it.
+    ("cipin", "次贫"),
 ];
 
 const BAKED_ADDITIONS: &[(&str, &str, u64)] = &[
