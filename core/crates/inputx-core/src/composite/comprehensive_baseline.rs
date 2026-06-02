@@ -787,6 +787,80 @@ mod tests {
         );
     }
 
+    #[test]
+    fn wubi_pin_honored_in_mixed_mode_even_against_pinyin_bigram_context() {
+        use inputx_wubi::L0Snapshot as WubiL0;
+
+        // Same as above, but FIRST commit `用` (so prev_committed
+        // activates the pinyin bigram boost path), THEN type `yi`.
+        //
+        // Pre-fix (commit 245893d era): score-based pin × 1000 (+110
+        // Q4) was beaten by (用, 以) bigram (+100-200 Q4) added on
+        // top of pinned 以's likelihood — `以` ended up at #0 despite
+        // the wubi pin on `就`. User 2026-06-02 report: "yi 还是以在
+        // 就前面，前面如果没有任何输入的时候，'就' 才能在第一".
+        //
+        // Fix: structural promotion in dispatch.rs Mixed branch —
+        // post-merge, wubi-pinned word is unconditionally moved to
+        // #0. Bigram + score-based competition no longer applies to
+        // the pinned slot — pin is a USER ASSERTION not a stat hint.
+
+        let saved = inputx_wubi_data::export_l0();
+
+        let test_snap = WubiL0 {
+            pins: vec![("yi".to_string(), "就".to_string())],
+            pick_counts: vec![],
+            layer_prefs: inputx_wubi::DEFAULT_LAYER_PREFS,
+        };
+        let accepted = inputx_wubi_data::import_l0(test_snap);
+        assert!(accepted >= 1, "wubi L0 pin should be accepted");
+
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        // Pin pinyin yi→以 to mirror the user's L0 exactly.
+        let pinyin_snap = inputx_pinyin::L0Snapshot {
+            pins: vec![("yi".to_string(), "以".to_string())],
+            pick_counts: vec![],
+        };
+        e.pinyin_import_l0(pinyin_snap);
+
+        // Step 1 — type `yong` and commit `用` (pinned-ish via top hit;
+        // 用 is the top single-char for `yong`). This sets the
+        // engine's last_committed_word so prev_committed = "用" on
+        // the next dispatch.
+        for b in b"yong" {
+            let _ = e.handle_letter(*b);
+        }
+        // Find 用 in the current candidates and commit it.
+        let yong_idx = e
+            .candidates()
+            .iter()
+            .position(|c| c.word == "用")
+            .expect("用 should appear for buffer yong");
+        let committed = e.commit_index(yong_idx);
+        assert_eq!(committed.as_deref(), Some("用"), "should commit 用");
+
+        // Step 2 — type yi. Now prev_committed = 用, so the bigram
+        // boost fires on pinyin candidates that follow 用 (以, 是, etc.).
+        for b in b"yi" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e.candidates().iter().take(10).map(|c| c.word.clone()).collect();
+        let top = top10.first().cloned().unwrap_or_default();
+
+        // Restore global wubi L0 BEFORE any assert that might panic.
+        inputx_wubi_data::import_l0(saved);
+
+        assert_eq!(
+            top, "就",
+            "wubi L0 pin yi→就 must lead even after 用 was just \
+             committed (which would otherwise lift pinyin 以 via the \
+             (用, 以) bigram boost). Pin = user assertion, not a stat \
+             hint that bigram can outvote. Got top10={top10:?}"
+        );
+    }
+
     // ───────────────────────────────────────────────────────────
     // lüe / nüe alias normalization (user 2026-06-02: "celue 策略，
     // 这种级别的拼音词怎么也没有"). Dict stores under lve/nve; users
