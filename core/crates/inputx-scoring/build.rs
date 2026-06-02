@@ -61,12 +61,11 @@ fn main() {
              otherwise within-tier variance crosses tier boundaries"
         );
     }
-    if engine_gap_q4 * 3 >= within_tier_max_q4 {
-        // engine offset spans 0..=2 (3 engines), so 2*engine_gap should
-        // be much smaller than within-tier max for engines to feel "close"
-        // within a tier. Catch egregious misconfigurations.
+    if engine_gap_q4 * 2 >= tier_gap_q4 {
+        // Engine offset max (2 × engine_gap_q4) must fit comfortably
+        // within tier_gap so tier ordering is preserved across engines.
         panic!(
-            "engine_gap_q4 ({engine_gap_q4}) × 3 must be < within_tier_max_q4 ({within_tier_max_q4})"
+            "engine_gap_q4 ({engine_gap_q4}) × 2 must be < tier_gap_q4 ({tier_gap_q4})"
         );
     }
 

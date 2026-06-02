@@ -481,12 +481,31 @@ impl PinyinAdapter {
                 * inputx_scoring::Q4 as f64)
                 .round() as i32;
             exact_map.insert(word.to_string(), legacy_score);
+            // WU-ψ tier assignment for pinyin exact-match candidates:
+            //   - pinned → 0 (user assertion)
+            //   - exact buffer match → 1 (all exact hits land in tier 1;
+            //     within-tier ordering by raw_freq desc handles "top
+            //     common" vs "rest of homophones" automatically)
+            //
+            // Putting EVERY exact match in tier 1 (rather than splitting
+            // single-char/phrase or freq-banding) preserves the legacy
+            // user contract that pinyin tier 1 ≥ JP basic kana tier 1
+            // for the same buffer — otherwise a buffer like `women`
+            // would see JP `をめん` (tier 1) beat phrase 我们 (lower tier).
+            // Sub-tier polish (e.g. demote rare exact hits) deferred to
+            // tier_overlay.tsv (phase 5).
+            let tier_pinyin: u8 = if pinned.as_deref() == Some(word) {
+                0
+            } else {
+                1
+            };
             exact_components.insert(
                 word.to_string(),
-                super::merge::ScoreComponents::three_axis(
+                super::merge::ScoreComponents::three_axis_tiered(
                     log_prior_q4,
                     log_likelihood_q4,
                     inputx_scoring::MatchType::Exact,
+                    tier_pinyin,
                 ),
             );
         }
@@ -610,16 +629,30 @@ impl PinyinAdapter {
                     // forced segmentation (not a dict word).
                     let c = exact_components.get(w).copied().unwrap_or_else(|| {
                         let mt = inputx_scoring::MatchType::Composed { bigram_links: 1 };
+                        // WU-ψ: composed-sentence Viterbi (whole-buffer
+                        // segmentation, not coinciding with a dict
+                        // word) → tier 1, so a real Chinese sentence
+                        // (nihaomawojiao→你好吗我叫) wins #0 over
+                        // mechanical JP renderings of the same buffer.
+                        // Within-tier ordering by likelihood prevents
+                        // forced junk segmentations from out-ranking
+                        // real exact entries.
                         super::merge::ScoreComponents::three_axis(pinyin_floor, to_log_q4(s), mt)
+                            .with_tier(1)
                     });
                     (s, Some(c))
                 } else if is_fallback {
                     // Path 5 last-resort Viterbi compose — no bigram support
                     // (gated to short buffers where no real composition fits).
                     let mt = inputx_scoring::MatchType::Composed { bigram_links: 0 };
+                    // WU-ψ: last-resort fallback → tier 1 (pinyin
+                    // engine_offset still lifts it above JP basic kana
+                    // for buffers like `kaopu` where there's no real
+                    // pinyin word but a sensible composition exists —
+                    // the user typed Chinese, not Japanese).
                     let c = super::merge::ScoreComponents::three_axis(
                         pinyin_floor, to_log_q4(COMPOSED_FALLBACK_SCORE), mt,
-                    );
+                    ).with_tier(1);
                     (COMPOSED_FALLBACK_SCORE, Some(c))
                 } else if let Some(s) = exact_map.get(w).copied() {
                     // v1.4.7 A2 step 2: use the orthodox (log_prior_q4,
@@ -639,7 +672,10 @@ impl PinyinAdapter {
                     // word) than the typo guess. User polish-log 2026-05-27:
                     // 发明 should rank as prediction for `famin`, not as
                     // bottom-tier fuzzy.
-                    (s, self.prefix_components.get(w).copied())
+                    // WU-ψ: predictions → tier 7 (specialty).
+                    let c = self.prefix_components.get(w).copied()
+                        .map(|c| c.with_tier(7));
+                    (s, c)
                 } else if let Some((typed_len, full_len)) = initials_lens {
                     // v1.8.1 WU-ξ: initials shorthand has its own
                     // LIKELIHOOD tier (`MatchType::Initials`),
@@ -659,9 +695,11 @@ impl PinyinAdapter {
                     // not disturbing it keeps the merge's tertiary
                     // ordering identical.
                     let s = NON_EXACT_FLOOR * 0.99f64.powi(i as i32);
+                    // WU-ψ: initials shorthand → tier 8 (predict-tier,
+                    // user typed letters that aren't a real syllable).
                     let c = super::merge::ScoreComponents::three_axis(
                         pinyin_floor, log_likelihood_q4, mt,
-                    );
+                    ).with_tier(8);
                     (s, Some(c))
                 } else if let Some(distance) = fuzzy_edit_distance {
                     // v1.8.0 WU-ν: fuzzy candidates carry their real
@@ -695,18 +733,20 @@ impl PinyinAdapter {
                         mt,
                     );
                     let s = FUZZY_BASE * FUZZY_DISCOUNT;
+                    // WU-ψ: fuzzy → tier 8 ("你都打错了，有就不错了").
                     let c = super::merge::ScoreComponents::three_axis(
                         pinyin_floor, log_likelihood_q4, mt,
-                    );
+                    ).with_tier(8);
                     (s, Some(c))
                 } else {
                     // NON_EXACT_FLOOR tier — degenerate; mark Exact for
                     // schema purposes (these are dead-tier candidates
                     // ranking at the bottom of the list).
                     let s = NON_EXACT_FLOOR * 0.99f64.powi(i as i32);
+                    // WU-ψ: degenerate dead-tier → tier 9 (longtail).
                     let c = super::merge::ScoreComponents::three_axis(
                         pinyin_floor, to_log_q4(s), inputx_scoring::MatchType::Exact,
-                    );
+                    ).with_tier(9);
                     (s, Some(c))
                 };
             // v1.4.6 sub-phase C2 cutover: source the bigram bonus
@@ -1552,6 +1592,8 @@ fn push_prefix_top_k(
             proximity,
             inputx_pinyin_helpers::pinyin_corpus_total(),
         );
+        // WU-ψ: pinyin predictions → tier 7 (specialty).
+        let components = components.with_tier(7);
         out_scored.insert(word.clone(), score);
         out_components.insert(word.clone(), components);
         // Candidate-list push: only when not already there (dedup vs.

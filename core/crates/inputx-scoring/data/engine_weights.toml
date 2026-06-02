@@ -53,16 +53,18 @@
 # cross-tier overlap.
 tier_gap_q4 = 200
 
-# Distance between engines within a tier, in Q4 log-space. 10 Q4 ≈
-# ×1.86 linear — small enough to feel "close" to the user, large
-# enough to be deterministic. Order: wubi (+2·offset), pinyin
-# (+1·offset), nihongo (+0).
-engine_gap_q4 = 10
+# Distance between engines within a tier, in Q4 log-space. 30 Q4 ≈
+# ×6.5 linear — large enough that engine priority (w > p > n) is
+# robust against typical within-tier axis variance (~10-30 Q4
+# between sibling candidates in the same buffer). Total spread:
+# wubi (+2·offset = 60), pinyin (+1·offset = 30), nihongo (+0).
+engine_gap_q4 = 30
 
 # Hard ceiling on within-tier score variance. Must satisfy
-# `within_tier_max_q4 < tier_gap_q4` (with margin) so a tier-N
-# candidate at max within-tier never reaches tier-N-1 at min.
-within_tier_max_q4 = 150
+# `within_tier_max_q4 < tier_gap_q4` AND
+# `engine_gap_q4 × 3 ≤ within_tier_max_q4` (engine offsets fit
+# alongside within-tier variance without crossing tier boundaries).
+within_tier_max_q4 = 100
 
 # Tier count (0 .. tier_count). 10 tiers gives fine-grained control
 # without becoming unmanageable. Semantic naming below.
