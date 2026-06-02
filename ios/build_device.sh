@@ -25,13 +25,20 @@ xcodegen generate --quiet
 
 # Cargo's effective target dir may be redirected by a global wrapper
 # (see ~/.claude-shared/global/cargo-target-dir.md). project.yml's
-# LIBRARY_SEARCH_PATHS expects core/target/<arch>/release/, so make
-# core/target a symlink to the real target dir.
+# LIBRARY_SEARCH_PATHS expects core/target/<arch>/release/, so when
+# the redirect IS active, symlink core/target to the real target dir.
+# When NO redirect is active, cargo's real target already IS
+# core/target — leave it alone (linking to itself creates a circular
+# dead-symlink that crashes `cargo build --release` with "Not a
+# directory", which is exactly how the iOS build broke 2026-06-02).
+CORE_TARGET_ABS=$(cd ../core && pwd)/target
 CARGO_REAL_TARGET=$(cd ../core && cargo metadata --no-deps --format-version 1 \
     | /usr/bin/python3 -c 'import json,sys;print(json.load(sys.stdin)["target_directory"])')
-if [ ! -L ../core/target ] || [ "$(readlink ../core/target)" != "$CARGO_REAL_TARGET" ]; then
-    [ -e ../core/target ] && rm -rf ../core/target
-    ln -s "$CARGO_REAL_TARGET" ../core/target
+if [ "$CARGO_REAL_TARGET" != "$CORE_TARGET_ABS" ]; then
+    if [ ! -L ../core/target ] || [ "$(readlink ../core/target)" != "$CARGO_REAL_TARGET" ]; then
+        [ -e ../core/target ] && rm -rf ../core/target
+        ln -s "$CARGO_REAL_TARGET" ../core/target
+    fi
 fi
 
 echo "[ios-device] building Rust core for aarch64-apple-ios"
