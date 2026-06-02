@@ -190,32 +190,54 @@ When creating a new test:
 
 Run `cargo test -p inputx-core --lib <new_test_name>` (or the existing test that contains the new row) to confirm it passes.
 
-## Step 5 — Auto-deploy to mac IME (safe reinstall)
+## Step 5 — Auto-deploy to mac IME (silent reinstall)
 
 After baseline passes and BEFORE committing, ship the change to the
-live mac IME so the user sees the polish immediately. **Use
-`mac/reinstall-safe.sh`, never plain `reinstall.sh`** — the safe
-wrapper does:
-
-1. Snapshot the currently-running bundle to `Inputx.app.bak-<timestamp>`.
-2. Run `reinstall.sh` (which rebuilds + swaps the bundle).
-3. Wait 5s for crash window, verify PID is alive AND unchanged
-   (no crash + LaunchAgent respawn cycle).
-4. **On failure (no PID / PID shifted / reinstall.sh errored): tear
-   down the broken install, restore the backup, rebootstrap the
-   LaunchAgent against the restored bundle, exit non-zero.**
-5. On success: drop the backup, exit zero.
+live mac IME so the user sees the polish immediately. Use the single
+canonical install entry — `mac/reinstall.py` — which auto-detects
+"reinstall" mode (bundle already trusted), takes a backup, runs the
+swap, watches 5s for crashes, rolls back on failure.
 
 ```sh
-mac/reinstall-safe.sh
+mac/reinstall.py
 ```
 
-If `reinstall-safe.sh` exits non-zero — the previous Inputx version
+What it does in reinstall mode:
+
+1. Snapshot the currently-running bundle to `Inputx.app.bak-<timestamp>`.
+2. Build + swap the bundle on disk; re-bootstrap the LaunchAgent.
+3. Invalidate macOS 26's IntlDataCache + restart TextInputMenuAgent
+   so the picker re-enumerates fresh.
+4. Wait 5s for crash window, verify PID is alive AND unchanged
+   (no crash + LaunchAgent respawn cycle).
+5. On failure: tear down the broken install, restore the backup,
+   re-bootstrap the LaunchAgent against the restored bundle, exit
+   non-zero.
+6. On success: drop the backup, exit zero.
+
+What it explicitly does NOT do (per memory: no-defensive-programming):
+- Does NOT call `Inputx install` / TISRegisterInputSource. That's
+  owned by macOS Settings UI's "Add Input Source" flow (which also
+  grants the TCC trust required for the picker to show us). Calling
+  TISRegister from us would create duplicate TIS rows.
+- Does NOT touch `AppleEnabledInputSources`. Settings owns it; our
+  writes wouldn't reach Settings UI's view anyway.
+
+**Bundle ID + mode ID are stable across reinstalls** — that's what
+keeps TCC trust persistent so subsequent reinstalls are silent.
+If you ever find yourself wanting to change CFBundleIdentifier or
+TISInputSourceID in Info.plist: STOP. That breaks every existing
+user's TCC trust and forces them through System Settings UI again.
+Memory: [[no-buggy-looking-ids]] covers the one historical case
+where this was necessary (the `wubi.wubi.zh` → `wubi.zh` fix);
+do not repeat the cost casually.
+
+If `reinstall.py` exits non-zero — the previous Inputx version
 is still running (rolled back), but the polish data change is sitting
 in the working tree uncommitted. Two paths:
 
 - **The polish change is correct but the build hit a transient issue**
-  (sccache desync, cargo lock race, etc.): try again with `mac/reinstall-safe.sh`
+  (sccache desync, cargo lock race, etc.): try again with `mac/reinstall.py`
   once. If still failing, STOP and report — escalate to the user.
 - **The polish change broke the build somehow** (e.g. a TOML row that
   build_dict rejects with a panic — extremely rare since polish only
@@ -223,10 +245,10 @@ in the working tree uncommitted. Two paths:
   polish-rebuild step at Step 3 should have caught this — if it
   didn't, that's a polish-rebuild gap, file it.
 
-NEVER skip `mac/reinstall-safe.sh` for "fast iteration". The user has
-been burned multiple times by reinstalls that succeeded mid-script
-but left the IME in a half-deployed state where text input across the
-OS stops working. The 5s health window + backup is the defense; the
+NEVER skip `mac/reinstall.py` for "fast iteration". The user has been
+burned multiple times by reinstalls that succeeded mid-script but
+left the IME in a half-deployed state where text input across the OS
+stops working. The 5s health window + backup is the defense; the
 polish skill must always go through it.
 
 ## Step 6 — Commit
@@ -278,7 +300,8 @@ If `make polish-rebuild` fails (baseline test regression), three paths:
 - **Boost values picked from thin air**: always derive from `weights.tsv` peer freq (B) or current cutoff (A/C). Magnitude justification goes in the commit message.
 - **Mixing class B and C in one TSV**: `quickfix_boost.tsv` is for boosts, `quickfix_demote.tsv` is for demotes. Don't put a low value in boost expecting MIN semantics — boost is MAX.
 - **Skipping `make polish-rebuild`**: every polish action MUST run through the rebuild + baseline gate before commit.
-- **Skipping `mac/reinstall-safe.sh`**: every polish action MUST deploy to the live IME before commit. Plain `reinstall.sh` is also forbidden — must use the safe wrapper with backup + health-window check, because reinstall failures have historically left the OS unable to accept text input. The 5s health window + automatic rollback is the user-protection contract.
+- **Skipping `mac/reinstall.py`**: every polish action MUST deploy to the live IME before commit. The script's backup + 5s health window + automatic rollback is the user-protection contract — reinstall failures have historically left the OS unable to accept text input.
+- **Changing CFBundleIdentifier or TISInputSourceID**: forbidden during polish. These two IDs are what keep TCC trust persistent across reinstalls; touching them breaks every existing user's silent-reinstall contract and forces them through System Settings UI to re-grant trust. If you genuinely believe one must change, STOP the polish and escalate.
 
 ## On framework extensions
 
