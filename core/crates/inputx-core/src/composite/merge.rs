@@ -165,6 +165,15 @@ impl ScoreComponents {
         }
     }
 
+    /// WU-ψ (v1.11) tier setter — modifies in place. Useful when the
+    /// natural constructor produces a ScoreComponents already (e.g.
+    /// `from_predict`) and the adapter needs to opt the result into
+    /// tier-based scoring after the fact.
+    pub fn with_tier(mut self, tier: u8) -> Self {
+        self.tier = Some(tier);
+        self
+    }
+
     /// Q4 log-space additive sort key (v1.4.5+ cement-layer cutover
     /// target). Returns `log_prior_q4 + log_likelihood_q4` — the
     /// Bayesian `score(W|i)` under the inputx-scoring schema.

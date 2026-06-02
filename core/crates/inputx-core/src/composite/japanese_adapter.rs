@@ -282,9 +282,11 @@ impl JapaneseAdapter {
                         0,
                         inputx_nihongo_data_jukugo::nihongo_jukugo_corpus_total(),
                     );
+                    // WU-ψ: JP compose products → tier 4 (mechanical,
+                    // less-confident than exact dict hits).
                     let components = super::merge::ScoreComponents::three_axis(
                         log_prior_q4, log_likelihood_q4, mt,
-                    );
+                    ).with_tier(4);
                     return (c.word.clone(), s, Some(components));
                 }
                 // base = per-kind floor; freq-weighted add lifts high-freq
@@ -389,6 +391,35 @@ impl JapaneseAdapter {
                     components.log_likelihood_q4 =
                         components.log_likelihood_q4.saturating_add(delta_q4);
                 }
+                // WU-ψ tier assignment for JP candidates:
+                //   - prediction (proximity < 1000) → 7 (specialty)
+                //   - exact match by kind:
+                //     - Hiragana / Katakana matching buffer → 1
+                //     - Jukugo (multi-char kanji) → 1
+                //     - Single kanji → 2 (no full-buffer match signal)
+                // Putting basic kana AND jukugo in the SAME tier 1
+                // means within-tier scoring (jukugo_base /
+                // hiragana_base / full_match_promote) resolves the
+                // shinjuku-style "新宿 vs しんじゅく" contest the
+                // same way it always has. The tier system only
+                // promises cross-tier dominance; within-tier order
+                // is the responsibility of the per-engine likelihood
+                // bases tuned in engine_weights.toml.
+                let tier_jp: u8 = if c.proximity_milli < 1000 {
+                    7
+                } else {
+                    match c.kind {
+                        KanaKind::Hiragana | KanaKind::Katakana => 1,
+                        KanaKind::Kanji => {
+                            if c.word.chars().count() > 1 && !is_pure_kana(&c.word) {
+                                1
+                            } else {
+                                2
+                            }
+                        }
+                    }
+                };
+                let components = components.with_tier(tier_jp);
                 (c.word.clone(), score, Some(components))
             })
             .collect()
