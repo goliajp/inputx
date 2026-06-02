@@ -213,6 +213,11 @@ mod tests {
             // Modern.
             ("shouji", "手机"), ("diannao", "电脑"),
             ("wangluo", "网络"), ("yidong", "移动"),
+            // polish-log 2026-06-02: 步骤 boosted over 不周 (user:
+            // "感觉上 步骤 应该在 不周 前面, 用得更多"). corpus had
+            // them within 1k (不周 20613 / 步骤 19628) but steps is
+            // far more common in everyday CN usage.
+            ("buzhou", "步骤"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
