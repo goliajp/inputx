@@ -1170,6 +1170,62 @@ mod tests {
     // ───────────────────────────────────────────────────────────
 
     #[test]
+    fn wubi_pollution_tier5_demoted_absent_from_mixed_top3() {
+        // 2026-06-03 200-buffer sweep — every (buffer, word) wubi top1
+        // where buffer is a valid pinyin syllable AND the wubi candidate
+        // has pinyin_freq=0 at that buffer (meaning the char's primary
+        // reading is NOT this buffer). Per user 2026-06-03: "wubi 的
+        // 内容分级都相对偏高就好了，但是真难检字也可以低下去，两级分化".
+        // Demoted to tier 5 (less_common) via tier_overlay.tsv so pinyin
+        // top wins; wubi simcode still retrievable at deeper rank.
+        //
+        // 13 muscle-memory wubi simcodes (`jianma2_common_chars_lead_in_mixed`
+        // + `three_letter_pinyin_shaped_wubi_simcodes`) intentionally
+        // EXCLUDED from this list — those stay at natural tier 1.
+        let cases: &[(&str, &[&str])] = &[
+            ("ai", &["东"]), ("an", &["世"]), ("ba", &["陈"]),
+            ("bai", &["陈"]), ("bang", &["陈情"]), ("bi", &["孙"]),
+            ("bu", &["联"]), ("dan", &["碟"]), ("di", &["砂"]),
+            ("dou", &["灰"]), ("du", &["磁"]), ("duo", &["碰"]),
+            ("er", &["遥"]), ("fa", &["载"]), ("fu", &["增"]),
+            ("gang", &["开怀"]), ("ha", &["虎"]), ("hao", &["虚"]),
+            ("he", &["肯"]), ("ji", &["晃"]), ("ke", &["吸"]),
+            ("le", &["胃"]), ("lu", &["较"]), ("ma", &["曲"]),
+            ("me", &["骨"]), ("nv", &["恨"]), ("qi", &["乐"]),
+            ("qiu", &["尔"]), ("qu", &["匀"]), ("ran", &["拒"]),
+            ("ren", &["扔"]), ("ri", &["朱"]), ("ru", &["拉"]),
+            ("san", &["柜"]), ("si", &["档"]), ("suan", &["西装革履"]),
+            ("te", &["秀"]), ("ti", &["秒"]), ("wen", &["仍"]),
+            ("xi", &["纱"]), ("yan", &["谍"]), ("yao", &["庶"]),
+            ("ye", &["衣"]),
+        ];
+        let mut failures = Vec::new();
+        for (buf, blocklist) in cases {
+            let top10 = mixed_top10(buf.as_bytes());
+            // Top-3 = the visual first row of the candidate panel.
+            // Some buffers (ha/me/ri) have thin pinyin exact-match
+            // pools so wubi prefix predictions surface at rank 4-5
+            // even after tier_overlay demote — that path doesn't
+            // route through tier_overlay::get. Anchoring top-3 here
+            // captures the user-visible regression while accepting
+            // that rare-CJK-heavy buffers may keep wubi prefix
+            // predictions in the second visible row.
+            let top3: &[String] = if top10.len() < 3 { &top10[..] } else { &top10[..3] };
+            for bad in *blocklist {
+                if top3.iter().any(|w| w == bad) {
+                    failures.push(format!(
+                        "  {buf}: tier-5 demoted {bad} in mixed top3 — top3={top3:?}"
+                    ));
+                }
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} wubi-tier5-demote cases failed:\n{}",
+                failures.len(), failures.join("\n"));
+        }
+    }
+
+    #[test]
     fn rare_wubi_simcode_chars_absent_from_mixed_top5() {
         // 2026-06-03 sweep — rare-CJK / traditional-form wubi simcode
         // chars hijacking common pinyin syllables. wubi simcode_boost
