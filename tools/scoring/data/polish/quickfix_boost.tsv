@@ -48,4 +48,7 @@ buzhou	步骤	22674	# user pick | top=不周 base=19628
 cipin	词频	10000	# user pick over 疵品 | base=6824 peer=疵品 7836 — push above 疵品 but keep 次品 #0
 xian	现	55000	# user 2026-06-03: 多音字 见 (jiàn) 不能压 现 | top=见 50235 base=现 49971
 jiao	叫	53000	# user 2026-06-03: 多音字 觉 (jué) 不能压 叫 | top=觉 48781 base=叫 47837
-juli	举例	27000	# user 2026-06-03: "举例 肯定要高于 局里 和 剧里 这种并不完全是单词的组合" | top_peer=局里 24466 base=22437 — 距离 36710 stays #0, 举例 升 #1 before 局里/剧里
+# 2026-06-03 Phase E (bigram quality gate) retires juli 举例 quickfix
+# — 局里 / 剧里 (bigram 16k / 14k < floor 25k) now auto-demoted one
+# tier, so 距离 / 举例 surface ahead naturally without per-buffer boost.
+# juli	举例	27000	[retired by Phase E framework rule]

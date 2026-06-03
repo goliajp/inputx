@@ -503,11 +503,50 @@ impl PinyinAdapter {
             //
             // Phase 5: per-(buffer, word) tier_overlay.tsv can override
             // any of these natural tiers (e.g. `juti 具体 0`).
-            let natural_tier: u8 = if pinned.as_deref() == Some(word) {
+            //
+            // Phase E (2026-06-03) — bigram quality gate for 2-char
+            // phrases: when the (char1, char2) intra-bigram boost is
+            // below the floor, the phrase is likely jieba over-
+            // segmentation noise (馆里 21k / 局里 17k / 剧里 14k vs
+            // real 这里 50k / 公里 50k / 居里 33k) and gets a TWO-tier
+            // demote so the noise phrase sinks behind both real
+            // tier-2 phrases AND real tier-3 candidates at the same
+            // buffer.  1-tier demote was insufficient because thin-
+            // candidate buffers (guanli has only 管理 in tier 2) left
+            // the demoted noise still leading tier-3 by freq.
+            //
+            // 3+ char phrases unchanged — sub-word bleed is a 2-char
+            // problem (jieba's over-segmentation pattern is mostly
+            // "noun + locative", "noun + verb", etc. at 2 chars).
+            let mut natural_tier: u8 = if pinned.as_deref() == Some(word) {
                 0
             } else {
                 inputx_scoring::pinyin_tier_from_freq(entry.raw_freq.into())
             };
+            let mut chars = word.chars();
+            let (c1, c2, c3) = (chars.next(), chars.next(), chars.next());
+            if c3.is_none() {
+                if let (Some(a), Some(b)) = (c1, c2) {
+                    let s1 = a.to_string();
+                    let s2 = b.to_string();
+                    let bg = self.engine.dict().bigram_boost(Some(&s1), &s2);
+                    // Combo gate: phrase looks like jieba over-segmentation
+                    // ONLY when bigram is low AND freq sits in the inflation
+                    // BAND.  Above ceil = real-common (屋里 32k / 这里 45k)
+                    // OR user-attested quickfix (锚定 40k).  Below floor =
+                    // real-rare (靠谱 10k / 铆钉 15k — consistent low-low).
+                    // jieba over-segment sweet spot is the mid band 22k-30k:
+                    // freq looks "common-ish" but bigram says the chars don't
+                    // actually co-occur in real text → over-segmentation.
+                    let f = u64::from(entry.raw_freq);
+                    if bg < inputx_scoring::consts::PHRASE_BIGRAM_SIGNAL_FLOOR
+                        && f >= inputx_scoring::consts::PHRASE_INFLATION_FLOOR_FREQ
+                        && f <  inputx_scoring::consts::PHRASE_INFLATION_CEIL_FREQ
+                    {
+                        natural_tier = (natural_tier + 2).min(9);
+                    }
+                }
+            }
             let tier_pinyin: u8 = inputx_scoring::tier_overlay::get(
                 &self.buffer,
                 word,

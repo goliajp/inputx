@@ -155,6 +155,26 @@ fn main() {
     let prior_freq_mult_pinyin = read_f64(scoring_zh, "prior_freq_mult_pinyin");
     let prior_freq_mult_wubi = read_f64(scoring_zh, "prior_freq_mult_wubi");
 
+    // Phase E (2026-06-03) — bigram quality gate floor for pinyin
+    // 2-char phrase tier demote.
+    let phrase_quality = parsed
+        .get("scoring")
+        .and_then(|v| v.get("phrase_quality"))
+        .and_then(|v| v.as_table())
+        .unwrap_or_else(|| panic!("[scoring.phrase_quality] section missing"));
+    let pq_bigram_floor = read_f64(phrase_quality, "bigram_signal_floor");
+    let pq_inflation_floor = phrase_quality
+        .get("inflation_floor_freq")
+        .and_then(|v| v.as_integer())
+        .unwrap_or_else(|| panic!("scoring.phrase_quality.inflation_floor_freq missing")) as u64;
+    let pq_inflation_ceil = phrase_quality
+        .get("inflation_ceil_freq")
+        .and_then(|v| v.as_integer())
+        .unwrap_or_else(|| panic!("scoring.phrase_quality.inflation_ceil_freq missing")) as u64;
+    if pq_inflation_ceil <= pq_inflation_floor {
+        panic!("scoring.phrase_quality.inflation_ceil_freq ({pq_inflation_ceil}) must be > inflation_floor_freq ({pq_inflation_floor})");
+    }
+
     let wubi_full_code_promote = read_f64(scoring_ce, "wubi_full_code_promote");
     let wubi_single_char_promote_mult = read_f64(scoring_ce, "wubi_single_char_promote_mult");
     let tc_demote_mult = read_f64(scoring_ce, "tc_demote_mult");
@@ -356,6 +376,10 @@ pub mod consts {{
     pub const NIHONGO_TIER_4_Z_ABOVE: f64 = {nq_t4};
     pub const NIHONGO_TIER_5_Z_ABOVE: f64 = {nq_t5};
     pub const NIHONGO_TIER_6_Z_ABOVE: f64 = {nq_t6};
+    // [scoring.phrase_quality] — Phase E (2026-06-03).
+    pub const PHRASE_BIGRAM_SIGNAL_FLOOR: f64 = {phrase_bigram_floor};
+    pub const PHRASE_INFLATION_FLOOR_FREQ: u64 = {phrase_inflation_floor};
+    pub const PHRASE_INFLATION_CEIL_FREQ: u64 = {phrase_inflation_ceil};
 }}
 
 /// Tier落点 helper — Phase B (2026-06-03).
@@ -474,6 +498,9 @@ pub fn nihongo_tier_from_freq(raw_freq: u64) -> u8 {{
         nq_t4 = fmt_f64(nq_tier_4_above),
         nq_t5 = fmt_f64(nq_tier_5_above),
         nq_t6 = fmt_f64(nq_tier_6_above),
+        phrase_bigram_floor = fmt_f64(pq_bigram_floor),
+        phrase_inflation_floor = pq_inflation_floor,
+        phrase_inflation_ceil = pq_inflation_ceil,
     );
 
     fs::write(&out_path, generated)
