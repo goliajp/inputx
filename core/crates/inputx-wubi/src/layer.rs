@@ -11,7 +11,7 @@
 //!
 //! Index values pack `(layer << FREQ_BITS) | freq_score` so the runtime can
 //! read both in one stream pass. `freq_score` is the corpus-derived frequency
-//! from `data/weights/weights.tsv` (capped at [`MAX_FREQ_SCORE`]; real data
+//! from `data/library.tsv` (capped at [`MAX_FREQ_SCORE`]; real data
 //! tops out around 50k), normalized within layer.
 
 /// Discriminants are **ascending priority**: `Auto = 0` is lowest, `Jianma1`
