@@ -140,12 +140,49 @@ fn load_log() -> Result<DigestLog, String> {
         .map_err(|e| format!("parse {}: {e}", p.display()))
 }
 
-// ─── library.tsv schema (pinyin: code\tword\tfreq\tsource) ──────────
+// ─── library.tsv schema ─────────────────────────────────────────────
+//
+// pinyin :  code \t word \t            freq \t source
+// wubi   :  code \t word \t layer   \t freq \t source
+// nihongo:  code \t word \t type    \t freq \t source
+//
+// PLAN-corpus-digest §1.1: `code\tword\t[engine-specific cols]\tfreq\tsource`.
+// `extra` carries the engine-specific col (wubi layer / nihongo type);
+// None for pinyin.
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum EngineKind { Pinyin, Wubi, Nihongo }
+
+impl EngineKind {
+    fn parse(s: &str) -> Result<Self, String> {
+        match s {
+            "pinyin"  => Ok(Self::Pinyin),
+            "wubi"    => Ok(Self::Wubi),
+            "nihongo" => Ok(Self::Nihongo),
+            other     => Err(format!("unknown engine {other:?}")),
+        }
+    }
+    fn name(&self) -> &'static str {
+        match self { Self::Pinyin => "pinyin", Self::Wubi => "wubi", Self::Nihongo => "nihongo" }
+    }
+    /// How many tab-separated fields a library.tsv ROW has.
+    fn library_col_count(&self) -> usize {
+        match self { Self::Pinyin => 4, Self::Wubi => 5, Self::Nihongo => 5 }
+    }
+    /// How many tab-separated fields a simple_tsv ingest input has.
+    /// Same shape as library minus the trailing `source` col (the tool
+    /// fills source=digested itself).
+    fn simple_tsv_col_count(&self) -> usize {
+        self.library_col_count() - 1
+    }
+}
 
 #[derive(Debug, Clone)]
 struct LibraryRow {
     code: String,
     word: String,
+    /// wubi: layer (0..=5); nihongo: "kanji"|"jukugo"; pinyin: None.
+    extra: Option<String>,
     freq: u32,
     source: String,  // "digested" | "polish"
 }
@@ -157,11 +194,12 @@ struct ParsedLibrary {
     rows: Vec<LibraryRow>,
 }
 
-fn load_library(engine: &str) -> Result<ParsedLibrary, String> {
-    let p = library_path(engine);
+fn load_library(engine: EngineKind) -> Result<ParsedLibrary, String> {
+    let p = library_path(engine.name());
     let raw = fs::read_to_string(&p)
         .map_err(|e| format!("read {}: {e}", p.display()))?;
 
+    let want_cols = engine.library_col_count();
     let mut header = String::new();
     let mut in_header = true;
     let mut rows = Vec::new();
@@ -182,17 +220,21 @@ fn load_library(engine: &str) -> Result<ParsedLibrary, String> {
             continue;
         }
         let parts: Vec<&str> = trimmed.split('\t').collect();
-        if parts.len() < 4 {
+        if parts.len() < want_cols {
             return Err(format!(
-                "library {}:line {}: expected ≥4 cols (code/word/freq/source), got {}",
+                "library {}:line {}: expected ≥{want_cols} cols, got {}",
                 p.display(), lineno + 1, parts.len()
             ));
         }
-        let freq = parts[2].parse::<u32>().map_err(|e| {
+        let (extra, freq_idx, source_idx) = match engine {
+            EngineKind::Pinyin => (None, 2, 3),
+            EngineKind::Wubi | EngineKind::Nihongo => (Some(parts[2].to_string()), 3, 4),
+        };
+        let freq = parts[freq_idx].parse::<u32>().map_err(|e| {
             format!("library {}:line {}: bad freq {:?}: {e}",
-                p.display(), lineno + 1, parts[2])
+                p.display(), lineno + 1, parts[freq_idx])
         })?;
-        let source = parts[3].to_string();
+        let source = parts[source_idx].to_string();
         if source != "digested" && source != "polish" {
             return Err(format!(
                 "library {}:line {}: bad source {:?} (want digested|polish)",
@@ -202,6 +244,7 @@ fn load_library(engine: &str) -> Result<ParsedLibrary, String> {
         rows.push(LibraryRow {
             code: parts[0].to_string(),
             word: parts[1].to_string(),
+            extra,
             freq,
             source,
         });
@@ -228,21 +271,36 @@ fn load_garbage_filter() -> Result<std::collections::HashSet<(String, String)>, 
 
 // ─── Parsers (ingest_format dispatch) ───────────────────────────────
 
-/// `simple_tsv`: each line is `<code>\t<word>\t<freq>`. Blank + `#`
-/// lines skipped. Returns the raw (code, word, freq) tuples — no
-/// normalization or dedup; STAGE 3+4 handle that.
-fn parse_simple_tsv(raw: &str) -> Result<Vec<(String, String, u32)>, String> {
+/// One row produced by an upstream parser, before STAGE 3+ normalization.
+type IngestTuple = (String, String, Option<String>, u32);
+
+/// `simple_tsv`: each line matches the target library's row shape minus
+/// the trailing `source` col.  For pinyin that's `code\tword\tfreq`
+/// (3 cols); for wubi `code\tword\tlayer\tfreq` (4); for nihongo
+/// `code\tword\ttype\tfreq` (4).
+///
+/// Blank + `#` lines skipped. Returns the raw tuples — no normalization
+/// or dedup; STAGE 3+4 handle that.
+fn parse_simple_tsv(raw: &str, engine: EngineKind) -> Result<Vec<IngestTuple>, String> {
+    let want = engine.simple_tsv_col_count();
     let mut out = Vec::with_capacity(1024);
     for (i, line) in raw.lines().enumerate() {
         let t = line.trim();
         if t.is_empty() || t.starts_with('#') { continue; }
         let parts: Vec<&str> = t.split('\t').collect();
-        if parts.len() < 3 {
-            return Err(format!("simple_tsv line {}: need 3 cols, got {}", i + 1, parts.len()));
+        if parts.len() < want {
+            return Err(format!(
+                "simple_tsv line {}: need {} cols for engine={}, got {}",
+                i + 1, want, engine.name(), parts.len()
+            ));
         }
-        let freq = parts[2].parse::<u32>()
-            .map_err(|e| format!("simple_tsv line {}: bad freq {:?}: {e}", i + 1, parts[2]))?;
-        out.push((parts[0].to_string(), parts[1].to_string(), freq));
+        let (extra, freq_idx) = match engine {
+            EngineKind::Pinyin => (None, 2),
+            EngineKind::Wubi | EngineKind::Nihongo => (Some(parts[2].to_string()), 3),
+        };
+        let freq = parts[freq_idx].parse::<u32>()
+            .map_err(|e| format!("simple_tsv line {}: bad freq {:?}: {e}", i + 1, parts[freq_idx]))?;
+        out.push((parts[0].to_string(), parts[1].to_string(), extra, freq));
     }
     Ok(out)
 }
@@ -335,19 +393,46 @@ fn sha256_file(p: &Path) -> Result<String, String> {
 
 // ─── Library write (STAGE 7) ────────────────────────────────────────
 
-/// Sort rows for byte-stable output.  Pinyin/nihongo: (code, word, source).
-/// Wubi has a layer column not yet supported in Phase A.
-fn sort_rows(rows: &mut [LibraryRow]) {
-    rows.sort_by(|a, b| {
-        a.code.cmp(&b.code)
-            .then_with(|| a.word.cmp(&b.word))
-            .then_with(|| a.source.cmp(&b.source))
-    });
+/// Engine-aware row sort for byte-stable output.
+///
+/// Per PLAN-corpus-digest §6:
+///   - pinyin / nihongo: byte-lex by (code, word)
+///   - wubi             : by (layer asc, code asc, word asc)
+///
+/// We add tie-breakers (extra, source) so equal-key rows have a
+/// deterministic relative order regardless of input order.
+///
+/// CALIBRATION (2026-06-03):
+///   - pinyin: actual library.tsv is byte-sorted by (code, word); my
+///     key matches → no-op rewrite byte-identical (verified before
+///     Phase B-2 land).
+///   - wubi  : actual library.tsv is byte-sorted by (code, word, layer)
+///     — DIFFERENT from PLAN's (layer, code, word). PLAN-corpus-digest
+///     §6 is the spec; first real wubi ingest will renormalize. Until
+///     then, dry-run only.
+///   - nihongo: actual library.tsv preserves codegen insertion order
+///     (jukugo block, then kanji block, no internal byte sort). First
+///     real nihongo ingest will renormalize to PLAN's (code, word).
+fn sort_rows(rows: &mut [LibraryRow], engine: EngineKind) {
+    match engine {
+        EngineKind::Pinyin | EngineKind::Nihongo => rows.sort_by(|a, b| {
+            a.code.cmp(&b.code)
+                .then_with(|| a.word.cmp(&b.word))
+                .then_with(|| a.extra.cmp(&b.extra))
+                .then_with(|| a.source.cmp(&b.source))
+        }),
+        EngineKind::Wubi => rows.sort_by(|a, b| {
+            a.extra.cmp(&b.extra)
+                .then_with(|| a.code.cmp(&b.code))
+                .then_with(|| a.word.cmp(&b.word))
+                .then_with(|| a.source.cmp(&b.source))
+        }),
+    }
 }
 
 /// Atomic write: tempfile in same dir + fsync + rename.
-fn write_library_atomic(engine: &str, header: &str, rows: &[LibraryRow]) -> Result<(), String> {
-    let target = library_path(engine);
+fn write_library_atomic(engine: EngineKind, header: &str, rows: &[LibraryRow]) -> Result<(), String> {
+    let target = library_path(engine.name());
     let dir = target.parent().ok_or_else(|| format!("no parent dir for {}", target.display()))?;
     let tmp = dir.join(format!(".library.tsv.tmp.{}", std::process::id()));
 
@@ -356,8 +441,20 @@ fn write_library_atomic(engine: &str, header: &str, rows: &[LibraryRow]) -> Resu
             .map_err(|e| format!("create {}: {e}", tmp.display()))?;
         f.write_all(header.as_bytes()).map_err(|e| format!("write header: {e}"))?;
         for r in rows {
-            writeln!(f, "{}\t{}\t{}\t{}", r.code, r.word, r.freq, r.source)
-                .map_err(|e| format!("write row: {e}"))?;
+            match (&r.extra, engine) {
+                (None, EngineKind::Pinyin) => {
+                    writeln!(f, "{}\t{}\t{}\t{}", r.code, r.word, r.freq, r.source)
+                        .map_err(|e| format!("write row: {e}"))?;
+                }
+                (Some(extra), EngineKind::Wubi | EngineKind::Nihongo) => {
+                    writeln!(f, "{}\t{}\t{}\t{}\t{}", r.code, r.word, extra, r.freq, r.source)
+                        .map_err(|e| format!("write row: {e}"))?;
+                }
+                _ => return Err(format!(
+                    "row shape ↔ engine mismatch: extra={:?}, engine={}",
+                    r.extra, engine.name(),
+                )),
+            }
         }
         f.sync_all().map_err(|e| format!("fsync {}: {e}", tmp.display()))?;
     }
@@ -429,8 +526,10 @@ fn cmd_events(engine_filter: Option<&str>) -> Result<(), String> {
 // ─── Ingest (STAGE 1–9) ─────────────────────────────────────────────
 
 struct IngestPlan {
-    added:    Vec<(String, String, u32)>,
-    updated:  Vec<(String, String, u32, u32)>,  // code, word, old_freq, new_freq
+    /// (code, word, extra, freq)
+    added:    Vec<(String, String, Option<String>, u32)>,
+    /// (code, word, extra, old_freq, new_freq)
+    updated:  Vec<(String, String, Option<String>, u32, u32)>,
     skipped_same:    u64,
     skipped_polish:  u64,
     rejected_garbage: u64,
@@ -447,12 +546,10 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
     eprintln!("[ingest] fetch_kind    = {}", src.fetch_kind);
     eprintln!("[ingest] ingest_format = {}", src.ingest_format);
 
-    // Phase A MVP scope check.
-    if src.engine != "pinyin" {
-        return Err(format!("Phase A MVP: pinyin engine only (got {:?})", src.engine));
-    }
+    let engine = EngineKind::parse(&src.engine)?;
     if src.ingest_format != "simple_tsv" {
-        return Err(format!("Phase A MVP: ingest_format=simple_tsv only (got {:?})", src.ingest_format));
+        return Err(format!("Phase B: ingest_format=simple_tsv only (got {:?}). \
+                            jieba_phrase/unihan/mozc parsers land in Phase B-3+.", src.ingest_format));
     }
     match src.fetch_kind.as_str() {
         "file" | "http" => {},
@@ -490,22 +587,33 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
 
     // ── STAGE 2: parse ──────────────────────────────────────────────
     eprintln!("[stage 2/9] parse (simple_tsv)");
-    let parsed = parse_simple_tsv(text)?;
+    let parsed = parse_simple_tsv(text, engine)?;
     eprintln!("            parsed rows = {}", parsed.len());
 
     // ── STAGE 3: normalize (Phase A: trim only — NFC TBD Phase B) ──
-    eprintln!("[stage 3/9] normalize (trim only — NFC deferred to Phase B)");
-    let normalized: Vec<(String, String, u32)> = parsed.into_iter()
-        .map(|(c, w, f)| (c.trim().to_string(), w.trim().to_string(), f))
-        .filter(|(c, w, _)| !c.is_empty() && !w.is_empty())
+    eprintln!("[stage 3/9] normalize (trim only — NFC deferred to Phase B-3)");
+    let normalized: Vec<IngestTuple> = parsed.into_iter()
+        .map(|(c, w, e, f)| (
+            c.trim().to_string(),
+            w.trim().to_string(),
+            e.map(|x| x.trim().to_string()),
+            f,
+        ))
+        .filter(|(c, w, _, _)| !c.is_empty() && !w.is_empty())
         .collect();
 
     // ── STAGE 4: dedupe in-source — (code, word) → max freq ─────────
+    //
+    // PLAN-corpus-digest §6 keys the digest_index on (code, word) — so
+    // we do the same here. For wubi/nihongo the extra col is carried
+    // along with the winning row but does not participate in the key.
+    // If the same (code, word) appears twice with different extras,
+    // max-freq wins; the extra of the winner is kept.
     eprintln!("[stage 4/9] dedupe in-source (max freq wins)");
-    let mut deduped: BTreeMap<(String, String), u32> = BTreeMap::new();
-    for (c, w, f) in normalized {
-        let e = deduped.entry((c, w)).or_insert(0);
-        if f > *e { *e = f; }
+    let mut deduped: BTreeMap<(String, String), (Option<String>, u32)> = BTreeMap::new();
+    for (c, w, e, f) in normalized {
+        let slot = deduped.entry((c, w)).or_insert((None, 0));
+        if f > slot.1 { *slot = (e, f); }
     }
     eprintln!("            after dedupe = {}", deduped.len());
 
@@ -525,8 +633,7 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
 
     // ── STAGE 6: diff against library ───────────────────────────────
     eprintln!("[stage 6/9] diff against library");
-    let mut lib = load_library(&src.engine)?;
-    // Index for O(1) lookups; clones the keys but rows are ~400k cap, fine.
+    let mut lib = load_library(engine)?;
     let mut lib_index: BTreeMap<(String, String), usize> = BTreeMap::new();
     for (i, r) in lib.rows.iter().enumerate() {
         lib_index.insert((r.code.clone(), r.word.clone()), i);
@@ -538,9 +645,9 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
         skipped_polish: 0,
         rejected_garbage: rejected,
     };
-    for ((code, word), new_freq) in deduped {
+    for ((code, word), (extra, new_freq)) in deduped {
         match lib_index.get(&(code.clone(), word.clone())) {
-            None => plan.added.push((code, word, new_freq)),
+            None => plan.added.push((code, word, extra, new_freq)),
             Some(&idx) => {
                 let r = &lib.rows[idx];
                 if r.source == "polish" {
@@ -549,7 +656,7 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
                 } else if r.freq == new_freq {
                     plan.skipped_same += 1;  // I-3 row-level idempotency
                 } else {
-                    plan.updated.push((code, word, r.freq, new_freq));
+                    plan.updated.push((code, word, extra, r.freq, new_freq));
                 }
             }
         }
@@ -578,22 +685,29 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
 
     // ── STAGE 7: write library.tsv (atomic) ─────────────────────────
     eprintln!("[stage 7/9] write library.tsv (atomic)");
-    for (code, word, freq) in &plan.added {
+    for (code, word, extra, freq) in &plan.added {
         lib.rows.push(LibraryRow {
             code: code.clone(), word: word.clone(),
+            extra: extra.clone(),
             freq: *freq, source: "digested".into(),
         });
     }
-    for (code, word, _, new_freq) in &plan.updated {
+    for (code, word, extra, _, new_freq) in &plan.updated {
         let idx = lib_index[&(code.clone(), word.clone())];
         lib.rows[idx].freq = *new_freq;
+        // The upstream may carry a different extra (layer/type) than
+        // the legacy row.  PLAN-corpus-digest §6 keys diff on (code,
+        // word), so we honor the upstream's extra too.
+        if let Some(e) = extra {
+            lib.rows[idx].extra = Some(e.clone());
+        }
         // I-1 guard: source must stay "digested" for an update path
         // (polish rows can't reach UPDATE branch — we filtered above).
         debug_assert_eq!(lib.rows[idx].source, "digested");
     }
-    sort_rows(&mut lib.rows);
-    write_library_atomic(&src.engine, &lib.header, &lib.rows)?;
-    let lib_sha_after = sha256_file(&library_path(&src.engine))?;
+    sort_rows(&mut lib.rows, engine);
+    write_library_atomic(engine, &lib.header, &lib.rows)?;
+    let lib_sha_after = sha256_file(&library_path(engine.name()))?;
     eprintln!("            library_sha256_after = {lib_sha_after}");
 
     // ── STAGE 8: append digest_log event ────────────────────────────
