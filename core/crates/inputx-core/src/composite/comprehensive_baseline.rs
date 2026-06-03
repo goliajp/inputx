@@ -312,6 +312,10 @@ mod tests {
             // at freq=0. Added to modern_vocab_v1.tsv at 50k, matching
             // peer tech terms like 算法/数据库).
             ("julei", "聚类"),
+            // Polish-log 2026-06-03: chijiuhua → 持久化 (persistence —
+            // tech term, was missing from library entirely).  Added as
+            // polish row freq=40000 (peer with 技术/设计 tech-term band).
+            ("chijiuhua", "持久化"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
