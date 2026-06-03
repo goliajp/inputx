@@ -40,9 +40,9 @@ fn main() {
     // algorithmically derived). Format: `<code>\t<char>`.
     let simplified_src =
         fs::read_to_string(crate_dir.join("data/jianma_simplified.txt")).unwrap_or_default();
-    // phrases.txt holds 词组 (multi-char phrases). Format: `<code>\t<phrase>`.
-    let phrases_src =
-        fs::read_to_string(crate_dir.join("data/phrases.txt")).unwrap_or_default();
+    // 2026-06-03 治理 Phase 2b: phrases.txt retired. Phrase entries
+    // (4-letter code → multi-char word) now live in library.tsv with
+    // layer=1=Phrase; build_fst iterates those rows directly.
 
     let zigen_map = parse_zigen_map(&zigen_src);
     let jianma1_pairs = parse_jianma1_pairs(&jianma1_src);
@@ -57,7 +57,6 @@ fn main() {
         &seed_src,
         &auto_src,
         &simplified_src,
-        &phrases_src,
     );
 
     println!("cargo:rerun-if-changed=build.rs");
@@ -66,7 +65,6 @@ fn main() {
     println!("cargo:rerun-if-changed=data/seed.txt");
     println!("cargo:rerun-if-changed=data/auto_decomp.txt");
     println!("cargo:rerun-if-changed=data/jianma_simplified.txt");
-    println!("cargo:rerun-if-changed=data/phrases.txt");
     println!("cargo:rerun-if-changed=data/library.tsv");
     println!("cargo:rerun-if-changed=src/codec.rs");
     println!("cargo:rerun-if-changed=src/layer.rs");
@@ -101,6 +99,36 @@ fn load_freq_scores(crate_dir: &std::path::Path) -> HashMap<(String, String), u6
             continue;
         };
         out.insert((code.to_string(), word.to_string()), freq);
+    }
+    out
+}
+
+/// Load library.tsv rows with layer=1 (Phrase) → list of (code, word, freq).
+/// 2026-06-03 治理 Phase 2b: replaces the retired data/phrases.txt source.
+fn load_phrase_entries(crate_dir: &std::path::Path) -> Vec<(String, String, u64)> {
+    let path = crate_dir.join("data/library.tsv");
+    let Ok(src) = fs::read_to_string(&path) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    for raw in src.lines() {
+        let line = raw.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let mut parts = line.split('\t');
+        let (Some(code), Some(word), Some(layer), Some(freq)) =
+            (parts.next(), parts.next(), parts.next(), parts.next())
+        else {
+            continue;
+        };
+        if layer != "1" {
+            continue; // not a Phrase row
+        }
+        let Ok(freq) = freq.parse::<u64>() else {
+            continue;
+        };
+        out.push((code.to_string(), word.to_string(), freq));
     }
     out
 }
@@ -222,12 +250,12 @@ fn build_fst(
     seed_src: &str,
     auto_src: &str,
     simplified_src: &str,
-    phrases_src: &str,
 ) {
     let mut entries: BTreeMap<Vec<u8>, u64> = BTreeMap::new();
     let freq_scores = load_freq_scores(crate_dir);
     let freq_for =
         |code: &str, word: &str| freq_scores.get(&(code.to_string(), word.to_string())).copied().unwrap_or(0);
+    let phrase_entries = load_phrase_entries(crate_dir);
 
     // 一级简码 entries: code is a single letter.
     for (letter, ch) in jianma1 {
@@ -337,19 +365,10 @@ fn build_fst(
             .or_insert(weight);
     }
 
-    // 词组 — multi-character phrases (table-defined, 4-letter codes).
+    // 词组 — multi-character phrases (post-治理 Phase 2b: from library.tsv
+    // layer=Phrase rows; 4-letter codes, multi-char words).
     let mut phrases_added = 0usize;
-    for raw in phrases_src.lines() {
-        let line = raw.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let mut parts = line.splitn(2, '\t');
-        let (Some(code), Some(phrase)) = (parts.next(), parts.next()) else {
-            continue;
-        };
-        let code = code.trim();
-        let phrase = phrase.trim();
+    for (code, phrase, freq) in &phrase_entries {
         if code.len() != 4 || phrase.chars().count() < 2 {
             continue;
         }
@@ -358,7 +377,7 @@ fn build_fst(
         key.extend_from_slice(code.as_bytes());
         key.push(0u8);
         key.extend_from_slice(phrase.as_bytes());
-        let weight_phrase = pack(Layer::Phrase, freq_for(code, phrase));
+        let weight_phrase = pack(Layer::Phrase, *freq);
         entries
             .entry(key)
             .and_modify(|w| {

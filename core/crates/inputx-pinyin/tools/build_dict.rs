@@ -133,7 +133,7 @@ fn main() {
             .join("../tools/scoring/data");
         let overlays: &[(&str, PathBuf)] = &[
             ("polish-log", supplemental_dir.join("polish/quickfix_boost.tsv")),
-            ("modern-vocab", supplemental_dir.join("supplemental/pinyin_modern_v1.tsv")),
+            ("modern-vocab", supplemental_dir.join("polish/modern_vocab_v1.tsv")),
         ];
         for (label, path) in overlays {
             let Ok(text) = fs::read_to_string(path) else {
