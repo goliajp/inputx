@@ -317,24 +317,38 @@ fn parse_simple_tsv(raw: &str, engine: EngineKind) -> Result<ParseResult, String
 
 /// `jieba_phrase`: jieba's `dict.txt` format — `<word> <freq> <pos>`
 /// per line, whitespace-separated. We discard `<pos>`; freq becomes the
-/// row's freq.  PINYIN ENGINE ONLY (jieba is a Chinese corpus).
+/// row's freq.  PINYIN ENGINE ONLY.
 ///
-/// READING DERIVATION: jieba carries no pinyin reading.  We build code
-/// = concat(`char_to_pinyin(c)[0]` for c in word).  This picks the
-/// *first traversal-order* reading per char (NOT necessarily the
-/// most-frequent one for 多音字).  Heuristic is intentional MVP:
-///   - Words already in our library will match the existing (code,
-///     word) row directly when the heuristic agrees with what we
-///     ingested historically — STAGE 6 hits SKIP-same.
-///   - When the heuristic disagrees, the row routes as ADD and
-///     coexists with the library row at the "correct" code.  Polish
-///     D1/D2 can prune later if it becomes noise.
+/// READING DERIVATION — "safe reading only":
 ///
-/// DROP RULES (counted into `ParseResult.dropped`, never silent):
-///   - Any char with empty `char_to_pinyin` (non-Han, ASCII, digits,
-///     PUA, uncovered CJK) → drop the whole row.
-///   - freq column not a u32 → drop the row.
-///   - Empty word → drop the row.
+/// jieba carries no pinyin reading.  We derive code char-by-char via
+/// `char_to_pinyin`. CRITICAL: only emit the row when EVERY char has
+/// exactly ONE reading in our reverse index. Otherwise — if any char
+/// is 多音字 (multi-reading) — drop the row.
+///
+/// This is the lesson from the failed Phase B-3c apply:
+///   - "暖和" → 暖(nuan) + 和({he, huo, …}) → first-reading heuristic
+///     picked 和=he → derived "nuanhe" → wrong (canonical is "nuanhuo")
+///   - Wrong (code, word) row entered the library + broke the
+///     `lookup_nuanhe_does_not_return_nuanhuo` regression test.
+///
+/// So the rule is: if we can't be confident in the reading, we don't
+/// ingest the word.  Multi-reading words need a parser that carries
+/// reading metadata (cc_cedict, opencc dict, mozc rebuilt) OR a future
+/// segmentation-pipeline pass that disambiguates from context.  Either
+/// way, NOT this parser.
+///
+/// What survives:
+///   - All-single-reading words ("快手" → kuai+shou=kuaishou, both
+///     single-reading) → emitted with confidence.
+///   - Words already in our library at a different code keep being
+///     SKIP-library-wins (库自主) via STAGE 6 — that's the existing row,
+///     not a new derivation.
+///
+/// What drops (counted into `ParseResult.dropped`, NEVER silent):
+///   - Any char uncovered by reverse-index (non-Han, ASCII, PUA).
+///   - Any char with > 1 reading (多音字 ambiguity).
+///   - Empty word, bad freq.
 fn parse_jieba_phrase(raw: &str, engine: EngineKind) -> Result<ParseResult, String> {
     if engine != EngineKind::Pinyin {
         return Err(format!(
@@ -344,15 +358,15 @@ fn parse_jieba_phrase(raw: &str, engine: EngineKind) -> Result<ParseResult, Stri
     }
     let mut rows = Vec::with_capacity(64_000);
     let mut dropped = 0u64;
+    let mut dropped_ambiguous = 0u64;
+    let mut dropped_uncovered = 0u64;
     let mut sample_drops: Vec<String> = Vec::with_capacity(8);
 
     for raw_line in raw.lines() {
         let t = raw_line.trim();
         if t.is_empty() || t.starts_with('#') { continue; }
-        // jieba uses ASCII space (and rarely tab) between word/freq/pos.
         let mut it = t.split_whitespace();
         let (Some(word), Some(freq_s)) = (it.next(), it.next()) else { continue };
-        // freq parse
         let Ok(freq) = freq_s.parse::<u32>() else {
             dropped += 1;
             if sample_drops.len() < 5 { sample_drops.push(format!("{word} (bad freq {freq_s:?})")); }
@@ -362,27 +376,45 @@ fn parse_jieba_phrase(raw: &str, engine: EngineKind) -> Result<ParseResult, Stri
             dropped += 1;
             continue;
         }
-        // Derive code via per-char first reading. Bail row on any miss.
+        // Derive code via per-char SAFE reading: require exactly one
+        // reading per char.  Multi-reading or uncovered → bail the row.
         let mut code = String::with_capacity(word.len() * 4);
-        let mut ok = true;
+        let mut bail_reason: Option<&'static str> = None;
         for ch in word.chars() {
             let readings = inputx_pinyin::char_to_pinyin(ch);
-            let Some(r) = readings.first() else {
-                ok = false; break;
-            };
-            code.push_str(r);
+            if readings.is_empty() {
+                bail_reason = Some("uncovered char");
+                break;
+            }
+            if readings.len() > 1 {
+                bail_reason = Some("ambiguous reading");
+                break;
+            }
+            code.push_str(&readings[0]);
         }
-        if !ok || code.is_empty() {
-            dropped += 1;
-            if sample_drops.len() < 5 { sample_drops.push(format!("{word} (uncovered char)")); }
-            continue;
+        match bail_reason {
+            None if !code.is_empty() => {
+                rows.push((code, word.to_string(), None, freq));
+            }
+            Some("ambiguous reading") => {
+                dropped += 1;
+                dropped_ambiguous += 1;
+                if sample_drops.len() < 5 { sample_drops.push(format!("{word} (多音字)")); }
+            }
+            Some("uncovered char") => {
+                dropped += 1;
+                dropped_uncovered += 1;
+                if sample_drops.len() < 5 { sample_drops.push(format!("{word} (uncovered char)")); }
+            }
+            _ => {
+                dropped += 1;
+            }
         }
-        rows.push((code, word.to_string(), None, freq));
     }
 
     if dropped > 0 {
-        eprintln!("            dropped {dropped} rows (sample: {})",
-            sample_drops.join(", "));
+        eprintln!("            dropped {dropped} rows ({} 多音字 + {} 非 Han, sample: {})",
+            dropped_ambiguous, dropped_uncovered, sample_drops.join(", "));
     }
     Ok(ParseResult { rows, dropped })
 }

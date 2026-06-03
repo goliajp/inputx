@@ -38,15 +38,8 @@
 # new sources here. When running ingest, update the existing source's
 # row atomically alongside digest_log append.
 
-version = 1
 
-# ─────────────────────────────────────────────────────────────────────
-# Legacy anchor sources — one per engine. These hold the pre-治理
-# ingestion lineage that the future digest tool will replace with
-# real upstream sources (jieba, unihan, mozc, etc.). Status="watching"
-# means: this is a placeholder; do not auto-update; future digest
-# events will retire it by replacing rows incrementally.
-# ─────────────────────────────────────────────────────────────────────
+version = 1
 
 [[source]]
 source_id = "pinyin-legacy"
@@ -118,23 +111,34 @@ becomes a real [[source]] with auto_update=true and a fetch_url
 pointing at the upstream release artifact.
 """
 
-# Template for future external sources — uncomment + fill, run
-# `corpus-digest add-source` (TBD) to formally register.
-#
-# [[source]]
-# source_id = "jieba-phrases"
-# engine = "pinyin"
-# source_type = "external"
-# source_name = "结巴分词词典 (主词典 dict.txt)"
-# fetch_kind = "http"
-# fetch_url = "https://raw.githubusercontent.com/fxsjy/jieba/master/jieba/dict.txt"
-# current_version = "git:HEAD"
-# current_sha256 = ""  # filled by first ingest
-# last_event_id = ""   # filled by first ingest
-# last_ingested_at = ""
-# current_row_count = 0
-# ingest_format = "jieba_phrase"
-# auto_update = true
-# auto_fetch_schedule = "monthly"
-# status = "stable"
-# notes = "License: MIT. Primary phrase dictionary (~350k entries)."
+[[source]]
+source_id = "jieba-phrases-dict"
+engine = "pinyin"
+source_type = "external"
+source_name = "结巴中文分词词典 (主词典 dict.txt)"
+fetch_kind = "http"
+fetch_url = "https://raw.githubusercontent.com/fxsjy/jieba/master/jieba/dict.txt"
+current_version = "git:HEAD"
+current_sha256 = "7197c3211ddd98962b036cdf40324d1ea2bfaa12bd028e68faa70111a88e12a8"
+last_event_id = "jieba-phrases-dict-2026-06-03"
+last_ingested_at = "2026-06-03"
+current_row_count = 422250
+ingest_format = "jieba_phrase"
+auto_update = false
+auto_fetch_schedule = "monthly"
+status = "stable"
+notes = """
+jieba 0.42.1+ 主词典 dict.txt (~350k 行)。MIT license。
+
+格式 `word freq pos`,无 pinyin reading。corpus-digest 的 jieba_phrase
+parser 使用 "safe reading only" 策略:仅当 word 的每个字都在
+inputx-pinyin 的 reverse-index 里且**只有一个读音** (非多音字) 时,才
+派生 code 并入候选。多音字词 (如"暖和" — 和有多读音) 一律 drop,留给
+带 reading 元数据的源 (cc_cedict / opencc / mozc 等) 后续吃。
+
+Phase B-3c 失败教训(已修):用 first-reading 派生让"暖和"变成
+"nuanhe" 入库,破坏了 nuanhuo→暖和 的反查测试。
+
+auto_update 留 false 直到 Phase B-5 — 自动投喂需要 HEAD/ETag 短路
++ baseline-gate 才能放心 cron。手动 ingest 安全。
+"""
