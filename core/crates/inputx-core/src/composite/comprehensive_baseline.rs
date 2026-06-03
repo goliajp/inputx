@@ -320,6 +320,10 @@ mod tests {
             // link — tech term).  Added as polish row freq=35000 (中高频,
             // 跟 距离/技术 同 tier 2 band).
             ("maodian", "锚点"),
+            // Polish-log 2026-06-03: "坚持肯定要比减持高" — 减持 had
+            // modern_vocab_v1 boost 50000 ahead of 坚持 base 42131.
+            // Class B quickfix: 坚持 → 55000 in quickfix_boost.tsv.
+            ("jianchi", "坚持"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
@@ -1477,6 +1481,10 @@ mod tests {
             // 跟 noise 一出/一处/一触 区分不开).  Per §5.5 acceptable
             // per-case D2: exclusions_v1.tsv hide Path-1.
             ("yichu", &["一出", "一处", "一触"]),
+            // User polish-log 2026-06-03: "剑持 这不是个词" — 字字直拼
+            // jiàn+chí, jieba/corpus noise.  D1 deleted from library.tsv
+            // + logged to corpus_garbage_filter_v1.tsv.
+            ("jianchi", &["剑持"]),
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
