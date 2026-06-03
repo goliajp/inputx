@@ -608,13 +608,117 @@ fn cmd_events(engine_filter: Option<&str>) -> Result<(), String> {
 // ─── Ingest (STAGE 1–9) ─────────────────────────────────────────────
 
 struct IngestPlan {
-    /// (code, word, extra, freq)
-    added:    Vec<(String, String, Option<String>, u32)>,
-    /// (code, word, extra, old_freq, new_freq)
-    updated:  Vec<(String, String, Option<String>, u32, u32)>,
-    skipped_same:    u64,
-    skipped_polish:  u64,
-    rejected_garbage: u64,
+    /// (code, word, extra, freq_after_fold)
+    added: Vec<(String, String, Option<String>, u32)>,
+    skipped_same:          u64,
+    /// PLAN §5 v2: 库自主 — upstream freq ≠ my freq → 我消化过,我的对.
+    skipped_library_wins:  u64,
+    skipped_polish:        u64,
+    rejected_garbage:      u64,
+}
+
+/// STAGE 3.5: rank-fold normalization parameters.
+///
+/// log-log linear regression over (upstream_freq, my_freq) consensus
+/// pairs, with p5/p95 clamp on my_freqs to prevent extrapolation
+/// blowing past the in-distribution range.
+///
+/// Used to translate upstream `freq` values into our library's freq
+/// scale when an ADD row needs a freq.  See PLAN-corpus-digest §5.1.
+#[derive(Debug)]
+struct FreqFold {
+    a: f64,
+    b: f64,
+    p5: u32,
+    p95: u32,
+    n_pairs: usize,
+}
+
+/// Refuse to ingest when fewer than this many consensus pairs exist.
+/// Below 64 the log-log regression has high variance and the fold
+/// function is unreliable — better to error than fold blindly.
+const MIN_FOLD_PAIRS: usize = 64;
+
+impl FreqFold {
+    /// Translate one upstream freq into our library scale.
+    /// Upstream 0 → p5 (floor); else `exp(a + b·ln(j))` clamped to
+    /// [p5, p95] so we never assign a brand-new word a freq above
+    /// what the consensus distribution allows.
+    fn apply(&self, upstream_freq: u32) -> u32 {
+        if upstream_freq == 0 { return self.p5; }
+        let log_j = (upstream_freq as f64).ln();
+        let log_m = self.a + self.b * log_j;
+        let m = log_m.exp();
+        m.max(self.p5 as f64).min(self.p95 as f64).round() as u32
+    }
+}
+
+/// Build STAGE 3.5 fold from the upstream tuples + our library.
+///
+/// Excludes polish rows from the regression: polish freqs are hand-set
+/// (e.g. 500 for "寄了") and don't follow corpus statistics — they'd
+/// pollute the fit.
+///
+/// Pairs must have both freqs > 0 (log(0) is undefined; treat zero
+/// freqs as "no signal" rather than fitting them).
+fn build_freq_fold(library: &[LibraryRow], upstream: &[IngestTuple]) -> Result<FreqFold, String> {
+    use std::collections::HashMap;
+    let mut my_index: HashMap<(String, String), u32> = HashMap::with_capacity(library.len());
+    for r in library {
+        if r.source == "digested" && r.freq > 0 {
+            my_index.insert((r.code.clone(), r.word.clone()), r.freq);
+        }
+    }
+
+    let mut pairs: Vec<(u32, u32)> = Vec::new();
+    for (c, w, _, j) in upstream {
+        if *j == 0 { continue; }
+        if let Some(&m) = my_index.get(&(c.clone(), w.clone())) {
+            pairs.push((*j, m));
+        }
+    }
+
+    if pairs.len() < MIN_FOLD_PAIRS {
+        return Err(format!(
+            "STAGE 3.5: only {} consensus pairs (need ≥ {}). Refusing to ingest blind — \
+             this source's freq scale can't be calibrated against our library.",
+            pairs.len(), MIN_FOLD_PAIRS,
+        ));
+    }
+
+    // log-log linear regression.
+    let n = pairs.len() as f64;
+    let log_js: Vec<f64> = pairs.iter().map(|(j, _)| (*j as f64).ln()).collect();
+    let log_ms: Vec<f64> = pairs.iter().map(|(_, m)| (*m as f64).ln()).collect();
+    let mean_j: f64 = log_js.iter().sum::<f64>() / n;
+    let mean_m: f64 = log_ms.iter().sum::<f64>() / n;
+    let cov: f64 = log_js.iter().zip(&log_ms)
+        .map(|(j, m)| (j - mean_j) * (m - mean_m))
+        .sum::<f64>() / n;
+    let var: f64 = log_js.iter()
+        .map(|j| (j - mean_j).powi(2))
+        .sum::<f64>() / n;
+    if var < 1e-9 {
+        return Err(format!(
+            "STAGE 3.5: upstream freq variance ≈ 0 across {} consensus pairs — fold undefined.",
+            pairs.len(),
+        ));
+    }
+    let b = cov / var;
+    let a = mean_m - b * mean_j;
+
+    // Percentiles of my_freqs (clamp range).
+    let mut my_freqs: Vec<u32> = pairs.iter().map(|(_, m)| *m).collect();
+    my_freqs.sort_unstable();
+    let p5_idx = ((pairs.len() as f64) * 0.05).floor() as usize;
+    let p95_idx = (((pairs.len() as f64) * 0.95).floor() as usize).min(pairs.len() - 1);
+
+    Ok(FreqFold {
+        a, b,
+        p5: my_freqs[p5_idx],
+        p95: my_freqs[p95_idx],
+        n_pairs: pairs.len(),
+    })
 }
 
 fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str) -> Result<(), String> {
@@ -724,41 +828,77 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
     // event's `rows_rejected` for full audit.
     let total_rejected = rejected + parse_result.dropped;
 
+    // ── STAGE 3.5: build freq fold ──────────────────────────────────
+    //
+    // PLAN-corpus-digest §5.1: ADD freqs go through a log-log
+    // regression mapping `upstream_freq → my_freq`, fitted on consensus
+    // (code, word) pairs.  Refuses ingest if < MIN_FOLD_PAIRS consensus
+    // pairs — keeps us from blindly fitting noise into the library.
+    //
+    // Built before STAGE 6 so STAGE 6 ADD branch can apply it row-by-row.
+    eprintln!("[stage 3.5/9] freq fold (log-log linear)");
+    let lib = load_library(engine)?;
+    let fold_input: Vec<IngestTuple> = deduped.iter()
+        .map(|((c, w), (e, j))| (c.clone(), w.clone(), e.clone(), *j))
+        .collect();
+    let fold = build_freq_fold(&lib.rows, &fold_input)?;
+    eprintln!("            n_pairs = {}", fold.n_pairs);
+    eprintln!("            slope b = {:.4}  intercept a = {:.4}", fold.b, fold.a);
+    eprintln!("            clamp = [p5={}, p95={}]", fold.p5, fold.p95);
+
     // ── STAGE 6: diff against library ───────────────────────────────
     eprintln!("[stage 6/9] diff against library");
-    let mut lib = load_library(engine)?;
+    let mut lib = lib;
     let mut lib_index: BTreeMap<(String, String), usize> = BTreeMap::new();
     for (i, r) in lib.rows.iter().enumerate() {
         lib_index.insert((r.code.clone(), r.word.clone()), i);
     }
     let mut plan = IngestPlan {
         added: Vec::new(),
-        updated: Vec::new(),
         skipped_same: 0,
+        skipped_library_wins: 0,
         skipped_polish: 0,
         rejected_garbage: total_rejected,
     };
-    for ((code, word), (extra, new_freq)) in deduped {
+    // Track added-row freq distribution for the report + audit.
+    let mut added_freqs: Vec<u32> = Vec::new();
+    for ((code, word), (extra, upstream_freq)) in deduped {
         match lib_index.get(&(code.clone(), word.clone())) {
-            None => plan.added.push((code, word, extra, new_freq)),
+            None => {
+                // I-1 / "吃" semantics: new word → fold upstream freq
+                // into our scale, ADD with that freq.
+                let folded = fold.apply(upstream_freq);
+                added_freqs.push(folded);
+                plan.added.push((code, word, extra, folded));
+            }
             Some(&idx) => {
                 let r = &lib.rows[idx];
                 if r.source == "polish" {
-                    // I-1: polish wins, ignore upstream.
                     plan.skipped_polish += 1;
-                } else if r.freq == new_freq {
-                    plan.skipped_same += 1;  // I-3 row-level idempotency
+                } else if r.freq == upstream_freq {
+                    plan.skipped_same += 1;
                 } else {
-                    plan.updated.push((code, word, extra, r.freq, new_freq));
+                    // PLAN §5 v2: 库自主 — upstream freq ≠ mine means
+                    // I've digested it differently; my freq is correct.
+                    plan.skipped_library_wins += 1;
                 }
             }
         }
     }
-    eprintln!("            ADD    = {}", plan.added.len());
-    eprintln!("            UPDATE = {}", plan.updated.len());
-    eprintln!("            SKIP (freq unchanged)  = {}", plan.skipped_same);
-    eprintln!("            SKIP (polish wins)     = {}", plan.skipped_polish);
-    eprintln!("            REJECT (garbage filter) = {}", plan.rejected_garbage);
+
+    // Added-freq summary (audit lens).
+    let (add_min, add_med, add_max) = if added_freqs.is_empty() {
+        (0, 0, 0)
+    } else {
+        let mut s = added_freqs.clone(); s.sort_unstable();
+        (s[0], s[s.len() / 2], s[s.len() - 1])
+    };
+    eprintln!("            ADD                       = {} (freq: min={}, med={}, max={})",
+        plan.added.len(), add_min, add_med, add_max);
+    eprintln!("            SKIP (freq unchanged)     = {}", plan.skipped_same);
+    eprintln!("            SKIP (library wins, v2)   = {}", plan.skipped_library_wins);
+    eprintln!("            SKIP (polish wins)        = {}", plan.skipped_polish);
+    eprintln!("            REJECT (garbage / drops)  = {}", plan.rejected_garbage);
 
     if !apply {
         eprintln!("\n[dry-run] no changes written.  Re-run with --apply to commit.");
@@ -766,37 +906,24 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
     }
 
     // ── Bail-out if nothing changes (I-3 final guard) ───────────────
-    if plan.added.is_empty() && plan.updated.is_empty() {
+    if plan.added.is_empty() {
         // STAGE 7+8+9 are no-ops; preserve append-only invariant by NOT
-        // emitting a stub event.
-        eprintln!("\n[apply] no library changes → no event written.  registry sha sync only.");
-        // Optional: still sync registry's current_sha256 to the new value
-        // so a subsequent `check` doesn't keep firing. For MVP we keep
-        // it strict: no library change → no registry change either.
+        // emitting a stub event.  v2 "吃" semantics: SKIP-library-wins
+        // counts even when 311k rows differed — that's library autonomy
+        // acting correctly, NOT a write event.
+        eprintln!("\n[apply] no new words → no library write, no event written.");
         return Ok(());
     }
 
     // ── STAGE 7: write library.tsv (atomic) ─────────────────────────
-    eprintln!("[stage 7/9] write library.tsv (atomic)");
+    eprintln!("[stage 7/9] write library.tsv (atomic) — appending {} new digested rows",
+        plan.added.len());
     for (code, word, extra, freq) in &plan.added {
         lib.rows.push(LibraryRow {
             code: code.clone(), word: word.clone(),
             extra: extra.clone(),
             freq: *freq, source: "digested".into(),
         });
-    }
-    for (code, word, extra, _, new_freq) in &plan.updated {
-        let idx = lib_index[&(code.clone(), word.clone())];
-        lib.rows[idx].freq = *new_freq;
-        // The upstream may carry a different extra (layer/type) than
-        // the legacy row.  PLAN-corpus-digest §6 keys diff on (code,
-        // word), so we honor the upstream's extra too.
-        if let Some(e) = extra {
-            lib.rows[idx].extra = Some(e.clone());
-        }
-        // I-1 guard: source must stay "digested" for an update path
-        // (polish rows can't reach UPDATE branch — we filtered above).
-        debug_assert_eq!(lib.rows[idx].source, "digested");
     }
     sort_rows(&mut lib.rows, engine);
     write_library_atomic(engine, &lib.header, &lib.rows)?;
@@ -806,6 +933,27 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
     // ── STAGE 8: append digest_log event ────────────────────────────
     eprintln!("[stage 8/9] append digest_log event");
     let event_id = format!("{}-{}", src.source_id, today);
+    // Stuff the fold params + counts into notes so future audits can
+    // reproduce this ingest's freq translation choices.  PLAN-corpus-
+    // digest §5.1 names these fields verbatim.
+    let mut full_notes = String::new();
+    if let Some(r) = rationale {
+        full_notes.push_str(r);
+        full_notes.push_str("\n\n");
+    }
+    full_notes.push_str(&format!(
+        "fold_a = {:.4}\nfold_b = {:.4}\nfold_p5 = {}\nfold_p95 = {}\nfold_n_pairs = {}\n",
+        fold.a, fold.b, fold.p5, fold.p95, fold.n_pairs,
+    ));
+    full_notes.push_str(&format!(
+        "added_freq_min = {}\nadded_freq_med = {}\nadded_freq_max = {}\n",
+        add_min, add_med, add_max,
+    ));
+    full_notes.push_str(&format!(
+        "skipped_same = {}\nskipped_library_wins = {}\nskipped_polish = {}\n",
+        plan.skipped_same, plan.skipped_library_wins, plan.skipped_polish,
+    ));
+
     let event = Event {
         event_id: event_id.clone(),
         engine: src.engine.clone(),
@@ -815,10 +963,10 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
         source_sha256: fetched.sha256_hex.clone(),
         ingested_at: today.into(),
         rows_added: plan.added.len() as u64,
-        rows_updated: plan.updated.len() as u64,
+        rows_updated: 0,  // v2: UPDATE branch retired
         rows_rejected: plan.rejected_garbage,
         library_sha256_after: lib_sha_after.clone(),
-        notes: rationale.unwrap_or("").into(),
+        notes: full_notes,
     };
     append_event(&event)?;
 
