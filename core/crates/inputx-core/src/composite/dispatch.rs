@@ -330,22 +330,24 @@ pub fn dispatch(
                         .ln()
                         * inputx_scoring::Q4 as f64)
                         .round() as i32;
-                    // WU-ψ tier assignment for wubi candidates:
-                    //   - pinned → 0 (user assertion)
-                    //   - prominent simcode (Jianma + char_demote=1.0) → 0
-                    //     (muscle memory: "二级简码非难检字 必然 #0")
-                    //   - full-code single-char with promote → 0
-                    //     (gmww→两 rule: at full code, a single char
-                    //     whose freq exceeds the per-code max phrase
-                    //     freq wins #0)
-                    //   - rare-CJK simcode (Jianma + char_demote<1.0) → 5
-                    //     (yields to pinyin top per the existing
-                    //     rare_jianma2_chars_yield_to_pinyin_top invariant)
-                    //   - Zigen (字根 keynames) → 1 (key-binding tier)
-                    //   - Phrase → 1 (full-buffer wubi phrase wins
-                    //     pinyin exact in Mixed via engine offset
-                    //     — aiyi→东京 rule)
-                    //   - Auto → 4 (lower-confidence auto-decomposed)
+                    // WU-ψ tier assignment for wubi candidates.
+                    //
+                    // 2026-06-03 cleanup (user "no special list, never"
+                    // directive): tier 0 is RESERVED for explicit
+                    // assertions (user L0 pin). Natural simcode hits
+                    // — even prominent ones — share tier 1 with
+                    // pinyin top single-char; wubi still wins within
+                    // tier 1 via engine_gap_q4 offset (w +60 vs p +30
+                    // in Q4 log-space ≈ 6.5× linear), so muscle-memory
+                    // simcodes still lead — no per-entry carve-out.
+                    //
+                    //   - pinned                                  → 0 (assertion)
+                    //   - prominent simcode (Jianma1/2/3, cd=1.0) → 1 (top)
+                    //   - rare-CJK simcode  (Jianma1/2/3, cd<1.0) → 5 (less_common)
+                    //   - full-code single-char promote           → 1 (top, gmww→两 rule)
+                    //   - Zigen (字根 keynames)                    → 1 (key-binding)
+                    //   - Phrase (full-buffer wubi phrase)        → 1 (top, aiyi→东京 rule)
+                    //   - Auto (auto-decomposed)                  → 4 (standard)
                     let single_promote_fires =
                         full_code && is_single && raw_freq > max_phrase_freq;
                     // Overlay (phase 5): per-(buffer, word) tier
@@ -355,13 +357,13 @@ pub fn dispatch(
                     let natural_tier: u8 = if wubi_pinned.as_deref() == Some(w.as_str()) {
                         0
                     } else if single_promote_fires {
-                        0
+                        1
                     } else {
                         match layer {
                             inputx_wubi::Layer::Jianma1
                             | inputx_wubi::Layer::Jianma2
                             | inputx_wubi::Layer::Jianma3 => {
-                                if cd == 1.0 { 0 } else { 5 }
+                                if cd == 1.0 { 1 } else { 5 }
                             }
                             inputx_wubi::Layer::Zigen => 1,
                             inputx_wubi::Layer::Phrase => 1,

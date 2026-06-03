@@ -48,22 +48,33 @@
 # tier 1, etc. — and the table here.
 
 [tier_engine_base]
-# Distance between adjacent tiers, in Q4 log-space. 200 Q4 ≈ ×270k
-# linear — must vastly exceed `within_tier_max_q4` to guarantee no
-# cross-tier overlap.
-tier_gap_q4 = 200
+# Distance between adjacent tiers, in Q4 log-space.
+#
+# Constraint: `tier_gap_q4 > engine_gap_q4 × 3 + within_tier_max_q4`
+# so all 3 engines × the within-tier band of a higher tier still fit
+# strictly above the next-lower tier's top. 400 Q4 ≈ ×4.4M linear.
+tier_gap_q4 = 400
 
-# Distance between engines within a tier, in Q4 log-space. 30 Q4 ≈
-# ×6.5 linear — large enough that engine priority (w > p > n) is
-# robust against typical within-tier axis variance (~10-30 Q4
-# between sibling candidates in the same buffer). Total spread:
-# wubi (+2·offset = 60), pinyin (+1·offset = 30), nihongo (+0).
-engine_gap_q4 = 30
+# Distance between engines within a tier, in Q4 log-space.
+#
+# 2026-06-03 (user "no special list, never"): raised from 30 to 110
+# so engine ordering (w > p > n) is STRICTLY enforced within a tier
+# — i.e. `engine_gap_q4 > within_tier_max_q4`. Pre-fix gap 30 < cap
+# 100, so a pinyin bigram boost (~30-80 Q4) inside tier 1 could
+# beat wubi tier 1 in raw within-axes — breaking the "wubi-first
+# IME" promise from inside the matrix model rather than via per-
+# entry carve-out. With gap=110 > cap=100, ANY tier-N wubi entry
+# beats ANY tier-N pinyin entry by ≥10 Q4 regardless of likelihood
+# variance — engine priority is now a hard sort key, second only
+# to tier_id.
+#
+# Total spread: wubi (+2·offset = 220), pinyin (+1·offset = 110),
+# nihongo (+0).
+engine_gap_q4 = 110
 
 # Hard ceiling on within-tier score variance. Must satisfy
-# `within_tier_max_q4 < tier_gap_q4` AND
-# `engine_gap_q4 × 3 ≤ within_tier_max_q4` (engine offsets fit
-# alongside within-tier variance without crossing tier boundaries).
+# `within_tier_max_q4 < engine_gap_q4` (so engine offset wins over
+# any within-axes likelihood spread).
 within_tier_max_q4 = 100
 
 # Tier count (0 .. tier_count). 10 tiers gives fine-grained control
