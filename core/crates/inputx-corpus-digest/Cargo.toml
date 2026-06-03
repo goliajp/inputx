@@ -34,3 +34,8 @@ sha2 = "0.10"
 # HTTP client for fetch_kind=http sources (Phase B-1).  rustls TLS so no
 # system OpenSSL dependency; blocking API so no tokio runtime.
 ureq = { version = "2", default-features = false, features = ["tls", "gzip"] }
+# Phase B-3: jieba_phrase parser needs per-char pinyin readings to derive
+# `code` for word-only upstream sources (jieba dict.txt carries word+freq+pos
+# but no reading). `inputx_pinyin::char_to_pinyin` walks the embedded
+# pinyin.dict reverse-index. Pulled at workspace version.
+inputx-pinyin = { workspace = true }

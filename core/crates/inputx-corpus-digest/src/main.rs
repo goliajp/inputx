@@ -274,6 +274,16 @@ fn load_garbage_filter() -> Result<std::collections::HashSet<(String, String)>, 
 /// One row produced by an upstream parser, before STAGE 3+ normalization.
 type IngestTuple = (String, String, Option<String>, u32);
 
+/// Outcome of a parser run: rows it produced + rows it had to drop.
+/// Drop count is reported to the user — silent truncation would let
+/// upstream noise erode coverage without a signal.
+struct ParseResult {
+    rows: Vec<IngestTuple>,
+    /// Rows the parser dropped (non-Han chars, freq parse fail, etc.).
+    /// We surface the count and (in the jieba case) a sample, NOT silently.
+    dropped: u64,
+}
+
 /// `simple_tsv`: each line matches the target library's row shape minus
 /// the trailing `source` col.  For pinyin that's `code\tword\tfreq`
 /// (3 cols); for wubi `code\tword\tlayer\tfreq` (4); for nihongo
@@ -281,9 +291,9 @@ type IngestTuple = (String, String, Option<String>, u32);
 ///
 /// Blank + `#` lines skipped. Returns the raw tuples — no normalization
 /// or dedup; STAGE 3+4 handle that.
-fn parse_simple_tsv(raw: &str, engine: EngineKind) -> Result<Vec<IngestTuple>, String> {
+fn parse_simple_tsv(raw: &str, engine: EngineKind) -> Result<ParseResult, String> {
     let want = engine.simple_tsv_col_count();
-    let mut out = Vec::with_capacity(1024);
+    let mut rows = Vec::with_capacity(1024);
     for (i, line) in raw.lines().enumerate() {
         let t = line.trim();
         if t.is_empty() || t.starts_with('#') { continue; }
@@ -300,9 +310,81 @@ fn parse_simple_tsv(raw: &str, engine: EngineKind) -> Result<Vec<IngestTuple>, S
         };
         let freq = parts[freq_idx].parse::<u32>()
             .map_err(|e| format!("simple_tsv line {}: bad freq {:?}: {e}", i + 1, parts[freq_idx]))?;
-        out.push((parts[0].to_string(), parts[1].to_string(), extra, freq));
+        rows.push((parts[0].to_string(), parts[1].to_string(), extra, freq));
     }
-    Ok(out)
+    Ok(ParseResult { rows, dropped: 0 })
+}
+
+/// `jieba_phrase`: jieba's `dict.txt` format — `<word> <freq> <pos>`
+/// per line, whitespace-separated. We discard `<pos>`; freq becomes the
+/// row's freq.  PINYIN ENGINE ONLY (jieba is a Chinese corpus).
+///
+/// READING DERIVATION: jieba carries no pinyin reading.  We build code
+/// = concat(`char_to_pinyin(c)[0]` for c in word).  This picks the
+/// *first traversal-order* reading per char (NOT necessarily the
+/// most-frequent one for 多音字).  Heuristic is intentional MVP:
+///   - Words already in our library will match the existing (code,
+///     word) row directly when the heuristic agrees with what we
+///     ingested historically — STAGE 6 hits SKIP-same.
+///   - When the heuristic disagrees, the row routes as ADD and
+///     coexists with the library row at the "correct" code.  Polish
+///     D1/D2 can prune later if it becomes noise.
+///
+/// DROP RULES (counted into `ParseResult.dropped`, never silent):
+///   - Any char with empty `char_to_pinyin` (non-Han, ASCII, digits,
+///     PUA, uncovered CJK) → drop the whole row.
+///   - freq column not a u32 → drop the row.
+///   - Empty word → drop the row.
+fn parse_jieba_phrase(raw: &str, engine: EngineKind) -> Result<ParseResult, String> {
+    if engine != EngineKind::Pinyin {
+        return Err(format!(
+            "jieba_phrase parser is pinyin-only (engine={})",
+            engine.name(),
+        ));
+    }
+    let mut rows = Vec::with_capacity(64_000);
+    let mut dropped = 0u64;
+    let mut sample_drops: Vec<String> = Vec::with_capacity(8);
+
+    for raw_line in raw.lines() {
+        let t = raw_line.trim();
+        if t.is_empty() || t.starts_with('#') { continue; }
+        // jieba uses ASCII space (and rarely tab) between word/freq/pos.
+        let mut it = t.split_whitespace();
+        let (Some(word), Some(freq_s)) = (it.next(), it.next()) else { continue };
+        // freq parse
+        let Ok(freq) = freq_s.parse::<u32>() else {
+            dropped += 1;
+            if sample_drops.len() < 5 { sample_drops.push(format!("{word} (bad freq {freq_s:?})")); }
+            continue;
+        };
+        if word.is_empty() {
+            dropped += 1;
+            continue;
+        }
+        // Derive code via per-char first reading. Bail row on any miss.
+        let mut code = String::with_capacity(word.len() * 4);
+        let mut ok = true;
+        for ch in word.chars() {
+            let readings = inputx_pinyin::char_to_pinyin(ch);
+            let Some(r) = readings.first() else {
+                ok = false; break;
+            };
+            code.push_str(r);
+        }
+        if !ok || code.is_empty() {
+            dropped += 1;
+            if sample_drops.len() < 5 { sample_drops.push(format!("{word} (uncovered char)")); }
+            continue;
+        }
+        rows.push((code, word.to_string(), None, freq));
+    }
+
+    if dropped > 0 {
+        eprintln!("            dropped {dropped} rows (sample: {})",
+            sample_drops.join(", "));
+    }
+    Ok(ParseResult { rows, dropped })
 }
 
 // ─── Fetch (fetch_kind dispatch) ────────────────────────────────────
@@ -547,9 +629,12 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
     eprintln!("[ingest] ingest_format = {}", src.ingest_format);
 
     let engine = EngineKind::parse(&src.engine)?;
-    if src.ingest_format != "simple_tsv" {
-        return Err(format!("Phase B: ingest_format=simple_tsv only (got {:?}). \
-                            jieba_phrase/unihan/mozc parsers land in Phase B-3+.", src.ingest_format));
+    match src.ingest_format.as_str() {
+        "simple_tsv" | "jieba_phrase" => {}
+        other => return Err(format!(
+            "unknown ingest_format {other:?}. supported: simple_tsv, jieba_phrase \
+             (unihan / mozc / cc_cedict land later).",
+        )),
     }
     match src.fetch_kind.as_str() {
         "file" | "http" => {},
@@ -586,13 +671,17 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
         .map_err(|e| format!("source content not utf-8: {e}"))?;
 
     // ── STAGE 2: parse ──────────────────────────────────────────────
-    eprintln!("[stage 2/9] parse (simple_tsv)");
-    let parsed = parse_simple_tsv(text, engine)?;
-    eprintln!("            parsed rows = {}", parsed.len());
+    eprintln!("[stage 2/9] parse ({})", src.ingest_format);
+    let parse_result = match src.ingest_format.as_str() {
+        "simple_tsv"   => parse_simple_tsv(text, engine)?,
+        "jieba_phrase" => parse_jieba_phrase(text, engine)?,
+        _ => unreachable!("validated above"),
+    };
+    eprintln!("            parsed rows = {}", parse_result.rows.len());
 
-    // ── STAGE 3: normalize (Phase A: trim only — NFC TBD Phase B) ──
-    eprintln!("[stage 3/9] normalize (trim only — NFC deferred to Phase B-3)");
-    let normalized: Vec<IngestTuple> = parsed.into_iter()
+    // ── STAGE 3: normalize (Phase B-3: trim only — NFC TBD Phase B-4) ──
+    eprintln!("[stage 3/9] normalize (trim only — NFC deferred to Phase B-4)");
+    let normalized: Vec<IngestTuple> = parse_result.rows.into_iter()
         .map(|(c, w, e, f)| (
             c.trim().to_string(),
             w.trim().to_string(),
@@ -629,7 +718,11 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
             true
         }
     });
-    eprintln!("            rejected = {rejected}");
+    eprintln!("            rejected = {rejected} (parser dropped {} more in STAGE 2)",
+        parse_result.dropped);
+    // Total rows that didn't make it past STAGE 2-5 — recorded in the
+    // event's `rows_rejected` for full audit.
+    let total_rejected = rejected + parse_result.dropped;
 
     // ── STAGE 6: diff against library ───────────────────────────────
     eprintln!("[stage 6/9] diff against library");
@@ -643,7 +736,7 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
         updated: Vec::new(),
         skipped_same: 0,
         skipped_polish: 0,
-        rejected_garbage: rejected,
+        rejected_garbage: total_rejected,
     };
     for ((code, word), (extra, new_freq)) in deduped {
         match lib_index.get(&(code.clone(), word.clone())) {
