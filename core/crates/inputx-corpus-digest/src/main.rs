@@ -28,7 +28,7 @@
 
 use std::collections::BTreeMap;
 use std::fs;
-use std::io::Write as _;
+use std::io::{Read as _, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -62,6 +62,10 @@ fn library_path(engine: &str) -> PathBuf {
 
 fn garbage_filter_path() -> PathBuf {
     repo_root().join("tools/scoring/data/polish/corpus_garbage_filter_v1.tsv")
+}
+
+fn cache_dir() -> PathBuf {
+    repo_root().join("tools/scoring/data/cache/corpus_digest")
 }
 
 // ─── source_registry.toml schema ────────────────────────────────────
@@ -265,6 +269,55 @@ fn fetch_file(url_or_path: &str) -> Result<FetchResult, String> {
     Ok(FetchResult { bytes, sha256_hex })
 }
 
+/// HTTPS fetch for `fetch_kind="http"`.  Writes a side-effect cache
+/// under `tools/scoring/data/cache/corpus_digest/<source_id>.bin` so a
+/// failed network later can still re-ingest from the last-known-good
+/// payload (Phase B-5 `--offline` flag will surface this).  Cache is
+/// gitignored.
+///
+/// NO HEAD-request short-circuit yet — every call does a full GET.  An
+/// ETag-driven `corpus-digest check` lives in Phase B-5.  STAGE 1's
+/// "sha unchanged → no-op" logic in `cmd_ingest` already short-circuits
+/// the heavy parse/diff stages once the bytes are in, so this is
+/// expensive only by bandwidth, not by CPU.
+fn fetch_http(url: &str, source_id: &str) -> Result<FetchResult, String> {
+    eprintln!("            HTTP GET {url}");
+    let resp = ureq::get(url).call()
+        .map_err(|e| format!("HTTP GET {url}: {e}"))?;
+    let status = resp.status();
+    if !(200..300).contains(&status) {
+        return Err(format!("HTTP {url} returned status {status}"));
+    }
+
+    let mut bytes = Vec::new();
+    resp.into_reader()
+        .take(512 * 1024 * 1024)  // 512 MiB hard cap; jieba dict.txt is ~5 MiB
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("read body: {e}"))?;
+
+    let mut h = Sha256::new();
+    h.update(&bytes);
+    let sha256_hex = hex_encode(&h.finalize());
+
+    // Side-effect cache.  Failures are non-fatal — we still return the
+    // bytes; the next ingest just won't have a cached fallback.
+    let dir = cache_dir();
+    if let Err(e) = fs::create_dir_all(&dir) {
+        eprintln!("            (cache create_dir {} failed: {e}; continuing without cache)", dir.display());
+    } else {
+        let bin = dir.join(format!("{source_id}.bin"));
+        let sha = dir.join(format!("{source_id}.sha256"));
+        if let Err(e) = fs::write(&bin, &bytes) {
+            eprintln!("            (cache write {} failed: {e})", bin.display());
+        }
+        if let Err(e) = fs::write(&sha, &sha256_hex) {
+            eprintln!("            (cache write {} failed: {e})", sha.display());
+        }
+    }
+
+    Ok(FetchResult { bytes, sha256_hex })
+}
+
 fn hex_encode(bytes: &[u8]) -> String {
     let mut s = String::with_capacity(bytes.len() * 2);
     for b in bytes {
@@ -402,7 +455,7 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
         return Err(format!("Phase A MVP: ingest_format=simple_tsv only (got {:?})", src.ingest_format));
     }
     match src.fetch_kind.as_str() {
-        "file" => {},
+        "file" | "http" => {},
         "static" => {
             // legacy anchors — re-ingest is meaningless (no upstream to
             // diff against).  Block clearly rather than silently no-op.
@@ -413,12 +466,16 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
                 src.source_id
             ));
         },
-        other => return Err(format!("Phase A MVP: fetch_kind=file only (got {other:?})")),
+        other => return Err(format!("Phase B-1: fetch_kind ∈ {{file, http}} (got {other:?})")),
     }
 
     // ── STAGE 1: fetch ──────────────────────────────────────────────
     eprintln!("[stage 1/9] fetch");
-    let fetched = fetch_file(&src.fetch_url)?;
+    let fetched = match src.fetch_kind.as_str() {
+        "file" => fetch_file(&src.fetch_url)?,
+        "http" => fetch_http(&src.fetch_url, &src.source_id)?,
+        _ => unreachable!("validated above"),
+    };
     eprintln!("            sha256 = {}", fetched.sha256_hex);
     eprintln!("            bytes  = {}", fetched.bytes.len());
 

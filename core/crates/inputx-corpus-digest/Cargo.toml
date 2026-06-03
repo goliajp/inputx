@@ -31,3 +31,6 @@ path = "src/main.rs"
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
 sha2 = "0.10"
+# HTTP client for fetch_kind=http sources (Phase B-1).  rustls TLS so no
+# system OpenSSL dependency; blocking API so no tokio runtime.
+ureq = { version = "2", default-features = false, features = ["tls", "gzip"] }
