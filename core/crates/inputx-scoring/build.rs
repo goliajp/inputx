@@ -114,7 +114,6 @@ fn main() {
         .get("char_prominent_floor_freq")
         .and_then(|v| v.as_integer())
         .unwrap_or_else(|| panic!("dispatch.wubi.char_prominent_floor_freq missing")) as u64;
-    let dw_rare_char_demote = read_f64(dispatch_wubi, "rare_char_demote");
     let dw_auto_demote_arr = dispatch_wubi
         .get("auto_layer_demote")
         .and_then(|v| v.as_array())
@@ -272,7 +271,6 @@ pub mod consts {{
     pub const COMPOSED_QUALITY_FLOOR: f64 = {pp_composed_quality_floor};
     // [dispatch.wubi]
     pub const WUBI_CHAR_PROMINENT_FLOOR_FREQ: u64 = {dw_floor};
-    pub const WUBI_RARE_CHAR_DEMOTE: f64 = {dw_rare};
     pub const WUBI_AUTO_LAYER_DEMOTE: [f64; 4] = [{dw_ad0}, {dw_ad1}, {dw_ad2}, {dw_ad3}];
     pub const WUBI_PHRASE_SPECULATIVE_DEMOTE: f64 = {dw_phr};
     pub const WUBI_FULL_CODE_SINGLE_CHAR_PROMOTE: f64 = {dw_sgl};
@@ -316,7 +314,6 @@ pub mod consts {{
         pp_fuzzy_discount = fmt_f64(pp_fuzzy_discount),
         pp_composed_quality_floor = fmt_f64(pp_composed_quality_floor),
         dw_floor = dw_char_prominent_floor,
-        dw_rare = fmt_f64(dw_rare_char_demote),
         dw_ad0 = fmt_f64(dw_auto_demote[0]),
         dw_ad1 = fmt_f64(dw_auto_demote[1]),
         dw_ad2 = fmt_f64(dw_auto_demote[2]),

@@ -267,65 +267,57 @@ impl JapaneseEngine {
     }
 }
 
-/// Particle / copula suffixes for sentence-level segmentation. Longer
-/// suffixes first so greedy prefix-stripping picks `dewanai` before
-/// `wa`. Each entry is (romaji_suffix, kana_form).
-///
-/// This is the minimum surface needed to make "私は" / "学校で" /
-/// "明日です" appear as direct conversions of `watashiwa` / `gakkoude`
-/// / `ashitadesu`. Without this, the user gets only mechanical kana
-/// (わたしわ — note the wa rendered as わ, not は) and has to
-/// manually compose.
-const SENTENCE_SUFFIXES: &[(&str, &str)] = &[
-    // longest first
-    ("dewanaikatta", "ではなかった"),
-    ("dewaarimasen", "ではありません"),
-    ("dewanaiyou", "ではないよう"),
-    ("dewanakatta", "ではなかった"),
-    ("dewanai", "ではない"),
-    ("deshita", "でした"),
-    ("dewashita", "ではした"),
-    ("deshou", "でしょう"),
-    ("darou", "だろう"),
-    ("datta", "だった"),
-    ("desu", "です"),
-    ("dewa", "では"),
-    ("kara", "から"),
-    ("made", "まで"),
-    ("yori", "より"),
-    ("nado", "など"),
-    ("toka", "とか"),
-    ("nimo", "にも"),
-    ("demo", "でも"),
-    ("masu", "ます"),
-    ("masen", "ません"),
-    ("mashita", "ました"),
-    ("mashou", "ましょう"),
-    ("wa", "は"),
-    ("ga", "が"),
-    ("wo", "を"),
-    ("ni", "に"),
-    ("de", "で"),
-    ("to", "と"),
-    ("mo", "も"),
-    ("no", "の"),
-    ("ka", "か"),
-    ("e", "へ"),
-    ("ya", "や"),
-];
+// SENTENCE_SUFFIXES / KANJI_SUFFIXES retired 2026-06-03 as Rust constants
+// per project policy `.claude/RANKING-MODEL-INVARIANTS.md` ("no special
+// lists in code"). Data lives in `tools/scoring/data/jp_sentence_
+// suffixes_v1.tsv` and `jp_kanji_suffixes_v1.tsv`; both are parsed once
+// at first use via OnceLock and exposed through public accessors so the
+// composite-side carve-out (`crates/inputx-core/src/japanese/compose.rs`)
+// can share the single source of truth.
+
+const SENTENCE_SUFFIXES_TSV: &str = include_str!(
+    "../../../../tools/scoring/data/jp_sentence_suffixes_v1.tsv"
+);
+const KANJI_SUFFIXES_TSV: &str = include_str!(
+    "../../../../tools/scoring/data/jp_kanji_suffixes_v1.tsv"
+);
+
+/// Parse `<a>\t<b>[\t# comment]` rows, skipping blank lines and
+/// comment-only lines. Returns `&'static` slices because the input is
+/// embedded by `include_str!` (lives forever in the binary).
+fn parse_pairs(src: &'static str) -> Vec<(&'static str, &'static str)> {
+    let mut out = Vec::new();
+    for raw in src.lines() {
+        let line = raw.trim();
+        if line.is_empty() || line.starts_with('#') { continue; }
+        let mut parts = line.splitn(3, '\t');
+        let (Some(a), Some(b)) = (parts.next(), parts.next()) else { continue };
+        let a = a.trim();
+        let b = b.trim();
+        if a.is_empty() || b.is_empty() { continue; }
+        out.push((a, b));
+    }
+    out
+}
+
+/// Sentence-final particles / copulas for greedy suffix stripping in
+/// `compose_one_segment`. Order matters: longest first (encoded in the
+/// TSV). Used by composite-side composer too via
+/// `inputx_nihongo::engine::sentence_suffixes`.
+pub fn sentence_suffixes() -> &'static [(&'static str, &'static str)] {
+    static CACHE: std::sync::OnceLock<Vec<(&'static str, &'static str)>>
+        = std::sync::OnceLock::new();
+    CACHE.get_or_init(|| parse_pairs(SENTENCE_SUFFIXES_TSV)).as_slice()
+}
 
 /// Productive category-suffix kanji for "jukugo + suffix" composition
-/// (東京+都 = 東京都, 大阪+府, 横浜+市, 新宿+区, 神奈川+県…). These admin /
-/// category endings are NOT exhaustively in the dict (東京都 isn't even in
-/// mozc — it's 拼 not 词), so we compose them. Whitelisted to keep the
-/// composition from emitting junk like 東京渡 (渡 also reads `to`). The
-/// prefix MUST be a real jukugo (see compose_sentence) so 都+市 single-kanji
-/// noise can't form. (reading_romaji, suffix_kanji).
-const KANJI_SUFFIXES: &[(&str, &str)] = &[
-    ("to", "都"), ("fu", "府"), ("ken", "県"), ("shi", "市"),
-    ("ku", "区"), ("chou", "町"), ("son", "村"), ("mura", "村"),
-    ("shima", "島"), ("gun", "郡"), ("jin", "人"), ("go", "語"),
-];
+/// (東京+都 = 東京都). Whitelisted to keep the composition from emitting
+/// junk like 東京渡 (渡 also reads `to`).
+pub fn kanji_suffixes() -> &'static [(&'static str, &'static str)] {
+    static CACHE: std::sync::OnceLock<Vec<(&'static str, &'static str)>>
+        = std::sync::OnceLock::new();
+    CACHE.get_or_init(|| parse_pairs(KANJI_SUFFIXES_TSV)).as_slice()
+}
 
 /// Single-segment compose: (content_word, particle/copula_suffix).
 /// Returns (composed_word_string, content_freq) pairs.
@@ -334,7 +326,7 @@ const KANJI_SUFFIXES: &[(&str, &str)] = &[
 /// For `nihondesu`:  prefix=`nihon`,   suffix=`desu` → 日本+です.
 fn compose_one_segment(buffer: &str) -> Vec<(String, u32)> {
     let mut out: Vec<(String, u32)> = Vec::new();
-    for (s_reading, s_kana) in SENTENCE_SUFFIXES {
+    for (s_reading, s_kana) in sentence_suffixes() {
         if let Some(prefix) = buffer.strip_suffix(s_reading) {
             if prefix.is_empty() {
                 continue;
@@ -372,8 +364,8 @@ fn compose_sentence(buffer: &str) -> Vec<Candidate> {
     // jukugo + category-suffix kanji (東京+都 = 東京都). Productive admin /
     // category compounds the dict doesn't (and shouldn't) enumerate. Prefix
     // MUST be a real jukugo so single-kanji noise (都+市) can't form; suffix
-    // is whitelisted (KANJI_SUFFIXES) so 東京渡-style junk can't form either.
-    for (sfx_read, sfx_kanji) in KANJI_SUFFIXES {
+    // is whitelisted (`kanji_suffixes()`) so 東京渡-style junk can't form either.
+    for (sfx_read, sfx_kanji) in kanji_suffixes() {
         if let Some(prefix) = buffer.strip_suffix(sfx_read) {
             if prefix.is_empty() {
                 continue;

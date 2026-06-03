@@ -197,32 +197,30 @@ pub fn dispatch(
             } else {
                 1.0
             };
-            // v1.4 score-driven Jianma2 demote (user 2026-05-24:
-            // "完全走评分候选，一行 hardcode 都不允许有"). For
-            // single-char Jianma2/3 entries, scale score by the char's
-            // own pinyin freq:
-            //   common char (≥CHAR_PROMINENT) → 1.0 (full lead, beats pinyin)
-            //   rare char (<CHAR_PROMINENT)   → 0.3 (drops to ~250k, yields)
-            // No hardcoded protect list — common chars retain lead via
-            // freq (左 41k, 表 47k, 能 56k, 就 57k, 伙 35k, 悄 27k,
-            // 椒 29k, 胡 38k, 长 47k, 亦 43k all clear 20k floor); rare
-            // chars (嶙 15k) drop and let pinyin top through.
-            // v1.10: values sourced from
-            // `inputx-scoring/data/engine_weights.toml` [dispatch.wubi]
-            // section. Polish via TOML edit, not code edit.
+            // Wubi Jianma2/3 prominence rule. Single-char simcode entries
+            // whose pinyin char_max_freq clears CHAR_PROMINENT_FLOOR are
+            // "prominent" — they natural-tier to `top` (1) alongside pinyin
+            // top single-chars; wubi wins the tie via the engine offset
+            // (no carve-out). Below the floor, they natural-tier to
+            // `less_common` (5) and cleanly yield to pinyin top.
+            //
+            // 2026-06-03 cleanup (user "no special list, never"): retired
+            // the legacy `RARE_CHAR_DEMOTE` ×0.3 likelihood multiplier —
+            // it was a within-tier-1 demote from the pre-tier-shift era
+            // and became redundant once rare simcodes started landing in
+            // tier 5 directly. Threshold lives in engine_weights.toml
+            // `[dispatch.wubi].char_prominent_floor_freq`.
             const CHAR_PROMINENT_FLOOR: u64 =
                 inputx_scoring::consts::WUBI_CHAR_PROMINENT_FLOOR_FREQ;
-            const RARE_CHAR_DEMOTE: f64 = inputx_scoring::consts::WUBI_RARE_CHAR_DEMOTE;
             let pinyin_dict = pinyin.engine().dict();
-            let char_demote = |word: &str, layer: inputx_wubi::Layer| -> f64 {
+            let char_is_prominent = |word: &str, layer: inputx_wubi::Layer| -> bool {
                 if !matches!(layer, inputx_wubi::Layer::Jianma2 | inputx_wubi::Layer::Jianma3) {
-                    return 1.0;
+                    return true; // doesn't apply — caller branches on layer separately
                 }
                 let mut chars = word.chars();
-                let Some(c) = chars.next() else { return 1.0 };
-                if chars.next().is_some() { return 1.0; }  // multi-char Jianma3 phrase
-                let freq = pinyin_dict.char_max_freq(c);
-                if freq >= CHAR_PROMINENT_FLOOR { 1.0 } else { RARE_CHAR_DEMOTE }
+                let Some(c) = chars.next() else { return true; };
+                if chars.next().is_some() { return true; } // multi-char Jianma3 phrase
+                pinyin_dict.char_max_freq(c) >= CHAR_PROMINENT_FLOOR
             };
             // v1.4.7 sub-phase A2 step 1: orthodox three-axis
             // decomposition replaces the v1.4.2 synthesize_three_axis
@@ -234,7 +232,7 @@ pub fn dispatch(
             // Now: log_prior_q4 = Q4·ln(1 + raw_freq) (matches the
             // wubi prediction path's log_prior derivation), and
             // log_likelihood_q4 = Q4·ln(layer.base() · pref ·
-            // layer_demote · char_demote · promote) (the per-path
+            // layer_demote · promote) (the per-path
             // multiplicative chain; wubi_length_modifier + z_mult
             // applied at merge chokepoint below via final_mult).
             //
@@ -288,7 +286,7 @@ pub fn dispatch(
                         inputx_wubi::Layer::Phrase => phrase_mult,
                         _ => 1.0,
                     };
-                    let cd = char_demote(&w, layer);
+                    let prominent = char_is_prominent(&w, layer);
                     let is_single = w.chars().count() == 1;
                     let single_promote = if full_code && is_single && raw_freq > max_phrase_freq {
                         inputx_scoring::consts::WUBI_FULL_CODE_SINGLE_CHAR_PROMOTE
@@ -302,7 +300,7 @@ pub fn dispatch(
                     };
                     // Legacy f64 score (transitional, drops post-A5):
                     let base_score = (layer.base() as f64 * pref + raw_freq as f64) * single_promote;
-                    let final_score = base_score * layer_demote * cd * pin_mult;
+                    let final_score = base_score * layer_demote * pin_mult;
                     // Orthodox Q4 log decomposition. log_prior is the
                     // frequency prior P(W); log_likelihood collapses all
                     // multiplicative likelihood factors into log space.
@@ -322,7 +320,6 @@ pub fn dispatch(
                     let likelihood_linear = layer.base() as f64
                         * pref
                         * layer_demote.max(f64::MIN_POSITIVE)
-                        * cd.max(f64::MIN_POSITIVE)
                         * single_promote
                         * pin_mult;
                     let log_likelihood_q4 = (likelihood_linear
@@ -342,8 +339,8 @@ pub fn dispatch(
                     // simcodes still lead — no per-entry carve-out.
                     //
                     //   - pinned                                  → 0 (assertion)
-                    //   - prominent simcode (Jianma1/2/3, cd=1.0) → 1 (top)
-                    //   - rare-CJK simcode  (Jianma1/2/3, cd<1.0) → 5 (less_common)
+                    //   - prominent simcode (Jianma1/2/3, char_is_prominent) → 1 (top)
+                    //   - rare-CJK simcode  (Jianma1/2/3, !prominent)        → 5 (less_common)
                     //   - full-code single-char promote           → 1 (top, gmww→两 rule)
                     //   - Zigen (字根 keynames)                    → 1 (key-binding)
                     //   - Phrase (full-buffer wubi phrase)        → 1 (top, aiyi→东京 rule)
@@ -363,7 +360,7 @@ pub fn dispatch(
                             inputx_wubi::Layer::Jianma1
                             | inputx_wubi::Layer::Jianma2
                             | inputx_wubi::Layer::Jianma3 => {
-                                if cd == 1.0 { 1 } else { 5 }
+                                if prominent { 1 } else { 5 }
                             }
                             inputx_wubi::Layer::Zigen => 1,
                             inputx_wubi::Layer::Phrase => 1,

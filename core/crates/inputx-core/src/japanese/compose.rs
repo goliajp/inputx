@@ -5,74 +5,23 @@
 //! ([`crate::japanese::lookup`]) instead of the facade's `JUKUGO_TABLE`
 //! / `KANJI_TABLE` const-table iteration.
 //!
-//! The facade copy is intentionally untouched (it's still used by
-//! direct-facade consumers like `inputx-nihongo-wasm`). Suffix tables
-//! are linguistic constants that rarely drift; future drift would be
-//! caught by the baseline fixture diff-zero gate.
+//! 2026-06-03: suffix tables retired here too — single source of truth
+//! is `tools/scoring/data/jp_sentence_suffixes_v1.tsv` +
+//! `jp_kanji_suffixes_v1.tsv`, parsed and exposed by
+//! `inputx_nihongo::engine::{sentence_suffixes, kanji_suffixes}`. The
+//! facade copy stays in `inputx-nihongo` (its accessors are now public)
+//! so direct-facade consumers (`inputx-nihongo-wasm`) keep working.
 
 use inputx_nihongo::{Candidate, KanaKind};
+use inputx_nihongo::engine::{kanji_suffixes, sentence_suffixes};
 
 use super::lookup::{lookup_jukugo_by_reading, lookup_kanji_by_reading};
-
-/// Particle / copula suffixes for sentence-level segmentation. Longer
-/// suffixes first so greedy prefix-stripping picks `dewanai` before
-/// `wa`. Each entry is `(romaji_suffix, kana_form)`.
-///
-/// Source: `inputx_nihongo::engine::SENTENCE_SUFFIXES` (carved
-/// verbatim; v1.5.1 — facade copy stays for direct-facade consumers).
-pub(super) const SENTENCE_SUFFIXES: &[(&str, &str)] = &[
-    // longest first
-    ("dewanaikatta", "ではなかった"),
-    ("dewaarimasen", "ではありません"),
-    ("dewanaiyou", "ではないよう"),
-    ("dewanakatta", "ではなかった"),
-    ("dewanai", "ではない"),
-    ("deshita", "でした"),
-    ("dewashita", "ではした"),
-    ("deshou", "でしょう"),
-    ("darou", "だろう"),
-    ("datta", "だった"),
-    ("desu", "です"),
-    ("dewa", "では"),
-    ("kara", "から"),
-    ("made", "まで"),
-    ("yori", "より"),
-    ("nado", "など"),
-    ("toka", "とか"),
-    ("nimo", "にも"),
-    ("demo", "でも"),
-    ("masu", "ます"),
-    ("masen", "ません"),
-    ("mashita", "ました"),
-    ("mashou", "ましょう"),
-    ("wa", "は"),
-    ("ga", "が"),
-    ("wo", "を"),
-    ("ni", "に"),
-    ("de", "で"),
-    ("to", "と"),
-    ("mo", "も"),
-    ("no", "の"),
-    ("ka", "か"),
-    ("e", "へ"),
-    ("ya", "や"),
-];
-
-/// Productive category-suffix kanji for "jukugo + suffix" composition
-/// (東京+都 = 東京都). Whitelisted to keep the composition from
-/// emitting junk like 東京渡 (渡 also reads `to`). Source: facade
-/// `KANJI_SUFFIXES`.
-pub(super) const KANJI_SUFFIXES: &[(&str, &str)] = &[
-    ("to", "都"), ("fu", "府"), ("ken", "県"), ("shi", "市"),
-    ("ku", "区"), ("chou", "町"), ("son", "村"), ("mura", "村"),
-    ("shima", "島"), ("gun", "郡"), ("jin", "人"), ("go", "語"),
-];
 
 /// Single-segment compose: `(content_word, particle/copula_suffix)`.
 /// Returns `(composed_word_string, content_freq)` pairs.
 fn compose_one_segment(buffer: &str) -> Vec<(String, u32)> {
     let mut out: Vec<(String, u32)> = Vec::new();
-    for (s_reading, s_kana) in SENTENCE_SUFFIXES {
+    for (s_reading, s_kana) in sentence_suffixes() {
         if let Some(prefix) = buffer.strip_suffix(s_reading) {
             if prefix.is_empty() {
                 continue;
@@ -105,7 +54,7 @@ pub(super) fn compose_sentence(buffer: &str) -> Vec<Candidate> {
     }
 
     // jukugo + category-suffix kanji (東京+都 = 東京都).
-    for (sfx_read, sfx_kanji) in KANJI_SUFFIXES {
+    for (sfx_read, sfx_kanji) in kanji_suffixes() {
         if let Some(prefix) = buffer.strip_suffix(sfx_read) {
             if prefix.is_empty() {
                 continue;

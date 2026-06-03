@@ -139,14 +139,14 @@ viterbi_link_decay_q4 = -6
 # moved here so polish can tune them without code edits.
 
 [dispatch.wubi]
-# Pinyin freq threshold below which a Jianma2/3 char is considered
-# rare. Rare chars get the linear demote below. v1.4 score-driven
-# fix for the "rare-CJK Jianma2 outranking pinyin top" class.
+# Pinyin freq threshold below which a Jianma2/3 single-char simcode
+# is considered "rare". Prominent simcodes (char's max pinyin freq
+# ≥ floor) natural-tier to `top` (1); rare ones to `less_common` (5).
+# 2026-06-03 cleanup retired the legacy `rare_char_demote ×0.3`
+# likelihood multiplier — was redundant once rare chars started
+# landing in tier 5 by structural assignment (`dispatch.rs` natural_
+# tier match). Pure threshold rule now; no per-entry multiplier.
 char_prominent_floor_freq = 20_000
-# Linear-space multiplier on rare Jianma2/3 likelihood. 0.3 was the
-# pre-v1.7 calibration; v1.9.0 corpus-merge experimentation pushed
-# it to 0.001 then reverted. Default 0.3 = legacy ship behavior.
-rare_char_demote = 0.3
 # Per-pinyin-len Auto-layer demote, indexed by pinyin_len 1..4.
 # Shorter buffers = more ambiguity = stronger demote.
 auto_layer_demote = [0.01, 0.05, 0.10, 0.20]

@@ -114,9 +114,11 @@ impl WubiEngine {
     /// pref). Caller composes the orthodox three-axis fill:
     ///   log_prior_q4 = Q4·ln(1 + freq)
     ///   log_likelihood_q4 = Q4·ln(layer.base() · pref · layer_demote
-    ///                             · char_demote · wubi_length_modifier
-    ///                             · z_mult)
+    ///                             · wubi_length_modifier · z_mult)
     /// for v1.4.7 sort-key cutover to probability-native ranking.
+    /// (2026-06-03: `char_demote` multiplier retired — prominence is
+    /// expressed as a tier shift in `composite/dispatch.rs`, not a
+    /// within-tier likelihood factor.)
     pub fn candidates_with_freq_layer(&self) -> Vec<(String, inputx_wubi::Layer, u64)> {
         if self.buffer.is_empty() {
             return Vec::new();
