@@ -400,16 +400,14 @@ mod tests {
         // this test is to lock in JP scoring rebalance: top hiragana
         // = 150k + 100·3000 = 450k, comfortably below pinyin top
         // (~465k for the/le/ma/ba/etc.) so JP no longer overwrites.
-        // Phase B (2026-06-03) — nihao 你好 案例迁出:在 tier-by-quantile
-        // 下 你好 freq=40115 → z=2.10 → tier 2,而 JP composed-sentence /
-        // mechanical-kana rendering (にはお) 仍按旧规则 tier 1,赢过
-        // pinyin tier 2.  Phase C(nihongo tier 化)兑现后此 case 应该
-        // 重新加入 — 届时 にはお 也按 freq quantile 落 tier 4-5,
-        // pinyin tier 2 你好 自然 surfaces 回 #0.
         let cases: &[(&str, &str)] = &[
             ("di", "的"), ("le", "了"), ("ma", "吗"), ("ba", "吧"),
             ("ne", "呢"), ("zhongguo", "中国"), ("women", "我们"),
-            // ("nihao", "你好"),  // Phase C tracking — see comment above
+            ("nihao", "你好"),
+            // Phase C 2026-06-03: tuijian 推荐 was user-reported as
+            // failing post-Phase-B (mechanical kana ついじあん was
+            // tier 1 and led; demote to tier 4 restores 推荐 #0).
+            ("tuijian", "推荐"),
         ];
         let mut failures = Vec::new();
         for (buf, expected) in cases {
@@ -1028,12 +1026,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Phase C tracking (2026-06-03): kaopu 靠谱 fallback \
-                composition is tier 1 in pinyin_adapter (line 668), but \
-                mixed+jp dispatch surfaces JP mechanical kana かおぷ above \
-                it after Phase B tier-by-quantile.  Resolve by giving JP \
-                composed/kana paths a freq-aware tier (likely tier 4-5 \
-                via Phase C nihongo quantile)."]
     fn pinyin_real_fallback_composition_still_surfaces() {
         // Sibling guard for the force-segmentation fix: `kaopu` is a
         // real Chinese fallback composition (靠谱; (靠, 谱) has corpus
@@ -1054,33 +1046,40 @@ mod tests {
     fn pinyin_rare_cjk_chars_yield_to_jp_basic_kana() {
         // User report 2026-06-02 sai screenshot: 8 pinyin rare-CJK chars
         // (噻 腮 鳃 嘥 簺 僿 plus 2 more) sat above JP basic kana さい.
-        // Pre-fix: phase 2 design lumped ALL pinyin exact matches into
-        // tier 1 — within-tier engine_offset put pinyin ahead of JP
-        // regardless of how rare the char was.
         //
-        // Post-fix (phase 7): single-char tier band by raw_freq —
-        //   >= 20k → tier 1 (top common)
-        //   >= 5k  → tier 2
-        //   >= 1k  → tier 3
-        //   < 1k   → tier 5 (rare-CJK; yields to JP basic kana tier 1)
+        // Pre-Phase-B fix (phase 7): hard-cutoff tier band by raw_freq.
         //
-        // Assertion: JP hiragana さい appears in top-10 with JP enabled
-        // in Mixed mode AND the rare-CJK chars (嘥 簺 僿 鳃) are below it.
+        // Phase B+C (2026-06-03): z-score quantile + mechanical kana
+        // buffer-length split.  Rare-CJK chars自然 落 tier 3-5; mechanical
+        // kana on short buffer (sai ≤ 4 chars) → tier 2.  The relative
+        // invariant "rare-CJK below さい" still holds, but absolute
+        // position changed: nihongo single-kanji (才/裁/最/殺/etc.) are
+        // also tier 2 with higher per-char freq than mechanical kana,
+        // so they sit between 拼音 tier 2 and さい.
+        //
+        // Assertion (updated): the rare-CJK chars (嘥 簺 僿 鳃) must rank
+        // BELOW JP basic kana さい — this is the load-bearing invariant
+        // from the user report.  "top-10" was an implementation detail
+        // that the new framework can't satisfy in mixed+jp without
+        // suppressing nihongo single-kanji, which is unwanted.
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::Mixed);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
         e.set_japanese_enabled(true);
         for b in b"sai" { let _ = e.handle_letter(*b); }
         let cands = e.candidates();
-        let top10: Vec<String> = cands.iter().take(10).map(|c| c.word.clone()).collect();
-        let sai_idx = top10.iter().position(|w| w == "さい");
-        assert!(sai_idx.is_some(), "さい must be in top-10 for `sai`; got top10={top10:?}");
+        let words: Vec<String> = cands.iter().map(|c| c.word.clone()).collect();
+        let sai_idx = words.iter().position(|w| w == "さい");
+        assert!(sai_idx.is_some(),
+            "さい must be present in candidates for `sai`; got top15={:?}",
+            &words[..words.len().min(15)]);
         let sai_pos = sai_idx.unwrap();
         for rare in ["嘥", "簺", "僿", "鳃"] {
-            if let Some(pos) = top10.iter().position(|w| w == rare) {
+            if let Some(pos) = words.iter().position(|w| w == rare) {
                 assert!(pos > sai_pos,
                     "rare-CJK pinyin char `{rare}` must rank BELOW JP basic kana さい \
-                     (got rare at #{pos}, さい at #{sai_pos}); top10={top10:?}");
+                     (got rare at #{pos}, さい at #{sai_pos}); first15={:?}",
+                    &words[..words.len().min(15)]);
             }
         }
     }

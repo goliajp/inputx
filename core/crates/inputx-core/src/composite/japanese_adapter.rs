@@ -391,30 +391,86 @@ impl JapaneseAdapter {
                     components.log_likelihood_q4 =
                         components.log_likelihood_q4.saturating_add(delta_q4);
                 }
-                // WU-ψ tier assignment for JP candidates:
+                // Tier assignment for JP candidates:
                 //   - prediction (proximity < 1000) → 7 (specialty)
                 //   - exact match by kind:
-                //     - Hiragana / Katakana matching buffer → 1
-                //     - Jukugo (multi-char kanji) → 1
-                //     - Single kanji → 2 (no full-buffer match signal)
-                // Putting basic kana AND jukugo in the SAME tier 1
-                // means within-tier scoring (jukugo_base /
-                // hiragana_base / full_match_promote) resolves the
-                // shinjuku-style "新宿 vs しんじゅく" contest the
-                // same way it always has. The tier system only
-                // promises cross-tier dominance; within-tier order
-                // is the responsibility of the per-engine likelihood
-                // bases tuned in engine_weights.toml.
+                //     - Hiragana / Katakana matching buffer → 4 (mechanical
+                //       rendering — no dict signal, fallback only)
+                //     - Jukugo (multi-char kanji)          → 1 (real dict)
+                //     - Single kanji                       → 2 (real dict)
+                //
+                // Phase C (2026-06-03): mechanical kana rendering (the
+                // `romaji::to_hiragana` / `to_katakana` fallback in
+                // inputx-nihongo/src/engine.rs lines 246-265) used to
+                // sit at tier 1 — that meant typing `tuijian` surfaced
+                // ついじあん / ツイジアン above pinyin tier-2 推荐 in
+                // Mixed+jp mode.  Demote mechanical kana to tier 4 so
+                // pinyin/wubi real candidates lead in Mixed; in JP-only
+                // mode the merge has no other engine so mechanical kana
+                // still surfaces (just below any real dict jukugo /
+                // single-kanji hits, which is correct ordering).
+                //
+                // Real dict basic kana (も in jukugo TSV freq=95, で
+                // freq=100, etc.) are emitted by `jukugo::lookup_by_
+                // reading` as KanaKind::Kanji + pure_kana, so they fall
+                // into the KanaKind::Kanji branch below and keep their
+                // tier 2 — they're not affected by this change.
+                // Mechanical kana buffer-length split: short buffers
+                // (≤ 4 chars like sai, mo, ka) are plausible JP intent
+                // — user often types `sai` wanting さい — so mechanical
+                // kana sits at tier 2 (cohabits with pinyin tier-2 single
+                // chars, still ceded to pinyin tier 1 via engine offset).
+                // Long buffers (≥ 5 chars like tuijian, kaopu, nihao,
+                // jieji) are almost certainly Chinese input — the
+                // mechanical kana rendering is just engine noise — so
+                // they get tier 4 (well below pinyin tier-2 phrase
+                // candidates).  The 4-char threshold mirrors inputx-
+                // nihongo's own `kana_freq` knee (engine.rs line 246
+                // sets kana_freq=100 for ≤2 chars / 30 for >2) — we
+                // widen the kana-is-plausible band to 4 for tier
+                // purposes because the user 2026-06-02 sai screenshot
+                // pinned さい to top-10 even at 3-char buffer.
+                let short_buffer_for_kana = self.engine.preedit().chars().count() <= 4;
                 let tier_jp: u8 = if c.proximity_milli < 1000 {
                     7
                 } else {
                     match c.kind {
-                        KanaKind::Hiragana | KanaKind::Katakana => 1,
+                        // Mechanical romaji→kana rendering (engine.rs
+                        // `to_hiragana` / `to_katakana` fallback) — no
+                        // dict signal, must not lead pinyin/wubi real
+                        // candidates on long buffers.  See Phase C
+                        // 2026-06-03 comment above for full rationale.
+                        KanaKind::Hiragana | KanaKind::Katakana => {
+                            if short_buffer_for_kana { 2 } else { 4 }
+                        }
                         KanaKind::Kanji => {
-                            if c.word.chars().count() > 1 && !is_pure_kana(&c.word) {
-                                1
-                            } else {
-                                2
+                            let multi = c.word.chars().count() > 1;
+                            let pure_kana = is_pure_kana(&c.word);
+                            match (multi, pure_kana) {
+                                // Real multi-char kanji jukugo (新宿,
+                                // 中国 etc.) — top-confidence dict hit.
+                                (true,  false) => 1,
+                                // Pure-kana multi-char "jukugo" (えっ,
+                                // ありがとう) — kana 感叹/寒暄 in the
+                                // hand TSV, not real 熟语.  Demoted to
+                                // single-kanji tier per user 2026-05-26
+                                // ("えっ at #3 for single `e` is wrong").
+                                (true,  true)  => 2,
+                                // Single basic kana from dict (も で
+                                // を に — jukugo TSV entries of one
+                                // char pure_kana).  Phase C 2026-06-03:
+                                // promoted from tier 2 to tier 1 so
+                                // typing `mo` surfaces も before the
+                                // long tail of pinyin tier-2 mo-rhymes.
+                                // Mechanical kana (also single-char pure
+                                // kana from a romaji buffer) stays at
+                                // tier 4 above — only DICT entries get
+                                // tier 1.
+                                (false, true)  => 1,
+                                // Single kanji (a kanji char emitted by
+                                // kanji::lookup_by_reading — `e` →
+                                // 似/絵 etc.).
+                                (false, false) => 2,
                             }
                         }
                     }
