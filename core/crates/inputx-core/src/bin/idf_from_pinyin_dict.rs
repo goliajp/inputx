@@ -20,38 +20,40 @@ use inputx_dict_format::{EngineKind, EntryFlags, IdfBuilder};
 use inputx_pinyin::PinyinDict;
 use inputx_scoring::{log_prob_corpus_from_freq, MatchType};
 
-/// User-curated polish-log Q4 log-prior boosts baked into the snapshot
-/// at build time (v1.4.7 sub-phase A5). The composite-runtime
-/// `prior_correction.rs` + `merge.rs::correct` lambda retired at the
-/// same step; corrections now live exclusively in `log_prior_q4` here,
-/// applied uniformly at IDF read time by the cement IdfReader path.
-///
-/// Boost rationale + per-entry polish-log citations: see the v1.4.7
-/// A3 commit (787b666) message and the now-deleted
-/// `composite/prior_correction.rs`. Calibration: each boost is the
-/// Q4 amount needed to clear the canon competitor under the Q4-log
-/// additive sort key (`score_q4 = log_prior + log_likelihood`) plus a
-/// small safety margin. Q4=16, so +11 ≈ ×2.0 linear, +17 ≈ ×2.9.
-///
-/// Keep entries sorted alphabetically by Chinese (for human review).
-/// New entries MUST add a regression test in `dispatch.rs` /
-/// `session.rs` pinning the expected ranking and cite the user
-/// polish-log case in the same commit. Prefer small boosts (≤17);
-/// anything larger suggests the corpus is fundamentally wrong about
-/// the word and the dict-pipeline T0 work should address it instead.
-const PRIOR_CORRECTIONS: &[(&str, i32)] = &[
-    ("继续", 17),
-    ("设计", 11),
-    ("理想", 11),
-    ("加载", 7),
-    ("具体", 7),
-    ("统一", 13),
-];
+// User-curated polish-log Q4 log-prior boosts baked into the snapshot
+// at build time (v1.4.7 sub-phase A5). The composite-runtime
+// `prior_correction.rs` + `merge.rs::correct` lambda retired at the
+// same step; corrections now live exclusively in `log_prior_q4` here,
+// applied uniformly at IDF read time by the cement IdfReader path.
+//
+// 2026-06-03 cleanup: data externalized to TSV per user directive
+// "no special list, never". Per-entry boosts live in
+// `tools/scoring/data/prior_corrections_v1.tsv`.
+const PRIOR_CORRECTIONS_TSV: &str = include_str!(
+    "../../../../../tools/scoring/data/prior_corrections_v1.tsv"
+);
 
-fn correction_for(word: &str) -> i32 {
-    PRIOR_CORRECTIONS
+/// Parse `<word>\t<boost_q4>[\t# comment]` rows.
+fn parse_prior_corrections(src: &str) -> Vec<(String, i32)> {
+    let mut out = Vec::new();
+    for raw in src.lines() {
+        let line = raw.trim();
+        if line.is_empty() || line.starts_with('#') { continue; }
+        let mut parts = line.splitn(3, '\t');
+        let (Some(word), Some(boost_s)) = (parts.next(), parts.next()) else { continue };
+        let word = word.trim();
+        let boost_s = boost_s.split('\t').next().unwrap_or(boost_s).trim();
+        if word.is_empty() { continue; }
+        let Ok(boost) = boost_s.parse::<i32>() else { continue };
+        out.push((word.to_string(), boost));
+    }
+    out
+}
+
+fn correction_for(word: &str, table: &[(String, i32)]) -> i32 {
+    table
         .iter()
-        .find(|(w, _)| *w == word)
+        .find(|(w, _)| w == word)
         .map(|(_, b)| *b)
         .unwrap_or(0)
 }
@@ -154,6 +156,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     let entry_count = entries.len();
     let exclusions = parse_exclusions(EXCLUSIONS_TSV);
     let additions = parse_additions(ADDITIONS_TSV);
+    let prior_corrections = parse_prior_corrections(PRIOR_CORRECTIONS_TSV);
     // corpus_total = Σ raw_freq across the entries actually written
     // (source minus exclusions plus additions). Runtime
     // `pinyin_corpus_total()` scans the .idf and sees the same rows.
@@ -199,7 +202,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         // the lossless tiebreaker for same-bucket entries, not part
         // of the prior signal; boosting it would corrupt the
         // tiebreaker semantics.
-        let boost = correction_for(word);
+        let boost = correction_for(word, &prior_corrections);
         if boost != 0 {
             baked_count += 1;
         }
@@ -220,7 +223,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     }
     eprintln!(
         "[idf-from-pinyin-dict] baked prior_correction Q4 boosts into {baked_count} entries (table size: {})",
-        PRIOR_CORRECTIONS.len()
+        prior_corrections.len()
     );
     eprintln!(
         "[idf-from-pinyin-dict] excluded {excluded_count} polluted entries (table size: {})",
