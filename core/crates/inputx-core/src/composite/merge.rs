@@ -562,6 +562,15 @@ pub fn merge(
         // words are ≤ ~10 chars). Counts UTF-8 chars not bytes —
         // multi-byte CJK characters count as one each.
         let word_char_count: u8 = c.word.chars().count().min(u8::MAX as usize) as u8;
+        // Phase F (2026-06-03): MatchType::Composed → within-tier lower
+        // half cap.  Detect via match_type so any compose path —
+        // pinyin Path 5 Viterbi (bigram_links ≥ 1) / Path 5b fallback
+        // (bigram_links = 0) / JP compose_sentence — gets the same
+        // treatment without per-site producer changes.
+        let is_composed = matches!(
+            comp.match_type,
+            inputx_scoring::MatchType::Composed { .. }
+        );
         let data = inputx_scoring::CandidateData {
             log_prob_corpus_q4: comp.log_prior_q4,
             log_likelihood_q4: comp.log_likelihood_q4,
@@ -569,6 +578,7 @@ pub fn merge(
             is_bootstrap: false,
             word_char_count,
             tier: comp.tier,
+            is_composed,
         };
         inputx_scoring::compute_score(&data, &weights)
     };

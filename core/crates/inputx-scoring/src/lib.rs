@@ -552,6 +552,15 @@ pub struct CandidateData {
     /// the right tier is `4` (standard); call sites override via
     /// `with_tier` or pick a specific tier constructor.
     pub tier: u8,
+    /// Phase F (2026-06-03 user directive "拼出来的词,最终评分一定
+    /// 都不能高,最多在自己 band 的下半区活动"): true for compose-
+    /// path candidates (pinyin Path 5 Viterbi / fallback / JP
+    /// compose_sentence).  `compute_score` caps their within-tier
+    /// axis at `WITHIN_TIER_MAX_Q4 / 2` so they're guaranteed lower-
+    /// half within their own tier band, even when raw axes saturate
+    /// the band.  Doesn't change tier (compose can still be tier 1)
+    /// — only the within-tier position is capped.
+    pub is_composed: bool,
 }
 
 /// Fold static data + dynamic weights into the i32 sort key.
@@ -584,7 +593,22 @@ pub fn compute_score(data: &CandidateData, weights: &EngineWeights) -> i32 {
 
     let within_axes = log_prob + data.log_likelihood_q4 + length_weight;
     let tier_base = tier::tier_base_q4(data.tier, data.source as u8);
-    let within = within_tier_clamp(within_axes);
+    let within_raw = within_tier_clamp(within_axes);
+    // Phase F (2026-06-03): compose-path candidates are capped at the
+    // lower half of their own tier band ("拼出来的词,最终评分一定都
+    // 不能高,最多在自己 band 的下半区活动").  This includes pinyin
+    // Path 5 Viterbi composition, pinyin Path 5b fallback composition,
+    // and JP compose_sentence candidates.  All MatchType::Composed paths
+    // flow through here via `merge.rs` setting `is_composed` from match
+    // type.  The cap is structural (WITHIN_TIER_MAX/2) — composed
+    // candidates can still be ordered relative to one another in the
+    // lower-half range, but they can never out-score a non-compose
+    // candidate sitting in the same tier's upper half.
+    let within = if data.is_composed {
+        within_raw.min(tier::WITHIN_TIER_MAX_Q4 / 2)
+    } else {
+        within_raw
+    };
     tier_base + within
 }
 
@@ -810,6 +834,7 @@ mod tests {
             is_bootstrap: false,
             word_char_count: 1,
             tier,
+            is_composed: false,
         }
     }
 
