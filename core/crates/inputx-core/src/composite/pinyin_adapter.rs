@@ -697,14 +697,32 @@ impl PinyinAdapter {
                     // Path 5 last-resort Viterbi compose — no bigram support
                     // (gated to short buffers where no real composition fits).
                     let mt = inputx_scoring::MatchType::Composed { bigram_links: 0 };
-                    // WU-ψ: last-resort fallback → tier 1 (pinyin
-                    // engine_offset still lifts it above JP basic kana
-                    // for buffers like `kaopu` where there's no real
-                    // pinyin word but a sensible composition exists —
-                    // the user typed Chinese, not Japanese).
+                    // Phase G (2026-06-03): Path 5b fallback → tier 8
+                    // (speculative band).  User report 2026-06-03 akashi:
+                    // "阿卡是 不是一个应该出现的东西... 同情况都要处理掉".
+                    //
+                    // The original WU-ψ rationale ("tier 1 lifts it above
+                    // JP basic kana for kaopu") doesn't hold post-治理:
+                    //   - kaopu 靠谱 is now an Exact dict entry (library
+                    //     freq=10666 → tier 3 via Phase B z-score),
+                    //     leads JP mechanical kana via tier ordering
+                    //     without needing the fallback path
+                    //   - The remaining real fallback fires (akashi →
+                    //     阿卡是, etc.) are buffers that DON'T have a
+                    //     valid Chinese composition; user typed JP/foreign
+                    //     and got a mechanically-forced segment
+                    //
+                    // Tier 8 = speculative (per RANKING-MODEL-INVARIANTS
+                    // §1).  Path 5b candidate stays visible deep in the
+                    // list but never dominates JP prediction (tier 7) or
+                    // any dict-based candidate.
+                    //
+                    // Path 5 REAL composition (bigram_links ≥ 1) at line
+                    // ~654 above keeps its tier 1 — composed sentences with
+                    // bigram support ARE real Chinese input.
                     let c = super::merge::ScoreComponents::three_axis(
                         pinyin_floor, to_log_q4(COMPOSED_FALLBACK_SCORE), mt,
-                    ).with_tier(1);
+                    ).with_tier(8);
                     (COMPOSED_FALLBACK_SCORE, Some(c))
                 } else if let Some(s) = exact_map.get(w).copied() {
                     // v1.4.7 A2 step 2: use the orthodox (log_prior_q4,

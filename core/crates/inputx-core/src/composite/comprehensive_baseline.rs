@@ -1133,6 +1133,35 @@ mod tests {
     }
 
     #[test]
+    fn phase_g_path5b_fallback_yields_to_jp_prediction() {
+        // User report 2026-06-03: "akashi 阿卡是 不是一个应该出现的东西,
+        // 你再看看这是怎么来的, 同情况都要处理掉".
+        //
+        // 阿卡是 came from pinyin Path 5b last-resort Viterbi fallback
+        // (MatchType::Composed{bigram_links:0}) at tier 1.  When the
+        // buffer has no Chinese reading (akashi is JP), Path 5b's
+        // forced segment dominates over JP prediction (tier 7).
+        // Phase G demotes Path 5b fallback to tier 8 (speculative
+        // band) so JP candidates lead.
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"akashi" { let _ = e.handle_letter(*b); }
+        let top: Vec<String> = e.candidates().iter().take(5)
+            .map(|c| c.word.clone()).collect();
+        assert_eq!(top.first().map(String::as_str), Some("明石"),
+            "akashi mixed+jp top #0 must be JP 明石 (Path 5b fallback \
+             阿卡是 demoted to tier 8); got top={top:?}");
+        // 阿卡是 should rank below all JP candidates (明石 / あかし / アカシ).
+        if let Some(akashi_idx) = top.iter().position(|w| w == "阿卡是") {
+            assert!(akashi_idx >= 3,
+                "Path 5b fallback 阿卡是 must rank below the 3 JP \
+                 candidates (got #{akashi_idx}); top={top:?}");
+        }
+    }
+
+    #[test]
     fn basic_kana_short_buffer_beats_single_kanji() {
         // User report 2026-06-03 ki: 記 / 紀 / 帰 / 起 / 気 etc. 日语
         // single-kanji ranked above きキ basic kana for buffer `ki` —
