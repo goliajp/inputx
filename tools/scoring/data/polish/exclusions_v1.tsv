@@ -84,3 +84,12 @@ ruguo	入锅	# 烹饪"入锅"真用
 ruguo	辱国	# 真词(政治色彩)
 suoyi	缩衣	# 缩衣节食 (成语分解)
 ziji	子鸡	# 童子鸡分解
+
+# 2026-06-03 user: "yichu 一出 不应该存在, 一处 不应该高排序甚至可以
+# 没有, 一触 也是一样的问题" — Phase E bigram gate 在数词起头 phrase 上
+# 失效("一"高频字让 一出=37k, 一处=46k, 一触=27k bigram 全 > 25k floor;
+# 真词 一团=36k, 一夜=40k 跟 noise 区分不开).  Per §5.5 acceptable
+# per-case D2: hide Path-1, dict 保留供 K-best / initials reverse.
+yichu	一出
+yichu	一处
+yichu	一触
