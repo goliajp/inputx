@@ -482,42 +482,31 @@ impl PinyinAdapter {
                 .round() as i32;
             exact_map.insert(word.to_string(), legacy_score);
             // WU-ψ tier assignment for pinyin exact-match candidates
-            // (WU-ψ phase 7 — freq-band split):
-            //   - pinned                                 → 0 (user assertion)
-            //   - multi-char phrase (word_chars >= 2)    → 1 (phrase always
-            //                                              tier 1 so e.g.
-            //                                              `women → 我们`
-            //                                              beats JP かな)
-            //   - single char, raw_freq >= 20k           → 1 (top common)
-            //   - single char, raw_freq >= 5k            → 2 (mid common)
-            //   - single char, raw_freq >= 1k            → 3 (uncommon)
-            //   - single char, raw_freq < 1k             → 5 (rare-CJK;
-            //                                              yields to JP
-            //                                              basic kana per
-            //                                              user report
-            //                                              2026-06-02 sai)
+            // Phase B (2026-06-03 PLAN-tier-by-quantile §3.1):
+            //   - pinned    → 0 (user assertion)
+            //   - otherwise → z-score quantile via raw_freq
+            //                 (inputx_scoring::pinyin_tier_from_freq)
             //
-            // Threshold 20k is the same CHAR_PROMINENT_FLOOR wubi already
-            // uses for its rare-vs-prominent split (see
-            // `[dispatch.wubi].char_prominent_floor_freq` in
-            // engine_weights.toml). 5k / 1k chosen so the bands roughly
-            // halve the corpus per step.
+            // Pre-Phase-B: hard cutoff `raw_freq >= 20_000 → tier 1` left
+            // mo / shi / zhi / yi buffers with 21-58 tier-1 candidates each,
+            // burying nihongo top-tier basic-kana candidates (も, モ) at
+            // rank 22+.  See `.claude/PLAN-tier-by-quantile-spike-data.md`
+            // for the spike that fixed (μ, σ) + per-tier z thresholds.
+            //
+            // PHRASES (word_chars >= 2) share the SAME z-score function as
+            // single chars.  Pre-Phase-B-pass-2 we tried `phrase → tier 1`
+            // unconditional, but that promoted every low-freq jieba sub-word
+            // (馀额 / 皮袄 / 喜恶 / 图案 / 尼昂 / 密哦 ...) above legitimate
+            // top single chars.  Real common phrases (我们 freq=54252 → z=2.58
+            // → tier 1) keep their tier 1; corpus noise sub-words (z<2.5)
+            // fall into tier 2-5 and let single-char tops surface.
             //
             // Phase 5: per-(buffer, word) tier_overlay.tsv can override
             // any of these natural tiers (e.g. `juti 具体 0`).
-            let word_chars = word.chars().count();
             let natural_tier: u8 = if pinned.as_deref() == Some(word) {
                 0
-            } else if word_chars >= 2 {
-                1
-            } else if entry.raw_freq >= 20_000 {
-                1
-            } else if entry.raw_freq >= 5_000 {
-                2
-            } else if entry.raw_freq >= 1_000 {
-                3
             } else {
-                5
+                inputx_scoring::pinyin_tier_from_freq(entry.raw_freq.into())
             };
             let tier_pinyin: u8 = inputx_scoring::tier_overlay::get(
                 &self.buffer,

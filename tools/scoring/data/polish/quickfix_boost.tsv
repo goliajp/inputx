@@ -28,7 +28,14 @@ pinlv	频率	40975	# n=2 base=30975 peer=5791
 jimu	积木	36583	# n=2 base=19279 peer=31583
 shengyu	剩余	39250	# n=2 base=29250 peer=30252
 kao	靠	52324	# n=2 base=42324 peer=42438
-sheji	涉及	44925	# n=2 base=34925 peer=39773
+# 2026-06-03 Phase B tier-by-quantile: 涉及 quickfix retired —
+# overlay freq 44925 put 涉及 into pinyin tier 1 (z=2.31 ≥ 2.3) while
+# 设计 (raw 38468, z=2.11) landed in tier 2; prior_correction +11 for
+# 设计 was meant to flip within-tier order but can't cross tiers.
+# Removing the quickfix returns 涉及 to its base freq (34925, z=1.97,
+# tier 2), letting prior_correction drive 设计 > 涉及 as the user
+# attested 2026-05-26 ("设计 肯定应该高于涉及").
+# sheji	涉及	44925	# n=2 base=34925 peer=39773  [retired Phase B]
 yilai	依赖	42992	# n=2 base=31114 peer=37992
 zhidao	指导	60554	# n=2 base=34601 peer=55554
 tuo	托	49610	# n=2 base=39610 peer=40566

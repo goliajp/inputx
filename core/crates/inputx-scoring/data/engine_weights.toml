@@ -189,6 +189,36 @@ predict_proximity_k = 3.0
 predict_base_pinyin = 180_000.0
 predict_base_wubi = 50_000.0
 
+# ─── Tier落点 — Phase B (2026-06-03): z-score quantile ────────────
+# Replaces the legacy `raw_freq >= 20000 → tier 1` hard cutoff for
+# pinyin single-char candidates. Score the candidate by its position
+# in the per-engine log-freq distribution and map z-score to tier.
+#
+# Per .claude/PLAN-tier-by-quantile.md (architecture) +
+# .claude/PLAN-tier-by-quantile-spike-data.md (实测 μ/σ from
+# 261,923 pinyin nonzero rows).
+#
+# Apply to pinyin SINGLE-CHAR exact-match candidates only.  Multi-char
+# phrases stay at tier 1 (unchanged).  freq == 0 → tier 9 (longtail).
+[scoring.tier_quantile_pinyin]
+# μ, σ of ln(freq) over freq>0 pinyin library rows.  Recompute via
+# `/tmp/spike_freq.py` after each large ingest; drift < 0.05 is fine.
+log_freq_mu    = 9.030
+log_freq_sigma = 0.726
+# Per-tier z thresholds. Phase A spike defaulted "tighter ±1.5σ/±2.5σ"
+# (1-3 顶字 per buffer), but baseline cases like (ne, 呢=50929, z=2.34)
+# and (le, 了, ma, 吗, ba, 吧) need their common-buffer top single
+# char in tier 1, not tier 2.  Tier 1 阈值 = 2.3 + tier 2 = 1.3 keeps
+# the "顶字 5-8 per common buffer" semantics + still drops shi/yi/mo
+# tier 1 size from 48/58/21 to <10.
+tier_1_above = 2.3      # ~ top 1.1%
+tier_2_above = 1.3      # ~ top 10%
+tier_3_above = 0.3      # ~ top 38%
+tier_4_above = -0.5     # ~ top 69%
+tier_5_above = -1.5     # ~ top 93%
+tier_6_above = -2.5     # ~ top 99.4%
+# z < tier_6_above → tier 9 (longtail bucket)
+
 [scoring.zh]
 # Pinyin / wubi prior freq multiplier. Default 1.0 — corpus freq IS
 # the prior, no extra scaling. Reserved for future per-engine
