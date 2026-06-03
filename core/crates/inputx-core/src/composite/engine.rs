@@ -942,11 +942,6 @@ mod tests {
 
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
-    #[ignore = "Phase C tracking (2026-06-03): same Phase B issue as \
-                comprehensive_baseline::pinyin_real_fallback_composition_\
-                still_surfaces — JP mechanical kana stays tier 1 while \
-                pinyin Path 5 fallback also tier 1; need Phase C to give \
-                JP kana a freq-aware tier so 靠谱 wins."]
     fn composed_fallback_outranks_jp_kana() {
         // user-report 2026-05-25: in Mixed+JP, `kaopu` ranked the mechanical
         // kana かおぷ (LIKELIHOOD_JP_HIRAGANA_BASE 150k) ABOVE 靠谱 (Path 5 composition,
