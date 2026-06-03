@@ -235,6 +235,41 @@ tier_4_above = -0.5
 tier_5_above = -1.5
 tier_6_above = -2.5
 
+# ─── Phrase quality — Phase E (2026-06-03): bigram quality gate ────
+# Pinyin 2-char phrase candidates get a one-tier demote when the
+# (char1, char2) intra-bigram boost falls below the floor.  This
+# catches jieba over-segmentation noise like 馆里 / 局里 / 剧里 where
+# the phrase freq is artificially inflated but the two chars rarely
+# co-occur in real text.
+#
+# Spike (2026-06-03 PinyinDict::bigram_boost):
+#   real "X里" phrases (这里/哪里/家里/公里/心里): bigram_boost 43k-50k
+#   real (mid-tier) 屋里 / 城里:                    32k-37k
+#   real but specialized 居里 (Marie Curie / 居里温度): 33.5k  ← keeps tier
+#   jieba sub-word 馆里 / 局里 / 剧里:               14k-21k  ← demoted
+#   other real phrases (管理/距离/技术/举例/持久):    42k-50k
+#
+# Floor = 25000 cleanly separates noise (≤22k) from real (≥32k).
+#
+# Inflation guard: only demote when freq ≥ inflation_floor.  Real but
+# RARE phrases (靠谱 freq=10k bigram=21k, low+low consistent signal)
+# keep their natural tier — they're rare not noise.  jieba over-
+# segmentation noise is detected by the COMBO of mid-high corpus freq
+# (jieba inflated 20k+) + low bigram (rare in real text).
+[scoring.phrase_quality]
+bigram_signal_floor = 25000.0
+# Inflation band — bigram + freq combo gate.  Only demote when freq is
+# in this band ("jieba over-segment sweet spot"); above the ceil treat
+# as legitimate (high real freq OR user-attested quickfix), below the
+# floor treat as real-rare with consistent low-low signal.
+#   < 22k    : keep (real-rare, e.g. 臃肿 20k, 铆钉 15k, 靠谱 10k)
+#   22k–30k  : DEMOTE if bigram < signal_floor (馆里 24k, 局里 24k,
+#              剧里 22k — jieba inflated mid-band)
+#   > 30k    : keep (real-common e.g. 屋里 32k / 这里 45k, OR user
+#              quickfix-boosted like 锚定 40k)
+inflation_floor_freq = 22000
+inflation_ceil_freq  = 30000
+
 # ─── Tier落点 — Phase B (2026-06-03): z-score quantile ────────────
 # Replaces the legacy `raw_freq >= 20000 → tier 1` hard cutoff for
 # pinyin single-char candidates. Score the candidate by its position

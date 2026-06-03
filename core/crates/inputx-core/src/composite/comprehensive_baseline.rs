@@ -1089,23 +1089,41 @@ mod tests {
     }
 
     #[test]
-    fn polish_juli_juli_above_subword_compounds() {
-        // User report 2026-06-03 juli: "举例 肯定要高于 局里 和 剧里 这种
-        // 并不完全是单词的组合".  jieba sub-word noise (局+里 / 剧+里) was
-        // out-ranking the real word 举例 due to a tiny within-tier freq gap
-        // (举例 22437 vs 局里 24466 vs 剧里 22522).
+    fn phase_e_bigram_quality_gate_demotes_subword_phrases() {
+        // User reports 2026-06-03:
+        //   juli  : "举例 肯定要高于 局里 和 剧里 这种并不完全是单词的组合"
+        //   guanli: "馆里 这个词高了, 而且这类的 pinyin 词都有点高... 地名加方位
+        //           之类的组合"
+        // 长期方向 (RANKING-MODEL-INVARIANTS §5.5): 公式 only, 不单条 fix.
         //
-        // Fix: quickfix_boost `juli\t举例\t27000` (top_peer 局里 24466 + 10%
-        // margin).  距离 freq=36710 stays #0; 举例 jumps from #3 to #1.
-        let top = pinyin_top10(b"juli");
-        let juli_idx = top.iter().position(|w| w == "举例")
-            .unwrap_or_else(|| panic!("举例 must appear in juli top10; got {top:?}"));
-        for noise in ["局里", "剧里"] {
-            if let Some(pos) = top.iter().position(|w| w == noise) {
-                assert!(juli_idx < pos,
-                    "举例 (#{juli_idx}) must rank above {noise} (#{pos}) — \
-                     'X里' sub-word compounds must yield to the real word; \
-                     top10={top:?}");
+        // Phase E gate (pinyin_adapter.rs + engine_weights.toml
+        // [scoring.phrase_quality]): 2-char phrase gets +2-tier demote when
+        // bigram_boost(c1, c2) < 25000 AND freq ∈ [22000, 30000).  Catches
+        // jieba over-segmentation noise without misfiring on real-rare
+        // (靠谱/铆钉) or user-attested quickfix-boosted (锚定 40k) entries.
+        //
+        // Per-case bigram + freq (from spike):
+        //   馆里 freq=23852 bigram=21309 → demote (in band, low bigram)
+        //   局里 freq=24466 bigram=16664 → demote
+        //   剧里 freq=22522 bigram=14082 → demote
+        //   居里 freq=17110 bigram=33542 → keep (real but freq< floor)
+        //   屋里 freq=31774 bigram=32646 → keep (freq > ceil)
+        //   靠谱 freq=10666 bigram=20918 → keep (freq < floor — real-rare)
+        //   锚定 quickfix=40000 → keep (freq > ceil — user-attested)
+        let cases: &[(&str, &[&str])] = &[
+            // (buffer, sub-word noise that must NOT be top-3)
+            ("guanli", &["馆里"]),
+            ("juli",   &["局里", "剧里"]),
+        ];
+        for (buf, noise_set) in cases {
+            let top = pinyin_top10(buf.as_bytes());
+            for noise in *noise_set {
+                if let Some(pos) = top.iter().position(|w| w == noise) {
+                    assert!(pos >= 3,
+                        "Phase E gate failed for ({buf}, {noise}) — \
+                         expected sub-word phrase NOT in top-3, got #{pos}; \
+                         top10={top:?}");
+                }
             }
         }
     }
