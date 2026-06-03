@@ -52,3 +52,9 @@ kandao	刊到	2026-06-03
 haiyou	嗨呦	2026-06-03	# 中信心 — interjection sub-word
 suoyi	索移	2026-06-03
 suoyi	所译	2026-06-03
+
+# 2026-06-03 user: "mo 第三个万是哪来的" — 万 standard pinyin is "wan",
+# corpus noise (legacy ingest absorbed via weighted merge, no per-row
+# provenance to trace which upstream introduced it). freq 45834 was high
+# enough to land at #2 in mo top-10. D1 delete + future-proof entry.
+mo	万	2026-06-03

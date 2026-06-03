@@ -1307,6 +1307,12 @@ mod tests {
             ("ruguo", &["入锅", "辱国"]),
             ("suoyi", &["缩衣", "索移", "所译"]),
             ("ziji", &["子鸡"]),
+            // User polish-log 2026-06-03: "mo 第三个万是哪来的" —
+            // 万 standard pinyin is "wan", not "mo". Legacy
+            // corpus-merge noise; D1 deleted from library.tsv +
+            // logged to corpus_garbage_filter_v1.tsv (so future
+            // corpus-digest can't re-admit via fold).
+            ("mo", &["万"]),
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
