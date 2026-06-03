@@ -182,7 +182,6 @@ fn main() {
     if pq_sigma <= 0.0 {
         panic!("scoring.tier_quantile_pinyin.log_freq_sigma must be > 0; got {pq_sigma}");
     }
-    // Thresholds must be monotone descending so a linear walk maps z→tier.
     for (a, b, name) in [
         (pq_tier_1_above, pq_tier_2_above, "tier_1_above > tier_2_above"),
         (pq_tier_2_above, pq_tier_3_above, "tier_2_above > tier_3_above"),
@@ -192,6 +191,35 @@ fn main() {
     ] {
         if !(a > b) {
             panic!("scoring.tier_quantile_pinyin {name} violated: {a} !> {b}");
+        }
+    }
+
+    // Phase D — nihongo z-score quantile (mirror of pinyin Phase B).
+    let tq_n = parsed
+        .get("scoring")
+        .and_then(|v| v.get("tier_quantile_nihongo"))
+        .and_then(|v| v.as_table())
+        .unwrap_or_else(|| panic!("[scoring.tier_quantile_nihongo] section missing"));
+    let nq_mu       = read_f64(tq_n, "log_freq_mu");
+    let nq_sigma    = read_f64(tq_n, "log_freq_sigma");
+    let nq_tier_1_above = read_f64(tq_n, "tier_1_above");
+    let nq_tier_2_above = read_f64(tq_n, "tier_2_above");
+    let nq_tier_3_above = read_f64(tq_n, "tier_3_above");
+    let nq_tier_4_above = read_f64(tq_n, "tier_4_above");
+    let nq_tier_5_above = read_f64(tq_n, "tier_5_above");
+    let nq_tier_6_above = read_f64(tq_n, "tier_6_above");
+    if nq_sigma <= 0.0 {
+        panic!("scoring.tier_quantile_nihongo.log_freq_sigma must be > 0; got {nq_sigma}");
+    }
+    for (a, b, name) in [
+        (nq_tier_1_above, nq_tier_2_above, "tier_1_above > tier_2_above"),
+        (nq_tier_2_above, nq_tier_3_above, "tier_2_above > tier_3_above"),
+        (nq_tier_3_above, nq_tier_4_above, "tier_3_above > tier_4_above"),
+        (nq_tier_4_above, nq_tier_5_above, "tier_4_above > tier_5_above"),
+        (nq_tier_5_above, nq_tier_6_above, "tier_5_above > tier_6_above"),
+    ] {
+        if !(a > b) {
+            panic!("scoring.tier_quantile_nihongo {name} violated: {a} !> {b}");
         }
     }
 
@@ -319,6 +347,15 @@ pub mod consts {{
     pub const PINYIN_TIER_4_Z_ABOVE: f64 = {pq_t4};
     pub const PINYIN_TIER_5_Z_ABOVE: f64 = {pq_t5};
     pub const PINYIN_TIER_6_Z_ABOVE: f64 = {pq_t6};
+    // [scoring.tier_quantile_nihongo] — Phase D (2026-06-03).
+    pub const NIHONGO_LOG_FREQ_MU: f64 = {nq_mu};
+    pub const NIHONGO_LOG_FREQ_SIGMA: f64 = {nq_sigma};
+    pub const NIHONGO_TIER_1_Z_ABOVE: f64 = {nq_t1};
+    pub const NIHONGO_TIER_2_Z_ABOVE: f64 = {nq_t2};
+    pub const NIHONGO_TIER_3_Z_ABOVE: f64 = {nq_t3};
+    pub const NIHONGO_TIER_4_Z_ABOVE: f64 = {nq_t4};
+    pub const NIHONGO_TIER_5_Z_ABOVE: f64 = {nq_t5};
+    pub const NIHONGO_TIER_6_Z_ABOVE: f64 = {nq_t6};
 }}
 
 /// Tier落点 helper — Phase B (2026-06-03).
@@ -347,6 +384,33 @@ pub fn pinyin_tier_from_freq(raw_freq: u64) -> u8 {{
     else if z >= consts::PINYIN_TIER_4_Z_ABOVE {{ 4 }}
     else if z >= consts::PINYIN_TIER_5_Z_ABOVE {{ 5 }}
     else if z >= consts::PINYIN_TIER_6_Z_ABOVE {{ 6 }}
+    else {{ 9 }}
+}}
+
+/// Tier 落点 helper — Phase D (2026-06-03 — nihongo).
+///
+/// Same shape as `pinyin_tier_from_freq` but with nihongo-tuned
+/// μ/σ + "wide & low" z thresholds (per user directive: 日语整体应
+/// 偏低,只是张得相对开,基础假名在很高级).  Applies to nihongo
+/// candidate paths that go through freq quantile:
+///
+///   - multi-char real jukugo (新宿 大学 自主)
+///   - single kanji (気 起 記)
+///
+/// EXEMPT paths (still use fixed tier in `japanese_adapter.rs`):
+///   - multi-char pure_kana (えっ ありがとう)     → tier 2 (Phase C)
+///   - single basic kana from dict (も で を)     → tier 1 (Phase C)
+///   - mechanical kana 3-band by buffer length    → Phase C-2
+pub fn nihongo_tier_from_freq(raw_freq: u64) -> u8 {{
+    if raw_freq == 0 {{ return 9; }}
+    let z = ((raw_freq as f64).ln() - consts::NIHONGO_LOG_FREQ_MU)
+        / consts::NIHONGO_LOG_FREQ_SIGMA;
+    if z >= consts::NIHONGO_TIER_1_Z_ABOVE {{ 1 }}
+    else if z >= consts::NIHONGO_TIER_2_Z_ABOVE {{ 2 }}
+    else if z >= consts::NIHONGO_TIER_3_Z_ABOVE {{ 3 }}
+    else if z >= consts::NIHONGO_TIER_4_Z_ABOVE {{ 4 }}
+    else if z >= consts::NIHONGO_TIER_5_Z_ABOVE {{ 5 }}
+    else if z >= consts::NIHONGO_TIER_6_Z_ABOVE {{ 6 }}
     else {{ 9 }}
 }}
 "#,
@@ -402,6 +466,14 @@ pub fn pinyin_tier_from_freq(raw_freq: u64) -> u8 {{
         pq_t4 = fmt_f64(pq_tier_4_above),
         pq_t5 = fmt_f64(pq_tier_5_above),
         pq_t6 = fmt_f64(pq_tier_6_above),
+        nq_mu = fmt_f64(nq_mu),
+        nq_sigma = fmt_f64(nq_sigma),
+        nq_t1 = fmt_f64(nq_tier_1_above),
+        nq_t2 = fmt_f64(nq_tier_2_above),
+        nq_t3 = fmt_f64(nq_tier_3_above),
+        nq_t4 = fmt_f64(nq_tier_4_above),
+        nq_t5 = fmt_f64(nq_tier_5_above),
+        nq_t6 = fmt_f64(nq_tier_6_above),
     );
 
     fs::write(&out_path, generated)
