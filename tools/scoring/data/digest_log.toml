@@ -97,3 +97,40 @@ library.tsv as layer=Phrase entries). Requires build.rs refactor;
 keeping phrases.txt as the structural source of phrase entries for
 now to minimize Phase 2 blast radius.
 """
+
+# ─────────────────────────────────────────────────────────────────────
+# Nihongo engine — first ingestion under 治理 architecture. Source was
+# previously a 28k-line const array in src/{jukugo,kanji}.rs (generated
+# by build_jukugo_rs.py / build_kanji_rs.py from supplemental TSVs).
+# Migrated to data/library.tsv with type col (jukugo|kanji); the
+# const arrays and codegen scripts are retired.
+# ─────────────────────────────────────────────────────────────────────
+
+[[event]]
+event_id = "nihongo-legacy-2026-06-03"
+engine = "nihongo"
+source_type = "self"
+source_name = "legacy-merge"
+source_version = "pre-治理"
+source_sha256 = "n/a"
+ingested_at = "2026-06-03"
+rows_added = 29046
+rows_rejected = 0
+library_sha256_after = "7708c37e4bc7d423197e2d3e2fbc3d3016bffdf8124e7aa8f481f1f4cb5b7487"
+notes = """
+First-iteration legacy ingestion for nihongo. Closes the books on the
+pre-治理 codegen pipeline (build_jukugo_rs.py / build_kanji_rs.py
+generating const arrays in src/{jukugo,kanji}.rs).
+
+Flat structure: each row is one (reading, word, type, freq) tuple.
+Multi-reading kanji (人 → jin/nin/hito) appear as 3 rows here. Total
+breakdown:
+  - 27380 jukugo entries
+  - 1666 kanji entries (flattened from ~850 multi-reading kanji)
+
+Retired in this commit:
+  - src/jukugo.rs JUKUGO_TABLE const (~27k lines)
+  - src/kanji.rs KANJI_TABLE const (~850 lines)
+  - tools/nihongo/{build_jukugo_rs.py, build_kanji_rs.py, build_mozc_jukugo.py, build_brands_tsv.py, build_counters_tsv.py}
+  - tools/scoring/data/supplemental/jp_{jukugo,jukugo_mozc,kanji,brands,counters}_v1.tsv
+"""
