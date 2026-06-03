@@ -24,3 +24,51 @@
 
 juti	具体	0	# polish-log prior_correction × 1.5 was lost in tier-1 within-tier sort; promote to absolute. Phase 5 introduced.
 mi	峭	5	# 峭's pinyin char-freq ≥ CHAR_PROMINENT_FLOOR but user 2026-06-02 reports `mi` should give 米 #0, not 峭. Demote to rare-CJK tier so pinyin top wins.
+
+# 2026-06-03 sweep — wubi simcodes/phrases hijacking pinyin-shape
+# buffers where the wubi candidate's pinyin reading ≠ the buffer.
+# Drop to tier 5 (less_common) so pinyin top wins; wubi simcode
+# still retrievable at deeper rank for power-user lookup.
+ai	东	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+an	世	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+ba	陈	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+bai	陈	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+bang	陈情	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+bi	孙	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+bu	联	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+dan	碟	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+di	砂	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+dou	灰	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+du	磁	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+duo	碰	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+er	遥	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+fa	载	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+fu	增	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+gang	开怀	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+ha	虎	8	# 2026-06-03 sweep — pinyin peers thin so tier 8 to escape top-5
+hao	虚	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+he	肯	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+ji	晃	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+ke	吸	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+le	胃	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+lu	较	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+ma	曲	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+me	骨	8	# 2026-06-03 sweep — pinyin peers thin so tier 8 to escape top-5
+nv	恨	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+qi	乐	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+qiu	尔	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+qu	匀	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+ran	拒	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+ren	扔	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+ri	朱	8	# 2026-06-03 sweep — pinyin peers thin so tier 8 to escape top-5
+ru	拉	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+san	柜	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+si	档	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+suan	西装革履	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+te	秀	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+ti	秒	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+wen	仍	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+xi	纱	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+yan	谍	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+yao	庶	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+ye	衣	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
