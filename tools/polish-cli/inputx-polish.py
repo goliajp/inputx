@@ -35,7 +35,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 QUICKFIX_PATH = REPO_ROOT / "tools/scoring/data/polish_reports/quickfix_boost.tsv"
-MODERN_PATH = REPO_ROOT / "tools/scoring/data/supplemental/pinyin_modern_v1.tsv"
+MODERN_PATH = REPO_ROOT / "tools/scoring/data/polish/modern_vocab_v1.tsv"
 WUBI_PHRASES_PATH = REPO_ROOT / "core/crates/inputx-wubi/data/phrases.txt"
 PINYIN_WEIGHTS_PATH = REPO_ROOT / "core/crates/inputx-pinyin/data/weights/weights.tsv"
 

@@ -309,7 +309,7 @@ mod tests {
             ("yinyue", "音乐"), ("xinwen", "新闻"),
             // Polish-log 2026-06-01: julei → 聚类 (cluster — was missing
             // from weights.tsv entirely; only `juleifenxi 聚类分析` existed
-            // at freq=0. Added to pinyin_modern_v1.tsv at 50k, matching
+            // at freq=0. Added to modern_vocab_v1.tsv at 50k, matching
             // peer tech terms like 算法/数据库).
             ("julei", "聚类"),
         ];

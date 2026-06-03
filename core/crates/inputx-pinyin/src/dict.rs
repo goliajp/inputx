@@ -1357,7 +1357,7 @@ mod tests {
         // modern_vocab assigning blanket 50k to 立项 despite its base
         // 17687 being well below 理想's 35168). Fixes:
         //   1. build_fst.rs overlay now uses MAX semantics.
-        //   2. pinyin_modern_v1.tsv purged of words already covered by
+        //   2. modern_vocab_v1.tsv purged of words already covered by
         //      base (purge_modern_overlap.py removed 立项).
         // After rebuild: 理想 (base 35168) should lead lixiang lookups.
         let d = PinyinDict::embedded();
