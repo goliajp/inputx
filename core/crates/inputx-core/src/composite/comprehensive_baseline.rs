@@ -982,7 +982,7 @@ mod tests {
     // ───────────────────────────────────────────────────────────
     // WU-ψ phase 5 — tier overlay regression coverage. Each (buffer,
     // word, expected_position) case below MUST be reflected in
-    // tools/scoring/data/polish_reports/tier_overlay.tsv; removing
+    // tools/scoring/data/polish/tier_overlay.tsv; removing
     // the overlay row should make the test fail loudly.
     // ───────────────────────────────────────────────────────────
 

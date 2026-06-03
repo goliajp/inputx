@@ -109,7 +109,7 @@ include!(concat!(env!("OUT_DIR"), "/engine_weights_generated.rs"));
 pub use tier as tier_table;
 
 /// WU-ψ phase 5 — per-(buffer, word) tier overlay. Generated from
-/// `tools/scoring/data/polish_reports/tier_overlay.tsv` at build
+/// `tools/scoring/data/polish/tier_overlay.tsv` at build
 /// time. Adapters consult this BEFORE applying their natural tier
 /// rule; when the overlay returns `Some(t)`, the candidate gets tier
 /// `t` regardless of layer / freq / etc.

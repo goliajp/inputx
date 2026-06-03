@@ -64,7 +64,7 @@ fn main() {
     let garbage_path = crate_dir
         .parent().expect("crates parent")
         .parent().expect("workspace root")
-        .join("../tools/scoring/data/corpus_garbage_filter_v1.tsv");
+        .join("../tools/scoring/data/polish/corpus_garbage_filter_v1.tsv");
     let mut garbage: std::collections::HashSet<(String, String)> = std::collections::HashSet::new();
     if let Ok(text) = fs::read_to_string(&garbage_path) {
         for raw in text.lines() {
@@ -132,7 +132,7 @@ fn main() {
             .parent().expect("workspace root")
             .join("../tools/scoring/data");
         let overlays: &[(&str, PathBuf)] = &[
-            ("polish-log", supplemental_dir.join("polish_reports/quickfix_boost.tsv")),
+            ("polish-log", supplemental_dir.join("polish/quickfix_boost.tsv")),
             ("modern-vocab", supplemental_dir.join("supplemental/pinyin_modern_v1.tsv")),
         ];
         for (label, path) in overlays {
