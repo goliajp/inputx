@@ -134,3 +134,32 @@ Retired in this commit:
   - tools/nihongo/{build_jukugo_rs.py, build_kanji_rs.py, build_mozc_jukugo.py, build_brands_tsv.py, build_counters_tsv.py}
   - tools/scoring/data/supplemental/jp_{jukugo,jukugo_mozc,kanji,brands,counters}_v1.tsv
 """
+
+# ─── auto-emitted by corpus-digest ────────────────────────────────
+[[event]]
+event_id = "jieba-phrases-dict-2026-06-03"
+engine = "pinyin"
+source_type = "external"
+source_name = "结巴中文分词词典 (主词典 dict.txt)"
+source_version = "git:HEAD"
+source_sha256 = "7197c3211ddd98962b036cdf40324d1ea2bfaa12bd028e68faa70111a88e12a8"
+ingested_at = "2026-06-03"
+rows_added = 24757
+rows_updated = 0
+rows_rejected = 42750
+library_sha256_after = "1d7b6c1d789dffe3a6bdf967c0978901e4cd78497c339b268b6dbfd159f01c9c"
+notes = """
+Phase B-3c milestone (v2 safe-reading): first external source ingested under 治理后 v2 '吃' semantics. 24757 new words via fold; 281k existing rows preserved (库自主); 38k 多音字 + 4.7k 非 Han dropped (safe-reading filter).
+
+fold_a = 8.4238
+fold_b = 0.2390
+fold_p5 = 2367
+fold_p95 = 26381
+fold_n_pairs = 179554
+added_freq_min = 5375
+added_freq_med = 6343
+added_freq_max = 26381
+skipped_same = 0
+skipped_library_wins = 281539
+skipped_polish = 0
+"""
