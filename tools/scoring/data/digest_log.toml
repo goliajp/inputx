@@ -62,3 +62,38 @@ library.tsv and represent post-治理 hand-edits.
 Future jieba / unihan / etc. updates will be digested incrementally
 against this baseline by the corpus-digest tool (TBD).
 """
+
+# ─────────────────────────────────────────────────────────────────────
+# Wubi engine legacy ingestion — same anchor pattern as pinyin. All
+# pre-治理 weights.tsv content attributed here. 4 polish-edited rows
+# (hang/虛, rang/拒, yang/讵, yang/詎 freq=0 demotes) tagged source=
+# polish in library.tsv; not counted in rows_added.
+# ─────────────────────────────────────────────────────────────────────
+
+[[event]]
+event_id = "wubi-legacy-2026-06-03"
+engine = "wubi"
+source_type = "self"
+source_name = "legacy-merge"
+source_version = "pre-治理"
+source_sha256 = "n/a"
+ingested_at = "2026-06-03"
+rows_added = 135813
+rows_rejected = 5
+library_sha256_after = "1b0100d821c6abe67b60291a1983189b0b0afabb58183bd26faafe025c981860"
+notes = """
+Closes the books on the non-deterministic pre-治理 `wubi-build-weights`
+pipeline. All 135813 rows attributed here without per-row provenance.
+
+rows_rejected = 5: yong/恋情, deng/有情, geng/表情, tong/释怀,
+jixu/曳光弹 — phrases that were polish-deleted from phrases.txt in
+commits 1afec0f (wubi sweep) but lingered as orphaned freq rows in
+weights.tsv. Cleaned up in this migration; they remain D1 in
+corpus_garbage_filter_v1.tsv (the wubi side hasn't been recorded
+there yet; will be added in Phase 2b absorption).
+
+Phase 2b deferred: phrases.txt absorption (merge its rows into
+library.tsv as layer=Phrase entries). Requires build.rs refactor;
+keeping phrases.txt as the structural source of phrase entries for
+now to minimize Phase 2 blast radius.
+"""
