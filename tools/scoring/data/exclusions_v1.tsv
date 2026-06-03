@@ -1,0 +1,95 @@
+# Pinyin dict build-time exclusions — `(code, word)` pairs to drop
+# during IDF snapshot. Use for source-dict pollution that polish-log
+# shows regresses real IME behavior — typically rare archaic readings
+# of Chinese characters that the upstream `inputx-pinyin` corpus
+# still expands into phrase entries.
+#
+# Pattern: when a phrase entry exists under a code that does NOT
+# match the character's modern mainstream reading (e.g. archaic 异读
+# surviving in the corpus), excluding the entry lets Path-5 K-best
+# composition surface the correct phrase naturally.
+#
+# Format:
+#   <code>\t<word>\t# <reason>
+#
+# Loaded by `idf_from_pinyin_dict.rs` via `include_str!` so the file
+# is tracked as a cargo build dependency — edit + `make polish-rebuild`
+# is the entire polish loop. Add a regression test in
+# `comprehensive_baseline.rs` pinning the polished behavior + cite
+# the polish-log case in the same commit.
+
+# 2026-05-28 user polish-log: typing `liangle` surfaced 两肋 as a
+# Path-1 Exact match, gating off Path-5 K-best → 凉了 never
+# generated. Source dict (readings.tsv:18800) maps "两肋" to BOTH
+# `liangle` and `lianglei` because "肋" has an archaic "lè" reading
+# that survives in jieba phrase data; modern mainstream reads "lèi"
+# only. Dropping (liangle, 两肋) lets K-best compose 凉+了 → 凉了.
+# (lianglei, 两肋) is kept — that mapping is legitimate per modern
+# reading.
+liangle	两肋
+
+# 2026-06-03 user polish-log: `jile` led with 极了 (freq 33555 from
+# 好极了/棒极了 compound bleed in jieba data), pushing 极乐 to #1
+# and 寄了 nowhere. "极了" is a bound suffix, not a free word —
+# standalone "jile" shouldn't surface it. Dropping (jile, 极了)
+# lets 极乐 lead naturally; (jile, 寄了) lives in additions_v1.tsv
+# so internet-slang 寄了 surfaces in top-10 below 极乐. Compounds
+# like 棒极了 (bangjile) keep their entry and are untouched.
+jile	极了
+
+# 2026-06-03 user polish-log: `cipin` surfaced 次贫 at #3.
+# "次贫" isn't an established Chinese phrase — likely jieba noise
+# (次 + 贫 sub-word). User: "次贫不应该存在".
+cipin	次贫
+
+# 2026-06-03 user polish-log: `ciping` surfaced 茨坪 at #1.
+# 茨坪 is an obscure place name (a town in Jinggangshan, Jiangxi).
+# User: "茨坪是什么？如果不能解释也不应该存在".
+ciping	茨坪
+
+# 2026-06-03 80-buffer sweep — pinyin secondary-reading pollution
+# at top1 of common single-syllables. Each is a character whose
+# mainstream reading is something else; the secondary reading bleeds
+# in from compound corpus freq. Compound entries (kuaiji, shenme,
+# zhuozhuang, zhaoji, …) live under their own codes and are NOT
+# affected by these exclusions.
+kuai	会
+shen	什
+zhuo	着
+zhao	着
+
+# 2026-06-03 80-buffer sweep — jieba sub-word / homophone-noise
+# entries cluttering top-5 of common multi-syllable buffers. All
+# are pinyin-source entries with non-trivial corpus freq but no
+# daily-use meaning: garbled names, sub-word fragments, very rare
+# collocations. Compounds and 4+ syllable buffers unaffected.
+xianzai	先在
+xianzai	先宰
+xianzai	先载
+zhege	这歌
+zhege	哲哥
+zhege	著各
+yige	一格
+yige	亿个
+yige	毅哥
+yige	一歌
+yige	翼各
+keyi	可意
+keyi	课以
+tamen	塔门
+meiyou	没油
+meiyou	魅友
+shihou	狮吼
+haishi	嗨氏
+jintian	津田
+kandao	砍到	# 砍刀 (real word) kept
+kandao	砍倒
+kandao	刊到
+wenti	吻替
+haiyou	嗨呦
+ruguo	入锅
+ruguo	辱国
+suoyi	缩衣	# 蓑衣 (real word) kept
+suoyi	索移
+suoyi	所译
+ziji	子鸡

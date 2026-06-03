@@ -56,160 +56,60 @@ fn correction_for(word: &str) -> i32 {
         .unwrap_or(0)
 }
 
-/// Build-time dict additions — `(code, word, raw_freq)` triples
-/// injected into the IDF snapshot for entries the upstream
-/// `inputx-pinyin` dict pipeline does not (yet) capture as native
-/// phrase entries, but where polish-log evidence shows the absence
-/// regresses real IME behavior.
-///
-/// Pattern (v1.6+ "improve, not hack" per user 2026-05-28): when a
-/// composition / K-best path generates pollution that a runtime
-/// blacklist would otherwise need to drop, prefer adding the
-/// LEGITIMATE alternatives to the dict here. Once Path 1 exact-
-/// match returns results, Path 5 K-best is gated off and the
-/// pollution never generates.
-///
-/// Calibration: `raw_freq` chosen at the LOW end of natural
-/// corpus frequency for these phrases (real corpus rarely has the
-/// data; we synthesize at plausible values). The `(PINYIN_PHRASE_
-/// BASE + raw_freq) * pin_mult` Path-1 score floor is enough to
-/// beat any synthesized K-best fallback score (~250k).
-///
-/// MUST add a regression test in `dispatch.rs` pinning the
-/// expected behavior + cite the polish-log case in the same
-/// commit. Keep entries grouped by polish-log buffer + sorted.
-/// Build-time dict exclusions — `(code, word)` pairs to drop during
-/// IDF snapshot. Use for source-dict pollution that polish-log shows
-/// regresses real IME behavior — typically rare archaic readings of
-/// Chinese characters that the upstream `inputx-pinyin` corpus still
-/// expands into phrase entries.
-///
-/// Pattern: when a phrase entry exists under a code that does NOT
-/// match the character's modern mainstream reading (e.g. archaic
-///异读 surviving in the corpus), excluding the entry lets Path-5
-/// K-best composition surface the correct phrase naturally.
-///
-/// MUST add a regression test in `dispatch.rs` pinning the polished
-/// behavior + cite the polish-log case in the same commit.
-const BAKED_EXCLUSIONS: &[(&str, &str)] = &[
-    // 2026-05-28 user polish-log: typing `liangle` surfaced 两肋 as a
-    // Path-1 Exact match, gating off Path-5 K-best → 凉了 never
-    // generated. Source dict (readings.tsv:18800) maps "两肋" to BOTH
-    // `liangle` and `lianglei` because "肋" has an archaic "lè" reading
-    // that survives in jieba phrase data; modern mainstream reads "lèi"
-    // only. Dropping (liangle, 两肋) lets K-best compose 凉+了 → 凉了
-    // surfaces naturally. (lianglei, 两肋) is kept — that mapping is
-    // legitimate per modern reading.
-    ("liangle", "两肋"),
+// Build-time dict exclusions + additions live in TSV data files so
+// polish edits don't touch Rust code (per 2026-06-03 user directive
+// "no special list, never; data files are the per-entry hook").
+// `include_str!` makes cargo track them as build dependencies — edit
+// + `make polish-rebuild` is the entire polish loop.
+const EXCLUSIONS_TSV: &str = include_str!(
+    "../../../../../tools/scoring/data/exclusions_v1.tsv"
+);
+const ADDITIONS_TSV: &str = include_str!(
+    "../../../../../tools/scoring/data/additions_v1.tsv"
+);
 
-    // 2026-06-03 user polish-log: `jile` led with 极了 (freq 33555 from
-    // 好极了/棒极了 compound bleed in jieba data), pushing 极乐 to #1
-    // and 寄了 nowhere. "极了" is a bound suffix, not a free word —
-    // standalone "jile" shouldn't surface it. Dropping (jile, 极了)
-    // lets 极乐 lead naturally; (jile, 寄了) is BAKED below at
-    // freq 500 so internet-slang 寄了 surfaces in top-10 below 极乐.
-    // Compounds like 棒极了 (bangjile) keep their entry and are
-    // untouched.
-    ("jile", "极了"),
+/// Parse `<code>\t<word>[\t# comment]` rows, skipping blank lines and
+/// comment-only lines. Trailing `# ...` columns are dropped.
+fn parse_exclusions(src: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for raw in src.lines() {
+        let line = raw.trim();
+        if line.is_empty() || line.starts_with('#') { continue; }
+        let mut parts = line.splitn(3, '\t');
+        let (Some(code), Some(word)) = (parts.next(), parts.next()) else { continue };
+        let code = code.trim();
+        // Allow inline `<word>\t# comment` — strip trailing `\t#`.
+        let word = word.split('\t').next().unwrap_or(word).trim();
+        if code.is_empty() || word.is_empty() { continue; }
+        out.push((code.to_string(), word.to_string()));
+    }
+    out
+}
 
-    // 2026-06-03 user polish-log: `cipin` surfaced 次贫 at #3.
-    // "次贫" isn't an established Chinese phrase — likely jieba noise
-    // (次 + 贫 sub-word). User: "次贫不应该存在". Drop it.
-    ("cipin", "次贫"),
+/// Parse `<code>\t<word>\t<freq>[\t# comment]` rows.
+fn parse_additions(src: &str) -> Vec<(String, String, u64)> {
+    let mut out = Vec::new();
+    for raw in src.lines() {
+        let line = raw.trim();
+        if line.is_empty() || line.starts_with('#') { continue; }
+        let mut parts = line.splitn(4, '\t');
+        let (Some(code), Some(word), Some(freq_s)) =
+            (parts.next(), parts.next(), parts.next()) else { continue };
+        let code = code.trim();
+        let word = word.trim();
+        // freq column may have trailing inline comment.
+        let freq_s = freq_s.split('\t').next().unwrap_or(freq_s).trim();
+        if code.is_empty() || word.is_empty() { continue; }
+        let Ok(freq) = freq_s.parse::<u64>() else { continue };
+        out.push((code.to_string(), word.to_string(), freq));
+    }
+    out
+}
 
-    // 2026-06-03 user polish-log: `ciping` surfaced 茨坪 at #1.
-    // 茨坪 is an obscure place name (a town in Jinggangshan, Jiangxi
-    // — Mao's mountain-base era). User: "茨坪是什么？如果不能解释也
-    // 不应该存在". Too obscure for daily IME use; user expectation is
-    // 瓷瓶 / 磁瓶 lead. Drop it.
-    ("ciping", "茨坪"),
-
-    // 2026-06-03 80-buffer sweep — pinyin secondary-reading pollution
-    // at top1 of common single-syllables. Each is a character whose
-    // mainstream reading is something else; the secondary reading
-    // bleeds in from compound corpus freq. Compound entries (kuaiji,
-    // shenme, zhuozhuang, zhaoji, etc.) live under their own codes
-    // and are NOT affected by these exclusions.
-    ("kuai", "会"),     // 会 is "huì"; "kuài" reading from 会计 corpus bleed
-    ("shen", "什"),     // 什 is "shén" only in 什么; standalone 什 leading 身/神 is wrong
-    ("zhuo", "着"),     // 着 is "zhe" (particle) > "zhuó"; 桌/卓 should lead zhuo
-    ("zhao", "着"),     // 着 "zháo" (着急) is rare standalone; 找/招 should lead zhao
-
-    // 2026-06-03 80-buffer sweep — jieba sub-word / homophone-noise
-    // entries cluttering top-5 of common multi-syllable buffers.
-    // All are pinyin-source entries with non-trivial corpus freq but
-    // no daily-use meaning: garbled names, sub-word fragments, very
-    // rare collocations. Compounds and 4+ syllable buffers unaffected.
-    ("xianzai", "先在"),
-    ("xianzai", "先宰"),
-    ("xianzai", "先载"),
-    ("zhege", "这歌"),
-    ("zhege", "哲哥"),
-    ("zhege", "著各"),
-    ("yige", "一格"),
-    ("yige", "亿个"),
-    ("yige", "毅哥"),
-    ("yige", "一歌"),
-    ("yige", "翼各"),
-    ("keyi", "可意"),
-    ("keyi", "课以"),
-    ("tamen", "塔门"),
-    ("meiyou", "没油"),
-    ("meiyou", "魅友"),
-    ("shihou", "狮吼"),
-    ("haishi", "嗨氏"),
-    ("jintian", "津田"),
-    ("kandao", "砍到"),    // 砍刀 (real word) kept
-    ("kandao", "砍倒"),
-    ("kandao", "刊到"),
-    ("wenti", "吻替"),
-    ("haiyou", "嗨呦"),
-    ("ruguo", "入锅"),
-    ("ruguo", "辱国"),
-    ("suoyi", "缩衣"),     // 蓑衣 (real word) kept
-    ("suoyi", "索移"),
-    ("suoyi", "所译"),
-    ("ziji", "子鸡"),
-];
-
-const BAKED_ADDITIONS: &[(&str, &str, u64)] = &[
-    // 2026-05-28 user polish-log (pianni → semantically valid variants):
-    // pre-bake, `pianni` had no Path-1 exact hits — Path 5 K-best
-    // composed (片) + (你) as the highest single-char freq pair, and
-    // the historical blacklist had to drop 片你 explicitly. With
-    // these phrase entries baked, Path-1 surfaces 骗你 / 偏你 in
-    // freq order, Path 5 gates off, 片你 never generates.
-    //
-    // 便你 / 篇你 dropped per user 2026-05-28 follow-up: 便你 is an
-    // awkward non-collocation, 篇你 isn't a Chinese phrase at all.
-    // Excluded entries get suppressed by Path-5 K-best's (pian, ni)
-    // zero-bigram gating, so removing them from this table is enough.
-    ("pianni", "骗你", 500),
-    ("pianni", "偏你", 100),
-
-    // 2026-05-28 user polish-log (liangle → expected 凉了):
-    // "凉了" isn't a frozen phrase in upstream jieba data ("了" is
-    // a particle, not lexicalised), so the source dict has no
-    // (liangle, 凉了) entry. Combined with the (liangle, 两肋)
-    // 异读 pollution being excluded above, K-best would normally
-    // step in to compose 凉+了 — but Path-3 prefix-completion
-    // still surfaces "两肋" via (lianglei, 两肋), which keeps
-    // self.candidates non-empty and gates Path-5 K-best off.
-    // Baking 凉了 as a Path-1 exact match makes has_non_specula-
-    // tive_candidate=true, which gates prefix-completion off in
-    // turn (per the lianxiang 2026-05-22 rule), so 两肋 also no
-    // longer surfaces under liangle.
-    ("liangle", "凉了", 500),
-
-    // 2026-06-03 user polish-log (jile → 寄了): "寄了" is internet
-    // slang ("done for / screwed"), not in upstream jieba phrase data.
-    // Combined with (jile, 极了) being excluded above, K-best would
-    // normally compose 寄+了 — but at freq 500 we bake it explicitly
-    // as a Path-1 exact so it lands deterministically in top-10 below
-    // 极乐 (legitimate jile phrase, freq 19502). User accepted either
-    // 极乐 or 寄了 leading; baking at 500 keeps 极乐 #0.
-    ("jile", "寄了", 500),
-];
+// (legacy `BAKED_EXCLUSIONS` / `BAKED_ADDITIONS` arrays retired
+// 2026-06-03 — entries live in `tools/scoring/data/exclusions_v1.tsv`
+// and `tools/scoring/data/additions_v1.tsv`, loaded via the
+// `EXCLUSIONS_TSV` / `ADDITIONS_TSV` constants above.)
 
 fn main() -> ExitCode {
     let mut output: Option<PathBuf> = None;
@@ -252,18 +152,19 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     let dict = PinyinDict::embedded();
     let entries = dict.prefix_with_freq("");
     let entry_count = entries.len();
-    // v1.7.4: corpus_total = Σ raw_freq across the entries we'll
-    // actually write (source minus BAKED_EXCLUSIONS plus BAKED_ADDITIONS).
-    // The runtime `pinyin_corpus_total()` scans the .idf and sees the
-    // same rows — by construction the two totals agree.
+    let exclusions = parse_exclusions(EXCLUSIONS_TSV);
+    let additions = parse_additions(ADDITIONS_TSV);
+    // corpus_total = Σ raw_freq across the entries actually written
+    // (source minus exclusions plus additions). Runtime
+    // `pinyin_corpus_total()` scans the .idf and sees the same rows.
     let excluded_freq: u64 = entries
         .iter()
         .filter(|(code, word, _)| {
-            BAKED_EXCLUSIONS.iter().any(|(ec, ew)| ec == code && ew == word)
+            exclusions.iter().any(|(ec, ew)| ec == code && ew == word)
         })
         .map(|(_, _, f)| *f)
         .sum();
-    let added_freq: u64 = BAKED_ADDITIONS.iter().map(|(_, _, f)| *f).sum();
+    let added_freq: u64 = additions.iter().map(|(_, _, f)| *f).sum();
     let source_total: u64 = entries.iter().map(|(_, _, f)| *f).sum();
     let total_corpus: u64 = source_total - excluded_freq + added_freq;
     eprintln!(
@@ -278,7 +179,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     let mut baked_count = 0usize;
     let mut excluded_count = 0usize;
     for (code, word, raw_freq) in &entries {
-        if BAKED_EXCLUSIONS
+        if exclusions
             .iter()
             .any(|(ex_code, ex_word)| ex_code == code && ex_word == word)
         {
@@ -323,14 +224,14 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     );
     eprintln!(
         "[idf-from-pinyin-dict] excluded {excluded_count} polluted entries (table size: {})",
-        BAKED_EXCLUSIONS.len()
+        exclusions.len()
     );
 
     // Build-time dict additions: inject synthetic phrase entries
     // for polish-log cases the upstream dict pipeline does not
     // capture natively. Path-1 exact-match will surface these and
     // gate off Path-5 K-best composition pollution.
-    for (code, word, raw_freq) in BAKED_ADDITIONS {
+    for (code, word, raw_freq) in &additions {
         let log_prior_q4 = log_prob_corpus_from_freq(*raw_freq, total_corpus);
         let log_prior_i16 = clamp_to_i16(log_prior_q4);
         let raw_freq_u32 = (*raw_freq).min(u32::MAX as u64) as u32;
@@ -345,7 +246,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     }
     eprintln!(
         "[idf-from-pinyin-dict] baked dict additions: {} entries",
-        BAKED_ADDITIONS.len()
+        additions.len()
     );
 
     eprintln!(
@@ -353,7 +254,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         builder.pending_count(),
         out_path.display()
     );
-    let final_count = entry_count - excluded_count + BAKED_ADDITIONS.len();
+    let final_count = entry_count - excluded_count + additions.len();
     let sha = builder.build(out_path)?;
     let sha_hex: String = sha.iter().map(|b| format!("{b:02x}")).collect();
     let size = std::fs::metadata(out_path)?.len();
