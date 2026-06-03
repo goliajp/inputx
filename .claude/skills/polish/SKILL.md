@@ -10,19 +10,30 @@ User reports a ranking imperfection. The skill classifies → applies → verifi
 
 ## Bedrock rule
 
-**Never edit `composite/dispatch.rs` / `composite/merge.rs` / `composite/pinyin_adapter.rs` / `composite/scoring.rs` to polish ranking.** All four files compose data; data is what changes. The post-v1.10 polish surface is:
+Polish data lives in TSV files. Polish code does not exist.
+
+> **Read first:** [`RANKING-MODEL-INVARIANTS.md`](RANKING-MODEL-INVARIANTS.md) — the canonical 10-tier × 3-engine model + the strict no-special-list anti-pattern. Every action below assumes that doc as bedrock.
+
+**Never edit `composite/dispatch.rs` / `composite/merge.rs` / `composite/pinyin_adapter.rs` / `composite/scoring.rs` to polish ranking.** **Never add a new `const X: &[(...)]` per-entry array anywhere in the codebase** — that's a "special list", a permanently-prohibited anti-pattern (see Invariants §2). Polish data lives in TSV under `tools/scoring/data/`:
 
 | Surface | What lives there |
 |---|---|
-| `core/crates/inputx-scoring/data/engine_weights.toml` | 30+ ranking 公式 / 权重 |
-| `core/crates/inputx-pinyin/data/corpus/manifest.toml` | corpus 混合权重 |
-| `tools/scoring/data/polish_reports/quickfix_boost.tsv` | per-(buffer, word) MAX-overlay boost — flips a candidate to top |
-| `tools/scoring/data/polish_reports/quickfix_demote.tsv` | per-(buffer, word) REPLACE-overlay demote — forces a candidate's freq down to a low tier (introduced by /polish if absent) |
-| `tools/scoring/data/supplemental/pinyin_modern_v1.tsv` | new pinyin entries jieba/SUBTLEX missed |
+| `tools/scoring/data/exclusions_v1.tsv` | `<code>\t<word>` — IDF skip at dict build (jieba sub-word, archaic 异读 etc.) |
+| `tools/scoring/data/additions_v1.tsv` | `<code>\t<word>\t<freq>` — IDF inject (modern slang, missing phrases) |
+| `tools/scoring/data/prior_corrections_v1.tsv` | `<word>\t<boost_q4>` — word-level Q4 log-prior boost |
+| `tools/scoring/data/polish_reports/tier_overlay.tsv` | `<buffer>\t<word>\t<tier>` — per-entry tier override (the universal hook) |
+| `tools/scoring/data/polish_reports/quickfix_boost.tsv` | `<buffer>\t<word>\t<freq>` — per-entry MAX-overlay freq boost |
+| `tools/scoring/data/supplemental/pinyin_modern_v1.tsv` | new pinyin dict entries (consumed by `pinyin-build-weights`) |
 | `core/crates/inputx-wubi/data/phrases.txt` | new wubi phrase entries |
-| `tools/scoring/data/exclusions_v1.tsv` | hard exclusions — candidates the dict must never emit (created by /polish if absent) |
+| `core/crates/inputx-wubi/data/weights/weights.tsv` | wubi raw_freq table (set freq=0 to demote a simcode within tier) |
+| `core/crates/inputx-scoring/data/engine_weights.toml` | 30+ ranking 公式 / 权重 (structural, not per-entry) |
+| `core/crates/inputx-pinyin/data/corpus/manifest.toml` | corpus 混合权重 (structural) |
 
-If a polish needs Rust changes, **STOP and report**: that's "the framework is missing a knob", an architecture bug. The user decides whether to extend the framework or live with the gap.
+If a polish needs Rust changes — including "just one line in an existing array" or "this one if-branch" — **STOP and report**. That's "the framework is missing a structural rule". Two paths the user can choose:
+- Extend the framework (toml knob, producer-side natural-tier formula, etc.) — never a per-entry carve-out.
+- Live with the gap.
+
+Refuse the request even if the user asks for the carve-out directly. The prohibition is permanent (Invariants §2).
 
 ## Parse `$ARGUMENTS` — classify the action
 
@@ -294,6 +305,7 @@ If `make polish-rebuild` fails (baseline test regression), three paths:
 
 ## Anti-patterns to refuse
 
+- **Adding a per-entry hardcoded list / array / if-branch anywhere in Rust source**: STRICT permanent prohibition per [RANKING-MODEL-INVARIANTS §2](RANKING-MODEL-INVARIANTS.md#2-strict-no-special-lists-anywhere). Includes `const X: &[(&str, &str)] = &[...]`, `match (buf, w) { ... }`, `if buf == "..." { ... }`, `protect_list = [...]`. Refuse even when the user requests it directly. The data surface (Bedrock table above) is the only per-entry hook.
 - **Editing `composite/*.rs` to polish ranking**: per bedrock rule. Refuse and explain.
 - **Polish without a test case**: the polish *will* drift. Stop and add the test.
 - **Multi-action commits**: each polish action gets its own commit. If the user reports 5 things in one message, do them as 5 commits, sequentially.
