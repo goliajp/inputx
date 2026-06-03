@@ -1085,6 +1085,28 @@ mod tests {
     }
 
     #[test]
+    fn polish_juli_juli_above_subword_compounds() {
+        // User report 2026-06-03 juli: "举例 肯定要高于 局里 和 剧里 这种
+        // 并不完全是单词的组合".  jieba sub-word noise (局+里 / 剧+里) was
+        // out-ranking the real word 举例 due to a tiny within-tier freq gap
+        // (举例 22437 vs 局里 24466 vs 剧里 22522).
+        //
+        // Fix: quickfix_boost `juli\t举例\t27000` (top_peer 局里 24466 + 10%
+        // margin).  距离 freq=36710 stays #0; 举例 jumps from #3 to #1.
+        let top = pinyin_top10(b"juli");
+        let juli_idx = top.iter().position(|w| w == "举例")
+            .unwrap_or_else(|| panic!("举例 must appear in juli top10; got {top:?}"));
+        for noise in ["局里", "剧里"] {
+            if let Some(pos) = top.iter().position(|w| w == noise) {
+                assert!(juli_idx < pos,
+                    "举例 (#{juli_idx}) must rank above {noise} (#{pos}) — \
+                     'X里' sub-word compounds must yield to the real word; \
+                     top10={top:?}");
+            }
+        }
+    }
+
+    #[test]
     fn basic_kana_short_buffer_beats_single_kanji() {
         // User report 2026-06-03 ki: 記 / 紀 / 帰 / 起 / 気 etc. 日语
         // single-kanji ranked above きキ basic kana for buffer `ki` —
