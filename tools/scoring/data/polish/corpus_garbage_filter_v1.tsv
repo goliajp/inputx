@@ -58,3 +58,8 @@ suoyi	所译	2026-06-03
 # provenance to trace which upstream introduced it). freq 45834 was high
 # enough to land at #2 in mo top-10. D1 delete + future-proof entry.
 mo	万	2026-06-03
+
+# 2026-06-03 user: "剑持 这不是个词" — character-by-character literal
+# pinyin concat (剑 jiàn + 持 chí), not a real Chinese word. jieba/corpus
+# noise. D1 delete from library.tsv + future-proof entry.
+jianchi	剑持	2026-06-03
