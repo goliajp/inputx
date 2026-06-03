@@ -1004,24 +1004,27 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
 
     // ── STAGE 9: update source_registry entry ───────────────────────
     eprintln!("[stage 9/9] update source_registry");
-    let mut row_count_after = 0u64;
-    // Recompute approximate row count for this source: we don't keep a
-    // per-row source attribution, so for a self/external source we
-    // store "digested row count touched by this event id" as a proxy.
-    // Phase A simplification: current_row_count = lib's digested-rows
-    // total (whole library minus polish). It's "approximate" by design
-    // (per PLAN §1.3 "current_row_count: approximate").
-    for r in &lib.rows {
-        if r.source == "digested" { row_count_after += 1; }
-    }
+    // Phase B-3d semantic correction: `current_row_count` = this source's
+    // contribution = ADDs accepted this ingest.  Matches `event.rows_added`
+    // (same number, redundant but explicit).  PLAN §1.3 calls it
+    // "approximate" because we don't sum across an event chain — each
+    // ingest overwrites with the latest ADD count, not a running total.
+    //
+    // The previous logic (count all digested rows in the library) was
+    // wrong: it reported the whole-library digested total against the
+    // jieba source row, which would have inflated `corpus-digest list`
+    // and confused future `check` heuristics.
+    let row_count_this_ingest = plan.added.len() as u64;
+    let total_digested_now: u64 = lib.rows.iter()
+        .filter(|r| r.source == "digested").count() as u64;
     update_registry_source(&src.source_id, |s| {
         s.current_sha256 = fetched.sha256_hex.clone();
         s.last_event_id = event_id.clone();
         s.last_ingested_at = today.into();
-        s.current_row_count = row_count_after;
+        s.current_row_count = row_count_this_ingest;
     })?;
 
-    eprintln!("\n[ingest] ✓ event {event_id} written. library now {row_count_after} digested rows + N polish rows.");
+    eprintln!("\n[ingest] ✓ event {event_id} written. library now {total_digested_now} digested rows total + N polish.");
     Ok(())
 }
 
