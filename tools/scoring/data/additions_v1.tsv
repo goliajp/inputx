@@ -1,0 +1,46 @@
+# Pinyin dict build-time additions — synthetic phrase entries for
+# polish-log cases the upstream `inputx-pinyin` dict pipeline doesn't
+# capture natively (modern slang, internet vocabulary, etc.). Path-1
+# exact-match surfaces these and gates off Path-5 K-best composition
+# pollution.
+#
+# Format:
+#   <code>\t<word>\t<raw_freq>\t# <reason>
+#
+# Loaded by `idf_from_pinyin_dict.rs` via `include_str!` so the file
+# is tracked as a cargo build dependency — edit + `make polish-rebuild`
+# is the entire polish loop. Add a regression test in `dispatch.rs`
+# or `comprehensive_baseline.rs` pinning the polished behavior + cite
+# the polish-log case in the same commit.
+
+# 2026-05-28 user polish-log (pianni → semantically valid variants):
+# pre-bake, `pianni` had no Path-1 exact hits — Path 5 K-best composed
+# (片) + (你) as the highest single-char freq pair, and the historical
+# blacklist had to drop 片你 explicitly. With these phrase entries
+# baked, Path-1 surfaces 骗你 / 偏你 in freq order, Path 5 gates off,
+# 片你 never generates.
+#
+# 便你 / 篇你 dropped per user 2026-05-28 follow-up: 便你 is an awkward
+# non-collocation, 篇你 isn't a Chinese phrase at all.
+pianni	骗你	500
+pianni	偏你	100
+
+# 2026-05-28 user polish-log (liangle → expected 凉了):
+# "凉了" isn't a frozen phrase in upstream jieba data ("了" is a
+# particle, not lexicalised), so the source dict has no
+# (liangle, 凉了) entry. Combined with the (liangle, 两肋) 异读
+# pollution being excluded above, K-best would normally step in to
+# compose 凉+了 — but Path-3 prefix-completion still surfaces "两肋"
+# via (lianglei, 两肋), which keeps self.candidates non-empty and
+# gates Path-5 K-best off. Baking 凉了 as a Path-1 exact match makes
+# has_non_speculative_candidate=true, which gates prefix-completion
+# off in turn (per the lianxiang 2026-05-22 rule), so 两肋 also no
+# longer surfaces under liangle.
+liangle	凉了	500
+
+# 2026-06-03 user polish-log (jile → 寄了): "寄了" is internet slang
+# ("done for / screwed"), not in upstream jieba phrase data. Combined
+# with (jile, 极了) being excluded above, K-best would normally
+# compose 寄+了 — but at freq 500 we bake it explicitly as a Path-1
+# exact so it lands deterministically in top-10 below 极乐.
+jile	寄了	500
