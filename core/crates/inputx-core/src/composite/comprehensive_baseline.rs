@@ -495,7 +495,9 @@ mod tests {
     #[test]
     fn three_letter_pinyin_shaped_wubi_simcodes() {
         let cases: &[(&str, &str)] = &[
-            ("shi", "椒"),    // existing protected
+            // (shi, 椒) removed 2026-06-03 per user "shi 肯定不能是 椒，
+            // 要是 '是'" — moved to tier_overlay tier 5; protection
+            // semantics for that pair retired.
             ("you", "亦"),    // existing protected
         ];
         run("jianma3", cases, mixed_top, mixed_top10);
@@ -544,7 +546,8 @@ mod tests {
     #[test]
     fn jianma3_common_chars_lead_in_mixed() {
         let cases: &[(&str, &str)] = &[
-            ("shi", "椒"),    // protected
+            // (shi, 椒) retired 2026-06-03 — user "shi 肯定不能是 椒，
+            // 要是 '是'"; pair moved to tier_overlay tier 5.
             ("you", "亦"),    // protected
             // Additional 3-letter sample.
         ];
@@ -1194,7 +1197,11 @@ mod tests {
             ("me", &["骨"]), ("nv", &["恨"]), ("qi", &["乐"]),
             ("qiu", &["尔"]), ("qu", &["匀"]), ("ran", &["拒"]),
             ("ren", &["扔"]), ("ri", &["朱"]), ("ru", &["拉"]),
-            ("san", &["柜"]), ("si", &["档"]), ("suan", &["西装革履"]),
+            ("san", &["柜"]),
+            // (shi, 椒) added 2026-06-03 — user retired (shi, 椒) from
+            // muscle-memory protect list; expected top1=是.
+            ("shi", &["椒"]),
+            ("si", &["档"]), ("suan", &["西装革履"]),
             ("te", &["秀"]), ("ti", &["秒"]), ("wen", &["仍"]),
             ("xi", &["纱"]), ("yan", &["谍"]), ("yao", &["庶"]),
             ("ye", &["衣"]),
