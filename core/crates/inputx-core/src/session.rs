@@ -1242,7 +1242,9 @@ mod wubi_simcode_priority {
     #[test] fn ni_wubi_悄()  { assert_eq!(top(b"ni"),  "悄"); }
     #[test] fn ta_wubi_长()  { assert_eq!(top(b"ta"),  "长"); }
     #[test] fn de_wubi_胡()  { assert_eq!(top(b"de"),  "胡"); }
-    #[test] fn shi_wubi_椒() { assert_eq!(top(b"shi"), "椒"); }
+    // shi_wubi_椒 retired 2026-06-03 — user "shi 肯定不能是 椒，要是
+    // '是'"; pair moved to tier_overlay tier 5, expected top1=是.
+    #[test] fn shi_pinyin_是() { assert_eq!(top(b"shi"), "是"); }
     #[test] fn you_wubi_亦() { assert_eq!(top(b"you"), "亦"); }
     // User-confirmed via runtime (2026-05-24): Jianma2 common-char
     // entries also must lead via Session path (same flow the Mac IME
