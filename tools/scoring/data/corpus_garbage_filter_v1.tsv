@@ -32,3 +32,23 @@
 # weights.tsv at commit `2a65806`.
 cipin	次贫	2026-06-03
 keyi	可意	2026-06-03
+
+# 2026-06-03 D1 audit batch — 15 entries from exclusions_v1.tsv
+# reclassified to D1 per user "处理 D1" directive. All character-
+# concatenation noise from jieba sub-word extraction; no real
+# Chinese word, no path benefits from keeping in dict.
+xianzai	先在	2026-06-03
+xianzai	先宰	2026-06-03
+xianzai	先载	2026-06-03
+zhege	这歌	2026-06-03
+zhege	著各	2026-06-03
+yige	一歌	2026-06-03
+yige	翼各	2026-06-03
+keyi	课以	2026-06-03
+meiyou	魅友	2026-06-03
+haishi	嗨氏	2026-06-03
+kandao	砍到	2026-06-03	# 中信心 — jieba may have over-segmented 砍+到 verb-complement
+kandao	刊到	2026-06-03
+haiyou	嗨呦	2026-06-03	# 中信心 — interjection sub-word
+suoyi	索移	2026-06-03
+suoyi	所译	2026-06-03

@@ -66,34 +66,21 @@ zhao	着
 # 2026-06-03 80-buffer sweep — jieba sub-word / homophone-noise
 # entries cluttering top-5 of common multi-syllable buffers. All
 # pinyin-source with non-trivial corpus freq but no daily-use meaning.
-xianzai	先在
-xianzai	先宰
-xianzai	先载
-zhege	这歌
-zhege	哲哥
-zhege	著各
-yige	一格
-yige	亿个
-yige	毅哥
-yige	一歌
-yige	翼各
-# (keyi, 可意) reclassified D1 2026-06-03 — user confirmed "可意
-# 不存在", removed from weights.tsv directly instead.
-keyi	课以
-tamen	塔门
-meiyou	没油
-meiyou	魅友
-shihou	狮吼
-haishi	嗨氏
-jintian	津田
-kandao	砍到	# 砍刀 (real word) kept
-kandao	砍倒
-kandao	刊到
-wenti	吻替
-haiyou	嗨呦
-ruguo	入锅
-ruguo	辱国
-suoyi	缩衣	# 蓑衣 (real word) kept
-suoyi	索移
-suoyi	所译
-ziji	子鸡
+# (D1 reclassifications 2026-06-03 audit batch moved to weights.tsv
+#  direct delete + corpus_garbage_filter_v1.tsv — see commit log.
+#  Remaining entries are D2: real words / readings, just hidden from
+#  the typed buffer's top-1.)
+zhege	哲哥	# 网络昵称,边缘真用
+yige	一格	# "一格画面" 等量词组合
+yige	亿个	# "一亿个" 分解
+yige	毅哥	# 网络昵称,边缘真用
+tamen	塔门	# 塔之门 / 香港塔门岛
+meiyou	没油	# "没油了" 短语分解
+shihou	狮吼	# 真词(狮子吼),古汉语 / 佛教
+jintian	津田	# 日本姓氏(中日混排可能用)
+kandao	砍倒	# 砍倒(动补)真用法;砍刀单独是真词,另在 weights.tsv 保留
+wenti	吻替	# 影视圈"亲吻替身"术语
+ruguo	入锅	# 烹饪"入锅"真用
+ruguo	辱国	# 真词(政治色彩)
+suoyi	缩衣	# 缩衣节食 (成语分解)
+ziji	子鸡	# 童子鸡分解
