@@ -1085,6 +1085,75 @@ mod tests {
     }
 
     #[test]
+    fn basic_kana_short_buffer_beats_single_kanji() {
+        // User report 2026-06-03 ki: 記 / 紀 / 帰 / 起 / 気 etc. 日语
+        // single-kanji ranked above きキ basic kana for buffer `ki` —
+        // "ki 没有拼音,假名应该高分;常规假名短字符一定要比其他日语高".
+        //
+        // Phase C-2 fix: mechanical-kana tier band split 3 ways by
+        // buffer length.  1-2 chars (basic 50音 single syllable) → tier 1,
+        // beating nihongo single-kanji tier 2.  3-4 chars → tier 2.
+        // ≥ 5 chars → tier 4 (Chinese intent, mechanical kana noise).
+        //
+        // Invariant: basic kana (き / カ etc.) MUST rank above any
+        // nihongo single-kanji candidate for the same buffer.  pinyin /
+        // wubi candidates are allowed to rank above the kana (e.g. ka:
+        // 卡 pinyin leads).
+        let cases: &[(&str, &[&str])] = &[
+            // ki: no pinyin syllable; nihongo single-kanji crowd was
+            // burying きキ pre-fix.
+            ("ki", &["き", "キ"]),
+            // ka: pinyin 卡 leads (tier 1); か / カ must still beat
+            // 日 / 下 / 何 etc. single-kanji.
+            ("ka", &["か", "カ"]),
+        ];
+        // Detect nihongo single-kanji by sniffing the JP-only candidate
+        // set: any Han single char emitted in JapaneseOnly mode is a
+        // nihongo single-kanji.  In Mixed+jp the same Han chars come
+        // back from the merged candidate list; they MUST be ranked
+        // BELOW the basic kana.
+        for (buf, basic_kana_set) in cases {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::Mixed);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            e.set_japanese_enabled(true);
+            for b in buf.bytes() { let _ = e.handle_letter(b); }
+            let top: Vec<String> = e.candidates().iter().take(15)
+                .map(|c| c.word.clone()).collect();
+
+            // Collect known nihongo single-kanji words via JapaneseOnly.
+            let mut jp = CompositeEngine::new();
+            jp.set_mode(Mode::JapaneseOnly);
+            jp.set_auto_commit_policy(AutoCommitPolicy::Never);
+            jp.set_japanese_enabled(true);
+            for b in buf.bytes() { let _ = jp.handle_letter(b); }
+            let jp_singles: std::collections::HashSet<String> = jp.candidates()
+                .iter()
+                .filter(|c| c.word.chars().count() == 1)
+                .filter(|c| {
+                    let ch = c.word.chars().next().unwrap();
+                    ('\u{4E00}'..='\u{9FFF}').contains(&ch)
+                })
+                .map(|c| c.word.clone())
+                .collect();
+
+            for kana in *basic_kana_set {
+                let kana_idx = top.iter().position(|w| w == kana)
+                    .unwrap_or_else(|| panic!(
+                        "basic kana `{kana}` for `{buf}` must appear in top-15; \
+                         got top={top:?}"));
+                for (i, w) in top.iter().enumerate() {
+                    if i >= kana_idx { break; }
+                    assert!(!jp_singles.contains(w),
+                        "nihongo single-kanji `{w}` (#{i}) outranks basic kana \
+                         `{kana}` (#{kana_idx}) for `{buf}` — `常规假名短字符\
+                         一定要比其他日语高` invariant broken; top={top:?}");
+                }
+            }
+        }
+    }
+
+    #[test]
     fn tier_overlay_lifts_juti_juti_to_top() {
         // juti 具体 → tier 0 overrides the natural tier-1 + wubi
         // engine_offset advantage that 暗送秋波 had post-phase-2.

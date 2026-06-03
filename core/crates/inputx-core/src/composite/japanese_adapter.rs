@@ -415,34 +415,35 @@ impl JapaneseAdapter {
                 // reading` as KanaKind::Kanji + pure_kana, so they fall
                 // into the KanaKind::Kanji branch below and keep their
                 // tier 2 — they're not affected by this change.
-                // Mechanical kana buffer-length split: short buffers
-                // (≤ 4 chars like sai, mo, ka) are plausible JP intent
-                // — user often types `sai` wanting さい — so mechanical
-                // kana sits at tier 2 (cohabits with pinyin tier-2 single
-                // chars, still ceded to pinyin tier 1 via engine offset).
-                // Long buffers (≥ 5 chars like tuijian, kaopu, nihao,
-                // jieji) are almost certainly Chinese input — the
-                // mechanical kana rendering is just engine noise — so
-                // they get tier 4 (well below pinyin tier-2 phrase
-                // candidates).  The 4-char threshold mirrors inputx-
-                // nihongo's own `kana_freq` knee (engine.rs line 246
-                // sets kana_freq=100 for ≤2 chars / 30 for >2) — we
-                // widen the kana-is-plausible band to 4 for tier
-                // purposes because the user 2026-06-02 sai screenshot
-                // pinned さい to top-10 even at 3-char buffer.
-                let short_buffer_for_kana = self.engine.preedit().chars().count() <= 4;
+                // Mechanical kana buffer-length 3-band split:
+                //   1-2 chars (ka, ki, mo, sa — basic 50音 single
+                //     syllable) → tier 1.  These are unambiguous "user
+                //     wants the kana" cases, even when no pinyin syllable
+                //     overlaps (ki).  Coexists with dict basic kana
+                //     entries (も で を に etc.) which also land tier 1
+                //     via the KanaKind::Kanji single+pure_kana branch.
+                //   3-4 chars (sai → さい, kana → かな) → tier 2.
+                //     Possible JP word OR plausible kana intent;
+                //     cohabits with pinyin tier-2 single chars.
+                //   ≥ 5 chars (tuijian → ついじあん, kaopu → かおぷ,
+                //     nihao → にはお, jieji → 時へ時) → tier 4.
+                //     Buffer is almost certainly Chinese input; the
+                //     mechanical kana rendering is engine noise.
+                //
+                // User report 2026-06-03 ki: 記/起/気 etc. nihongo single
+                // kanji shouldn't outrank きキ — basic kana 50音 single
+                // syllable is invariant priority over single-kanji
+                // candidates ("常规假名短字符一定要比其他日语高").
+                let buf_len = self.engine.preedit().chars().count();
                 let tier_jp: u8 = if c.proximity_milli < 1000 {
                     7
                 } else {
                     match c.kind {
-                        // Mechanical romaji→kana rendering (engine.rs
-                        // `to_hiragana` / `to_katakana` fallback) — no
-                        // dict signal, must not lead pinyin/wubi real
-                        // candidates on long buffers.  See Phase C
-                        // 2026-06-03 comment above for full rationale.
-                        KanaKind::Hiragana | KanaKind::Katakana => {
-                            if short_buffer_for_kana { 2 } else { 4 }
-                        }
+                        KanaKind::Hiragana | KanaKind::Katakana => match buf_len {
+                            1 | 2 => 1,
+                            3 | 4 => 2,
+                            _     => 4,
+                        },
                         KanaKind::Kanji => {
                             let multi = c.word.chars().count() > 1;
                             let pure_kana = is_pure_kana(&c.word);
