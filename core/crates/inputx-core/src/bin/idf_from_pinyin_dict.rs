@@ -58,20 +58,24 @@ fn correction_for(word: &str, table: &[(String, i32)]) -> i32 {
         .unwrap_or(0)
 }
 
-// Build-time dict exclusions + additions live in TSV data files so
-// polish edits don't touch Rust code (per 2026-06-03 user directive
-// "no special list, never; data files are the per-entry hook").
-// `include_str!` makes cargo track them as build dependencies — edit
-// + `make polish-rebuild` is the entire polish loop.
+// Path-1 display filter — entries skipped when building the IDF
+// snapshot from `pinyin.dict`. They REMAIN in `pinyin.dict` (so K-best
+// composition, initials reverse-lookup, etc. still see them); only
+// the user-visible Path-1 ranking layer drops them.
+//
+// 2026-06-03 design call: per-(code, word) ADDITIONS live directly in
+// `weights.tsv` (the dict source of truth) — they need to be in
+// pinyin.dict anyway for reverse-lookup. EXCLUSIONS stay as a separate
+// overlay because deleting from `weights.tsv` also kills reverse-lookup
+// signals (e.g. removing (shen, 什) from weights.tsv breaks `wsm`
+// initials lookup of `为什么` via 什's "shen" reading), which is the
+// opposite of intent. See `tools/scoring/data/exclusions_v1.tsv`
+// header for the full rationale.
 const EXCLUSIONS_TSV: &str = include_str!(
     "../../../../../tools/scoring/data/exclusions_v1.tsv"
 );
-const ADDITIONS_TSV: &str = include_str!(
-    "../../../../../tools/scoring/data/additions_v1.tsv"
-);
 
-/// Parse `<code>\t<word>[\t# comment]` rows, skipping blank lines and
-/// comment-only lines. Trailing `# ...` columns are dropped.
+/// Parse `<code>\t<word>[\t# comment]` rows, skipping blanks + comments.
 fn parse_exclusions(src: &str) -> Vec<(String, String)> {
     let mut out = Vec::new();
     for raw in src.lines() {
@@ -87,31 +91,6 @@ fn parse_exclusions(src: &str) -> Vec<(String, String)> {
     }
     out
 }
-
-/// Parse `<code>\t<word>\t<freq>[\t# comment]` rows.
-fn parse_additions(src: &str) -> Vec<(String, String, u64)> {
-    let mut out = Vec::new();
-    for raw in src.lines() {
-        let line = raw.trim();
-        if line.is_empty() || line.starts_with('#') { continue; }
-        let mut parts = line.splitn(4, '\t');
-        let (Some(code), Some(word), Some(freq_s)) =
-            (parts.next(), parts.next(), parts.next()) else { continue };
-        let code = code.trim();
-        let word = word.trim();
-        // freq column may have trailing inline comment.
-        let freq_s = freq_s.split('\t').next().unwrap_or(freq_s).trim();
-        if code.is_empty() || word.is_empty() { continue; }
-        let Ok(freq) = freq_s.parse::<u64>() else { continue };
-        out.push((code.to_string(), word.to_string(), freq));
-    }
-    out
-}
-
-// (legacy `BAKED_EXCLUSIONS` / `BAKED_ADDITIONS` arrays retired
-// 2026-06-03 — entries live in `tools/scoring/data/exclusions_v1.tsv`
-// and `tools/scoring/data/additions_v1.tsv`, loaded via the
-// `EXCLUSIONS_TSV` / `ADDITIONS_TSV` constants above.)
 
 fn main() -> ExitCode {
     let mut output: Option<PathBuf> = None;
@@ -155,10 +134,9 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     let entries = dict.prefix_with_freq("");
     let entry_count = entries.len();
     let exclusions = parse_exclusions(EXCLUSIONS_TSV);
-    let additions = parse_additions(ADDITIONS_TSV);
     let prior_corrections = parse_prior_corrections(PRIOR_CORRECTIONS_TSV);
     // corpus_total = Σ raw_freq across the entries actually written
-    // (source minus exclusions plus additions). Runtime
+    // (source minus the Path-1 display filter). Runtime
     // `pinyin_corpus_total()` scans the .idf and sees the same rows.
     let excluded_freq: u64 = entries
         .iter()
@@ -167,11 +145,10 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         })
         .map(|(_, _, f)| *f)
         .sum();
-    let added_freq: u64 = additions.iter().map(|(_, _, f)| *f).sum();
     let source_total: u64 = entries.iter().map(|(_, _, f)| *f).sum();
-    let total_corpus: u64 = source_total - excluded_freq + added_freq;
+    let total_corpus: u64 = source_total - excluded_freq;
     eprintln!(
-        "[idf-from-pinyin-dict] loaded {entry_count} entries, source raw_freq sum = {source_total}, post-edit corpus total = {total_corpus}"
+        "[idf-from-pinyin-dict] loaded {entry_count} entries, source raw_freq sum = {source_total}, post-filter corpus total = {total_corpus}"
     );
 
     if let Some(parent) = out_path.parent() {
@@ -180,37 +157,22 @@ fn run(out_path: &Path) -> std::io::Result<()> {
 
     let mut builder = IdfBuilder::new(EngineKind::Pinyin);
     let mut baked_count = 0usize;
-    let mut excluded_count = 0usize;
+    let mut filtered_count = 0usize;
     for (code, word, raw_freq) in &entries {
-        if exclusions
-            .iter()
-            .any(|(ex_code, ex_word)| ex_code == code && ex_word == word)
-        {
-            excluded_count += 1;
+        if exclusions.iter().any(|(ec, ew)| ec == code && ew == word) {
+            filtered_count += 1;
             continue;
         }
         // v1.4.7 sub-phase A5: prior_correction's Q4 boost is baked
-        // into `log_prior_q4` at snapshot build time. The merge.rs
-        // `correct` lambda + composite/prior_correction.rs retire in
-        // the same step — corrections live in the .idf, applied
-        // uniformly via the cement IdfReader path.
-        //
-        // Math safety under the Q4-log additive sort key: the
-        // correction is now additive in the same log space as the
-        // base prior (no base-vs-freq asymmetry that the v1.4.6 B1
-        // attempt tripped over). raw_freq is left UNBOOSTED — it's
-        // the lossless tiebreaker for same-bucket entries, not part
-        // of the prior signal; boosting it would corrupt the
-        // tiebreaker semantics.
+        // into `log_prior_q4` at snapshot build time. raw_freq is
+        // left UNBOOSTED — it's the lossless tiebreaker for same-
+        // bucket entries, not part of the prior signal.
         let boost = correction_for(word, &prior_corrections);
         if boost != 0 {
             baked_count += 1;
         }
         let log_prior_q4 = log_prob_corpus_from_freq(*raw_freq, total_corpus) + boost;
         let log_prior_i16 = clamp_to_i16(log_prior_q4);
-        // raw_freq saturates into u32 — corpus frequencies don't
-        // reasonably exceed 2^32-1; clamp defensively in case a future
-        // pipeline emits unscaled bigram-style counts.
         let raw_freq_u32 = (*raw_freq).min(u32::MAX as u64) as u32;
         builder.add_entry(
             code,
@@ -226,30 +188,8 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         prior_corrections.len()
     );
     eprintln!(
-        "[idf-from-pinyin-dict] excluded {excluded_count} polluted entries (table size: {})",
+        "[idf-from-pinyin-dict] Path-1 display filter: {filtered_count} entries skipped (table size: {})",
         exclusions.len()
-    );
-
-    // Build-time dict additions: inject synthetic phrase entries
-    // for polish-log cases the upstream dict pipeline does not
-    // capture natively. Path-1 exact-match will surface these and
-    // gate off Path-5 K-best composition pollution.
-    for (code, word, raw_freq) in &additions {
-        let log_prior_q4 = log_prob_corpus_from_freq(*raw_freq, total_corpus);
-        let log_prior_i16 = clamp_to_i16(log_prior_q4);
-        let raw_freq_u32 = (*raw_freq).min(u32::MAX as u64) as u32;
-        builder.add_entry(
-            code,
-            word,
-            log_prior_i16,
-            raw_freq_u32,
-            MatchType::Exact,
-            EntryFlags::default(),
-        );
-    }
-    eprintln!(
-        "[idf-from-pinyin-dict] baked dict additions: {} entries",
-        additions.len()
     );
 
     eprintln!(
@@ -257,7 +197,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         builder.pending_count(),
         out_path.display()
     );
-    let final_count = entry_count - excluded_count + additions.len();
+    let final_count = entry_count - filtered_count;
     let sha = builder.build(out_path)?;
     let sha_hex: String = sha.iter().map(|b| format!("{b:02x}")).collect();
     let size = std::fs::metadata(out_path)?.len();
