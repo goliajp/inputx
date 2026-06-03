@@ -42,14 +42,13 @@ liangle	两肋
 # entry untouched (they're under different codes).
 jile	极了
 
-# 2026-06-03 user polish-log: `cipin` surfaced 次贫 at #3.
-# "次贫" isn't an established Chinese phrase — jieba sub-word noise
-# (次 + 贫). User: "次贫不应该存在".
-cipin	次贫
+# (cipin, 次贫) reclassified D1 2026-06-03 — user confirmed "次贫
+# 不存在", removed from weights.tsv directly instead.
 
 # 2026-06-03 user polish-log: `ciping` surfaced 茨坪 at #1.
 # 茨坪 is an obscure place name (a town in Jinggangshan, Jiangxi).
-# User: "茨坪是什么？如果不能解释也不应该存在".
+# Real word per geographic record; kept in dict for completeness,
+# only Path-1 filtered.
 ciping	茨坪
 
 # 2026-06-03 80-buffer sweep — pinyin secondary-reading pollution
@@ -78,7 +77,8 @@ yige	亿个
 yige	毅哥
 yige	一歌
 yige	翼各
-keyi	可意
+# (keyi, 可意) reclassified D1 2026-06-03 — user confirmed "可意
+# 不存在", removed from weights.tsv directly instead.
 keyi	课以
 tamen	塔门
 meiyou	没油
