@@ -28,9 +28,9 @@ use inputx_scoring::{log_prob_corpus_from_freq, MatchType};
 //
 // 2026-06-03 cleanup: data externalized to TSV per user directive
 // "no special list, never". Per-entry boosts live in
-// `tools/scoring/data/prior_corrections_v1.tsv`.
+// `tools/scoring/data/polish/prior_corrections_v1.tsv`.
 const PRIOR_CORRECTIONS_TSV: &str = include_str!(
-    "../../../../../tools/scoring/data/prior_corrections_v1.tsv"
+    "../../../../../tools/scoring/data/polish/prior_corrections_v1.tsv"
 );
 
 /// Parse `<word>\t<boost_q4>[\t# comment]` rows.
@@ -69,10 +69,10 @@ fn correction_for(word: &str, table: &[(String, i32)]) -> i32 {
 // overlay because deleting from `weights.tsv` also kills reverse-lookup
 // signals (e.g. removing (shen, 什) from weights.tsv breaks `wsm`
 // initials lookup of `为什么` via 什's "shen" reading), which is the
-// opposite of intent. See `tools/scoring/data/exclusions_v1.tsv`
+// opposite of intent. See `tools/scoring/data/polish/exclusions_v1.tsv`
 // header for the full rationale.
 const EXCLUSIONS_TSV: &str = include_str!(
-    "../../../../../tools/scoring/data/exclusions_v1.tsv"
+    "../../../../../tools/scoring/data/polish/exclusions_v1.tsv"
 );
 
 /// Parse `<code>\t<word>[\t# comment]` rows, skipping blanks + comments.

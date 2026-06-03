@@ -276,10 +276,10 @@ impl JapaneseEngine {
 // can share the single source of truth.
 
 const SENTENCE_SUFFIXES_TSV: &str = include_str!(
-    "../../../../tools/scoring/data/jp_sentence_suffixes_v1.tsv"
+    "../data/jp_sentence_suffixes_v1.tsv"
 );
 const KANJI_SUFFIXES_TSV: &str = include_str!(
-    "../../../../tools/scoring/data/jp_kanji_suffixes_v1.tsv"
+    "../data/jp_kanji_suffixes_v1.tsv"
 );
 
 /// Parse `<a>\t<b>[\t# comment]` rows, skipping blank lines and
