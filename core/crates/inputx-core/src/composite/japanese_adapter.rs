@@ -448,30 +448,39 @@ impl JapaneseAdapter {
                             let multi = c.word.chars().count() > 1;
                             let pure_kana = is_pure_kana(&c.word);
                             match (multi, pure_kana) {
-                                // Real multi-char kanji jukugo (新宿,
-                                // 中国 etc.) — top-confidence dict hit.
-                                (true,  false) => 1,
+                                // Multi-char real kanji jukugo (新宿,
+                                // 大学, 自主 etc.) — Phase D 2026-06-03:
+                                // route through nihongo z-score quantile
+                                // so low-freq jukugo (自主 freq=26,
+                                // z=-0.65) sinks to tier 5 instead of
+                                // unconditional tier 1.  This respects
+                                // the user directive "日语整体应该偏低,
+                                // 张得相对开" — Chinese phrases of
+                                // comparable corpus prominence win
+                                // mixed-mode排序.
+                                (true,  false) => inputx_scoring::nihongo_tier_from_freq(c.freq as u64),
                                 // Pure-kana multi-char "jukugo" (えっ,
                                 // ありがとう) — kana 感叹/寒暄 in the
                                 // hand TSV, not real 熟语.  Demoted to
-                                // single-kanji tier per user 2026-05-26
+                                // tier 2 per user 2026-05-26
                                 // ("えっ at #3 for single `e` is wrong").
+                                // FIXED tier 2 (not via quantile) —
+                                // this is a non-freq attestation.
                                 (true,  true)  => 2,
                                 // Single basic kana from dict (も で
                                 // を に — jukugo TSV entries of one
                                 // char pure_kana).  Phase C 2026-06-03:
-                                // promoted from tier 2 to tier 1 so
-                                // typing `mo` surfaces も before the
-                                // long tail of pinyin tier-2 mo-rhymes.
-                                // Mechanical kana (also single-char pure
-                                // kana from a romaji buffer) stays at
-                                // tier 4 above — only DICT entries get
-                                // tier 1.
+                                // FIXED tier 1 (user attestation —
+                                // basic kana 在很高级).
                                 (false, true)  => 1,
                                 // Single kanji (a kanji char emitted by
-                                // kanji::lookup_by_reading — `e` →
-                                // 似/絵 etc.).
-                                (false, false) => 2,
+                                // kanji::lookup_by_reading — 気 起 記
+                                // etc.) — Phase D 2026-06-03: route
+                                // through nihongo quantile.  Median
+                                // single-kanji (freq ≈ 50, z ≈ 0)
+                                // lands tier 4; rare-Han single kanji
+                                // (low freq) sinks to tier 5-6.
+                                (false, false) => inputx_scoring::nihongo_tier_from_freq(c.freq as u64),
                             }
                         }
                     }
