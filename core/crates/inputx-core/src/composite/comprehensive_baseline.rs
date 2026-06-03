@@ -1437,6 +1437,13 @@ mod tests {
             // logged to corpus_garbage_filter_v1.tsv (so future
             // corpus-digest can't re-admit via fold).
             ("mo", &["万"]),
+            // User polish-log 2026-06-03: "yichu 一出 不应该存在,
+            // 一处 也不应该高排序甚至可以没有, 一触 也是一样的问题" —
+            // Phase E bigram gate 在数词起头 phrase 上失效 ("一"
+            // 高频字让所有邻接 bigram > 25k floor — 真词 一团/一夜
+            // 跟 noise 一出/一处/一触 区分不开).  Per §5.5 acceptable
+            // per-case D2: exclusions_v1.tsv hide Path-1.
+            ("yichu", &["一出", "一处", "一触"]),
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
