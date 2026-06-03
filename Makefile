@@ -37,14 +37,12 @@ help:
 #   4. Rebuild every .idf snapshot from the new dict.
 #   5. Run baseline tests as a gate.
 polish-rebuild:
-	@echo "[polish] (1/3) rebuild pinyin.dict from committed weights.tsv + overlays"
-	@# DO NOT rebuild weights.tsv here. v1.11 reproducibility audit
-	@# (2026-06-01) found `pinyin-build-weights` is non-deterministic
-	@# (re-running with no manifest changes produces ~270k row diff
-	@# vs committed). Until that's fixed, the committed weights.tsv
-	@# IS the source of truth for polish — only overlays + dict +
-	@# .idf get rebuilt. Use `make rebuild-weights` explicitly when
-	@# corpus manifest changes.
+	@echo "[polish] (1/3) rebuild pinyin.dict from library.tsv + overlays"
+	@# 2026-06-03 治理: library.tsv is the dict source of truth. Hand
+	@# edits (Class A 加词 / D1 删错条) propagate via this chain. The
+	@# pre-治理 `make rebuild-weights` regen pipeline is RETIRED — when
+	@# future upstream corpora need ingesting, that's the corpus-digest
+	@# tool's job (TBD), not this target.
 	cd core && cargo run --features tools --release --bin pinyin-build-dict
 	@echo "[polish] (2/3) rebuild .idf snapshots"
 	cd core && cargo run --release --bin idf-from-pinyin-dict
@@ -54,16 +52,6 @@ polish-rebuild:
 	@echo "[polish] (3/3) baseline gate"
 	$(MAKE) baseline
 	@echo "[polish] ✓ rebuild complete + baseline green"
-
-# Explicit weights rebuild — corpus manifest changed, or audit run.
-# Expect a large weights.tsv diff vs committed (build_weights is
-# non-deterministic across runs); review before committing.
-rebuild-weights:
-	@echo "[rebuild-weights] regenerating from corpus + manifest"
-	cd core && cargo run --features tools --release --bin pinyin-build-weights
-	cd core && cargo run --features tools --release --bin wubi-build-weights
-	@echo "[rebuild-weights] WARN: weights.tsv likely differs from committed; review diff"
-	@echo "[rebuild-weights] then run: make polish-rebuild"
 
 baseline:
 	cd core && cargo test -p inputx-scoring --lib --release 2>&1 | tail -3
