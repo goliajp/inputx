@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use inputx_dict_format::{EngineKind, EntryFlags, IdfBuilder};
-use inputx_nihongo::kanji::KANJI_TABLE;
+use inputx_nihongo::kanji::all_entries as kanji_entries;
 use inputx_scoring::{log_prob_corpus_from_freq, MatchType};
 
 fn main() -> ExitCode {
@@ -48,49 +48,38 @@ fn main() -> ExitCode {
 }
 
 fn run(out_path: &Path) -> std::io::Result<()> {
-    eprintln!("[idf-from-nihongo-kanji] loading KANJI_TABLE ...");
-    let mut total_pairs = 0usize;
+    eprintln!("[idf-from-nihongo-kanji] loading library kanji entries ...");
+    let entries = kanji_entries();
     if let Some(parent) = out_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    // v1.7.4: log_prior is now a real log-probability —
-    // `Q4·ln((1+freq)/(1+total))`. The total denominator is `Σ raw_freq`
-    // across actually-written entries (each (kanji × reading) row
-    // contributes `e.freq`, so a multi-reading kanji counts `freq`
-    // once per reading, matching what the .idf rows will sum to).
-    let total_corpus: u64 = KANJI_TABLE
-        .iter()
-        .map(|e| (e.readings.len() as u64) * (e.freq as u64))
-        .sum();
+    // Post-治理: each library row is already one (reading, kanji, freq)
+    // tuple — the legacy "1 kanji with N readings" struct has been
+    // flattened upstream. So the corpus total is just Σ freq over rows,
+    // matching the .idf rows we're about to write.
+    let total_corpus: u64 = entries.iter().map(|e| e.freq as u64).sum();
     eprintln!(
-        "[idf-from-nihongo-kanji] corpus total raw_freq (Σ over rows) = {total_corpus}"
+        "[idf-from-nihongo-kanji] corpus total raw_freq = {total_corpus}"
     );
     let mut builder = IdfBuilder::new(EngineKind::NihongoKanji);
-    // Pre-allocate a single owned buffer for the kanji char-as-string.
-    // `char::encode_utf8` writes into a 4-byte stack buffer; we then
-    // copy into a `String` to hand to `add_entry`. Alternative: keep
-    // the per-reading `String` clones inside the loop body.
-    for e in KANJI_TABLE {
+    let mut total_pairs = 0usize;
+    for e in entries {
         let mut buf = [0u8; 4];
         let kanji_str = e.kanji.encode_utf8(&mut buf).to_string();
         let log_q4 = log_prob_corpus_from_freq(e.freq as u64, total_corpus);
         let log_prior_i16 = log_q4.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
-        for reading in e.readings {
-            builder.add_entry(
-                reading,
-                &kanji_str,
-                log_prior_i16,
-                e.freq,
-                MatchType::Exact,
-                EntryFlags::default(),
-            );
-            total_pairs += 1;
-        }
+        builder.add_entry(
+            e.reading,
+            &kanji_str,
+            log_prior_i16,
+            e.freq,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
+        total_pairs += 1;
     }
     eprintln!(
-        "[idf-from-nihongo-kanji] {} kanji × multi-reading = {} pairs",
-        KANJI_TABLE.len(),
-        total_pairs
+        "[idf-from-nihongo-kanji] {total_pairs} (reading, kanji) rows written"
     );
     let sha = builder.build(out_path)?;
     let sha_hex: String = sha.iter().map(|b| format!("{b:02x}")).collect();

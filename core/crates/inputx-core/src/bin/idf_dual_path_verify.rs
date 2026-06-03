@@ -25,8 +25,8 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use inputx_dict_format::IdfReader;
-use inputx_nihongo::jukugo::JUKUGO_TABLE;
-use inputx_nihongo::kanji::KANJI_TABLE;
+use inputx_nihongo::jukugo::all_entries as jukugo_entries;
+use inputx_nihongo::kanji::all_entries as kanji_entries;
 use inputx_pinyin::PinyinDict;
 use inputx_scoring::log_prior_from_freq;
 use inputx_wubi::WubiDict;
@@ -136,7 +136,7 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let jukugo_lookup: std::collections::HashMap<(String, String), u64> = JUKUGO_TABLE
+    let jukugo_lookup: std::collections::HashMap<(String, String), u64> = jukugo_entries()
         .iter()
         .map(|e| ((e.reading.to_string(), e.kanji.to_string()), e.freq as u64))
         .collect();
@@ -164,16 +164,14 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    // Build (reading, kanji-as-string) → freq lookup. Each KANJI_TABLE
-    // entry expands into N pairs (one per reading).
+    // Build (reading, kanji-as-string) → freq lookup. Post-治理 each
+    // library row is already one flat (reading, kanji) tuple.
     let mut kanji_lookup: std::collections::HashMap<(String, String), u64> =
         std::collections::HashMap::new();
-    for e in KANJI_TABLE {
+    for e in kanji_entries() {
         let mut buf = [0u8; 4];
         let k = e.kanji.encode_utf8(&mut buf).to_string();
-        for r in e.readings {
-            kanji_lookup.insert((r.to_string(), k.clone()), e.freq as u64);
-        }
+        kanji_lookup.insert((e.reading.to_string(), k.clone()), e.freq as u64);
     }
     let mismatches = verify_engine(&reader, SAMPLE_COUNT, |code, word| {
         kanji_lookup

@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use inputx_dict_format::{EngineKind, EntryFlags, IdfBuilder};
-use inputx_nihongo::jukugo::JUKUGO_TABLE;
+use inputx_nihongo::jukugo::all_entries as jukugo_entries;
 use inputx_scoring::{log_prob_corpus_from_freq, MatchType};
 
 fn main() -> ExitCode {
@@ -48,21 +48,19 @@ fn main() -> ExitCode {
 }
 
 fn run(out_path: &Path) -> std::io::Result<()> {
-    eprintln!("[idf-from-nihongo-jukugo] loading JUKUGO_TABLE ...");
-    let entry_count = JUKUGO_TABLE.len();
+    eprintln!("[idf-from-nihongo-jukugo] loading library jukugo entries ...");
+    let entries = jukugo_entries();
+    let entry_count = entries.len();
     eprintln!("[idf-from-nihongo-jukugo] {entry_count} entries");
     if let Some(parent) = out_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    // v1.7.4: real log-probability (Q4·ln((1+freq)/(1+total))). The
-    // total is Σ raw_freq over the rows we're about to write — one per
-    // JUKUGO_TABLE entry, so it sums the table directly.
-    let total_corpus: u64 = JUKUGO_TABLE.iter().map(|e| e.freq as u64).sum();
+    let total_corpus: u64 = entries.iter().map(|e| e.freq as u64).sum();
     eprintln!(
         "[idf-from-nihongo-jukugo] corpus total raw_freq = {total_corpus}"
     );
     let mut builder = IdfBuilder::new(EngineKind::NihongoJukugo);
-    for e in JUKUGO_TABLE {
+    for e in entries {
         let log_q4 = log_prob_corpus_from_freq(e.freq as u64, total_corpus);
         let log_prior_i16 = log_q4.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
         builder.add_entry(
