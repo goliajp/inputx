@@ -575,7 +575,12 @@ mod tests {
             "women", "tamen", "nihao", "zhongguo", "jintian",
             "xianzai", "shijian", "wenti", "dongxi", "difang",
             // Three-syllable.
-            "buguoshi", "fenkuaikai", "shihaohao",
+            "buguoshi", "shihaohao",
+            // `fenkuaikai` removed 2026-06-03 — not a real Chinese phrase;
+            // previously composed as 分会开 via 会's secondary (kuai)
+            // reading, which has been retired in exclusions_v1.tsv. Same
+            // pattern as nihaomawojiao below: empty-result is the correct
+            // behavior for non-phrase buffers.
             // Long pinyin (Viterbi territory). Each kept buffer
             // forms a real Chinese composition that passes the
             // ceil((N-1)/2) bigram-density gate.
