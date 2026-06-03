@@ -1,0 +1,34 @@
+# Corpus garbage interception filter — `(code, word)` pairs that
+# must NOT enter `weights.tsv` when regenerating from upstream
+# corpora.
+#
+# Purpose (long-term design call 2026-06-03 per user directive
+# "我不认为我们的源码中还应该存在有别人来源命名的 corpus，导入过程
+# 应该是落在'吸收'，在那时候就要做好去重、解决冲突以及拦截垃圾"):
+# upstream corpora (jieba phrase tables, SUBTLEX, mozc, etc.) ship
+# with noise that polish-log has flagged as wrong. Instead of
+# letting that noise re-enter `weights.tsv` every time
+# `pinyin-build-weights` regenerates from corpora, this file holds
+# the running list of "we already judged this garbage, do not
+# re-admit". The absorption pipeline (not yet wired) will consult
+# this filter before writing a row.
+#
+# This file does NOT participate in the polish-rebuild chain — it
+# is consumed only at full corpus regen time. Today, when a polish
+# action does a D1 delete (remove the row from weights.tsv
+# directly), we ALSO append a row here. The dual-record keeps the
+# delete idempotent across future regens.
+#
+# Format:
+#   <code>\t<word>\t<reason_date>[\t# longer note]
+#
+# Status: PLACEHOLDER 2026-06-03. The pinyin-build-weights wiring
+# to consult this file is corpus-治理 phase work, scheduled for
+# the next regen cycle. For now this is an audit log of D1
+# decisions; populating it preserves the intent.
+
+# 2026-06-03 user: "次贫 可意 不存在" — both jieba sub-word noise
+# (literal char concat, not real Chinese words). Deleted from
+# weights.tsv at commit `2a65806`.
+cipin	次贫	2026-06-03
+keyi	可意	2026-06-03
