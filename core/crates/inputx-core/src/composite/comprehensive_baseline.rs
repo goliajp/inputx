@@ -316,6 +316,10 @@ mod tests {
             // tech term, was missing from library entirely).  Added as
             // polish row freq=40000 (peer with 技术/设计 tech-term band).
             ("chijiuhua", "持久化"),
+            // Polish-log 2026-06-03: maodian → 锚点 (anchor / anchor
+            // link — tech term).  Added as polish row freq=35000 (中高频,
+            // 跟 距离/技术 同 tier 2 band).
+            ("maodian", "锚点"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
