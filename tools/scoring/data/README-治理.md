@@ -7,8 +7,11 @@ for the full design rationale.
 
 ```
 tools/scoring/data/
-├── digest_log.toml             ← append-only audit of every "eat" event
-│                                  (corpus-digest tool's lineage record)
+├── digest_log.toml             ← append-only event history
+│                                  ("what happened, when")
+├── source_registry.toml        ← mutable per-source current state
+│                                  ("what version is the latest we know")
+│                                  drives automated feeding workflows
 │
 ├── polish/                     ← polish-mutable data (the 5 main surfaces)
 │   ├── exclusions_v1.tsv         (D2 Path-1 display filter)
