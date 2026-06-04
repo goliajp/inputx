@@ -329,6 +329,9 @@ mod tests {
             // tier 2/3/3, below mechanical kana ふづ/フヅ tier 2 (4-char
             // band).  Boosted to 55k/52k/50k → all tier 1, above JP.
             ("fudu", "幅度"),
+            // Polish-log 2026-06-04: "样式要大于央视这个专有名词一点点".
+            // base 央视 24744 > 样式 23460; quickfix 样式 → 27000.
+            ("yangshi", "样式"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
