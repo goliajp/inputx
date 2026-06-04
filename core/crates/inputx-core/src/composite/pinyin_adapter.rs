@@ -681,16 +681,33 @@ impl PinyinAdapter {
                     // forced segmentation (not a dict word).
                     let c = exact_components.get(w).copied().unwrap_or_else(|| {
                         let mt = inputx_scoring::MatchType::Composed { bigram_links: 1 };
-                        // WU-ψ: composed-sentence Viterbi (whole-buffer
-                        // segmentation, not coinciding with a dict
-                        // word) → tier 1, so a real Chinese sentence
-                        // (nihaomawojiao→你好吗我叫) wins #0 over
-                        // mechanical JP renderings of the same buffer.
-                        // Within-tier ordering by likelihood prevents
-                        // forced junk segmentations from out-ranking
-                        // real exact entries.
+                        // Phase F (2026-06-04): composed-Viterbi
+                        // segmentations that are NOT themselves a
+                        // dict word → tier 5 (less_common).
+                        //
+                        // User report 2026-06-04: "为什么组合词评分会
+                        // 这么高，这个评分当时做的不对，我还想不到
+                        // 任何一个组合词需要高分的，都是作为填充物的".
+                        //
+                        // Pre-Phase-F (WU-ψ): with_tier(1) so a real
+                        // Chinese sentence (nihaomawojiao → 你好吗我叫)
+                        // wins #0 over mechanical JP renderings.  But
+                        // that same tier 1 let 2-char jieba sub-words
+                        // (changshi → 长时 via 长+时 bigram, shoumai →
+                        // 收卖, etc.) pre-empt real dict tier-2
+                        // phrases (changshi → 尝试 freq 35k z=2.0).
+                        //
+                        // Post Phase C-3 (2026-06-04), 5+ char JP
+                        // mechanical kana is tier 4 — Composed at
+                        // tier 5 still surfaces in PinyinOnly top-10
+                        // (no other engine to compete), and in
+                        // Mixed+JP only when no dict candidate exists
+                        // (sparse pool).  Exact dict words (你好/中国
+                        // /用不了 ARE in library via the coinciding-
+                        // exact branch above) keep their natural
+                        // z-score tier.
                         super::merge::ScoreComponents::three_axis(pinyin_floor, to_log_q4(s), mt)
-                            .with_tier(1)
+                            .with_tier(5)
                     });
                     (s, Some(c))
                 } else if is_fallback {
