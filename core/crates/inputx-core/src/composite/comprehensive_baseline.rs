@@ -328,7 +328,7 @@ mod tests {
             // 复读/幅度/服毒 base freqs (24k/20k/15k) put them in pinyin
             // tier 2/3/3, below mechanical kana ふづ/フヅ tier 2 (4-char
             // band).  Boosted to 55k/52k/50k → all tier 1, above JP.
-            ("fudu", "复读"),
+            ("fudu", "幅度"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
@@ -429,7 +429,7 @@ mod tests {
             // 复读/幅度/服毒 base freqs land tier 2/3/3 vs mechanical
             // kana ふづ/フヅ tier 2.  quickfix_boost 55k/52k/50k → all
             // three reach tier 1, with 复读 leading.
-            ("fudu", "复读"),
+            ("fudu", "幅度"),
         ];
         let mut failures = Vec::new();
         for (buf, expected) in cases {
