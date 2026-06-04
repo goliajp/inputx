@@ -438,9 +438,9 @@ mod tests {
             // 日语不应该在正常的中频拼音前面".  4-char Chinese-shaped
             // buffers (2-syllable CV+CV) are overwhelmingly Chinese
             // intent; mechanical kana ツィ/つぃ now sits at tier 5
-            // (less_common) so even mid-freq pinyin (z≥0.3 → tier 3)
-            // outranks.  土里 freq=19623 z=1.18 tier 3 → leads.
-            ("tuli", "土里"),
+            // (less_common).  After D1 of 土里/图里/土粒 (jieba noise),
+            // 图利 (freq=9843 z=0.18 tier 4) leads tier 5 JP.
+            ("tuli", "图利"),
         ];
         let mut failures = Vec::new();
         for (buf, expected) in cases {
@@ -1506,6 +1506,11 @@ mod tests {
             // jiàn+chí, jieba/corpus noise.  D1 deleted from library.tsv
             // + logged to corpus_garbage_filter_v1.tsv.
             ("jianchi", &["剑持"]),
+            // User polish-log 2026-06-04: "tuli 埋在土里这时候土里才有点
+            // 意义" — 土里 / 图里 / 土粒 are jieba sub-word noise (only
+            // meaningful inside compounds like 埋在土里). D1 deleted
+            // from library.tsv + logged to corpus_garbage_filter_v1.
+            ("tuli", &["土里", "图里", "土粒"]),
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
