@@ -1525,6 +1525,15 @@ mod tests {
             // meaningful inside compounds like 埋在土里). D1 deleted
             // from library.tsv + logged to corpus_garbage_filter_v1.
             ("tuli", &["土里", "图里", "土粒"]),
+            // User polish-log 2026-06-04 Phase H: "tsuitachi 这里面怎么
+            // 还会有这么多中文,这是怎么命中的".  9-char 日语ローマ字
+            // 一日 was triggering Path 1c 2-consonant initials reverse-
+            // lookup on `ts`, surfacing 调试/推送/通缩/退市/听说/同时/
+            // 同事/天上/天生 etc.  Phase H caps Path 1c at buffer.len()
+            // ≤5 (legitimate typo range); long buffers no longer
+            // false-trigger initials shortcut.
+            ("tsuitachi", &["调试", "推送", "通缩", "退市", "听说",
+                            "同时", "同事", "天上", "天生"]),
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
