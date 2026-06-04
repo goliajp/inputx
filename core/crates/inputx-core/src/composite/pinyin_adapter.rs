@@ -1183,8 +1183,18 @@ impl PinyinAdapter {
         // clearly-wubi-shaped input like `xlab` (wubi 细节) to get
         // demoted below speculative xl-initials pinyin matches (向量
         // etc.). User-reported 2026-05-24.
+        // Phase H (2026-06-04): cap buffer length.  Pre-fix `tsuitachi`
+        // (9-char 日語ローマ字 一日=ついたち) took consonant prefix `ts`
+        // and reverse-looked-up every t-s initials Chinese phrase (调试 /
+        // 推送 / 通缩 / 退市 ...) — user: "这里面怎么还会有这么多中文,
+        // 这是怎么命中的".  Path 1c is meant ONLY for missing-vowel
+        // typos with 2-consonant prefix (pyin → 拼音); those are always
+        // 4-5 chars total.  Long buffers are日语ローマ字, full pinyin
+        // phrase composed of more syllables, or some other non-typo
+        // input — never legitimate consonant-cluster typos.
         if !self.has_non_speculative_candidate
             && self.buffer.len() >= 4
+            && self.buffer.len() <= 5
             && !self.engine.dict().prefix_exists(&self.buffer)
         {
             let consonant_prefix: String = self.buffer.chars()
