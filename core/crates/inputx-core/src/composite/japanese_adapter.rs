@@ -422,13 +422,32 @@ impl JapaneseAdapter {
                 //     overlaps (ki).  Coexists with dict basic kana
                 //     entries (も で を に etc.) which also land tier 1
                 //     via the KanaKind::Kanji single+pure_kana branch.
-                //   3-4 chars (sai → さい, kana → かな) → tier 2.
-                //     Possible JP word OR plausible kana intent;
-                //     cohabits with pinyin tier-2 single chars.
+                //   3 chars (sai → さい, kana → かな) → tier 2.
+                //     Genuinely ambiguous between JP word and Chinese
+                //     pinyin (ka=卡/か, sai=塞/さい); cohabits with
+                //     pinyin tier-2 single chars.
+                //   4 chars (fudu → ふづ, tuli → ツィ) → tier 5.
+                //     2-syllable Chinese pinyin shape (CV+CV); buffer
+                //     is overwhelmingly Chinese intent.  Demote to tier
+                //     5 so mid-freq pinyin (z≥0.3 → tier 3) outranks
+                //     mechanical kana noise.
                 //   ≥ 5 chars (tuijian → ついじあん, kaopu → かおぷ,
-                //     nihao → にはお, jieji → 時へ時) → tier 4.
-                //     Buffer is almost certainly Chinese input; the
-                //     mechanical kana rendering is engine noise.
+                //     kakarimasu → かかります) → tier 4.
+                //     Long buffers ARE typically Chinese (3+ syllable
+                //     compounds), but Phase E forced-segmentation gate
+                //     can leave Chinese K-best noise like 下か吏ます
+                //     (Path 1 char-mix tier 1) on the table — tier 4
+                //     mechanical kana suppresses it.
+                //
+                // User report 2026-06-04: "tuli/fudu/maizai 这些日语
+                // 不应该在正常中频拼音前面" — recurring complaint on
+                // 4-char Chinese-shaped buffers.  Phase C 2026-06-03
+                // had `3-4 chars → tier 2` which left mid-freq pinyin
+                // (z<1.3 → tier 3+) buried under mechanical kana.
+                // Phase C-3 2026-06-04 splits 3 ↔ 4 ↔ 5+ to push
+                // 4-char into tier 5 (less_common bucket): genuinely
+                // Chinese buffers always lead, basic kana single-syll
+                // (tier 1) still surfaces for top-10 JP visibility.
                 //
                 // User report 2026-06-03 ki: 記/起/気 etc. nihongo single
                 // kanji shouldn't outrank きキ — basic kana 50音 single
@@ -441,7 +460,8 @@ impl JapaneseAdapter {
                     match c.kind {
                         KanaKind::Hiragana | KanaKind::Katakana => match buf_len {
                             1 | 2 => 1,
-                            3 | 4 => 2,
+                            3     => 2,
+                            4     => 5,
                             _     => 4,
                         },
                         KanaKind::Kanji => {

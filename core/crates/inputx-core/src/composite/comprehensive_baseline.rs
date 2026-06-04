@@ -433,6 +433,14 @@ mod tests {
             // kana ふづ/フヅ tier 2.  quickfix_boost 55k/52k/50k → all
             // three reach tier 1, with 复读 leading.
             ("fudu", "幅度"),
+            // Polish-log 2026-06-04 Phase C-3 framework fix: 4-char
+            // mechanical kana band tier 2 → tier 5.  User: "tuli 这些
+            // 日语不应该在正常的中频拼音前面".  4-char Chinese-shaped
+            // buffers (2-syllable CV+CV) are overwhelmingly Chinese
+            // intent; mechanical kana ツィ/つぃ now sits at tier 5
+            // (less_common) so even mid-freq pinyin (z≥0.3 → tier 3)
+            // outranks.  土里 freq=19623 z=1.18 tier 3 → leads.
+            ("tuli", "土里"),
         ];
         let mut failures = Vec::new();
         for (buf, expected) in cases {
