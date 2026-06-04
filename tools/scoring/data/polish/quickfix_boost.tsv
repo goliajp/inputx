@@ -49,6 +49,9 @@ cipin	词频	10000	# user pick over 疵品 | base=6824 peer=疵品 7836 — push
 xian	现	55000	# user 2026-06-03: 多音字 见 (jiàn) 不能压 现 | top=见 50235 base=现 49971
 jiao	叫	53000	# user 2026-06-03: 多音字 觉 (jué) 不能压 叫 | top=觉 48781 base=叫 47837
 jianchi	坚持	55000	# user 2026-06-03: 坚持 必须 > 减持 | 减持 modern_vocab=50000 压过 坚持 base=42131
+fudu	复读	55000	# user 2026-06-04: fudu 三个中文词都应该在日语 ふづ/フヅ 上面 | base 24182 (tier2) → 55000 (z=2.46, tier1)
+fudu	幅度	52000	# user 2026-06-04: 同上 | base 20476 (tier3) → 52000 (z=2.38, tier1)
+fudu	服毒	50000	# user 2026-06-04: 同上 | base 15348 (tier3) → 50000 (z=2.32, tier1)
 # 2026-06-03 Phase E (bigram quality gate) retires juli 举例 quickfix
 # — 局里 / 剧里 (bigram 16k / 14k < floor 25k) now auto-demoted one
 # tier, so 距离 / 举例 surface ahead naturally without per-buffer boost.

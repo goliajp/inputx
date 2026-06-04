@@ -324,6 +324,11 @@ mod tests {
             // modern_vocab_v1 boost 50000 ahead of 坚持 base 42131.
             // Class B quickfix: 坚持 → 55000 in quickfix_boost.tsv.
             ("jianchi", "坚持"),
+            // Polish-log 2026-06-04: "fudu 三个中文词应该在日语上面" —
+            // 复读/幅度/服毒 base freqs (24k/20k/15k) put them in pinyin
+            // tier 2/3/3, below mechanical kana ふづ/フヅ tier 2 (4-char
+            // band).  Boosted to 55k/52k/50k → all tier 1, above JP.
+            ("fudu", "复读"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
@@ -420,6 +425,11 @@ mod tests {
             // failing post-Phase-B (mechanical kana ついじあん was
             // tier 1 and led; demote to tier 4 restores 推荐 #0).
             ("tuijian", "推荐"),
+            // Polish-log 2026-06-04: "fudu 三个中文词应该在日语上面" —
+            // 复读/幅度/服毒 base freqs land tier 2/3/3 vs mechanical
+            // kana ふづ/フヅ tier 2.  quickfix_boost 55k/52k/50k → all
+            // three reach tier 1, with 复读 leading.
+            ("fudu", "复读"),
         ];
         let mut failures = Vec::new();
         for (buf, expected) in cases {
