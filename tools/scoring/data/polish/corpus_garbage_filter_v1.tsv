@@ -63,3 +63,12 @@ mo	万	2026-06-03
 # pinyin concat (剑 jiàn + 持 chí), not a real Chinese word. jieba/corpus
 # noise. D1 delete from library.tsv + future-proof entry.
 jianchi	剑持	2026-06-03
+
+# 2026-06-04 user: "tuli 土里、图里、土利,埋在土里这时候土里才有点意义".
+# 土里 / 图里 / 土粒 are jieba sub-word / forced concatenation noise —
+# 土里 only meaningful in 埋在土里, 图里 only in compounds like
+# 图里有, 土粒 is forced 土+粒 not a 词.  D1 delete from library.tsv.
+# Real word 图利 (图谋利益) and 图例 (legend) kept.
+tuli	土里	2026-06-04
+tuli	图里	2026-06-04
+tuli	土粒	2026-06-04
