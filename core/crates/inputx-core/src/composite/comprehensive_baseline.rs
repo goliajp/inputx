@@ -332,6 +332,14 @@ mod tests {
             // Polish-log 2026-06-04: "样式要大于央视这个专有名词一点点".
             // base 央视 24744 > 样式 23460; quickfix 样式 → 27000.
             ("yangshi", "样式"),
+            // Polish-log 2026-06-04 Phase F framework fix: "changshi
+            // 长时不应该在前面,这都不是一个词" + "为什么组合词评分会
+            // 这么高... 都是作为填充物的".  Non-dict Composed-Viterbi
+            // segmentations (长时 via 长+时 bigram) used to land tier 1
+            // and pre-empt real dict tier-2 phrases (尝试 z=2.0). Phase
+            // F demotes all non-exact Composed to tier 5 — real dict
+            // entries surface naturally.
+            ("changshi", "尝试"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
