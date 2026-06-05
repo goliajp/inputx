@@ -277,18 +277,86 @@ pub fn dispatch(
             // prominent simcodes at tier 0 — the merge sort handles
             // #0 placement via the tier × engine table, no separate
             // post-merge pass needed.
+
+            // Phase I (2026-06-05) — full-code redundancy gate.
+            //
+            // User report: "biji 隙 > 笔记，因为 bij = 隙，五笔已经有
+            // 一个更高级的第一名了". At a 4-letter full wubi code, both
+            // the Phrase boost (×1.1 phrase_mult) and the single-char
+            // boost (×100 single_promote + tier 1) assume "user typed
+            // canonical full code → high-confidence wubi intent". But
+            // if the SAME word already surfaces from the 3-letter
+            // prefix via wubi prefix-prediction (so the user could
+            // have gotten this word by typing 1 fewer letter), the
+            // full-code's extra boost is redundant — and the 4-letter
+            // buffer is often ALSO a legitimate pinyin spelling that
+            // gets crushed by the boost (biji = 笔记, gege = 哥哥
+            // pinyin vs 隙 / similar collisions).
+            //
+            // Rule: at full_code, candidates whose word ALSO appears
+            // in the (N-1)-letter prefix's prediction list fall back
+            // to the speculative score path (phrase_mult = 0.5, no
+            // single_promote, natural tier = layer-default). Pure
+            // structural — no per-entry data, no special list.
+            //
+            // Performance: one cement::prefix_predictions call per
+            // dispatch when full_code is true; the resulting HashSet
+            // is consulted O(1) per candidate. prefix_predictions
+            // itself is a single FST walk over an embedded zerodep
+            // dict — cheap.
+            // pinyin_intent gate: Phase I only fires when the buffer is
+            // ALSO a plausible pinyin spelling (vowels present, short
+            // enough, pinyin engine has a real candidate). Without this
+            // gate, pure-consonant wubi codes like `gmww` (→ 两, the
+            // canonical full code for the single char) would be
+            // false-suppressed — there's no pinyin reading to compete
+            // with, so the 100× single_promote and tier-1 placement
+            // are pure muscle-memory wins that must be preserved.
+            // Same gate as phrase_mult above (line ~191).
+            let redundant_full_code_words: std::collections::HashSet<String> = if full_code
+                && pinyin_intent
+            {
+                let buf = wubi.buffer_str();
+                let prefix = &buf[..buf.len() - 1];
+                crate::wubi::WubiEngine::prefix_predictions_for(prefix)
+                    .into_iter()
+                    .map(|(w, _, _)| w)
+                    .collect()
+            } else {
+                std::collections::HashSet::new()
+            };
+
             let mut wubi_cands: Vec<Scored> = freq_layer
                 .into_iter()
                 .map(|(w, layer, raw_freq)| {
                     let pref = layer_prefs_default[layer.as_index()];
+                    let is_redundant_full =
+                        full_code && redundant_full_code_words.contains(w.as_str());
+                    // Phase I: redundant Phrase candidates fall back
+                    // to the same ×0.5 demote a shorter (non-full-code)
+                    // buffer would apply.
+                    let effective_phrase_mult = if is_redundant_full {
+                        inputx_scoring::consts::WUBI_PHRASE_SPECULATIVE_DEMOTE
+                    } else {
+                        phrase_mult
+                    };
                     let layer_demote = match layer {
                         inputx_wubi::Layer::Auto => auto_demote,
-                        inputx_wubi::Layer::Phrase => phrase_mult,
+                        inputx_wubi::Layer::Phrase => effective_phrase_mult,
                         _ => 1.0,
                     };
                     let prominent = char_is_prominent(&w, layer);
                     let is_single = w.chars().count() == 1;
-                    let single_promote = if full_code && is_single && raw_freq > max_phrase_freq {
+                    // Phase I: redundant single-char Auto entries lose
+                    // the ×100 single_promote AND the tier 1 placement
+                    // (handled at single_promote_fires below). The
+                    // shorter prefix's prediction already carries the
+                    // user's path to this character.
+                    let single_promote = if full_code
+                        && is_single
+                        && raw_freq > max_phrase_freq
+                        && !is_redundant_full
+                    {
                         inputx_scoring::consts::WUBI_FULL_CODE_SINGLE_CHAR_PROMOTE
                     } else {
                         1.0
@@ -345,8 +413,15 @@ pub fn dispatch(
                     //   - Zigen (字根 keynames)                    → 1 (key-binding)
                     //   - Phrase (full-buffer wubi phrase)        → 1 (top, aiyi→东京 rule)
                     //   - Auto (auto-decomposed)                  → 4 (standard)
-                    let single_promote_fires =
-                        full_code && is_single && raw_freq > max_phrase_freq;
+                    // Phase I: redundant full-code single chars also
+                    // lose the forced tier-1 placement — they fall back
+                    // to the layer-default tier (Auto → 4, etc.), so
+                    // pinyin tier-1 candidates at the same buffer can
+                    // take #0.
+                    let single_promote_fires = full_code
+                        && is_single
+                        && raw_freq > max_phrase_freq
+                        && !is_redundant_full;
                     // Overlay (phase 5): per-(buffer, word) tier
                     // override beats every natural rule below. Buffer
                     // is the typed input (wubi.buffer_str()) — same
@@ -1330,9 +1405,16 @@ mod tests {
         // User-reported 2026-05-25: typing `aiyi` in Mixed put pinyin 爱意
         // (#1) above wubi 东京 (#2). 东京 is a full-code (4-key) exact wubi
         // phrase; the speculative Phrase ×0.5 demote buried its raw 429241
-        // at 214620, below 爱意 424712. At full code the wubi hit is high-
-        // confidence and gets the wubi-first PROMOTE (×1.1), so 东京 leads.
-        // See dispatch `full_code` / scoring::LIKELIHOOD_WUBI_FULL_CODE_PROMOTE.
+        // at 214620, below 爱意 424712.
+        //
+        // Phase I (2026-06-05): 东京 is reachable from the 3-letter prefix
+        // `aiy` via wubi prefix-prediction → the full-code phrase_mult
+        // promote (×1.1) is now suppressed. 东京's raw score drops back
+        // to ~214k vs 爱意's ~424k, but the MERGED top-1 stays 东京 —
+        // tier-1 wubi beats tier-1 pinyin via the engine_gap_q4 offset,
+        // not via raw-score ordering. The original 1.1 promote was
+        // designed in a pre-tier-merge era; tier-based cross-engine
+        // ordering supersedes the numerical-score promise.
         use crate::composite::engine::CompositeEngine;
         use crate::wubi::AutoCommitPolicy;
         let mut e = CompositeEngine::new();
@@ -1343,11 +1425,8 @@ mod tests {
         let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
         assert_eq!(cands.first().map(|c| c.word.as_str()), Some("东京"),
             "full-code wubi 东京 must lead aiyi in Mixed; got {top:?}");
-        let dj = cands.iter().find(|c| c.word == "东京").map(|c| c.score);
-        let ay = cands.iter().find(|c| c.word == "爱意").map(|c| c.score);
-        assert!(ay.is_some(), "爱意 missing from aiyi candidates: {top:?}");
-        assert!(dj.unwrap() > ay.unwrap(),
-            "promoted 东京 score {dj:?} must exceed 爱意 {ay:?}");
+        assert!(cands.iter().any(|c| c.word == "爱意"),
+            "爱意 missing from aiyi candidates: {top:?}");
     }
 
     #[test]

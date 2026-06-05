@@ -335,6 +335,19 @@ mod tests {
             // Polish-log 2026-06-05: "希望 简体 在前面". base 健体 19242
             // > 简体 18344; quickfix 简体 → 21200 (top peer + 10% margin).
             ("jianti", "简体"),
+            // Phase I 2026-06-05: wubi full-code redundancy gate.
+            // `biji` is the canonical 4-letter wubi-86 code for 隙
+            // (阝+小+日+小), which used to trigger ×100 single_promote
+            // + tier 1 → wubi 隙 dominated at 1.89M, crushing pinyin
+            // 笔记 (431k). Since 隙 is ALSO reachable via the 3-letter
+            // prefix `bij` prediction (where wubi already surfaces it
+            // at #0 at 624k), Phase I treats the 4-letter boost as
+            // redundant — single_promote suppressed, tier falls to
+            // layer-default 4. pinyin 笔记 now leads cleanly.
+            // No per-entry data; rule fires structurally for any
+            // (full_code, single_char) collision with same-prefix
+            // prediction under pinyin_intent.
+            ("biji", "笔记"),
             // Polish-log 2026-06-04 Phase F framework fix: "changshi
             // 长时不应该在前面,这都不是一个词" + "为什么组合词评分会
             // 这么高... 都是作为填充物的".  Non-dict Composed-Viterbi
