@@ -87,7 +87,6 @@ let kConnectionName = "jp.golia.inputmethod.wubi_Connection"
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var server: IMKServer?
-    var menubar: MenubarSettings?
 
     func applicationDidFinishLaunching(_ note: Notification) {
         // Pin process-global rare-CJK toggle so spawned InputxController
@@ -99,22 +98,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             exit(1)
         }
         server = IMKServer(name: kConnectionName, bundleIdentifier: bundleID)
-        // Settings entry points (in order of discoverability):
-        //   1. Click the active input source in the macOS menu bar (the
-        //      one labelled "入 Inputx 五笔") — IMKInputController.menu()
-        //      override on `InputxController` injects "Inputx 设置…" as
-        //      the first item there.
-        //   2. NSStatusItem in the menu bar (`MenubarSettings`) — visible
-        //      when the user doesn't have menu-bar auto-hide on.
+        // Settings entry point: click the active input source in the macOS
+        // menu bar (the "Inputx Wubi" item next to the keyboard layout
+        // icon). `InputxController.menu()` hosts every toggle / radio /
+        // action — see IMEController.swift `// MARK: - System input-source
+        // menu integration`.
+        //
+        // The pre-2026-06-06 NSStatusItem ("五" status item with its own
+        // dropdown) was retired here per user request: it duplicated every
+        // entry of the IMK menu, cluttered the menu bar, and visually
+        // collided with the system input-source indicator. Apple-canonical
+        // IME behavior: settings live ONLY inside IMKInputController.menu().
         //
         // We deliberately do NOT auto-open the Settings window from
         // `applicationShouldHandleReopen` / `applicationOpenUntitledFile`
         // because macOS dispatches those events during LaunchServices /
-        // IMK activation cycles too, which means every `launchctl bootout
-        // + bootstrap` (every dev reinstall, every system reboot) was
-        // popping the window. The IMK-menu entry covers the discoverability
-        // need without the side-effect.
-        menubar = MenubarSettings()
+        // IMK activation cycles too, which means every reinstall (dev or
+        // system) was popping the window. The IMK-menu entry covers the
+        // discoverability need without the side-effect.
     }
 }
 

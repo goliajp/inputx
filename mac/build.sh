@@ -52,7 +52,6 @@ SWIFT_SOURCES=(
     Sources/Globals.swift
     Sources/IMEController.swift
     Sources/CandidatePanel.swift
-    Sources/MenubarSettings.swift
     Sources/InputModeToast.swift
     Sources/SettingsWindow.swift
     Sources/PolishLog.swift
