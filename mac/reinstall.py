@@ -199,9 +199,11 @@ def query_enabled_sources_count() -> int:
 def build_bundle() -> None:
     """Build the Swift app bundle via mac/build.sh."""
     # Stop sccache before build (some Rust crates compile differently
-    # under sccache; build.sh expects a clean state).
-    subprocess.run(["sccache", "--stop-server"], stdout=subprocess.DEVNULL,
-                   stderr=subprocess.DEVNULL, check=False)
+    # under sccache; build.sh expects a clean state). Skip silently
+    # when sccache isn't installed — fresh devices won't have it.
+    if shutil.which("sccache"):
+        subprocess.run(["sccache", "--stop-server"], stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, check=False)
     env = os.environ.copy()
     env["RUSTC_WRAPPER"] = ""
     log("building bundle (cargo + swiftc)")
@@ -564,13 +566,18 @@ def verify_post_conditions(*, expect_first_install: bool) -> None:
         log("and Ctrl+Space can switch to Inputx.")
         return
 
-    enabled = query_enabled_sources_count()
-    if enabled == 0:
-        die("post-condition violation: AppleEnabledInputSources has no "
-            f"entry for {BUNDLE_ID}. The UserDefaults refresh in "
-            "refresh_enabled_sources_via_defaults() failed silently — "
-            "investigate the cfprefsd write path before shipping again.")
-    log(f"✓ AppleEnabledInputSources has {enabled} entry for {BUNDLE_ID}")
+    # TIS `enabled` is the authoritative live signal — when it's true,
+    # the picker can select us and host apps can drive our IMKServer.
+    # `defaults read AppleEnabledInputSources` is NOT a reliable check
+    # on macOS 26: the HIToolbox cfprefsd domain caches aggressively
+    # and lags behind the real plist by minutes after Settings UI
+    # writes. Verified 2026-06-05 on a fresh-device install where the
+    # IME was empirically typing into apps but `defaults read` showed
+    # zero entries.
+    if not mode_rows[0].enabled:
+        die(f"post-condition violation: TIS row for {MODE_ID} exists "
+            "but is disabled. Re-enable via System Settings → Keyboard "
+            "→ Input Sources, or run --clean and reinstall fresh.")
 
 
 # ─── Safety wrapper (backup + 5s health window + rollback) ───────────

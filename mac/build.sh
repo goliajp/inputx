@@ -97,7 +97,7 @@ printf "APPLINPX" > "$APP_DIR/Contents/PkgInfo"
 # for Developer ID / distribution signing.
 # Apple's cert team-ID is the OU field, NOT the parenthesized identifier
 # in the cert CN — see notes in mac/release.sh.
-SIGN_IDENTITY="${SIGN_IDENTITY:-159E4E05CB2166A0641FAF1A8AE61A0FE0277D0D}"
+SIGN_IDENTITY="${SIGN_IDENTITY:-491B13377E1850BDBFB56310CDF1A94B31CF8AE6}"
 TIMESTAMP_ARG="--timestamp"
 # Local-only smoke tests can `SIGN_TIMESTAMP=none ./build.sh` to skip the
 # TSA round-trip (~1s). Apple's notarytool rejects un-timestamped sigs.
