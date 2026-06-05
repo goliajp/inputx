@@ -335,6 +335,12 @@ mod tests {
             // Polish-log 2026-06-05: "希望 简体 在前面". base 健体 19242
             // > 简体 18344; quickfix 简体 → 21200 (top peer + 10% margin).
             ("jianti", "简体"),
+            // Polish-log 2026-06-06: jieou → 解耦 (decouple — tech term,
+            // was missing entirely from library.tsv; canonical compound
+            // jieou doesn't exist as a dict entry, only `jieoulianji
+            // 解偶联剂` at freq=0 was nearby). Added polish row freq=40000
+            // (peer with 持久化/技术 tech-term band).
+            ("jieou", "解耦"),
             // Phase I 2026-06-05: wubi full-code redundancy gate.
             // `biji` is the canonical 4-letter wubi-86 code for 隙
             // (阝+小+日+小), which used to trigger ×100 single_promote
