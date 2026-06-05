@@ -229,20 +229,74 @@ def stop_running_ime() -> None:
     time.sleep(1)
 
 
+def _renamex_swap(a: Path, b: Path) -> None:
+    """Atomically exchange two paths on macOS via renamex_np(RENAME_SWAP).
+
+    Both paths must exist on the same volume (always true here — both
+    sit under ~/Library/Input Methods/).
+
+    Why we need atomicity here, not "rm A; mv B A": macOS 26's
+    HIToolbox watches `~/Library/Input Methods/*.app` continuously
+    and re-evaluates each installed IME's enabled state on directory
+    change events. If APP_DST disappears for even ~100ms (which it
+    does during shutil.rmtree + shutil.copytree, total ~1-2s for our
+    ~80MB bundle), HIToolbox drops us from the enabled-IME set and
+    the user has to re-add via System Settings → Keyboard UI to
+    recover. Verified on a fresh macOS 26 device 2026-06-05 after two
+    back-to-back polish reinstalls silently broke input-source
+    switching. The RENAME_SWAP path keeps APP_DST pointing at a valid
+    bundle inode at every instant — HIToolbox never sees the gap.
+    """
+    import ctypes
+    import ctypes.util
+    libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+    libc.renamex_np.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
+    libc.renamex_np.restype = ctypes.c_int
+    RENAME_SWAP = 0x2
+    rc = libc.renamex_np(str(a).encode(), str(b).encode(), RENAME_SWAP)
+    if rc != 0:
+        errno_val = ctypes.get_errno()
+        die(f"renamex_np(RENAME_SWAP, {a}, {b}) failed (errno {errno_val})")
+
+
 def swap_bundle() -> None:
-    """Replace the on-disk bundle. Fails loud if remove or copy fails."""
+    """Atomically swap the on-disk bundle.
+
+    Strategy: stage the new bundle next to the install path, then
+    `renamex_np(RENAME_SWAP)` swaps the two inodes in one syscall.
+    APP_DST always points to a valid bundle; macOS HIToolbox never
+    sees the path go missing (which is what cost the user their
+    input-source-enabled state on 2026-06-05 — see `_renamex_swap`
+    for the diagnosis).
+
+    First-install path (APP_DST doesn't exist yet): no swap target,
+    just rename the staged copy into place.
+    """
     APP_DST.parent.mkdir(parents=True, exist_ok=True)
+    staging = APP_DST.parent / f"{APP_NAME}.app.staging-{int(time.time())}"
+    if staging.exists():
+        shutil.rmtree(staging)
+    shutil.copytree(APP_SRC, staging)
+
     if APP_DST.exists():
-        if os.access(APP_DST, os.W_OK) and os.access(APP_DST / "Contents", os.W_OK):
-            shutil.rmtree(APP_DST)
-        else:
-            # Prior pkg install left a root-owned bundle.
+        if not (os.access(APP_DST, os.W_OK) and os.access(APP_DST / "Contents", os.W_OK)):
+            # Prior pkg install left a root-owned bundle; remove it
+            # first (this DOES leave a brief gap, but pkg-installed
+            # users are rare and we can't atomic-swap into a path
+            # we don't own).
             log("removing root-owned prior install (admin password)")
             run(["osascript", "-e",
                  f"do shell script \"rm -rf '{APP_DST}'\" with administrator privileges"])
-    shutil.copytree(APP_SRC, APP_DST)
+            staging.rename(APP_DST)
+        else:
+            _renamex_swap(APP_DST, staging)
+            # APP_DST now holds the new bundle; staging now holds the old.
+            shutil.rmtree(staging)
+    else:
+        staging.rename(APP_DST)
+
     if not APP_DST.is_dir():
-        die(f"bundle copy reported success but {APP_DST} missing")
+        die(f"bundle swap reported success but {APP_DST} missing")
 
 
 def reset_l0_state() -> None:
