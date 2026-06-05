@@ -115,12 +115,12 @@ reject_log 不入 library.tsv 但**持久化**到 `digest_log.toml` 的
 
 | Phase | 内容 | 估时 |
 |---|---|---|
-| J1 | 选 lexicon 数据源 + license review | 半天 |
-| J2 | 写 noise-filter 模块（独立 binary，跑在 ingest pipeline 中） | 1 天 |
-| J3 | 对现行 library.tsv 跑**回顾扫描**：报告"这一行如果今天才 ingest 会不会被拦"——给已有噪音一个名单 | 半天 |
-| J4 | 用户 review J3 报告，确认拦截规则不误伤 | 半天 |
-| J5 | 若 J4 通过，把 J3 名单批量 D1 + 加进 corpus_garbage_filter_v1.tsv | 半天 |
-| J6 | 把 noise-filter 接入 absorption pipeline (PLAN-corpus-治理.md §0 step 4 扩展) | 1 天 |
+| NF1 | 选 lexicon 数据源 + license review | 半天 |
+| NF2 | 写 noise-filter 模块（独立 binary，跑在 ingest pipeline 中） | 1 天 |
+| NF3 | 对现行 library.tsv 跑**回顾扫描**：报告"这一行如果今天才 ingest 会不会被拦"——给已有噪音一个名单 | 半天 |
+| NF4 | 用户 review NF3 报告，确认拦截规则不误伤 | 半天 |
+| NF5 | 若 NF4 通过，把 NF3 名单批量 D1 + 加进 corpus_garbage_filter_v1.tsv | 半天 |
+| NF6 | 把 noise-filter 接入 absorption pipeline (PLAN-corpus-治理.md §0 step 4 扩展) | 1 天 |
 
 总计 ~3.5 天工作量。
 
@@ -143,10 +143,17 @@ J 这套机制做完之后，新 corpus 进来 / jieba 升级版进来 / 我们�
 
 ## 7. 当下不做的边界
 
-这份 doc 写完落档就停。没有 task 跑 J1-J6。等架构 review 拍板。
+这份 doc 写完落档就停。没有 task 跑 NF1-NF6。等架构 review 拍板。
 
 短期内继续走 reactive 路线 (用户报 → 我跑 polish skill → D1 + garbage
-filter) 直到 J 落地。
+filter) 直到 NF 系列落地。
+
+## 8. 命名说明（2026-06-06）
+
+这份 plan 内部的子 phase 编号是 **NF1..NF6** (Noise Filter)，不是
+"Phase J1..J6" —— 后者跟 ranking model series 的 Phase J (引擎
+syllable-aware) 撞了。Ranking model series 是 A,B,C,D,E,F,G,H,I,**J**
+连续编号；corpus absorption 系列另起 NF 序列避撞。
 
 ---
 
