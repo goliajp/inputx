@@ -31,6 +31,24 @@ Apply Gate 1 first — no point chasing Gate 2 if the picker doesn't even show t
 
 ---
 
+## macOS 26 — where the enabled-IME state actually lives (2026-06-06 addendum)
+
+Apple split the per-user enabled-IME plist by source:
+
+| Plist file | Key | Contents |
+|---|---|---|
+| `~/Library/Preferences/com.apple.HIToolbox.plist` | `AppleEnabledInputSources` | Apple's BUILT-IN IMEs only (`com.apple.inputmethod.SCIM`, `com.apple.CharacterPaletteIM`, keyboard layouts like ABC) |
+| `~/Library/Preferences/com.apple.inputsources.plist` | `AppleEnabledThirdPartyInputSources` | THIRD-PARTY IMEs (yours, vChewing, Sogou, Squirrel, …) |
+| `~/Library/Preferences/com.apple.HIToolbox.plist` | `AppleInputSourceHistory` | Recently-used selection history (both sources) |
+
+If you write a verify / "is my IME in the picker" script: read `AppleEnabledThirdPartyInputSources` from `com.apple.inputsources`, not `AppleEnabledInputSources` from `com.apple.HIToolbox`. The latter will always be empty for your bundle. The Settings UI "Add Input Source" flow writes to whichever plist matches the source — third-party adds go to the `inputsources` plist.
+
+The macOS 26 picker (TextInputMenuAgent) reads BOTH plists and merges. Older scripts that only check `AppleEnabledInputSources` will incorrectly report "missing" for a perfectly working install.
+
+(References to `AppleEnabledInputSources` further down in this doc are from the pre-split era and still apply to Apple's built-in IMEs — but for your own bundle, read `AppleEnabledThirdPartyInputSources` from `com.apple.inputsources`.)
+
+---
+
 ## TL;DR
 
 A third-party IME on macOS 26 has to clear three independent gates. Each has its own set of rules; satisfying one tells you nothing about the others. The investigation order matters: solve Gate 1 first because Gate 2 isn't even meaningful until the picker shows your IME; solve Gate 2 second because Gate 3 is cosmetic (it polishes how the picker draws your IME's tile, after the picker already sees and launches it).

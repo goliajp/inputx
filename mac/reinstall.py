@@ -255,14 +255,84 @@ def _ls_paths_for_bundle_id(bundle_id: str) -> list[str]:
     return paths
 
 
-def query_enabled_sources_count() -> int:
+def query_third_party_enabled_count() -> int:
+    """Number of `AppleEnabledThirdPartyInputSources` entries pointing
+    at our BUNDLE_ID.
+
+    macOS 26 split the per-IME enabled list across two plists. Apple's
+    built-in IMEs (SCIM/CharacterPalette/etc) live in
+    `com.apple.HIToolbox.plist`'s `AppleEnabledInputSources`. THIRD-
+    PARTY IMEs (us) live in `com.apple.inputsources.plist`'s
+    `AppleEnabledThirdPartyInputSources`. Confused about this for
+    too long — the prior code read `AppleEnabledInputSources` and
+    always got 0 for our bundle. Verified 2026-06-06 on a working
+    install:
+
+      plutil -p ~/Library/Preferences/com.apple.inputsources.plist
+        AppleEnabledThirdPartyInputSources = (
+            { Bundle ID = "jp.golia.inputmethod.wubi"; ... },
+            { Bundle ID = "jp.golia.inputmethod.wubi"; ... },
+        )
+
+    Each enabled mode adds a row; our bundle + zh mode together = 2.
+    """
     r = subprocess.run(
-        ["defaults", "read", "com.apple.HIToolbox", "AppleEnabledInputSources"],
+        ["defaults", "read", "com.apple.inputsources",
+         "AppleEnabledThirdPartyInputSources"],
         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=False,
     )
     if r.returncode != 0:
         return 0
     return r.stdout.count(BUNDLE_ID)
+
+
+def current_selected_source_id() -> str | None:
+    """Bundle.mode id of the user's currently selected input source.
+    Used by reinstall to capture-then-restore selection across the
+    process-kill step.
+    """
+    out = swift_eval(r"""
+import Carbon
+if let src = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() {
+    let idP = TISGetInputSourceProperty(src, kTISPropertyInputSourceID)
+    let id = idP.map {
+        Unmanaged<CFString>.fromOpaque($0).takeUnretainedValue() as String
+    } ?? ""
+    print(id)
+}
+""").strip()
+    return out or None
+
+
+def restore_input_source(source_id: str) -> bool:
+    """Programmatically re-select the given input source via TIS. Called
+    after reinstall's kill-old-process step so the user's IME selection
+    survives the bundle swap (kill resets the active mach connection;
+    macOS auto-falls back to ABC for any host app that was bound to
+    the dead binary; restoring is a no-op for users who weren't on us).
+    Returns true on success.
+
+    Side effect: triggers imklaunchagent to lazy-spawn the new bundle
+    when the selected source is ours (since IMK looks up the Mach name
+    on TISSelectInputSource → finds nothing → spawns).
+    """
+    out = swift_eval(f"""
+import Carbon
+let modes = (TISCreateInputSourceList(nil, true)?.takeRetainedValue()
+             as? [TISInputSource]) ?? []
+for m in modes {{
+    guard let idP = TISGetInputSourceProperty(m, kTISPropertyInputSourceID)
+    else {{ continue }}
+    let id = Unmanaged<CFString>.fromOpaque(idP).takeUnretainedValue() as String
+    if id == "{source_id}" {{
+        let rc = TISSelectInputSource(m)
+        print("rc=\\(rc)")
+        exit(0)
+    }}
+}}
+print("not_found")
+""").strip()
+    return out == "rc=0"
 
 
 # ─── Steps ────────────────────────────────────────────────────────────
@@ -676,11 +746,13 @@ def do_reinstall(with_build: bool) -> None:
     """Silent reinstall: atomic bundle swap + LS refresh. We kill any
     running Inputx process at the END so the next host-app use lazy-
     spawns the new bundle via imklaunchagent (the canonical and ONLY
-    spawn path).
+    spawn path). If the user was actively typing through Inputx, we
+    capture-then-restore the selection so the swap is invisible to
+    them.
 
     Explicitly NOT done here (would create duplicates / re-trigger TCC):
       - `Inputx install` / TISRegisterInputSource (Settings owns it)
-      - AppleEnabledInputSources writes (Settings owns it)
+      - AppleEnabledThirdPartyInputSources writes (Settings owns it)
       - LaunchAgent install (retired 2026-06-06 — was a workaround for
         a refusal scenario that no longer exists)
     """
@@ -688,6 +760,12 @@ def do_reinstall(with_build: bool) -> None:
         build_bundle()
     elif not APP_SRC.is_dir():
         die(f"no build at {APP_SRC} — drop --no-build or run mac/build.sh first")
+
+    # Capture before any destructive step so we can restore after.
+    pre_selected = current_selected_source_id()
+    user_was_on_us = pre_selected is not None and pre_selected.startswith(BUNDLE_ID)
+    if user_was_on_us:
+        log(f"user is currently on {pre_selected} — will restore after swap")
 
     sweep_stale_swap_staging()
     swap_bundle()
@@ -701,6 +779,20 @@ def do_reinstall(with_build: bool) -> None:
     # duration of all the above steps, then this triggers imklaunchagent
     # to lazy-spawn fresh on next use with all updated state in place.
     stop_running_ime()
+    # Second invalidate + agent restart pass — the picker rebuild after
+    # the first pass races the kill; this second pass gives the rebuild
+    # a clean view of "no live Inputx, but TIS row enabled" and
+    # ensures the next TISSelectInputSource triggers a fresh lazy
+    # spawn against the new bundle.
+    invalidate_intl_data_cache()
+    restart_text_input_menu_agent()
+    if user_was_on_us:
+        if restore_input_source(pre_selected):
+            log(f"✓ restored input source selection → {pre_selected} "
+                "(this triggers imklaunchagent to lazy-spawn the new bundle)")
+        else:
+            log(f"⚠ could not restore selection to {pre_selected}; "
+                "user will need to ⌃Space back manually")
     verify_post_conditions(expect_first_install=False)
 
 
@@ -758,18 +850,30 @@ def verify_post_conditions(*, expect_first_install: bool) -> None:
         log("host-app use, and Ctrl+Space can switch to it.")
         return
 
-    # TIS `enabled` is the authoritative live signal — when it's true,
-    # the picker can select us and host apps can drive our IMKServer.
-    # `defaults read AppleEnabledInputSources` is NOT a reliable check
-    # on macOS 26: the HIToolbox cfprefsd domain caches aggressively
-    # and lags behind the real plist by minutes after Settings UI
-    # writes. Verified 2026-06-05 on a fresh-device install where the
-    # IME was empirically typing into apps but `defaults read` showed
-    # zero entries.
     if not mode_rows[0].enabled:
         die(f"post-condition violation: TIS row for {MODE_ID} exists "
             "but is disabled. Re-enable via System Settings → Keyboard "
             "→ Input Sources, or run --clean and reinstall fresh.")
+
+    # AppleEnabledThirdPartyInputSources is the macOS 26 store that
+    # actually controls picker visibility for 3rd-party IMEs (Apple's
+    # built-in ones use AppleEnabledInputSources in HIToolbox.plist
+    # instead). Discovered 2026-06-06 — prior versions of this script
+    # incorrectly read the HIToolbox key and always got 0. If our
+    # bundle isn't in the 3rd-party store, the user added it via
+    # Settings UI in some prior session that got cleaned up (e.g.
+    # bundle id changed) and needs to redo the Add step. Without it,
+    # TIS thinks we're enabled but the picker won't show us.
+    enabled_count = query_third_party_enabled_count()
+    if enabled_count == 0:
+        die(f"post-condition violation: AppleEnabledThirdPartyInputSources "
+            f"has no entry for {BUNDLE_ID}. macOS Settings UI is the only "
+            "way to add it (TCC trust gating). Open:\n"
+            "  System Settings → Keyboard → Input Sources → Edit → +\n"
+            "  → Simplified Chinese → Inputx Wubi → Add\n"
+            "then `mac/reinstall.py --no-build` to re-verify.")
+    log(f"✓ AppleEnabledThirdPartyInputSources has {enabled_count} entry "
+        f"for {BUNDLE_ID}")
 
 
 # ─── Safety wrapper (backup + probe-test + rollback) ───────────
