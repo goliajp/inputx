@@ -627,6 +627,22 @@ mod tests {
         run("jianma3_ext", cases, mixed_top, mixed_top10);
     }
 
+    /// 4-letter wubi full-code Phrase entries added via library.tsv
+    /// (Class A polishes for tech terms) must surface at #0 of mixed-
+    /// mode for that code. Pile new (code, phrase) pairs here as
+    /// future polishes happen.
+    #[test]
+    fn wubi_phrase_full_code_leads_in_mixed() {
+        let cases: &[(&str, &str)] = &[
+            // Polish-log 2026-06-06: user "解耦 这个词需要的 ... qedi
+            // 五笔". 解耦 (decouple, software architecture term) added
+            // to wubi library.tsv at qedi (canonical wubi-86: 解=qe,
+            // 耦=di) freq 30000, Phrase layer (1).
+            ("qedi", "解耦"),
+        ];
+        run("wubi_phrase_full", cases, mixed_top, mixed_top10);
+    }
+
     /// ASCII fallback positive — pure-garbage 5+ chars must commit
     /// as raw ASCII (no Chinese candidates can possibly form).
     /// Verifies the has_future_match Viterbi-viability tier (v1.5d)
