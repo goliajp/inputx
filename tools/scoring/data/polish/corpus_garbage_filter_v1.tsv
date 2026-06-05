@@ -79,3 +79,17 @@ tuli	土粒	2026-06-04
 # which are their own dict entries and unaffected by this delete.
 # Classic jieba sub-word noise.
 jianti	间体	2026-06-05
+
+# 2026-06-06 user: "jiaozhu 叫朱 较著 椒猪 交住 这些都不算是中文词汇吧".
+# All four are jieba 主词典 sub-word noise from the 24757-row pinyin
+# legacy external ingest (digest_log.toml event 结巴中文分词词典
+# 主词典 dict.txt). None standalone Chinese words:
+#   叫朱  字字直拼 jiào+zhū
+#   较著  古汉语残留, "更显著" 词缀感, 现代无独立用法
+#   椒猪  字字直拼 jiāo+zhū
+#   交住  字字直拼 jiāo+zhù (close to 抓住/接住 but not a real word)
+# Real jiaozhu words preserved: 教主/叫住/浇筑/脚注/校注/浇铸.
+jiaozhu	叫朱	2026-06-06
+jiaozhu	较著	2026-06-06
+jiaozhu	椒猪	2026-06-06
+jiaozhu	交住	2026-06-06

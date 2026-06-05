@@ -1569,6 +1569,13 @@ mod tests {
             // / 空间体系, which remain unaffected). D1 deleted from
             // library.tsv + logged to corpus_garbage_filter_v1.
             ("jianti", &["间体"]),
+            // User polish-log 2026-06-06: "jiaozhu 叫朱 较著 椒猪 交住
+            // 这些都不算是中文词汇吧" — four jieba 主词典 sub-word noise
+            // entries from the legacy external pinyin ingest. None
+            // standalone Chinese words (字字直拼 / 古汉语残留). D1
+            // deleted from library.tsv + logged to corpus_garbage_filter.
+            // Real jiaozhu words preserved (教主/叫住/浇筑/脚注/...).
+            ("jiaozhu", &["叫朱", "较著", "椒猪", "交住"]),
             // User polish-log 2026-06-04 Phase H: "tsuitachi 这里面怎么
             // 还会有这么多中文,这是怎么命中的".  9-char 日语ローマ字
             // 一日 was triggering Path 1c 2-consonant initials reverse-
