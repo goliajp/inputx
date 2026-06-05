@@ -1411,6 +1411,39 @@ mod tests {
     // syllables. Demoted via wubi weights.tsv raw_freq → 0.
     // ───────────────────────────────────────────────────────────
 
+    /// Pinyin-side Class C demotes via tier_overlay.tsv — for entries
+    /// the user wants "可以有但绝不冒头" (still in the dict for K-best
+    /// composition / reverse-lookup, but never surface in the visible
+    /// top of pinyin top-7 candidates). Sister test to the wubi tier-5
+    /// blocklist below; same NOT-in-top-N assertion shape.
+    #[test]
+    fn pinyin_tier_overlay_demoted_absent_from_mixed_top7() {
+        let cases: &[(&str, &[&str])] = &[
+            // Polish-log 2026-06-06: user "jiaozhu ... 胶住 可以有但
+            // 肯定是要最后的". Borderline real (口语 colloquial
+            // "胶水粘住"), not standard vocab. tier_overlay tier 8 buries
+            // it; jiaozhu real words (教主/叫住/浇筑/脚注/校注/浇铸/
+            // 浇注/角柱) fill the visible top.
+            ("jiaozhu", &["胶住"]),
+        ];
+        let mut failures = Vec::new();
+        for (buf, blocklist) in cases {
+            let top10 = mixed_top10(buf.as_bytes());
+            let top7: &[String] = if top10.len() < 7 { &top10[..] } else { &top10[..7] };
+            for bad in *blocklist {
+                if top7.iter().any(|w| w == bad) {
+                    failures.push(format!(
+                        "  {buf}: tier-overlay demoted {bad} in mixed top7 — top7={top7:?}"
+                    ));
+                }
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} pinyin tier_overlay demote cases failed:\n{}",
+                failures.len(), failures.join("\n"));
+        }
+    }
+
     #[test]
     fn wubi_pollution_tier5_demoted_absent_from_mixed_top3() {
         // 2026-06-03 200-buffer sweep — every (buffer, word) wubi top1
