@@ -332,6 +332,9 @@ mod tests {
             // Polish-log 2026-06-04: "样式要大于央视这个专有名词一点点".
             // base 央视 24744 > 样式 23460; quickfix 样式 → 27000.
             ("yangshi", "样式"),
+            // Polish-log 2026-06-05: "希望 简体 在前面". base 健体 19242
+            // > 简体 18344; quickfix 简体 → 21200 (top peer + 10% margin).
+            ("jianti", "简体"),
             // Polish-log 2026-06-04 Phase F framework fix: "changshi
             // 长时不应该在前面,这都不是一个词" + "为什么组合词评分会
             // 这么高... 都是作为填充物的".  Non-dict Composed-Viterbi

@@ -53,6 +53,7 @@ fudu	幅度	60500	# user 2026-06-04: 幅度 要在 复读 前面 | top peer 复�
 fudu	复读	55000	# user 2026-06-04: fudu 三个中文词都应该在日语 ふづ/フヅ 上面 | base 24182 (tier2) → 55000 (z=2.46, tier1)
 fudu	服毒	50000	# user 2026-06-04: 同上 | base 15348 (tier3) → 50000 (z=2.32, tier1)
 yangshi	样式	27000	# user 2026-06-04: 样式 比 央视 高一点点 | top peer 央视 24744 + 10% margin
+jianti	简体	21200	# user 2026-06-05: 简体 必须在 健体 前面 | top peer 健体 19242 + 10% margin
 # 2026-06-03 Phase E (bigram quality gate) retires juli 举例 quickfix
 # — 局里 / 剧里 (bigram 16k / 14k < floor 25k) now auto-demoted one
 # tier, so 距离 / 举例 surface ahead naturally without per-buffer boost.
