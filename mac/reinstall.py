@@ -183,6 +183,43 @@ for m in modes {
     return rows
 
 
+def _ls_paths_for_bundle_id(bundle_id: str) -> list[str]:
+    """List every on-disk path LaunchServices currently associates with
+    `bundle_id`. Walks `lsregister -dump` and groups by record.
+
+    Used by `verify_post_conditions` to detect the "two Inputx" class
+    of bug — multiple .app bundles registered to the same id will all
+    surface in the macOS input-source menubar, regardless of TIS state.
+    """
+    r = subprocess.run(
+        [LSREGISTER, "-dump"],
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        text=True, check=False,
+    )
+    if r.returncode != 0:
+        return []
+    paths: list[str] = []
+    current_path: str | None = None
+    current_id: str | None = None
+    for line in r.stdout.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("path:"):
+            raw = stripped.split(":", 1)[1].strip()
+            # lsregister -dump appends `(0xXXXX)` record-id markers.
+            # Strip so the path round-trips through Path().resolve().
+            if raw.endswith(")"):
+                paren = raw.rfind(" (0x")
+                if paren > 0:
+                    raw = raw[:paren]
+            current_path = raw
+            current_id = None
+        elif stripped.startswith("identifier:"):
+            current_id = stripped.split(":", 1)[1].strip()
+            if current_id == bundle_id and current_path:
+                paths.append(current_path)
+    return paths
+
+
 def query_enabled_sources_count() -> int:
     r = subprocess.run(
         ["defaults", "read", "com.apple.HIToolbox", "AppleEnabledInputSources"],
@@ -291,6 +328,18 @@ def swap_bundle() -> None:
         else:
             _renamex_swap(APP_DST, staging)
             # APP_DST now holds the new bundle; staging now holds the old.
+            # Drop the OLD bundle's LaunchServices registration BEFORE
+            # rmtree — LS caches by (path, cdhash) and an unregister
+            # call on a deleted path is a no-op, so the old cdhash entry
+            # would otherwise persist until macOS's next periodic LS
+            # rescan. That residue is what surfaced as a duplicate
+            # nested-container-app entry on 2026-06-05 after Phase I's
+            # first deployment (debugged via lsregister -dump showing
+            # two `jp.golia.inputx` entries with different cdhash).
+            subprocess.run(
+                [LSREGISTER, "-u", str(staging)],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+            )
             shutil.rmtree(staging)
     else:
         staging.rename(APP_DST)
@@ -329,6 +378,65 @@ def purge_build_app_from_launchservices() -> None:
     if not helper.exists():
         die(f"missing helper script: {helper}")
     run(["bash", "-c", f". '{helper}' && purge_ls_app '{APP_SRC}'"])
+
+
+def purge_stray_project_bundles_from_launchservices() -> None:
+    """Sweep every `.app` bundle in the project tree EXCEPT APP_SRC and
+    APP_DST, and unregister it from macOS LaunchServices.
+
+    Why: macOS LaunchServices auto-registers any `.app` directory it
+    encounters under `~/` — INCLUDING iOS-platform bundles. The
+    project's `ios/build-{device,sim}/Build/Products/*/InputxApp.app`
+    artifacts get registered as platform=iOS apps, and the macOS
+    input-source picker (which lists by display-name match, not by
+    platform filter) surfaces them next to our real IME — user sees
+    "two Inputx" in the menu bar after any iOS device build.
+
+    Verified 2026-06-05: a Phase I reinstall cleared the
+    IntlDataCache; the picker rebuild pulled in two iOS InputxApp
+    bundles alongside our IME. Fix is to unregister them every
+    reinstall — the iOS .app stays on disk for `xcrun devicectl
+    install`, only macOS LS forgets it. The next `xcodebuild
+    -destination ...iOS Device` will re-create the bundle but the
+    next reinstall sweeps it back out, so the user never has to
+    think about this loop.
+    """
+    keep = {APP_SRC.resolve(), APP_DST.resolve()}
+    # rglob walks symlinks shallowly; project root is small enough
+    # (no node_modules etc.) that this is cheap.
+    stray = [
+        p for p in PROJECT_ROOT.rglob("*.app")
+        if p.is_dir() and p.resolve() not in keep
+    ]
+    for p in stray:
+        log(f"unregistering stray LS entry: {p.relative_to(PROJECT_ROOT)}")
+        subprocess.run(
+            [LSREGISTER, "-u", str(p)],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+        )
+
+
+def sweep_stale_swap_staging() -> None:
+    """Remove any `Inputx.app.staging-*` directories that didn't get
+    cleaned up by a prior reinstall (e.g. user ctrl-c'd mid-swap).
+
+    These are user-writable and never load as IMEs (no LaunchAgent
+    points at them), but they:
+      - consume disk
+      - can confuse `purge_stray_project_bundles_from_launchservices`
+        if they were registered to LS before the rmtree
+      - silently grow over time
+
+    Same-directory glob — staging always sits next to APP_DST.
+    """
+    for p in APP_DST.parent.glob(f"{APP_NAME}.app.staging-*"):
+        if p.is_dir():
+            log(f"removing stale staging dir: {p.name}")
+            subprocess.run(
+                [LSREGISTER, "-u", str(p)],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+            )
+            shutil.rmtree(p, ignore_errors=True)
 
 
 def register_install_path_with_launchservices() -> None:
@@ -540,9 +648,11 @@ def do_first_install(with_build: bool) -> None:
         die(f"no build at {APP_SRC} — drop --no-build or run mac/build.sh first")
 
     stop_running_ime()
+    sweep_stale_swap_staging()
     swap_bundle()
     reset_l0_state()
     purge_build_app_from_launchservices()
+    purge_stray_project_bundles_from_launchservices()
     register_install_path_with_launchservices()
     install_launchagent()
 
@@ -574,9 +684,11 @@ def do_reinstall(with_build: bool) -> None:
         die(f"no build at {APP_SRC} — drop --no-build or run mac/build.sh first")
 
     stop_running_ime()
+    sweep_stale_swap_staging()
     swap_bundle()
     reset_l0_state()
     purge_build_app_from_launchservices()
+    purge_stray_project_bundles_from_launchservices()
     register_install_path_with_launchservices()
     install_launchagent()
     invalidate_intl_data_cache()
@@ -607,6 +719,25 @@ def verify_post_conditions(*, expect_first_install: bool) -> None:
             f"found {len(mode_rows)}. Aborting before this state corrupts "
             "the picker further.")
     log(f"✓ TIS row for {MODE_ID} (enabled={mode_rows[0].enabled})")
+
+    # LS-singleton post-condition: lsregister -dump must have at most
+    # ONE entry for our IME bundle id. Two entries surfaces as
+    # "two Inputx" in the macOS input-source menubar — even though TIS
+    # is single — because the picker enumerates LS-registered bundles
+    # by display name, not by TIS rows. Verified failure mode
+    # 2026-06-05 after Phase I deploy: iOS build products + atomic-
+    # swap residue together produced 3 LS entries. The sweep + atomic-
+    # swap-residue-cleanup above SHOULD prevent it; the post-condition
+    # is the trip wire that says "if it happens again, abort instead
+    # of silently shipping a broken picker".
+    ls_paths = _ls_paths_for_bundle_id(BUNDLE_ID)
+    extra = [p for p in ls_paths if Path(p).resolve() != APP_DST.resolve()]
+    if extra:
+        die("post-condition violation: LaunchServices has stray "
+            f"registrations for {BUNDLE_ID} besides the install path:\n"
+            + "\n".join(f"  - {p}" for p in extra)
+            + "\nRun `lsregister -u <path>` on each, then retry.")
+    log(f"✓ LaunchServices singleton for {BUNDLE_ID}")
 
     if expect_first_install:
         log("✓ first-install complete (bundle + TIS row + process).")
