@@ -153,6 +153,20 @@ impl WubiEngine {
         cement::prefix_predictions(self.buffer_str())
     }
 
+    /// Prefix-prediction candidates for an arbitrary prefix (not bound
+    /// to the engine's current buffer). Used by the composite Mixed-
+    /// mode dispatcher's Phase I "full-code redundancy" check — at a
+    /// 4-letter buffer we need to know which words are ALSO reachable
+    /// via the 3-letter prefix's prediction list so we can suppress
+    /// the full-code-only score boost when the wubi user already has
+    /// a shorter path to the same word. Empty when the prefix is empty.
+    pub fn prefix_predictions_for(prefix: &str) -> Vec<(String, u64, usize)> {
+        if prefix.is_empty() {
+            return Vec::new();
+        }
+        cement::prefix_predictions(prefix)
+    }
+
     /// Feed one Wubi-relevant letter. Returns text to commit, if any
     /// (forced commit when buffer was already full, and/or auto-commit
     /// triggered by `AutoCommitPolicy`). May concatenate two commits
