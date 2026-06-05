@@ -1,27 +1,43 @@
 #!/usr/bin/env python3
 """mac/reinstall.py — single entry point for Inputx install / reinstall.
 
-Replaces install.sh + reinstall.sh + reinstall-safe.sh with one
-contract-checked Python script.
+Architecture (2026-06-06): canonical macOS IMK lifecycle. We use
+imklaunchagent as the SOLE spawn path — no user-level LaunchAgent.
+Reinstall is purely "swap bundle on disk + nudge LS + kill old
+process"; the next host-app use triggers imklaunchagent to lazy-spawn
+the new bundle. Mach-name registration is exclusive, so only one
+Inputx process can ever exist. This eliminates the dual-process race
+(LaunchAgent KeepAlive vs imklaunchagent on-demand) that caused
+"two Inputx in menubar" + "can switch but can't type in already-open
+apps" symptoms on 2026-06-05/06.
+
+The earlier KeepAlive LaunchAgent (docs/macos-ime-recipe-2026.md §9)
+was a workaround for "imklaunchagent silently refuses to launch" —
+that refusal was caused by missing IMK Info.plist keys
+(InputMethodServerDataSourceClass + InputMethodSessionController),
+which are now present. Verified 2026-06-06: bootout LaunchAgent +
+kill all Inputx procs → imklaunchagent lazy-spawned the binary in
+~6 seconds on first host-app use. The workaround is no longer
+needed and was actively harming us.
 
 Mode is auto-detected:
   - "first":     bundle absent OR TIS has no row for our mode IDs
-                 → drops bundle + LaunchAgent, then USER must do
-                   System Settings → Keyboard → 文本输入 → 编辑 → +
-                   → 简体中文 → Inputx 五笔 → 添加 + click Allow.
-                   That single UI step is what registers TIS, writes
+                 → drops bundle, then USER must do System Settings
+                   → Keyboard → 文本输入 → 编辑 → + → 简体中文 →
+                   Inputx 五笔 → 添加 + click Allow. That single UI
+                   step is what registers TIS, writes
                    AppleEnabledInputSources, AND grants the macOS
                    third-party-IME TCC trust (which is the gate the
                    menu picker filters on). No programmatic shortcut
                    exists — macOS locks it behind UI.
   - "reinstall": bundle present AND TIS already has a row for our
                  mode ID (Settings registered it on the previous
-                 first-install) → silent bundle swap + LaunchAgent
-                 re-bootstrap. No TISRegister call (would duplicate
-                 the row). No AppleEnabledInputSources write
-                 (Settings owns it). TCC trust persists across
-                 bundle cdhash changes as long as the bundle ID
-                 stays the same — which it does.
+                 first-install) → silent atomic bundle swap. No
+                 TISRegister call (Settings owns that side, calling
+                 it would create duplicate TIS rows). No
+                 AppleEnabledInputSources write (Settings owns it).
+                 TCC trust persists across bundle cdhash changes as
+                 long as the bundle ID stays the same.
 
 Any other TIS state (duplicates of the canonical mode ID, orphan
 IDs from old bundle layouts like the pre-d6cdc52 `wubi.wubi.zh`)
@@ -29,30 +45,19 @@ is treated as STATE CORRUPTION and the script fails loudly.
 Use `--clean` to drop the bundle + all TIS rows for our bundle ID
 and start over (then a single Settings Add re-registers cleanly).
 
-Safety:
-  Default is "safe" — backup the current bundle, run, watch
-  for 5s, rollback if the new binary crashes or the install
-  doesn't satisfy the post-condition. Pass `--no-safe` to skip.
+Safety: backup the current bundle, run, then probe-test the new
+binary (run its `probe` CLI subcommand, check it returns Chinese
+candidates). If the probe fails or returns wrong output → rollback.
+Pass `--no-safe` to skip backup + probe.
 
 Usage:
   mac/reinstall.py                # auto-detect, build, safe install
   mac/reinstall.py --no-build     # skip cargo rebuild
-  mac/reinstall.py --no-safe      # no backup, no health window
+  mac/reinstall.py --no-safe      # no backup, no probe-test
   mac/reinstall.py --clean        # uninstall bundle + clean TIS state
 
 Per project rule (memory: no-defensive-programming): one canonical
-path per scenario, fail loud on unexpected state. The reenable.sh,
-orphan TIS cleanup, duplicate dedupe, post-window double cache
-delete, refresh_enabled_sources_via_defaults round-trip, and
-defensive `|| true`s that accumulated during the 2026-06-02 debug
-loop are NOT present here. Root causes were each fixed at source:
-  - `wubi.wubi.zh` mode ID was from missing per-mode TISInputSourceID
-    in Info.plist (fixed d6cdc52)
-  - TIS duplicate rows were from BOTH our `Inputx install` AND
-    Settings UI's Add calling TISRegister (fixed here by removing
-    our TISRegister call entirely — Settings owns that side)
-  - Stale IntlDataCache was a macOS 26 cache that needed explicit
-    deletion on bundle swap (fixed inline in this script)
+path per scenario, fail loud on unexpected state.
 """
 from __future__ import annotations
 
@@ -78,8 +83,10 @@ MAC_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = MAC_DIR.parent
 APP_SRC = PROJECT_ROOT / "build" / f"{APP_NAME}.app"
 APP_DST = HOME / "Library" / "Input Methods" / f"{APP_NAME}.app"
+# Legacy LaunchAgent path — kept ONLY so first-time-fresh-clones of a
+# machine that previously had the LaunchAgent installed get it cleaned
+# up by `--clean` / first reinstall. We never write to it anymore.
 LA_DST = HOME / "Library" / "LaunchAgents" / f"{BUNDLE_ID}.plist"
-LA_TEMPLATE = MAC_DIR / "Resources" / "LaunchAgent.plist.template"
 L0_DIR = (
     HOME / "Library" / "Containers" / BUNDLE_ID
     / "Data" / "Library" / "Application Support" / APP_NAME
@@ -89,7 +96,6 @@ LSREGISTER = (
     "/Frameworks/LaunchServices.framework/Support/lsregister"
 )
 PROCESS_PATTERN = "Inputx.app/Contents/MacOS/Inputx"
-HEALTH_WINDOW_SECS = 5
 
 # ─── Output ───────────────────────────────────────────────────────────
 
@@ -136,15 +142,44 @@ def swift_eval(source: str) -> str:
     return r.stdout
 
 
-def pid_of_inputx() -> int | None:
-    r = subprocess.run(
-        ["pgrep", "-f", PROCESS_PATTERN],
-        stdout=subprocess.PIPE, text=True, check=False,
-    )
+def binary_probe_test(bundle: Path, *, timeout_s: float = 15.0) -> tuple[bool, str]:
+    """Validate `bundle`'s binary by running its `probe` CLI subcommand
+    (defined in mac/Sources/main.swift) and asserting it returns Chinese
+    candidates for a known-good buffer.
+
+    This is the post-install health check that replaced the pre-2026-06-06
+    "PID alive 5s" check. Under the canonical imklaunchagent lifecycle
+    there is no LaunchAgent keeping a PID alive — imklaunchagent
+    lazy-spawns on first host-app use. So "PID alive" is no longer a
+    valid signal. Probe-test runs the binary directly (which exits
+    early via its CLI subcommand, never instantiating IMKServer, so
+    it can't race with the lazy spawn), validating:
+      - the bundle is loadable (dyld + main entry resolve)
+      - the embedded Rust core links + produces correct candidates
+      - the Swift IMKit wrapper invokes the core correctly
+
+    Returns (ok, debug_output). `ok=False` triggers rollback.
+    """
+    exe = bundle / "Contents" / "MacOS" / APP_NAME
+    if not exe.is_file():
+        return False, f"binary missing: {exe}"
+    try:
+        r = subprocess.run(
+            [str(exe), "probe", "nihao"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, timeout=timeout_s, check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return False, f"probe timed out after {timeout_s}s"
+    out = (r.stdout or "") + (r.stderr or "")
     if r.returncode != 0:
-        return None
-    line = r.stdout.strip().splitlines()
-    return int(line[0]) if line else None
+        return False, f"probe exited {r.returncode}: {out!r}"
+    # `nihao` should yield 你好 at #1 in any sane build. If the Rust
+    # core or its data files are broken, this fails loudly here rather
+    # than later when the user can't type.
+    if "你好" not in out:
+        return False, f"probe ran but no 你好 in output: {out!r}"
+    return True, out
 
 
 # ─── TIS state inspection ─────────────────────────────────────────────
@@ -252,13 +287,25 @@ def build_bundle() -> None:
 
 
 def stop_running_ime() -> None:
-    """Tear down the running IME so we can replace the bundle on disk."""
+    """Kill any running Inputx process so the next host-app use will
+    trigger imklaunchagent to lazy-spawn the new bundle, not connect
+    to the old in-memory binary still serving the Mach service.
+
+    SIGKILL is intentional: the binary's IMKServer connection holds
+    the Mach name; clean shutdown is unnecessary for a reinstall.
+
+    Also force-unloads any legacy user LaunchAgent from before the
+    2026-06-06 architecture change — a leftover KeepAlive plist would
+    immediately respawn the killed binary and recreate the dual-spawn
+    race we're moving away from.
+    """
     subprocess.run(
         ["launchctl", "bootout", f"gui/{os.getuid()}/{BUNDLE_ID}"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
     )
-    # SIGKILL is intentional: the binary's IMKServer connection holds
-    # the Mach name; clean shutdown is unnecessary for a reinstall.
+    if LA_DST.exists():
+        log(f"removing legacy LaunchAgent plist {LA_DST.name}")
+        LA_DST.unlink()
     subprocess.run(
         ["pkill", "-9", "-f", PROCESS_PATTERN],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
@@ -382,38 +429,26 @@ def purge_build_app_from_launchservices() -> None:
 
 def purge_stray_project_bundles_from_launchservices() -> None:
     """Sweep every `.app` bundle in the project tree EXCEPT APP_SRC and
-    APP_DST, and unregister it from macOS LaunchServices.
+    APP_DST out of macOS LaunchServices.
 
-    Why: macOS LaunchServices auto-registers any `.app` directory it
-    encounters under `~/` — INCLUDING iOS-platform bundles. The
-    project's `ios/build-{device,sim}/Build/Products/*/InputxApp.app`
-    artifacts get registered as platform=iOS apps, and the macOS
-    input-source picker (which lists by display-name match, not by
-    platform filter) surfaces them next to our real IME — user sees
-    "two Inputx" in the menu bar after any iOS device build.
+    Implementation lives in `mac/scripts/purge-stray-ls.sh` so the same
+    sweep is invokable standalone via `make purge-stray-ls` (e.g. after
+    an `xcodebuild -destination "iOS Device"` if the user notices
+    duplicate Inputx in the menubar before their next reinstall).
+    Keeping a single source of truth avoids reinstall.py and the
+    shell script drifting apart.
 
-    Verified 2026-06-05: a Phase I reinstall cleared the
-    IntlDataCache; the picker rebuild pulled in two iOS InputxApp
-    bundles alongside our IME. Fix is to unregister them every
-    reinstall — the iOS .app stays on disk for `xcrun devicectl
-    install`, only macOS LS forgets it. The next `xcodebuild
-    -destination ...iOS Device` will re-create the bundle but the
-    next reinstall sweeps it back out, so the user never has to
-    think about this loop.
+    Why this sweep exists: macOS LaunchServices auto-registers any
+    `.app` it encounters under `~/`, INCLUDING iOS-platform bundles.
+    The project's `ios/build-{device,sim}/Build/Products/*/InputxApp.app`
+    artifacts surface in the input-source picker (which lists by
+    display-name match, not platform filter) and produce "two Inputx"
+    duplicates — verified 2026-06-05.
     """
-    keep = {APP_SRC.resolve(), APP_DST.resolve()}
-    # rglob walks symlinks shallowly; project root is small enough
-    # (no node_modules etc.) that this is cheap.
-    stray = [
-        p for p in PROJECT_ROOT.rglob("*.app")
-        if p.is_dir() and p.resolve() not in keep
-    ]
-    for p in stray:
-        log(f"unregistering stray LS entry: {p.relative_to(PROJECT_ROOT)}")
-        subprocess.run(
-            [LSREGISTER, "-u", str(p)],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
-        )
+    helper = MAC_DIR / "scripts" / "purge-stray-ls.sh"
+    if not helper.is_file():
+        die(f"missing helper script: {helper}")
+    run(["bash", str(helper)])
 
 
 def sweep_stale_swap_staging() -> None:
@@ -448,30 +483,6 @@ def register_install_path_with_launchservices() -> None:
     are correct. Diagnosed 2026-05-27 (commit 5c6c00d era).
     """
     run([LSREGISTER, "-f", str(APP_DST)])
-
-
-def install_launchagent() -> None:
-    """Write the LaunchAgent plist and bootstrap it.
-
-    The LaunchAgent's RunAtLoad + KeepAlive ensure the binary always
-    runs, so its IMKServer publishes the Mach service for host apps.
-    Without this, macOS 26's imklaunchagent occasionally refuses to
-    launch our binary on-demand and typing silently produces nothing.
-    """
-    LA_DST.parent.mkdir(parents=True, exist_ok=True)
-    template = LA_TEMPLATE.read_text()
-    if "__APP_PATH__" not in template:
-        die(f"LaunchAgent template missing __APP_PATH__ marker: {LA_TEMPLATE}")
-    LA_DST.write_text(template.replace("__APP_PATH__", str(APP_DST)))
-    # Bootout-then-bootstrap is the documented re-load idiom on
-    # macOS 13+. We don't `|| true` the bootout because if it fails
-    # for a reason other than "not loaded" we want to see it.
-    subprocess.run(
-        ["launchctl", "bootout", f"gui/{os.getuid()}/{BUNDLE_ID}"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
-    )
-    run(["launchctl", "bootstrap", f"gui/{os.getuid()}", str(LA_DST)])
-    time.sleep(1)
 
 
 def invalidate_intl_data_cache() -> None:
@@ -593,16 +604,8 @@ for m in modes {
     }
 }
 """)
-    log("stopping LaunchAgent + IME process")
-    subprocess.run(
-        ["launchctl", "bootout", f"gui/{os.getuid()}/{BUNDLE_ID}"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
-    )
-    subprocess.run(
-        ["pkill", "-9", "-f", PROCESS_PATTERN],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
-    )
-    time.sleep(1)
+    log("stopping IME process + removing legacy LaunchAgent if any")
+    stop_running_ime()
     if APP_DST.exists():
         log(f"removing {APP_DST}")
         shutil.rmtree(APP_DST)
@@ -627,8 +630,11 @@ print("entries: \(before) -> \(enabled.count)")
 
 
 def do_first_install(with_build: bool) -> None:
-    """First install: drop the bundle + LaunchAgent, then hand off to
-    System Settings UI for TIS register + TCC trust grant.
+    """First install: drop the bundle on disk, hand off to System
+    Settings UI for TIS register + TCC trust grant. No LaunchAgent,
+    no programmatic process spawn — imklaunchagent will lazy-spawn
+    the binary on first host-app use after the user completes the
+    Settings Add step.
 
     Why not TISRegister from here: macOS gates the TCC "Allow Inputx
     to read all input" popup behind Settings UI's Add Input Source
@@ -637,81 +643,82 @@ def do_first_install(with_build: bool) -> None:
     without the trust grant, and the picker would still filter us
     out. Settings UI's Add path covers both TIS register AND TCC
     trust in one user action.
-
-    The duplicate-row problem (Settings Add + our TISRegister
-    both creating rows) is also avoided by this division: only
-    Settings owns the TIS register call.
     """
     if with_build:
         build_bundle()
     elif not APP_SRC.is_dir():
         die(f"no build at {APP_SRC} — drop --no-build or run mac/build.sh first")
 
-    stop_running_ime()
     sweep_stale_swap_staging()
     swap_bundle()
     reset_l0_state()
     purge_build_app_from_launchservices()
     purge_stray_project_bundles_from_launchservices()
     register_install_path_with_launchservices()
-    install_launchagent()
+    stop_running_ime()
+    invalidate_intl_data_cache()
+    restart_text_input_menu_agent()
 
-    log("✓ first-install scaffolding complete (bundle + LaunchAgent + LS).")
+    log("✓ bundle installed at " + str(APP_DST))
     log("")
     log("NEXT STEP (mandatory, macOS gates this behind UI):")
     log("  System Settings → Keyboard → 文本输入 → Input Sources → 编辑")
     log("  → +  → 简体中文 → Inputx 五笔 → 添加")
     log("  → click \"Allow\" on the 'Inputx wants to read all input' popup.")
     log("")
-    log("After that single action, TCC trust is granted, Inputx appears")
-    log("in the menu picker, and every subsequent `mac/reinstall.py` runs")
-    log("silently (no popup) until the bundle ID changes again.")
+    log("After that single action, TCC trust is granted and imklaunchagent")
+    log("will lazy-spawn Inputx on first host-app use. Every subsequent")
+    log("`mac/reinstall.py` runs silently (no popup) until the bundle ID")
+    log("changes again.")
 
 
 def do_reinstall(with_build: bool) -> None:
-    """Silent reinstall: bundle is already trusted (TIS row exists,
-    TCC grant exists, AppleEnabledInputSources entry exists, all
-    written by the user's earlier Settings Add). We only swap the
-    bundle on disk + re-bootstrap the LaunchAgent.
+    """Silent reinstall: atomic bundle swap + LS refresh. We kill any
+    running Inputx process at the END so the next host-app use lazy-
+    spawns the new bundle via imklaunchagent (the canonical and ONLY
+    spawn path).
 
     Explicitly NOT done here (would create duplicates / re-trigger TCC):
-      - `Inputx install` / TISRegisterInputSource
-      - `refresh_enabled_sources_via_defaults` (Settings already owns this)
+      - `Inputx install` / TISRegisterInputSource (Settings owns it)
+      - AppleEnabledInputSources writes (Settings owns it)
+      - LaunchAgent install (retired 2026-06-06 — was a workaround for
+        a refusal scenario that no longer exists)
     """
     if with_build:
         build_bundle()
     elif not APP_SRC.is_dir():
         die(f"no build at {APP_SRC} — drop --no-build or run mac/build.sh first")
 
-    stop_running_ime()
     sweep_stale_swap_staging()
     swap_bundle()
     reset_l0_state()
     purge_build_app_from_launchservices()
     purge_stray_project_bundles_from_launchservices()
     register_install_path_with_launchservices()
-    install_launchagent()
     invalidate_intl_data_cache()
     restart_text_input_menu_agent()
+    # kill last: keeps the old binary serving host apps for the brief
+    # duration of all the above steps, then this triggers imklaunchagent
+    # to lazy-spawn fresh on next use with all updated state in place.
+    stop_running_ime()
     verify_post_conditions(expect_first_install=False)
 
 
 def verify_post_conditions(*, expect_first_install: bool) -> None:
     """Each install step has a contract; verify the post-state matches.
 
-    First-install vs reinstall split: AppleEnabledInputSources is
-    populated by macOS only after the user completes System Settings
-    UI (Add Input Source). For first-install we DON'T check it
-    here — the bundle is correctly installed, but the user-facing
-    UI grant hasn't run yet. For reinstall (bundle already trusted)
-    we DO check it because `refresh_enabled_sources_via_defaults`
-    just wrote the entry.
-    """
-    pid = pid_of_inputx()
-    if pid is None:
-        die("post-condition violation: Inputx process not running")
-    log(f"✓ Inputx running (PID {pid})")
+    Post-condition signals (after the 2026-06-06 LaunchAgent retirement):
+      - TIS row for MODE_ID exists and is enabled (persistent registry)
+      - LaunchServices has exactly ONE registration for our BUNDLE_ID
+        (no stray iOS containers / atomic-swap residue)
+      - Bundle on disk is the path we just wrote
 
+    NOT checked: process PID. Under imklaunchagent lazy-spawn, there
+    is no Inputx process right after install — the first host-app use
+    triggers the spawn. Checking PID would always fail. Binary health
+    is validated by with_safety_net's probe-test (running the binary's
+    `probe` CLI subcommand directly).
+    """
     rows = query_tis_rows()
     mode_rows = [r for r in rows if r.source_id == MODE_ID]
     if len(mode_rows) != 1:
@@ -740,15 +747,15 @@ def verify_post_conditions(*, expect_first_install: bool) -> None:
     log(f"✓ LaunchServices singleton for {BUNDLE_ID}")
 
     if expect_first_install:
-        log("✓ first-install complete (bundle + TIS row + process).")
+        log("✓ first-install complete (bundle on disk + TIS row + LS singleton).")
         log("")
         log("NEXT STEP (user action required — macOS gates this behind UI):")
         log("  System Settings → Keyboard → Input Sources → Add Input")
         log("  Source → Simplified Chinese → Inputx 五笔 → Add → click")
         log("  'Allow' on the 'Inputx wants to read all input' popup.")
         log("")
-        log("After that, AppleEnabledInputSources will have the entry")
-        log("and Ctrl+Space can switch to Inputx.")
+        log("After that, imklaunchagent will lazy-spawn Inputx on the next")
+        log("host-app use, and Ctrl+Space can switch to it.")
         return
 
     # TIS `enabled` is the authoritative live signal — when it's true,
@@ -765,20 +772,26 @@ def verify_post_conditions(*, expect_first_install: bool) -> None:
             "→ Input Sources, or run --clean and reinstall fresh.")
 
 
-# ─── Safety wrapper (backup + 5s health window + rollback) ───────────
+# ─── Safety wrapper (backup + probe-test + rollback) ───────────
 
 
 def with_safety_net(install_fn) -> None:
     """Run `install_fn`, but snapshot + rollback if the new binary
-    isn't stable after the health window.
+    fails its probe-test.
 
-    The health window catches the IMKServer-init crash class: bundle
-    inits dyld + main, but crashes on IMKServer init if entitlements
-    or connection-name shifted. LaunchAgent then either respawns
-    forever (PID shifts) or gives up (PID gone). Both = unusable IME.
+    Probe-test catches the binary-broken class: link errors, missing
+    Rust core data files, segfaults on candidate generation, Swift
+    runtime mismatches. The binary's `probe` CLI subcommand runs the
+    full input → candidates path WITHOUT instantiating IMKServer, so
+    we can verify correctness directly (no race with imklaunchagent
+    lazy-spawn, no LaunchAgent involvement).
+
+    The pre-2026-06-06 "PID alive 5s" check is gone — imklaunchagent
+    only spawns on first host-app use, so right after install the PID
+    is intentionally absent. Replacing the implicit process-liveness
+    signal with explicit binary-output validation.
     """
     backup: Path | None = None
-    pre_pid = pid_of_inputx()
 
     if APP_DST.is_dir():
         backup = APP_DST.parent / f"{APP_NAME}.app.bak-{int(time.time())}"
@@ -792,26 +805,15 @@ def with_safety_net(install_fn) -> None:
             _rollback(backup, "install step failed")
         raise
 
-    post_pid = pid_of_inputx()
-    if post_pid is None:
-        _rollback(backup, "no Inputx process after install completed")
-
-    log(f"watching for {HEALTH_WINDOW_SECS}s crash window (PID {post_pid})")
-    time.sleep(HEALTH_WINDOW_SECS)
-    still_pid = pid_of_inputx()
-    if still_pid is None:
-        _rollback(backup, "Inputx process disappeared during health window")
-    if still_pid != post_pid:
-        _rollback(
-            backup,
-            f"Inputx PID shifted {post_pid} → {still_pid} during health "
-            "window — LaunchAgent is in a crash + restart loop"
-        )
-    log(f"✓ Inputx stable: PID {post_pid} alive {HEALTH_WINDOW_SECS}s post-install")
+    log("probing new binary (running `Inputx probe nihao` CLI subcommand)")
+    ok, detail = binary_probe_test(APP_DST)
+    if not ok:
+        _rollback(backup, f"binary probe failed: {detail}")
+    log("✓ binary probe returned 你好")
 
     if backup is not None:
         shutil.rmtree(backup)
-    log("✓ install complete")
+    log("✓ install complete (imklaunchagent will lazy-spawn on first use)")
 
 
 def _rollback(backup: Path | None, reason: str) -> None:
@@ -819,10 +821,9 @@ def _rollback(backup: Path | None, reason: str) -> None:
         die(f"new install failed ({reason}) AND no backup to restore. "
             "Manual recovery required.", code=1)
     log(f"⚠ rolling back: {reason}")
-    subprocess.run(
-        ["launchctl", "bootout", f"gui/{os.getuid()}/{BUNDLE_ID}"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
-    )
+    # No need to bootout LaunchAgent (we don't install one anymore).
+    # Kill any running Inputx so the lazy-spawn after rollback picks
+    # up the restored bundle instead of the broken in-memory binary.
     subprocess.run(
         ["pkill", "-9", "-f", PROCESS_PATTERN],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
@@ -831,12 +832,21 @@ def _rollback(backup: Path | None, reason: str) -> None:
     if APP_DST.exists():
         shutil.rmtree(APP_DST)
     shutil.move(str(backup), str(APP_DST))
-    run(["launchctl", "bootstrap", f"gui/{os.getuid()}", str(LA_DST)])
-    time.sleep(2)
-    if pid_of_inputx() is None:
-        die(f"backup restored to {APP_DST} but process did not start — "
-            "manual recovery required.", code=2)
-    log(f"✓ backup restored to {APP_DST}, previous version running")
+    # Refresh LS and picker cache so the restored bundle's cdhash
+    # propagates immediately.
+    subprocess.run(
+        [LSREGISTER, "-f", str(APP_DST)],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+    )
+    invalidate_intl_data_cache()
+    restart_text_input_menu_agent()
+    # Validate the restored backup itself works — paranoia, but worth
+    # confirming we didn't restore something that was already broken.
+    ok, detail = binary_probe_test(APP_DST)
+    if not ok:
+        die(f"backup restored to {APP_DST} but probe ALSO failed: {detail}. "
+            "Manual recovery required.", code=2)
+    log(f"✓ backup restored to {APP_DST}, probe verifies previous build works")
     die(f"new build was unstable: {reason}", code=2)
 
 
@@ -849,7 +859,7 @@ def main() -> None:
     parser.add_argument("--no-build", action="store_true",
                         help="skip cargo + swiftc rebuild")
     parser.add_argument("--no-safe", action="store_true",
-                        help="skip backup snapshot + 5s health window")
+                        help="skip backup snapshot + binary probe-test")
     parser.add_argument("--clean", action="store_true",
                         help="uninstall bundle + all TIS rows (migration)")
     args = parser.parse_args()
