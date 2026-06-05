@@ -335,6 +335,16 @@ mod tests {
             // Polish-log 2026-06-05: "希望 简体 在前面". base 健体 19242
             // > 简体 18344; quickfix 简体 → 21200 (top peer + 10% margin).
             ("jianti", "简体"),
+            // Polish-log 2026-06-06: "同样有 daizhe 戴着 期待有但没有,
+            // 里面反而有大量 fallback 而且还 fallback 内容又大都不是词".
+            // daizhe was a "宁缺毋滥" violation — both 带着 (dài-zhe,
+            // taking along) and 戴着 (dài-zhe, wearing) were missing
+            // from library.tsv entirely, leaving daizhe top filled with
+            // dai+ZH char-pair noise (大真/大震/大振/大正/待朕/大征/
+            // 代征). Added both as polish rows since they share the
+            // exact same pinyin and both extremely common (peer 看着/
+            // 睡着/想着 at ~30-35k).
+            ("daizhe", "带着"),
             // Polish-log 2026-06-06: jieou → 解耦 (decouple — tech term,
             // was missing entirely from library.tsv; canonical compound
             // jieou doesn't exist as a dict entry, only `jieoulianji
