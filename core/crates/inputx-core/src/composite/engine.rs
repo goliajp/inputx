@@ -435,7 +435,29 @@ impl CompositeEngine {
             // word that's longer than the 5-char ASCII-fallback budget.
             return false;
         }
-        !self.pinyin.has_future_match()
+        if self.pinyin.has_future_match() {
+            return false;
+        }
+        // Path 1c (initials-fallback typo rescue) gate: when the
+        // buffer is a 4-5 char missing-vowel-typo shape (2-consonant
+        // prefix + ≥2-char suffix) we let Path 1c produce its
+        // initials-based candidates instead of wiping the buffer.
+        // Without this, single letters that can't start any pinyin
+        // syllable (`v`, plus `i`/`u`) trigger ASCII-fallback at
+        // exactly length 5 even though the buffer is the same shape
+        // Path 1c was designed to rescue.
+        //
+        // Verified 2026-06-05: `shehv` at JP-off used to wipe via
+        // ASCII fallback (preedit='' / 0 candidates) while `shehb`
+        // / `shehz` correctly fell through to Path 1c (50 candidates
+        // topped by 时候/生活/说话/...). JP-on already masked this
+        // via the early-return above, so the bug only surfaced when
+        // a user disabled JP — but the asymmetry was real and
+        // unprincipled.
+        if self.pinyin.path1c_would_fire() {
+            return false;
+        }
+        true
     }
 
     /// Sogou-style auto-ASCII threshold. At this many input letters,
@@ -1549,6 +1571,43 @@ mod tests {
         let expected = std::str::from_utf8(garbage).unwrap();
         assert_eq!(out, expected,
             "lost characters: committed+preedit={:?} expected={:?}", out, expected);
+    }
+
+    /// Regression 2026-06-05: `shehv` (5 chars ending in 'v') used
+    /// to trip ASCII fallback at JP-off because:
+    ///   - has_future_match("shehv") = false: 'v' isn't a valid
+    ///     pinyin syllable starter so the trailing-trim loop fails
+    ///     every candidate suffix
+    ///   - JP-on early-return masked the symptom; the moment a user
+    ///     disabled JP, `shehv` wiped the buffer entirely (preedit='',
+    ///     0 candidates) — different output for same input depending
+    ///     on a setting unrelated to the input
+    /// Fix: is_pure_garbage now also asks "would Path 1c fire?". If
+    /// yes (2-consonant + ≥2-suffix typo shape), buffer is kept so
+    /// Path 1c can produce its initials-fallback candidates. Same
+    /// output regardless of JP toggle.
+    #[test]
+    fn ascii_fallback_yields_to_path1c_initials_rescue() {
+        // 'shehv' is exactly the trip condition: 'sh' consonant prefix
+        // (2 letters), 'ehv' suffix (≥2 chars), 'v' specifically fails
+        // suffix_could_start_syllable so has_future_match returns false.
+        let mut e = CompositeEngine::new();
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        // JP intentionally LEFT OFF — this is the regression configuration.
+        for &b in b"shehv" {
+            let r = e.handle_letter(b);
+            assert!(r.is_none(),
+                "ASCII fallback fired at {:?}, wiped buffer — preedit={:?}",
+                std::str::from_utf8(&[b]).unwrap(), e.preedit());
+        }
+        assert_eq!(e.preedit(), "shehv",
+            "Path 1c should have kept the buffer; got preedit={:?}",
+            e.preedit());
+        let words: Vec<&str> = e.candidates()
+            .iter().map(|c| c.word.as_str()).collect();
+        // Path 1c should surface common sh+h initials 2-syllable words.
+        assert!(words.contains(&"时候"),
+            "expected 时候 from Path 1c initials lookup; got {words:?}");
     }
 
     /// Backspace from empty repeatedly is a no-op and stays no-op

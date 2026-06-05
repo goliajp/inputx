@@ -892,6 +892,53 @@ impl PinyinAdapter {
     }
 
     /// `true` if the current buffer is a prefix of at least one word in
+    /// Path 1c (initials-fallback typo rescue) eligibility check.
+    /// Returns the 2-letter consonant prefix when the gate fires:
+    ///
+    ///   - no non-speculative candidate yet (room to add one)
+    ///   - buffer.len() ∈ [4, 5] (Phase H cap)
+    ///   - buffer is NOT a valid pinyin dict prefix
+    ///   - prefix-up-to-first-vowel is exactly 2 consonants
+    ///   - suffix length ≥ 2 (so the gate looks typo-shaped, not
+    ///     just a 2-letter input)
+    ///
+    /// Used by:
+    ///   - Path 1c itself (the actual lookup site below) to decide
+    ///     whether to run.
+    ///   - `composite/engine.rs::is_pure_garbage` to decide whether
+    ///     to LET Path 1c run before ASCII-fallback wipes the buffer.
+    ///     Without this gate `shehv` (5 chars, 'v' not a syllable
+    ///     starter) used to wipe in JP-off mode because
+    ///     `has_future_match` returns false for it — verified
+    ///     2026-06-05.
+    pub(crate) fn path1c_consonant_prefix(&self) -> Option<String> {
+        if self.has_non_speculative_candidate {
+            return None;
+        }
+        if !(4..=5).contains(&self.buffer.len()) {
+            return None;
+        }
+        if self.engine.dict().prefix_exists(&self.buffer) {
+            return None;
+        }
+        let consonant_prefix: String = self.buffer.chars()
+            .take_while(|c| !matches!(*c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v'))
+            .collect();
+        let suffix_len = self.buffer.len() - consonant_prefix.len();
+        if consonant_prefix.len() == 2 && suffix_len >= 2 {
+            Some(consonant_prefix)
+        } else {
+            None
+        }
+    }
+
+    /// Same gate as `path1c_consonant_prefix` but returns just a bool,
+    /// for composite-layer dispatch decisions where the prefix value
+    /// itself isn't needed.
+    pub fn path1c_would_fire(&self) -> bool {
+        self.path1c_consonant_prefix().is_some()
+    }
+
     /// the pinyin dict (i.e., the user could keep typing and land on a
     /// real pinyin word). Used by the composite engine to veto wubi
     /// auto-commit when pinyin's still building toward a multi-syllable
@@ -1192,16 +1239,8 @@ impl PinyinAdapter {
         // 4-5 chars total.  Long buffers are日语ローマ字, full pinyin
         // phrase composed of more syllables, or some other non-typo
         // input — never legitimate consonant-cluster typos.
-        if !self.has_non_speculative_candidate
-            && self.buffer.len() >= 4
-            && self.buffer.len() <= 5
-            && !self.engine.dict().prefix_exists(&self.buffer)
-        {
-            let consonant_prefix: String = self.buffer.chars()
-                .take_while(|c| !matches!(*c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v'))
-                .collect();
-            let suffix_len = self.buffer.len() - consonant_prefix.len();
-            if consonant_prefix.len() == 2 && suffix_len >= 2 {
+        if let Some(consonant_prefix) = self.path1c_consonant_prefix() {
+            {
                 let idx = initials_index(&self.engine);
                 if let Some(matches) = idx.get(consonant_prefix.as_bytes()) {
                     let typed_len = consonant_prefix.len().min(u8::MAX as usize) as u8;
