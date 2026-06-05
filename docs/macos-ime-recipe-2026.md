@@ -290,7 +290,29 @@ iconutil -c icns "$ICONSET" -o myime_app_icon.icns
 
 Result: a ~137 KB modern `ic12` `.icns` that `IconRef` resolves cleanly. Verify with `file myime_app_icon.icns` — should report `"ic12" type` not `"TOC " type` or `"il32" type`.
 
-### LaunchAgent
+### LaunchAgent — **RETROSPECTIVELY RETIRED 2026-06-06**
+
+> **Update.** This section is preserved as historical record only. **You probably don't need a LaunchAgent.** With all four IMK keys in [§Info.plist](#infoplist) and all six entitlements in [§Entitlements](#entitlements) present, `imklaunchagent` is reliable on macOS 26: it lazy-spawns the binary on first host-app use, the binary's `IMKServer(name:)` self-registers the Mach name, host apps connect directly. Single spawn path, single live process.
+>
+> **Why the LaunchAgent existed.** When this recipe was first written, `imklaunchagent` silently refused to launch the binary on demand even after correct Info.plist + entitlements. The KeepAlive LaunchAgent bypassed that decision by keeping the binary always running. The refusal turned out to be caused by missing IMK keys (`InputMethodServerDataSourceClass` + `InputMethodSessionController`) — both now mandatory per [§Info.plist](#infoplist). Once those are present, the refusal scenario doesn't reproduce.
+>
+> **Why the LaunchAgent is actively harmful now.** It races `imklaunchagent`: during a reinstall, the brief window where the LaunchAgent's old PID is being killed but its replacement hasn't published its Mach service yet, a host-app IMK lookup will trigger `imklaunchagent` to also spawn a fresh instance. Two processes end up both `bootstrap_register`'d on the Mach name. The user sees two identical IME entries in the macOS input-source menubar. Each host app is connected to whichever PID was alive at its first lookup, so killing "the duplicate" silently breaks every host app that was wired to the killed PID until those apps restart.
+>
+> **The clean architecture (canonical macOS IMK lifecycle):**
+>
+> 1. Install bundle to `~/Library/Input Methods/<AppName>.app` (atomic-swap during reinstall to prevent `HIToolbox`'s "bundle disappeared" enabled-state strip).
+> 2. `lsregister -f` the install path (drops stray duplicates, asserts a single LS record).
+> 3. After atomic swap: `lsregister -u` the staging-path inode BEFORE `rm -rf` (otherwise the old cdhash lingers in the LS dump as a phantom).
+> 4. Sweep `lsregister -u` over any non-canonical `.app` under the project tree (iOS build products especially — Xcode's `xcodebuild -destination "iOS Device"` produces platform=iOS bundles that LaunchServices auto-registers and the macOS input-source picker enumerates).
+> 5. Kill any running Inputx process. Next host-app use triggers `imklaunchagent` to lazy-spawn the new bundle.
+> 6. Verify post-conditions: TIS row exists, `_ls_paths_for_bundle_id(BUNDLE_ID)` returns exactly one path (the install path). No PID check — there is no PID until the lazy spawn fires.
+> 7. Validate binary health via a `probe` CLI subcommand on the binary itself (runs core logic, exits early, never instantiates IMKServer) — cheap, reliable, no race conditions.
+>
+> If you encounter the "silently refuses to launch" symptom that originally motivated this section, **debug it at the source**: enable private-data unification in the log (see [§3](#3-unredact-private-in-unified-log)) and check `process == "imklaunchagent"` for refusal messages. Common causes: missing Info.plist key, entitlement mismatch, code signature problem. Each is fixable directly; reaching for a LaunchAgent workaround layers a worse bug on top.
+>
+> The original LaunchAgent recipe follows for historical reference. **Do not use it on new installs.**
+
+---
 
 The final piece. After everything above is correct, `imklaunchagent` may *still* silently refuse to launch your binary on demand. The workaround: bypass it. Ship a user-level LaunchAgent that runs the binary continuously; the binary's own `IMKServer(name:)` publishes the Mach service and host apps connect directly.
 

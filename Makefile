@@ -19,13 +19,25 @@
 #                           source. Used to detect "did someone forget
 #                           to commit a rebuilt .idf?" pre-push.
 
-.PHONY: polish-rebuild baseline verify-byte-id help
+.PHONY: polish-rebuild baseline verify-byte-id purge-stray-ls reinstall help
 
 help:
 	@echo "Inputx polish workflow targets:"
 	@echo "  make polish-rebuild   regenerate weights → dict → .idf, sync, baseline"
 	@echo "  make baseline         run baseline tests (no rebuild)"
 	@echo "  make verify-byte-id   confirm shipped .idf == rebuilt .idf"
+	@echo ""
+	@echo "Mac IME install / maintenance targets:"
+	@echo "  make reinstall        build + atomic-swap deploy to ~/Library/Input Methods/"
+	@echo "  make purge-stray-ls   drop stray iOS / build-output .app bundles from"
+	@echo "                        macOS LaunchServices (run after any iOS xcodebuild"
+	@echo "                        if you notice duplicate Inputx in the menubar)"
+
+purge-stray-ls:
+	@bash mac/scripts/purge-stray-ls.sh
+
+reinstall:
+	@python3 mac/reinstall.py
 
 # Full polish-rebuild chain. Steps in order:
 #   1. Regenerate weights.tsv from corpus + overlays (pinyin + wubi).
