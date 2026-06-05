@@ -1,0 +1,208 @@
+# Inputx Backlog
+
+> Source of truth for "what's next" — linearized list, ordered by user
+> priority. Updated whenever an item lands or the priority shifts.
+>
+> **Companion docs (deeper specs live there, this file links out):**
+> - `.claude/PLAN.md` — v1.9 cycle detail
+> - `.claude/PLAN-roadmap.md` — cross-version roadmap (L2 version table)
+> - `docs/PLAN-phase-j-syllable-aware.md` — Phase J (engine) full spec
+> - `docs/PLAN-ingest-noise-filter.md` — Corpus NF1..NF6 (noise filter)
+> - `.claude/PLAN-v1.6.md` — cement → stone refactor (deferred)
+> - `.claude/PLAN-self-built-fsa.md`, `.claude/PLAN-unified-scoring.md`,
+>   `.claude/PLAN-rule-engine.md` — long-term L1+L2 designs
+
+---
+
+## Workflow — git-flow convention (in effect 2026-06-06+)
+
+Every polish / small block of business work happens on a branch off
+`develop`, merged back with `--no-ff` (preserves history grouping)
+and pushed without confirmation per user directive.
+
+```
+git switch develop && git pull --ff-only       # sync
+git switch -c <branch>                          # branch off
+… work, one or more commits …
+git switch develop
+git merge --no-ff <branch> -m "<summary>"      # merge with merge commit
+git branch -d <branch>                          # local cleanup
+git push origin develop                         # publish
+```
+
+Branch naming:
+
+| Prefix | When |
+|---|---|
+| `feature/<slug>` | new functionality / framework phase / doc work |
+| `polish/<slug>` | data polish (any of A/B/C/D1/D2 classes from `polish` skill) |
+| `bugfix/<slug>` | fixing a regression or misbehavior |
+| `infra/<slug>` | tooling / build / reinstall / CI changes |
+| `docs/<slug>` | doc-only changes |
+
+Direct commits on `develop` are reserved for: doc index updates,
+trivial typo fixes, hotpatches when no separate scope makes sense.
+
+`master` is reserved for tagged releases (mirrors `develop` at each
+tag). Hotfixes against `master` get `hotfix/<slug>` branches that
+merge into BOTH `master` and `develop`.
+
+---
+
+## Priority order (top = do next)
+
+### 1. Phase J — pinyin syllable-aware engine refinement
+
+**Status:** approved by user 2026-06-06, **awaiting** "彻底完整方案"
+design doc before implementation.
+
+**Why next:** user-visible quality lift on the current dict. Closes
+the `shehv` / `shehb` / `xianv` class where Path 1c initials-rescue
+fires for buffers that already have a clean first-syllable parse —
+those should fall through to Path 3 prefix-completion with the
+trailing junk char trimmed (= matching `sheh` behavior), not surface
+sh+h 2-syllable noise (时候/生活/...).
+
+**Effort:** ~half day implementation after the design doc lands.
+
+**Action items:**
+1. Author `docs/PLAN-phase-j-syllable-aware.md` (full spec — current
+   state, design space, chosen design, files touched, edge cases,
+   tests, rollout). **Pending — next deliverable.**
+2. Implementation per spec.
+3. Regression sweep + reinstall + commit.
+
+---
+
+### 2. v1.9 cycle — ship new dict to release
+
+**Status:** PLAN-marked "hot" since 2026-06-01, **all sub-versions
+未启动**. Recent weeks went into polish + reinstall architecture +
+ranking model Phase H/I — none of those touched the v1.9 dict
+pipeline scope. v1.9 stays the current named cycle.
+
+**Sub-versions:**
+
+| WU | Branch | Content | Effort |
+|---|---|---|---|
+| **WU-π** v1.9.0 | `feature/v1.9-wu-pi-pipeline-rerun` | full pipeline rerun → vNEXT + audit | 2 d |
+| **WU-ρ** v1.9.1 | `feature/v1.9-wu-rho-baseline-diff` | baseline fixture diff vs vNEXT + drift gate | 2 d |
+| **WU-σ** v1.9.2 | `feature/v1.9-wu-sigma-promote-ship` | promote vNEXT, version bump, release tag | 1 d |
+| **WU-τ** v1.9.3 (optional) | `feature/v1.9-wu-tau-v16-resume` | resume v1.6 if capacity allows | 3 d |
+
+**Detail:** `.claude/PLAN.md` (single source of truth for v1.9).
+
+---
+
+### 3. Reactive polish queue (ongoing, ambient)
+
+**Status:** continuous — runs whenever user reports a (buffer, word)
+ranking imperfection via the `/polish` skill.
+
+**Workflow:** per polish action a `polish/<class>-<slug>` branch,
+following the `polish` skill protocol (probe → classify → minimal
+data edit → polish-rebuild → test → reinstall → commit → merge to
+develop → push).
+
+**No fixed effort** — driven by user reports. Recent history (this
+week): jianti (B+D1), biji (Phase I), jiaozhu (4 D1 + 1 C),
+daizhe (A), jieou + qedi 解耦 (2 A).
+
+---
+
+### 4. Corpus Phase NF1..NF6 — proactive noise filter
+
+**Status:** design doc landed (`docs/PLAN-ingest-noise-filter.md`),
+**awaiting architecture review** before scheduling.
+
+**Why later than Phase J:** Phase J is half a day with immediate
+user-visible payoff. NF is 3.5 days of infrastructure work — the
+payoff is "fewer future polish reports", which only matters if
+polish reports actually become a sustained burden. Right now they
+average a few a week — manageable via the reactive queue. NF takes
+over once that frequency starts hurting.
+
+**Trigger to start:** 1 of:
+- Weekly polish-D1 reports exceed ~5
+- New external corpus comes online (jieba upgrade, mozc, ...)
+  triggering re-ingestion → opportunity to bake NF into the new
+  ingest path
+
+**Sub-phases:** NF1 lexicon selection → NF6 absorption pipeline
+integration. See doc §5 for breakdown.
+
+---
+
+### 5. v1.6 — cement → stone refactor (long-term, opportunistic)
+
+**Status:** deferred 2026-06-01 by user, **resume opportunistically**.
+User directive 2026-06-06: "v1.6 是长期任务，发现有可以做的就告诉我".
+
+**Why opportunistic, not scheduled:** engineering housekeeping, no
+user-visible behavior change. Best done in slices that piggy-back
+on natural ingress points (a new crate added → migrate it cleanly;
+a cement crate touched for a real reason → also do the rename).
+
+**Triggers to surface to user:**
+- Touching a `inputx-*-cement` crate for another reason
+- Adding a new published crate (would need fresh -data / -helpers
+  rather than another cement)
+- v1.9 WU-τ window if v1.9 finishes ahead of cycle
+
+**Detail:** `.claude/PLAN-v1.6.md`.
+
+---
+
+### 6. Long-term L1+L2 designs (no active code, await trigger)
+
+These have design docs but no active engineering. None are blocking
+anything; surface when a real driver emerges.
+
+| Doc | Topic | Trigger to consider |
+|---|---|---|
+| `.claude/PLAN-self-built-fsa.md` | self-built FSA replacing `fst` crate | binary-size or perf regression that traces to `fst` |
+| `.claude/PLAN-unified-scoring.md` | unify scoring entry points behind one trait | adding a 4th engine (Korean? Vietnamese?) makes the duplication painful |
+| `.claude/PLAN-rule-engine.md` | rule engine abstraction (policy vs data) | reactive polish rule count explodes past what tier_overlay + exclusions can express |
+
+---
+
+### 7. iOS — SHELVED
+
+**Status:** **shelved** per user 2026-06-06 ("Q3 先搁置").
+
+Engineering state per `README.zh-CN.md`: iOS v1 feature-complete
+(Rust engine, dual-engine router, L0 persistence, locale, iOS
+keyboard + Settings UI all implemented + tested), remaining work
+was real-device validation + perf profiling + TestFlight + App
+Store submission.
+
+When this comes off the shelf, create `feature/ios-shipping`
+branch and write a dedicated PLAN-ios-ship.md to track WUs.
+
+---
+
+## Cycle telemetry (snapshot 2026-06-06)
+
+| Metric | Value |
+|---|---|
+| Commits ahead of origin/develop | 0 (just synced) |
+| Active feature/polish branches | (will be tracked here as they open) |
+| v1.9 sub-versions done / total | 0 / 4 |
+| Phase J status | design doc pending |
+| Reactive polish reports this week | ~8 (4 D1 + 1 C + 3 A) |
+| Reinstall arch incidents this week | 4 (all root-caused + permanent fix landed) |
+
+---
+
+## How to add to this backlog
+
+1. New work surfaces → identify which section (1-7) it belongs to.
+2. Add bullet under that section with: status / why-this-priority /
+   effort / branch name (if known).
+3. If it doesn't fit any existing section, add a new section with
+   linear priority placement.
+4. Re-order sections if priority shifts; bottom of each section is
+   newer / less-blocking items.
+
+Don't let this file grow into a brain dump. Items that haven't
+moved in 4+ weeks either get scheduled or get dropped.
