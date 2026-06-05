@@ -14,38 +14,15 @@
 
 ---
 
-## Workflow — git-flow convention (in effect 2026-06-06+)
+## Workflow
 
-Every polish / small block of business work happens on a branch off
-`develop`, merged back with `--no-ff` (preserves history grouping)
-and pushed without confirmation per user directive.
+All substantive work follows git-flow. Full convention + cheat-sheet
+lives in **`.claude/workflows/git-flow.md`** (gitignored — operational
+context, not project artifact). One-line summary:
 
-```
-git switch develop && git pull --ff-only       # sync
-git switch -c <branch>                          # branch off
-… work, one or more commits …
-git switch develop
-git merge --no-ff <branch> -m "<summary>"      # merge with merge commit
-git branch -d <branch>                          # local cleanup
-git push origin develop                         # publish
-```
-
-Branch naming:
-
-| Prefix | When |
-|---|---|
-| `feature/<slug>` | new functionality / framework phase / doc work |
-| `polish/<slug>` | data polish (any of A/B/C/D1/D2 classes from `polish` skill) |
-| `bugfix/<slug>` | fixing a regression or misbehavior |
-| `infra/<slug>` | tooling / build / reinstall / CI changes |
-| `docs/<slug>` | doc-only changes |
-
-Direct commits on `develop` are reserved for: doc index updates,
-trivial typo fixes, hotpatches when no separate scope makes sense.
-
-`master` is reserved for tagged releases (mirrors `develop` at each
-tag). Hotfixes against `master` get `hotfix/<slug>` branches that
-merge into BOTH `master` and `develop`.
+> Branch off `develop` with `<prefix>/<slug>` (feature / polish /
+> bugfix / infra / docs / hotfix), commit, merge back with `--no-ff`,
+> delete branch, push to origin. No user confirmation needed.
 
 ---
 
