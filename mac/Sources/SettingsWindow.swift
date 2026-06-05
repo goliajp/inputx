@@ -2,22 +2,17 @@ import AppKit
 import SwiftUI
 import InputxKit
 
-/// First-class macOS settings window for Inputx — opened from the
-/// menubar status item's "设置…" entry. Mirrors the iOS container app's
-/// SettingsView surface so users get the same toggles on both platforms.
+/// First-class macOS settings window for Inputx — opened from
+/// `InputxController.menu()`'s "Inputx 设置…" entry (the dropdown that
+/// drops from the system input-source title in the menu bar). Mirrors
+/// the iOS container app's SettingsView surface so users get the same
+/// toggles on both platforms.
 ///
-/// Why a real window and not just the dropdown? Two pain points
-/// observed during JP-plugin landing:
-///   - macOS's *system* input-source switcher in the menu bar uses the
-///     same "入" glyph as Inputx's own NSStatusItem. Users click the
-///     wrong one and never find our config.
-///   - Auto-hidden menu bars (a common ergonomics choice) bury both
-///     icons until the cursor approaches the top of the screen. Even
-///     with the right click, the discoverability is poor.
-///
-/// A proper Settings window solves both: the user opens it once from
-/// menubar (or future Cmd+, in a keyboard window), then has every
-/// toggle on screen at the same time.
+/// Why a real window in addition to the dropdown? The dropdown is
+/// fine for single-toggle flips, but a real window lets the user see
+/// every setting at once and lays groundwork for richer UI (per-mode
+/// settings sub-pages, candidate-panel skin picker, etc.) without
+/// expanding the dropdown into a long scrollable list.
 ///
 /// The window broadcasts `inputxSettingsChanged` whenever a value
 /// changes so the live IMEController re-applies without waiting for
@@ -239,9 +234,9 @@ private struct SettingsRootView: View {
 }
 
 extension Notification.Name {
-    /// Posted by SettingsWindow / MenubarSettings whenever any inputx
-    /// setting changes. Subscribed by `InputxController` instances so
-    /// the live session re-applies without waiting for the next
-    /// `activateServer` boundary.
+    /// Posted by SettingsWindow and by `InputxController.menu()` actions
+    /// whenever any inputx setting changes. Subscribed by every live
+    /// `InputxController` instance so the running session re-applies
+    /// without waiting for the next `activateServer` boundary.
     static let inputxSettingsChanged = Notification.Name("InputxSettingsChanged")
 }

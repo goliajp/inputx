@@ -2,12 +2,6 @@ import Cocoa
 import InputMethodKit
 import InputxKit
 
-extension Notification.Name {
-    /// Posted whenever any `InputxController` toggles between CJK and EN.
-    /// `userInfo["mode"]` is a `UInt8` matching `InputxInputMode.rawValue`.
-    /// Used by `MenubarSettings` to refresh its status-item indicator.
-    static let inputxInputModeChanged = Notification.Name("InputxInputModeChanged")
-}
 
 /// IMKit input controller — one instance per client (text view / editor).
 ///
@@ -52,11 +46,11 @@ final class InputxController: IMKInputController {
         // Process-global rare-CJK toggle reads from prefs at startup.
         InputxRareChars.enabled = inputxSettings.showRareChars
 
-        // Listen for live settings changes (broadcast by MenubarSettings
-        // and SettingsWindow). Without this, the user has to switch input
-        // sources out and back to trigger `activateServer` before a
-        // freshly toggled JP-enable / engine-mode / policy / locale flag
-        // actually reaches the running engine.
+        // Listen for live settings changes (broadcast by SettingsWindow
+        // and by this controller's own menu() actions). Without this,
+        // the user has to switch input sources out and back to trigger
+        // `activateServer` before a freshly toggled JP-enable / engine-
+        // mode / policy / locale flag actually reaches the running engine.
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleSettingsChanged),
@@ -514,70 +508,226 @@ final class InputxController: IMKInputController {
         }
         updatePreedit(client: sender)
         candidatePanel?.refresh(session: session, client: sender as AnyObject?)
-        NotificationCenter.default.post(
-            name: .inputxInputModeChanged,
-            object: nil,
-            userInfo: ["mode": newMode.rawValue]
-        )
         InputModeToast.shared.show(mode: newMode)
     }
 
     // MARK: - System input-source menu integration ---------------------------
 
-    /// Injects entries into the macOS system input-source switcher
-    /// dropdown (the menu that drops down when the user clicks the
-    /// active input source's title in the menu bar — same menu that
-    /// hosts macOS's "编辑自定义短语…" / "显示表情与符号" etc.).
+    /// Builds the menu that drops down when the user clicks our IME's
+    /// active title in the macOS system menu bar (the "Inputx Wubi"
+    /// item that sits next to the keyboard layout icon — same menu
+    /// surface that hosts Apple's bundled IMEs' "编辑自定义短语…" /
+    /// "显示表情与符号" etc.).
     ///
-    /// This is the conventional entry point for IME-specific settings
-    /// on macOS — Sogou / Microsoft / Apple's bundled IMEs all hang
-    /// their "Preferences…" item here. Our menubar NSStatusItem stays
-    /// as a secondary entry, but it's auto-hide-prone + visually
-    /// collides with the system "入" indicator, so this menu is the
-    /// reliable surface users will discover first.
+    /// **As of 2026-06-06 this is the SOLE settings entry point.** The
+    /// secondary NSStatusItem ("五" status item in the menu bar that
+    /// hosted a duplicate of all these items) was retired per user
+    /// request — it cluttered the menu bar and visually collided with
+    /// the system input-source indicator. Apple-canonical behavior:
+    /// IMK-specific settings live ONLY inside `IMKInputController.menu()`,
+    /// reachable via the system input-source dropdown.
+    ///
+    /// Rebuilt fresh every time macOS asks for it, so toggle / radio
+    /// states reflect live settings without needing manual refresh.
     override func menu() -> NSMenu! {
         let m = NSMenu(title: "Inputx")
-        let settingsItem = NSMenuItem(
+
+        // Settings window — first item for discoverability + ⌘, keystroke.
+        let openSettings = NSMenuItem(
             title: "Inputx 设置…",
             action: #selector(openInputxSettings),
             keyEquivalent: ","
         )
-        settingsItem.target = self
-        settingsItem.keyEquivalentModifierMask = [.command]
-        m.addItem(settingsItem)
+        openSettings.target = self
+        openSettings.keyEquivalentModifierMask = [.command]
+        m.addItem(openSettings)
         m.addItem(.separator())
 
-        let jpItem = NSMenuItem(
-            title: "日语扩展（候补に假名 + 共形汉字）",
-            action: #selector(toggleJapaneseEnhancement),
-            keyEquivalent: ""
-        )
-        jpItem.target = self
-        jpItem.state = inputxSettings.japaneseEnabled ? .on : .off
-        m.addItem(jpItem)
-
+        // Engine mode picker (header + 4 radio items).
+        let modeHeader = NSMenuItem(title: "输入方案", action: nil, keyEquivalent: "")
+        modeHeader.isEnabled = false
+        m.addItem(modeHeader)
+        addModeItem(m, "混合（五笔为主，拼音兜底）", mode: .mixed)
+        addModeItem(m, "仅五笔", mode: .wubiOnly)
+        addModeItem(m, "仅拼音", mode: .pinyinOnly)
+        addModeItem(m, "仅日语", mode: .japaneseOnly)
         m.addItem(.separator())
-        let logItem = NSMenuItem(
-            title: "打开 polish 日志（候选未取首位的记录）",
-            action: #selector(revealPolishLog),
-            keyEquivalent: ""
-        )
-        logItem.target = self
-        m.addItem(logItem)
+
+        // Japanese plugin attachment — only meaningful under Chinese
+        // engine modes; under .japaneseOnly the toggle is implicit.
+        if inputxSettings.engineMode != .japaneseOnly {
+            let jp = NSMenuItem(
+                title: "日本語拡張（候補に平仮名・片仮名・漢字を追加）",
+                action: #selector(toggleJapaneseEnhancement),
+                keyEquivalent: ""
+            )
+            jp.target = self
+            jp.state = inputxSettings.japaneseEnabled ? .on : .off
+            m.addItem(jp)
+            m.addItem(.separator())
+        }
+
+        // Auto-commit policy radio group.
+        let policyHeader = NSMenuItem(title: "自动上屏", action: nil, keyEquivalent: "")
+        policyHeader.isEnabled = false
+        m.addItem(policyHeader)
+        addPolicyItem(m, "永不", policy: .never)
+        addPolicyItem(m, "满 4 码即提交", policy: .onFourCodes)
+        addPolicyItem(m, "唯一候选时提交", policy: .onUniqueMatch)
+        addPolicyItem(m, "满 4 码且唯一时提交（推荐）", policy: .onFourCodesIfUnique)
+        m.addItem(.separator())
+
+        // Locale toggles.
+        addToggle(m, "中文标点（，。？！…）",
+                  isOn: inputxSettings.useCjkPunct,
+                  selector: #selector(toggleCjkPunct))
+        addToggle(m, "英文数字全角",
+                  isOn: inputxSettings.useFullWidth,
+                  selector: #selector(toggleFullWidth))
+        addToggle(m, "显示生僻字（Plane-2+ 需安装 InputxCJKExtended 字体）",
+                  isOn: inputxSettings.showRareChars,
+                  selector: #selector(toggleRareChars))
+        m.addItem(.separator())
+
+        // L0 user-learning actions + polish log.
+        let l0Header = NSMenuItem(title: "学习记录 (L0)", action: nil, keyEquivalent: "")
+        l0Header.isEnabled = false
+        m.addItem(l0Header)
+        m.addItem(makeItem("打开数据目录…", #selector(revealL0Dir)))
+        m.addItem(makeItem("打开 polish 日志（非首位选取记录）", #selector(revealPolishLog)))
+        m.addItem(makeItem("重置（清空所有学习）", #selector(resetL0)))
+        m.addItem(.separator())
+
+        // About — quit intentionally OMITTED. Apple-canonical IME has
+        // no "Quit" entry; the IMKServer process lifetime is owned by
+        // imklaunchagent (lazy-spawn on host-app use, retained per
+        // host needs). Letting the user kill our binary mid-typing
+        // would corrupt other apps' active IMK connections.
+        m.addItem(makeItem("关于 Inputx", #selector(showAbout)))
 
         return m
+    }
+
+    // MARK: - menu() item builders -------------------------------------------
+
+    private func addModeItem(_ m: NSMenu, _ title: String, mode: InputxEngineMode) {
+        let item = NSMenuItem(title: title,
+                              action: #selector(pickMode(_:)),
+                              keyEquivalent: "")
+        item.target = self
+        item.tag = Int(mode.rawValue)
+        item.state = (inputxSettings.engineMode == mode) ? .on : .off
+        m.addItem(item)
+    }
+
+    private func addPolicyItem(_ m: NSMenu, _ title: String, policy: InputxAutoCommitPolicy) {
+        let item = NSMenuItem(title: title,
+                              action: #selector(pickPolicy(_:)),
+                              keyEquivalent: "")
+        item.target = self
+        item.tag = Int(policy.rawValue)
+        item.state = (inputxSettings.autoCommitPolicy == policy) ? .on : .off
+        m.addItem(item)
+    }
+
+    private func addToggle(_ m: NSMenu, _ title: String, isOn: Bool, selector: Selector) {
+        let item = NSMenuItem(title: title, action: selector, keyEquivalent: "")
+        item.target = self
+        item.state = isOn ? .on : .off
+        m.addItem(item)
+    }
+
+    private func makeItem(_ title: String, _ selector: Selector) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: selector, keyEquivalent: "")
+        item.target = self
+        return item
+    }
+
+    // MARK: - menu() actions -------------------------------------------------
+
+    @objc private func openInputxSettings() {
+        SettingsWindowController.shared.show()
+    }
+
+    @objc private func pickMode(_ sender: NSMenuItem) {
+        guard let mode = InputxEngineMode(rawValue: UInt8(sender.tag)) else { return }
+        inputxSettings.engineMode = mode
+        broadcastSettingsChanged()
+    }
+
+    @objc private func pickPolicy(_ sender: NSMenuItem) {
+        guard let p = InputxAutoCommitPolicy(rawValue: UInt32(sender.tag)) else { return }
+        inputxSettings.autoCommitPolicy = p
+        broadcastSettingsChanged()
+    }
+
+    @objc private func toggleCjkPunct() {
+        inputxSettings.useCjkPunct.toggle()
+        broadcastSettingsChanged()
+    }
+
+    @objc private func toggleFullWidth() {
+        inputxSettings.useFullWidth.toggle()
+        broadcastSettingsChanged()
+    }
+
+    @objc private func toggleRareChars() {
+        inputxSettings.showRareChars.toggle()
+        InputxRareChars.enabled = inputxSettings.showRareChars
+        broadcastSettingsChanged()
+    }
+
+    @objc private func toggleJapaneseEnhancement() {
+        inputxSettings.japaneseEnabled.toggle()
+        broadcastSettingsChanged()
+    }
+
+    @objc private func revealL0Dir() {
+        let support = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first!
+        let url = support.appendingPathComponent("Inputx", isDirectory: true)
+        try? FileManager.default.createDirectory(at: url,
+                                                  withIntermediateDirectories: true)
+        NSWorkspace.shared.open(url)
     }
 
     @objc private func revealPolishLog() {
         NSWorkspace.shared.activateFileViewerSelecting([PolishLog.url])
     }
 
-    @objc private func openInputxSettings() {
-        SettingsWindowController.shared.show()
+    @objc private func resetL0() {
+        let alert = NSAlert()
+        alert.messageText = "重置 L0 学习记录？"
+        alert.informativeText = "将删除所有自动学习的固定候选。已经上屏的文本不受影响。"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "重置")
+        alert.addButton(withTitle: "取消")
+        if alert.runModal() == .alertFirstButtonReturn {
+            inputxL0Storage.reset()
+        }
     }
 
-    @objc private func toggleJapaneseEnhancement() {
-        inputxSettings.japaneseEnabled.toggle()
+    @objc private func showAbout() {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "Inputx 输入法"
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        alert.informativeText = """
+            版本 \(version)
+            © 2026 GOLIA K.K.
+            MIT OR Apache-2.0
+
+            隐私优先的中文输入法，五笔为主，拼音兜底。
+            完全本地运行，零联网。
+
+            源代码：https://github.com/goliajp/inputx
+            """
+        alert.runModal()
+    }
+
+    private func broadcastSettingsChanged() {
         NotificationCenter.default.post(
             name: .inputxSettingsChanged,
             object: nil
