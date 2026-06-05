@@ -1528,6 +1528,12 @@ mod tests {
             // meaningful inside compounds like 埋在土里). D1 deleted
             // from library.tsv + logged to corpus_garbage_filter_v1.
             ("tuli", &["土里", "图里", "土粒"]),
+            // User polish-log 2026-06-05: "jianti 间体 不是个词" —
+            // 字字直拼 jiàn+tǐ, jieba sub-word noise. Standalone 间体
+            // doesn't exist as a Chinese word (appears only inside 中间体
+            // / 空间体系, which remain unaffected). D1 deleted from
+            // library.tsv + logged to corpus_garbage_filter_v1.
+            ("jianti", &["间体"]),
             // User polish-log 2026-06-04 Phase H: "tsuitachi 这里面怎么
             // 还会有这么多中文,这是怎么命中的".  9-char 日语ローマ字
             // 一日 was triggering Path 1c 2-consonant initials reverse-
