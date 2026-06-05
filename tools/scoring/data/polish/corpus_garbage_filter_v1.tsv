@@ -72,3 +72,10 @@ jianchi	剑持	2026-06-03
 tuli	土里	2026-06-04
 tuli	图里	2026-06-04
 tuli	土粒	2026-06-04
+
+# 2026-06-05 user: "jianti 间体 不是个词". Standalone 间体 doesn't
+# exist as a Chinese word — appears only as substring of compounds
+# like 中间体 (chemistry: intermediate) / 空间体系 (spatial system),
+# which are their own dict entries and unaffected by this delete.
+# Classic jieba sub-word noise.
+jianti	间体	2026-06-05
