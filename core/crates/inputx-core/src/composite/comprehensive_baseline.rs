@@ -671,6 +671,29 @@ mod tests {
         }
     }
 
+    /// 2026-06-06 polish — `jianma` cleanup. User: "捡骂 剑麻 不应该
+    /// 出现，他们不是词".
+    /// - 捡骂: D1 deleted from library.tsv (jieba sub-word noise) +
+    ///   logged in corpus_garbage_filter_v1.tsv.
+    /// - 剑麻: D2 hidden via exclusions_v1.tsv (real botanical word
+    ///   for sisal, kept in dict for K-best / initials reverse-lookup
+    ///   per the protocol's default-conservative D2 rule).
+    /// Test pins: neither word in any visible candidate slot.
+    #[test]
+    fn polish_jianma_noise_removed_from_candidates() {
+        let top10 = mixed_top10(b"jianma");
+        let mut failures = Vec::new();
+        for bad in &["捡骂", "剑麻"] {
+            if top10.iter().any(|w| w == bad) {
+                failures.push(format!("  jianma: {bad} still surfaces; top10={top10:?}"));
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} jianma-cleanup cases failed:\n{}",
+                failures.len(), failures.join("\n"));
+        }
+    }
+
     /// Wubi Jianma3 (3-letter simcode) sample. Per 伙-rule extended,
     /// 3-letter shortcuts with common-char targets MUST lead.
     #[test]
