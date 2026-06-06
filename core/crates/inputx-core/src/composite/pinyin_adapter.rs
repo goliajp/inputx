@@ -34,6 +34,34 @@ use super::scoring;
 /// because parsing the 595 KB blob + walking its sha256 trailer is
 /// ~1 ms and we don't want to pay that on every PinyinAdapter::new
 /// (a fresh adapter is created on every iOS Inputx session).
+// ─────────────────────────────────────────────────────────────
+// v1.14 minimal-pinyin debug toggle (2026-06-06).  User: "我们可
+// 以先暂停所有的拼音里 拼接字、联想以及错别字模糊吗？只保留正确
+// 拼写和预测性的输入，我们一个个细节来做好".  Three category
+// gates; flip a single bool to `false` to re-enable that whole
+// category of paths when you're ready to polish it.  Tests that
+// pin disabled-path behavior carry an early-return guarded on the
+// same const so they auto-revive when the const flips.
+//
+// `_COMPOSE`:    Path 0b (long-buffer Viterbi sentence), Path 5
+//                (K-best short-buffer compose), Path 5b
+//                (mechanical fallback compose).
+// `_ASSOCIATION`: Path 2 (简拼 first-letter abbreviation).  Per
+//                user classification 2026-06-06: 简拼 counts as
+//                联想 / shortcut, not "correct spelling".
+// `_FUZZY`:      Path 1b (southern-dialect z/zh swap variants),
+//                Path 1c (2-consonant-prefix typo rescue),
+//                Path 3b (syllable-aware trim-retry).
+//
+// Initial state: all three TRUE — only exact-syllable Path 1 +
+// prefix-completion Path 3 + repeated-letter Path 0a + rare-CJK
+// Path 4 filter survive.  This is intentionally aggressive; the
+// user will polish detail-by-detail and flip whichever const back
+// off as each category is ready.
+pub(crate) const PINYIN_DISABLE_COMPOSE: bool = true;
+pub(crate) const PINYIN_DISABLE_ASSOCIATION: bool = true;
+pub(crate) const PINYIN_DISABLE_FUZZY: bool = true;
+
 fn embedded_bigrams_table() -> &'static NgramTable<&'static [u8]> {
     static TABLE: OnceLock<NgramTable<&'static [u8]>> = OnceLock::new();
     TABLE.get_or_init(|| {
@@ -1186,7 +1214,8 @@ impl PinyinAdapter {
         //      Pushing this composition to #0 would be a wrong-reading
         //      false positive. Threshold 8 sidesteps this entirely:
         //      no real ambiguous short composition reaches it.
-        if self.buffer.len() >= 8
+        if !PINYIN_DISABLE_COMPOSE
+            && self.buffer.len() >= 8
             && let Some((score, sentence, chain))
                 = self.engine.dict().best_composition_chain(&self.buffer)
         {
@@ -1327,7 +1356,9 @@ impl PinyinAdapter {
         // 4-5 chars total.  Long buffers are日语ローマ字, full pinyin
         // phrase composed of more syllables, or some other non-typo
         // input — never legitimate consonant-cluster typos.
-        if let Some(consonant_prefix) = self.path1c_consonant_prefix() {
+        if !PINYIN_DISABLE_FUZZY
+            && let Some(consonant_prefix) = self.path1c_consonant_prefix()
+        {
             {
                 let idx = initials_index(&self.engine);
                 if let Some(matches) = idx.get(consonant_prefix.as_bytes()) {
@@ -1372,7 +1403,7 @@ impl PinyinAdapter {
         // entirely different); letting them drive cross-engine
         // demotion would crowd out legitimate wubi entries at
         // wubi-shaped buffers. Path 1c carries the same caveat.
-        if !self.has_non_speculative_candidate {
+        if !PINYIN_DISABLE_FUZZY && !self.has_non_speculative_candidate {
             for variant in fuzzy_buffer_variants(&self.buffer) {
                 if variant == self.buffer {
                     continue;
@@ -1409,7 +1440,7 @@ impl PinyinAdapter {
         // `hhh → 哈哈哈`, `zg → 中国`. Uses process-global lazy initials
         // index. Skipped when input has vowels (would be a valid syllable
         // start handled by Path 3).
-        if looks_like_initials(&self.buffer) {
+        if !PINYIN_DISABLE_ASSOCIATION && looks_like_initials(&self.buffer) {
             let idx = initials_index(&self.engine);
             if let Some(matches) = idx.get(self.buffer.as_bytes()) {
                 for w in matches.take(200) {
@@ -1493,7 +1524,7 @@ impl PinyinAdapter {
         // candidates: `nuanhe` keeps 滦河 and never surfaces the
         // wrong-reading composition 暖(nuan)+和(he)→暖和. (Long empty
         // buffers were already covered by Path 0b above.)
-        if self.candidates.is_empty() {
+        if !PINYIN_DISABLE_COMPOSE && self.candidates.is_empty() {
             // K-best Viterbi (v1.3 polish, 2026-05-26): 1-best (the original
             // best_composition) commits to dp[j]'s top word and can miss
             // strong-bigram alternates. User-reported `pianni`: 1-best gave
@@ -1661,7 +1692,8 @@ impl PinyinAdapter {
         // proposed) ensures Path 3b doesn't pre-empt the Viterbi
         // compose path (kaopu→靠谱, woyao→我要, taikexi→太可惜).
         let buf_len = self.buffer.len();
-        if self.candidates.is_empty()
+        if !PINYIN_DISABLE_FUZZY
+            && self.candidates.is_empty()
             && (4..=5).contains(&buf_len)
             && self.has_clean_syllable_prefix()
         {
@@ -2215,6 +2247,7 @@ mod tests {
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
     fn fuzzy_zongguo_surfaces_zhongguo() {
+        if super::PINYIN_DISABLE_FUZZY { return; }
         let mut a = PinyinAdapter::new();
         for b in b"zongguo" { a.handle_letter(*b); }
         // zongguo → no exact match, but fuzzy z→zh expansion finds 中国
@@ -2228,6 +2261,7 @@ mod tests {
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
     fn typo_pyin_surfaces_pinyin_via_initials() {
+        if super::PINYIN_DISABLE_FUZZY { return; }
         let mut a = PinyinAdapter::new();
         for b in b"pyin" { a.handle_letter(*b); }
         // pyin = missing-vowel typo for pinyin. Path 1c picks up
@@ -2253,6 +2287,7 @@ mod tests {
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
     fn nuanhe_keeps_real_match_not_wrong_reading_composition() {
+        if super::PINYIN_DISABLE_COMPOSE || super::PINYIN_DISABLE_FUZZY { return; }
         // nuanhe is NOT empty (滦河 via n→l fuzzy), so the Path 5
         // last-resort fallback must NOT fire — the wrong-reading
         // composition 暖和 must not even appear, let alone outrank 滦河.
@@ -2266,6 +2301,7 @@ mod tests {
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
     fn short_non_lexeme_composes_instead_of_empty() {
+        if super::PINYIN_DISABLE_COMPOSE { return; }
         // Regression for user-reported 2026-05-25: short multi-syllable
         // inputs that aren't a dict lexeme and aren't a prefix of one
         // returned ZERO candidates. Path 5 composes them from single-char
@@ -2342,6 +2378,7 @@ mod tests {
 
     #[test]
     fn initials_lookup_zg_includes_zhongguo() {
+        if super::PINYIN_DISABLE_ASSOCIATION { return; }
         let mut a = PinyinAdapter::new();
         for b in b"zg" {
             a.handle_letter(*b);
@@ -2441,6 +2478,7 @@ mod tests {
 
     #[test]
     fn initials_colloquial_words_rank_in_top_5() {
+        if super::PINYIN_DISABLE_ASSOCIATION { return; }
         // Conversational-register words should land near the top of their
         // initials bucket, not buried under proper nouns / Wikipedia entity
         // names. This is the regression net for the corpus-bias work

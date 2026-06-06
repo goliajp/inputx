@@ -611,6 +611,7 @@ mod tests {
     /// surface in PinyinOnly mode top10.
     #[test]
     fn viterbi_composition_surfaces_for_long_buffers() {
+        if super::super::pinyin_adapter::PINYIN_DISABLE_COMPOSE { return; }
         // Each entry MUST have ceil((N-1)/2) bigram-table-present
         // links to survive the stricter quality gate added 2026-06-02
         // (user report: kakarimasu force-segmentation). Real Chinese
@@ -738,6 +739,7 @@ mod tests {
     /// asserts each returns >= 1 candidate.
     #[test]
     fn every_common_pinyin_returns_nonempty_candidates() {
+        if super::super::pinyin_adapter::PINYIN_DISABLE_COMPOSE { return; }
         let codes: &[&str] = &[
             // Single-syllable particles.
             "de", "le", "ma", "ba", "ne", "ya", "la",
@@ -933,6 +935,7 @@ mod tests {
 
     #[test]
     fn smoke_user_chinese_phrase_yongbuliao_works() {
+        if super::super::pinyin_adapter::PINYIN_DISABLE_COMPOSE { return; }
         // User-typed 2026-05-24 "xianzai yongbuliao le" (现在用不了了)
         // signaling IME unusable. Sanity: each segment must give the
         // expected Chinese in PinyinOnly mode.
@@ -1730,6 +1733,7 @@ mod tests {
     /// char hadn't been typed).
     #[test]
     fn syllable_aware_trim_retry_matches_trimmed_buffer() {
+        if super::super::pinyin_adapter::PINYIN_DISABLE_FUZZY { return; }
         let cases: &[(&str, &str, &str)] = &[
             // (buffer, trimmed_equivalent, expected_top_word)
             ("shehv", "sheh", "社会"),
@@ -1760,6 +1764,7 @@ mod tests {
     /// always did. Not a regression target.
     #[test]
     fn syllable_aware_path1c_still_rescues_real_typos() {
+        if super::super::pinyin_adapter::PINYIN_DISABLE_FUZZY { return; }
         // `pyin`: consonant_prefix=`py` (len 2), suffix=`in` (len 2) →
         // Path 1c gate passes, longest_valid_syllable_prefix is None
         // (no prefix of `pyin` is a valid syllable) so the new
