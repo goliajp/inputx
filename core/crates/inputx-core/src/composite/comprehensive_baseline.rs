@@ -1644,4 +1644,51 @@ mod tests {
             panic!("{} corpus-noise cases failed:\n{}", failures.len(), failures.join("\n"));
         }
     }
+
+    /// 音节意识细化 (2026-06-06, docs/PLAN-syllable-aware-pinyin.md):
+    /// buffers with a clean ≥3-char syllable prefix + invalid trailing
+    /// char should route to Path 3b trim-retry, producing the same
+    /// candidate top-1 as the trimmed buffer (= as if the trailing
+    /// char hadn't been typed).
+    #[test]
+    fn syllable_aware_trim_retry_matches_trimmed_buffer() {
+        let cases: &[(&str, &str, &str)] = &[
+            // (buffer, trimmed_equivalent, expected_top_word)
+            ("shehv", "sheh", "社会"),
+            ("shehb", "sheh", "社会"),
+            ("shehz", "sheh", "社会"),
+        ];
+        for (buf, trim, expected) in cases {
+            let top10 = mixed_top10(buf.as_bytes());
+            assert!(!top10.is_empty(),
+                "音节意识细化: {buf} should produce candidates via trim-retry");
+            let trim_top10 = mixed_top10(trim.as_bytes());
+            assert_eq!(top10.first(), trim_top10.first(),
+                "音节意识细化: {buf} top-1 ({top10:?}) should equal {trim} top-1 ({trim_top10:?})");
+            if let Some(t) = top10.first() {
+                assert_eq!(t.as_str(), *expected,
+                    "音节意识细化: {buf} top-1 should be {expected}, got {t}");
+            }
+        }
+    }
+
+    /// 音节意识细化: buffers with NO ≥3-char clean syllable prefix
+    /// and a 2-consonant + ≥2-suffix shape (the Path 1c original
+    /// trigger) must still get rescue — Phase H invariant preserved.
+    ///
+    /// Note: pnyin / zhgo / similar 3-consonant-prefix shapes were
+    /// NEVER caught by Path 1c (the gate requires exactly 2 consonants
+    /// before the first vowel); they return 0 candidates today and
+    /// always did. Not a regression target.
+    #[test]
+    fn syllable_aware_path1c_still_rescues_real_typos() {
+        // `pyin`: consonant_prefix=`py` (len 2), suffix=`in` (len 2) →
+        // Path 1c gate passes, longest_valid_syllable_prefix is None
+        // (no prefix of `pyin` is a valid syllable) so the new
+        // syllable-aware skip doesn't fire → Path 1c rescues with
+        // p+y initials hits (拼音 / 朋友 / 便宜 / ...).
+        let top10 = mixed_top10(b"pyin");
+        assert!(!top10.is_empty(),
+            "音节意识细化 regression: pyin lost Path 1c rescue; top10 was empty");
+    }
 }

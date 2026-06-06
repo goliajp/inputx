@@ -898,6 +898,11 @@ impl PinyinAdapter {
     ///   - no non-speculative candidate yet (room to add one)
     ///   - buffer.len() ∈ [4, 5] (Phase H cap)
     ///   - buffer is NOT a valid pinyin dict prefix
+    ///   - 音节意识细化 gate: buffer does NOT have a clean ≥3-char
+    ///     valid syllable prefix (if it does, the user committed
+    ///     to that syllable and the trailing chars are mid-typing
+    ///     junk — handled by Path 3b trim-retry instead, see
+    ///     `docs/PLAN-syllable-aware-pinyin.md`)
     ///   - prefix-up-to-first-vowel is exactly 2 consonants
     ///   - suffix length ≥ 2 (so the gate looks typo-shaped, not
     ///     just a 2-letter input)
@@ -921,6 +926,21 @@ impl PinyinAdapter {
         if self.engine.dict().prefix_exists(&self.buffer) {
             return None;
         }
+        // 音节意识细化 (2026-06-06): if the buffer starts with a
+        // ≥3-char valid syllable, the user committed to that syllable
+        // — Path 1c (designed for "missing-vowel-from-the-start"
+        // typos) doesn't apply. Path 3b trim-retry will surface
+        // continuations of the committed syllable instead. 2-char
+        // syllables (he / ma / na / ...) are excluded from this gate
+        // because they overlap with English-word starts (hello, may,
+        // ...) and would false-block Path 1c on genuine English.
+        if inputx_pinyin::longest_valid_syllable_prefix(&self.buffer)
+            .map(|s| s.len())
+            .unwrap_or(0)
+            >= 3
+        {
+            return None;
+        }
         let consonant_prefix: String = self.buffer.chars()
             .take_while(|c| !matches!(*c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v'))
             .collect();
@@ -930,6 +950,24 @@ impl PinyinAdapter {
         } else {
             None
         }
+    }
+
+    /// 音节意识细化 (2026-06-06) — "buffer has a clean ≥3-char
+    /// valid syllable prefix". Predicate shared between the Path 1c
+    /// gate (which excludes such buffers from typo rescue) and
+    /// Path 3b trim-retry (which produces candidates for them) and
+    /// `is_pure_garbage` (which won't wipe such buffers).
+    ///
+    /// 3-char threshold rationale in
+    /// `docs/PLAN-syllable-aware-pinyin.md` §3: 2-char syllables
+    /// (he/ma/...) overlap with English-word starts, false positives
+    /// like `hello → he+llo`; 3+ char syllables are unambiguously
+    /// Chinese-shape.
+    pub fn has_clean_syllable_prefix(&self) -> bool {
+        inputx_pinyin::longest_valid_syllable_prefix(&self.buffer)
+            .map(|s| s.len())
+            .unwrap_or(0)
+            >= 3
     }
 
     /// Same gate as `path1c_consonant_prefix` but returns just a bool,
@@ -1550,6 +1588,55 @@ impl PinyinAdapter {
             // NOTE: the proper home for common words like 靠谱/榨干 is the
             // dict itself (coverage — dict-pipeline T0); this is the safety
             // net until the rebuild adds them.
+        }
+
+        // Path 3b (音节意识细化, 2026-06-06): syllable-aware trim-retry,
+        // true last-resort. Fires ONLY when:
+        //   - every prior path produced nothing (`self.candidates.is_empty()`,
+        //     same gate as Path 5 above), and
+        //   - the buffer is 4-5 chars (Phase H cap territory; longer
+        //     buffers are likely JP ローマ字 or multi-syllable inputs
+        //     that other engines handle, not trim-retry territory), and
+        //   - the buffer has a clean ≥3-char syllable prefix
+        //     (`has_clean_syllable_prefix`).
+        //
+        // Behavior: drop trailing chars one at a time until
+        // `prefix_exists` succeeds on the trimmed buffer, then push
+        // that shorter prefix's completions. The user sees the same
+        // candidate panel as if they hadn't typed the trailing chars.
+        //
+        //   `shehv` → trim `v` → `sheh` (prefix_exists ✓) → push 50
+        //     cands (社会 / 奢华 / 设好 / 射核 / …).
+        //
+        // Spec: docs/PLAN-syllable-aware-pinyin.md §5.3. Placement
+        // AFTER Path 5 (not after Path 3 as the spec's first draft
+        // proposed) ensures Path 3b doesn't pre-empt the Viterbi
+        // compose path (kaopu→靠谱, woyao→我要, taikexi→太可惜).
+        let buf_len = self.buffer.len();
+        if self.candidates.is_empty()
+            && (4..=5).contains(&buf_len)
+            && self.has_clean_syllable_prefix()
+        {
+            let mut seen = std::collections::HashSet::<String>::new();
+            let cap = match buf_len {
+                4 => 200,
+                _ => 200,
+            };
+            let max_trim = 4.min(buf_len.saturating_sub(1));
+            for trim in 1..=max_trim {
+                let shorter = &self.buffer[..buf_len - trim];
+                if self.engine.dict().prefix_exists(shorter) {
+                    push_prefix_top_k(
+                        shorter,
+                        cap,
+                        &mut seen,
+                        &mut self.candidates,
+                        &mut self.prefix_scored,
+                        &mut self.prefix_components,
+                    );
+                    break;
+                }
+            }
         }
     }
 }

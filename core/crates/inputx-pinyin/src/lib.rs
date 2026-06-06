@@ -50,4 +50,7 @@ pub use fuzzy::FuzzyConfig;
 pub use ranking::{L0Snapshot, PROMOTE_THRESHOLD};
 pub use segmenter::{Segmentation, segment};
 pub use session::Session;
-pub use syllable::{VALID_SYLLABLES, count as syllable_count, is_valid as is_valid_syllable};
+pub use syllable::{
+    VALID_SYLLABLES, count as syllable_count, is_valid as is_valid_syllable,
+    longest_valid_syllable_prefix,
+};
