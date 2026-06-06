@@ -39,25 +39,29 @@ use super::scoring;
 // 以先暂停所有的拼音里 拼接字、联想以及错别字模糊吗？只保留正确
 // 拼写和预测性的输入，我们一个个细节来做好".  Three category
 // gates; flip a single bool to `false` to re-enable that whole
-// category of paths when you're ready to polish it.  Tests that
-// pin disabled-path behavior carry an early-return guarded on the
-// same const so they auto-revive when the const flips.
+// category when you're ready to polish it.  Tests that pin
+// disabled behavior carry an early-return guarded on the same
+// const so they auto-revive when the const flips.
 //
-// `_COMPOSE`:    Path 0b (long-buffer Viterbi sentence), Path 5
-//                (K-best short-buffer compose), Path 5b
-//                (mechanical fallback compose).
-// `_ASSOCIATION`: Path 0a (repeated-letter interjection shortcut
-//                hhhh→哈哈哈哈 — user re-classified 2026-06-06 same
-//                family as 简拼: 重复字母不应该是简拼拼接出来的吗),
-//                Path 2 (简拼 first-letter abbreviation).
-// `_FUZZY`:      Path 1b (southern-dialect z/zh swap variants),
-//                Path 1c (2-consonant-prefix typo rescue),
-//                Path 3b (syllable-aware trim-retry).
+// `_COMPOSE`:     long-buffer Viterbi sentence assembly + K-best
+//                 short-buffer composition + mechanical fallback
+//                 composition.
+// `_ASSOCIATION`: repeated-letter interjection (hhhh → 哈哈哈哈) +
+//                 简拼 first-letter abbreviation (zg → 中国).  User
+//                 re-classified repeated-letter into this bucket
+//                 mid-session: "重复字母不应该是简拼拼接出来的吗".
+// `_FUZZY`:       southern-dialect initial swaps (z/zh, c/ch, n/l,
+//                 f/h, in/ing, ...) + 2-consonant-prefix typo
+//                 rescue (pyin → 拼音) + syllable-aware trim-retry
+//                 (shehv → 社会).
 //
-// Initial state: all three TRUE — only exact-syllable Path 1 +
-// prefix-completion Path 3 + rare-CJK Path 4 filter survive.
-// This is intentionally aggressive; the user will polish detail-
-// by-detail and flip whichever const back off as each category is
+// Per-behavior detail + concrete examples in
+// `docs/pinyin-pipeline-gates.md`.
+//
+// Initial state: all three TRUE — only literal-syllable lookup +
+// FST prefix completion + rare-CJK display filter survive.  This
+// is intentionally aggressive; the user will polish detail-by-
+// detail and flip whichever const back off as each category is
 // ready.
 pub(crate) const PINYIN_DISABLE_COMPOSE: bool = true;
 pub(crate) const PINYIN_DISABLE_ASSOCIATION: bool = true;
