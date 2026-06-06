@@ -150,10 +150,16 @@ filter) 直到 NF 系列落地。
 
 ## 8. 命名说明（2026-06-06）
 
-这份 plan 内部的子 phase 编号是 **NF1..NF6** (Noise Filter)，不是
-"Phase J1..J6" —— 后者跟 ranking model series 的 Phase J (引擎
-syllable-aware) 撞了。Ranking model series 是 A,B,C,D,E,F,G,H,I,**J**
-连续编号；corpus absorption 系列另起 NF 序列避撞。
+这份 doc 内部的子任务编号 **NF1..NF6** (Noise Filter) 是**纯
+within-doc 索引**，不作为项目级工件名出现在 BACKLOG / commit
+message / 沟通中。项目级语义名是 **入库质量门 (proactive corpus
+noise filter)**。
+
+历史：原稿曾用 "Phase J1..J6"，跟 ranking-model series 的 "Phase J"
+(后者也已经 retire 为 **音节意识细化**) 撞名，先改成 NF1..NF6；
+2026-06-06 进一步统一约定 —— **新工作不再用单字母编号**，独立
+工件用描述性名字，cycle 内子单位（如 v1.9 的 WU-π/ρ/σ）保留
+原 Greek-letter 因为它们只在 cycle 内有意义。
 
 ---
 

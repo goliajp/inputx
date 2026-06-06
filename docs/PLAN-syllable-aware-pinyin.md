@@ -1,17 +1,26 @@
-# Phase J — Pinyin syllable-aware engine refinement
+# 音节意识细化 — Pinyin syllable-aware engine refinement
 
 > **Status (2026-06-06):** specification approved by user, awaiting
-> implementation under `feature/phase-j-impl` branch.
+> implementation under `feature/syllable-aware-impl` branch.
+>
+> **Naming note:** earlier drafts called this "Phase J" (continuing
+> the ranking-model A..I letter sequence). User directive 2026-06-06
+> retired the single-letter naming convention for new work in favor
+> of descriptive names; this is the canonical first instance of the
+> new convention. The historical Phase B..I letters stay in git log
+> because they're already shipped — only future work uses semantic
+> names.
 >
 > **User directive:** "Q4 做的，只是我要彻底完整的方案" — this doc
 > is the full plan; implementation must not deviate without
 > updating it first.
 >
-> **Predecessor:** ranking-model Phase I (`928d5c7`, wubi full-code
-> redundancy gate). Next ranking-model phase is **Phase J**.
+> **Predecessor (historical):** ranking-model Phase I (`928d5c7`,
+> wubi full-code redundancy gate). 音节意识细化 is the spiritual
+> continuation but the first under the new naming convention.
 >
-> **Related but separate:** corpus filter NF1..NF6 (`docs/PLAN-ingest-noise-filter.md`)
-> — uses NF prefix to avoid name collision with this Phase J.
+> **Related but separate:** 入库质量门 (`docs/PLAN-ingest-noise-filter.md`)
+> — proactive corpus noise filter, also pending.
 
 ---
 
@@ -73,7 +82,7 @@ segmentation:
 Our engine is missing #3 (syllable-resegment + partial completion)
 and our Path 1c (#4) overshoots into territory where #3 should apply.
 
-Phase J closes both gaps.
+音节意识细化 closes both gaps.
 
 ---
 
@@ -92,7 +101,7 @@ Phase J closes both gaps.
 | `is_pure_garbage` ASCII fallback gate | `core/crates/inputx-core/src/composite/engine.rs` ~426 | `is_pure_garbage() -> bool` | early-true unless: pinyin engine has future_match OR `path1c_would_fire` OR JP is enabled |
 | `has_future_match` | `core/crates/inputx-core/src/composite/pinyin_adapter.rs:900` | `has_future_match() -> bool` | trims trailing 1..4 chars, checks suffix-could-start-syllable + prefix_exists |
 
-**Gaps for Phase J:**
+**Gaps for 音节意识细化:**
 
 1. No `longest_valid_syllable_prefix(s) -> Option<&str>` API. `segment()`
    requires full coverage and returns `[]` for partial-match cases.
@@ -182,7 +191,7 @@ prefix segmentation.
 input gracefully.
 
 **Verdict:** rejected for THIS phase. Scope explosion (multi-day
-refactor + risk to Phase H bigram-density gate). Phase J ships
+refactor + risk to Phase H bigram-density gate). 音节意识细化 ships
 Option B; Option C lives as a future PLAN if Option B proves
 insufficient.
 
@@ -200,7 +209,7 @@ function alongside `is_valid` / `count`).
 /// that is_valid() recognizes as a complete syllable. Returns None
 /// if no prefix of length 1..min(6, buffer.len()) is a valid syllable.
 ///
-/// Used by composite/pinyin_adapter.rs's Path 1c gate (Phase J) to
+/// Used by composite/pinyin_adapter.rs's Path 1c gate (音节意识细化) to
 /// detect "user committed to a clean syllable" — gating against
 /// initials-fallback typo rescue.
 ///
@@ -244,7 +253,7 @@ pub(crate) fn path1c_consonant_prefix(&self) -> Option<String> {
     if self.engine.dict().prefix_exists(&self.buffer) {
         return None;
     }
-    // Phase J: if the buffer starts with a clean ≥3-char syllable,
+    // 音节意识细化: if the buffer starts with a clean ≥3-char syllable,
     // the user committed to that syllable and the trailing chars
     // are mid-typing junk, not a missing-vowel typo. Trim-retry
     // (Path 3b below) handles the candidate generation in that
@@ -277,7 +286,7 @@ only when:
 - Buffer has a clean ≥3-char syllable prefix
 
 ```rust
-// Path 3b (Phase J): syllable-aware trim-retry. When the buffer
+// Path 3b (音节意识细化): syllable-aware trim-retry. When the buffer
 // has a clean ≥3-char syllable prefix but doesn't match any FST
 // prefix as-is, the trailing chars are likely mid-typing of a
 // 2nd syllable that hasn't completed yet. Drop trailing chars
@@ -326,7 +335,7 @@ Today `is_pure_garbage` (engine.rs ~426) returns true unless any of:
 - `has_future_match` → false
 - `path1c_would_fire` → false
 
-With Phase J's trim-retry adding a new candidate-generation path,
+With 音节意识细化's trim-retry adding a new candidate-generation path,
 `is_pure_garbage`'s natural escape (`pinyin engine produces some
 candidates` is implicit via the subsequent `if preedit.len() >= 5
 && is_pure_garbage()` only triggering ASCII fallback when garbage
@@ -338,7 +347,7 @@ wipe before Path 3b can run.
 Add to `is_pure_garbage`:
 
 ```rust
-// Phase J: if the buffer has a clean ≥3-char syllable prefix, the
+// 音节意识细化: if the buffer has a clean ≥3-char syllable prefix, the
 // trim-retry path (pinyin_adapter Path 3b) will produce candidates;
 // not garbage.
 if inputx_pinyin::longest_valid_syllable_prefix(&self.pinyin.buffer())
@@ -374,7 +383,7 @@ if inputx_pinyin::longest_valid_syllable_prefix(&self.pinyin.buffer())
 
 - **No multi-syllable Viterbi**. Buffers like `nihaomawojiao`
   (multi-syllable composition probe) keep going through the
-  existing Composed-Viterbi (Phase F) path. Phase J only adds
+  existing Composed-Viterbi (Phase F) path. 音节意识细化 only adds
   one-trim-retry, not arbitrary segmentation.
 
 - **No change to wubi side**. Wubi has no syllable concept; its
@@ -385,7 +394,7 @@ if inputx_pinyin::longest_valid_syllable_prefix(&self.pinyin.buffer())
   independent; `is_pure_garbage` already early-returns false when
   JP is enabled, so trim-retry doesn't interact.
 
-- **No retroactive corpus rerun**. Phase J is engine-side; existing
+- **No retroactive corpus rerun**. 音节意识细化 is engine-side; existing
   dict / IDF byte-for-byte unchanged.
 
 ### 6.3 Regressions to watch
@@ -459,13 +468,13 @@ fn phase_j_syllable_aware_trim_retry() {
     for (buf, trim, expected_top) in cases {
         let top10 = mixed_top10(buf.as_bytes());
         assert!(!top10.is_empty(),
-            "Phase J: {buf} should produce candidates via trim-retry");
+            "音节意识细化: {buf} should produce candidates via trim-retry");
         let trim_top10 = mixed_top10(trim.as_bytes());
         assert_eq!(top10.first(), trim_top10.first(),
-            "Phase J: {buf} top-1 ({top10:?}) should equal {trim} top-1 ({trim_top10:?})");
+            "音节意识细化: {buf} top-1 ({top10:?}) should equal {trim} top-1 ({trim_top10:?})");
         if let Some(t) = top10.first() {
             assert_eq!(t, expected_top,
-                "Phase J: {buf} top-1 should be {expected_top}, got {t}");
+                "音节意识细化: {buf} top-1 should be {expected_top}, got {t}");
         }
     }
 }
@@ -477,7 +486,7 @@ fn phase_j_path1c_still_rescues_real_typos() {
     for buf in &["pyin", "pnyin", "zhgo"] {
         let top10 = mixed_top10(buf.as_bytes());
         assert!(!top10.is_empty(),
-            "Phase J regression: {buf} lost Path 1c rescue");
+            "音节意识细化 regression: {buf} lost Path 1c rescue");
     }
 }
 
@@ -504,11 +513,11 @@ python3 tools/polish-cli/inputx-polish.py show hello  # → empty/ASCII fallback
 
 ## 9. Rollout
 
-1. Branch `feature/phase-j-impl` off `develop`.
+1. Branch `feature/syllable-aware-impl` off `develop`.
 2. Land §7 changes (5 files), commits scoped per file or per
    logical group as the implementation reveals.
 3. `cargo test -p inputx-pinyin --lib` — new helper passes.
-4. `cargo test -p inputx-core --lib` — Phase J baseline tests pass,
+4. `cargo test -p inputx-core --lib` — 音节意识细化 baseline tests pass,
    existing 311+ baseline tests still pass.
 5. `make polish-rebuild` — full chain green.
 6. `python3 mac/reinstall.py` — deploys to live IME, post-conditions
@@ -516,7 +525,7 @@ python3 tools/polish-cli/inputx-polish.py show hello  # → empty/ASCII fallback
    AppleEnabledThirdPartyInputSources singleton).
 7. User-acceptance: probe outputs match §8.3, type a few `shehv`-
    class buffers in live apps.
-8. `git switch develop && git merge --no-ff feature/phase-j-impl &&
+8. `git switch develop && git merge --no-ff feature/syllable-aware-impl &&
    git push origin develop`. Branch cleanup.
 
 ---
@@ -535,11 +544,11 @@ python3 tools/polish-cli/inputx-polish.py show hello  # → empty/ASCII fallback
 
 ---
 
-## 11. Future extensions Phase J explicitly defers
+## 11. Future extensions 音节意识细化 explicitly defers
 
 | Future phase | Trigger to consider |
 |---|---|
-| **Phase K** — multi-syllable Viterbi resegmentation (full Sogou semantics) | Phase J's trim-retry proves insufficient for ≥6-char buffers with multi-syllable partial input |
+| **multi-syllable Viterbi resegmentation** (full Sogou semantics — what was provisionally called "Phase K" before the letter-naming retirement) | 音节意识细化's trim-retry proves insufficient for ≥6-char buffers with multi-syllable partial input |
 | **Per-buffer fuzzy initials** | User reports of "I typed wrong consonant by 1 key" that current Path 1b / 1c don't catch |
 | **Phrase suggestion from clean syllable prefix** | `she-` should also suggest 设计 / 设备 / 社会 / 涉外 phrase-level alongside character continuations |
 
@@ -553,7 +562,7 @@ J spec.
 | Step | Status | Branch / commit |
 |---|---|---|
 | Design doc (this file) | ✅ landed | `feature/phase-j-spec` → develop |
-| Implementation | ⏳ pending | `feature/phase-j-impl` (to be created) |
+| Implementation | ⏳ pending | `feature/syllable-aware-impl` (to be created) |
 | Tests | ⏳ pending | same branch |
 | Live deploy + verify | ⏳ pending | same branch |
 | Merge to develop | ⏳ pending | — |

@@ -3,11 +3,18 @@
 > Source of truth for "what's next" — linearized list, ordered by user
 > priority. Updated whenever an item lands or the priority shifts.
 >
+> **Naming convention (2026-06-06):** new work uses descriptive names
+> (音节意识细化 / 入库质量门 / cement→stone refactor). Single-letter
+> labels like "Phase A..I" are reserved for already-shipped historical
+> phases (git log) — never used for new items. Version-cycle sub-units
+> like `WU-π/ρ/σ` keep their Greek letters because they're scoped to
+> a specific version (v1.9) and meaningful only there.
+>
 > **Companion docs (deeper specs live there, this file links out):**
 > - `.claude/PLAN.md` — v1.9 cycle detail
 > - `.claude/PLAN-roadmap.md` — cross-version roadmap (L2 version table)
-> - `docs/PLAN-phase-j-syllable-aware.md` — Phase J (engine) full spec
-> - `docs/PLAN-ingest-noise-filter.md` — Corpus NF1..NF6 (noise filter)
+> - `docs/PLAN-syllable-aware-pinyin.md` — 音节意识细化 full spec
+> - `docs/PLAN-ingest-noise-filter.md` — 入库质量门 (proactive corpus filter)
 > - `.claude/PLAN-v1.6.md` — cement → stone refactor (deferred)
 > - `.claude/PLAN-self-built-fsa.md`, `.claude/PLAN-unified-scoring.md`,
 >   `.claude/PLAN-rule-engine.md` — long-term L1+L2 designs
@@ -28,26 +35,23 @@ context, not project artifact). One-line summary:
 
 ## Priority order (top = do next)
 
-### 1. Phase J — pinyin syllable-aware engine refinement
+### 1. 音节意识细化 — pinyin syllable-aware engine refinement
 
-**Status:** approved by user 2026-06-06, **awaiting** "彻底完整方案"
-design doc before implementation.
+**Status:** spec landed (`docs/PLAN-syllable-aware-pinyin.md`),
+implementation pending on `feature/syllable-aware-impl` branch.
 
-**Why next:** user-visible quality lift on the current dict. Closes
-the `shehv` / `shehb` / `xianv` class where Path 1c initials-rescue
-fires for buffers that already have a clean first-syllable parse —
-those should fall through to Path 3 prefix-completion with the
-trailing junk char trimmed (= matching `sheh` behavior), not surface
-sh+h 2-syllable noise (时候/生活/...).
+**Why #1:** user-visible quality lift on the current dict, design
+already complete, ~2.5h implementation. Closes the `shehv` / `shehb`
+/ `xianv` class where the initials-fallback typo rescue misfires
+for buffers that have a clean ≥3-char syllable prefix — those
+should fall through to a trim-retry prefix-completion (= matching
+`sheh` behavior), not surface sh+h 2-syllable noise (时候/生活/…).
 
-**Effort:** ~half day implementation after the design doc lands.
+**Effort:** ~2.5h per spec §10 estimate.
 
-**Action items:**
-1. Author `docs/PLAN-phase-j-syllable-aware.md` (full spec — current
-   state, design space, chosen design, files touched, edge cases,
-   tests, rollout). **Pending — next deliverable.**
-2. Implementation per spec.
-3. Regression sweep + reinstall + commit.
+**Action items:** entire §7 file-by-file change plan in the spec.
+Implementation must track the spec 1:1; deviations update the
+spec first.
 
 ---
 
@@ -87,26 +91,28 @@ daizhe (A), jieou + qedi 解耦 (2 A).
 
 ---
 
-### 4. Corpus Phase NF1..NF6 — proactive noise filter
+### 4. 入库质量门 — proactive corpus noise filter
 
 **Status:** design doc landed (`docs/PLAN-ingest-noise-filter.md`),
 **awaiting architecture review** before scheduling.
 
-**Why later than Phase J:** Phase J is half a day with immediate
-user-visible payoff. NF is 3.5 days of infrastructure work — the
-payoff is "fewer future polish reports", which only matters if
-polish reports actually become a sustained burden. Right now they
-average a few a week — manageable via the reactive queue. NF takes
-over once that frequency starts hurting.
+**Why later than 音节意识细化:** 音节意识细化 is ~2.5h with immediate
+user-visible payoff. 入库质量门 is 3.5 days of infrastructure work
+— the payoff is "fewer future polish reports", which only matters
+if polish reports actually become a sustained burden. Right now they
+average a few a week — manageable via the reactive queue. 入库质量门
+takes over once that frequency starts hurting.
 
 **Trigger to start:** 1 of:
 - Weekly polish-D1 reports exceed ~5
 - New external corpus comes online (jieba upgrade, mozc, ...)
-  triggering re-ingestion → opportunity to bake NF into the new
-  ingest path
+  triggering re-ingestion → opportunity to bake the filter into
+  the new ingest path
 
-**Sub-phases:** NF1 lexicon selection → NF6 absorption pipeline
-integration. See doc §5 for breakdown.
+**Sub-phases:** the design doc uses internal labels NF1..NF6
+(lexicon selection → absorption pipeline integration) purely as
+within-doc indexing — they're not promoted to project-level
+identifiers. See doc §5 for the breakdown.
 
 ---
 
@@ -165,7 +171,7 @@ branch and write a dedicated PLAN-ios-ship.md to track WUs.
 | Commits ahead of origin/develop | 0 (just synced) |
 | Active feature/polish branches | (will be tracked here as they open) |
 | v1.9 sub-versions done / total | 0 / 4 |
-| Phase J status | design doc pending |
+| 音节意识细化 status | design doc landed, impl pending |
 | Reactive polish reports this week | ~8 (4 D1 + 1 C + 3 A) |
 | Reinstall arch incidents this week | 4 (all root-caused + permanent fix landed) |
 
