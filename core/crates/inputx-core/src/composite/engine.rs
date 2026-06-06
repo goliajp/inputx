@@ -1607,6 +1607,7 @@ mod tests {
     /// non-empty, top should match `sheh`'s top (社会).
     #[test]
     fn ascii_fallback_yields_to_path3b_trim_retry() {
+        if super::super::pinyin_adapter::PINYIN_DISABLE_FUZZY { return; }
         let mut e = CompositeEngine::new();
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
         // JP intentionally LEFT OFF — Phase J behavior must be
