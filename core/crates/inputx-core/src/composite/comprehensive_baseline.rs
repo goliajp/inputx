@@ -375,6 +375,11 @@ mod tests {
             // F demotes all non-exact Composed to tier 5 — real dict
             // entries surface naturally.
             ("changshi", "尝试"),
+            // Polish-log 2026-06-06: "jianma 捡骂 剑麻 这不对，简码 键码
+            // 还稍微好点". base 捡骂 10032 / 剑麻 8049 outranked 简码
+            // 4193 / 键码 3861 in modern usage. quickfix 简码 → 12000,
+            // 键码 → 11000 — both above 捡骂 with 简码 leading 键码.
+            ("jianma", "简码"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
