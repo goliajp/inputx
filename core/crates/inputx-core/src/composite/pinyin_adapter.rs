@@ -961,11 +961,33 @@ impl PinyinAdapter {
             .take_while(|c| !matches!(*c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v'))
             .collect();
         let suffix_len = self.buffer.len() - consonant_prefix.len();
-        if consonant_prefix.len() == 2 && suffix_len >= 2 {
-            Some(consonant_prefix)
-        } else {
-            None
+        if consonant_prefix.len() != 2 || suffix_len < 2 {
+            return None;
         }
+        // v1.14 (user report 2026-06-06 tkinn): for 5-char buffers
+        // the suffix after the 2-consonant prefix must be a plausible
+        // pinyin syllable tail — there must exist at least one valid
+        // pinyin syllable ending with it. Without this check, `tkinn`
+        // (suffix `inn`, length 3) happily triggers reverse-lookup of
+        // every t-k-initials word (痛苦/天空/...) even though no
+        // Chinese syllable ends with `inn`.
+        //
+        // 4-char buffers stay on the original "any 2-char suffix"
+        // rule: `pyin` (suffix `in`), `xlab` (suffix `ab`) — both
+        // legitimate typo / wubi-shape rescue cases the existing
+        // tests pin. The added structural check kicks in only at
+        // length 5, where the longer tail makes the corpus-shape
+        // check meaningful.
+        if self.buffer.len() == 5 {
+            let suffix = &self.buffer[consonant_prefix.len()..];
+            if !inputx_pinyin::VALID_SYLLABLES
+                .iter()
+                .any(|s| s.ends_with(suffix))
+            {
+                return None;
+            }
+        }
+        Some(consonant_prefix)
     }
 
     /// 音节意识细化 (2026-06-06) — "buffer has a clean ≥3-char
