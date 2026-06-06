@@ -148,6 +148,9 @@ mod tests {
             // too; here for crowd-coverage).
             ("ge", "表"), ("da", "左"),
             ("wo", "伙"), ("ni", "悄"), ("de", "胡"),
+            // 2026-06-06 — user reverted (fa, 载) demote from the
+            // 2026-06-03 tier_overlay sweep.
+            ("fa", "载"),
         ];
         run("jianma2", cases, mixed_top, mixed_top10);
     }
@@ -1511,7 +1514,10 @@ mod tests {
             ("bai", &["陈"]), ("bang", &["陈情"]), ("bi", &["孙"]),
             ("bu", &["联"]), ("dan", &["碟"]), ("di", &["砂"]),
             ("dou", &["灰"]), ("du", &["磁"]), ("duo", &["碰"]),
-            ("er", &["遥"]), ("fa", &["载"]), ("fu", &["增"]),
+            ("er", &["遥"]), ("fu", &["增"]),
+            // (fa, 载) retired 2026-06-06 — user: "fa 载应该在发前面，
+            // 二级简码还是应该优先五笔的，载比隙的常见程度要高得多".
+            // Moved to jianma2_common_chars_lead_in_mixed positive list.
             ("gang", &["开怀"]), ("ha", &["虎"]), ("hao", &["虚"]),
             ("he", &["肯"]), ("ji", &["晃"]), ("ke", &["吸"]),
             ("le", &["胃"]), ("lu", &["较"]), ("ma", &["曲"]),
