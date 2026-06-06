@@ -118,3 +118,7 @@ path = "src/bin/idf_dual_path_verify.rs"
 [[bin]]
 name = "idf-from-pinyin-bigrams"
 path = "src/bin/idf_from_pinyin_bigrams.rs"
+
+[[bin]]
+name = "build-inter-bigrams-ngm"
+path = "src/bin/build_inter_bigrams_ngm.rs"
