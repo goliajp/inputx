@@ -1498,6 +1498,41 @@ mod tests {
         }
     }
 
+    /// 2026-06-06 polish — pinyin er→r typo sweep.  User: "zhonghuarnv 为
+    /// 什么会出现 中华儿女呢，不应该是 zhonghuaernv 吗".  Detected
+    /// systemically by script: word at code `<X>r<Y>` AND the same word
+    /// at `<X>er<Y>` ⇒ corpus encoding dropped the 'e' from mid-word
+    /// `er` (儿).  165 such rows removed from library.tsv + logged in
+    /// corpus_garbage_filter_v1.tsv.  This test seeds: typo'd code
+    /// must NOT yield the word; canonical code still does.
+    #[test]
+    fn no_er_typo_pinyin_codes_surface_real_words() {
+        let cases: &[(&str, &str, &str)] = &[
+            // (typo_code, canonical_code, word_that_must_not_surface_at_typo)
+            ("zhonghuarnv", "zhonghuaernv", "中华儿女"),
+            ("darzi", "daerzi", "大儿子"),
+            ("dairxi", "daierxi", "大儿媳"),
+        ];
+        let mut failures = Vec::new();
+        for (typo, canon, word) in cases {
+            let typo_top = mixed_top10(typo.as_bytes());
+            let canon_top = mixed_top10(canon.as_bytes());
+            if typo_top.iter().any(|w| w == word) {
+                failures.push(format!(
+                    "  {typo}: typo'd code surfaces {word} — top10={typo_top:?}"
+                ));
+            }
+            if !canon_top.iter().any(|w| w == word) {
+                failures.push(format!(
+                    "  {canon}: canonical code missing {word} — top10={canon_top:?}"
+                ));
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} er-typo cases failed:\n{}", failures.len(), failures.join("\n"));
+        }
+    }
+
     // ───────────────────────────────────────────────────────────
     // Mixed-mode: rare/obscure wubi phrases must not contaminate
     // top-10 for common pinyin buffers. User report 2026-06-03:
