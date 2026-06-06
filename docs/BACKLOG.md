@@ -132,6 +132,7 @@ level identifiers). See doc §5.
 | `.claude/PLAN-self-built-fsa.md` | self-built FSA replacing `fst` crate | binary-size or perf regression that traces to `fst` |
 | `.claude/PLAN-unified-scoring.md` | unify scoring entry points behind one trait | adding a 4th engine (Korean? Vietnamese?) makes the duplication painful |
 | `.claude/PLAN-rule-engine.md` | rule engine abstraction (policy vs data) | reactive polish rule count explodes past what tier_overlay + exclusions can express |
+| (no doc yet) | 繁体 mode toggle | user wants access to the 570 orphan TRAD chars currently swept out of wubi (see `docs/wubi-trad-sweep-2026-06-06/`) — needs a session-level flag + dispatch filter, parallel to `set_japanese_enabled` |
 
 None blocking; surface when a real driver emerges.
 
