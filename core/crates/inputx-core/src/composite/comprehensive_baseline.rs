@@ -1730,4 +1730,35 @@ mod tests {
         assert!(!top10.is_empty(),
             "音节意识细化 regression: pyin lost Path 1c rescue; top10 was empty");
     }
+
+    /// v1.14 (user report 2026-06-06 `tkinn`): Path 1c 5-char buffers
+    /// must require the suffix to be a plausible pinyin syllable tail
+    /// — there must exist at least one valid syllable ending with it.
+    /// Otherwise random-keystroke / JP-romaji buffers like `tkinn`
+    /// (suffix `inn`) flood top-10 with their consonant-prefix
+    /// reverse-lookup (痛苦/天空/太空/天开/天会/偷看/...) — clearly
+    /// not what the user typed.
+    ///
+    /// `tkinn` blocks: no Chinese syllable ends with `inn`.
+    /// `tkonn` blocks: no Chinese syllable ends with `onn`.
+    /// `pyin` (4 chars) still rescues — 4-char buffers stay on the
+    /// looser rule (covered by `syllable_aware_path1c_still_rescues_real_typos`).
+    #[test]
+    fn path1c_5char_buffer_requires_syllable_tail_suffix() {
+        let blocked: &[&str] = &["tkinn", "tkonn", "tkenn", "tkann"];
+        let mut failures = Vec::new();
+        for buf in blocked {
+            let top10 = mixed_top10(buf.as_bytes());
+            if !top10.is_empty() {
+                failures.push(format!(
+                    "  {buf}: expected empty top10 (suffix not a syllable tail); \
+                     got {top10:?}"
+                ));
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} 5-char Path 1c noise cases failed:\n{}",
+                failures.len(), failures.join("\n"));
+        }
+    }
 }
