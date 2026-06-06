@@ -12,17 +12,32 @@
 **Active branch:** `develop` (always at-or-ahead of `master`; master is dormant)
 **Active feature/polish branches:** none
 **Commits ahead of origin/develop:** 0 (synced after last push)
-**Current cycle:** v1.14 — two commits landed 2026-06-06:
-inter-bigram NGM + strict-all K-best chain gate (`e41174f`,
-luyaozhi); Path 1c 5-char syllable-tail check (`7c973df`, tkinn).
 
-**Default next action when user says "继续 autorun":** see
-**Autorun protocol** section below — but in short: there is no
-substantive autoruning work pending. All BACKLOG #1-priority items
-are gated on user-report (reactive polish) or trigger-condition (入库
-质量门 not yet met, v1.6 opportunistic). Autorun's correct behavior
-right now is to **report current state and ask for direction** rather
-than invent work.
+**Current cycle:** v1.14 — open, ~25 commits since 2026-06-06.
+Refreshed 2026-06-07.  Headline state:
+
+1. **Pinyin pipeline in minimal-debug mode** — three category gates
+   in `pinyin_adapter.rs` (`PINYIN_DISABLE_COMPOSE / ASSOCIATION /
+   FUZZY`) all set `true`.  Only literal-syllable lookup + FST
+   prefix completion + rare-CJK display filter active.  Per-const
+   behavior reference: `docs/pinyin-pipeline-gates.md`.  Project
+   memory `[[project-pinyin-minimal-debug-state]]` is the
+   cross-session anchor — **do not auto-flip a const without user
+   permission**; empty results for paused-family buffers (`pyin`,
+   `zg`, `zongguo`, `shehv`, `hhhh`, etc.) are intentional, not a
+   regression.
+2. **Two systemic data sweeps shipped** on 2026-06-06:
+   - wubi 繁体: 3527 TRAD chars stripped from `auto_decomp.txt`.
+     570 orphan TRAD chars KEPT until 繁体 mode toggle ships.
+     Audit + re-runnable script: `docs/wubi-trad-sweep-2026-06-06/`.
+   - pinyin er→r typo: 165 mis-encoded library rows deleted.
+     Audit: `docs/pinyin-er-typo-sweep-2026-06-06/`.
+3. **No active branches**; no commits ahead of origin.
+
+**Default next action when user says "继续 autorun":** report this
+state + ask direction.  Per the work-picking algorithm below, every
+BACKLOG #1 item is either reactive-polish (needs user report) or
+trigger-gated (not currently met by anything cleanly autorun-able).
 
 ---
 
@@ -192,21 +207,76 @@ context, not project artifact). One-line:
 
 ### v1.14 (open cycle, 2026-06-06 → ongoing)
 
-- **pinyin K-best 3-segment chain gate** (`e41174f`) — user report
-  `luyaozhi → 路要职`. Shipped inter-bigram NGM blob (1.27 MB,
-  `bigrams_inter.ngm`, `--min-count 15`) + `combined_bigram_log_prob_q4`
-  helper + strict-all rule replacing ceil-half over combined intra+inter
-  signal. Tests: lib 312/0, baseline 46/46, v1.9-snapshot drift list
-  unchanged (still the audited 9 from WU-ρ). Sister bin
-  `build-inter-bigrams-ngm` to regenerate the blob from
+Refreshed 2026-06-07.  All items here landed on `develop`; no tag
+cut yet.
+
+**Framework / engine:**
+
+- **K-best 3-segment chain gate** (`e41174f`) — user report
+  `luyaozhi → 路要职`.  Inter-bigram NGM blob (1.27 MB,
+  `bigrams_inter.ngm`, `--min-count 15`) + `combined_bigram_log_
+  prob_q4` helper + strict-all rule replacing ceil-half over
+  combined intra+inter signal.  Sister bin
+  `build-inter-bigrams-ngm` regenerates the blob from
   `bigrams_inter.tsv` on future corpus refresh.
-- **pinyin Path 1c 5-char syllable-tail check** (`7c973df`) — user
-  report `tkinn` returning 10 t-k-initials phrases. At buffer length
-  5 the consonant-prefix rescue now requires the suffix to be a
-  plausible pinyin syllable tail (some entry in `VALID_SYLLABLES`
-  ends with it). 4-char buffers (`pyin`, `xlab`) untouched. Tests:
-  lib 314/0, baseline 48/48, +1 regression case
-  `path1c_5char_buffer_requires_syllable_tail_suffix`.
+- **Path 1c 5-char syllable-tail check** (`7c973df`) — user
+  report `tkinn` returning 10 t-k-initials phrases.  At buffer
+  length 5 the consonant-prefix rescue now requires the suffix
+  to be a plausible pinyin syllable tail.  4-char buffers
+  (`pyin`, `xlab`) untouched.
+- **Pinyin minimal-paths debug mode** (`65bc010` +
+  `9d88692`) — three `pub(crate) const bool` toggles
+  (`PINYIN_DISABLE_COMPOSE / ASSOCIATION / FUZZY`) pause each
+  family.  Tests gated to early-return on the same const, so
+  flipping back to `false` auto-revives assertions.  Path 0a
+  (repeated-letter) reclassified into ASSOCIATION per user
+  "重复字母不应该是简拼拼接出来的吗".  Behavior reference:
+  `docs/pinyin-pipeline-gates.md`.
+
+**Polish — per-buffer:**
+
+- (fa, 载) tier-5 demote revert (`33485d9`) — wubi 二级简码
+  must lead at `fa`.
+- jianma → 简码/键码 boost (`2bbf348`); same-day refined to
+  D1/D2 cleanup of 捡骂/剑麻 (`7d1297a`); then 简码 tier-1 boost
+  vs JP exact-prefix kana (`c24664c`).
+- Add 体感 at tigan (pinyin) + wsdg (wubi, `53320cc`).
+- Regen-blob fallout commit (`063863a`) — discovered the polish
+  workflow gap that's now memorialized in
+  [[feedback-polish-bundle-regen-blobs]].
+
+**Polish — systemic sweeps:**
+
+- **wubi 繁体 sweep** (`b63d6dd`) — user report `yngk → 詞 /
+  词 / 肇事 / 启事`, then "你系统解决吧".  Strip 3527 TRAD
+  chars from `auto_decomp.txt` whose simplified counterpart is
+  reachable via any wubi source.  570 orphan TRAD chars KEPT
+  (no same-source simp peer; deleting would silently kill wubi
+  lookup for those chars).  Full audit at
+  `docs/wubi-trad-sweep-2026-06-06/`.  The orphan-rescue path
+  is the 繁体 mode toggle backlog item (BACKLOG §4).
+- **pinyin er→r typo sweep** (`1ee80d7`) — user report
+  `zhonghuarnv → 中华儿女`.  Detection: word at code
+  `<X>r<Y>` AND the SAME word at `<X>er<Y>` ⇒ corpus
+  encoding dropped `e` from mid-word `er`.  165 such rows
+  deleted from library.tsv + logged in
+  `corpus_garbage_filter_v1.tsv`.  Audit:
+  `docs/pinyin-er-typo-sweep-2026-06-06/`.
+
+**Docs / process:**
+
+- BACKLOG cycle-landing breadcrumbs (`35feaa3 / 3b329a5`),
+  superseded by this 2026-06-07 refresh.
+- Path Nx → Stage N rename pass, reverted, replaced with prose
+  reference doc (`e4de045 → 285fd03 → c532ee6`).  Per user
+  "保持全是 const PINYIN_XXX 挺好的，只是文档里写一下具体是干
+  什么的，别再用 Path X 这种代称了".
+- Memory: [[project-pinyin-minimal-debug-state]] +
+  [[feedback-polish-bundle-regen-blobs]] saved during this
+  cycle.
+
+Test gates at HEAD: baseline 50/50, lib 317/0, v1.9-snapshot
+drift unchanged from the audited WU-ρ list.
 
 ### v1.13.0 ship summary
 
