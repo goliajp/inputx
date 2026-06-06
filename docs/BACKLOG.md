@@ -1,140 +1,129 @@
 # Inputx Backlog
 
-> Source of truth for "what's next" — linearized list, ordered by user
-> priority. Updated whenever an item lands or the priority shifts.
->
-> **Naming convention (2026-06-06):** new work uses descriptive names
-> (音节意识细化 / 入库质量门 / cement→stone refactor). Single-letter
-> labels like "Phase A..I" are reserved for already-shipped historical
-> phases (git log) — never used for new items. Version-cycle sub-units
-> like `WU-π/ρ/σ` keep their Greek letters because they're scoped to
-> a specific version (v1.9) and meaningful only there.
->
-> **Companion docs (deeper specs live there, this file links out):**
-> - `.claude/PLAN.md` — v1.9 cycle detail
-> - `.claude/PLAN-roadmap.md` — cross-version roadmap (L2 version table)
-> - `docs/PLAN-syllable-aware-pinyin.md` — 音节意识细化 full spec
-> - `docs/PLAN-ingest-noise-filter.md` — 入库质量门 (proactive corpus filter)
-> - `.claude/PLAN-v1.6.md` — cement → stone refactor (deferred)
-> - `.claude/PLAN-self-built-fsa.md`, `.claude/PLAN-unified-scoring.md`,
->   `.claude/PLAN-rule-engine.md` — long-term L1+L2 designs
+> Source of truth for "what's next". Top section answers "what should
+> the assistant do RIGHT NOW given no further user input"; sections
+> below are full prioritized backlog with status and triggers.
 
 ---
 
-## Workflow
+## NEXT-ACTION (read first on session start)
 
-All substantive work follows git-flow. Full convention + cheat-sheet
-lives in **`.claude/workflows/git-flow.md`** (gitignored — operational
-context, not project artifact). One-line summary:
+**Latest shipped tag:** `v1.13.0` (2026-06-06)
+**Active branch:** `develop` (always at-or-ahead of `master`; master is dormant)
+**Active feature/polish branches:** none
+**Commits ahead of origin/develop:** 0 (synced after last push)
+**Current cycle:** v1.14 (open scope — see `.claude/PLAN.md`)
 
-> Branch off `develop` with `<prefix>/<slug>` (feature / polish /
-> bugfix / infra / docs / hotfix), commit, merge back with `--no-ff`,
-> delete branch, push to origin. No user confirmation needed.
-
----
-
-## Priority order (top = do next)
-
-### 1. ✅ 音节意识细化 — SHIPPED in v1.13.0
-
-Spec: `docs/PLAN-syllable-aware-pinyin.md`. Implementation landed
-2026-06-06 (commits 3ad6239 + merge a392abc). Tag v1.13.0 ships it.
-
-Behaviors confirmed: shehv/shehb/shehz → top-1 = 社会 (matches sheh
-trim-retry), pyin still gets Path 1c rescue, hello/qwxzy still
-ASCII-fallback. Spec → implementation 1:1 with two intentional
-adjustments (Path 3b position after Path 5 to preserve compose
-path; buf.len() ∈ [4,5] gate to avoid polluting JP-shaped long
-buffers).
+**Default next action when user says "继续 autorun":** see
+**Autorun protocol** section below — but in short: there is no
+substantive autoruning work pending. All BACKLOG #1-priority items
+are gated on user-report (reactive polish) or trigger-condition (入库
+质量门 not yet met, v1.6 opportunistic). Autorun's correct behavior
+right now is to **report current state and ask for direction** rather
+than invent work.
 
 ---
 
-### 2. v1.9 cycle — ✅ COMPLETED in v1.13.0 ship
+## Autorun protocol
 
-All sub-versions landed 2026-06-06:
+Triggered by user input matching `继续 autorun` / `autorun continue`
+/ `keep going` / similar standing-instruction phrasing.
 
-| WU | Status | Closing artifact |
-|---|---|---|
-| **WU-π** dict-pipeline audit + 22-phrase cherry-pick | ✅ | `docs/v1.9.0-vNEXT-audit.md` close-out section |
-| **WU-ρ** baseline fixture diff vs vNEXT | ✅ | `docs/v1.9.1-wu-rho-audit.md`; snapshot regenerated as `v1.9-snapshot.json` |
-| **WU-σ** promote + tag | ✅ | tag `v1.13.0` (per actual git-tag chronology — see §"Naming reconciliation" below) |
-| **WU-τ** v1.6 resume | ⏳ deferred per opportunistic policy (§5) |
+**On entry — checklist (in order):**
 
-**Naming reconciliation:** the PLAN.md "v1.9 cycle" codename predates
-this session by 5 days. Actual git tag chronology jumped v1.8 → v1.10
-→ v1.11 → v1.12 (v1.9.0 was skipped at tag-time). Tagging today's
-ship as `v1.9.0` would have caused version-sort confusion; tagged as
-`v1.13.0` to continue the real series. `.claude/PLAN.md` should be
-archived/rewritten in the next planning session to match the v1.13+
-reality.
+1. `git status` + `git pull --ff-only origin develop` — sync, fail
+   loud on conflict
+2. `git log --oneline -5` — orient on recent merges
+3. Read `docs/BACKLOG.md` "NEXT-ACTION" block above
+4. Read `.claude/PLAN.md` for current-cycle hot work
+5. Check memory: any `[[feedback-…]]` / `[[project-…]]` entries
+   relevant to upcoming work
+6. Branch out to do work per the algorithm below
 
----
+**Work-picking algorithm:**
 
-### 3. Reactive polish queue (ongoing, ambient)
+| Condition | Action |
+|---|---|
+| Active `feature/*` or `polish/*` branch exists locally + unmerged | Resume that branch (read its commits, ask what next step) |
+| BACKLOG has an item marked "ready to start" without trigger | Pick it, branch, execute per git-flow |
+| BACKLOG #1 is "reactive polish queue" (status: waiting for user report) | **Stop and report**: "no autonomous work pending; ready for /polish or feature direction" |
+| 入库质量门 trigger met (weekly polish-D1 reports > 5 OR new corpus ingest) | Pick it, ~3.5d work, branch `feature/ingest-quality-filter-impl` |
+| v1.6 cement→stone trigger met (touching cement crate for other reason) | Surface as suggestion to user mid-work, don't start unilaterally |
+| Other long-term L1+L2 design triggered | Surface as suggestion |
+| Nothing applicable | Report current state + ask user for direction |
 
-**Status:** continuous — runs whenever user reports a (buffer, word)
-ranking imperfection via the `/polish` skill.
+**Stop-and-report conditions (mid-autorun):**
 
-**Workflow:** per polish action a `polish/<class>-<slug>` branch,
-following the `polish` skill protocol (probe → classify → minimal
-data edit → polish-rebuild → test → reinstall → commit → merge to
-develop → push).
+- Test red after fix attempt — escalate (don't keep flailing)
+- Destructive action needed (delete files, push --force, tag, etc.)
+- Scope expansion past the branch's stated goal — re-spec first
+- External gate (network, credentials, user-only OS step like
+  System Settings IME add)
 
-**No fixed effort** — driven by user reports. Recent history (this
-week): jianti (B+D1), biji (Phase I), jiaozhu (4 D1 + 1 C),
-daizhe (A), jieou + qedi 解耦 (2 A).
+**Push policy:** every merged branch pushes to origin without
+confirmation, per `.claude/workflows/git-flow.md`.
 
----
-
-### 4. 入库质量门 — proactive corpus noise filter
-
-**Status:** design doc landed (`docs/PLAN-ingest-noise-filter.md`),
-**awaiting architecture review** before scheduling.
-
-**Why later than 音节意识细化:** 音节意识细化 is ~2.5h with immediate
-user-visible payoff. 入库质量门 is 3.5 days of infrastructure work
-— the payoff is "fewer future polish reports", which only matters
-if polish reports actually become a sustained burden. Right now they
-average a few a week — manageable via the reactive queue. 入库质量门
-takes over once that frequency starts hurting.
-
-**Trigger to start:** 1 of:
-- Weekly polish-D1 reports exceed ~5
-- New external corpus comes online (jieba upgrade, mozc, ...)
-  triggering re-ingestion → opportunity to bake the filter into
-  the new ingest path
-
-**Sub-phases:** the design doc uses internal labels NF1..NF6
-(lexicon selection → absorption pipeline integration) purely as
-within-doc indexing — they're not promoted to project-level
-identifiers. See doc §5 for the breakdown.
+**Verify policy:** every code/data change runs through:
+- polish work → `make polish-rebuild` (baseline gate)
+- framework work → `cargo test -p inputx-core --lib --release`
+- mac IME work → `mac/reinstall.py` (5-step verify + probe-test)
 
 ---
 
-### 5. v1.6 — cement → stone refactor (long-term, opportunistic)
+## Priority order — actually-pending items only
 
-**Status:** deferred 2026-06-01 by user, **resume opportunistically**.
-User directive 2026-06-06: "v1.6 是长期任务，发现有可以做的就告诉我".
+(Shipped items archived at bottom under "Recently shipped".)
 
-**Why opportunistic, not scheduled:** engineering housekeeping, no
-user-visible behavior change. Best done in slices that piggy-back
-on natural ingress points (a new crate added → migrate it cleanly;
-a cement crate touched for a real reason → also do the rename).
+### 1. Reactive polish queue (ambient — waiting on user reports)
 
-**Triggers to surface to user:**
-- Touching a `inputx-*-cement` crate for another reason
+**Status:** continuous; runs per `/polish` skill invocation. Cannot
+autorun without user input.
+
+**Workflow:** per polish action a `polish/<class>-<slug>` branch
+(probe → classify → minimal data edit → polish-rebuild → test →
+reinstall → commit → merge → push).
+
+**Recent history (today):** jianti (B+D1), biji (Phase I-ranked
+fix), jiaozhu (4 D1 + 1 C), daizhe (A), jieou + qedi 解耦 (2 A),
+WU-π cherry-pick 22 wubi phrases.
+
+---
+
+### 2. 入库质量门 — proactive corpus noise filter
+
+**Status:** design doc complete (`docs/PLAN-ingest-noise-filter.md`),
+**awaiting trigger** — currently NOT autoruning.
+
+**Effort:** ~3.5d.
+
+**Triggers to start (autorun-eligible if either met):**
+- Weekly polish-D1 reports > 5 (sustained, not single-day spike)
+- New external corpus harvest opportunity (jieba upgrade, mozc
+  re-import, etc.)
+
+**Sub-phases:** NF1..NF6 (within-doc indexing only, not project-
+level identifiers). See doc §5.
+
+---
+
+### 3. v1.6 — cement → stone refactor (long-term, opportunistic)
+
+**Status:** deferred 2026-06-01, opportunistic resume per user
+2026-06-06: "v1.6 是长期任务，发现有可以做的就告诉我".
+
+**Effort per slice:** small (~hours each); whole refactor ~3d.
+
+**Triggers to surface to user (don't autorun unilaterally):**
+- Touching an `inputx-*-cement` crate for another reason
 - Adding a new published crate (would need fresh -data / -helpers
   rather than another cement)
-- v1.9 WU-τ window if v1.9 finishes ahead of cycle
+- Free capacity between substantive work
 
 **Detail:** `.claude/PLAN-v1.6.md`.
 
 ---
 
-### 6. Long-term L1+L2 designs (no active code, await trigger)
-
-These have design docs but no active engineering. None are blocking
-anything; surface when a real driver emerges.
+### 4. Long-term L1+L2 designs (no active code, await trigger)
 
 | Doc | Topic | Trigger to consider |
 |---|---|---|
@@ -142,65 +131,100 @@ anything; surface when a real driver emerges.
 | `.claude/PLAN-unified-scoring.md` | unify scoring entry points behind one trait | adding a 4th engine (Korean? Vietnamese?) makes the duplication painful |
 | `.claude/PLAN-rule-engine.md` | rule engine abstraction (policy vs data) | reactive polish rule count explodes past what tier_overlay + exclusions can express |
 
----
-
-### 7. iOS — SHELVED
-
-**Status:** **shelved** per user 2026-06-06 ("Q3 先搁置").
-
-Engineering state per `README.zh-CN.md`: iOS v1 feature-complete
-(Rust engine, dual-engine router, L0 persistence, locale, iOS
-keyboard + Settings UI all implemented + tested), remaining work
-was real-device validation + perf profiling + TestFlight + App
-Store submission.
-
-When this comes off the shelf, create `feature/ios-shipping`
-branch and write a dedicated PLAN-ios-ship.md to track WUs.
+None blocking; surface when a real driver emerges.
 
 ---
 
-## Cycle telemetry (snapshot 2026-06-06 end-of-day, post-v1.13.0 ship)
+### 5. iOS — SHELVED
 
-| Metric | Value |
-|---|---|
-| Latest shipped tag | **v1.13.0** (2026-06-06, on develop per project convention) |
-| Commits ahead of origin/develop | 0 (synced) |
-| Active feature/polish branches | none |
-| 音节意识细化 status | ✅ shipped in v1.13.0 |
-| WU-π (cherry-pick) status | ✅ shipped in v1.13.0 (22 wubi gaps) |
-| WU-ρ (baseline diff) status | ✅ shipped in v1.13.0 (audit doc + v1.9-snapshot.json) |
-| WU-σ (promote + tag) status | ✅ shipped — tag v1.13.0 takes the place of "v1.9.0 ship" per actual git tag chronology |
-| Reactive polish reports today | 8 (4 D1 + 1 C + 3 A) |
-| Reinstall arch incidents today | 4 (all root-caused + permanent fix landed) |
-| Naming convention | descriptive names for new work; historical Phase B..I labels preserved in git log only |
+**Status:** shelved per user 2026-06-06 ("Q3 先搁置").
 
-## v1.13.0 ship summary (2026-06-06)
+When this comes off the shelf, create `feature/ios-shipping` branch
+and write a dedicated `docs/PLAN-ios-ship.md` to track WUs.
 
-Tagged `v1.13.0` on `develop` HEAD (commit 9e57e76, the WU-ρ merge).
-Release notes live in the annotated tag message: `git tag -l v1.13.0 -n100`.
+---
 
-Scope highlights:
-- engine: 音节意识细化 (Path 1c gate + Path 3b trim-retry), Phase I (wubi
-  full-code redundancy), ASCII fallback ↔ Path 1c reconciliation
-- dict: WU-π cherry-pick 22 wubi phrase gaps; reactive polish queue
-  (jianti / biji / jiaozhu / daizhe / 解耦)
-- mac IME: LaunchAgent retired (single-spawn architecture via
+## Workflow
+
+All substantive work follows git-flow. Full convention + cheat-sheet
+in **`.claude/workflows/git-flow.md`** (gitignored — operational
+context, not project artifact). One-line:
+
+> Branch off `develop` with `<prefix>/<slug>` (feature / polish /
+> bugfix / infra / docs / hotfix), commit, merge back with `--no-ff`,
+> delete branch, push to origin.
+
+---
+
+## Naming convention (2026-06-06)
+
+- **New work:** descriptive names (e.g. 音节意识细化, 入库质量门,
+  cement → stone refactor). NOT single-letter Phase labels.
+- **Historical:** Phase B..I (shipped ranking-model phases) preserved
+  in git log; do not reuse the letters for new work.
+- **Version cycle sub-units:** WU-π/ρ/σ allowed *within* a version
+  cycle (meaningful only there), not as standalone work-item names.
+
+---
+
+## Companion docs (deeper specs)
+
+- `.claude/PLAN.md` — current cycle scaffold (v1.14 open scope)
+- `.claude/PLAN-roadmap.md` — cross-version L2 table
+- `.claude/PLAN-v1.9-archived.md` — v1.9 codename → shipped v1.13.0 history
+- `.claude/PLAN-v1.6.md` — cement→stone refactor (deferred)
+- `.claude/PLAN-self-built-fsa.md` / `PLAN-unified-scoring.md` /
+  `PLAN-rule-engine.md` — long-term L1+L2 designs
+- `docs/PLAN-ingest-noise-filter.md` — 入库质量门 (proactive corpus filter)
+- `docs/PLAN-syllable-aware-pinyin.md` — 音节意识细化 spec (impl shipped v1.13.0)
+- `docs/v1.9.0-vNEXT-audit.md` — WU-π audit + close-out
+- `docs/v1.9.1-wu-rho-audit.md` — WU-ρ baseline-diff audit
+- `docs/macos-ime-recipe-2026.md` — macOS IMK lifecycle (LaunchAgent retired §)
+- `data/v14-baseline-fixtures/v1.9-snapshot.json` — current baseline
+  (regenerate with `rebuild-snapshot.py` at each cycle boundary)
+
+---
+
+## Recently shipped (since 2026-06-06 — historical, no action)
+
+### v1.13.0 ship summary
+
+Tag annotated, on develop HEAD. `git tag -l v1.13.0 -n100` for full
+release notes. Scope:
+
+- **engine**: 音节意识细化 (Path 1c gate + Path 3b trim-retry),
+  Phase I (wubi full-code redundancy), ASCII-fallback ↔ Path 1c
+  reconciliation
+- **dict**: WU-π cherry-pick 22 wubi phrase gaps; reactive polish
+  queue (jianti / biji / jiaozhu / daizhe / 解耦)
+- **mac IME**: LaunchAgent retired (single-spawn via
   imklaunchagent), atomic bundle swap, stray-LS sweep, NSStatusItem
   retired (settings consolidated to IMK menu + SettingsWindow)
-- process: git-flow workflow locked, BACKLOG.md as SoT, descriptive
-  naming convention
+- **process**: git-flow workflow locked, BACKLOG.md as SoT,
+  descriptive naming convention retiring single-letter Phase labels
+
+Test gates at ship: baseline 46/46, lib 312/0, mac/reinstall.py
+clean (probe returned 你好), 1000-query fixture 60/69 unchanged top-1
+with 9 documented intentional drift cases.
+
+### v1.10 / v1.11 / v1.12 ship history
+
+See `git tag -l vX.Y.Z -n100` per tag. Themes: v1.10 TOML data
+source for ranking knobs; v1.11 Polish workflow tooling; v1.12
+Telemetry-driven calibrate framework.
 
 ---
 
 ## How to add to this backlog
 
-1. New work surfaces → identify which section (1-7) it belongs to.
-2. Add bullet under that section with: status / why-this-priority /
-   effort / branch name (if known).
+1. New work surfaces → identify which section it belongs to.
+2. Add bullet under that section with: status / trigger / effort /
+   branch name (if known).
 3. If it doesn't fit any existing section, add a new section with
    linear priority placement.
-4. Re-order sections if priority shifts; bottom of each section is
-   newer / less-blocking items.
+4. Re-order if priority shifts; new items go to bottom of section.
+5. **When shipped**: move to "Recently shipped" footer, NOT delete.
+   Future-you needs the audit trail.
 
 Don't let this file grow into a brain dump. Items that haven't
 moved in 4+ weeks either get scheduled or get dropped.
