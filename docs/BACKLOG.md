@@ -12,7 +12,9 @@
 **Active branch:** `develop` (always at-or-ahead of `master`; master is dormant)
 **Active feature/polish branches:** none
 **Commits ahead of origin/develop:** 0 (synced after last push)
-**Current cycle:** v1.14 — first commit landed 2026-06-06: inter-bigram NGM + strict-all K-best chain gate (`e41174f`). Closes user report `luyaozhi → 路要职`.
+**Current cycle:** v1.14 — two commits landed 2026-06-06:
+inter-bigram NGM + strict-all K-best chain gate (`e41174f`,
+luyaozhi); Path 1c 5-char syllable-tail check (`7c973df`, tkinn).
 
 **Default next action when user says "继续 autorun":** see
 **Autorun protocol** section below — but in short: there is no
@@ -197,6 +199,13 @@ context, not project artifact). One-line:
   unchanged (still the audited 9 from WU-ρ). Sister bin
   `build-inter-bigrams-ngm` to regenerate the blob from
   `bigrams_inter.tsv` on future corpus refresh.
+- **pinyin Path 1c 5-char syllable-tail check** (`7c973df`) — user
+  report `tkinn` returning 10 t-k-initials phrases. At buffer length
+  5 the consonant-prefix rescue now requires the suffix to be a
+  plausible pinyin syllable tail (some entry in `VALID_SYLLABLES`
+  ends with it). 4-char buffers (`pyin`, `xlab`) untouched. Tests:
+  lib 314/0, baseline 48/48, +1 regression case
+  `path1c_5char_buffer_requires_syllable_tail_suffix`.
 
 ### v1.13.0 ship summary
 
