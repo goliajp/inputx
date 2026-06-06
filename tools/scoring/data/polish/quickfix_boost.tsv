@@ -54,8 +54,12 @@ fudu	复读	55000	# user 2026-06-04: fudu 三个中文词都应该在日语 ふ�
 fudu	服毒	50000	# user 2026-06-04: 同上 | base 15348 (tier3) → 50000 (z=2.32, tier1)
 yangshi	样式	27000	# user 2026-06-04: 样式 比 央视 高一点点 | top peer 央视 24744 + 10% margin
 jianti	简体	21200	# user 2026-06-05: 简体 必须在 健体 前面 | top peer 健体 19242 + 10% margin
-jianma	简码	12000	# user 2026-06-06: jianma → 简码 / 键码 应该领先 捡骂 / 剑麻 | top peer 捡骂 10032 + 20% margin
-jianma	键码	11000	# user 2026-06-06: paired with 简码 boost — both above 捡骂 10032, 简码 leads | top peer 捡骂 10032 + 10% margin
+# jianma 简码/键码 boost retired 2026-06-06 same-day — root cause was 捡骂
+# (jieba sub-word noise) + 剑麻 (sisal, real but obscure) sitting above the
+# real words. After D1 删 捡骂 + D2 hide 剑麻, 简码 (4193) > 键码 (3861) > rest
+# leads naturally without boost.
+# jianma	简码	12000	[retired by D1/D2 cleanup commit on jianma]
+# jianma	键码	11000	[retired by D1/D2 cleanup commit on jianma]
 # 2026-06-03 Phase E (bigram quality gate) retires juli 举例 quickfix
 # — 局里 / 剧里 (bigram 16k / 14k < floor 25k) now auto-demoted one
 # tier, so 距离 / 举例 surface ahead naturally without per-buffer boost.

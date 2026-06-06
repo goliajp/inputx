@@ -93,3 +93,9 @@ ziji	子鸡	# 童子鸡分解
 yichu	一出
 yichu	一处
 yichu	一触
+# 剑麻 (sisal — botanical) kept in dict for initials reverse-lookup / K-best
+# but hidden from Path-1 display at `jianma` so 简码 / 键码 lead naturally.
+# User 2026-06-06: "捡骂 剑麻 不应该出现，他们不是词" (剑麻 IS technically
+# a real plant name; D2 default-conservative per the protocol "would any
+# path usefully exercise this entry" question).
+jianma	剑麻
