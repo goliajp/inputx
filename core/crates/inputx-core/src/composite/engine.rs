@@ -457,6 +457,14 @@ impl CompositeEngine {
         if self.pinyin.path1c_would_fire() {
             return false;
         }
+        // 音节意识细化 (2026-06-06): if the buffer has a clean ≥3-char
+        // syllable prefix, Path 3b trim-retry (in pinyin_adapter) will
+        // produce candidates. The user committed to that syllable; don't
+        // wipe the buffer even though `has_future_match` and Path 1c
+        // both said no. `shehv` / `xianv` route through this.
+        if self.pinyin.has_clean_syllable_prefix() {
+            return false;
+        }
         true
     }
 
@@ -1573,27 +1581,36 @@ mod tests {
             "lost characters: committed+preedit={:?} expected={:?}", out, expected);
     }
 
-    /// Regression 2026-06-05: `shehv` (5 chars ending in 'v') used
-    /// to trip ASCII fallback at JP-off because:
-    ///   - has_future_match("shehv") = false: 'v' isn't a valid
-    ///     pinyin syllable starter so the trailing-trim loop fails
-    ///     every candidate suffix
-    ///   - JP-on early-return masked the symptom; the moment a user
-    ///     disabled JP, `shehv` wiped the buffer entirely (preedit='',
-    ///     0 candidates) — different output for same input depending
-    ///     on a setting unrelated to the input
-    /// Fix: is_pure_garbage now also asks "would Path 1c fire?". If
-    /// yes (2-consonant + ≥2-suffix typo shape), buffer is kept so
-    /// Path 1c can produce its initials-fallback candidates. Same
-    /// output regardless of JP toggle.
+    /// Regression 2026-06-05 → updated 2026-06-06 for 音节意识细化.
+    ///
+    /// Original symptom (2026-06-05): `shehv` (5 chars ending in 'v')
+    /// at JP-off tripped ASCII fallback because:
+    ///   - has_future_match("shehv") = false ('v' isn't a syllable
+    ///     starter, the trailing-trim loop fails every suffix)
+    ///   - JP-on early-return masked the symptom; the moment JP was
+    ///     disabled, `shehv` wiped the buffer entirely (preedit='',
+    ///     0 candidates) — output dependent on a setting unrelated
+    ///     to the input
+    /// Original fix (2026-06-05): is_pure_garbage gated on
+    /// `path1c_would_fire`, so shehv kept the buffer and Path 1c
+    /// surfaced sh+h initials (时候/生活/...).
+    ///
+    /// 音节意识细化 (2026-06-06, docs/PLAN-syllable-aware-pinyin.md):
+    /// the Path 1c interpretation was wrong — `she` is a clean
+    /// syllable, so trailing junk should route to Path 3b trim-retry
+    /// (= sheh's prefix completions: 社会/奢华/设好/...), NOT Path 1c
+    /// initials lookup. is_pure_garbage now ALSO gates on
+    /// `has_clean_syllable_prefix`, and Path 3b in pinyin_adapter
+    /// runs as the last-resort completion source for these buffers.
+    ///
+    /// This test pins the new behavior: shehv → preedit kept, candidates
+    /// non-empty, top should match `sheh`'s top (社会).
     #[test]
-    fn ascii_fallback_yields_to_path1c_initials_rescue() {
-        // 'shehv' is exactly the trip condition: 'sh' consonant prefix
-        // (2 letters), 'ehv' suffix (≥2 chars), 'v' specifically fails
-        // suffix_could_start_syllable so has_future_match returns false.
+    fn ascii_fallback_yields_to_path3b_trim_retry() {
         let mut e = CompositeEngine::new();
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        // JP intentionally LEFT OFF — this is the regression configuration.
+        // JP intentionally LEFT OFF — Phase J behavior must be
+        // independent of the JP toggle, same as the 2026-06-05 fix.
         for &b in b"shehv" {
             let r = e.handle_letter(b);
             assert!(r.is_none(),
@@ -1601,13 +1618,14 @@ mod tests {
                 std::str::from_utf8(&[b]).unwrap(), e.preedit());
         }
         assert_eq!(e.preedit(), "shehv",
-            "Path 1c should have kept the buffer; got preedit={:?}",
+            "音节意识细化: shehv must keep its buffer; got preedit={:?}",
             e.preedit());
         let words: Vec<&str> = e.candidates()
             .iter().map(|c| c.word.as_str()).collect();
-        // Path 1c should surface common sh+h initials 2-syllable words.
-        assert!(words.contains(&"时候"),
-            "expected 时候 from Path 1c initials lookup; got {words:?}");
+        // Path 3b trim-retry on `shehv` → `sheh` prefix → 社会 / 奢华
+        // / 设好 / 射核 / … (same candidates as typing `sheh`).
+        assert!(words.contains(&"社会"),
+            "音节意识细化: expected 社会 (sheh trim-retry top); got {words:?}");
     }
 
     /// Backspace from empty repeatedly is a no-op and stays no-op
