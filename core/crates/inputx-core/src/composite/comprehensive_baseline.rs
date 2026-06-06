@@ -1468,6 +1468,33 @@ mod tests {
         }
     }
 
+    /// 2026-06-06 polish — wubi traditional leak.  User: "拼音[corrected
+    /// → 五笔]结果中有很多繁体的结果，这肯定不是 nihongokanji 打出来的".
+    /// Mainland 简体 user typing wubi shouldn't see 繁体 forms crowding
+    /// top-3 (the user-visible first row).  Demoted via `tier_overlay.
+    /// tsv tier 5` so the entry stays in dict for completeness but
+    /// drops below pinyin-tier-1 single-chars + within-tier wubi simcodes.
+    /// First report: (yngk, 詞).  Extend this list as more leaks surface.
+    #[test]
+    fn no_traditional_in_top3_for_common_wubi() {
+        let cases: &[(&str, &[&str])] = &[
+            ("yngk", &["詞"]),  // simplified 词 must lead; 詞 demoted tier 5
+        ];
+        let mut failures = Vec::new();
+        for (buf, blocklist) in cases {
+            let top10 = mixed_top10(buf.as_bytes());
+            let top3: &[String] = if top10.len() < 3 { &top10[..] } else { &top10[..3] };
+            for bad in *blocklist {
+                if top3.iter().any(|w| w == bad) {
+                    failures.push(format!("  {buf}: traditional {bad} in top3 — top3={top3:?}"));
+                }
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} wubi-trad-leak cases failed:\n{}", failures.len(), failures.join("\n"));
+        }
+    }
+
     // ───────────────────────────────────────────────────────────
     // Mixed-mode: rare/obscure wubi phrases must not contaminate
     // top-10 for common pinyin buffers. User report 2026-06-03:
