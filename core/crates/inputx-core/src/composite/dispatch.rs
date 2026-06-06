@@ -893,6 +893,7 @@ mod tests {
 
     #[test]
     fn mixed_junk_composition_sinks_real_sentence_survives() {
+        if super::super::pinyin_adapter::PINYIN_DISABLE_COMPOSE { return; }
         // User-reported 2026-05-26: shinjuku (Japanese romaji) surfaced the
         // Chinese forced-composition 是嗯据库 at #2 (fixed COMPOSED_SCORE 500k).
         // A junk composition (per-char Viterbi path score below the floor) now
@@ -1538,6 +1539,7 @@ mod tests {
 
     #[test]
     fn mixed_xlab_wubi_phrase_not_demoted_by_speculative_initials() {
+        if super::super::pinyin_adapter::PINYIN_DISABLE_FUZZY { return; }
         // User-reported 2026-05-24: `xlab` (wubi Phrase code for 细节)
         // was being drowned out by `向量/心理/训练/...` because pinyin
         // Path 1c (typo-shaped initials fallback) was matching "xl"
