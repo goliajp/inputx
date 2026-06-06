@@ -35,43 +35,38 @@ context, not project artifact). One-line summary:
 
 ## Priority order (top = do next)
 
-### 1. 音节意识细化 — pinyin syllable-aware engine refinement
+### 1. ✅ 音节意识细化 — SHIPPED in v1.13.0
 
-**Status:** spec landed (`docs/PLAN-syllable-aware-pinyin.md`),
-implementation pending on `feature/syllable-aware-impl` branch.
+Spec: `docs/PLAN-syllable-aware-pinyin.md`. Implementation landed
+2026-06-06 (commits 3ad6239 + merge a392abc). Tag v1.13.0 ships it.
 
-**Why #1:** user-visible quality lift on the current dict, design
-already complete, ~2.5h implementation. Closes the `shehv` / `shehb`
-/ `xianv` class where the initials-fallback typo rescue misfires
-for buffers that have a clean ≥3-char syllable prefix — those
-should fall through to a trim-retry prefix-completion (= matching
-`sheh` behavior), not surface sh+h 2-syllable noise (时候/生活/…).
-
-**Effort:** ~2.5h per spec §10 estimate.
-
-**Action items:** entire §7 file-by-file change plan in the spec.
-Implementation must track the spec 1:1; deviations update the
-spec first.
+Behaviors confirmed: shehv/shehb/shehz → top-1 = 社会 (matches sheh
+trim-retry), pyin still gets Path 1c rescue, hello/qwxzy still
+ASCII-fallback. Spec → implementation 1:1 with two intentional
+adjustments (Path 3b position after Path 5 to preserve compose
+path; buf.len() ∈ [4,5] gate to avoid polluting JP-shaped long
+buffers).
 
 ---
 
-### 2. v1.9 cycle — ship new dict to release
+### 2. v1.9 cycle — ✅ COMPLETED in v1.13.0 ship
 
-**Status:** PLAN-marked "hot" since 2026-06-01, **all sub-versions
-未启动**. Recent weeks went into polish + reinstall architecture +
-ranking model Phase H/I — none of those touched the v1.9 dict
-pipeline scope. v1.9 stays the current named cycle.
+All sub-versions landed 2026-06-06:
 
-**Sub-versions:**
+| WU | Status | Closing artifact |
+|---|---|---|
+| **WU-π** dict-pipeline audit + 22-phrase cherry-pick | ✅ | `docs/v1.9.0-vNEXT-audit.md` close-out section |
+| **WU-ρ** baseline fixture diff vs vNEXT | ✅ | `docs/v1.9.1-wu-rho-audit.md`; snapshot regenerated as `v1.9-snapshot.json` |
+| **WU-σ** promote + tag | ✅ | tag `v1.13.0` (per actual git-tag chronology — see §"Naming reconciliation" below) |
+| **WU-τ** v1.6 resume | ⏳ deferred per opportunistic policy (§5) |
 
-| WU | Branch | Content | Effort |
-|---|---|---|---|
-| **WU-π** v1.9.0 | `feature/v1.9-wu-pi-pipeline-rerun` | full pipeline rerun → vNEXT + audit | 2 d |
-| **WU-ρ** v1.9.1 | `feature/v1.9-wu-rho-baseline-diff` | baseline fixture diff vs vNEXT + drift gate | 2 d |
-| **WU-σ** v1.9.2 | `feature/v1.9-wu-sigma-promote-ship` | promote vNEXT, version bump, release tag | 1 d |
-| **WU-τ** v1.9.3 (optional) | `feature/v1.9-wu-tau-v16-resume` | resume v1.6 if capacity allows | 3 d |
-
-**Detail:** `.claude/PLAN.md` (single source of truth for v1.9).
+**Naming reconciliation:** the PLAN.md "v1.9 cycle" codename predates
+this session by 5 days. Actual git tag chronology jumped v1.8 → v1.10
+→ v1.11 → v1.12 (v1.9.0 was skipped at tag-time). Tagging today's
+ship as `v1.9.0` would have caused version-sort confusion; tagged as
+`v1.13.0` to continue the real series. `.claude/PLAN.md` should be
+archived/rewritten in the next planning session to match the v1.13+
+reality.
 
 ---
 
@@ -164,16 +159,36 @@ branch and write a dedicated PLAN-ios-ship.md to track WUs.
 
 ---
 
-## Cycle telemetry (snapshot 2026-06-06)
+## Cycle telemetry (snapshot 2026-06-06 end-of-day, post-v1.13.0 ship)
 
 | Metric | Value |
 |---|---|
-| Commits ahead of origin/develop | 0 (just synced) |
-| Active feature/polish branches | (will be tracked here as they open) |
-| v1.9 sub-versions done / total | 0 / 4 |
-| 音节意识细化 status | design doc landed, impl pending |
-| Reactive polish reports this week | ~8 (4 D1 + 1 C + 3 A) |
-| Reinstall arch incidents this week | 4 (all root-caused + permanent fix landed) |
+| Latest shipped tag | **v1.13.0** (2026-06-06, on develop per project convention) |
+| Commits ahead of origin/develop | 0 (synced) |
+| Active feature/polish branches | none |
+| 音节意识细化 status | ✅ shipped in v1.13.0 |
+| WU-π (cherry-pick) status | ✅ shipped in v1.13.0 (22 wubi gaps) |
+| WU-ρ (baseline diff) status | ✅ shipped in v1.13.0 (audit doc + v1.9-snapshot.json) |
+| WU-σ (promote + tag) status | ✅ shipped — tag v1.13.0 takes the place of "v1.9.0 ship" per actual git tag chronology |
+| Reactive polish reports today | 8 (4 D1 + 1 C + 3 A) |
+| Reinstall arch incidents today | 4 (all root-caused + permanent fix landed) |
+| Naming convention | descriptive names for new work; historical Phase B..I labels preserved in git log only |
+
+## v1.13.0 ship summary (2026-06-06)
+
+Tagged `v1.13.0` on `develop` HEAD (commit 9e57e76, the WU-ρ merge).
+Release notes live in the annotated tag message: `git tag -l v1.13.0 -n100`.
+
+Scope highlights:
+- engine: 音节意识细化 (Path 1c gate + Path 3b trim-retry), Phase I (wubi
+  full-code redundancy), ASCII fallback ↔ Path 1c reconciliation
+- dict: WU-π cherry-pick 22 wubi phrase gaps; reactive polish queue
+  (jianti / biji / jiaozhu / daizhe / 解耦)
+- mac IME: LaunchAgent retired (single-spawn architecture via
+  imklaunchagent), atomic bundle swap, stray-LS sweep, NSStatusItem
+  retired (settings consolidated to IMK menu + SettingsWindow)
+- process: git-flow workflow locked, BACKLOG.md as SoT, descriptive
+  naming convention
 
 ---
 
