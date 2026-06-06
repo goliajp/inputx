@@ -354,6 +354,12 @@ mod tests {
             // 解偶联剂` at freq=0 was nearby). Added polish row freq=40000
             // (peer with 持久化/技术 tech-term band).
             ("jieou", "解耦"),
+            // Polish-log 2026-06-06: tigan → 体感 (body sensation —
+            // 体感游戏 / 体感温度 / 体感反馈 modern usage).  Was missing
+            // from library.tsv entirely (only `tigan 提干` freq 6551).
+            // Added as polish row freq=40000 (peer with 持久化/解耦
+            // tech-term band).  Wubi side added same commit at wsdg.
+            ("tigan", "体感"),
             // Phase I 2026-06-05: wubi full-code redundancy gate.
             // `biji` is the canonical 4-letter wubi-86 code for 隙
             // (阝+小+日+小), which used to trigger ×100 single_promote
@@ -725,6 +731,11 @@ mod tests {
             // to wubi library.tsv at qedi (canonical wubi-86: 解=qe,
             // 耦=di) freq 30000, Phrase layer (1).
             ("qedi", "解耦"),
+            // Polish-log 2026-06-06: user "tigan wsdgd 体感，要加这个
+            // 词".  Standard wubi-86 2-char phrase code is `wsdg` (体=
+            // ws + 感=dg, top-2 each); user's `wsdgd` had an extra
+            // trailing `d` — added at canonical 4-letter code.
+            ("wsdg", "体感"),
         ];
         run("wubi_phrase_full", cases, mixed_top, mixed_top10);
     }
