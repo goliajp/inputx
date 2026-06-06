@@ -16,8 +16,8 @@ use std::sync::{Arc, OnceLock};
 use inputx_ngram::NgramTable;
 use inputx_pinyin::PinyinEngine;
 use inputx_pinyin_helpers::{
-    bigram_boost_from_ngm, legacy_bigram_boost_from_ngm, pinyin_idf_reader,
-    EMBEDDED_BIGRAMS_NGM, EMBEDDED_PINYIN_IDF,
+    bigram_boost_from_ngm, combined_bigram_log_prob_q4, legacy_bigram_boost_from_ngm,
+    pinyin_idf_reader, EMBEDDED_BIGRAMS_NGM, EMBEDDED_INTER_BIGRAMS_NGM, EMBEDDED_PINYIN_IDF,
 };
 
 use crate::rules::builtin::RepeatedLetterExpansion;
@@ -39,6 +39,22 @@ fn embedded_bigrams_table() -> &'static NgramTable<&'static [u8]> {
     TABLE.get_or_init(|| {
         NgramTable::from_bytes(EMBEDDED_BIGRAMS_NGM)
             .expect("inputx-pinyin-cement EMBEDDED_BIGRAMS_NGM must be a valid NGMv1 blob")
+    })
+}
+
+/// Process-global NgramTable parsed once from `bigrams_inter.ngm` —
+/// inter-token (cross-word) bigram counts. v1.14 K-best 3-segment
+/// chain gate consults this in addition to [`embedded_bigrams_table`]
+/// so a token-adjacency like `(用, 不)` (corpus-frequent across word
+/// boundaries) is recognized even when neither word's intra-table
+/// includes the pair. Built with `min_count=15` to cut the (路, 要)-
+/// style noise zone (count=12) below the (用, 不) signal zone
+/// (count=16) — see user report 2026-06-06 luyaozhi calibration.
+fn embedded_inter_bigrams_table() -> &'static NgramTable<&'static [u8]> {
+    static TABLE: OnceLock<NgramTable<&'static [u8]>> = OnceLock::new();
+    TABLE.get_or_init(|| {
+        NgramTable::from_bytes(EMBEDDED_INTER_BIGRAMS_NGM)
+            .expect("inputx-pinyin-helpers EMBEDDED_INTER_BIGRAMS_NGM must be a valid NGMv1 blob")
     })
 }
 
@@ -1164,53 +1180,65 @@ impl PinyinAdapter {
             //
             // Tier 2 — cross-segment bigram support. Calibrate by chain
             // length (user reports: houxuanqu 2026-05-27, kakarimasu
-            // 2026-06-02):
+            // 2026-06-02, luyaozhi 2026-06-06):
             //
             //   - 0 / 1 segments: trivially true (nothing to gate).
             //   - 2 segments (1 link): STRICT — the link MUST have
-            //     bigram support. `候选去` mechanical concat where
-            //     (候选, 去) bigram == 0 → drops. `候选词` where
-            //     (候选, 词) > 0 → keeps.
+            //     bigram support (intra OR inter > 0). `候选去`
+            //     mechanical concat where (候选, 去) is in neither
+            //     table → drops. `候选词` where (候选, 词) > 0 → keeps.
             //   - 3+ segments (N-1 links): MAJORITY — at least
-            //     ceil((N-1)/2) links must have non-zero bigram
-            //     support. Half-coverage threshold means a real long
-            //     sentence with a couple of corpus gaps still passes,
-            //     but a mechanical force-segmentation where most pairs
-            //     are zero fails. `卡-卡-日-马-苏` (kakarimasu, 4
-            //     links, only 1 non-zero) → drops. `你好-吗-我-叫`
-            //     (3 links, may be all zero or 1-non-zero depending on
-            //     corpus) → likely drops too, which the user has
-            //     confirmed is fine (mechanical phrases like 你好吗我叫
-            //     aren't actually sentences — corpus shouldn't surface
-            //     them either).
+            //     ceil((N-1)/2) links must have non-zero combined
+            //     bigram support. Half-coverage threshold means a real
+            //     long sentence with a couple of corpus gaps still
+            //     passes, but a mechanical force-segmentation where
+            //     most pairs are zero fails. `卡-卡-日-马-苏`
+            //     (kakarimasu, 4 links, 0 non-zero combined) → drops.
+            //     `你好-吗-我-叫` (3 links, 0-1 non-zero) → drops too,
+            //     which the user has confirmed is fine.
             //
-            // The old "any single link non-zero" rule was too lenient
-            // for 5+ segments: kakarimasu had 4 links and only
-            // (马, 苏) [Chinese celebrity name "马苏"] had non-zero
-            // bigram, which was enough to ship the garbage 卡卡日马苏
-            // — clearly worse than letting JP's かかります win.
+            // v1.14 (user report 2026-06-06 luyaozhi → 路要职): the
+            // strength signal is the MAX over intra (within-word
+            // char-pair counts) and inter (cross-token transition
+            // counts). Intra alone misses real-but-not-intra signals
+            // like `(用, 不)` (count 28 intra, but cut by NGM top-N
+            // filter — the embedded blob keeps high-count entries
+            // only). Inter alone misses real intra signals like
+            // `(要, 职)`. MAX surfaces the stronger of the two.
+            //
+            // The inter blob is filtered at build time to count ≥ 15
+            // (`build-inter-bigrams-ngm --min-count 15`); the noise
+            // pair `(路, 要)` count=12 is excluded by construction,
+            // while the real pair `(用, 不)` count=16 survives. This
+            // pushes calibration into the data pipeline so the runtime
+            // check stays a clean `> 0`.
             let ngm_table = embedded_bigrams_table();
+            let inter_table = embedded_inter_bigrams_table();
+            let link_present = |a: &str, b: &str| -> bool {
+                combined_bigram_log_prob_q4(ngm_table, inter_table, Some(a), b) > 0
+            };
             let bigrams_ok = match chain.len() {
                 0 | 1 => true,
-                2 => {
-                    legacy_bigram_boost_from_ngm(
-                        ngm_table,
-                        Some(chain[0].as_str()),
-                        &chain[1],
-                    ) > 0.0
-                }
                 n => {
                     let links = n - 1;
-                    let non_zero = (1..n).filter(|&i| {
-                        legacy_bigram_boost_from_ngm(
-                            ngm_table,
-                            Some(chain[i - 1].as_str()),
-                            &chain[i],
-                        ) > 0.0
-                    }).count();
-                    // Ceil-half: 3 segs → 1 needed, 4 segs → 2, 5 segs
-                    // → 2, 6 segs → 3.
-                    let needed = (links + 1) / 2;
+                    let non_zero = (1..n)
+                        .filter(|&i| link_present(&chain[i - 1], &chain[i]))
+                        .count();
+                    // v1.14 (luyaozhi 2026-06-06): strict-all — every
+                    // link must be combined-present. The old ceil-
+                    // half rule worked under intra-only data because
+                    // the intra blob's top-N cut left most inter-
+                    // token transitions at zero, so requiring half
+                    // was effectively requiring most. With the inter
+                    // blob added, common transitions like (我, 叫) /
+                    // (好, 吗) all surface, turning ceil-half into a
+                    // pass-everything gate. Strict-all restores the
+                    // "real composition has structure end-to-end"
+                    // semantic: noise like `[路, 要, 职]` (1/2
+                    // combined) and `[你, 好, 吗, 我, 叫]` (3/4)
+                    // drop, while clean compositions `[用, 不, 了]`
+                    // (2/2) and `[是, 好, 好]` (2/2) survive.
+                    let needed = links;
                     non_zero >= needed
                 }
             };
@@ -1515,41 +1543,39 @@ impl PinyinAdapter {
                     // entry boundary — acceptable since this whole path is
                     // last-resort and the strict check just drops more low-
                     // confidence stuff.
-                    // alternate_bigrams_ok — uses the SAME ceil((N-1)/2)
-                    // majority rule as the composed_sentence gate
-                    // above. Kept in sync so a candidate that passes
-                    // ratio>=2.0 but is still a force-segmentation
-                    // (e.g. `卡-卡-日-马-苏` from `kakarimasu` —
-                    // ratio exactly 2.0, only (马,苏) is corpus-present)
-                    // can't sneak in through this last-resort path.
+                    // alternate_bigrams_ok — uses the SAME combined
+                    // intra+inter + strict-for-short rule as the Path
+                    // 0b composed_sentence gate above. Kept in sync so
+                    // a candidate that passes ratio>=2.0 but is still a
+                    // force-segmentation (e.g. `卡-卡-日-马-苏` from
+                    // `kakarimasu` — ratio exactly 2.0, only (马,苏)
+                    // is corpus-present) can't sneak in through this
+                    // last-resort path. v1.14 (luyaozhi 2026-06-06):
+                    // L=2 chains now require BOTH links combined-
+                    // present so 路-要-职-style piggyback assemblies
+                    // can't survive on a single real intra bigram.
                     let ngm_table = embedded_bigrams_table();
+                    let inter_table = embedded_inter_bigrams_table();
                     let alternate_bigrams_ok = |sentence: &str| -> bool {
                         let chars: Vec<String> = sentence
                             .chars()
                             .map(|c| c.to_string())
                             .collect();
                         let n = chars.len();
-                        match n {
-                            0 | 1 => true,
-                            2 => {
-                                legacy_bigram_boost_from_ngm(
-                                    ngm_table,
-                                    Some(chars[0].as_str()),
-                                    &chars[1],
-                                ) > 0.0
-                            }
-                            _ => {
-                                let non_zero = (1..n).filter(|&i| {
-                                    legacy_bigram_boost_from_ngm(
-                                        ngm_table,
-                                        Some(chars[i - 1].as_str()),
-                                        &chars[i],
-                                    ) > 0.0
-                                }).count();
-                                let needed = n / 2; // (links+1)/2 = (n-1+1)/2 = n/2
-                                non_zero >= needed
-                            }
+                        if n <= 1 {
+                            return true;
                         }
+                        let links = n - 1;
+                        let non_zero = (1..n).filter(|&i| {
+                            combined_bigram_log_prob_q4(
+                                ngm_table,
+                                inter_table,
+                                Some(chars[i - 1].as_str()),
+                                &chars[i],
+                            ) > 0
+                        }).count();
+                        // v1.14 strict-all: see Path 0b gate comment.
+                        non_zero >= links
                     };
                     // top-1 (fallback_composition) NO LONGER exempt
                     // (user report 2026-06-02 `kakarimasu` → 卡卡日马苏).
@@ -2121,19 +2147,25 @@ mod tests {
         // bigram gate let through; the stricter ceil((N-1)/2)-link
         // majority gate now drops them.
         //
-        // This test pins the new behavior: nihaomawojiao gets NO
+        // This test pins the behavior: nihaomawojiao gets NO
         // composed_sentence (no real Chinese sentence backing in
-        // the bigram corpus). If future bigram-corpus work makes
-        // `(你好, 吗) / (吗, 我) / (我, 叫)` all non-zero, this test
-        // would flip — at which point the assertion is the truth
-        // about what the corpus says, and the test should track it.
+        // the bigram corpus).
+        //
+        // v1.14 (2026-06-06 luyaozhi): the gate moved from ceil-half
+        // to strict-all when the inter-bigram NGM blob landed —
+        // combined intra+inter signal makes more individual links
+        // non-zero ((好, 吗) inter=20, (我, 叫) inter=16 — both kept
+        // by `--min-count 15`), so ceil-half becomes too lenient.
+        // Strict-all keeps the original "this isn't a real sentence"
+        // semantic: chain `[你, 好, 吗, 我, 叫]` has (吗, 我) absent
+        // in both tables → 3/4 non-zero → strict-all fails → drops.
         let mut a = PinyinAdapter::new();
         for b in b"nihaomawojiao" {
             a.handle_letter(*b);
         }
         assert!(a.composed_sentence.is_none(),
             "nihaomawojiao should NOT surface composed_sentence under \
-             the ceil((N-1)/2) majority gate; got {:?}",
+             the strict-all bigram gate; got {:?}",
             a.composed_sentence);
     }
 
