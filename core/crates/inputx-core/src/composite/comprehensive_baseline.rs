@@ -1468,25 +1468,28 @@ mod tests {
         }
     }
 
-    /// 2026-06-06 polish — wubi traditional leak.  User: "拼音[corrected
-    /// → 五笔]结果中有很多繁体的结果，这肯定不是 nihongokanji 打出来的".
-    /// Mainland 简体 user typing wubi shouldn't see 繁体 forms crowding
-    /// top-3 (the user-visible first row).  Demoted via `tier_overlay.
-    /// tsv tier 5` so the entry stays in dict for completeness but
-    /// drops below pinyin-tier-1 single-chars + within-tier wubi simcodes.
-    /// First report: (yngk, 詞).  Extend this list as more leaks surface.
+    /// 2026-06-06 polish — wubi traditional sweep.  User: "拼音[corrected
+    /// → 五笔]结果中有很多繁体的结果" → "詞要的不是沉，而是不应该有，
+    /// 要打开繁体模式才能有" → "你系统解决吧".  Sweep removed every
+    /// (code, trad_word) from wubi library.tsv where opencc t2s(word)
+    /// differs AND the same code already has a simplified peer (1164
+    /// entries; see docs/wubi-trad-sweep-2026-06-06/).  Orphan TRAD
+    /// entries (no same-code simp peer, ~2953) stay until the 繁体-mode
+    /// toggle ships — deleting them would silently break wubi lookup
+    /// for those chars.  This test seeds the regression invariant: 詞
+    /// cannot resurface at yngk even if corpus-digest re-admits it
+    /// (corpus_garbage_filter_v1.tsv has the same row as the gate).
     #[test]
-    fn no_traditional_in_top3_for_common_wubi() {
+    fn no_traditional_in_top10_for_common_wubi() {
         let cases: &[(&str, &[&str])] = &[
-            ("yngk", &["詞"]),  // simplified 词 must lead; 詞 demoted tier 5
+            ("yngk", &["詞"]),  // 简体 词 leads; 詞 deleted by 2026-06-06 sweep
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
             let top10 = mixed_top10(buf.as_bytes());
-            let top3: &[String] = if top10.len() < 3 { &top10[..] } else { &top10[..3] };
             for bad in *blocklist {
-                if top3.iter().any(|w| w == bad) {
-                    failures.push(format!("  {buf}: traditional {bad} in top3 — top3={top3:?}"));
+                if top10.iter().any(|w| w == bad) {
+                    failures.push(format!("  {buf}: traditional {bad} in top10 — top10={top10:?}"));
                 }
             }
         }
