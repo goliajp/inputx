@@ -60,6 +60,7 @@ jianti	简体	21200	# user 2026-06-05: 简体 必须在 健体 前面 | top peer
 # leads naturally without boost.
 # jianma	简码	12000	[retired by D1/D2 cleanup commit on jianma]
 # jianma	键码	11000	[retired by D1/D2 cleanup commit on jianma]
+jianma	简码	55000	# user 2026-06-06: 简码应该高于日语 — base 4193 (tier 3) → 55000 (tier 1) to beat JP exact-prefix kana じあんま/ジアンマ; same calibration as fudu 复读 55000
 # 2026-06-03 Phase E (bigram quality gate) retires juli 举例 quickfix
 # — 局里 / 剧里 (bigram 16k / 14k < floor 25k) now auto-demoted one
 # tier, so 距离 / 举例 surface ahead naturally without per-buffer boost.

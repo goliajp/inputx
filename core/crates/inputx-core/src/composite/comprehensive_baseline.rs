@@ -495,6 +495,11 @@ mod tests {
             // mechanical kana (tier 4).  Class A added 埋在 freq=15000
             // → z=0.81 → tier 3, above JP.
             ("maizai", "埋在"),
+            // Polish-log 2026-06-06: "简码应该高于日语".  base 简码 freq
+            // 4193 (tier 3) below JP exact-prefix kana じあんま (tier 2);
+            // quickfix_boost → 55000 (same calibration as fudu 复读) puts
+            // 简码 into tier 1, above JP.
+            ("jianma", "简码"),
         ];
         let mut failures = Vec::new();
         for (buf, expected) in cases {
