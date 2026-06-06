@@ -49,12 +49,25 @@ use std::sync::OnceLock;
 use inputx_dict_format::IdfReader;
 
 pub use freq::estimated_freq_from_log_prior;
-pub use ngram::{bigram_boost_from_ngm, legacy_bigram_boost_from_ngm};
+pub use ngram::{bigram_boost_from_ngm, combined_bigram_log_prob_q4, legacy_bigram_boost_from_ngm};
 
 /// Embedded NGMv1 bigram blob for the pinyin engine, sourced from
-/// `inputx-pinyin-helpers/data/bigrams.ngm` at compile time.
+/// `inputx-pinyin-helpers/data/bigrams.ngm` at compile time. Carries
+/// intra-token char-pair counts (pairs WITHIN a single dict word) —
+/// the v1.3 cement layer's primary bigram signal.
 pub const EMBEDDED_BIGRAMS_NGM: &[u8] =
     include_bytes!("../data/bigrams.ngm");
+
+/// Embedded NGMv1 inter-token bigram blob, sourced from
+/// `inputx-pinyin-helpers/data/bigrams_inter.ngm` at compile time.
+/// Carries token-pair counts ACROSS dict-word boundaries (corpus-level
+/// sentence adjacency). v1.14 K-best 3-segment chain gate consults
+/// this in addition to [`EMBEDDED_BIGRAMS_NGM`] so an adjacency like
+/// `(用, 不)` (yongbuliao → 用不了, real Chinese) is recognized even
+/// when neither pair appears as an intra-word bigram. Built by
+/// `cargo run --bin build-inter-bigrams-ngm`.
+pub const EMBEDDED_INTER_BIGRAMS_NGM: &[u8] =
+    include_bytes!("../data/bigrams_inter.ngm");
 
 /// Embedded IDFv1 pinyin dict blob, sourced from
 /// `inputx-pinyin-helpers/data/words.idf` at compile time. Carries

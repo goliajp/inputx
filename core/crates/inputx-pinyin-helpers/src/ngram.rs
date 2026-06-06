@@ -17,6 +17,30 @@
 
 use inputx_ngram::{NgramTable, Q4};
 
+/// Max of the `(prev, next)` log_prob_q4 across an intra-token table
+/// and an inter-token table. Returns `0` when both tables miss.
+///
+/// Intra (`bigrams.ngm`) carries WITHIN-word char-pair counts; inter
+/// (`bigrams_inter.ngm`) carries CROSS-token transitions. v1.14
+/// K-best 3-segment gate consults both so a "real Chinese composition"
+/// like `[用, 不, 了]` (link `(用, 不)` is corpus-frequent across token
+/// boundaries) is recognized even if neither pair appears as an
+/// intra-word bigram.
+///
+/// `max` (not `sum`) keeps the scalar in q4 log-space: a strong
+/// signal in either table is enough; double-counting when both fire
+/// would distort downstream strength thresholds.
+pub fn combined_bigram_log_prob_q4<B: AsRef<[u8]>>(
+    intra: &NgramTable<B>,
+    inter: &NgramTable<B>,
+    prev: Option<&str>,
+    next: &str,
+) -> i16 {
+    let a = bigram_boost_from_ngm(intra, prev, next);
+    let b = bigram_boost_from_ngm(inter, prev, next);
+    a.max(b)
+}
+
 /// Bigram bonus (Q4 log-space) for the `(prev, next)` pair, looked up
 /// in the supplied [`NgramTable`]. Returns `0` if:
 /// - `prev` is `None` (cold session)

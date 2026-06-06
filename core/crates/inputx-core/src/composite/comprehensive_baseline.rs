@@ -624,6 +624,45 @@ mod tests {
         }
     }
 
+    /// v1.14 (user report 2026-06-06): a 3-segment Viterbi chain where
+    /// only ONE of the two links has corpus bigram support (intra OR
+    /// inter combined) is a piggyback assembly — one real bigram
+    /// adjacent to a single-char that has no corpus adjacency. The
+    /// composed string is mechanical, not a real Chinese phrase. The
+    /// gate must drop it.
+    ///
+    /// `luyaozhi`: Viterbi picks `[路, 要, 职]`. `(要, 职)` is in NGM
+    /// intra (count 148 from real word `要职`); `(路, 要)` is in inter
+    /// TSV at count 12, BELOW the `build-inter-bigrams-ngm
+    /// --min-count 15` cut → not in NGM. The 1/2-combined chain fails
+    /// the strict-all rule and drops, restoring the legitimate
+    /// prefix-completion `路遥知马力` (extends `luyaozhi` →
+    /// `luyaozhimali`, library freq 11120) to top-1.
+    #[test]
+    fn kbest_3seg_noise_rejected_by_combined_intra_inter_gate() {
+        let cases: &[(&str, &str, &str)] = &[
+            // (buffer, must NOT surface, must surface in top10)
+            ("luyaozhi", "路要职", "路遥知马力"),
+        ];
+        let mut failures = Vec::new();
+        for (buf, bad, good) in cases {
+            let top10 = pinyin_top10(buf.as_bytes());
+            if top10.iter().any(|w| w == bad) {
+                failures.push(format!(
+                    "  {buf}: noise composition {bad} should not surface; top10={top10:?}"
+                ));
+            }
+            if !top10.iter().any(|w| w == good) {
+                failures.push(format!(
+                    "  {buf}: expected {good} in top10; got {top10:?}"
+                ));
+            }
+        }
+        if !failures.is_empty() {
+            panic!("{} K-best noise cases failed:\n{}", failures.len(), failures.join("\n"));
+        }
+    }
+
     /// Wubi Jianma3 (3-letter simcode) sample. Per 伙-rule extended,
     /// 3-letter shortcuts with common-char targets MUST lead.
     #[test]
