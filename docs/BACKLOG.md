@@ -12,7 +12,7 @@
 **Active branch:** `develop` (always at-or-ahead of `master`; master is dormant)
 **Active feature/polish branches:** none
 **Commits ahead of origin/develop:** 0 (synced after last push)
-**Current cycle:** v1.14 (open scope — see `.claude/PLAN.md`)
+**Current cycle:** v1.14 — first commit landed 2026-06-06: inter-bigram NGM + strict-all K-best chain gate (`e41174f`). Closes user report `luyaozhi → 路要职`.
 
 **Default next action when user says "继续 autorun":** see
 **Autorun protocol** section below — but in short: there is no
@@ -186,6 +186,17 @@ context, not project artifact). One-line:
 ---
 
 ## Recently shipped (since 2026-06-06 — historical, no action)
+
+### v1.14 (open cycle, 2026-06-06 → ongoing)
+
+- **pinyin K-best 3-segment chain gate** (`e41174f`) — user report
+  `luyaozhi → 路要职`. Shipped inter-bigram NGM blob (1.27 MB,
+  `bigrams_inter.ngm`, `--min-count 15`) + `combined_bigram_log_prob_q4`
+  helper + strict-all rule replacing ceil-half over combined intra+inter
+  signal. Tests: lib 312/0, baseline 46/46, v1.9-snapshot drift list
+  unchanged (still the audited 9 from WU-ρ). Sister bin
+  `build-inter-bigrams-ngm` to regenerate the blob from
+  `bigrams_inter.tsv` on future corpus refresh.
 
 ### v1.13.0 ship summary
 
