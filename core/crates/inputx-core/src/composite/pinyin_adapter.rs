@@ -46,18 +46,19 @@ use super::scoring;
 // `_COMPOSE`:    Path 0b (long-buffer Viterbi sentence), Path 5
 //                (K-best short-buffer compose), Path 5b
 //                (mechanical fallback compose).
-// `_ASSOCIATION`: Path 2 (简拼 first-letter abbreviation).  Per
-//                user classification 2026-06-06: 简拼 counts as
-//                联想 / shortcut, not "correct spelling".
+// `_ASSOCIATION`: Path 0a (repeated-letter interjection shortcut
+//                hhhh→哈哈哈哈 — user re-classified 2026-06-06 same
+//                family as 简拼: 重复字母不应该是简拼拼接出来的吗),
+//                Path 2 (简拼 first-letter abbreviation).
 // `_FUZZY`:      Path 1b (southern-dialect z/zh swap variants),
 //                Path 1c (2-consonant-prefix typo rescue),
 //                Path 3b (syllable-aware trim-retry).
 //
 // Initial state: all three TRUE — only exact-syllable Path 1 +
-// prefix-completion Path 3 + repeated-letter Path 0a + rare-CJK
-// Path 4 filter survive.  This is intentionally aggressive; the
-// user will polish detail-by-detail and flip whichever const back
-// off as each category is ready.
+// prefix-completion Path 3 + rare-CJK Path 4 filter survive.
+// This is intentionally aggressive; the user will polish detail-
+// by-detail and flip whichever const back off as each category is
+// ready.
 pub(crate) const PINYIN_DISABLE_COMPOSE: bool = true;
 pub(crate) const PINYIN_DISABLE_ASSOCIATION: bool = true;
 pub(crate) const PINYIN_DISABLE_FUZZY: bool = true;
@@ -1188,7 +1189,15 @@ impl PinyinAdapter {
         // composed_sentence slot — keeps every other path's logic
         // unchanged. Once all 7 pinyin paths migrate, composed_sentence
         // and self.candidates will both be rule-engine outputs.
-        {
+        //
+        // v1.14 (2026-06-06): user re-classified Path 0a into the
+        // ASSOCIATION bucket — "重复字母不应该是简拼拼接出来的吗".
+        // The 7-letter interjection table (h→哈 / a→啊 / o→哦 / e→诶
+        // / m,n→嗯 / w→呜) is conceptually a typing-shortcut just like
+        // Path 2 简拼, not "correct spelling".  Gated alongside Path 2
+        // so flipping `PINYIN_DISABLE_ASSOCIATION` re-enables both at
+        // once.
+        if !PINYIN_DISABLE_ASSOCIATION {
             let ctx = self.build_rule_context();
             let mut rule_cands: Vec<RuleCandidate> = Vec::new();
             let _trace = candidate_rule_engine().run(&ctx, &mut rule_cands);
@@ -2225,6 +2234,7 @@ mod tests {
 
     #[test]
     fn repeat_letter_expands_to_interjection_chain() {
+        if super::PINYIN_DISABLE_ASSOCIATION { return; }
         let mut a = PinyinAdapter::new();
         for b in b"hhhhh" { a.handle_letter(*b); }
         assert_eq!(a.candidates().first().cloned(), Some("哈哈哈哈哈".to_string()),
@@ -2360,6 +2370,7 @@ mod tests {
 
     #[test]
     fn initials_lookup_hhh_includes_hahaha() {
+        if super::PINYIN_DISABLE_ASSOCIATION { return; }
         let mut a = PinyinAdapter::new();
         for b in b"hhh" {
             a.handle_letter(*b);
@@ -2512,6 +2523,7 @@ mod tests {
         // Freq-sorted initials index should put common reduplicated words
         // (哈哈哈/好好好/嘿嘿嘿/黑乎乎/呼哧哧) ahead of obscure 3-char names
         // like 何厚铧 / 侯狼何 that the user observed pre-fix.
+        if super::PINYIN_DISABLE_ASSOCIATION { return; }
         let mut a = PinyinAdapter::new();
         for b in b"hhh" {
             a.handle_letter(*b);
