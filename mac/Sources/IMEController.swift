@@ -31,6 +31,11 @@ final class InputxController: IMKInputController {
     /// `InputxShiftSingleClickDetector` for the state machine.
     private let shiftDetector = InputxShiftSingleClickDetector()
 
+    /// macOS virtual keyCode for the CapsLock key (`kVK_CapsLock`). Used
+    /// in `handleFlagsChanged` to recognize a CapsLock toggle so we can
+    /// drop any in-flight composition.
+    private static let capsLockKeyCode: UInt16 = 57
+
     override init!(server: IMKServer!, delegate: Any!, client inputClient: Any!) {
         super.init(server: server, delegate: delegate, client: inputClient)
         applySettingsToSession()
@@ -148,6 +153,35 @@ final class InputxController: IMKInputController {
         }
         // Any keyDown disarms the shift detector — shift wasn't alone.
         shiftDetector.observeKeyDown()
+
+        // CapsLock override (user 2026-06-07): while CapsLock is ON the
+        // IME enforces uppercase ASCII letters + half-width ASCII punct,
+        // regardless of CJK/EN mode, any prior composition, or a held
+        // Shift. The in-flight composition (if any) was already dropped
+        // when CapsLock toggled on (see `handleFlagsChanged`), so there's
+        // no panel/preedit to clean up here.
+        //
+        //   • Letter keys → commit the UPPERCASE letter directly. We read
+        //     `charactersIgnoringModifiers` + `.uppercased()` instead of
+        //     passing through, so CapsLock+Shift can't XOR the letter back
+        //     to lowercase ("强制大写" — user-confirmed).
+        //   • Cmd / Ctrl / Option combos → step aside: ⌘-shortcuts and
+        //     ⌥-dead-key / special-character input must reach the host
+        //     intact, not be rewritten to a letter.
+        //   • Everything else (digits, punct, function / arrow keys) →
+        //     step aside; they arrive as raw half-width ASCII.
+        if event.modifierFlags.contains(.capsLock) {
+            if !event.modifierFlags.contains(.command),
+               !event.modifierFlags.contains(.control),
+               !event.modifierFlags.contains(.option),
+               let base = event.charactersIgnoringModifiers,
+               let scalar = base.unicodeScalars.first,
+               isAsciiLetter(scalar.value) {
+                commitText(base.uppercased(), to: sender)
+                return true
+            }
+            return false
+        }
 
         // EN mode: IME steps aside. Host receives the raw ASCII keystroke
         // (including return / backspace / cmd-combos) directly. We still
@@ -477,11 +511,48 @@ final class InputxController: IMKInputController {
         return !isDigit && !isUpper && !isLower
     }
 
+    /// `true` iff `codepoint` is an ASCII letter (A–Z or a–z). Used by the
+    /// CapsLock override to decide which keys to force-uppercase.
+    private func isAsciiLetter(_ codepoint: UInt32) -> Bool {
+        return (0x41...0x5A).contains(codepoint) || (0x61...0x7A).contains(codepoint)
+    }
+
     /// Process a `flagsChanged` event. Routes shift toggles through the
     /// single-click detector; non-shift modifier toggles disarm it. Never
     /// consumes the event (host apps need to see modifier state).
     private func handleFlagsChanged(event: NSEvent, client sender: Any!) -> Bool {
         let kc = event.keyCode
+
+        // CapsLock toggled (either direction): end any in-flight
+        // composition (user 2026-06-07). Rather than discarding the
+        // buffer, commit the raw input letters in UPPERCASE — once
+        // CapsLock engages, the in-flight pinyin/wubi letters are most
+        // likely meant as literal uppercase English, so "上大写" beats
+        // "丢弃". `preedit` is the raw lowercased ASCII the user typed
+        // (no syllable separators — see pinyin_adapter buffer), so
+        // `.uppercased()` yields e.g. "nihao" → "NIHAO". `insertText`
+        // replaces + ends the host's marked-text region, same as the
+        // Path B punct commit flow.
+        //
+        // We preserve the CJK/EN input mode: CapsLock is an orthogonal
+        // uppercase-ASCII override, not a mode switch. `session.clear()`
+        // resets the core to default CJK mode as a side effect, so we
+        // re-apply the saved mode afterward (a no-op when it was already
+        // CJK; a clean state-flip for EN since clear() left nothing).
+        if kc == Self.capsLockKeyCode {
+            let savedMode = session.inputMode
+            if session.isComposing, let pre = session.preedit, !pre.isEmpty {
+                commitText(pre.uppercased(), to: sender)
+            }
+            session.clear()
+            if savedMode != .cjk { _ = session.setInputMode(savedMode) }
+            candidatePanel?.hide()
+            clearMarkedText(client: sender)
+            // CapsLock isn't shift; disarm any half-armed shift single-click.
+            shiftDetector.observeOtherModifierChange()
+            return false
+        }
+
         let isShiftKey =
             (kc == InputxShiftSingleClickDetector.leftShiftKeyCode
                 || kc == InputxShiftSingleClickDetector.rightShiftKeyCode)
