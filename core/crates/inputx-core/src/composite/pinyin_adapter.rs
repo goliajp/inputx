@@ -35,55 +35,34 @@ use super::scoring;
 /// ~1 ms and we don't want to pay that on every PinyinAdapter::new
 /// (a fresh adapter is created on every iOS Inputx session).
 // ─────────────────────────────────────────────────────────────
-// Pinyin pipeline stage table (authoritative as of v1.14 2026-06-06).
-//
-// `Stage N` is the linear execution order inside `refresh_candidates`.
-// `Category.Name` is the semantic label used in commits / discussion
-// going forward; the [legacy] tag preserves the cross-reference to
-// pre-rename `Path Nx` comments that still live in older history,
-// shipped docs (`docs/PLAN-*.md`), and commit messages.  All new code
-// + new commit messages use `Stage N` exclusively.
-//
-//  #  | Stage label                       | Toggle const                | [legacy]
-// ----+-----------------------------------+-----------------------------+----------
-//  1  | Associate.RepeatedLetter           | PINYIN_DISABLE_ASSOCIATION  | Path 0a
-//  2  | Compose.LongViterbi                | PINYIN_DISABLE_COMPOSE      | Path 0b
-//  3  | Exact.Syllable                     | (always on)                 | Path 1
-//  4  | Fuzzy.ConsonantTypo                | PINYIN_DISABLE_FUZZY        | Path 1c
-//  5  | Fuzzy.SouthernDialect              | PINYIN_DISABLE_FUZZY        | Path 1b
-//  6  | Associate.Initials                 | PINYIN_DISABLE_ASSOCIATION  | Path 2
-//  7  | Predict.PrefixCompletion           | (always on)                 | Path 3
-//  8  | Filter.RareCJK                     | (always on)                 | Path 4
-//  9  | Compose.KBest                      | PINYIN_DISABLE_COMPOSE      | Path 5 (+ 5b sub-step)
-// 10  | Fuzzy.TrimRetry                    | PINYIN_DISABLE_FUZZY        | Path 3b
-//
-// User report 2026-06-06 (rename rationale): "Path x 不是有序的，
-// 我们好好整理一下他们，以后有个确切的叫法".  Stage numbers are
-// strictly execution-ordered (no more "1b runs before 2" surprise);
-// Category prefix aligns with the three minimal-debug toggles below.
-//
-// v1.14 minimal-pinyin debug toggle (same 2026-06-06 session).
-// User: "暂停所有的拼音里 拼接字、联想以及错别字模糊吗？只保留
-// 正确拼写和预测性的输入，我们一个个细节来做好".  Three category
+// v1.14 minimal-pinyin debug toggle (2026-06-06).  User: "我们可
+// 以先暂停所有的拼音里 拼接字、联想以及错别字模糊吗？只保留正确
+// 拼写和预测性的输入，我们一个个细节来做好".  Three category
 // gates; flip a single bool to `false` to re-enable that whole
-// category of stages when you're ready to polish it.  Tests that
-// pin disabled-stage behavior carry an early-return guarded on the
-// same const so they auto-revive when the const flips.
+// category when you're ready to polish it.  Tests that pin
+// disabled behavior carry an early-return guarded on the same
+// const so they auto-revive when the const flips.
 //
-// `_COMPOSE`:    Stage 2 (Compose.LongViterbi), Stage 9 (Compose.KBest
-//                including the legacy 5b mechanical-fallback sub-step).
-// `_ASSOCIATION`: Stage 1 (Associate.RepeatedLetter, hhhh→哈哈哈哈 —
-//                user re-classified mid-session "重复字母不应该是
-//                简拼拼接出来的吗"), Stage 6 (Associate.Initials,
-//                简拼 first-letter abbreviation `zg → 中国`).
-// `_FUZZY`:      Stage 4 (Fuzzy.ConsonantTypo), Stage 5 (Fuzzy.
-//                SouthernDialect), Stage 10 (Fuzzy.TrimRetry).
+// `_COMPOSE`:     long-buffer Viterbi sentence assembly + K-best
+//                 short-buffer composition + mechanical fallback
+//                 composition.
+// `_ASSOCIATION`: repeated-letter interjection (hhhh → 哈哈哈哈) +
+//                 简拼 first-letter abbreviation (zg → 中国).  User
+//                 re-classified repeated-letter into this bucket
+//                 mid-session: "重复字母不应该是简拼拼接出来的吗".
+// `_FUZZY`:       southern-dialect initial swaps (z/zh, c/ch, n/l,
+//                 f/h, in/ing, ...) + 2-consonant-prefix typo
+//                 rescue (pyin → 拼音) + syllable-aware trim-retry
+//                 (shehv → 社会).
 //
-// Initial state: all three TRUE — only Stage 3 (Exact.Syllable) +
-// Stage 7 (Predict.PrefixCompletion) + Stage 8 (Filter.RareCJK)
-// survive.  This is intentionally aggressive; the user will polish
-// detail-by-detail and flip whichever const back off as each
-// category is ready.
+// Per-behavior detail + concrete examples in
+// `docs/pinyin-pipeline-gates.md`.
+//
+// Initial state: all three TRUE — only literal-syllable lookup +
+// FST prefix completion + rare-CJK display filter survive.  This
+// is intentionally aggressive; the user will polish detail-by-
+// detail and flip whichever const back off as each category is
+// ready.
 pub(crate) const PINYIN_DISABLE_COMPOSE: bool = true;
 pub(crate) const PINYIN_DISABLE_ASSOCIATION: bool = true;
 pub(crate) const PINYIN_DISABLE_FUZZY: bool = true;
@@ -1208,7 +1187,7 @@ impl PinyinAdapter {
             return;
         }
 
-        // Stage 1 — Associate.RepeatedLetter (v3.0.2b: migrated to rule-engine).
+        // Path 0a (v3.0.2b: migrated to rule-engine).
         // RepeatedLetterExpansion in rules/builtin/repeated_letter.rs.
         // Engine output is read here and placed into the existing
         // composed_sentence slot — keeps every other path's logic
@@ -1233,7 +1212,7 @@ impl PinyinAdapter {
             }
         }
 
-        // Stage 2 — Compose.LongViterbi: for LONG buffers (>= 8 bytes),
+        // Path 0b (Viterbi composition): for LONG buffers (>= 8 bytes),
         // try to segment the whole input into a sequence of dict-matched
         // phrases. When it works, the composed string surfaces at the
         // top of the candidate list (see `candidates_with_scores`).
@@ -1335,7 +1314,7 @@ impl PinyinAdapter {
             }
         }
 
-        // Stage 3 — Exact.Syllable: exact-syllable lookup (含 fuzzy / tone-strip / heteronym
+        // Path 1: exact-syllable lookup (含 fuzzy / tone-strip / heteronym
         // collapsing). Buffer must already parse as one or more valid
         // pinyin syllables; partial-syllable input like "zho" returns ∅.
         //
@@ -1361,7 +1340,7 @@ impl PinyinAdapter {
             }
         }
 
-        // Stage 4 — Fuzzy.ConsonantTypo: catches missing-vowel
+        // Path 1c (typo-shaped initials fallback): catches missing-vowel
         // typos like `pyin` (intended pinyin → expected 拼音).
         //
         // Gate: only triggers when the buffer is *not* a valid pinyin
@@ -1420,7 +1399,7 @@ impl PinyinAdapter {
             }
         }
 
-        // Stage 5 — Fuzzy.SouthernDialect: southern-dialect-tolerant initial swaps
+        // Path 1b (fuzzy pinyin): southern-dialect-tolerant initial swaps
         // on the buffer (z↔zh, c↔ch, s↔sh, n↔l, f↔h, r↔l, in↔ing,
         // en↔eng, an↔ang). Common Sogou behavior: type `zongguo` →
         // surface `中国` at a score discount. We expand the buffer's
@@ -1470,7 +1449,7 @@ impl PinyinAdapter {
             }
         }
 
-        // Stage 6 — Associate.Initials: 简拼 (first-letter abbreviation) — vowel-free input only.
+        // Path 2: 简拼 (first-letter abbreviation) — vowel-free input only.
         // `hhh → 哈哈哈`, `zg → 中国`. Uses process-global lazy initials
         // index. Skipped when input has vowels (would be a valid syllable
         // start handled by Path 3).
@@ -1487,7 +1466,7 @@ impl PinyinAdapter {
             }
         }
 
-        // Stage 7 — Predict.PrefixCompletion: FST prefix completion — covers partial-syllable input
+        // Path 3: FST prefix completion — covers partial-syllable input
         // (`zho` → 中国/众/重..) and post-syllable phrase completion
         // (`zhong` → 中国/中华/中央 even though exact `zhong` only has
         // single-char entries). This is the dominant code path for "I'm
@@ -1528,7 +1507,7 @@ impl PinyinAdapter {
             );
         }
 
-        // Stage 8 — Filter.RareCJK (same as wubi/table.rs).
+        // Path 4: rare-CJK filter (same as wubi/table.rs).
         if !crate::wubi::show_rare() {
             self.candidates.retain(|w| crate::wubi::is_displayable(w));
         }
@@ -1547,7 +1526,7 @@ impl PinyinAdapter {
             self.candidates.insert(0, sentence);
         }
 
-        // Stage 9 — Compose.KBest (last-resort Viterbi for SHORT buffers): if every stage
+        // Path 5 (last-resort Viterbi for SHORT buffers): if every path
         // above produced nothing — the buffer is not a lexeme, not a
         // prefix of one, and not a 简拼/typo/fuzzy hit — compose it from
         // single-char dict entries so it isn't a dead end. User-reported
@@ -1703,7 +1682,7 @@ impl PinyinAdapter {
             // net until the rebuild adds them.
         }
 
-        // Stage 10 — Fuzzy.TrimRetry (音节意识细化, 2026-06-06): syllable-aware trim-retry,
+        // Path 3b (音节意识细化, 2026-06-06): syllable-aware trim-retry,
         // true last-resort. Fires ONLY when:
         //   - every prior path produced nothing (`self.candidates.is_empty()`,
         //     same gate as Path 5 above), and
