@@ -1912,6 +1912,52 @@ mod tests {
         }
     }
 
+    /// 2026-06-08 polish — wubi 日本新字体 (Shinjitai) sweep.  Follow-up
+    /// to the 2026-06-06 繁体 sweep, which used opencc `t2s` and so missed
+    /// Japanese Shinjitai forms (巌 亀 両 伝 児 図 団 …): they are NOT
+    /// classical Traditional, so `t2s(c) == c` and they survived in
+    /// auto_decomp.txt.  User saw `mid` prefix-complete to 巌 ("这是什么
+    /// 字啊") — a Shinjitai of 巖/岩 outranking pinyin via wx>px.  The
+    /// v3 sweep upgrades the normalisation to `t2s ∘ jp2t` (fold Shinjitai
+    /// → Traditional → Simplified) with a GB2312 whitelist guard so
+    /// opencc's over-reach (欠→缺, 予→豫, 芸→艺, 糸→丝 …) is protected.
+    /// 217 chars stripped from auto_decomp.txt + 218 overlay rows from
+    /// wubi library.tsv, all logged to corpus_garbage_filter_v1.tsv.
+    /// See docs/wubi-jp-shinjitai-sweep-2026-06-08/.  Invariant: the
+    /// Shinjitai form cannot resurface at its wubi code; the Simplified
+    /// peer leads instead.
+    #[test]
+    fn no_jp_shinjitai_in_top10_for_common_wubi() {
+        let cases: &[(&str, &[&str])] = &[
+            ("mid", &["巌"]),  // user report: 密度 leads; 巌 (岩的新字体) gone
+            ("midt", &["巌"]), // 巌 full-code also stripped
+            ("adat", &["蔵"]), // 蔵 (藏的新字体) gone
+        ];
+        let mut failures = Vec::new();
+        for (buf, blocklist) in cases {
+            let top10 = mixed_top10(buf.as_bytes());
+            for bad in *blocklist {
+                if top10.iter().any(|w| w == bad) {
+                    failures.push(format!(
+                        "  {buf}: shinjitai {bad} in top10 — top10={top10:?}"
+                    ));
+                }
+            }
+        }
+        // Positive invariant: the Simplified peer still leads at mid.
+        let mid_top = mixed_top10("mid".as_bytes());
+        if mid_top.first().map(String::as_str) != Some("密度") {
+            failures.push(format!("  mid: 密度 not #0 — top10={mid_top:?}"));
+        }
+        if !failures.is_empty() {
+            panic!(
+                "{} wubi-shinjitai-leak cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
+        }
+    }
+
     /// 2026-06-06 polish — pinyin er→r typo sweep.  User: "zhonghuarnv 为
     /// 什么会出现 中华儿女呢，不应该是 zhonghuaernv 吗".  Detected
     /// systemically by script: word at code `<X>r<Y>` AND the same word
