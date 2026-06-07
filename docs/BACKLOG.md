@@ -256,11 +256,20 @@ cut yet.
   醋 疏 沪 浜 缶 弁 — all GB2312, protected).  217 chars stripped
   from auto_decomp.txt, 218 overlay rows from library.tsv, all logged
   to corpus_garbage_filter_v1.tsv.  Audit + re-runnable v3 script:
-  `docs/wubi-jp-shinjitai-sweep-2026-06-08/`.  **Known follow-up:**
-  all 217 still exist as single-char noise rows in *pinyin*
-  library.tsv (same corpus origin); not yet surfacing (low freq +
-  minimal-debug gates), left for a pinyin-side cleanup pass per the
-  orthogonal-table rule (pinyin noise → pinyin engine).
+  `docs/wubi-jp-shinjitai-sweep-2026-06-08/`.
+- **日本新字体 Japanese-only backfill** (`514a751`) — follow-up to
+  the wubi sweep above, per user "你清理的同时，还要保证他们在日语
+  输入中能顺利正确打出来".  Orthogonal-table call: the 217 chars are
+  noise in zh engines but real Japanese kanji.  Stripped all 217
+  single-char noise rows from *pinyin* library.tsv (+217 garbage-
+  filter rows); backfilled the 153 not already in nihongo as single
+  kanji with on/kun readings from **KANJIDIC2** (EDRDG) — chosen over
+  mozc cache (which carries name/place noise like みにく→亜).  Every
+  generated romaji code round-trip-verified against the engine's own
+  romaji table (316/316, 0 drift).  All 217 now type-able in
+  JapaneseOnly (iwa→巌, sai→砕, …), gone from pinyin.  Scripts +
+  audit: `docs/wubi-jp-shinjitai-sweep-2026-06-08/` (gen_nihongo_
+  readings.py, apply_nihongo_pinyin.py, roundtrip_verified.tsv).
 - **wubi 繁体 sweep** (`b63d6dd`) — user report `yngk → 詞 /
   词 / 肇事 / 启事`, then "你系统解决吧".  Strip 3527 TRAD
   chars from `auto_decomp.txt` whose simplified counterpart is
