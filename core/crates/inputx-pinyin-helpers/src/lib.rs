@@ -55,8 +55,7 @@ pub use ngram::{bigram_boost_from_ngm, combined_bigram_log_prob_q4, legacy_bigra
 /// `inputx-pinyin-helpers/data/bigrams.ngm` at compile time. Carries
 /// intra-token char-pair counts (pairs WITHIN a single dict word) —
 /// the v1.3 cement layer's primary bigram signal.
-pub const EMBEDDED_BIGRAMS_NGM: &[u8] =
-    include_bytes!("../data/bigrams.ngm");
+pub const EMBEDDED_BIGRAMS_NGM: &[u8] = include_bytes!("../data/bigrams.ngm");
 
 /// Embedded NGMv1 inter-token bigram blob, sourced from
 /// `inputx-pinyin-helpers/data/bigrams_inter.ngm` at compile time.
@@ -66,16 +65,14 @@ pub const EMBEDDED_BIGRAMS_NGM: &[u8] =
 /// `(用, 不)` (yongbuliao → 用不了, real Chinese) is recognized even
 /// when neither pair appears as an intra-word bigram. Built by
 /// `cargo run --bin build-inter-bigrams-ngm`.
-pub const EMBEDDED_INTER_BIGRAMS_NGM: &[u8] =
-    include_bytes!("../data/bigrams_inter.ngm");
+pub const EMBEDDED_INTER_BIGRAMS_NGM: &[u8] = include_bytes!("../data/bigrams_inter.ngm");
 
 /// Embedded IDFv1 pinyin dict blob, sourced from
 /// `inputx-pinyin-helpers/data/words.idf` at compile time. Carries
 /// prior_correction Q4 boosts baked into `log_prior_q4` (v1.4.7
 /// sub-phase A5) and a populated FST code index (sub-phase C1) so
 /// lookup is O(|code|).
-pub const EMBEDDED_PINYIN_IDF: &[u8] =
-    include_bytes!("../data/words.idf");
+pub const EMBEDDED_PINYIN_IDF: &[u8] = include_bytes!("../data/words.idf");
 
 /// Process-global [`IdfReader`] over [`EMBEDDED_PINYIN_IDF`]. Parses
 /// the 9 MB header / FST / entry-table sections once and amortizes
@@ -120,7 +117,10 @@ mod tests {
         let hits = r.lookup(b"jixu");
         assert!(!hits.is_empty(), "jixu must have at least one reading");
         let words: Vec<&str> = hits.iter().map(|e| e.word).collect();
-        assert!(words.contains(&"继续"), "jixu → 继续 expected, got {words:?}");
+        assert!(
+            words.contains(&"继续"),
+            "jixu → 继续 expected, got {words:?}"
+        );
     }
 
     #[test]

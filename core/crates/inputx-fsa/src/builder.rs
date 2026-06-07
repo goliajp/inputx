@@ -15,10 +15,10 @@ use alloc::vec::Vec;
 
 // Hash-cons register for state minimization. HashMap (O(1)) when `std` is
 // on; a BTreeMap keeps the builder available in no_std builds.
-#[cfg(feature = "std")]
-use std::collections::HashMap as Register;
 #[cfg(not(feature = "std"))]
 use alloc::collections::BTreeMap as Register;
+#[cfg(feature = "std")]
+use std::collections::HashMap as Register;
 
 /// Accumulates (key, value) pairs and serializes a minimal FSA.
 #[derive(Default)]

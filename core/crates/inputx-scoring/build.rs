@@ -24,17 +24,13 @@ fn main() {
     // WU-ψ phase 5: tier overlay TSV lives in tools/scoring/data so
     // it's grouped with the other polish-overlay assets. Path is
     // relative to crate dir.
-    let tier_overlay_path = crate_dir
-        .join("../../../tools/scoring/data/polish/tier_overlay.tsv");
-    println!(
-        "cargo:rerun-if-changed={}",
-        tier_overlay_path.display()
-    );
+    let tier_overlay_path = crate_dir.join("../../../tools/scoring/data/polish/tier_overlay.tsv");
+    println!("cargo:rerun-if-changed={}", tier_overlay_path.display());
 
     let text = fs::read_to_string(&toml_path)
         .unwrap_or_else(|e| panic!("read {}: {e}", toml_path.display()));
-    let parsed: toml::Value = toml::from_str(&text)
-        .unwrap_or_else(|e| panic!("parse {}: {e}", toml_path.display()));
+    let parsed: toml::Value =
+        toml::from_str(&text).unwrap_or_else(|e| panic!("parse {}: {e}", toml_path.display()));
 
     let ew = parsed
         .get("engine_weights")
@@ -67,9 +63,7 @@ fn main() {
     if engine_gap_q4 * 2 >= tier_gap_q4 {
         // Engine offset max (2 × engine_gap_q4) must fit comfortably
         // within tier_gap so tier ordering is preserved across engines.
-        panic!(
-            "engine_gap_q4 ({engine_gap_q4}) × 2 must be < tier_gap_q4 ({tier_gap_q4})"
-        );
+        panic!("engine_gap_q4 ({engine_gap_q4}) × 2 must be < tier_gap_q4 ({tier_gap_q4})");
     }
 
     let bootstrap_floor_q4 = read_i32(ew, "bootstrap_floor_q4");
@@ -113,14 +107,17 @@ fn main() {
     let dw_char_prominent_floor = dispatch_wubi
         .get("char_prominent_floor_freq")
         .and_then(|v| v.as_integer())
-        .unwrap_or_else(|| panic!("dispatch.wubi.char_prominent_floor_freq missing")) as u64;
+        .unwrap_or_else(|| panic!("dispatch.wubi.char_prominent_floor_freq missing"))
+        as u64;
     let dw_auto_demote_arr = dispatch_wubi
         .get("auto_layer_demote")
         .and_then(|v| v.as_array())
         .unwrap_or_else(|| panic!("dispatch.wubi.auto_layer_demote missing"));
     let mut dw_auto_demote = [0f64; 4];
     for (i, v) in dw_auto_demote_arr.iter().enumerate().take(4) {
-        dw_auto_demote[i] = v.as_float().or_else(|| v.as_integer().map(|x| x as f64))
+        dw_auto_demote[i] = v
+            .as_float()
+            .or_else(|| v.as_integer().map(|x| x as f64))
             .unwrap_or_else(|| panic!("auto_layer_demote[{i}] not numeric"));
     }
     let dw_phrase_speculative_demote = read_f64(dispatch_wubi, "phrase_speculative_demote");
@@ -166,13 +163,17 @@ fn main() {
     let pq_inflation_floor = phrase_quality
         .get("inflation_floor_freq")
         .and_then(|v| v.as_integer())
-        .unwrap_or_else(|| panic!("scoring.phrase_quality.inflation_floor_freq missing")) as u64;
+        .unwrap_or_else(|| panic!("scoring.phrase_quality.inflation_floor_freq missing"))
+        as u64;
     let pq_inflation_ceil = phrase_quality
         .get("inflation_ceil_freq")
         .and_then(|v| v.as_integer())
-        .unwrap_or_else(|| panic!("scoring.phrase_quality.inflation_ceil_freq missing")) as u64;
+        .unwrap_or_else(|| panic!("scoring.phrase_quality.inflation_ceil_freq missing"))
+        as u64;
     if pq_inflation_ceil <= pq_inflation_floor {
-        panic!("scoring.phrase_quality.inflation_ceil_freq ({pq_inflation_ceil}) must be > inflation_floor_freq ({pq_inflation_floor})");
+        panic!(
+            "scoring.phrase_quality.inflation_ceil_freq ({pq_inflation_ceil}) must be > inflation_floor_freq ({pq_inflation_floor})"
+        );
     }
 
     let wubi_full_code_promote = read_f64(scoring_ce, "wubi_full_code_promote");
@@ -191,8 +192,8 @@ fn main() {
         .and_then(|v| v.get("tier_quantile_pinyin"))
         .and_then(|v| v.as_table())
         .unwrap_or_else(|| panic!("[scoring.tier_quantile_pinyin] section missing"));
-    let pq_mu       = read_f64(tq_p, "log_freq_mu");
-    let pq_sigma    = read_f64(tq_p, "log_freq_sigma");
+    let pq_mu = read_f64(tq_p, "log_freq_mu");
+    let pq_sigma = read_f64(tq_p, "log_freq_sigma");
     let pq_tier_1_above = read_f64(tq_p, "tier_1_above");
     let pq_tier_2_above = read_f64(tq_p, "tier_2_above");
     let pq_tier_3_above = read_f64(tq_p, "tier_3_above");
@@ -203,11 +204,31 @@ fn main() {
         panic!("scoring.tier_quantile_pinyin.log_freq_sigma must be > 0; got {pq_sigma}");
     }
     for (a, b, name) in [
-        (pq_tier_1_above, pq_tier_2_above, "tier_1_above > tier_2_above"),
-        (pq_tier_2_above, pq_tier_3_above, "tier_2_above > tier_3_above"),
-        (pq_tier_3_above, pq_tier_4_above, "tier_3_above > tier_4_above"),
-        (pq_tier_4_above, pq_tier_5_above, "tier_4_above > tier_5_above"),
-        (pq_tier_5_above, pq_tier_6_above, "tier_5_above > tier_6_above"),
+        (
+            pq_tier_1_above,
+            pq_tier_2_above,
+            "tier_1_above > tier_2_above",
+        ),
+        (
+            pq_tier_2_above,
+            pq_tier_3_above,
+            "tier_2_above > tier_3_above",
+        ),
+        (
+            pq_tier_3_above,
+            pq_tier_4_above,
+            "tier_3_above > tier_4_above",
+        ),
+        (
+            pq_tier_4_above,
+            pq_tier_5_above,
+            "tier_4_above > tier_5_above",
+        ),
+        (
+            pq_tier_5_above,
+            pq_tier_6_above,
+            "tier_5_above > tier_6_above",
+        ),
     ] {
         if !(a > b) {
             panic!("scoring.tier_quantile_pinyin {name} violated: {a} !> {b}");
@@ -220,8 +241,8 @@ fn main() {
         .and_then(|v| v.get("tier_quantile_nihongo"))
         .and_then(|v| v.as_table())
         .unwrap_or_else(|| panic!("[scoring.tier_quantile_nihongo] section missing"));
-    let nq_mu       = read_f64(tq_n, "log_freq_mu");
-    let nq_sigma    = read_f64(tq_n, "log_freq_sigma");
+    let nq_mu = read_f64(tq_n, "log_freq_mu");
+    let nq_sigma = read_f64(tq_n, "log_freq_sigma");
     let nq_tier_1_above = read_f64(tq_n, "tier_1_above");
     let nq_tier_2_above = read_f64(tq_n, "tier_2_above");
     let nq_tier_3_above = read_f64(tq_n, "tier_3_above");
@@ -232,11 +253,31 @@ fn main() {
         panic!("scoring.tier_quantile_nihongo.log_freq_sigma must be > 0; got {nq_sigma}");
     }
     for (a, b, name) in [
-        (nq_tier_1_above, nq_tier_2_above, "tier_1_above > tier_2_above"),
-        (nq_tier_2_above, nq_tier_3_above, "tier_2_above > tier_3_above"),
-        (nq_tier_3_above, nq_tier_4_above, "tier_3_above > tier_4_above"),
-        (nq_tier_4_above, nq_tier_5_above, "tier_4_above > tier_5_above"),
-        (nq_tier_5_above, nq_tier_6_above, "tier_5_above > tier_6_above"),
+        (
+            nq_tier_1_above,
+            nq_tier_2_above,
+            "tier_1_above > tier_2_above",
+        ),
+        (
+            nq_tier_2_above,
+            nq_tier_3_above,
+            "tier_2_above > tier_3_above",
+        ),
+        (
+            nq_tier_3_above,
+            nq_tier_4_above,
+            "tier_3_above > tier_4_above",
+        ),
+        (
+            nq_tier_4_above,
+            nq_tier_5_above,
+            "tier_4_above > tier_5_above",
+        ),
+        (
+            nq_tier_5_above,
+            nq_tier_6_above,
+            "tier_5_above > tier_6_above",
+        ),
     ] {
         if !(a > b) {
             panic!("scoring.tier_quantile_nihongo {name} violated: {a} !> {b}");
@@ -503,8 +544,7 @@ pub fn nihongo_tier_from_freq(raw_freq: u64) -> u8 {{
         phrase_inflation_ceil = pq_inflation_ceil,
     );
 
-    fs::write(&out_path, generated)
-        .unwrap_or_else(|e| panic!("write {}: {e}", out_path.display()));
+    fs::write(&out_path, generated).unwrap_or_else(|e| panic!("write {}: {e}", out_path.display()));
 
     // ─── WU-ψ phase 5: tier overlay codegen ─────────────────────
     //
@@ -560,9 +600,7 @@ pub fn nihongo_tier_from_freq(raw_freq: u64) -> u8 {{
     let mut overlay_lines = String::new();
     overlay_lines.push_str("&[\n");
     for (b, w, t) in &overlay_rows {
-        overlay_lines.push_str(&format!(
-            "    ({b:?}, {w:?}, {t}u8),\n"
-        ));
+        overlay_lines.push_str(&format!("    ({b:?}, {w:?}, {t}u8),\n"));
     }
     overlay_lines.push_str("]");
     let overlay_generated = format!(
@@ -583,8 +621,7 @@ pub static TIER_OVERLAY_ROWS: &[(&str, &str, u8)] = {overlay_lines};
 fn read_i32(t: &toml::value::Table, key: &str) -> i32 {
     t.get(key)
         .and_then(|v| v.as_integer())
-        .unwrap_or_else(|| panic!("engine_weights.{key} missing or not integer"))
-        as i32
+        .unwrap_or_else(|| panic!("engine_weights.{key} missing or not integer")) as i32
 }
 
 fn read_f64(t: &toml::value::Table, key: &str) -> f64 {

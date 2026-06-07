@@ -13,12 +13,11 @@
 //! `idf-from-nihongo-*` build tooling sources both), so baseline
 //! fixture diff stays at zero.
 
-use inputx_nihongo::{romaji, Candidate, KanaKind};
+use inputx_nihongo::{Candidate, KanaKind, romaji};
 
 use super::compose::compose_sentence;
 use super::lookup::{
-    lookup_jukugo_by_reading, lookup_jukugo_by_reading_prefix,
-    lookup_kanji_by_reading,
+    lookup_jukugo_by_reading, lookup_jukugo_by_reading_prefix, lookup_kanji_by_reading,
 };
 
 /// Composite-side JapaneseEngine. Cheap to construct — cement IDF
@@ -135,8 +134,7 @@ impl JapaneseEngine {
         }
 
         if !had_exact_jukugo && s.len() >= 3 {
-            let mut pred: Vec<(String, u32, usize)> =
-                lookup_jukugo_by_reading_prefix(s);
+            let mut pred: Vec<(String, u32, usize)> = lookup_jukugo_by_reading_prefix(s);
             pred.sort_by(|a, b| b.1.cmp(&a.1));
             for (kanji, freq, reading_len) in pred.into_iter().take(8) {
                 let proximity_milli = ((s.len() * 1000) / reading_len.max(1)) as u16;

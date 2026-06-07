@@ -18,7 +18,7 @@ use std::process::ExitCode;
 
 use inputx_dict_format::{EngineKind, EntryFlags, IdfBuilder};
 use inputx_pinyin::PinyinDict;
-use inputx_scoring::{log_prob_corpus_from_freq, MatchType};
+use inputx_scoring::{MatchType, log_prob_corpus_from_freq};
 
 // User-curated polish-log Q4 log-prior boosts baked into the snapshot
 // at build time (v1.4.7 sub-phase A5). The composite-runtime
@@ -29,22 +29,29 @@ use inputx_scoring::{log_prob_corpus_from_freq, MatchType};
 // 2026-06-03 cleanup: data externalized to TSV per user directive
 // "no special list, never". Per-entry boosts live in
 // `tools/scoring/data/polish/prior_corrections_v1.tsv`.
-const PRIOR_CORRECTIONS_TSV: &str = include_str!(
-    "../../../../../tools/scoring/data/polish/prior_corrections_v1.tsv"
-);
+const PRIOR_CORRECTIONS_TSV: &str =
+    include_str!("../../../../../tools/scoring/data/polish/prior_corrections_v1.tsv");
 
 /// Parse `<word>\t<boost_q4>[\t# comment]` rows.
 fn parse_prior_corrections(src: &str) -> Vec<(String, i32)> {
     let mut out = Vec::new();
     for raw in src.lines() {
         let line = raw.trim();
-        if line.is_empty() || line.starts_with('#') { continue; }
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
         let mut parts = line.splitn(3, '\t');
-        let (Some(word), Some(boost_s)) = (parts.next(), parts.next()) else { continue };
+        let (Some(word), Some(boost_s)) = (parts.next(), parts.next()) else {
+            continue;
+        };
         let word = word.trim();
         let boost_s = boost_s.split('\t').next().unwrap_or(boost_s).trim();
-        if word.is_empty() { continue; }
-        let Ok(boost) = boost_s.parse::<i32>() else { continue };
+        if word.is_empty() {
+            continue;
+        }
+        let Ok(boost) = boost_s.parse::<i32>() else {
+            continue;
+        };
         out.push((word.to_string(), boost));
     }
     out
@@ -71,22 +78,27 @@ fn correction_for(word: &str, table: &[(String, i32)]) -> i32 {
 // initials lookup of `为什么` via 什's "shen" reading), which is the
 // opposite of intent. See `tools/scoring/data/polish/exclusions_v1.tsv`
 // header for the full rationale.
-const EXCLUSIONS_TSV: &str = include_str!(
-    "../../../../../tools/scoring/data/polish/exclusions_v1.tsv"
-);
+const EXCLUSIONS_TSV: &str =
+    include_str!("../../../../../tools/scoring/data/polish/exclusions_v1.tsv");
 
 /// Parse `<code>\t<word>[\t# comment]` rows, skipping blanks + comments.
 fn parse_exclusions(src: &str) -> Vec<(String, String)> {
     let mut out = Vec::new();
     for raw in src.lines() {
         let line = raw.trim();
-        if line.is_empty() || line.starts_with('#') { continue; }
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
         let mut parts = line.splitn(3, '\t');
-        let (Some(code), Some(word)) = (parts.next(), parts.next()) else { continue };
+        let (Some(code), Some(word)) = (parts.next(), parts.next()) else {
+            continue;
+        };
         let code = code.trim();
         // Allow inline `<word>\t# comment` — strip trailing `\t#`.
         let word = word.split('\t').next().unwrap_or(word).trim();
-        if code.is_empty() || word.is_empty() { continue; }
+        if code.is_empty() || word.is_empty() {
+            continue;
+        }
         out.push((code.to_string(), word.to_string()));
     }
     out
@@ -116,9 +128,8 @@ fn main() -> ExitCode {
             }
         }
     }
-    let out = output.unwrap_or_else(|| {
-        PathBuf::from("crates/inputx-pinyin-helpers/data/words.idf")
-    });
+    let out =
+        output.unwrap_or_else(|| PathBuf::from("crates/inputx-pinyin-helpers/data/words.idf"));
     match run(&out) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
@@ -140,9 +151,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     // `pinyin_corpus_total()` scans the .idf and sees the same rows.
     let excluded_freq: u64 = entries
         .iter()
-        .filter(|(code, word, _)| {
-            exclusions.iter().any(|(ec, ew)| ec == code && ew == word)
-        })
+        .filter(|(code, word, _)| exclusions.iter().any(|(ec, ew)| ec == code && ew == word))
         .map(|(_, _, f)| *f)
         .sum();
     let source_total: u64 = entries.iter().map(|(_, _, f)| *f).sum();

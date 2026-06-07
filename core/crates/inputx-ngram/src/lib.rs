@@ -100,7 +100,9 @@ pub enum OpenError {
 
 #[cfg(feature = "std")]
 impl From<std::io::Error> for OpenError {
-    fn from(e: std::io::Error) -> Self { Self::Io(e) }
+    fn from(e: std::io::Error) -> Self {
+        Self::Io(e)
+    }
 }
 
 /// Header (host-byte view).
@@ -108,7 +110,7 @@ impl From<std::io::Error> for OpenError {
 pub struct Header {
     pub magic: [u8; 4],
     pub format_version: u8,
-    pub max_n: u8,                 // 2 for bigram, 3 trigram, ...
+    pub max_n: u8, // 2 for bigram, 3 trigram, ...
     pub reserved_a: [u8; 2],
     pub entry_count: u32,
     pub string_pool_offset: u32,
@@ -141,8 +143,12 @@ impl Header {
     }
 
     pub fn parse(buf: &[u8]) -> Option<Self> {
-        if buf.len() < FULL_HEADER_SIZE { return None; }
-        if buf[0..4] != MAGIC { return None; }
+        if buf.len() < FULL_HEADER_SIZE {
+            return None;
+        }
+        if buf[0..4] != MAGIC {
+            return None;
+        }
         let mut reserved_a = [0u8; 2];
         reserved_a.copy_from_slice(&buf[6..8]);
         let mut reserved_b = [0u8; 24];
@@ -169,8 +175,8 @@ impl Header {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 struct Triplet {
-    ctx_offset: u32,   // u24 on disk
-    next_offset: u32,  // u24 on disk
+    ctx_offset: u32,  // u24 on disk
+    next_offset: u32, // u24 on disk
     log_prob: i16,
 }
 
@@ -288,10 +294,18 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
     // declaration — the `OnceLock::new()` above initializes the new
     // type identically.
 
-    pub fn header(&self) -> &Header { &self.header }
-    pub fn max_n(&self) -> u8 { self.header.max_n }
-    pub fn entry_count(&self) -> u32 { self.header.entry_count }
-    pub fn sha256(&self) -> [u8; 32] { self.header.sha256_of_payload }
+    pub fn header(&self) -> &Header {
+        &self.header
+    }
+    pub fn max_n(&self) -> u8 {
+        self.header.max_n
+    }
+    pub fn entry_count(&self) -> u32 {
+        self.header.entry_count
+    }
+    pub fn sha256(&self) -> [u8; 32] {
+        self.header.sha256_of_payload
+    }
 
     /// Look up `log_prob(next | ctx)` for a context of length 1
     /// (bigram) or longer (max_n=3 trigram, …). Returns `None` if the
@@ -451,7 +465,7 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
                 let first_idx = (value & 0xFFFF_FFFF) as u32;
                 let count = (value >> 32) as u32;
                 return Some(CtxIndexEntry {
-                    ctx_offset: 0,  // unused on the FST path
+                    ctx_offset: 0, // unused on the FST path
                     first_idx,
                     count,
                 });
@@ -483,8 +497,9 @@ impl<B: AsRef<[u8]>> NgramTable<B> {
         let n = self.header.entry_count as usize;
         (0..n).map(move |i| {
             let start = off + i * TRIPLET_SIZE;
-            let bytes: [u8; TRIPLET_SIZE] =
-                buf[start..start + TRIPLET_SIZE].try_into().expect("triplet slice");
+            let bytes: [u8; TRIPLET_SIZE] = buf[start..start + TRIPLET_SIZE]
+                .try_into()
+                .expect("triplet slice");
             Triplet::parse(&bytes)
         })
     }
@@ -502,7 +517,9 @@ impl NgramTable<memmap2::Mmap> {
 
 fn read_string(pool: &[u8], offset: u32) -> &str {
     let s = offset as usize;
-    if s >= pool.len() { return ""; }
+    if s >= pool.len() {
+        return "";
+    }
     let rest = &pool[s..];
     let end = rest.iter().position(|&b| b == 0).unwrap_or(rest.len());
     core::str::from_utf8(&rest[..end]).unwrap_or("")
@@ -518,7 +535,9 @@ fn read_string(pool: &[u8], offset: u32) -> &str {
 /// per-keystroke main-thread cost.
 fn read_string_bytes(pool: &[u8], offset: u32) -> &[u8] {
     let s = offset as usize;
-    if s >= pool.len() { return &[]; }
+    if s >= pool.len() {
+        return &[];
+    }
     let rest = &pool[s..];
     let end = rest.iter().position(|&b| b == 0).unwrap_or(rest.len());
     &rest[..end]
@@ -531,7 +550,9 @@ fn read_string_bytes(pool: &[u8], offset: u32) -> &[u8] {
 fn encode_ctx(ctx: &[&str]) -> String {
     let mut s = String::new();
     for (i, w) in ctx.iter().enumerate() {
-        if i > 0 { s.push('\u{1F}'); }
+        if i > 0 {
+            s.push('\u{1F}');
+        }
         s.push_str(w);
     }
     s
@@ -553,7 +574,7 @@ mod writer {
     /// Deterministic NGMv1 writer.
     pub struct NgramBuilder {
         max_n: u8,
-        entries: Vec<(String, String, i16)>,    // (ctx_blob, next, log_prob)
+        entries: Vec<(String, String, i16)>, // (ctx_blob, next, log_prob)
     }
 
     impl NgramBuilder {
@@ -562,7 +583,10 @@ mod writer {
                 (2..=4).contains(&max_n),
                 "max_n must be in 2..=4 (got {max_n})",
             );
-            Self { max_n, entries: Vec::new() }
+            Self {
+                max_n,
+                entries: Vec::new(),
+            }
         }
 
         /// Queue one (ctx, next, log_prob) triplet. `ctx.len()` must be
@@ -571,18 +595,23 @@ mod writer {
             assert!(
                 !ctx.is_empty() && ctx.len() <= (self.max_n - 1) as usize,
                 "ctx length {} outside 1..={} for max_n={}",
-                ctx.len(), self.max_n - 1, self.max_n,
+                ctx.len(),
+                self.max_n - 1,
+                self.max_n,
             );
-            self.entries.push((encode_ctx(ctx), next.to_string(), log_prob));
+            self.entries
+                .push((encode_ctx(ctx), next.to_string(), log_prob));
         }
 
-        pub fn pending_count(&self) -> usize { self.entries.len() }
+        pub fn pending_count(&self) -> usize {
+            self.entries.len()
+        }
 
         pub fn build(mut self, path: &Path) -> io::Result<[u8; 32]> {
             // Dedup + sort for determinism.
             self.entries.sort_by(|a, b| {
                 a.0.cmp(&b.0)
-                    .then_with(|| b.2.cmp(&a.2))   // log_prob desc within ctx
+                    .then_with(|| b.2.cmp(&a.2)) // log_prob desc within ctx
                     .then_with(|| a.1.cmp(&b.1))
             });
             self.entries.dedup_by(|a, b| a.0 == b.0 && a.1 == b.1);
@@ -616,8 +645,7 @@ mod writer {
             }
 
             // Triplet table.
-            let mut triplet_bytes: Vec<u8> =
-                Vec::with_capacity(self.entries.len() * TRIPLET_SIZE);
+            let mut triplet_bytes: Vec<u8> = Vec::with_capacity(self.entries.len() * TRIPLET_SIZE);
             for (ctx, next, log_prob) in &self.entries {
                 let t = Triplet {
                     ctx_offset: pool_offsets[ctx.as_str()],
@@ -649,8 +677,7 @@ mod writer {
                     if !same {
                         if let Some(prev) = current_ctx {
                             let count = i - current_start;
-                            let value = (current_start as u64)
-                                | ((count as u64) << 32);
+                            let value = (current_start as u64) | ((count as u64) << 32);
                             fsa.insert(prev.as_bytes(), value);
                         }
                         current_ctx = Some(ctx.as_str());
@@ -659,8 +686,7 @@ mod writer {
                 }
                 if let Some(prev) = current_ctx {
                     let count = entry_count - current_start;
-                    let value = (current_start as u64)
-                        | ((count as u64) << 32);
+                    let value = (current_start as u64) | ((count as u64) << 32);
                     fsa.insert(prev.as_bytes(), value);
                 }
                 fsa.finish()
@@ -809,14 +835,14 @@ mod tests {
         let mut b = NgramBuilder::new(2);
         b.add(&["今天"], "是", 250);
         b.add(&["今天"], "的", 200);
-        b.add(&["今天"], "我", 250);    // tie with 是; lex 我 > 是 so 是 first
+        b.add(&["今天"], "我", 250); // tie with 是; lex 我 > 是 so 是 first
         b.add(&["今天"], "了", 150);
         b.build(&path).unwrap();
         let bytes = std::fs::read(&path).unwrap();
         let t = NgramTable::from_bytes(bytes).unwrap();
         let top = t.top_k(&["今天"], 3);
         assert_eq!(top.len(), 3);
-        assert_eq!(top[0], ("我".to_string(), 250));   // lex: 我 < 是
+        assert_eq!(top[0], ("我".to_string(), 250)); // lex: 我 < 是
         assert_eq!(top[1], ("是".to_string(), 250));
         assert_eq!(top[2], ("的".to_string(), 200));
     }
@@ -853,7 +879,7 @@ mod tests {
         let path = dir.path().join("d.ngm");
         let mut b = NgramBuilder::new(2);
         b.add(&["今天"], "是", 250);
-        b.add(&["今天"], "是", 999);    // dedup keeps higher log_prob (sort puts 999 first)
+        b.add(&["今天"], "是", 999); // dedup keeps higher log_prob (sort puts 999 first)
         b.build(&path).unwrap();
         let bytes = std::fs::read(&path).unwrap();
         let t = NgramTable::from_bytes(bytes).unwrap();
@@ -869,7 +895,7 @@ mod tests {
         let mut b = NgramBuilder::new(3);
         b.add(&["今天", "我"], "去", 280);
         b.add(&["今天", "你"], "好", 260);
-        b.add(&["昨天"], "是", 200);     // bigram entry in a trigram file (max_n=3 allows ctx 1..=2)
+        b.add(&["昨天"], "是", 200); // bigram entry in a trigram file (max_n=3 allows ctx 1..=2)
         b.build(&path).unwrap();
         let bytes = std::fs::read(&path).unwrap();
         let t = NgramTable::from_bytes(bytes).unwrap();
@@ -878,7 +904,7 @@ mod tests {
         assert_eq!(t.log_prob(&["今天", "我"], "去"), Some(280));
         assert_eq!(t.log_prob(&["今天", "你"], "好"), Some(260));
         assert_eq!(t.log_prob(&["昨天"], "是"), Some(200));
-        assert_eq!(t.log_prob(&["今天"], "去"), None);   // wrong ctx length
+        assert_eq!(t.log_prob(&["今天"], "去"), None); // wrong ctx length
     }
 
     #[cfg(feature = "std")]
@@ -906,7 +932,7 @@ mod tests {
         let b = NgramBuilder::new(2);
         b.build(&path).unwrap();
         let mut bytes = std::fs::read(&path).unwrap();
-        bytes[5] = 9;   // max_n
+        bytes[5] = 9; // max_n
         // Tamper invalidates sha; re-sign over post-header payload.
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();

@@ -253,8 +253,12 @@ fn build_fst(
 ) {
     let mut entries: BTreeMap<Vec<u8>, u64> = BTreeMap::new();
     let freq_scores = load_freq_scores(crate_dir);
-    let freq_for =
-        |code: &str, word: &str| freq_scores.get(&(code.to_string(), word.to_string())).copied().unwrap_or(0);
+    let freq_for = |code: &str, word: &str| {
+        freq_scores
+            .get(&(code.to_string(), word.to_string()))
+            .copied()
+            .unwrap_or(0)
+    };
     let phrase_entries = load_phrase_entries(crate_dir);
 
     // 一级简码 entries: code is a single letter.

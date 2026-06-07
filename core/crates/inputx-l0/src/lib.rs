@@ -60,7 +60,9 @@ pub enum OpenError {
 
 #[cfg(feature = "std")]
 impl From<std::io::Error> for OpenError {
-    fn from(e: std::io::Error) -> Self { Self::Io(e) }
+    fn from(e: std::io::Error) -> Self {
+        Self::Io(e)
+    }
 }
 
 /// One pinned (code, word) → boost association. `boost` is Q4
@@ -88,10 +90,14 @@ impl L0Store {
     }
 
     /// Number of pinned entries.
-    pub fn len(&self) -> usize { self.entries.len() }
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
 
     /// True iff no pinned entries.
-    pub fn is_empty(&self) -> bool { self.entries.is_empty() }
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
 
     /// Look up the boost for `(code, word)`. `None` when not pinned.
     /// Hot-path API — callers add the boost to the dict's `log_prior`
@@ -163,30 +169,39 @@ impl L0Store {
             return Err(OpenError::BadMagic);
         }
         // reserved u32 at [4..8] ignored.
-        let entry_count =
-            u32::from_le_bytes([buf[8], buf[9], buf[10], buf[11]]) as usize;
+        let entry_count = u32::from_le_bytes([buf[8], buf[9], buf[10], buf[11]]) as usize;
         let mut entries: BTreeMap<(String, String), i16> = BTreeMap::new();
         let mut p = HEADER_SIZE;
         for _ in 0..entry_count {
-            if p + 1 > buf.len() { return Err(OpenError::CorruptEntry); }
+            if p + 1 > buf.len() {
+                return Err(OpenError::CorruptEntry);
+            }
             let code_len = buf[p] as usize;
             p += 1;
-            if p + code_len > buf.len() { return Err(OpenError::CorruptEntry); }
+            if p + code_len > buf.len() {
+                return Err(OpenError::CorruptEntry);
+            }
             let code = match core::str::from_utf8(&buf[p..p + code_len]) {
                 Ok(s) => s.to_string(),
                 Err(_) => return Err(OpenError::CorruptEntry),
             };
             p += code_len;
-            if p + 1 > buf.len() { return Err(OpenError::CorruptEntry); }
+            if p + 1 > buf.len() {
+                return Err(OpenError::CorruptEntry);
+            }
             let word_len = buf[p] as usize;
             p += 1;
-            if p + word_len > buf.len() { return Err(OpenError::CorruptEntry); }
+            if p + word_len > buf.len() {
+                return Err(OpenError::CorruptEntry);
+            }
             let word = match core::str::from_utf8(&buf[p..p + word_len]) {
                 Ok(s) => s.to_string(),
                 Err(_) => return Err(OpenError::CorruptEntry),
             };
             p += word_len;
-            if p + 2 > buf.len() { return Err(OpenError::CorruptEntry); }
+            if p + 2 > buf.len() {
+                return Err(OpenError::CorruptEntry);
+            }
             let boost = i16::from_le_bytes([buf[p], buf[p + 1]]);
             p += 2;
             entries.insert((code, word), boost);
@@ -224,10 +239,7 @@ impl L0Store {
 
     /// Atomic write to disk: tmpfile → fsync → rename. Safe across
     /// crash / SIGKILL.
-    pub fn save<P: AsRef<std::path::Path>>(
-        &self,
-        path: P,
-    ) -> std::io::Result<()> {
+    pub fn save<P: AsRef<std::path::Path>>(&self, path: P) -> std::io::Result<()> {
         use std::io::Write;
         let bytes = self.to_bytes();
         let path = path.as_ref();

@@ -77,9 +77,10 @@ fn bench_prefix_for_each_raw(c: &mut Criterion) {
         group.bench_function(format!("count_only_{prefix}"), |b| {
             b.iter(|| {
                 let mut n = 0u64;
-                eng.dict().prefix_for_each_raw(black_box(prefix), |_, _, _| {
-                    n += 1;
-                });
+                eng.dict()
+                    .prefix_for_each_raw(black_box(prefix), |_, _, _| {
+                        n += 1;
+                    });
                 black_box(n)
             });
         });

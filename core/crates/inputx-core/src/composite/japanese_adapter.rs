@@ -78,18 +78,12 @@ fn buffer_is_foreign_romaji(buf: &str) -> bool {
     // doesn't prefix any native, etc. — but length-desc is the convention).
     const FOREIGN: &[&str] = &[
         // 3-letter foreign extensions
-        "fya", "fyu", "fyo", "vya", "vyu", "vyo",
-        "tsa", "tsi", "tse", "tso", "che", "she",
-        "kwa", "kwi", "kwe", "kwo", "gwa", "gwi", "gwe", "gwo",
-        "wha", "whi", "whe", "who",
-        "tha", "thi", "the", "tho", "dha", "dhi", "dhe", "dho",
-        "twu", "dwu",
+        "fya", "fyu", "fyo", "vya", "vyu", "vyo", "tsa", "tsi", "tse", "tso", "che", "she", "kwa",
+        "kwi", "kwe", "kwo", "gwa", "gwi", "gwe", "gwo", "wha", "whi", "whe", "who", "tha", "thi",
+        "the", "tho", "dha", "dhi", "dhe", "dho", "twu", "dwu",
         // 2-letter foreign extensions
-        "fa", "fi", "fe", "fo",
-        "va", "vi", "vu", "ve", "vo",
-        "wi", "we", "je",
-        "xa", "xi", "xu", "xe", "xo",
-        "la", "li", "lu", "le", "lo",
+        "fa", "fi", "fe", "fo", "va", "vi", "vu", "ve", "vo", "wi", "we", "je", "xa", "xi", "xu",
+        "xe", "xo", "la", "li", "lu", "le", "lo",
     ];
     let lower = buf.to_ascii_lowercase();
     FOREIGN.iter().any(|p| lower.contains(p))
@@ -107,7 +101,9 @@ impl Default for JapaneseAdapter {
 
 impl JapaneseAdapter {
     pub fn new() -> Self {
-        Self { engine: JapaneseEngine::new() }
+        Self {
+            engine: JapaneseEngine::new(),
+        }
     }
 
     pub fn handle_letter(&mut self, b: u8) -> bool {
@@ -196,8 +192,8 @@ impl JapaneseAdapter {
     /// per-buffer via picking #2/#3 — that goes to PolishLog and gets
     /// rolled into next pipeline run.
     pub fn candidates_with_scores(&self) -> Vec<super::merge::Scored> {
-        use inputx_nihongo::KanaKind;
         use crate::composite::scoring;
+        use inputx_nihongo::KanaKind;
         // Short-buffer compose_sentence garbage filter (user polish-log
         // 2026-05-26, jieni): for short romaji buffers (< 8 chars), the
         // engine's compose_sentence path can produce ~30 mechanical
@@ -234,7 +230,11 @@ impl JapaneseAdapter {
                 && c.freq > 0
                 && !is_pure_kana(&c.word)
         });
-        let promote = if full_match { scoring::LIKELIHOOD_JP_FULL_MATCH_PROMOTE } else { 1.0 };
+        let promote = if full_match {
+            scoring::LIKELIHOOD_JP_FULL_MATCH_PROMOTE
+        } else {
+            1.0
+        };
         self.engine
             .candidates()
             .iter()
@@ -285,8 +285,11 @@ impl JapaneseAdapter {
                     // WU-ψ: JP compose products → tier 4 (mechanical,
                     // less-confident than exact dict hits).
                     let components = super::merge::ScoreComponents::three_axis(
-                        log_prior_q4, log_likelihood_q4, mt,
-                    ).with_tier(4);
+                        log_prior_q4,
+                        log_likelihood_q4,
+                        mt,
+                    )
+                    .with_tier(4);
                     return (c.word.clone(), s, Some(components));
                 }
                 // base = per-kind floor; freq-weighted add lifts high-freq
@@ -354,14 +357,10 @@ impl JapaneseAdapter {
                 //     their log_prior into the bottom band where kana
                 //     belongs in the merge, below real kanji entries).
                 let corpus_total = match c.kind {
-                    KanaKind::Kanji
-                        if c.word.chars().count() > 1 && !is_pure_kana(&c.word) =>
-                    {
+                    KanaKind::Kanji if c.word.chars().count() > 1 && !is_pure_kana(&c.word) => {
                         inputx_nihongo_data_jukugo::nihongo_jukugo_corpus_total()
                     }
-                    KanaKind::Kanji => {
-                        inputx_nihongo_data_kanji::nihongo_kanji_corpus_total()
-                    }
+                    KanaKind::Kanji => inputx_nihongo_data_kanji::nihongo_kanji_corpus_total(),
                     KanaKind::Hiragana | KanaKind::Katakana => {
                         inputx_nihongo_data_jukugo::nihongo_jukugo_corpus_total()
                     }
@@ -374,7 +373,11 @@ impl JapaneseAdapter {
                     corpus_total,
                 );
                 // Predictions (proximity < 1) never ride the full-match promote.
-                let mult = if c.proximity_milli >= 1000 { promote } else { 1.0 };
+                let mult = if c.proximity_milli >= 1000 {
+                    promote
+                } else {
+                    1.0
+                };
                 let score = pre_promote * mult;
                 // v1.4.2 WU-γ: full-match promote folds into log_likelihood
                 // (multiplicative in linear space → additive in log space).
@@ -386,8 +389,7 @@ impl JapaneseAdapter {
                 // user-visible `score` then carries the promote implicitly
                 // (`score / (base + prior · likelihood) == promote`).
                 if mult > 1.0 {
-                    let delta_q4 =
-                        (mult.ln() * inputx_scoring::Q4 as f64).round() as i32;
+                    let delta_q4 = (mult.ln() * inputx_scoring::Q4 as f64).round() as i32;
                     components.log_likelihood_q4 =
                         components.log_likelihood_q4.saturating_add(delta_q4);
                 }
@@ -460,9 +462,9 @@ impl JapaneseAdapter {
                     match c.kind {
                         KanaKind::Hiragana | KanaKind::Katakana => match buf_len {
                             1 | 2 => 1,
-                            3     => 2,
-                            4     => 5,
-                            _     => 4,
+                            3 => 2,
+                            4 => 5,
+                            _ => 4,
                         },
                         KanaKind::Kanji => {
                             let multi = c.word.chars().count() > 1;
@@ -478,7 +480,9 @@ impl JapaneseAdapter {
                                 // 张得相对开" — Chinese phrases of
                                 // comparable corpus prominence win
                                 // mixed-mode排序.
-                                (true,  false) => inputx_scoring::nihongo_tier_from_freq(c.freq as u64),
+                                (true, false) => {
+                                    inputx_scoring::nihongo_tier_from_freq(c.freq as u64)
+                                }
                                 // Pure-kana multi-char "jukugo" (えっ,
                                 // ありがとう) — kana 感叹/寒暄 in the
                                 // hand TSV, not real 熟语.  Demoted to
@@ -486,13 +490,13 @@ impl JapaneseAdapter {
                                 // ("えっ at #3 for single `e` is wrong").
                                 // FIXED tier 2 (not via quantile) —
                                 // this is a non-freq attestation.
-                                (true,  true)  => 2,
+                                (true, true) => 2,
                                 // Single basic kana from dict (も で
                                 // を に — jukugo TSV entries of one
                                 // char pure_kana).  Phase C 2026-06-03:
                                 // FIXED tier 1 (user attestation —
                                 // basic kana 在很高级).
-                                (false, true)  => 1,
+                                (false, true) => 1,
                                 // Single kanji (a kanji char emitted by
                                 // kanji::lookup_by_reading — 気 起 記
                                 // etc.) — Phase D 2026-06-03: route
@@ -500,7 +504,9 @@ impl JapaneseAdapter {
                                 // single-kanji (freq ≈ 50, z ≈ 0)
                                 // lands tier 4; rare-Han single kanji
                                 // (low freq) sinks to tier 5-6.
-                                (false, false) => inputx_scoring::nihongo_tier_from_freq(c.freq as u64),
+                                (false, false) => {
+                                    inputx_scoring::nihongo_tier_from_freq(c.freq as u64)
+                                }
                             }
                         }
                     }
@@ -568,7 +574,9 @@ mod tests {
         // The clean kana renderings (をやお / ヲヤオ) must still survive so
         // JP isn't left empty for this buffer.
         assert!(
-            jp.candidates().iter().any(|c| c.chars().all(|ch| !is_kanji(ch))),
+            jp.candidates()
+                .iter()
+                .any(|c| c.chars().all(|ch| !is_kanji(ch))),
             "expected at least one pure-kana candidate to survive, got {:?}",
             jp.candidates()
         );

@@ -121,7 +121,8 @@ fn main() -> ExitCode {
         if idx > 0 {
             out.push(',');
         }
-        let src = sess.candidate_source(idx)
+        let src = sess
+            .candidate_source(idx)
             .and_then(Source::from_u8)
             .map(source_str)
             .unwrap_or("Wubi");
@@ -214,20 +215,17 @@ fn push_kv_match_type(out: &mut String, mt: inputx_scoring::MatchType) {
     out.push_str("\"match_type\":");
     match mt {
         inputx_scoring::MatchType::Exact => out.push_str("\"Exact\""),
-        inputx_scoring::MatchType::Prefix(prox) => {
-            out.push_str(&format!("{{\"Prefix\":{prox}}}"))
-        }
-        inputx_scoring::MatchType::Fuzzy(cost) => {
-            out.push_str(&format!("{{\"Fuzzy\":{cost}}}"))
-        }
-        inputx_scoring::MatchType::Composed { bigram_links } => {
-            out.push_str(&format!("{{\"Composed\":{{\"bigram_links\":{bigram_links}}}}}"))
-        }
-        inputx_scoring::MatchType::Initials { typed_len, full_len } => {
-            out.push_str(&format!(
-                "{{\"Initials\":{{\"typed_len\":{typed_len},\"full_len\":{full_len}}}}}"
-            ))
-        }
+        inputx_scoring::MatchType::Prefix(prox) => out.push_str(&format!("{{\"Prefix\":{prox}}}")),
+        inputx_scoring::MatchType::Fuzzy(cost) => out.push_str(&format!("{{\"Fuzzy\":{cost}}}")),
+        inputx_scoring::MatchType::Composed { bigram_links } => out.push_str(&format!(
+            "{{\"Composed\":{{\"bigram_links\":{bigram_links}}}}}"
+        )),
+        inputx_scoring::MatchType::Initials {
+            typed_len,
+            full_len,
+        } => out.push_str(&format!(
+            "{{\"Initials\":{{\"typed_len\":{typed_len},\"full_len\":{full_len}}}}}"
+        )),
     }
 }
 

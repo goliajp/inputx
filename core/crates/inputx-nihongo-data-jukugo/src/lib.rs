@@ -27,15 +27,15 @@ use std::sync::OnceLock;
 use inputx_dict_format::IdfReader;
 
 /// Embedded IDFv1 jukugo dict blob.
-pub const EMBEDDED_NIHONGO_JUKUGO_IDF: &[u8] =
-    include_bytes!("../data/jukugo.idf");
+pub const EMBEDDED_NIHONGO_JUKUGO_IDF: &[u8] = include_bytes!("../data/jukugo.idf");
 
 /// Process-global [`IdfReader`] over [`EMBEDDED_NIHONGO_JUKUGO_IDF`].
 pub fn nihongo_jukugo_idf_reader() -> &'static IdfReader<&'static [u8]> {
     static READER: OnceLock<IdfReader<&'static [u8]>> = OnceLock::new();
     READER.get_or_init(|| {
-        IdfReader::from_bytes(EMBEDDED_NIHONGO_JUKUGO_IDF)
-            .expect("inputx-nihongo-data-jukugo EMBEDDED_NIHONGO_JUKUGO_IDF must be a valid IDFv1 blob")
+        IdfReader::from_bytes(EMBEDDED_NIHONGO_JUKUGO_IDF).expect(
+            "inputx-nihongo-data-jukugo EMBEDDED_NIHONGO_JUKUGO_IDF must be a valid IDFv1 blob",
+        )
     })
 }
 
@@ -64,6 +64,9 @@ mod tests {
         let hits = r.lookup(b"shinjuku");
         assert!(!hits.is_empty(), "shinjuku must have a jukugo entry");
         let words: Vec<&str> = hits.iter().map(|e| e.word).collect();
-        assert!(words.contains(&"新宿"), "shinjuku → 新宿 expected, got {words:?}");
+        assert!(
+            words.contains(&"新宿"),
+            "shinjuku → 新宿 expected, got {words:?}"
+        );
     }
 }

@@ -32,5 +32,4 @@
 /// wired to read this constant when the facade's default `bigrams`
 /// / `trigrams` features are off, and always when they're on too —
 /// the facade depends on this crate unconditionally).
-pub const EMBEDDED_PINYIN_DICT: &[u8] =
-    include_bytes!("../data/pinyin.dict");
+pub const EMBEDDED_PINYIN_DICT: &[u8] = include_bytes!("../data/pinyin.dict");

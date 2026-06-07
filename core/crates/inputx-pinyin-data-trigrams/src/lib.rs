@@ -18,5 +18,4 @@
 
 /// Embedded word-trigram dict, in the
 /// [`inputx_fsa::Dict`](https://docs.rs/inputx-fsa) binary format.
-pub const EMBEDDED_TRIGRAMS: &[u8] =
-    include_bytes!("../data/trigrams.dict");
+pub const EMBEDDED_TRIGRAMS: &[u8] = include_bytes!("../data/trigrams.dict");
