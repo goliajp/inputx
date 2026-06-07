@@ -1814,6 +1814,27 @@ mod tests {
         run("lue_nue_alias", cases, pinyin_top, pinyin_top10);
     }
 
+    /// Polish 2026-06-07 (user /polish): "biguo 比国肯定不能是第一，甚至我
+    /// 不确定这是不是一个词，敝国 > 比过 > 日语，期待这样的结果".
+    /// Class D1 — 比国 deleted from inputx-pinyin library.tsv (corpus noise,
+    /// not a real word; logged in corpus_garbage_filter_v1.tsv so a future
+    /// corpus-digest can't re-admit it). Class B — 敝国 boosted to 21000 in
+    /// quickfix_boost.tsv so it leads 比过 (base 19033).
+    /// Before: [比国, 比过, 敝国].  After: [敝国, 比过] (比国 gone).
+    #[test]
+    fn polish_biguo_real_word_leads_corpus_noise_deleted() {
+        let top10 = pinyin_top10(b"biguo");
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("敝国"),
+            "敝国 must lead biguo (Class B boost over 比过); got {top10:?}"
+        );
+        assert!(
+            !top10.iter().any(|w| w.as_str() == "比国"),
+            "比国 must not appear at all (Class D1 deletion); got {top10:?}"
+        );
+    }
+
     #[test]
     fn no_traditional_in_top5_for_common_pinyin() {
         // List of (pinyin, traditional_blocklist) — traditional forms
