@@ -446,7 +446,17 @@ pub fn dispatch(
                                 if prominent {
                                     1
                                 } else {
-                                    5
+                                    // 退也只退一点点 (user 2026-06-07: "五笔
+                                    // 是雷打不动的优先，退也只是退一点点"):
+                                    // low-freq jianma3 → t3, rare/hard-to-find
+                                    // jianma2 → t4 — still above pinyin's
+                                    // t5-t6 longtail, so a wubi simcode never
+                                    // sinks below mid-freq pinyin. (jianma1
+                                    // never reaches here — always prominent.)
+                                    match layer {
+                                        inputx_wubi::Layer::Jianma3 => 3,
+                                        _ => 4,
+                                    }
                                 }
                             }
                             inputx_wubi::Layer::Zigen => 1,
