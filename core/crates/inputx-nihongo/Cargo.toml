@@ -15,3 +15,6 @@ categories = ["text-processing", "internationalization"]
 crate-type = ["lib"]
 
 [dependencies]
+
+[lints]
+workspace = true

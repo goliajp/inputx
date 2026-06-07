@@ -122,16 +122,12 @@ struct TrieNode {
 /// Compact trie children. Most trie nodes (deep suffix chains over unique
 /// words) have 0 or 1 child — `None`/`One` keep those heap-allocation-free,
 /// which is the bulk of the build-time memory win over a per-node B-tree map.
+#[derive(Default)]
 enum Children {
+    #[default]
     None,
     One(u8, u32),
     Many(Vec<(u8, u32)>), // sorted by label
-}
-
-impl Default for Children {
-    fn default() -> Self {
-        Children::None
-    }
 }
 
 impl Children {

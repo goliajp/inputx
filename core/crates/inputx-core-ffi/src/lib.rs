@@ -423,14 +423,8 @@ pub unsafe extern "C" fn inputx_session_set_japanese_enabled(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn inputx_session_get_japanese_enabled(session: *const InputxSession) -> u8 {
     match unsafe { session.as_ref() } {
-        Some(s) => {
-            if s.inner.japanese_enabled() {
-                1
-            } else {
-                0
-            }
-        }
-        None => 0,
+        Some(s) if s.inner.japanese_enabled() => 1,
+        _ => 0,
     }
 }
 
@@ -445,14 +439,8 @@ pub unsafe extern "C" fn inputx_session_get_japanese_enabled(session: *const Inp
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn inputx_session_is_composing_japanese(session: *const InputxSession) -> u8 {
     match unsafe { session.as_ref() } {
-        Some(s) => {
-            if s.inner.japanese_is_composing() {
-                1
-            } else {
-                0
-            }
-        }
-        None => 0,
+        Some(s) if s.inner.japanese_is_composing() => 1,
+        _ => 0,
     }
 }
 

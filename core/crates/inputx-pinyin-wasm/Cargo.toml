@@ -43,3 +43,6 @@ bootstrap_only = ["inputx-pinyin/bootstrap_only"]
 # bulk-memory instructions emitted by current Rust toolchains.
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
+
+[lints]
+workspace = true

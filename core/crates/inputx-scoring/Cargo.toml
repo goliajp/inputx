@@ -31,3 +31,6 @@ std = []
 # generated const literals. Runtime-irrelevant — toml-rs doesn't ship
 # in the published crate's binary footprint.
 toml = { version = "0.8", default-features = false, features = ["parse"] }
+
+[lints]
+workspace = true

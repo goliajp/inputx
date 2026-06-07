@@ -4,7 +4,7 @@
 //! candidate lists combine into the merged output.
 
 use super::japanese_adapter::JapaneseAdapter;
-use super::merge::{Candidate, ScoreComponents, Scored, Source, merge};
+use super::merge::{Candidate, ScoreComponents, Scored, merge};
 use super::mode::Mode;
 use super::pinyin_adapter::PinyinAdapter;
 use super::scoring;
@@ -82,7 +82,7 @@ pub fn dispatch(
     // ranking. Drop all wubi/pinyin candidates in this regime, leave only
     // JP. Works across WubiOnly+JP / PinyinOnly+JP / Mixed+JP since
     // `-` only enters the JP buffer when JP is composing.
-    let jp_chouonpu_lockout = japanese.map_or(false, |j| j.buffer_str().contains('-'));
+    let jp_chouonpu_lockout = japanese.is_some_and(|j| j.buffer_str().contains('-'));
     match mode {
         Mode::WubiOnly => {
             let w = if jp_chouonpu_lockout {
@@ -626,7 +626,6 @@ mod tests {
         );
     }
 
-    #[test]
     // (deleted) mixed_pinyin_first_when_pinyin_outgrew_wubi: the test
     // constructed an artificial state where wubi has buf="g" while
     // pinyin has buf="shang" — used to validate the now-removed
@@ -813,7 +812,7 @@ mod tests {
         let pos = cands.iter().position(|c| c.word == "えっ");
         let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
         assert!(
-            pos.map_or(true, |p| p >= 5),
+            pos.is_none_or(|p| p >= 5),
             "えっ (kana interjection) must not rank top-5 for single `e`; got idx {pos:?}, top {top:?}"
         );
     }
@@ -968,7 +967,7 @@ mod tests {
             "继续 missing from jixu candidates: {top:?}"
         );
         assert!(
-            yeguang.map_or(true, |y| jixu_cont.unwrap() < y),
+            yeguang.is_none_or(|y| jixu_cont.unwrap() < y),
             "继续 must rank above 曳光弹 (wubi coincidence) for jixu; got {top:?}"
         );
     }
@@ -1612,7 +1611,7 @@ mod tests {
             "complete shinjuku → 新宿 #0; got {shinjuku:?}"
         );
         assert!(
-            shin.map_or(true, |s| shinjuk.unwrap() < s),
+            shin.is_none_or(|s| shinjuk.unwrap() < s),
             "新宿 rises as buffer nears completion: shin {shin:?} vs shinjuk {shinjuk:?}"
         );
     }
@@ -1686,7 +1685,7 @@ mod tests {
         // user's stated invariant ("默感觉应该至少能进前 10").
         let top10: Vec<&str> = cands.iter().take(10).map(|c| c.word.as_str()).collect();
         assert!(
-            top10.iter().any(|w| *w == "默"),
+            top10.contains(&"默"),
             "expected 默 in top 10 for `mo` in mixed mode; got {top10:?}"
         );
     }

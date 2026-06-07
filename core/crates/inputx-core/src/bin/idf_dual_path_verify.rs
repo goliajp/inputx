@@ -217,10 +217,9 @@ where
     // entries when the dict has fewer than `sample_count`.
     let stride = (total / sample_count.max(1)).max(1);
     let mut mismatches: Vec<Mismatch> = Vec::new();
-    let mut entries = reader.entries();
-    let mut idx = 0usize;
-    while let Some(entry) = entries.next() {
-        if idx % stride == 0 {
+    let entries = reader.entries();
+    for (idx, entry) in entries.enumerate() {
+        if idx.is_multiple_of(stride) {
             let src = source_freq_for(entry.code, entry.word);
             match src {
                 None => mismatches.push(Mismatch {
@@ -248,7 +247,6 @@ where
                 }
             }
         }
-        idx += 1;
         if mismatches.len() >= 20 {
             // Cap output volume; first 20 mismatches per engine is enough
             // to localize the issue.

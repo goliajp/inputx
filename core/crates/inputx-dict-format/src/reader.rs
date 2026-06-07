@@ -191,28 +191,28 @@ impl<B: AsRef<[u8]>> IdfReader<B> {
     /// files that ship with an empty FST section.
     pub fn lookup<'a>(&'a self, code: &[u8]) -> Vec<Entry<'a>> {
         let mut out: Vec<Entry<'a>> = Vec::new();
-        if let Some(fst_bytes) = self.fst_code_index_bytes() {
-            if let Ok(fst) = inputx_fsa::Fsa::new(fst_bytes) {
-                if let Some(first) = fst.get(code) {
-                    // Multi-reading run: entries are sorted by code, so
-                    // all entries sharing this code are contiguous
-                    // starting at `first`. Walk forward until the code
-                    // changes or we hit EOF.
-                    let total = self.header.entry_count as u64;
-                    let mut idx = first;
-                    while idx < total {
-                        if let Some(e) = self.entry_at(idx as u32) {
-                            if e.code.as_bytes() == code {
-                                out.push(e);
-                                idx += 1;
-                                continue;
-                            }
-                        }
-                        break;
+        if let Some(fst_bytes) = self.fst_code_index_bytes()
+            && let Ok(fst) = inputx_fsa::Fsa::new(fst_bytes)
+        {
+            if let Some(first) = fst.get(code) {
+                // Multi-reading run: entries are sorted by code, so
+                // all entries sharing this code are contiguous
+                // starting at `first`. Walk forward until the code
+                // changes or we hit EOF.
+                let total = self.header.entry_count as u64;
+                let mut idx = first;
+                while idx < total {
+                    if let Some(e) = self.entry_at(idx as u32)
+                        && e.code.as_bytes() == code
+                    {
+                        out.push(e);
+                        idx += 1;
+                        continue;
                     }
+                    break;
                 }
-                return out;
             }
+            return out;
         }
         // Linear scan fallback (no FST or FST decode failed).
         for entry in self.entries() {
@@ -265,24 +265,24 @@ impl<B: AsRef<[u8]>> IdfReader<B> {
         fst.prefix_for_each(prefix, |_code, first_idx| {
             let mut idx = first_idx;
             while idx < total {
-                if let Some(e) = self.entry_at(idx as u32) {
-                    if e.code.as_bytes().starts_with(prefix) {
-                        // Same code group?
-                        if let Some(prev) = hits.last() {
-                            if prev.code.as_bytes() == e.code.as_bytes() {
-                                hits.push(e);
-                                idx += 1;
-                                continue;
-                            }
-                        }
-                        // first reading of this code — caller iterates
-                        // codes via FST so we only push the run for the
-                        // current code.
-                        if e.code.as_bytes() == &_code[..] {
-                            hits.push(e);
-                            idx += 1;
-                            continue;
-                        }
+                if let Some(e) = self.entry_at(idx as u32)
+                    && e.code.as_bytes().starts_with(prefix)
+                {
+                    // Same code group?
+                    if let Some(prev) = hits.last()
+                        && prev.code.as_bytes() == e.code.as_bytes()
+                    {
+                        hits.push(e);
+                        idx += 1;
+                        continue;
+                    }
+                    // first reading of this code — caller iterates
+                    // codes via FST so we only push the run for the
+                    // current code.
+                    if e.code.as_bytes() == _code {
+                        hits.push(e);
+                        idx += 1;
+                        continue;
                     }
                 }
                 break;
