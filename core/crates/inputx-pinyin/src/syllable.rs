@@ -19,6 +19,11 @@
 /// lowercase, ü → `v` for n/l). Plain slice + linear membership (zero-dep,
 /// replaces the former `phf::Set`). 403 entries, probed a few dozen times
 /// per keystroke — negligible vs the perfgate budget.
+//
+// rustfmt::skip — the table is hand-grouped by initial (// b / // p / // m …)
+// for readability; rustfmt's greedy reflow both destroys that grouping and is
+// non-idempotent here (format ≠ --check), which would make a fmt gate unstable.
+#[rustfmt::skip]
 pub static VALID_SYLLABLES: &[&str] = &[
     // null-initial vowel-only
     "a", "ai", "an", "ang", "ao",
@@ -172,7 +177,11 @@ mod tests {
         // at lookup so the two spellings collapse to one storage key.
         // Marginal forms (zhei, lo, kei, rua) tracked for v0.2 once
         // corpus data shows real-world usage.
-        assert_eq!(count(), 405, "expected 405 syllables (403 canonical + lue/nue aliases)");
+        assert_eq!(
+            count(),
+            405,
+            "expected 405 syllables (403 canonical + lue/nue aliases)"
+        );
     }
 
     #[test]

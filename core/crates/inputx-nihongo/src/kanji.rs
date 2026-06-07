@@ -22,29 +22,52 @@ const LIBRARY_TSV: &str = include_str!("../data/library.tsv");
 
 fn entries() -> &'static [KanjiEntry] {
     static CACHE: std::sync::OnceLock<Vec<KanjiEntry>> = std::sync::OnceLock::new();
-    CACHE.get_or_init(|| {
-        let mut out = Vec::new();
-        for raw in LIBRARY_TSV.lines() {
-            let line = raw.trim_end_matches(['\r', '\n']);
-            if line.is_empty() || line.starts_with('#') { continue; }
-            let mut parts = line.split('\t');
-            let (Some(code), Some(word), Some(ty), Some(freq_s)) =
-                (parts.next(), parts.next(), parts.next(), parts.next()) else { continue };
-            if ty.trim() != "kanji" { continue; }
-            let Ok(freq) = freq_s.trim().parse::<u32>() else { continue };
-            let Some(kanji) = word.chars().next() else { continue };
-            if word.chars().count() != 1 { continue; }
-            out.push(KanjiEntry { reading: code, kanji, freq });
-        }
-        out
-    }).as_slice()
+    CACHE
+        .get_or_init(|| {
+            let mut out = Vec::new();
+            for raw in LIBRARY_TSV.lines() {
+                let line = raw.trim_end_matches(['\r', '\n']);
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
+                let mut parts = line.split('\t');
+                let (Some(code), Some(word), Some(ty), Some(freq_s)) =
+                    (parts.next(), parts.next(), parts.next(), parts.next())
+                else {
+                    continue;
+                };
+                if ty.trim() != "kanji" {
+                    continue;
+                }
+                let Ok(freq) = freq_s.trim().parse::<u32>() else {
+                    continue;
+                };
+                let Some(kanji) = word.chars().next() else {
+                    continue;
+                };
+                if word.chars().count() != 1 {
+                    continue;
+                }
+                out.push(KanjiEntry {
+                    reading: code,
+                    kanji,
+                    freq,
+                });
+            }
+            out
+        })
+        .as_slice()
 }
 
 /// Lookup: given a Hepburn romaji string, return all (kanji, freq) tuples
 /// whose readings match. Linear scan; ~1.6k entries.
 pub fn lookup_by_reading(romaji: &str) -> impl Iterator<Item = (char, u32)> + '_ {
     entries().iter().filter_map(move |e| {
-        if e.reading == romaji { Some((e.kanji, e.freq)) } else { None }
+        if e.reading == romaji {
+            Some((e.kanji, e.freq))
+        } else {
+            None
+        }
     })
 }
 

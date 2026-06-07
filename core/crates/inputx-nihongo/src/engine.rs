@@ -209,8 +209,7 @@ impl JapaneseEngine {
         // proximity so japanese_adapter can decay the freq by proximity^K and
         // keep it below an exact/full match.
         if !had_exact_jukugo && s.len() >= 3 {
-            let mut pred: Vec<(&str, u32, usize)> =
-                jukugo::lookup_by_reading_prefix(s).collect();
+            let mut pred: Vec<(&str, u32, usize)> = jukugo::lookup_by_reading_prefix(s).collect();
             pred.sort_by(|a, b| b.1.cmp(&a.1));
             for (kanji, freq, reading_len) in pred.into_iter().take(8) {
                 let proximity_milli = ((s.len() * 1000) / reading_len.max(1)) as u16;
@@ -275,12 +274,8 @@ impl JapaneseEngine {
 // composite-side carve-out (`crates/inputx-core/src/japanese/compose.rs`)
 // can share the single source of truth.
 
-const SENTENCE_SUFFIXES_TSV: &str = include_str!(
-    "../data/jp_sentence_suffixes_v1.tsv"
-);
-const KANJI_SUFFIXES_TSV: &str = include_str!(
-    "../data/jp_kanji_suffixes_v1.tsv"
-);
+const SENTENCE_SUFFIXES_TSV: &str = include_str!("../data/jp_sentence_suffixes_v1.tsv");
+const KANJI_SUFFIXES_TSV: &str = include_str!("../data/jp_kanji_suffixes_v1.tsv");
 
 /// Parse `<a>\t<b>[\t# comment]` rows, skipping blank lines and
 /// comment-only lines. Returns `&'static` slices because the input is
@@ -289,12 +284,18 @@ fn parse_pairs(src: &'static str) -> Vec<(&'static str, &'static str)> {
     let mut out = Vec::new();
     for raw in src.lines() {
         let line = raw.trim();
-        if line.is_empty() || line.starts_with('#') { continue; }
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
         let mut parts = line.splitn(3, '\t');
-        let (Some(a), Some(b)) = (parts.next(), parts.next()) else { continue };
+        let (Some(a), Some(b)) = (parts.next(), parts.next()) else {
+            continue;
+        };
         let a = a.trim();
         let b = b.trim();
-        if a.is_empty() || b.is_empty() { continue; }
+        if a.is_empty() || b.is_empty() {
+            continue;
+        }
         out.push((a, b));
     }
     out
@@ -305,18 +306,22 @@ fn parse_pairs(src: &'static str) -> Vec<(&'static str, &'static str)> {
 /// TSV). Used by composite-side composer too via
 /// `inputx_nihongo::engine::sentence_suffixes`.
 pub fn sentence_suffixes() -> &'static [(&'static str, &'static str)] {
-    static CACHE: std::sync::OnceLock<Vec<(&'static str, &'static str)>>
-        = std::sync::OnceLock::new();
-    CACHE.get_or_init(|| parse_pairs(SENTENCE_SUFFIXES_TSV)).as_slice()
+    static CACHE: std::sync::OnceLock<Vec<(&'static str, &'static str)>> =
+        std::sync::OnceLock::new();
+    CACHE
+        .get_or_init(|| parse_pairs(SENTENCE_SUFFIXES_TSV))
+        .as_slice()
 }
 
 /// Productive category-suffix kanji for "jukugo + suffix" composition
 /// (東京+都 = 東京都). Whitelisted to keep the composition from emitting
 /// junk like 東京渡 (渡 also reads `to`).
 pub fn kanji_suffixes() -> &'static [(&'static str, &'static str)] {
-    static CACHE: std::sync::OnceLock<Vec<(&'static str, &'static str)>>
-        = std::sync::OnceLock::new();
-    CACHE.get_or_init(|| parse_pairs(KANJI_SUFFIXES_TSV)).as_slice()
+    static CACHE: std::sync::OnceLock<Vec<(&'static str, &'static str)>> =
+        std::sync::OnceLock::new();
+    CACHE
+        .get_or_init(|| parse_pairs(KANJI_SUFFIXES_TSV))
+        .as_slice()
 }
 
 /// Single-segment compose: (content_word, particle/copula_suffix).
@@ -424,8 +429,7 @@ fn compose_sentence(buffer: &str) -> Vec<Candidate> {
             for (lw, lf) in &lefts {
                 for (rw, rf) in &rights {
                     let combined = format!("{lw}{rw}");
-                    let combined_freq =
-                        ((*lf.min(rf) as f64) * 0.7) as u32;
+                    let combined_freq = ((*lf.min(rf) as f64) * 0.7) as u32;
                     hits.push((combined, combined_freq));
                 }
             }
@@ -433,8 +437,7 @@ fn compose_sentence(buffer: &str) -> Vec<Candidate> {
     }
 
     // Dedup by word, keeping highest freq.
-    let mut best: std::collections::HashMap<String, u32> =
-        std::collections::HashMap::new();
+    let mut best: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
     for (w, f) in hits {
         let entry = best.entry(w).or_insert(0);
         if f > *entry {
@@ -472,16 +475,27 @@ mod tests {
         // Bare-letter `koohi` would render コオヒー (literal oo→オオ),
         // which is correct kana for that romaji but not the chōonpu form.
         let mut e = JapaneseEngine::new();
-        for b in b"ko" { assert!(e.handle_letter(*b)); }
-        assert!(e.handle_letter(b'-'), "`-` must be accepted as chouonpu mid-composition");
-        for b in b"hi" { assert!(e.handle_letter(*b)); }
+        for b in b"ko" {
+            assert!(e.handle_letter(*b));
+        }
+        assert!(
+            e.handle_letter(b'-'),
+            "`-` must be accepted as chouonpu mid-composition"
+        );
+        for b in b"hi" {
+            assert!(e.handle_letter(*b));
+        }
         assert!(e.handle_letter(b'-'), "trailing `-` also accepted");
         let cands = e.candidates();
-        assert!(cands.iter().any(|c| c.word == "コーヒー"),
+        assert!(
+            cands.iter().any(|c| c.word == "コーヒー"),
             "expected コーヒー (katakana with chouonpu) among candidates, got {:?}",
-            cands.iter().map(|c| &c.word).collect::<Vec<_>>());
-        assert!(cands.iter().any(|c| c.word == "こーひー"),
-            "expected こーひー (hiragana with chouonpu) among candidates");
+            cands.iter().map(|c| &c.word).collect::<Vec<_>>()
+        );
+        assert!(
+            cands.iter().any(|c| c.word == "こーひー"),
+            "expected こーひー (hiragana with chouonpu) among candidates"
+        );
     }
 
     #[test]
@@ -491,12 +505,21 @@ mod tests {
         // be entered explicitly via `-`). User typing `koohi` gets
         // コオヒ / こおひ, not コーヒ.
         let mut e = JapaneseEngine::new();
-        for b in b"koo" { assert!(e.handle_letter(*b)); }
+        for b in b"koo" {
+            assert!(e.handle_letter(*b));
+        }
         let cands = e.candidates();
-        assert!(cands.iter().any(|c| c.word == "コオ"),
-            "expected コオ for `koo`; got {:?}", cands.iter().map(|c| &c.word).collect::<Vec<_>>());
-        assert!(!cands.iter().any(|c| c.word.contains("コー") && c.word.chars().count() <= 2),
-            "double-o must not auto-convert to chōonpu");
+        assert!(
+            cands.iter().any(|c| c.word == "コオ"),
+            "expected コオ for `koo`; got {:?}",
+            cands.iter().map(|c| &c.word).collect::<Vec<_>>()
+        );
+        assert!(
+            !cands
+                .iter()
+                .any(|c| c.word.contains("コー") && c.word.chars().count() <= 2),
+            "double-o must not auto-convert to chōonpu"
+        );
     }
 
     #[test]
@@ -513,8 +536,16 @@ mod tests {
         let mut e = JapaneseEngine::new();
         assert!(e.handle_letter(b'a'));
         let cands = e.candidates();
-        assert!(cands.iter().any(|c| c.word == "あ" && c.kind == KanaKind::Hiragana));
-        assert!(cands.iter().any(|c| c.word == "ア" && c.kind == KanaKind::Katakana));
+        assert!(
+            cands
+                .iter()
+                .any(|c| c.word == "あ" && c.kind == KanaKind::Hiragana)
+        );
+        assert!(
+            cands
+                .iter()
+                .any(|c| c.word == "ア" && c.kind == KanaKind::Katakana)
+        );
     }
 
     #[test]
@@ -526,13 +557,17 @@ mod tests {
         let cands = e.candidates();
         // 高 must appear in the kanji portion.
         assert!(
-            cands.iter().any(|c| c.word == "高" && c.kind == KanaKind::Kanji),
+            cands
+                .iter()
+                .any(|c| c.word == "高" && c.kind == KanaKind::Kanji),
             "expected 高 in candidates for 'kou', got {:?}",
             cands
         );
         // Hiragana fallback こう must always be available.
         assert!(
-            cands.iter().any(|c| c.word == "こう" && c.kind == KanaKind::Hiragana),
+            cands
+                .iter()
+                .any(|c| c.word == "こう" && c.kind == KanaKind::Hiragana),
             "expected こう (hiragana) in candidates for 'kou', got {:?}",
             cands
         );
@@ -548,7 +583,9 @@ mod tests {
         }
         let cands = e.candidates();
         assert!(
-            cands.iter().any(|c| c.word == "日本" && c.kind == KanaKind::Kanji),
+            cands
+                .iter()
+                .any(|c| c.word == "日本" && c.kind == KanaKind::Kanji),
             "expected 日本 (kanji jukugo) for 'nihon', got {:?}",
             cands
         );

@@ -21,6 +21,6 @@ mod engine;
 
 pub use engine::{AutoCommitPolicy, WubiEngine};
 pub use inputx_wubi_data::{
-    export_l0, import_l0, is_displayable, lookup_with_scores, set_show_rare,
-    show_rare, warmup, L0Snapshot,
+    L0Snapshot, export_l0, import_l0, is_displayable, lookup_with_scores, set_show_rare, show_rare,
+    warmup,
 };

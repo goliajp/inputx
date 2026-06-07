@@ -9,8 +9,7 @@ use inputx_fsa::{Builder, Fsa};
 fn main() {
     let mut b = Builder::new();
     for (i, code) in [
-        "apple", "apply", "april", "apt", "apex",
-        "approach", "approve", "absolute", "absorb",
+        "apple", "apply", "april", "apt", "apex", "approach", "approve", "absolute", "absorb",
     ]
     .iter()
     .enumerate()

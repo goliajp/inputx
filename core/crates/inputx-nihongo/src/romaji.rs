@@ -21,7 +21,11 @@ struct Entry {
 
 // Convenience helper to keep the const table readable.
 const fn e(rom: &'static str, h: &'static str, k: &'static str) -> Entry {
-    Entry { rom, kana_h: h, kana_k: k }
+    Entry {
+        rom,
+        kana_h: h,
+        kana_k: k,
+    }
 }
 
 /// Greedy-match table. **Length-descending order.** First match wins.
@@ -230,8 +234,22 @@ fn render(s: &str, katakana: bool) -> String {
 const fn is_gemini_consonant(b: u8) -> bool {
     matches!(
         b,
-        b'k' | b'g' | b's' | b'z' | b'j' | b't' | b'd' | b'c'
-        | b'h' | b'f' | b'b' | b'p' | b'm' | b'r' | b'y' | b'w' | b'v'
+        b'k' | b'g'
+            | b's'
+            | b'z'
+            | b'j'
+            | b't'
+            | b'd'
+            | b'c'
+            | b'h'
+            | b'f'
+            | b'b'
+            | b'p'
+            | b'm'
+            | b'r'
+            | b'y'
+            | b'w'
+            | b'v'
     )
 }
 

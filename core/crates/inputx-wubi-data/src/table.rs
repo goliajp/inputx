@@ -111,9 +111,7 @@ pub fn lookup_with_layer(code: &str) -> Vec<(String, f64, inputx_wubi::Layer)> {
 /// carries `raw_freq` losslessly and `Layer` via the engine_tag bits
 /// of `EntryFlags`. Output is byte-equivalent to the previous facade
 /// fill modulo the rare-CJK retain pass.
-pub fn lookup_with_freq_layer(
-    code: &str,
-) -> Vec<(String, inputx_wubi::Layer, u64)> {
+pub fn lookup_with_freq_layer(code: &str) -> Vec<(String, inputx_wubi::Layer, u64)> {
     let reader = crate::wubi_idf_reader();
     let entries = reader.lookup(code.as_bytes());
     let mut all: Vec<(String, inputx_wubi::Layer, u64)> = entries

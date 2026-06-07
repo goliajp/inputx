@@ -80,9 +80,15 @@ impl EntryFlags {
     pub const ENGINE_TAG_MASK: u8 = 0b1110_0000;
     pub const ENGINE_TAG_SHIFT: u8 = 5;
 
-    pub fn is_blacklisted(self) -> bool { self.0 & Self::BLACKLIST != 0 }
-    pub fn is_curated_override(self) -> bool { self.0 & Self::CURATED_OVERRIDE != 0 }
-    pub fn is_user_added(self) -> bool { self.0 & Self::USER_ADDED != 0 }
+    pub fn is_blacklisted(self) -> bool {
+        self.0 & Self::BLACKLIST != 0
+    }
+    pub fn is_curated_override(self) -> bool {
+        self.0 & Self::CURATED_OVERRIDE != 0
+    }
+    pub fn is_user_added(self) -> bool {
+        self.0 & Self::USER_ADDED != 0
+    }
     /// Return the 3-bit engine-specific tag (bits 5-7). For wubi this
     /// is the `Layer` enum's `as_index()`.
     pub fn engine_tag(self) -> u8 {
@@ -164,8 +170,12 @@ impl Header {
     /// Decode a header from on-disk bytes. Returns `None` if `buf` is
     /// too small or the magic does not match.
     pub fn parse(buf: &[u8]) -> Option<Self> {
-        if buf.len() < HEADER_SIZE + 32 { return None; }
-        if buf[0..4] != MAGIC { return None; }
+        if buf.len() < HEADER_SIZE + 32 {
+            return None;
+        }
+        if buf[0..4] != MAGIC {
+            return None;
+        }
         let mut sha = [0u8; 32];
         sha.copy_from_slice(&buf[HEADER_SIZE..HEADER_SIZE + 32]);
         Some(Self {
@@ -300,7 +310,10 @@ pub fn decode_match_type(b: u8) -> inputx_scoring::MatchType {
         1 => inputx_scoring::MatchType::Prefix(0),
         2 => inputx_scoring::MatchType::Fuzzy(0),
         3 => inputx_scoring::MatchType::Composed { bigram_links: 0 },
-        4 => inputx_scoring::MatchType::Initials { typed_len: 0, full_len: 0 },
+        4 => inputx_scoring::MatchType::Initials {
+            typed_len: 0,
+            full_len: 0,
+        },
         _ => inputx_scoring::MatchType::Exact, // forward-compat: unknown → Exact
     }
 }

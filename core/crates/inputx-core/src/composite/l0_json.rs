@@ -257,7 +257,10 @@ mod mini_json {
     }
 
     pub fn parse(s: &str) -> Option<Json> {
-        let mut p = Parser { b: s.as_bytes(), i: 0 };
+        let mut p = Parser {
+            b: s.as_bytes(),
+            i: 0,
+        };
         p.skip_ws();
         let v = p.value(0)?;
         p.skip_ws();
@@ -584,8 +587,8 @@ mod tests {
             (
                 proptest::collection::vec(b'a'..=b'z', 1..6)
                     .prop_map(|v| String::from_utf8(v).unwrap()),
-                "[\u{4e00}-\u{9fff}]{1,4}".prop_filter(
-                    "non-empty word", |s: &String| !s.is_empty()),
+                "[\u{4e00}-\u{9fff}]{1,4}"
+                    .prop_filter("non-empty word", |s: &String| !s.is_empty()),
             ),
             0..16,
         );
@@ -593,14 +596,14 @@ mod tests {
             (
                 proptest::collection::vec(b'a'..=b'z', 1..6)
                     .prop_map(|v| String::from_utf8(v).unwrap()),
-                "[\u{4e00}-\u{9fff}]{1,4}".prop_filter(
-                    "non-empty word", |s: &String| !s.is_empty()),
+                "[\u{4e00}-\u{9fff}]{1,4}"
+                    .prop_filter("non-empty word", |s: &String| !s.is_empty()),
                 0u32..1000,
             ),
             0..16,
         );
         let layer_prefs = (
-            -100.0f64..100.0,  // intentionally include negatives + extremes
+            -100.0f64..100.0, // intentionally include negatives + extremes
             0.0f64..10.0,
             0.0f64..10.0,
             0.0f64..10.0,
@@ -621,8 +624,8 @@ mod tests {
             (
                 proptest::collection::vec(b'a'..=b'z', 1..12)
                     .prop_map(|v| String::from_utf8(v).unwrap()),
-                "[\u{4e00}-\u{9fff}]{1,4}".prop_filter(
-                    "non-empty word", |s: &String| !s.is_empty()),
+                "[\u{4e00}-\u{9fff}]{1,4}"
+                    .prop_filter("non-empty word", |s: &String| !s.is_empty()),
             ),
             0..16,
         );
@@ -630,8 +633,8 @@ mod tests {
             (
                 proptest::collection::vec(b'a'..=b'z', 1..12)
                     .prop_map(|v| String::from_utf8(v).unwrap()),
-                "[\u{4e00}-\u{9fff}]{1,4}".prop_filter(
-                    "non-empty word", |s: &String| !s.is_empty()),
+                "[\u{4e00}-\u{9fff}]{1,4}"
+                    .prop_filter("non-empty word", |s: &String| !s.is_empty()),
                 0u32..1000,
             ),
             0..16,

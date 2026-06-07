@@ -49,8 +49,12 @@ fn main() {
         }
     }
 
-    let tsv = fs::read_to_string(&weights_path)
-        .unwrap_or_else(|_| panic!("{} missing — library.tsv is the post-治理 source of truth", weights_path.display()));
+    let tsv = fs::read_to_string(&weights_path).unwrap_or_else(|_| {
+        panic!(
+            "{} missing — library.tsv is the post-治理 source of truth",
+            weights_path.display()
+        )
+    });
 
     let min_freq: u64 = std::env::var("PINYIN_FST_MIN_FREQ")
         .ok()
@@ -62,20 +66,28 @@ fn main() {
     // in library.tsv (e.g. accidentally re-ingested). The garbage filter
     // is the durable D1 contract.
     let garbage_path = crate_dir
-        .parent().expect("crates parent")
-        .parent().expect("workspace root")
+        .parent()
+        .expect("crates parent")
+        .parent()
+        .expect("workspace root")
         .join("../tools/scoring/data/polish/corpus_garbage_filter_v1.tsv");
     let mut garbage: std::collections::HashSet<(String, String)> = std::collections::HashSet::new();
     if let Ok(text) = fs::read_to_string(&garbage_path) {
         for raw in text.lines() {
             let line = raw.trim();
-            if line.is_empty() || line.starts_with('#') { continue; }
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
             let mut parts = line.splitn(3, '\t');
             if let (Some(c), Some(w)) = (parts.next(), parts.next()) {
                 garbage.insert((c.trim().to_string(), w.trim().to_string()));
             }
         }
-        eprintln!("garbage filter loaded: {} entries from {}", garbage.len(), garbage_path.display());
+        eprintln!(
+            "garbage filter loaded: {} entries from {}",
+            garbage.len(),
+            garbage_path.display()
+        );
     }
 
     // key = pinyin\0word → freq, applying the freq cutoff.
@@ -93,7 +105,10 @@ fn main() {
         let mut parts = line.split('\t');
         let pinyin = parts.next().unwrap_or("").trim();
         let word = parts.next().unwrap_or("").trim();
-        let freq: u64 = parts.next().and_then(|s| s.trim().parse().ok()).unwrap_or(0);
+        let freq: u64 = parts
+            .next()
+            .and_then(|s| s.trim().parse().ok())
+            .unwrap_or(0);
         let source = parts.next().unwrap_or("").trim(); // "digested" | "polish" | ""
         if pinyin.is_empty() || word.is_empty() {
             continue;
@@ -128,12 +143,20 @@ fn main() {
     // quickfix/modern boosts (which retire at CP3d/CP5).
     if use_overlays {
         let supplemental_dir = crate_dir
-            .parent().expect("crates parent")
-            .parent().expect("workspace root")
+            .parent()
+            .expect("crates parent")
+            .parent()
+            .expect("workspace root")
             .join("../tools/scoring/data");
         let overlays: &[(&str, PathBuf)] = &[
-            ("polish-log", supplemental_dir.join("polish/quickfix_boost.tsv")),
-            ("modern-vocab", supplemental_dir.join("polish/modern_vocab_v1.tsv")),
+            (
+                "polish-log",
+                supplemental_dir.join("polish/quickfix_boost.tsv"),
+            ),
+            (
+                "modern-vocab",
+                supplemental_dir.join("polish/modern_vocab_v1.tsv"),
+            ),
         ];
         for (label, path) in overlays {
             let Ok(text) = fs::read_to_string(path) else {
@@ -149,8 +172,16 @@ fn main() {
                 let mut parts = line.split('\t');
                 let pinyin = parts.next().unwrap_or("").trim();
                 let word = parts.next().unwrap_or("").trim();
-                let freq_clean = parts.next().unwrap_or("").split('#').next().unwrap_or("").trim();
-                let Ok(freq) = freq_clean.parse::<u64>() else { continue };
+                let freq_clean = parts
+                    .next()
+                    .unwrap_or("")
+                    .split('#')
+                    .next()
+                    .unwrap_or("")
+                    .trim();
+                let Ok(freq) = freq_clean.parse::<u64>() else {
+                    continue;
+                };
                 if pinyin.is_empty() || word.is_empty() {
                     continue;
                 }
@@ -172,7 +203,10 @@ fn main() {
     let mut builder = DictBuilder::new();
     let mut n = 0usize;
     for (key, freq) in &by_key {
-        let sep = key.iter().position(|b| *b == 0u8).expect("key has \\0 separator");
+        let sep = key
+            .iter()
+            .position(|b| *b == 0u8)
+            .expect("key has \\0 separator");
         let (pinyin, rest) = key.split_at(sep);
         let word = &rest[1..];
         builder.insert(pinyin, word, *freq);

@@ -49,9 +49,8 @@ fn main() -> ExitCode {
             }
         }
     }
-    let out = output.unwrap_or_else(|| {
-        PathBuf::from("crates/inputx-pinyin-helpers/data/bigrams.ngm")
-    });
+    let out =
+        output.unwrap_or_else(|| PathBuf::from("crates/inputx-pinyin-helpers/data/bigrams.ngm"));
     match run(&out) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {

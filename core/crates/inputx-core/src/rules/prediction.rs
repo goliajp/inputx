@@ -44,11 +44,7 @@ impl PredictionRuleEngine {
         Self { rules }
     }
 
-    pub fn run(
-        &self,
-        ctx: &Context,
-        predictions: &mut Vec<PredictionCandidate>,
-    ) -> ExecutionTrace {
+    pub fn run(&self, ctx: &Context, predictions: &mut Vec<PredictionCandidate>) -> ExecutionTrace {
         let mut trace = ExecutionTrace::default();
         let total_start = Instant::now();
         for rule in &self.rules {
@@ -62,9 +58,8 @@ impl PredictionRuleEngine {
                 });
                 continue;
             }
-            let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                rule.apply(ctx, predictions)
-            }));
+            let result =
+                std::panic::catch_unwind(AssertUnwindSafe(|| rule.apply(ctx, predictions)));
             let effect = match result {
                 Ok(e) => e,
                 Err(_) => RuleEffect::Failed(format!("{} panicked", rule.name())),
@@ -92,8 +87,12 @@ mod tests {
 
     struct ColdOnlyRule;
     impl Rule for ColdOnlyRule {
-        fn name(&self) -> &'static str { "ColdOnly" }
-        fn priority(&self) -> i32 { 100 }
+        fn name(&self) -> &'static str {
+            "ColdOnly"
+        }
+        fn priority(&self) -> i32 {
+            100
+        }
     }
     impl PredictionRule for ColdOnlyRule {
         fn applies(&self, ctx: &Context) -> bool {
@@ -114,24 +113,30 @@ mod tests {
         let engine = PredictionRuleEngine::new(vec![Arc::new(ColdOnlyRule)]);
         // Cold context: rule fires.
         let mut p = Vec::new();
-        let trace = engine.run(&Context {
-            mode: Mode::Mixed,
-            buffer: String::new(),
-            prev_committed: Some("好".into()),
-            second_prev_committed: None,
-            flags: super::super::ContextFlags::default(),
-        }, &mut p);
+        let trace = engine.run(
+            &Context {
+                mode: Mode::Mixed,
+                buffer: String::new(),
+                prev_committed: Some("好".into()),
+                second_prev_committed: None,
+                flags: super::super::ContextFlags::default(),
+            },
+            &mut p,
+        );
         assert_eq!(p.len(), 1);
         assert!(trace.rule_fired("ColdOnly"));
         // Hot context (both prevs set): rule skipped.
         let mut p2 = Vec::new();
-        let trace2 = engine.run(&Context {
-            mode: Mode::Mixed,
-            buffer: String::new(),
-            prev_committed: Some("好".into()),
-            second_prev_committed: Some("你".into()),
-            flags: super::super::ContextFlags::default(),
-        }, &mut p2);
+        let trace2 = engine.run(
+            &Context {
+                mode: Mode::Mixed,
+                buffer: String::new(),
+                prev_committed: Some("好".into()),
+                second_prev_committed: Some("你".into()),
+                flags: super::super::ContextFlags::default(),
+            },
+            &mut p2,
+        );
         assert!(p2.is_empty());
         assert!(trace2.rule_skipped("ColdOnly"));
     }

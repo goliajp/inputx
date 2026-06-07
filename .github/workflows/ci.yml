@@ -45,6 +45,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      # Fast formatting gate — fails before the slow compile if any Rust
+      # source isn't rustfmt-clean. The hand-grouped syllable table is
+      # exempted via #[rustfmt::skip] (see inputx-pinyin/src/syllable.rs).
+      - name: rustfmt check
+        run: cargo fmt --all --check
+        working-directory: core
+
       # Project-blessed Rust gate (inputx-scoring + inputx-core baseline +
       # inputx-core lib). Same target as `make baseline` locally.
       - name: Rust baseline tests

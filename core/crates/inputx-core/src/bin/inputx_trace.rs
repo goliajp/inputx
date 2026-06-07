@@ -14,8 +14,8 @@
 //! Output is text (one rule per line: `[elapsed] name effect`); a
 //! future `--json` flag will emit machine-readable trace for tooling.
 
-use inputx_core::rules::{Context, ContextFlags};
 use inputx_core::EngineMode;
+use inputx_core::rules::{Context, ContextFlags};
 use std::env;
 
 fn parse_mode(s: &str) -> Option<EngineMode> {
@@ -31,7 +31,9 @@ fn parse_mode(s: &str) -> Option<EngineMode> {
 fn derive_flags(buffer: &str) -> ContextFlags {
     let lower = buffer.to_ascii_lowercase();
     ContextFlags {
-        has_vowel: lower.chars().any(|c| matches!(c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v')),
+        has_vowel: lower
+            .chars()
+            .any(|c| matches!(c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v')),
         has_non_speculative_pinyin: false, // populated by engines at v3.0.2+
         pinyin_intent: false,
         starts_with_z: lower.starts_with('z'),

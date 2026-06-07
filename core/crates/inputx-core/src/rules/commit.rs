@@ -17,8 +17,8 @@ use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 use std::time::Instant;
 
-use super::{Context, ExecutionTrace, Rule, RuleEffect, TraceEntry};
 use super::candidate::RuleCandidate;
+use super::{Context, ExecutionTrace, Rule, RuleEffect, TraceEntry};
 
 #[derive(Clone, Debug)]
 pub struct CommitDecision {
@@ -80,9 +80,7 @@ impl CommitRuleEngine {
                 });
                 continue;
             }
-            let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                rule.check(ctx, cands)
-            }));
+            let result = std::panic::catch_unwind(AssertUnwindSafe(|| rule.check(ctx, cands)));
             let (effect, this_decision) = match result {
                 Ok(Some(d)) => {
                     let e = RuleEffect::AutoCommitted {
@@ -123,10 +121,17 @@ mod tests {
     use super::*;
     use crate::composite::Mode;
 
-    struct AlwaysCommit { n: &'static str, p: i32 }
+    struct AlwaysCommit {
+        n: &'static str,
+        p: i32,
+    }
     impl Rule for AlwaysCommit {
-        fn name(&self) -> &'static str { self.n }
-        fn priority(&self) -> i32 { self.p }
+        fn name(&self) -> &'static str {
+            self.n
+        }
+        fn priority(&self) -> i32 {
+            self.p
+        }
     }
     impl CommitRule for AlwaysCommit {
         fn check(&self, _: &Context, _: &[RuleCandidate]) -> Option<CommitDecision> {
@@ -137,10 +142,17 @@ mod tests {
         }
     }
 
-    struct NeverCommit { n: &'static str, p: i32 }
+    struct NeverCommit {
+        n: &'static str,
+        p: i32,
+    }
     impl Rule for NeverCommit {
-        fn name(&self) -> &'static str { self.n }
-        fn priority(&self) -> i32 { self.p }
+        fn name(&self) -> &'static str {
+            self.n
+        }
+        fn priority(&self) -> i32 {
+            self.p
+        }
     }
     impl CommitRule for NeverCommit {
         fn check(&self, _: &Context, _: &[RuleCandidate]) -> Option<CommitDecision> {
@@ -161,9 +173,18 @@ mod tests {
     #[test]
     fn first_winning_rule_short_circuits() {
         let engine = CommitRuleEngine::new(vec![
-            Arc::new(NeverCommit { n: "skip-me", p: 100 }),
-            Arc::new(AlwaysCommit { n: "first-winner", p: 200 }),
-            Arc::new(AlwaysCommit { n: "later-loser", p: 300 }),
+            Arc::new(NeverCommit {
+                n: "skip-me",
+                p: 100,
+            }),
+            Arc::new(AlwaysCommit {
+                n: "first-winner",
+                p: 200,
+            }),
+            Arc::new(AlwaysCommit {
+                n: "later-loser",
+                p: 300,
+            }),
         ]);
         let (decision, trace) = engine.run(&ctx(), &[]);
         let d = decision.expect("expected a commit");
