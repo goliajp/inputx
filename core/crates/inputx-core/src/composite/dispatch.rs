@@ -202,38 +202,12 @@ pub fn dispatch(
             } else {
                 1.0
             };
-            // Wubi Jianma2/3 prominence rule. Single-char simcode entries
-            // whose pinyin char_max_freq clears CHAR_PROMINENT_FLOOR are
-            // "prominent" — they natural-tier to `top` (1) alongside pinyin
-            // top single-chars; wubi wins the tie via the engine offset
-            // (no carve-out). Below the floor, they natural-tier to
-            // `less_common` (5) and cleanly yield to pinyin top.
-            //
-            // 2026-06-03 cleanup (user "no special list, never"): retired
-            // the legacy `RARE_CHAR_DEMOTE` ×0.3 likelihood multiplier —
-            // it was a within-tier-1 demote from the pre-tier-shift era
-            // and became redundant once rare simcodes started landing in
-            // tier 5 directly. Threshold lives in engine_weights.toml
-            // `[dispatch.wubi].char_prominent_floor_freq`.
-            const CHAR_PROMINENT_FLOOR: u64 =
-                inputx_scoring::consts::WUBI_CHAR_PROMINENT_FLOOR_FREQ;
-            let pinyin_dict = pinyin.engine().dict();
-            let char_is_prominent = |word: &str, layer: inputx_wubi::Layer| -> bool {
-                if !matches!(
-                    layer,
-                    inputx_wubi::Layer::Jianma2 | inputx_wubi::Layer::Jianma3
-                ) {
-                    return true; // doesn't apply — caller branches on layer separately
-                }
-                let mut chars = word.chars();
-                let Some(c) = chars.next() else {
-                    return true;
-                };
-                if chars.next().is_some() {
-                    return true;
-                } // multi-char Jianma3 phrase
-                pinyin_dict.char_max_freq(c) >= CHAR_PROMINENT_FLOOR
-            };
+            // Wubi tier comes from wubi's OWN corpus freq via
+            // `inputx_scoring::wubi_tier_from_freq` (engine-internal — NO
+            // pinyin char_max_freq dependency, per the orthogonal-table
+            // design: each engine ranks its own content). Applied in the
+            // natural_tier computation below. Replaces the old cross-engine
+            // `char_is_prominent` (pinyin char_max_freq ≥ floor) gate.
             // v1.4.7 sub-phase A2 step 1: orthodox three-axis
             // decomposition replaces the v1.4.2 synthesize_three_axis
             // shortcut (which lumped the entire legacy score into
@@ -356,7 +330,6 @@ pub fn dispatch(
                         inputx_wubi::Layer::Phrase => effective_phrase_mult,
                         _ => 1.0,
                     };
-                    let prominent = char_is_prominent(&w, layer);
                     let is_single = w.chars().count() == 1;
                     // Phase I: redundant single-char Auto entries lose
                     // the ×100 single_promote AND the tier 1 placement
@@ -443,20 +416,19 @@ pub fn dispatch(
                             inputx_wubi::Layer::Jianma1
                             | inputx_wubi::Layer::Jianma2
                             | inputx_wubi::Layer::Jianma3 => {
-                                if prominent {
-                                    1
+                                if is_single {
+                                    // Orthogonal-table design (user 2026-06-07
+                                    // "五笔的内容本身就应该根据字频有等级"):
+                                    // tier wubi single chars by their OWN corpus
+                                    // freq — engine-internal, no pinyin
+                                    // char_max_freq dependency. Semantics:
+                                    // t1 常用 / t2 中低频 / t3 低频 / t4 难检 /
+                                    // t5 生僻. Encoding-stable wubi converges
+                                    // high; only真生僻 drifts to t4/t5.
+                                    inputx_scoring::wubi_tier_from_freq(raw_freq)
                                 } else {
-                                    // 退也只退一点点 (user 2026-06-07: "五笔
-                                    // 是雷打不动的优先，退也只是退一点点"):
-                                    // low-freq jianma3 → t3, rare/hard-to-find
-                                    // jianma2 → t4 — still above pinyin's
-                                    // t5-t6 longtail, so a wubi simcode never
-                                    // sinks below mid-freq pinyin. (jianma1
-                                    // never reaches here — always prominent.)
-                                    match layer {
-                                        inputx_wubi::Layer::Jianma3 => 3,
-                                        _ => 4,
-                                    }
+                                    // Multi-char jianma 词组 → t1 (phrase priority).
+                                    1
                                 }
                             }
                             inputx_wubi::Layer::Zigen => 1,

@@ -300,6 +300,29 @@ tier_5_above = -1.5     # ~ top 93%
 tier_6_above = -2.5     # ~ top 99.4%
 # z < tier_6_above → tier 9 (longtail bucket)
 
+# ─── Tier落点 — wubi by its OWN corpus freq (2026-06-07) ───────────
+# Orthogonal-table design (user directive "五笔的内容本身就应该根据字频
+# 有等级"): wubi candidates tier by wubi-library freq alone — NO cross-
+# engine dependency on pinyin char_max_freq. Wubi is encoding-stable with
+# few candidates, so it converges high and never needs z-score spread;
+# plain freq floors suffice. Five tiers with explicit semantics:
+#   t1 常用 / t2 中低频 / t3 低频 / t4 难检 / t5 生僻.
+# Floors from the jianma1/2/3 wubi-freq spike: t1=20000 keeps the common
+# simcodes (碰28577 虎32382 拉40356 东39354 谍21582 庶24637) at t1 → wx>px
+# puts them #0. within-tier order is intentionally NOT modeled (wubi 不关心
+# t1 内谁高谁低 — that's a pinyin concern; a future background task can
+# refine intra-tier scoring).
+[scoring.tier_wubi]
+tier_1_floor = 20000
+tier_2_floor = 18000
+tier_3_floor = 5000
+tier_4_floor = 1000
+# below tier_4_floor (incl freq 0) → tier 5 (生僻)
+# t1/t2 boundary is deliberately tight (20000 vs 18000): common simcodes
+# (碰28577 谍21582 虎32382) sit at t1 and win their buffer via wx>px, while
+# rare jianma2 like 骈(17935) drop to t3 — below common pinyin (which sits
+# at t2 for most buffers), so 促/粗 lead `cu` and 骈 yields. "退一点点".
+
 [scoring.zh]
 # Pinyin / wubi prior freq multiplier. Default 1.0 — corpus freq IS
 # the prior, no extra scaling. Reserved for future per-engine
