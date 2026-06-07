@@ -685,6 +685,50 @@ mod tests {
         }
     }
 
+    /// 2026-06-08 polish — 日本新字体 sweep backfill.  The wubi/pinyin
+    /// sweep removed 217 Shinjitai chars (巌 団 図 砕 伝 亀 …) from the
+    /// Chinese engines as corpus noise, but they are legitimate everyday
+    /// Japanese kanji and MUST stay type-able in JapaneseOnly mode.  153
+    /// chars that weren't already single-kanji entries got their on/kun
+    /// readings backfilled from KANJIDIC2 (round-trip-verified via the
+    /// engine's romaji table).  This pins the invariant: each char is
+    /// reachable in Japanese at its reading.  See
+    /// docs/wubi-jp-shinjitai-sweep-2026-06-08/.
+    #[test]
+    fn jp_shinjitai_typeable_after_sweep() {
+        // (reading, kanji_that_must_be_in_japanese_candidates)
+        let cases: &[(&str, &str)] = &[
+            ("iwa", "巌"),  // user-report char (岩の新字体), kun いわ
+            ("dan", "団"),  // on だん
+            ("zu", "図"),   // on ず
+            ("sai", "砕"),  // KANJIDIC2-only gap char, on さい
+            ("den", "伝"),  // on でん
+            ("kame", "亀"), // kun かめ
+        ];
+        let mut failures = Vec::new();
+        for (reading, kanji) in cases {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::JapaneseOnly);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            for b in reading.bytes() {
+                let _ = e.handle_letter(b);
+            }
+            let words: Vec<String> = e.candidates().iter().map(|c| c.word.clone()).collect();
+            if !words.iter().any(|w| w == kanji) {
+                failures.push(format!(
+                    "  {reading}: {kanji} not in JP candidates — got {words:?}"
+                ));
+            }
+        }
+        if !failures.is_empty() {
+            panic!(
+                "{} jp-shinjitai-typeable cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
+        }
+    }
+
     #[test]
     fn jp_enabled_pinyin_top_still_leads_via_pinyin_only_mode() {
         // Note: we use PinyinOnly mode for the assertion (wubi
