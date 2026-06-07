@@ -27,7 +27,7 @@ jobs:
     # on macOS. Pinned (not -latest) for reproducibility; runner is arm64.
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Installs the stable toolchain + components/targets declared in
       # rust-toolchain.toml (rustfmt, clippy, apple + wasm targets).
@@ -35,7 +35,7 @@ jobs:
         run: rustup show
 
       - name: Cache cargo + target
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
