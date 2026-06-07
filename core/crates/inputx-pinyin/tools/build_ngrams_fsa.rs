@@ -113,12 +113,23 @@ fn main() {
     // uses for pinyin.dict.
     let src = crate_dir.join("data");
     let bigrams_data = crate_dir
-        .parent().expect("crates parent")
+        .parent()
+        .expect("crates parent")
         .join("inputx-pinyin-data-bigrams/data");
     let trigrams_data = crate_dir
-        .parent().expect("crates parent")
+        .parent()
+        .expect("crates parent")
         .join("inputx-pinyin-data-trigrams/data");
-    pack_fsa(&src.join("bigrams_inter.tsv"), &bigrams_data.join("bigrams.fsa"));
-    pack_fsa(&src.join("bigrams_intra.tsv"), &bigrams_data.join("bigrams_intra.fsa"));
-    pack_dict(&src.join("trigrams_inter.tsv"), &trigrams_data.join("trigrams.dict"));
+    pack_fsa(
+        &src.join("bigrams_inter.tsv"),
+        &bigrams_data.join("bigrams.fsa"),
+    );
+    pack_fsa(
+        &src.join("bigrams_intra.tsv"),
+        &bigrams_data.join("bigrams_intra.fsa"),
+    );
+    pack_dict(
+        &src.join("trigrams_inter.tsv"),
+        &trigrams_data.join("trigrams.dict"),
+    );
 }

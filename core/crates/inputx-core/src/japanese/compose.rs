@@ -12,8 +12,8 @@
 //! facade copy stays in `inputx-nihongo` (its accessors are now public)
 //! so direct-facade consumers (`inputx-nihongo-wasm`) keep working.
 
-use inputx_nihongo::{Candidate, KanaKind};
 use inputx_nihongo::engine::{kanji_suffixes, sentence_suffixes};
+use inputx_nihongo::{Candidate, KanaKind};
 
 use super::lookup::{lookup_jukugo_by_reading, lookup_kanji_by_reading};
 
@@ -107,8 +107,7 @@ pub(super) fn compose_sentence(buffer: &str) -> Vec<Candidate> {
             for (lw, lf) in &lefts {
                 for (rw, rf) in &rights {
                     let combined = format!("{lw}{rw}");
-                    let combined_freq =
-                        ((*lf.min(rf) as f64) * 0.7) as u32;
+                    let combined_freq = ((*lf.min(rf) as f64) * 0.7) as u32;
                     hits.push((combined, combined_freq));
                 }
             }
@@ -116,8 +115,7 @@ pub(super) fn compose_sentence(buffer: &str) -> Vec<Candidate> {
     }
 
     // Dedup by word, keeping highest freq.
-    let mut best: std::collections::HashMap<String, u32> =
-        std::collections::HashMap::new();
+    let mut best: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
     for (w, f) in hits {
         let entry = best.entry(w).or_insert(0);
         if f > *entry {

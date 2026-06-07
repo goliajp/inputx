@@ -9,8 +9,8 @@ use inputx_fsa::{Builder, Fsa};
 fn main() {
     let mut b = Builder::new();
     for (i, word) in [
-        "apple", "apply", "apricot", "approve", "approach",
-        "banana", "band", "bandage", "candy", "card",
+        "apple", "apply", "apricot", "approve", "approach", "banana", "band", "bandage", "candy",
+        "card",
     ]
     .iter()
     .enumerate()

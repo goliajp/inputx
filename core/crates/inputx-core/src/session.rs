@@ -319,7 +319,8 @@ impl Session {
     /// panel visible post-commit, showing predictions as the user's
     /// likely next pick (Sogou-style 联想 panel).
     pub fn predictions(&self) -> Vec<String> {
-        self.composite.predicted_candidates()
+        self.composite
+            .predicted_candidates()
             .iter()
             .map(|c| c.word.clone())
             .collect()
@@ -489,8 +490,12 @@ mod tests {
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.set_japanese_enabled(true);
         // Phase A: type fa-----
-        for b in b"fa" { assert!(sess.handle_key(*b as u32, 0)); }
-        for _ in 0..5 { assert!(sess.handle_key(b'-' as u32, 0)); }
+        for b in b"fa" {
+            assert!(sess.handle_key(*b as u32, 0));
+        }
+        for _ in 0..5 {
+            assert!(sess.handle_key(b'-' as u32, 0));
+        }
         let preedit_a = sess.preedit().to_string();
         let cands_a: Vec<String> = sess.candidates().iter().cloned().collect();
         // Phase B: backspace 3 times (delete trailing 3 `-`)
@@ -498,13 +503,19 @@ mod tests {
             assert!(sess.handle_key(0x08, 0)); // BS
         }
         // Phase C: retype the 3 `-` back
-        for _ in 0..3 { assert!(sess.handle_key(b'-' as u32, 0)); }
+        for _ in 0..3 {
+            assert!(sess.handle_key(b'-' as u32, 0));
+        }
         let preedit_b = sess.preedit().to_string();
         let cands_b: Vec<String> = sess.candidates().iter().cloned().collect();
-        assert_eq!(preedit_a, preedit_b,
-            "preedit must be identical after backspace-then-retype; got A={preedit_a:?} B={preedit_b:?}");
-        assert_eq!(cands_a, cands_b,
-            "candidates must be identical after backspace-then-retype; got\n  A={cands_a:?}\n  B={cands_b:?}");
+        assert_eq!(
+            preedit_a, preedit_b,
+            "preedit must be identical after backspace-then-retype; got A={preedit_a:?} B={preedit_b:?}"
+        );
+        assert_eq!(
+            cands_a, cands_b,
+            "candidates must be identical after backspace-then-retype; got\n  A={cands_a:?}\n  B={cands_b:?}"
+        );
     }
 
     #[test]
@@ -520,23 +531,33 @@ mod tests {
         for b in b"ko" {
             assert!(sess.handle_key(*b as u32, 0));
         }
-        assert!(sess.japanese_is_composing(),
-            "JP buffer should be composing after typing romaji");
-        assert!(sess.handle_key(b'-' as u32, 0),
-            "`-` keystroke must be consumed when JP is composing");
+        assert!(
+            sess.japanese_is_composing(),
+            "JP buffer should be composing after typing romaji"
+        );
+        assert!(
+            sess.handle_key(b'-' as u32, 0),
+            "`-` keystroke must be consumed when JP is composing"
+        );
         for b in b"hi" {
             assert!(sess.handle_key(*b as u32, 0));
         }
-        assert!(sess.handle_key(b'-' as u32, 0),
-            "trailing `-` must be consumed");
+        assert!(
+            sess.handle_key(b'-' as u32, 0),
+            "trailing `-` must be consumed"
+        );
         let preedit = sess.preedit().to_string();
-        assert_eq!(preedit, "ko-hi-",
-            "preedit should reflect full chouonpu romaji buffer; got {preedit:?}");
+        assert_eq!(
+            preedit, "ko-hi-",
+            "preedit should reflect full chouonpu romaji buffer; got {preedit:?}"
+        );
         // The katakana with chōonpu must surface as a candidate.
         let cands = sess.candidates();
-        assert!(cands.iter().any(|w| w == "コーヒー"),
+        assert!(
+            cands.iter().any(|w| w == "コーヒー"),
             "コーヒー expected after ko-hi-; got top10={:?}",
-            cands.iter().take(10).collect::<Vec<_>>());
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
     }
 
     #[test]
@@ -547,13 +568,17 @@ mod tests {
         let mut sess = s();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         // No JP enabled, no composing — `-` falls through.
-        assert!(!sess.handle_key(b'-' as u32, 0),
-            "`-` must NOT be consumed when no engine is composing");
+        assert!(
+            !sess.handle_key(b'-' as u32, 0),
+            "`-` must NOT be consumed when no engine is composing"
+        );
         // Even with JP enabled but empty buffer, `-` falls through.
         sess.set_japanese_enabled(true);
         assert!(!sess.japanese_is_composing());
-        assert!(!sess.handle_key(b'-' as u32, 0),
-            "`-` must NOT be consumed with JP enabled but empty buffer");
+        assert!(
+            !sess.handle_key(b'-' as u32, 0),
+            "`-` must NOT be consumed with JP enabled but empty buffer"
+        );
     }
 
     #[test]
@@ -910,7 +935,10 @@ mod tests {
         let mut sess = s();
         sess.set_input_mode(InputMode::En);
         for cp in b"hello world! 12,3.45" {
-            assert!(!sess.handle_key(*cp as u32, 0), "letter/digit/punct should passthrough");
+            assert!(
+                !sess.handle_key(*cp as u32, 0),
+                "letter/digit/punct should passthrough"
+            );
         }
         assert!(!sess.handle_key(CP_RETURN, 0));
         assert!(!sess.handle_key(CP_BACKSPACE, 0));
@@ -1188,7 +1216,9 @@ mod prefix_completion_suppression {
         let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.set_mode(crate::composite::Mode::PinyinOnly);
-        for cp in b"lianxiang" { sess.handle_key(*cp as u32, 0); }
+        for cp in b"lianxiang" {
+            sess.handle_key(*cp as u32, 0);
+        }
         let cands = sess.candidates();
         assert!(
             cands.iter().any(|w| w == "联想"),
@@ -1213,7 +1243,9 @@ mod prefix_completion_suppression {
         let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.set_mode(crate::composite::Mode::PinyinOnly);
-        for cp in b"zho" { sess.handle_key(*cp as u32, 0); }
+        for cp in b"zho" {
+            sess.handle_key(*cp as u32, 0);
+        }
         let cands = sess.candidates();
         assert!(
             !cands.is_empty(),
@@ -1235,29 +1267,67 @@ mod wubi_simcode_priority {
     fn top(input: &[u8]) -> String {
         let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for cp in input { sess.handle_key(*cp as u32, 0); }
+        for cp in input {
+            sess.handle_key(*cp as u32, 0);
+        }
         sess.candidates().first().cloned().unwrap_or_default()
     }
-    #[test] fn wo_wubi_伙()  { assert_eq!(top(b"wo"),  "伙"); }
-    #[test] fn ni_wubi_悄()  { assert_eq!(top(b"ni"),  "悄"); }
-    #[test] fn ta_wubi_长()  { assert_eq!(top(b"ta"),  "长"); }
-    #[test] fn de_wubi_胡()  { assert_eq!(top(b"de"),  "胡"); }
+    #[test]
+    fn wo_wubi_伙() {
+        assert_eq!(top(b"wo"), "伙");
+    }
+    #[test]
+    fn ni_wubi_悄() {
+        assert_eq!(top(b"ni"), "悄");
+    }
+    #[test]
+    fn ta_wubi_长() {
+        assert_eq!(top(b"ta"), "长");
+    }
+    #[test]
+    fn de_wubi_胡() {
+        assert_eq!(top(b"de"), "胡");
+    }
     // shi_wubi_椒 retired 2026-06-03 — user "shi 肯定不能是 椒，要是
     // '是'"; pair moved to tier_overlay tier 5, expected top1=是.
-    #[test] fn shi_pinyin_是() { assert_eq!(top(b"shi"), "是"); }
-    #[test] fn you_wubi_亦() { assert_eq!(top(b"you"), "亦"); }
+    #[test]
+    fn shi_pinyin_是() {
+        assert_eq!(top(b"shi"), "是");
+    }
+    #[test]
+    fn you_wubi_亦() {
+        assert_eq!(top(b"you"), "亦");
+    }
     // User-confirmed via runtime (2026-05-24): Jianma2 common-char
     // entries also must lead via Session path (same flow the Mac IME
     // uses). Adding these pins more of the user-stated invariant so
     // a regression at the Session layer can't slip past wubi_simcode_
     // priority's protect list silently.
-    #[test] fn ce_wubi_能() { assert_eq!(top(b"ce"), "能"); }
-    #[test] fn yi_wubi_就() { assert_eq!(top(b"yi"), "就"); }
-    #[test] fn ge_wubi_表() { assert_eq!(top(b"ge"), "表"); }
-    #[test] fn da_wubi_左() { assert_eq!(top(b"da"), "左"); }
+    #[test]
+    fn ce_wubi_能() {
+        assert_eq!(top(b"ce"), "能");
+    }
+    #[test]
+    fn yi_wubi_就() {
+        assert_eq!(top(b"yi"), "就");
+    }
+    #[test]
+    fn ge_wubi_表() {
+        assert_eq!(top(b"ge"), "表");
+    }
+    #[test]
+    fn da_wubi_左() {
+        assert_eq!(top(b"da"), "左");
+    }
     // Jianma1 (1-letter) keeps its hard floor too.
-    #[test] fn e_wubi_有() { assert_eq!(top(b"e"), "有"); }
-    #[test] fn g_wubi_一() { assert_eq!(top(b"g"), "一"); }
+    #[test]
+    fn e_wubi_有() {
+        assert_eq!(top(b"e"), "有");
+    }
+    #[test]
+    fn g_wubi_一() {
+        assert_eq!(top(b"g"), "一");
+    }
 }
 
 #[cfg(test)]
@@ -1272,7 +1342,9 @@ mod beyond_wubi_window {
     fn type_in_mixed(input: &[u8]) -> Vec<String> {
         let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for cp in input { sess.handle_key(*cp as u32, 0); }
+        for cp in input {
+            sess.handle_key(*cp as u32, 0);
+        }
         sess.candidates().to_vec()
     }
 
@@ -1352,7 +1424,9 @@ mod cross_engine_pin {
         let n = sess.import_l0_json(1, pin_json);
         assert_eq!(n, 1, "L0 import should accept the pin");
 
-        for cp in b"jixu" { sess.handle_key(*cp as u32, 0); }
+        for cp in b"jixu" {
+            sess.handle_key(*cp as u32, 0);
+        }
         let cands = sess.candidates();
         assert_eq!(
             cands.first().map(String::as_str),
@@ -1363,7 +1437,6 @@ mod cross_engine_pin {
     }
 }
 
-
 #[cfg(test)]
 mod jigao_coverage {
     use super::*;
@@ -1372,7 +1445,9 @@ mod jigao_coverage {
         let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.set_mode(crate::composite::Mode::PinyinOnly);
-        for cp in b"jigao" { sess.handle_key(*cp as u32, 0); }
+        for cp in b"jigao" {
+            sess.handle_key(*cp as u32, 0);
+        }
         let cands = sess.candidates();
         assert!(
             cands.iter().any(|w| w == "极高"),
@@ -1390,14 +1465,25 @@ mod jiazai_ranking {
         let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.set_mode(crate::composite::Mode::PinyinOnly);
-        for cp in b"jiazai" { sess.handle_key(*cp as u32, 0); }
+        for cp in b"jiazai" {
+            sess.handle_key(*cp as u32, 0);
+        }
         let cands = sess.candidates();
         let pos = |w: &str| cands.iter().position(|c| c == w);
         let p_load = pos("加载");
         let p_at = pos("加在");
-        assert!(p_load.is_some(), "加载 must be present. Got: {:?}", cands.iter().take(5).collect::<Vec<_>>());
+        assert!(
+            p_load.is_some(),
+            "加载 must be present. Got: {:?}",
+            cands.iter().take(5).collect::<Vec<_>>()
+        );
         if let (Some(load), Some(at)) = (p_load, p_at) {
-            assert!(load < at, "加载 (pos {}) must outrank 加在 (pos {})", load, at);
+            assert!(
+                load < at,
+                "加载 (pos {}) must outrank 加在 (pos {})",
+                load,
+                at
+            );
         }
     }
 }

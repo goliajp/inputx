@@ -189,7 +189,8 @@ pub fn edit_distance(a: &str, b: &str, table: &EditCostTable) -> f64 {
                 let fl = from.len();
                 let tl = to.len();
                 // Forward: a's tail = from, b's tail = to
-                if i >= fl && j >= tl
+                if i >= fl
+                    && j >= tl
                     && a[i - fl..i] == *from.as_bytes()
                     && b[j - tl..j] == *to.as_bytes()
                 {
@@ -259,12 +260,18 @@ mod tests {
     #[test]
     fn classical_kitten_sitting_is_three() {
         // Textbook Wagner-Fischer example.
-        assert_eq!(edit_distance("kitten", "sitting", &EditCostTable::EMPTY), 3.0);
+        assert_eq!(
+            edit_distance("kitten", "sitting", &EditCostTable::EMPTY),
+            3.0
+        );
     }
 
     #[test]
     fn classical_intention_execution_is_five() {
-        assert_eq!(edit_distance("intention", "execution", &EditCostTable::EMPTY), 5.0);
+        assert_eq!(
+            edit_distance("intention", "execution", &EditCostTable::EMPTY),
+            5.0
+        );
     }
 
     // ---- Mandarin table — each canonical pair, both directions ----
@@ -283,18 +290,12 @@ mod tests {
 
     #[test]
     fn mandarin_sh_s_swap() {
-        assert!(approx(
-            edit_distance("shi", "si", &MANDARIN_DEFAULT),
-            0.3
-        ));
+        assert!(approx(edit_distance("shi", "si", &MANDARIN_DEFAULT), 0.3));
     }
 
     #[test]
     fn mandarin_ch_c_swap() {
-        assert!(approx(
-            edit_distance("chi", "ci", &MANDARIN_DEFAULT),
-            0.3
-        ));
+        assert!(approx(edit_distance("chi", "ci", &MANDARIN_DEFAULT), 0.3));
     }
 
     #[test]
@@ -345,10 +346,7 @@ mod tests {
     #[test]
     fn mandarin_unrelated_typo_still_costs_one() {
         // No table entry for x↔p — full per-char insert cost.
-        assert!(approx(
-            edit_distance("xin", "pin", &MANDARIN_DEFAULT),
-            1.0
-        ));
+        assert!(approx(edit_distance("xin", "pin", &MANDARIN_DEFAULT), 1.0));
     }
 
     #[test]
@@ -404,9 +402,10 @@ mod tests {
             ("an", "ang"),
         ];
         for &(a, b) in needed {
-            let found = MANDARIN_DEFAULT.pairs.iter().any(|&(f, t, _)| {
-                (f == a && t == b) || (f == b && t == a)
-            });
+            let found = MANDARIN_DEFAULT
+                .pairs
+                .iter()
+                .any(|&(f, t, _)| (f == a && t == b) || (f == b && t == a));
             assert!(found, "MANDARIN_DEFAULT missing pair ({a:?}, {b:?})");
         }
     }

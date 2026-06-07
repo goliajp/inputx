@@ -17,8 +17,8 @@
 
 use alloc::vec::Vec;
 
-use crate::builder::{write_uvarint, Builder};
-use crate::reader::{rd_u32, rd_uvarint, Fsa, FsaError};
+use crate::builder::{Builder, write_uvarint};
+use crate::reader::{Fsa, FsaError, rd_u32, rd_uvarint};
 
 const MAGIC: &[u8; 4] = b"IXDC";
 
@@ -76,8 +76,7 @@ impl DictBuilder {
         }
 
         let fsa_bytes = fsa.finish();
-        let mut out =
-            Vec::with_capacity(8 + fsa_bytes.len() + blob.len());
+        let mut out = Vec::with_capacity(8 + fsa_bytes.len() + blob.len());
         out.extend_from_slice(MAGIC);
         out.extend_from_slice(&(fsa_bytes.len() as u32).to_le_bytes());
         out.extend_from_slice(&fsa_bytes);
@@ -154,13 +153,21 @@ impl<D: AsRef<[u8]>> Dict<D> {
         };
         let b = self.data.as_ref();
         let mut p = self.blob_lo + off as usize;
-        let Some(n) = rd_uvarint(b, &mut p) else { return };
+        let Some(n) = rd_uvarint(b, &mut p) else {
+            return;
+        };
         for _ in 0..n {
-            let Some(len) = rd_uvarint(b, &mut p).map(|l| l as usize) else { return };
-            let Some(end) = p.checked_add(len) else { return };
+            let Some(len) = rd_uvarint(b, &mut p).map(|l| l as usize) else {
+                return;
+            };
+            let Some(end) = p.checked_add(len) else {
+                return;
+            };
             let Some(item) = b.get(p..end) else { return };
             p = end;
-            let Some(val) = rd_uvarint(b, &mut p) else { return };
+            let Some(val) = rd_uvarint(b, &mut p) else {
+                return;
+            };
             visit(item, val);
         }
     }
@@ -190,18 +197,25 @@ impl<D: AsRef<[u8]>> Dict<D> {
         let blob_lo = self.blob_lo;
         fsa.prefix_for_each(prefix, |code, off| {
             let mut p = blob_lo + off as usize;
-            let Some(n) = rd_uvarint(b, &mut p) else { return };
+            let Some(n) = rd_uvarint(b, &mut p) else {
+                return;
+            };
             for _ in 0..n {
-                let Some(len) = rd_uvarint(b, &mut p).map(|l| l as usize) else { return };
-                let Some(end) = p.checked_add(len) else { return };
+                let Some(len) = rd_uvarint(b, &mut p).map(|l| l as usize) else {
+                    return;
+                };
+                let Some(end) = p.checked_add(len) else {
+                    return;
+                };
                 let Some(item) = b.get(p..end) else { return };
                 p = end;
-                let Some(val) = rd_uvarint(b, &mut p) else { return };
+                let Some(val) = rd_uvarint(b, &mut p) else {
+                    return;
+                };
                 visit(code, item, val);
             }
         });
     }
-
 }
 
 #[cfg(test)]
@@ -219,7 +233,10 @@ mod tests {
         // value-desc order within code
         assert_eq!(
             dict.get(b"wo"),
-            vec![("我".as_bytes().to_vec(), 100), ("握".as_bytes().to_vec(), 40)]
+            vec![
+                ("我".as_bytes().to_vec(), 100),
+                ("握".as_bytes().to_vec(), 40)
+            ]
         );
         assert_eq!(dict.get(b"women"), vec![("我们".as_bytes().to_vec(), 90)]);
         assert_eq!(dict.get(b"nope"), Vec::<(Vec<u8>, u64)>::new());

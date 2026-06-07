@@ -29,7 +29,10 @@ pub fn entries_for_test() -> usize {
 #[test]
 fn zigen_table_is_sorted() {
     // binary_search correctness depends on sort order — guard it.
-    assert!(ZIGEN.windows(2).all(|w| w[0].0 < w[1].0), "ZIGEN must be sorted by char key");
+    assert!(
+        ZIGEN.windows(2).all(|w| w[0].0 < w[1].0),
+        "ZIGEN must be sorted by char key"
+    );
 }
 
 #[cfg(test)]

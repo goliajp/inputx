@@ -21,15 +21,15 @@ use std::sync::OnceLock;
 use inputx_dict_format::IdfReader;
 
 /// Embedded IDFv1 kanji dict blob.
-pub const EMBEDDED_NIHONGO_KANJI_IDF: &[u8] =
-    include_bytes!("../data/kanji.idf");
+pub const EMBEDDED_NIHONGO_KANJI_IDF: &[u8] = include_bytes!("../data/kanji.idf");
 
 /// Process-global [`IdfReader`] over [`EMBEDDED_NIHONGO_KANJI_IDF`].
 pub fn nihongo_kanji_idf_reader() -> &'static IdfReader<&'static [u8]> {
     static READER: OnceLock<IdfReader<&'static [u8]>> = OnceLock::new();
     READER.get_or_init(|| {
-        IdfReader::from_bytes(EMBEDDED_NIHONGO_KANJI_IDF)
-            .expect("inputx-nihongo-data-kanji EMBEDDED_NIHONGO_KANJI_IDF must be a valid IDFv1 blob")
+        IdfReader::from_bytes(EMBEDDED_NIHONGO_KANJI_IDF).expect(
+            "inputx-nihongo-data-kanji EMBEDDED_NIHONGO_KANJI_IDF must be a valid IDFv1 blob",
+        )
     })
 }
 

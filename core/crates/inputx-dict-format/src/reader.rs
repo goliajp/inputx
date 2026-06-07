@@ -8,8 +8,8 @@ use alloc::vec::Vec;
 use core::result::Result;
 
 use crate::codec::{
-    decode_match_type, EngineKind, EntryFlags, EntryRecord, Header, Version,
-    FULL_HEADER_SIZE, MAGIC,
+    EngineKind, EntryFlags, EntryRecord, FULL_HEADER_SIZE, Header, MAGIC, Version,
+    decode_match_type,
 };
 
 /// Lookup error kind. Public so callers can distinguish "file is a
@@ -43,7 +43,9 @@ pub enum OpenError {
 
 #[cfg(feature = "std")]
 impl From<std::io::Error> for OpenError {
-    fn from(e: std::io::Error) -> Self { Self::Io(e) }
+    fn from(e: std::io::Error) -> Self {
+        Self::Io(e)
+    }
 }
 
 /// A read-only entry view backed by mmap (when `IdfReader` was opened
@@ -103,7 +105,9 @@ impl<B: AsRef<[u8]>> IdfReader<B> {
             (header.string_pool_offset, header.string_pool_size),
             (
                 header.entry_table_offset,
-                header.entry_count.saturating_mul(crate::codec::ENTRY_SIZE as u32),
+                header
+                    .entry_count
+                    .saturating_mul(crate::codec::ENTRY_SIZE as u32),
             ),
             (header.fst_code_index_offset, header.fst_code_index_size),
             (header.fst_word_index_offset, header.fst_word_index_size),
@@ -127,15 +131,21 @@ impl<B: AsRef<[u8]>> IdfReader<B> {
         Ok(Self { bytes, header })
     }
 
-    pub fn header(&self) -> &Header { &self.header }
+    pub fn header(&self) -> &Header {
+        &self.header
+    }
     pub fn version(&self) -> Version {
         Version::from_byte(self.header.format_version).expect("validated at open")
     }
     pub fn engine_kind(&self) -> EngineKind {
         EngineKind::from_byte(self.header.engine_kind).expect("validated at open")
     }
-    pub fn entry_count(&self) -> u32 { self.header.entry_count }
-    pub fn sha256(&self) -> [u8; 32] { self.header.sha256_of_payload }
+    pub fn entry_count(&self) -> u32 {
+        self.header.entry_count
+    }
+    pub fn sha256(&self) -> [u8; 32] {
+        self.header.sha256_of_payload
+    }
 
     /// All entries in entry-table order. O(n) — used by `prefix_top_k`
     /// fallback and by tests; production hot paths should go through
@@ -145,8 +155,7 @@ impl<B: AsRef<[u8]>> IdfReader<B> {
         let entry_table_start = self.header.entry_table_offset as usize;
         let n = self.header.entry_count as usize;
         let string_pool_start = self.header.string_pool_offset as usize;
-        let string_pool_end =
-            string_pool_start + self.header.string_pool_size as usize;
+        let string_pool_end = string_pool_start + self.header.string_pool_size as usize;
         let pool = &buf[string_pool_start..string_pool_end];
         (0..n).map(move |i| {
             let off = entry_table_start + i * crate::codec::ENTRY_SIZE;
@@ -165,12 +174,10 @@ impl<B: AsRef<[u8]>> IdfReader<B> {
             return None;
         }
         let buf = self.bytes.as_ref();
-        let off = self.header.entry_table_offset as usize
-            + index as usize * crate::codec::ENTRY_SIZE;
-        let rec_bytes: [u8; crate::codec::ENTRY_SIZE] = buf
-            [off..off + crate::codec::ENTRY_SIZE]
-            .try_into()
-            .ok()?;
+        let off =
+            self.header.entry_table_offset as usize + index as usize * crate::codec::ENTRY_SIZE;
+        let rec_bytes: [u8; crate::codec::ENTRY_SIZE] =
+            buf[off..off + crate::codec::ENTRY_SIZE].try_into().ok()?;
         let rec = EntryRecord::parse(&rec_bytes);
         let pool = self.string_pool();
         Some(decode_entry(&rec, pool))
@@ -244,7 +251,9 @@ impl<B: AsRef<[u8]>> IdfReader<B> {
     /// only the prefix subtree (O(matching codes) instead of
     /// O(entry_count)). Falls back to linear scan for v1.4.3-era files.
     pub fn prefix_top_k_fst<'a>(&'a self, prefix: &[u8], k: usize) -> Vec<Entry<'a>> {
-        if k == 0 { return Vec::new(); }
+        if k == 0 {
+            return Vec::new();
+        }
         let Some(fst_bytes) = self.fst_code_index_bytes() else {
             return self.prefix_top_k(prefix, k);
         };
@@ -307,11 +316,7 @@ impl<B: AsRef<[u8]>> IdfReader<B> {
     ///
     /// Falls back to a linear scan + filter on v1.4.3-era files without
     /// a populated FST section.
-    pub fn prefix_for_each_entry<'a, F: FnMut(Entry<'a>)>(
-        &'a self,
-        prefix: &[u8],
-        mut visit: F,
-    ) {
+    pub fn prefix_for_each_entry<'a, F: FnMut(Entry<'a>)>(&'a self, prefix: &[u8], mut visit: F) {
         if let Some(fst_bytes) = self.fst_code_index_bytes()
             && let Ok(fst) = inputx_fsa::Fsa::new(fst_bytes)
         {
@@ -319,8 +324,12 @@ impl<B: AsRef<[u8]>> IdfReader<B> {
             fst.prefix_for_each(prefix, |code, first_idx| {
                 let mut idx = first_idx;
                 while idx < total {
-                    let Some(e) = self.entry_at(idx as u32) else { break; };
-                    if e.code.as_bytes() != code { break; }
+                    let Some(e) = self.entry_at(idx as u32) else {
+                        break;
+                    };
+                    if e.code.as_bytes() != code {
+                        break;
+                    }
                     visit(e);
                     idx += 1;
                 }
@@ -408,4 +417,3 @@ fn read_string(pool: &[u8], offset: u32) -> &str {
     let end = rest.iter().position(|&b| b == 0).unwrap_or(rest.len());
     core::str::from_utf8(&rest[..end]).unwrap_or("")
 }
-

@@ -92,7 +92,6 @@ const TRIGRAMS_BYTES: &[u8] = inputx_pinyin_data_trigrams::EMBEDDED_TRIGRAMS;
 #[cfg(any(feature = "bootstrap_only", not(feature = "trigrams")))]
 const TRIGRAMS_BYTES: &[u8] = &[];
 
-
 /// The pinyin dictionary: an embedded FST plus a mutable L0 layer for
 /// per-user preference learning.
 ///
@@ -193,15 +192,21 @@ impl PinyinDict {
             // Item bytes ARE the word (two-level Dict keeps words out of the
             // automaton), so no \0-split needed.
             self.map.prefix_for_each(b"", |_code, word_bytes, freq| {
-                let Ok(word) = core::str::from_utf8(word_bytes) else { return };
+                let Ok(word) = core::str::from_utf8(word_bytes) else {
+                    return;
+                };
                 // Only track single-char entries — multi-char phrases'
                 // own freq doesn't tell us how common the constituent
                 // chars are individually.
                 let mut chars = word.chars();
                 let Some(c) = chars.next() else { return };
-                if chars.next().is_some() { return; }
+                if chars.next().is_some() {
+                    return;
+                }
                 let entry = cache.entry(c).or_insert(0);
-                if freq > *entry { *entry = freq; }
+                if freq > *entry {
+                    *entry = freq;
+                }
             });
             cache
         })
@@ -285,8 +290,7 @@ impl PinyinDict {
         // Normalize via `lower_str` so lue/nue alias collapses to lve/nve
         // for prefix checks too (otherwise `prefix_exists("celue")`
         // misses the `celve…` family of entries).
-        self.map
-            .contains_prefix(lower_str(prefix).as_bytes())
+        self.map.contains_prefix(lower_str(prefix).as_bytes())
     }
 
     /// All `(pinyin, word)` pairs with pinyin starting with `prefix`. Ordered
@@ -294,13 +298,14 @@ impl PinyinDict {
     pub fn prefix(&self, prefix: &str) -> Vec<(String, String)> {
         let lower = lower_str(prefix);
         let mut results: Vec<(String, String)> = Vec::new();
-        self.map.prefix_for_each(lower.as_bytes(), |code, word, _freq| {
-            if let (Ok(pinyin), Ok(word)) =
-                (core::str::from_utf8(code), core::str::from_utf8(word))
-            {
-                results.push((pinyin.to_string(), word.to_string()));
-            }
-        });
+        self.map
+            .prefix_for_each(lower.as_bytes(), |code, word, _freq| {
+                if let (Ok(pinyin), Ok(word)) =
+                    (core::str::from_utf8(code), core::str::from_utf8(word))
+                {
+                    results.push((pinyin.to_string(), word.to_string()));
+                }
+            });
         results.sort();
         results
     }
@@ -360,13 +365,14 @@ impl PinyinDict {
     pub fn prefix_with_freq(&self, prefix: &str) -> Vec<(String, String, u64)> {
         let lower = lower_str(prefix);
         let mut results: Vec<(String, String, u64)> = Vec::new();
-        self.map.prefix_for_each(lower.as_bytes(), |code, word, value| {
-            if let (Ok(pinyin), Ok(word)) =
-                (core::str::from_utf8(code), core::str::from_utf8(word))
-            {
-                results.push((pinyin.to_string(), word.to_string(), value));
-            }
-        });
+        self.map
+            .prefix_for_each(lower.as_bytes(), |code, word, value| {
+                if let (Ok(pinyin), Ok(word)) =
+                    (core::str::from_utf8(code), core::str::from_utf8(word))
+                {
+                    results.push((pinyin.to_string(), word.to_string(), value));
+                }
+            });
         results
     }
 
@@ -461,7 +467,11 @@ impl PinyinDict {
         });
         // L0 pin: multiply pinned candidate's score so it tops the
         // engine-internal sort AND the cross-engine merge layer.
-        let pinned: Option<String> = self.l0.read().ok().and_then(|g| g.pins.get(&lower).cloned());
+        let pinned: Option<String> = self
+            .l0
+            .read()
+            .ok()
+            .and_then(|g| g.pins.get(&lower).cloned());
         if let Some(p) = &pinned {
             for e in scratch.iter_mut() {
                 if &e.0 == p {
@@ -469,9 +479,7 @@ impl PinyinDict {
                 }
             }
         }
-        scratch.sort_by(|a, b| {
-            b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
-        });
+        scratch.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         out.reserve(scratch.len());
         for (w, score) in scratch.drain(..) {
             out.push((w, score));
@@ -730,9 +738,7 @@ impl PinyinDict {
                     }
                 }
             }
-            candidates.sort_by(|a, b| {
-                b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal)
-            });
+            candidates.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
             candidates.truncate(k);
             dp[i] = candidates;
         }
@@ -741,10 +747,7 @@ impl PinyinDict {
         let mut out: Vec<(f64, String)> = Vec::with_capacity(dp[n].len());
         let mut seen: std::collections::HashSet<String> =
             std::collections::HashSet::with_capacity(dp[n].len());
-        let end_paths: Vec<(f64, usize, usize)> = dp[n]
-            .iter()
-            .map(|p| (p.0, p.1, p.2))
-            .collect();
+        let end_paths: Vec<(f64, usize, usize)> = dp[n].iter().map(|p| (p.0, p.1, p.2)).collect();
         for (end_score, end_prev_pos, end_prev_idx) in end_paths {
             let mut chain: Vec<String> = Vec::new();
             // Start from the dp[n] entry's own word (need the entry itself
@@ -815,7 +818,10 @@ impl PinyinDict {
         // baseline fixture invariant during the v1.4.6 engine cutover.
         use std::collections::HashMap;
         let mut counts: HashMap<(String, String), u64> = HashMap::new();
-        for src in [self.bigrams.as_ref(), self.bigrams_intra.as_ref()].iter().flatten() {
+        for src in [self.bigrams.as_ref(), self.bigrams_intra.as_ref()]
+            .iter()
+            .flatten()
+        {
             src.prefix_for_each(b"", |key, count| {
                 let Some(sep) = key.iter().position(|&b| b == 0) else {
                     return;
@@ -825,9 +831,7 @@ impl PinyinDict {
                 if next.is_empty() {
                     return;
                 }
-                if let (Ok(p), Ok(n)) =
-                    (core::str::from_utf8(prev), core::str::from_utf8(next))
-                {
+                if let (Ok(p), Ok(n)) = (core::str::from_utf8(prev), core::str::from_utf8(next)) {
                     *counts.entry((p.to_string(), n.to_string())).or_insert(0) += count;
                 }
             });
@@ -931,7 +935,9 @@ impl PinyinDict {
             return Vec::new();
         }
         // Strict: need BOTH prev_prev AND trigram FST.
-        let Some(prev_prev) = prev_prev else { return Vec::new() };
+        let Some(prev_prev) = prev_prev else {
+            return Vec::new();
+        };
         if prev_prev.is_empty() {
             return Vec::new();
         }
@@ -990,10 +996,12 @@ impl PinyinDict {
         // Without summing, Viterbi would lose the intra signal entirely
         // after the split — which is precisely what v0.4 Phase A added
         // to make 你好 win as one segment.
-        let count_inter = self.bigrams.as_ref()
-            .and_then(|m| m.get(&key)).unwrap_or(0);
-        let count_intra = self.bigrams_intra.as_ref()
-            .and_then(|m| m.get(&key)).unwrap_or(0);
+        let count_inter = self.bigrams.as_ref().and_then(|m| m.get(&key)).unwrap_or(0);
+        let count_intra = self
+            .bigrams_intra
+            .as_ref()
+            .and_then(|m| m.get(&key))
+            .unwrap_or(0);
         let count = count_inter + count_intra;
         if count == 0 {
             return 0.0;
@@ -1010,7 +1018,10 @@ impl PinyinDict {
     /// candidates structurally lead in the merge order.
     pub fn pinned_word(&self, pinyin: &str) -> Option<String> {
         let lower = lower_str(pinyin);
-        self.l0.read().ok().and_then(|l0| l0.pins.get(&lower).cloned())
+        self.l0
+            .read()
+            .ok()
+            .and_then(|l0| l0.pins.get(&lower).cloned())
     }
 
     /// Drop the pin for `pinyin` (if any) AND any pick counters for it.
@@ -1137,12 +1148,18 @@ mod tests {
     fn shipped_data_at_expected_scale() {
         let d = PinyinDict::embedded();
         // pinyin.dict: ~156k distinct codes shipped; floor well below that.
-        assert!(d.len() >= 140_000, "pinyin.dict too small: {} codes", d.len());
+        assert!(
+            d.len() >= 140_000,
+            "pinyin.dict too small: {} codes",
+            d.len()
+        );
         // n-gram indexes must be present (not None) and non-trivially sized.
         // bigram_boost reads bigrams/bigrams_intra; predict reads trigrams.
-        assert!(d.bigram_boost(Some("中国"), "人民") > 0.0
-            || d.bigram_boost(Some("我们"), "一起") > 0.0,
-            "bigrams index looks empty");
+        assert!(
+            d.bigram_boost(Some("中国"), "人民") > 0.0
+                || d.bigram_boost(Some("我们"), "一起") > 0.0,
+            "bigrams index looks empty"
+        );
         // A high-frequency 3-gram context should yield predictions; if the
         // trigram dict is truncated/empty this returns nothing.
         let ctx = d.predict_next_words_context(Some("我们"), "一起", 10);
@@ -1362,9 +1379,12 @@ mod tests {
         // After rebuild: 理想 (base 35168) should lead lixiang lookups.
         let d = PinyinDict::embedded();
         let cands = d.lookup("lixiang");
-        assert_eq!(cands.first().map(String::as_str), Some("理想"),
+        assert_eq!(
+            cands.first().map(String::as_str),
+            Some("理想"),
             "expected 理想 #1 for lixiang; got {:?}",
-            cands.iter().take(5).collect::<Vec<_>>());
+            cands.iter().take(5).collect::<Vec<_>>()
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1376,9 +1396,12 @@ mod tests {
         // top peer + MARGIN → 缺失 should now lead at queshi.
         let d = PinyinDict::embedded();
         let cands = d.lookup("queshi");
-        assert_eq!(cands.first().map(String::as_str), Some("缺失"),
+        assert_eq!(
+            cands.first().map(String::as_str),
+            Some("缺失"),
             "expected 缺失 #1 (was 确实 before polish-log auto-tune); top5={:?}",
-            cands.iter().take(5).collect::<Vec<_>>());
+            cands.iter().take(5).collect::<Vec<_>>()
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1395,12 +1418,18 @@ mod tests {
         // 'yu' previously had 於 (49376) > 于 (49010); after strip,
         // 於 row is gone so 于 has no competition from traditional.
         let yu_cands = d.lookup("yu");
-        assert!(!yu_cands.iter().take(5).any(|w| w == "於"),
-            "於 should be stripped; got top5={:?}", &yu_cands[..yu_cands.len().min(5)]);
+        assert!(
+            !yu_cands.iter().take(5).any(|w| w == "於"),
+            "於 should be stripped; got top5={:?}",
+            &yu_cands[..yu_cands.len().min(5)]
+        );
         // 'guo' previously had 國 (49746) competing with 国 (50333).
         let guo_cands = d.lookup("guo");
-        assert!(!guo_cands.iter().take(5).any(|w| w == "國"),
-            "國 should be stripped; got top5={:?}", &guo_cands[..guo_cands.len().min(5)]);
+        assert!(
+            !guo_cands.iter().take(5).any(|w| w == "國"),
+            "國 should be stripped; got top5={:?}",
+            &guo_cands[..guo_cands.len().min(5)]
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1416,8 +1445,10 @@ mod tests {
         let has_common_followers = ["的", "在", "是", "我", "我们"]
             .iter()
             .any(|w| words.contains(w));
-        assert!(has_common_followers,
-            "expected at least one of 的/在/是/我/我们 in 今天 predictions; got {words:?}");
+        assert!(
+            has_common_followers,
+            "expected at least one of 的/在/是/我/我们 in 今天 predictions; got {words:?}"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1430,13 +1461,14 @@ mod tests {
         // per the conservative-mode rule "联想是附加的好处，没有足够
         // 的证据就不要联想".
         let d = PinyinDict::embedded();
-        let with_context = d.predict_next_words_context(
-            Some("今天"), "的", 10);
+        let with_context = d.predict_next_words_context(Some("今天"), "的", 10);
         // Either empty (trigram count below threshold) OR all hits
         // sorted desc by count — both valid.
         for w in with_context.windows(2) {
-            assert!(w[0].1 >= w[1].1,
-                "trigram results must be sorted desc; got {w:?}");
+            assert!(
+                w[0].1 >= w[1].1,
+                "trigram results must be sorted desc; got {w:?}"
+            );
         }
     }
 
@@ -1454,11 +1486,12 @@ mod tests {
         let d = PinyinDict::embedded();
         // 锟斤拷 is mojibake — won't appear as prev_prev in any
         // real trigram, so (锟斤拷, 我们, *) trigram lookup is empty.
-        let chained = d.predict_next_words_context(
-            Some("锟斤拷"), "我们", 5);
-        assert!(chained.is_empty(),
+        let chained = d.predict_next_words_context(Some("锟斤拷"), "我们", 5);
+        assert!(
+            chained.is_empty(),
             "chained prediction with empty trigram must NOT backoff to bigram; \
-             got {chained:?}");
+             got {chained:?}"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1471,10 +1504,14 @@ mod tests {
         // every returned count must still be >= 15 (sub-15 noise stays cut).
         let d = PinyinDict::embedded();
         let r = d.predict_next_words_context(Some("我们"), "的", 10);
-        assert!(!r.is_empty(),
-            "我们的 should predict at threshold 15 (counts 40/30/19); got empty");
-        assert!(r.iter().all(|(_, c)| *c >= 15),
-            "every prediction must clear the 15 threshold; got {r:?}");
+        assert!(
+            !r.is_empty(),
+            "我们的 should predict at threshold 15 (counts 40/30/19); got empty"
+        );
+        assert!(
+            r.iter().all(|(_, c)| *c >= 15),
+            "every prediction must clear the 15 threshold; got {r:?}"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1486,9 +1523,11 @@ mod tests {
         // Single bigram signal is too noisy to predict from.
         let d = PinyinDict::embedded();
         let cold = d.predict_next_words_context(None, "我们", 5);
-        assert!(cold.is_empty(),
+        assert!(
+            cold.is_empty(),
             "cold start (no prev_prev) must return empty under v1.4 strict; \
-             got {cold:?}");
+             got {cold:?}"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1496,11 +1535,16 @@ mod tests {
     fn predict_next_words_sorted_desc() {
         let d = PinyinDict::embedded();
         let preds = d.predict_next_words("我们", 5);
-        if preds.len() < 2 { return; }  // bail if data too sparse
+        if preds.len() < 2 {
+            return;
+        } // bail if data too sparse
         for w in preds.windows(2) {
-            assert!(w[0].1 >= w[1].1,
+            assert!(
+                w[0].1 >= w[1].1,
                 "predictions must be sorted by count desc; got {:?} then {:?}",
-                w[0], w[1]);
+                w[0],
+                w[1]
+            );
         }
     }
 
@@ -1564,11 +1608,17 @@ mod tests {
             panic!("expected some segmentation for nihaomawojiao");
         };
         eprintln!("nihaomawojiao → {chain:?} (score {score})");
-        assert!(chain.chars().all(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)),
-            "expected pure-CJK segmentation, got {chain:?}");
+        assert!(
+            chain
+                .chars()
+                .all(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)),
+            "expected pure-CJK segmentation, got {chain:?}"
+        );
         let char_count = chain.chars().count();
-        assert!((4..=7).contains(&char_count),
-            "expected 4-7 CJK chars, got {char_count} in {chain:?}");
+        assert!(
+            (4..=7).contains(&char_count),
+            "expected 4-7 CJK chars, got {char_count} in {chain:?}"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1625,19 +1675,27 @@ mod tests {
             );
             if !cfg!(debug_assertions) {
                 if min > MIN_BUDGET_NS {
-                    eprintln!("  ^^ FAIL: min {:.2}ms exceeds {}ms uncontended budget",
-                        min as f64 / 1_000_000.0, MIN_BUDGET_NS / 1_000_000);
+                    eprintln!(
+                        "  ^^ FAIL: min {:.2}ms exceeds {}ms uncontended budget",
+                        min as f64 / 1_000_000.0,
+                        MIN_BUDGET_NS / 1_000_000
+                    );
                     all_passed = false;
                 }
                 if p95 > MAX_BUDGET_NS {
-                    eprintln!("  ^^ FAIL: p95 {:.2}ms exceeds {}ms",
-                        p95 as f64 / 1_000_000.0, MAX_BUDGET_NS / 1_000_000);
+                    eprintln!(
+                        "  ^^ FAIL: p95 {:.2}ms exceeds {}ms",
+                        p95 as f64 / 1_000_000.0,
+                        MAX_BUDGET_NS / 1_000_000
+                    );
                     all_passed = false;
                 }
             }
         }
-        assert!(all_passed || cfg!(debug_assertions),
-            "perfgate-predict failed — see eprintln above");
+        assert!(
+            all_passed || cfg!(debug_assertions),
+            "perfgate-predict failed — see eprintln above"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]

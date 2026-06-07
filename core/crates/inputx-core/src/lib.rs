@@ -25,9 +25,11 @@ pub mod japanese;
 pub mod locale;
 pub mod wubi;
 
-pub use composite::{Candidate, CompositeEngine, Mode as EngineMode, PinyinAdapter, ScoreComponents, Source};
+pub use crate::wubi::{AutoCommitPolicy, L0Snapshot, WubiEngine, export_l0, import_l0};
+pub use composite::{
+    Candidate, CompositeEngine, Mode as EngineMode, PinyinAdapter, ScoreComponents, Source,
+};
 pub use input_mode::InputMode;
 pub use locale::punct::{SmartQuoteState, ascii_to_cjk_punct};
 pub use locale::width::{full_width, half_width};
 pub use session::Session;
-pub use crate::wubi::{AutoCommitPolicy, L0Snapshot, WubiEngine, export_l0, import_l0};

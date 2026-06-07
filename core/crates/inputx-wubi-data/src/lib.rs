@@ -41,15 +41,15 @@ use std::sync::OnceLock;
 
 use inputx_dict_format::IdfReader;
 
-pub use table::{
-    export_l0, import_l0, is_displayable, lookup, lookup_with_freq_layer,
-    lookup_with_layer, lookup_with_scores, pinned_word, prefix_predictions,
-    record_pick, set_show_rare, show_rare, warmup,
-};
 /// Re-export of the wubi L0 snapshot type so hosts can build /
 /// destructure it without depending on the `inputx-wubi` crate
 /// directly.
 pub use inputx_wubi::L0Snapshot;
+pub use table::{
+    export_l0, import_l0, is_displayable, lookup, lookup_with_freq_layer, lookup_with_layer,
+    lookup_with_scores, pinned_word, prefix_predictions, record_pick, set_show_rare, show_rare,
+    warmup,
+};
 
 /// Embedded IDFv1 wubi dict blob, sourced from
 /// `inputx-wubi-data/data/words.idf` at compile time. Each entry's
@@ -57,8 +57,7 @@ pub use inputx_wubi::L0Snapshot;
 /// (v1.4.7 sub-phase A4 step 2 schema bump), so cement-side fills
 /// can reconstruct `(word, layer, raw_freq)` without re-reading the
 /// `inputx_wubi::WubiDict` table.
-pub const EMBEDDED_WUBI_IDF: &[u8] =
-    include_bytes!("../data/words.idf");
+pub const EMBEDDED_WUBI_IDF: &[u8] = include_bytes!("../data/words.idf");
 
 /// Process-global [`IdfReader`] over [`EMBEDDED_WUBI_IDF`]. Parses
 /// the 4 MB header / FST / entry-table sections once and amortizes
@@ -85,12 +84,7 @@ pub fn wubi_idf_reader() -> &'static IdfReader<&'static [u8]> {
 /// construction.
 pub fn wubi_corpus_total() -> u64 {
     static TOTAL: OnceLock<u64> = OnceLock::new();
-    *TOTAL.get_or_init(|| {
-        wubi_idf_reader()
-            .entries()
-            .map(|e| e.raw_freq as u64)
-            .sum()
-    })
+    *TOTAL.get_or_init(|| wubi_idf_reader().entries().map(|e| e.raw_freq as u64).sum())
 }
 
 /// Decode an IDF wubi entry's `EntryFlags::engine_tag()` back into
@@ -112,7 +106,11 @@ mod tests {
         let hits = r.lookup(b"g");
         assert!(!hits.is_empty(), "g must have at least one Jianma1 entry");
         let yi = hits.iter().find(|e| e.word == "一");
-        assert!(yi.is_some(), "g → 一 expected; got readings {:?}", hits.iter().map(|e| e.word).collect::<Vec<_>>());
+        assert!(
+            yi.is_some(),
+            "g → 一 expected; got readings {:?}",
+            hits.iter().map(|e| e.word).collect::<Vec<_>>()
+        );
         let yi = yi.unwrap();
         assert_eq!(
             layer_from_idf_tag(yi.flags.engine_tag()),

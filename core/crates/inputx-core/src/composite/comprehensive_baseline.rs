@@ -29,32 +29,54 @@ mod tests {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::Mixed);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in buffer { let _ = e.handle_letter(*b); }
-        e.candidates().first().map(|c| c.word.clone()).unwrap_or_default()
+        for b in buffer {
+            let _ = e.handle_letter(*b);
+        }
+        e.candidates()
+            .first()
+            .map(|c| c.word.clone())
+            .unwrap_or_default()
     }
 
     fn mixed_top10(buffer: &[u8]) -> Vec<String> {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::Mixed);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in buffer { let _ = e.handle_letter(*b); }
-        e.candidates().iter().take(10).map(|c| c.word.clone()).collect()
+        for b in buffer {
+            let _ = e.handle_letter(*b);
+        }
+        e.candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect()
     }
 
     fn pinyin_top(buffer: &[u8]) -> String {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::PinyinOnly);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in buffer { let _ = e.handle_letter(*b); }
-        e.candidates().first().map(|c| c.word.clone()).unwrap_or_default()
+        for b in buffer {
+            let _ = e.handle_letter(*b);
+        }
+        e.candidates()
+            .first()
+            .map(|c| c.word.clone())
+            .unwrap_or_default()
     }
 
     fn pinyin_top10(buffer: &[u8]) -> Vec<String> {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::PinyinOnly);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in buffer { let _ = e.handle_letter(*b); }
-        e.candidates().iter().take(10).map(|c| c.word.clone()).collect()
+        for b in buffer {
+            let _ = e.handle_letter(*b);
+        }
+        e.candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect()
     }
 
     fn jp_enabled_pinyin_only_top(buffer: &[u8]) -> String {
@@ -64,11 +86,21 @@ mod tests {
         e.set_mode(Mode::PinyinOnly);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
         e.set_japanese_enabled(true);
-        for b in buffer { let _ = e.handle_letter(*b); }
-        e.candidates().first().map(|c| c.word.clone()).unwrap_or_default()
+        for b in buffer {
+            let _ = e.handle_letter(*b);
+        }
+        e.candidates()
+            .first()
+            .map(|c| c.word.clone())
+            .unwrap_or_default()
     }
 
-    fn run(label: &str, cases: &[(&str, &str)], top_fn: impl Fn(&[u8]) -> String, top10_fn: impl Fn(&[u8]) -> Vec<String>) {
+    fn run(
+        label: &str,
+        cases: &[(&str, &str)],
+        top_fn: impl Fn(&[u8]) -> String,
+        top10_fn: impl Fn(&[u8]) -> Vec<String>,
+    ) {
         let mut failures: Vec<String> = Vec::new();
         for (buf, expected) in cases {
             let actual = top_fn(buf.as_bytes());
@@ -84,7 +116,12 @@ mod tests {
         }
     }
 
-    fn run_acceptable(label: &str, cases: &[(&str, &[&str])], top_fn: impl Fn(&[u8]) -> String, top10_fn: impl Fn(&[u8]) -> Vec<String>) {
+    fn run_acceptable(
+        label: &str,
+        cases: &[(&str, &[&str])],
+        top_fn: impl Fn(&[u8]) -> String,
+        top10_fn: impl Fn(&[u8]) -> Vec<String>,
+    ) {
         let mut failures: Vec<String> = Vec::new();
         for (buf, acceptable) in cases {
             let actual = top_fn(buf.as_bytes());
@@ -110,12 +147,31 @@ mod tests {
         // is a wubi key has a designated Jianma1 char. These MUST
         // lead in Mixed mode (Inputx is 五笔 IME first).
         let cases: &[(&str, &str)] = &[
-            ("g", "一"), ("f", "地"), ("d", "在"), ("s", "要"), ("a", "工"),
-            ("h", "上"), ("j", "是"), ("k", "中"), ("l", "国"),
-            ("m", "同"), ("t", "和"), ("r", "的"), ("e", "有"), ("w", "人"),
-            ("q", "我"), ("y", "主"), ("u", "产"), ("i", "不"), ("o", "为"),
+            ("g", "一"),
+            ("f", "地"),
+            ("d", "在"),
+            ("s", "要"),
+            ("a", "工"),
+            ("h", "上"),
+            ("j", "是"),
+            ("k", "中"),
+            ("l", "国"),
+            ("m", "同"),
+            ("t", "和"),
+            ("r", "的"),
+            ("e", "有"),
+            ("w", "人"),
+            ("q", "我"),
+            ("y", "主"),
+            ("u", "产"),
+            ("i", "不"),
+            ("o", "为"),
             ("p", "这"),
-            ("n", "民"), ("b", "了"), ("v", "发"), ("c", "以"), ("x", "经"),
+            ("n", "民"),
+            ("b", "了"),
+            ("v", "发"),
+            ("c", "以"),
+            ("x", "经"),
         ];
         run("jianma1", cases, mixed_top, mixed_top10);
     }
@@ -136,18 +192,43 @@ mod tests {
         // a new wubi simcode is added or freq shifts, this list is
         // re-generated from python audit.
         let cases: &[(&str, &str)] = &[
-            ("gi", "不"), ("vb", "好"), ("yi", "就"), ("sv", "要"),
-            ("yu", "说"), ("go", "来"), ("ce", "能"), ("im", "没"),
-            ("et", "用"), ("pe", "家"), ("ih", "小"), ("wu", "们"),
-            ("ue", "前"), ("ra", "找"), ("wv", "分"), ("uk", "部"),
-            ("if", "法"), ("ga", "开"), ("iv", "当"), ("na", "民"),
-            ("ip", "学"), ("ey", "及"), ("ep", "爱"), ("ua", "并"),
-            ("vk", "如"), ("ta", "长"), ("wa", "代"), ("kv", "哪"),
-            ("ya", "度"), ("ak", "或"),
+            ("gi", "不"),
+            ("vb", "好"),
+            ("yi", "就"),
+            ("sv", "要"),
+            ("yu", "说"),
+            ("go", "来"),
+            ("ce", "能"),
+            ("im", "没"),
+            ("et", "用"),
+            ("pe", "家"),
+            ("ih", "小"),
+            ("wu", "们"),
+            ("ue", "前"),
+            ("ra", "找"),
+            ("wv", "分"),
+            ("uk", "部"),
+            ("if", "法"),
+            ("ga", "开"),
+            ("iv", "当"),
+            ("na", "民"),
+            ("ip", "学"),
+            ("ey", "及"),
+            ("ep", "爱"),
+            ("ua", "并"),
+            ("vk", "如"),
+            ("ta", "长"),
+            ("wa", "代"),
+            ("kv", "哪"),
+            ("ya", "度"),
+            ("ak", "或"),
             // Plus original 4 user-explicit (covered in wubi_simcode_priority
             // too; here for crowd-coverage).
-            ("ge", "表"), ("da", "左"),
-            ("wo", "伙"), ("ni", "悄"), ("de", "胡"),
+            ("ge", "表"),
+            ("da", "左"),
+            ("wo", "伙"),
+            ("ni", "悄"),
+            ("de", "胡"),
             // 2026-06-06 — user reverted (fa, 载) demote from the
             // 2026-06-03 tier_overlay sweep.
             ("fa", "载"),
@@ -170,21 +251,62 @@ mod tests {
     #[test]
     fn pinyin_only_auto_clear_winners() {
         let cases: &[(&str, &str)] = &[
-            ("wo", "我"), ("le", "了"), ("liao", "了"), ("jiu", "就"),
-            ("yao", "要"), ("shuo", "说"), ("hen", "很"), ("lai", "来"),
-            ("dou", "都"), ("zan", "赞"), ("rang", "让"), ("kan", "看"),
-            ("zhen", "真"), ("yong", "用"), ("duo", "多"), ("xia", "下"),
-            ("ne", "呢"), ("bie", "别"), ("zou", "走"), ("cong", "从"),
-            ("ri", "日"), ("geng", "更"), ("kai", "开"), ("ben", "本"),
-            ("min", "民"), ("wai", "外"), ("te", "特"), ("nv", "女"),
-            ("nei", "内"), ("niu", "牛"), ("chan", "产"), ("qun", "群"),
-            ("ka", "卡"), ("pu", "普"), ("zhua", "抓"), ("ha", "哈"),
-            ("zeng", "增"), ("mang", "忙"), ("piao", "票"), ("cang", "藏"),
-            ("zhun", "准"), ("zhui", "追"), ("tuan", "团"), ("leng", "冷"),
-            ("diu", "丢"), ("rui", "瑞"), ("fou", "否"), ("ken", "肯"),
-            ("niang", "娘"), ("zen", "怎"), ("shun", "顺"), ("ca", "擦"),
-            ("mie", "灭"), ("nuan", "暖"),
-            ("keng", "坑"), ("ang", "昂"),
+            ("wo", "我"),
+            ("le", "了"),
+            ("liao", "了"),
+            ("jiu", "就"),
+            ("yao", "要"),
+            ("shuo", "说"),
+            ("hen", "很"),
+            ("lai", "来"),
+            ("dou", "都"),
+            ("zan", "赞"),
+            ("rang", "让"),
+            ("kan", "看"),
+            ("zhen", "真"),
+            ("yong", "用"),
+            ("duo", "多"),
+            ("xia", "下"),
+            ("ne", "呢"),
+            ("bie", "别"),
+            ("zou", "走"),
+            ("cong", "从"),
+            ("ri", "日"),
+            ("geng", "更"),
+            ("kai", "开"),
+            ("ben", "本"),
+            ("min", "民"),
+            ("wai", "外"),
+            ("te", "特"),
+            ("nv", "女"),
+            ("nei", "内"),
+            ("niu", "牛"),
+            ("chan", "产"),
+            ("qun", "群"),
+            ("ka", "卡"),
+            ("pu", "普"),
+            ("zhua", "抓"),
+            ("ha", "哈"),
+            ("zeng", "增"),
+            ("mang", "忙"),
+            ("piao", "票"),
+            ("cang", "藏"),
+            ("zhun", "准"),
+            ("zhui", "追"),
+            ("tuan", "团"),
+            ("leng", "冷"),
+            ("diu", "丢"),
+            ("rui", "瑞"),
+            ("fou", "否"),
+            ("ken", "肯"),
+            ("niang", "娘"),
+            ("zen", "怎"),
+            ("shun", "顺"),
+            ("ca", "擦"),
+            ("mie", "灭"),
+            ("nuan", "暖"),
+            ("keng", "坑"),
+            ("ang", "昂"),
         ];
         run("auto_clear", cases, pinyin_top, pinyin_top10);
     }
@@ -193,29 +315,46 @@ mod tests {
     fn pinyin_only_extended_common_words() {
         let cases: &[(&str, &str)] = &[
             // Pronouns + family + people.
-            ("nimen", "你们"), ("tamen", "他们"), ("zanmen", "咱们"),
-            ("mama", "妈妈"), ("baba", "爸爸"), ("gege", "哥哥"),
-            ("jiejie", "姐姐"), ("didi", "弟弟"), ("meimei", "妹妹"),
+            ("nimen", "你们"),
+            ("tamen", "他们"),
+            ("zanmen", "咱们"),
+            ("mama", "妈妈"),
+            ("baba", "爸爸"),
+            ("gege", "哥哥"),
+            ("jiejie", "姐姐"),
+            ("didi", "弟弟"),
+            ("meimei", "妹妹"),
             // Time.
-            ("zaoshang", "早上"), ("shangwu", "上午"),
-            ("xiawu", "下午"), ("wanshang", "晚上"),
-            ("mingtian", "明天"), ("zuotian", "昨天"),
+            ("zaoshang", "早上"),
+            ("shangwu", "上午"),
+            ("xiawu", "下午"),
+            ("wanshang", "晚上"),
+            ("mingtian", "明天"),
+            ("zuotian", "昨天"),
             // Common verbs.
             // zhidao: 指导 boosted via polish-log; both 知道/指导
             // are valid common picks. Removed pin.
-            ("renshi", "认识"), ("juede", "觉得"),
-            ("xihuan", "喜欢"), ("xiwang", "希望"),
+            ("renshi", "认识"),
+            ("juede", "觉得"),
+            ("xihuan", "喜欢"),
+            ("xiwang", "希望"),
             // Common nouns.
-            ("difang", "地方"), ("dongxi", "东西"),
-            ("wenti", "问题"), ("yisi", "意思"),
+            ("difang", "地方"),
+            ("dongxi", "东西"),
+            ("wenti", "问题"),
+            ("yisi", "意思"),
             // Common adjectives.
-            ("piaoliang", "漂亮"), ("zhongyao", "重要"),
+            ("piaoliang", "漂亮"),
+            ("zhongyao", "重要"),
             // Daily.
-            ("chifan", "吃饭"), ("zuofan", "做饭"),
+            ("chifan", "吃饭"),
+            ("zuofan", "做饭"),
             ("shuijiao", "睡觉"),
             // Modern.
-            ("shouji", "手机"), ("diannao", "电脑"),
-            ("wangluo", "网络"), ("yidong", "移动"),
+            ("shouji", "手机"),
+            ("diannao", "电脑"),
+            ("wangluo", "网络"),
+            ("yidong", "移动"),
             // polish-log 2026-06-02: 步骤 boosted over 不周 (user:
             // "感觉上 步骤 应该在 不周 前面, 用得更多"). corpus had
             // them within 1k (不周 20613 / 步骤 19628) but steps is
@@ -232,29 +371,63 @@ mod tests {
         // pinyin in pinyin-only mode (matches Sogou/Simeji default).
         let cases: &[(&str, &str)] = &[
             // Particles
-            ("de", "的"), ("le", "了"), ("ma", "吗"), ("ba", "吧"),
-            ("ne", "呢"), ("ya", "呀"), ("la", "啦"), ("a", "啊"),
+            ("de", "的"),
+            ("le", "了"),
+            ("ma", "吗"),
+            ("ba", "吧"),
+            ("ne", "呢"),
+            ("ya", "呀"),
+            ("la", "啦"),
+            ("a", "啊"),
             // Pronouns
-            ("wo", "我"), ("ni", "你"), ("ta", "他"),
+            ("wo", "我"),
+            ("ni", "你"),
+            ("ta", "他"),
             // Common verbs
-            ("kan", "看"), ("ting", "听"), ("zuo", "做"), ("shuo", "说"),
-            ("hao", "好"), ("xiang", "想"),
-            ("xie", "些"), ("xue", "学"), ("xin", "心"), ("xing", "行"),
+            ("kan", "看"),
+            ("ting", "听"),
+            ("zuo", "做"),
+            ("shuo", "说"),
+            ("hao", "好"),
+            ("xiang", "想"),
+            ("xie", "些"),
+            ("xue", "学"),
+            ("xin", "心"),
+            ("xing", "行"),
             // Common nouns
-            ("jia", "家"), ("ren", "人"), ("tian", "天"), ("yue", "月"),
-            ("nian", "年"), ("ri", "日"),
+            ("jia", "家"),
+            ("ren", "人"),
+            ("tian", "天"),
+            ("yue", "月"),
+            ("nian", "年"),
+            ("ri", "日"),
             // Hot single-syllable words.
-            ("di", "的"), ("bu", "不"), ("yi", "一"), ("ji", "给"),
+            ("di", "的"),
+            ("bu", "不"),
+            ("yi", "一"),
+            ("ji", "给"),
             // CP3d-cutover (2026-05-25): 起/发/图 are the colloquial-corpus top
             // (lccc/subtlex via the hybrid normalizer), not the old sum-then-log
             // wiki-leaning 其/法/土. per-source: 起552k≫其181k, 发496k≫法119k in
             // LCCC. IME chat register → colloquial truth. User-approved update.
-            ("qi", "起"), ("ge", "个"), ("du", "都"), ("na", "那"),
-            ("er", "而"), ("fa", "发"), ("ke", "可"),
-            ("an", "安"), ("ai", "爱"),
-            ("hu", "护"), ("he", "和"),
-            ("mu", "目"), ("se", "色"), ("te", "特"), ("ti", "提"),
-            ("tu", "图"), ("xi", "西"), ("ye", "也"),
+            ("qi", "起"),
+            ("ge", "个"),
+            ("du", "都"),
+            ("na", "那"),
+            ("er", "而"),
+            ("fa", "发"),
+            ("ke", "可"),
+            ("an", "安"),
+            ("ai", "爱"),
+            ("hu", "护"),
+            ("he", "和"),
+            ("mu", "目"),
+            ("se", "色"),
+            ("te", "特"),
+            ("ti", "提"),
+            ("tu", "图"),
+            ("xi", "西"),
+            ("ye", "也"),
             ("da", "大"),
             // mo: polish-log lowered threshold caused user-pick 默 to
             // boost above corpus-top 没; both valid. Covered in
@@ -296,20 +469,38 @@ mod tests {
     fn pinyin_only_multi_syllable() {
         let cases: &[(&str, &str)] = &[
             // Polish-log + user-confirmed.
-            ("lixiang", "理想"), ("queshi", "缺失"), ("youshi", "优势"),
-            ("rongyu", "冗余"), ("zhineng", "智能"), ("fanye", "翻页"),
-            ("maoding", "锚定"), ("yuming", "域名"),
+            ("lixiang", "理想"),
+            ("queshi", "缺失"),
+            ("youshi", "优势"),
+            ("rongyu", "冗余"),
+            ("zhineng", "智能"),
+            ("fanye", "翻页"),
+            ("maoding", "锚定"),
+            ("yuming", "域名"),
             // Universal common compounds.
-            ("nihao", "你好"), ("zhongguo", "中国"), ("women", "我们"),
-            ("jintian", "今天"), ("xianzai", "现在"), ("zenme", "怎么"),
-            ("shijian", "时间"), ("yiqi", "一起"), ("yinwei", "因为"),
+            ("nihao", "你好"),
+            ("zhongguo", "中国"),
+            ("women", "我们"),
+            ("jintian", "今天"),
+            ("xianzai", "现在"),
+            ("zenme", "怎么"),
+            ("shijian", "时间"),
+            ("yiqi", "一起"),
+            ("yinwei", "因为"),
             ("suoyi", "所以"),
             // Common 2-char everyday words.
-            ("shenghuo", "生活"), ("gongzuo", "工作"), ("xuexi", "学习"),
-            ("pengyou", "朋友"), ("guojia", "国家"), ("shehui", "社会"),
+            ("shenghuo", "生活"),
+            ("gongzuo", "工作"),
+            ("xuexi", "学习"),
+            ("pengyou", "朋友"),
+            ("guojia", "国家"),
+            ("shehui", "社会"),
             ("jingji", "经济"),
-            ("dianhua", "电话"), ("dianshi", "电视"), ("dianying", "电影"),
-            ("yinyue", "音乐"), ("xinwen", "新闻"),
+            ("dianhua", "电话"),
+            ("dianshi", "电视"),
+            ("dianying", "电影"),
+            ("yinyue", "音乐"),
+            ("xinwen", "新闻"),
             // Polish-log 2026-06-01: julei → 聚类 (cluster — was missing
             // from weights.tsv entirely; only `juleifenxi 聚类分析` existed
             // at freq=0. Added to modern_vocab_v1.tsv at 50k, matching
@@ -406,8 +597,14 @@ mod tests {
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
         e.set_japanese_enabled(true);
         let cases: &[(&str, &str)] = &[
-            ("wo", "伙"), ("ni", "悄"), ("ta", "长"), ("de", "胡"),
-            ("ce", "能"), ("yi", "就"), ("ge", "表"), ("da", "左"),
+            ("wo", "伙"),
+            ("ni", "悄"),
+            ("ta", "长"),
+            ("de", "胡"),
+            ("ce", "能"),
+            ("yi", "就"),
+            ("ge", "表"),
+            ("da", "左"),
         ];
         let mut failures = Vec::new();
         for (buf, expected) in cases {
@@ -415,19 +612,33 @@ mod tests {
             e2.set_mode(Mode::Mixed);
             e2.set_auto_commit_policy(AutoCommitPolicy::Never);
             e2.set_japanese_enabled(true);
-            for b in buf.bytes() { let _ = e2.handle_letter(b); }
-            let top = e2.candidates().first().map(|c| c.word.clone()).unwrap_or_default();
+            for b in buf.bytes() {
+                let _ = e2.handle_letter(b);
+            }
+            let top = e2
+                .candidates()
+                .first()
+                .map(|c| c.word.clone())
+                .unwrap_or_default();
             if top != *expected {
-                let top5: Vec<String> = e2.candidates().iter().take(5)
-                    .map(|c| c.word.clone()).collect();
+                let top5: Vec<String> = e2
+                    .candidates()
+                    .iter()
+                    .take(5)
+                    .map(|c| c.word.clone())
+                    .collect();
                 failures.push(format!(
                     "  Mixed+JP: {buf} expected wubi #0 = {expected}, got {top} (top5={top5:?})"
                 ));
             }
         }
-        let _ = e;  // silence unused
+        let _ = e; // silence unused
         if !failures.is_empty() {
-            panic!("{} jp+mixed wubi cases failed:\n{}", failures.len(), failures.join("\n"));
+            panic!(
+                "{} jp+mixed wubi cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -438,17 +649,19 @@ mod tests {
     #[test]
     fn japanese_only_mode_produces_jp_candidates() {
         let cases: &[&str] = &[
-            "konnichiwa",  // こんにちは / 今日は etc.
-            "arigatou",    // ありがとう / 有難う
-            "watashi",     // 私 / わたし
-            "ohayou",      // おはよう
+            "konnichiwa", // こんにちは / 今日は etc.
+            "arigatou",   // ありがとう / 有難う
+            "watashi",    // 私 / わたし
+            "ohayou",     // おはよう
         ];
         let mut failures = Vec::new();
         for input in cases {
             let mut e = CompositeEngine::new();
             e.set_mode(Mode::JapaneseOnly);
             e.set_auto_commit_policy(AutoCommitPolicy::Never);
-            for b in input.bytes() { let _ = e.handle_letter(b); }
+            for b in input.bytes() {
+                let _ = e.handle_letter(b);
+            }
             let cands = e.candidates();
             if cands.is_empty() {
                 failures.push(format!("  {input}: zero candidates in JapaneseOnly"));
@@ -458,12 +671,17 @@ mod tests {
             let top = &cands[0];
             if !matches!(top.source, crate::composite::Source::Japanese) {
                 failures.push(format!(
-                    "  {input}: top source = {:?}, expected Japanese", top.source));
+                    "  {input}: top source = {:?}, expected Japanese",
+                    top.source
+                ));
             }
         }
         if !failures.is_empty() {
-            panic!("{} JapaneseOnly cases failed:\n{}",
-                failures.len(), failures.join("\n"));
+            panic!(
+                "{} JapaneseOnly cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -475,8 +693,13 @@ mod tests {
         // = 150k + 100·3000 = 450k, comfortably below pinyin top
         // (~465k for the/le/ma/ba/etc.) so JP no longer overwrites.
         let cases: &[(&str, &str)] = &[
-            ("di", "的"), ("le", "了"), ("ma", "吗"), ("ba", "吧"),
-            ("ne", "呢"), ("zhongguo", "中国"), ("women", "我们"),
+            ("di", "的"),
+            ("le", "了"),
+            ("ma", "吗"),
+            ("ba", "吧"),
+            ("ne", "呢"),
+            ("zhongguo", "中国"),
+            ("women", "我们"),
             ("nihao", "你好"),
             // Phase C 2026-06-03: tuijian 推荐 was user-reported as
             // failing post-Phase-B (mechanical kana ついじあん was
@@ -511,11 +734,17 @@ mod tests {
         for (buf, expected) in cases {
             let actual = jp_enabled_pinyin_only_top(buf.as_bytes());
             if actual != *expected {
-                failures.push(format!("  jp_on: {buf:<10} → got {actual}, expected {expected}"));
+                failures.push(format!(
+                    "  jp_on: {buf:<10} → got {actual}, expected {expected}"
+                ));
             }
         }
         if !failures.is_empty() {
-            panic!("{} JP-on cases failed:\n{}", failures.len(), failures.join("\n"));
+            panic!(
+                "{} JP-on cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -550,13 +779,17 @@ mod tests {
     fn predictions_empty_after_single_commit() {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::PinyinOnly);
-        for b in b"jintian" { let _ = e.handle_letter(*b); }
+        for b in b"jintian" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         if let Some(idx) = cands.iter().position(|c| c.word == "今天") {
             let _ = e.commit_index(idx);
         }
-        assert!(e.predicted_candidates().is_empty(),
-            "v1.5 strict: single commit insufficient evidence");
+        assert!(
+            e.predicted_candidates().is_empty(),
+            "v1.5 strict: single commit insufficient evidence"
+        );
     }
 
     #[test]
@@ -565,22 +798,33 @@ mod tests {
         // it must be filtered.
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::PinyinOnly);
-        for b in b"zhongguo" { let _ = e.handle_letter(*b); }
+        for b in b"zhongguo" {
+            let _ = e.handle_letter(*b);
+        }
         if let Some(idx) = e.candidates().iter().position(|c| c.word == "中国") {
             let _ = e.commit_index(idx);
         }
-        for b in b"renmin" { let _ = e.handle_letter(*b); }
+        for b in b"renmin" {
+            let _ = e.handle_letter(*b);
+        }
         if let Some(idx) = e.candidates().iter().position(|c| c.word == "人民") {
             let _ = e.commit_index(idx);
         }
-        let preds_before = e.predicted_candidates().iter()
-            .map(|c| c.word.clone()).collect::<Vec<_>>();
+        let preds_before = e
+            .predicted_candidates()
+            .iter()
+            .map(|c| c.word.clone())
+            .collect::<Vec<_>>();
         // 中国 must NOT be in predictions (it's in recent_committed).
-        assert!(!preds_before.contains(&"中国".to_string()),
-            "recent-committed dedup must drop 中国 from predictions; got {preds_before:?}");
+        assert!(
+            !preds_before.contains(&"中国".to_string()),
+            "recent-committed dedup must drop 中国 from predictions; got {preds_before:?}"
+        );
         // 人民 must also be dedup'd.
-        assert!(!preds_before.contains(&"人民".to_string()),
-            "recent-committed dedup must drop 人民; got {preds_before:?}");
+        assert!(
+            !preds_before.contains(&"人民".to_string()),
+            "recent-committed dedup must drop 人民; got {preds_before:?}"
+        );
     }
 
     // ───────────────────────────────────────────────────────────
@@ -600,7 +844,7 @@ mod tests {
             // (shi, 椒) removed 2026-06-03 per user "shi 肯定不能是 椒，
             // 要是 '是'" — moved to tier_overlay tier 5; protection
             // semantics for that pair retired.
-            ("you", "亦"),    // existing protected
+            ("you", "亦"), // existing protected
         ];
         run("jianma3", cases, mixed_top, mixed_top10);
     }
@@ -617,7 +861,9 @@ mod tests {
     /// surface in PinyinOnly mode top10.
     #[test]
     fn viterbi_composition_surfaces_for_long_buffers() {
-        if super::super::pinyin_adapter::PINYIN_DISABLE_COMPOSE { return; }
+        if super::super::pinyin_adapter::PINYIN_DISABLE_COMPOSE {
+            return;
+        }
         // Each entry MUST have ceil((N-1)/2) bigram-table-present
         // links to survive the stricter quality gate added 2026-06-02
         // (user report: kakarimasu force-segmentation). Real Chinese
@@ -627,7 +873,7 @@ mod tests {
         // out of 3 links) drop, matching user's explicit judgment
         // (`你好吗我叫 这也不算是个句子, 这个其实也不应该出现`).
         let cases: &[(&str, &str)] = &[
-            ("yongbuliao", "用不了"),     // user-reported 2026-05-24
+            ("yongbuliao", "用不了"), // user-reported 2026-05-24
             ("zhongguoren", "中国人"),
         ];
         let mut failures = Vec::new();
@@ -640,7 +886,11 @@ mod tests {
             }
         }
         if !failures.is_empty() {
-            panic!("{} viterbi cases failed:\n{}", failures.len(), failures.join("\n"));
+            panic!(
+                "{} viterbi cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -673,13 +923,15 @@ mod tests {
                 ));
             }
             if !top10.iter().any(|w| w == good) {
-                failures.push(format!(
-                    "  {buf}: expected {good} in top10; got {top10:?}"
-                ));
+                failures.push(format!("  {buf}: expected {good} in top10; got {top10:?}"));
             }
         }
         if !failures.is_empty() {
-            panic!("{} K-best noise cases failed:\n{}", failures.len(), failures.join("\n"));
+            panic!(
+                "{} K-best noise cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -701,8 +953,11 @@ mod tests {
             }
         }
         if !failures.is_empty() {
-            panic!("{} jianma-cleanup cases failed:\n{}",
-                failures.len(), failures.join("\n"));
+            panic!(
+                "{} jianma-cleanup cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -713,8 +968,8 @@ mod tests {
         let cases: &[(&str, &str)] = &[
             // (shi, 椒) retired 2026-06-03 — user "shi 肯定不能是 椒，
             // 要是 '是'"; pair moved to tier_overlay tier 5.
-            ("you", "亦"),    // protected
-            // Additional 3-letter sample.
+            ("you", "亦"), // protected
+                           // Additional 3-letter sample.
         ];
         run("jianma3_ext", cases, mixed_top, mixed_top10);
     }
@@ -750,19 +1005,52 @@ mod tests {
     /// asserts each returns >= 1 candidate.
     #[test]
     fn every_common_pinyin_returns_nonempty_candidates() {
-        if super::super::pinyin_adapter::PINYIN_DISABLE_COMPOSE { return; }
+        if super::super::pinyin_adapter::PINYIN_DISABLE_COMPOSE {
+            return;
+        }
         let codes: &[&str] = &[
             // Single-syllable particles.
-            "de", "le", "ma", "ba", "ne", "ya", "la",
-            "a", "e", "o",
+            "de",
+            "le",
+            "ma",
+            "ba",
+            "ne",
+            "ya",
+            "la",
+            "a",
+            "e",
+            "o",
             // Single-syllable common.
-            "wo", "ni", "ta", "shi", "de", "ge", "yi", "ji",
-            "di", "bu", "qi", "fa", "le", "ke", "hu", "he",
+            "wo",
+            "ni",
+            "ta",
+            "shi",
+            "de",
+            "ge",
+            "yi",
+            "ji",
+            "di",
+            "bu",
+            "qi",
+            "fa",
+            "le",
+            "ke",
+            "hu",
+            "he",
             // Two-syllable common compounds.
-            "women", "tamen", "nihao", "zhongguo", "jintian",
-            "xianzai", "shijian", "wenti", "dongxi", "difang",
+            "women",
+            "tamen",
+            "nihao",
+            "zhongguo",
+            "jintian",
+            "xianzai",
+            "shijian",
+            "wenti",
+            "dongxi",
+            "difang",
             // Three-syllable.
-            "buguoshi", "shihaohao",
+            "buguoshi",
+            "shihaohao",
             // `fenkuaikai` removed 2026-06-03 — not a real Chinese phrase;
             // previously composed as 分会开 via 会's secondary (kuai)
             // reading, which has been retired in exclusions_v1.tsv. Same
@@ -790,8 +1078,11 @@ mod tests {
             }
         }
         if !failures.is_empty() {
-            panic!("{} empty-result regressions:\n{}",
-                failures.len(), failures.join("\n"));
+            panic!(
+                "{} empty-result regressions:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -809,8 +1100,11 @@ mod tests {
         // Either the 5th byte triggered ASCII fallback (Some commit
         // returned), OR engine accumulated and we should check the
         // commit drain.
-        assert_eq!(last_commit.as_deref(), Some("qwxzy"),
-            "expected ASCII fallback to commit 'qwxzy' as raw ASCII");
+        assert_eq!(
+            last_commit.as_deref(),
+            Some("qwxzy"),
+            "expected ASCII fallback to commit 'qwxzy' as raw ASCII"
+        );
     }
 
     #[test]
@@ -821,7 +1115,9 @@ mod tests {
         let mut s = Session::new();
         s.set_auto_commit_policy(AutoCommitPolicy::Never);
         // Type a clearly non-pinyin sequence.
-        for cp in b"hellox" { s.handle_key(*cp as u32, 0); }
+        for cp in b"hellox" {
+            s.handle_key(*cp as u32, 0);
+        }
         let preedit = s.preedit().to_string();
         // ASCII fallback path commits to take_commit OR leaves the
         // buffer present for the user to escape. Either way, the
@@ -829,8 +1125,10 @@ mod tests {
         // user can escape to ASCII.
         let cands = s.candidates();
         // Smoke: not panicking is the main contract here.
-        eprintln!("hellox preedit={preedit:?} cands_top5={:?}",
-            cands.iter().take(5).collect::<Vec<_>>());
+        eprintln!(
+            "hellox preedit={preedit:?} cands_top5={:?}",
+            cands.iter().take(5).collect::<Vec<_>>()
+        );
     }
 
     // ───────────────────────────────────────────────────────────
@@ -845,16 +1143,16 @@ mod tests {
         // overriding the historical signal when the context that produced
         // the picks isn't representative of daily usage.
         let cases: &[(&str, &str)] = &[
-            ("queshi", "缺失"),   // user picked 4× over 确实
-            ("youshi", "优势"),   // 5×
-            ("rongyu", "冗余"),   // 5×
+            ("queshi", "缺失"), // user picked 4× over 确实
+            ("youshi", "优势"), // 5×
+            ("rongyu", "冗余"), // 5×
             // jixu: polish-log 28× had been 积蓄 (likely from a
             // financial-context typing burst). User re-attestation 2026-05-26
             // direct screenshot: "继续还是应该在第一的，这个感觉比积蓄要高频" —
             // daily-use 继续 dominates. prior_correction × 2 on 继续 enforces
             // this; baseline test follows the user's overriding pick.
             ("jixu", "继续"),
-            ("yuming", "域名"),   // 4× + modern_vocab
+            ("yuming", "域名"), // 4× + modern_vocab
             // sheji: user 2026-05-26 screenshot showed 涉及 #1 / 设计 #2.
             // Same pattern as jixu — corpus over-represents 涉及 (academic /
             // news bias). User: "设计肯定应该高于涉及". prior_correction × 2.
@@ -892,8 +1190,11 @@ mod tests {
             }
         }
         if !failures.is_empty() {
-            panic!("{} polish-log added-word cases failed:\n{}",
-                failures.len(), failures.join("\n"));
+            panic!(
+                "{} polish-log added-word cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -934,8 +1235,11 @@ mod tests {
             }
         }
         if !failures.is_empty() {
-            panic!("{} polish-log ordering cases failed:\n{}",
-                failures.len(), failures.join("\n"));
+            panic!(
+                "{} polish-log ordering cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -946,15 +1250,13 @@ mod tests {
 
     #[test]
     fn smoke_user_chinese_phrase_yongbuliao_works() {
-        if super::super::pinyin_adapter::PINYIN_DISABLE_COMPOSE { return; }
+        if super::super::pinyin_adapter::PINYIN_DISABLE_COMPOSE {
+            return;
+        }
         // User-typed 2026-05-24 "xianzai yongbuliao le" (现在用不了了)
         // signaling IME unusable. Sanity: each segment must give the
         // expected Chinese in PinyinOnly mode.
-        let cases: &[(&str, &str)] = &[
-            ("xianzai", "现在"),
-            ("yongbuliao", "用不了"),
-            ("le", "了"),
-        ];
+        let cases: &[(&str, &str)] = &[("xianzai", "现在"), ("yongbuliao", "用不了"), ("le", "了")];
         let mut failures = Vec::new();
         for (buf, expected) in cases {
             let actual = pinyin_top(buf.as_bytes());
@@ -969,7 +1271,11 @@ mod tests {
             }
         }
         if !failures.is_empty() {
-            panic!("{} smoke cases failed:\n{}", failures.len(), failures.join("\n"));
+            panic!(
+                "{} smoke cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -1029,7 +1335,12 @@ mod tests {
         for b in b"yi" {
             let _ = e.handle_letter(*b);
         }
-        let top10: Vec<String> = e.candidates().iter().take(10).map(|c| c.word.clone()).collect();
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
         let top = top10.first().cloned().unwrap_or_default();
 
         // Restore global wubi L0 BEFORE any assert that might panic,
@@ -1104,7 +1415,12 @@ mod tests {
         for b in b"yi" {
             let _ = e.handle_letter(*b);
         }
-        let top10: Vec<String> = e.candidates().iter().take(10).map(|c| c.word.clone()).collect();
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
         let top = top10.first().cloned().unwrap_or_default();
 
         // Restore global wubi L0 BEFORE any assert that might panic.
@@ -1156,7 +1472,12 @@ mod tests {
         for b in b"yi" {
             let _ = e.handle_letter(*b);
         }
-        let top10: Vec<String> = e.candidates().iter().take(10).map(|c| c.word.clone()).collect();
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
         let top = top10.first().cloned().unwrap_or_default();
         assert_eq!(
             top, "就",
@@ -1196,17 +1517,28 @@ mod tests {
         e.set_mode(Mode::Mixed);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
         e.set_japanese_enabled(true);
-        for b in b"kakarimasu" { let _ = e.handle_letter(*b); }
-        let top10: Vec<String> = e.candidates().iter().take(10).map(|c| c.word.clone()).collect();
+        for b in b"kakarimasu" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
         // The garbage force-segmentation must NOT appear in top-10.
-        assert!(!top10.contains(&"卡卡日马苏".to_string()),
+        assert!(
+            !top10.contains(&"卡卡日马苏".to_string()),
             "kakarimasu must drop the mechanical 卡卡日马苏 \
-             force-segmentation; got top10={top10:?}");
+             force-segmentation; got top10={top10:?}"
+        );
         // かかります / カカリマス must lead (the real JP rendering).
         let top = top10.first().cloned().unwrap_or_default();
-        assert!(top == "かかります" || top == "カカリマス",
+        assert!(
+            top == "かかります" || top == "カカリマス",
             "kakarimasu top must be JP basic kana, got {top:?} \
-             (top10={top10:?})");
+             (top10={top10:?})"
+        );
     }
 
     #[test]
@@ -1218,12 +1550,20 @@ mod tests {
         e.set_mode(Mode::Mixed);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
         e.set_japanese_enabled(true);
-        for b in b"kaopu" { let _ = e.handle_letter(*b); }
-        let top = e.candidates().first().map(|c| c.word.clone()).unwrap_or_default();
-        assert_eq!(top, "靠谱",
+        for b in b"kaopu" {
+            let _ = e.handle_letter(*b);
+        }
+        let top = e
+            .candidates()
+            .first()
+            .map(|c| c.word.clone())
+            .unwrap_or_default();
+        assert_eq!(
+            top, "靠谱",
             "kaopu must still surface 靠谱 fallback composition \
              after the stricter bigram gate (real bigram support \
-             from corpus)");
+             from corpus)"
+        );
     }
 
     #[test]
@@ -1250,20 +1590,26 @@ mod tests {
         e.set_mode(Mode::Mixed);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
         e.set_japanese_enabled(true);
-        for b in b"sai" { let _ = e.handle_letter(*b); }
+        for b in b"sai" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         let words: Vec<String> = cands.iter().map(|c| c.word.clone()).collect();
         let sai_idx = words.iter().position(|w| w == "さい");
-        assert!(sai_idx.is_some(),
+        assert!(
+            sai_idx.is_some(),
             "さい must be present in candidates for `sai`; got top15={:?}",
-            &words[..words.len().min(15)]);
+            &words[..words.len().min(15)]
+        );
         let sai_pos = sai_idx.unwrap();
         for rare in ["嘥", "簺", "僿", "鳃"] {
             if let Some(pos) = words.iter().position(|w| w == rare) {
-                assert!(pos > sai_pos,
+                assert!(
+                    pos > sai_pos,
                     "rare-CJK pinyin char `{rare}` must rank BELOW JP basic kana さい \
                      (got rare at #{pos}, さい at #{sai_pos}); first15={:?}",
-                    &words[..words.len().min(15)]);
+                    &words[..words.len().min(15)]
+                );
             }
         }
     }
@@ -1293,16 +1639,18 @@ mod tests {
         let cases: &[(&str, &[&str])] = &[
             // (buffer, sub-word noise that must NOT be top-3)
             ("guanli", &["馆里"]),
-            ("juli",   &["局里", "剧里"]),
+            ("juli", &["局里", "剧里"]),
         ];
         for (buf, noise_set) in cases {
             let top = pinyin_top10(buf.as_bytes());
             for noise in *noise_set {
                 if let Some(pos) = top.iter().position(|w| w == noise) {
-                    assert!(pos >= 3,
+                    assert!(
+                        pos >= 3,
                         "Phase E gate failed for ({buf}, {noise}) — \
                          expected sub-word phrase NOT in top-3, got #{pos}; \
-                         top10={top:?}");
+                         top10={top:?}"
+                    );
                 }
             }
         }
@@ -1323,17 +1671,28 @@ mod tests {
         e.set_mode(Mode::Mixed);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
         e.set_japanese_enabled(true);
-        for b in b"akashi" { let _ = e.handle_letter(*b); }
-        let top: Vec<String> = e.candidates().iter().take(5)
-            .map(|c| c.word.clone()).collect();
-        assert_eq!(top.first().map(String::as_str), Some("明石"),
+        for b in b"akashi" {
+            let _ = e.handle_letter(*b);
+        }
+        let top: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(5)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top.first().map(String::as_str),
+            Some("明石"),
             "akashi mixed+jp top #0 must be JP 明石 (Path 5b fallback \
-             阿卡是 demoted to tier 8); got top={top:?}");
+             阿卡是 demoted to tier 8); got top={top:?}"
+        );
         // 阿卡是 should rank below all JP candidates (明石 / あかし / アカシ).
         if let Some(akashi_idx) = top.iter().position(|w| w == "阿卡是") {
-            assert!(akashi_idx >= 3,
+            assert!(
+                akashi_idx >= 3,
                 "Path 5b fallback 阿卡是 must rank below the 3 JP \
-                 candidates (got #{akashi_idx}); top={top:?}");
+                 candidates (got #{akashi_idx}); top={top:?}"
+            );
         }
     }
 
@@ -1370,17 +1729,26 @@ mod tests {
             e.set_mode(Mode::Mixed);
             e.set_auto_commit_policy(AutoCommitPolicy::Never);
             e.set_japanese_enabled(true);
-            for b in buf.bytes() { let _ = e.handle_letter(b); }
-            let top: Vec<String> = e.candidates().iter().take(15)
-                .map(|c| c.word.clone()).collect();
+            for b in buf.bytes() {
+                let _ = e.handle_letter(b);
+            }
+            let top: Vec<String> = e
+                .candidates()
+                .iter()
+                .take(15)
+                .map(|c| c.word.clone())
+                .collect();
 
             // Collect known nihongo single-kanji words via JapaneseOnly.
             let mut jp = CompositeEngine::new();
             jp.set_mode(Mode::JapaneseOnly);
             jp.set_auto_commit_policy(AutoCommitPolicy::Never);
             jp.set_japanese_enabled(true);
-            for b in buf.bytes() { let _ = jp.handle_letter(b); }
-            let jp_singles: std::collections::HashSet<String> = jp.candidates()
+            for b in buf.bytes() {
+                let _ = jp.handle_letter(b);
+            }
+            let jp_singles: std::collections::HashSet<String> = jp
+                .candidates()
                 .iter()
                 .filter(|c| c.word.chars().count() == 1)
                 .filter(|c| {
@@ -1391,16 +1759,22 @@ mod tests {
                 .collect();
 
             for kana in *basic_kana_set {
-                let kana_idx = top.iter().position(|w| w == kana)
-                    .unwrap_or_else(|| panic!(
+                let kana_idx = top.iter().position(|w| w == kana).unwrap_or_else(|| {
+                    panic!(
                         "basic kana `{kana}` for `{buf}` must appear in top-15; \
-                         got top={top:?}"));
+                         got top={top:?}"
+                    )
+                });
                 for (i, w) in top.iter().enumerate() {
-                    if i >= kana_idx { break; }
-                    assert!(!jp_singles.contains(w),
+                    if i >= kana_idx {
+                        break;
+                    }
+                    assert!(
+                        !jp_singles.contains(w),
                         "nihongo single-kanji `{w}` (#{i}) outranks basic kana \
                          `{kana}` (#{kana_idx}) for `{buf}` — `常规假名短字符\
-                         一定要比其他日语高` invariant broken; top={top:?}");
+                         一定要比其他日语高` invariant broken; top={top:?}"
+                    );
                 }
             }
         }
@@ -1432,10 +1806,10 @@ mod tests {
     #[test]
     fn lue_alias_resolves_to_lve_for_common_words() {
         let cases: &[(&str, &str)] = &[
-            ("celue", "策略"),     // canonical lve: celve
-            ("celve", "策略"),     // canonical spelling still works
-            ("nuedai", "虐待"),    // canonical nve: nvedai
-            ("nvedai", "虐待"),    // canonical spelling still works
+            ("celue", "策略"),  // canonical lve: celve
+            ("celve", "策略"),  // canonical spelling still works
+            ("nuedai", "虐待"), // canonical nve: nvedai
+            ("nvedai", "虐待"), // canonical spelling still works
         ];
         run("lue_nue_alias", cases, pinyin_top, pinyin_top10);
     }
@@ -1446,25 +1820,35 @@ mod tests {
         // must NOT appear in top 5 PinyinOnly candidates.
         let cases: &[(&str, &[&str])] = &[
             // Verified traditional-only forms (NOT same as simplified).
-            ("yu", &["於"]),    // simplified 于 must lead
-            ("guo", &["國", "過"]),   // 国/国, 过/過
-            ("lai", &["來"]),   // 来
-            ("hou", &["後"]),   // 后/後
-            ("hui", &["會"]),   // 会
+            ("yu", &["於"]),        // simplified 于 must lead
+            ("guo", &["國", "過"]), // 国/国, 过/過
+            ("lai", &["來"]),       // 来
+            ("hou", &["後"]),       // 后/後
+            ("hui", &["會"]),       // 会
             ("ma", &["嗎", "媽"]),  // 吗/媽
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
             let top10 = pinyin_top10(buf.as_bytes());
-            let top5: &[String] = if top10.len() < 5 { &top10[..] } else { &top10[..5] };
+            let top5: &[String] = if top10.len() < 5 {
+                &top10[..]
+            } else {
+                &top10[..5]
+            };
             for bad in *blocklist {
                 if top5.iter().any(|w| w == bad) {
-                    failures.push(format!("  {buf}: traditional {bad} in top5 — top5={top5:?}"));
+                    failures.push(format!(
+                        "  {buf}: traditional {bad} in top5 — top5={top5:?}"
+                    ));
                 }
             }
         }
         if !failures.is_empty() {
-            panic!("{} traditional-leak cases failed:\n{}", failures.len(), failures.join("\n"));
+            panic!(
+                "{} traditional-leak cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -1482,19 +1866,25 @@ mod tests {
     #[test]
     fn no_traditional_in_top10_for_common_wubi() {
         let cases: &[(&str, &[&str])] = &[
-            ("yngk", &["詞"]),  // 简体 词 leads; 詞 deleted by 2026-06-06 sweep
+            ("yngk", &["詞"]), // 简体 词 leads; 詞 deleted by 2026-06-06 sweep
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
             let top10 = mixed_top10(buf.as_bytes());
             for bad in *blocklist {
                 if top10.iter().any(|w| w == bad) {
-                    failures.push(format!("  {buf}: traditional {bad} in top10 — top10={top10:?}"));
+                    failures.push(format!(
+                        "  {buf}: traditional {bad} in top10 — top10={top10:?}"
+                    ));
                 }
             }
         }
         if !failures.is_empty() {
-            panic!("{} wubi-trad-leak cases failed:\n{}", failures.len(), failures.join("\n"));
+            panic!(
+                "{} wubi-trad-leak cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -1529,7 +1919,11 @@ mod tests {
             }
         }
         if !failures.is_empty() {
-            panic!("{} er-typo cases failed:\n{}", failures.len(), failures.join("\n"));
+            panic!(
+                "{} er-typo cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -1566,7 +1960,11 @@ mod tests {
             }
         }
         if !failures.is_empty() {
-            panic!("{} rare-wubi-noise cases failed:\n{}", failures.len(), failures.join("\n"));
+            panic!(
+                "{} rare-wubi-noise cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -1593,7 +1991,11 @@ mod tests {
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
             let top10 = mixed_top10(buf.as_bytes());
-            let top7: &[String] = if top10.len() < 7 { &top10[..] } else { &top10[..7] };
+            let top7: &[String] = if top10.len() < 7 {
+                &top10[..]
+            } else {
+                &top10[..7]
+            };
             for bad in *blocklist {
                 if top7.iter().any(|w| w == bad) {
                     failures.push(format!(
@@ -1603,8 +2005,11 @@ mod tests {
             }
         }
         if !failures.is_empty() {
-            panic!("{} pinyin tier_overlay demote cases failed:\n{}",
-                failures.len(), failures.join("\n"));
+            panic!(
+                "{} pinyin tier_overlay demote cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -1622,27 +2027,53 @@ mod tests {
         // + `three_letter_pinyin_shaped_wubi_simcodes`) intentionally
         // EXCLUDED from this list — those stay at natural tier 1.
         let cases: &[(&str, &[&str])] = &[
-            ("ai", &["东"]), ("an", &["世"]), ("ba", &["陈"]),
-            ("bai", &["陈"]), ("bang", &["陈情"]), ("bi", &["孙"]),
-            ("bu", &["联"]), ("dan", &["碟"]), ("di", &["砂"]),
-            ("dou", &["灰"]), ("du", &["磁"]), ("duo", &["碰"]),
-            ("er", &["遥"]), ("fu", &["增"]),
+            ("ai", &["东"]),
+            ("an", &["世"]),
+            ("ba", &["陈"]),
+            ("bai", &["陈"]),
+            ("bang", &["陈情"]),
+            ("bi", &["孙"]),
+            ("bu", &["联"]),
+            ("dan", &["碟"]),
+            ("di", &["砂"]),
+            ("dou", &["灰"]),
+            ("du", &["磁"]),
+            ("duo", &["碰"]),
+            ("er", &["遥"]),
+            ("fu", &["增"]),
             // (fa, 载) retired 2026-06-06 — user: "fa 载应该在发前面，
             // 二级简码还是应该优先五笔的，载比隙的常见程度要高得多".
             // Moved to jianma2_common_chars_lead_in_mixed positive list.
-            ("gang", &["开怀"]), ("ha", &["虎"]), ("hao", &["虚"]),
-            ("he", &["肯"]), ("ji", &["晃"]), ("ke", &["吸"]),
-            ("le", &["胃"]), ("lu", &["较"]), ("ma", &["曲"]),
-            ("me", &["骨"]), ("nv", &["恨"]), ("qi", &["乐"]),
-            ("qiu", &["尔"]), ("qu", &["匀"]), ("ran", &["拒"]),
-            ("ren", &["扔"]), ("ri", &["朱"]), ("ru", &["拉"]),
+            ("gang", &["开怀"]),
+            ("ha", &["虎"]),
+            ("hao", &["虚"]),
+            ("he", &["肯"]),
+            ("ji", &["晃"]),
+            ("ke", &["吸"]),
+            ("le", &["胃"]),
+            ("lu", &["较"]),
+            ("ma", &["曲"]),
+            ("me", &["骨"]),
+            ("nv", &["恨"]),
+            ("qi", &["乐"]),
+            ("qiu", &["尔"]),
+            ("qu", &["匀"]),
+            ("ran", &["拒"]),
+            ("ren", &["扔"]),
+            ("ri", &["朱"]),
+            ("ru", &["拉"]),
             ("san", &["柜"]),
             // (shi, 椒) added 2026-06-03 — user retired (shi, 椒) from
             // muscle-memory protect list; expected top1=是.
             ("shi", &["椒"]),
-            ("si", &["档"]), ("suan", &["西装革履"]),
-            ("te", &["秀"]), ("ti", &["秒"]), ("wen", &["仍"]),
-            ("xi", &["纱"]), ("yan", &["谍"]), ("yao", &["庶"]),
+            ("si", &["档"]),
+            ("suan", &["西装革履"]),
+            ("te", &["秀"]),
+            ("ti", &["秒"]),
+            ("wen", &["仍"]),
+            ("xi", &["纱"]),
+            ("yan", &["谍"]),
+            ("yao", &["庶"]),
             ("ye", &["衣"]),
         ];
         let mut failures = Vec::new();
@@ -1656,7 +2087,11 @@ mod tests {
             // captures the user-visible regression while accepting
             // that rare-CJK-heavy buffers may keep wubi prefix
             // predictions in the second visible row.
-            let top3: &[String] = if top10.len() < 3 { &top10[..] } else { &top10[..3] };
+            let top3: &[String] = if top10.len() < 3 {
+                &top10[..]
+            } else {
+                &top10[..3]
+            };
             for bad in *blocklist {
                 if top3.iter().any(|w| w == bad) {
                     failures.push(format!(
@@ -1666,8 +2101,11 @@ mod tests {
             }
         }
         if !failures.is_empty() {
-            panic!("{} wubi-tier5-demote cases failed:\n{}",
-                failures.len(), failures.join("\n"));
+            panic!(
+                "{} wubi-tier5-demote cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -1681,14 +2119,18 @@ mod tests {
         // (kept in dict for pure-wubi users typing the full 4-letter
         // code), so this test checks top-5 only.
         let cases: &[(&str, &[&str])] = &[
-            ("hang", &["虛"]),    // traditional form, daily-use 虚 at hao+xu
-            ("rang", &["拒"]),    // 拒 reads "jù", not "rang"
-            ("yang", &["讵", "詎"]),  // 讵 "jù" (rare) + traditional 詎
+            ("hang", &["虛"]),       // traditional form, daily-use 虚 at hao+xu
+            ("rang", &["拒"]),       // 拒 reads "jù", not "rang"
+            ("yang", &["讵", "詎"]), // 讵 "jù" (rare) + traditional 詎
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
             let top10 = mixed_top10(buf.as_bytes());
-            let top5: &[String] = if top10.len() < 5 { &top10[..] } else { &top10[..5] };
+            let top5: &[String] = if top10.len() < 5 {
+                &top10[..]
+            } else {
+                &top10[..5]
+            };
             for bad in *blocklist {
                 if top5.iter().any(|w| w == bad) {
                     failures.push(format!(
@@ -1698,8 +2140,11 @@ mod tests {
             }
         }
         if !failures.is_empty() {
-            panic!("{} wubi-simcode-noise cases failed:\n{}",
-                failures.len(), failures.join("\n"));
+            panic!(
+                "{} wubi-simcode-noise cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -1783,8 +2228,12 @@ mod tests {
             // 同事/天上/天生 etc.  Phase H caps Path 1c at buffer.len()
             // ≤5 (legitimate typo range); long buffers no longer
             // false-trigger initials shortcut.
-            ("tsuitachi", &["调试", "推送", "通缩", "退市", "听说",
-                            "同时", "同事", "天上", "天生"]),
+            (
+                "tsuitachi",
+                &[
+                    "调试", "推送", "通缩", "退市", "听说", "同时", "同事", "天上", "天生",
+                ],
+            ),
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
@@ -1798,7 +2247,11 @@ mod tests {
             }
         }
         if !failures.is_empty() {
-            panic!("{} corpus-noise cases failed:\n{}", failures.len(), failures.join("\n"));
+            panic!(
+                "{} corpus-noise cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 
@@ -1809,7 +2262,9 @@ mod tests {
     /// char hadn't been typed).
     #[test]
     fn syllable_aware_trim_retry_matches_trimmed_buffer() {
-        if super::super::pinyin_adapter::PINYIN_DISABLE_FUZZY { return; }
+        if super::super::pinyin_adapter::PINYIN_DISABLE_FUZZY {
+            return;
+        }
         let cases: &[(&str, &str, &str)] = &[
             // (buffer, trimmed_equivalent, expected_top_word)
             ("shehv", "sheh", "社会"),
@@ -1818,14 +2273,22 @@ mod tests {
         ];
         for (buf, trim, expected) in cases {
             let top10 = mixed_top10(buf.as_bytes());
-            assert!(!top10.is_empty(),
-                "音节意识细化: {buf} should produce candidates via trim-retry");
+            assert!(
+                !top10.is_empty(),
+                "音节意识细化: {buf} should produce candidates via trim-retry"
+            );
             let trim_top10 = mixed_top10(trim.as_bytes());
-            assert_eq!(top10.first(), trim_top10.first(),
-                "音节意识细化: {buf} top-1 ({top10:?}) should equal {trim} top-1 ({trim_top10:?})");
+            assert_eq!(
+                top10.first(),
+                trim_top10.first(),
+                "音节意识细化: {buf} top-1 ({top10:?}) should equal {trim} top-1 ({trim_top10:?})"
+            );
             if let Some(t) = top10.first() {
-                assert_eq!(t.as_str(), *expected,
-                    "音节意识细化: {buf} top-1 should be {expected}, got {t}");
+                assert_eq!(
+                    t.as_str(),
+                    *expected,
+                    "音节意识细化: {buf} top-1 should be {expected}, got {t}"
+                );
             }
         }
     }
@@ -1840,15 +2303,19 @@ mod tests {
     /// always did. Not a regression target.
     #[test]
     fn syllable_aware_path1c_still_rescues_real_typos() {
-        if super::super::pinyin_adapter::PINYIN_DISABLE_FUZZY { return; }
+        if super::super::pinyin_adapter::PINYIN_DISABLE_FUZZY {
+            return;
+        }
         // `pyin`: consonant_prefix=`py` (len 2), suffix=`in` (len 2) →
         // Path 1c gate passes, longest_valid_syllable_prefix is None
         // (no prefix of `pyin` is a valid syllable) so the new
         // syllable-aware skip doesn't fire → Path 1c rescues with
         // p+y initials hits (拼音 / 朋友 / 便宜 / ...).
         let top10 = mixed_top10(b"pyin");
-        assert!(!top10.is_empty(),
-            "音节意识细化 regression: pyin lost Path 1c rescue; top10 was empty");
+        assert!(
+            !top10.is_empty(),
+            "音节意识细化 regression: pyin lost Path 1c rescue; top10 was empty"
+        );
     }
 
     /// v1.14 (user report 2026-06-06 `tkinn`): Path 1c 5-char buffers
@@ -1877,8 +2344,11 @@ mod tests {
             }
         }
         if !failures.is_empty() {
-            panic!("{} 5-char Path 1c noise cases failed:\n{}",
-                failures.len(), failures.join("\n"));
+            panic!(
+                "{} 5-char Path 1c noise cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
         }
     }
 }

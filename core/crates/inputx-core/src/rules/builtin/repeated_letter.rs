@@ -70,11 +70,14 @@ impl CandidateRule for RepeatedLetterExpansion {
             _ => return RuleEffect::NoOp,
         };
         let word: String = std::iter::repeat(ch).take(ctx.buffer.len()).collect();
-        cands.insert(0, RuleCandidate {
-            word: word.clone(),
-            score: REPEATED_LETTER_SCORE,
-            source: "repeated-letter",
-        });
+        cands.insert(
+            0,
+            RuleCandidate {
+                word: word.clone(),
+                score: REPEATED_LETTER_SCORE,
+                source: "repeated-letter",
+            },
+        );
         RuleEffect::Added(1)
     }
 }
@@ -133,8 +136,11 @@ mod tests {
             let buf: String = std::iter::repeat('h').take(n).collect();
             let mut cands = Vec::new();
             let _ = r.apply(&ctx(&buf), &mut cands);
-            assert_eq!(cands[0].word.chars().count(), n,
-                "n={n} buffer should yield n CJK chars");
+            assert_eq!(
+                cands[0].word.chars().count(),
+                n,
+                "n={n} buffer should yield n CJK chars"
+            );
             assert!(cands[0].word.chars().all(|c| c == '哈'));
         }
     }
@@ -142,8 +148,12 @@ mod tests {
     #[test]
     fn all_supported_letters() {
         let cases = [
-            (b'h', '哈'), (b'a', '啊'), (b'o', '哦'),
-            (b'e', '诶'), (b'm', '嗯'), (b'n', '嗯'),
+            (b'h', '哈'),
+            (b'a', '啊'),
+            (b'o', '哦'),
+            (b'e', '诶'),
+            (b'm', '嗯'),
+            (b'n', '嗯'),
             (b'w', '呜'),
         ];
         let r = RepeatedLetterExpansion;
@@ -151,8 +161,13 @@ mod tests {
             let buf = String::from_utf8(vec![letter; 3]).unwrap();
             let mut cands = Vec::new();
             let _ = r.apply(&ctx(&buf), &mut cands);
-            assert_eq!(cands[0].word.chars().next(), Some(expected),
-                "{} → {}", letter as char, expected);
+            assert_eq!(
+                cands[0].word.chars().next(),
+                Some(expected),
+                "{} → {}",
+                letter as char,
+                expected
+            );
         }
     }
 
@@ -187,9 +202,7 @@ mod tests {
     fn end_to_end_via_rule_engine() {
         use crate::rules::candidate::CandidateRuleEngine;
         use std::sync::Arc;
-        let engine = CandidateRuleEngine::new(vec![
-            Arc::new(RepeatedLetterExpansion),
-        ]);
+        let engine = CandidateRuleEngine::new(vec![Arc::new(RepeatedLetterExpansion)]);
         let mut cands = Vec::new();
         let trace = engine.run(&ctx("hhhhh"), &mut cands);
         assert!(trace.rule_fired("RepeatedLetterExpansion"));

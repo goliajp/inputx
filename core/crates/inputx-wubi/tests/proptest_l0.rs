@@ -8,7 +8,9 @@ use std::collections::HashMap;
 use proptest::prelude::*;
 use proptest::sample;
 
-use inputx_wubi::{L0Snapshot, Layer, PROMOTE_THRESHOLD, WubiDict, DEFAULT_LAYER_PREFS, LAYER_COUNT};
+use inputx_wubi::{
+    DEFAULT_LAYER_PREFS, L0Snapshot, LAYER_COUNT, Layer, PROMOTE_THRESHOLD, WubiDict,
+};
 
 // A curated set of (code, word) pairs known to exist in the embedded
 // dictionary. We sample from these instead of inventing strings — the
@@ -30,7 +32,10 @@ fn sample_entries() -> Vec<(String, String)> {
 
 fn entry_strategy() -> impl Strategy<Value = (String, String)> {
     let entries = sample_entries();
-    assert!(!entries.is_empty(), "embedded dict yielded no sample entries");
+    assert!(
+        !entries.is_empty(),
+        "embedded dict yielded no sample entries"
+    );
     sample::select(entries)
 }
 

@@ -271,176 +271,176 @@ const TC_DEMOTE_FULL: &str = include_str!("../../data/tc_chars_demote.txt");
 /// the OpenCC file is ever stripped. The full check uses TC_DEMOTE_FULL.
 #[allow(dead_code)]
 const TC_DEMOTE_CHARS: &str = concat!(
-    "頁",  // 页
-    "國",  // 国
-    "經",  // 经
-    "學",  // 学
-    "體",  // 体
-    "後",  // 后
-    "個",  // 个
-    "樣",  // 样
-    "變",  // 变
-    "風",  // 风
-    "種",  // 种
-    "點",  // 点
-    "達",  // 达
-    "過",  // 过
-    "還",  // 还
-    "進",  // 进
-    "這",  // 这
-    "麼",  // 么
-    "開",  // 开
-    "關",  // 关
-    "問",  // 问
-    "題",  // 题
-    "們",  // 们
-    "發",  // 发
-    "說",  // 说
-    "讓",  // 让
-    "給",  // 给
-    "話",  // 话
-    "寫",  // 写
-    "聽",  // 听
-    "當",  // 当
-    "際",  // 际
-    "樂",  // 乐
-    "業",  // 业
-    "師",  // 师
-    "參",  // 参
-    "與",  // 与
-    "資",  // 资
-    "產",  // 产
-    "務",  // 务
-    "員",  // 员
-    "應",  // 应
-    "該",  // 该
-    "總",  // 总
-    "統",  // 统
-    "舉",  // 举
-    "辦",  // 办
-    "會",  // 会
-    "議",  // 议
-    "圖",  // 图
-    "書",  // 书
-    "畫",  // 画
-    "媽",  // 妈
-    "親",  // 亲
-    "愛",  // 爱
-    "聲",  // 声
-    "響",  // 响
-    "繪",  // 绘
-    "認",  // 认
-    "識",  // 识
-    "記",  // 记
-    "憶",  // 忆
-    "夢",  // 梦
-    "覺",  // 觉
-    "鐵",  // 铁
-    "車",  // 车
-    "場",  // 场
-    "馬",  // 马
-    "電",  // 电
-    "腦",  // 脑
-    "軟",  // 软
-    "網",  // 网
-    "絡",  // 络
-    "線",  // 线
-    "灣",  // 湾
-    "島",  // 岛
-    "嶼",  // 屿
-    "鄉",  // 乡
-    "莊",  // 庄
-    "頭",  // 头
-    "淚",  // 泪
-    "錢",  // 钱
-    "價",  // 价
-    "買",  // 买
-    "賣",  // 卖
-    "質",  // 质
-    "傳",  // 传
-    "節",  // 节
-    "氣",  // 气
-    "養",  // 养
-    "緒",  // 绪
-    "醫",  // 医
-    "療",  // 疗
-    "藥",  // 药
-    "處",  // 处
-    "劑",  // 剂
-    "戶",  // 户
-    "裡",  // 里
-    "裏",  // 里
-    "內",  // 内
-    "飯",  // 饭
-    "館",  // 馆
-    "飲",  // 饮
-    "鋪",  // 铺
-    "舖",  // 铺
-    "營",  // 营
-    "歡",  // 欢
-    "臨",  // 临
-    "鎮",  // 镇
-    "縣",  // 县
-    "結",  // 结
-    "構",  // 构
-    "協",  // 协
-    "權",  // 权
-    "藝",  // 艺
-    "術",  // 术
-    "劇",  // 剧
-    "戲",  // 戏
-    "詞",  // 词
-    "詩",  // 诗
-    "廳",  // 厅
-    "緊",  // 紧
-    "張",  // 张
-    "壓",  // 压
-    "釋",  // 释
-    "鬆",  // 松
-    "寢",  // 寝
-    "導",  // 导
-    "輔",  // 辅
-    "練",  // 练
-    "習",  // 习
-    "慣",  // 惯
-    "貨",  // 货
-    "幣",  // 币
-    "銀",  // 银
-    "儲",  // 储
-    "黃",  // 黄
-    "鈔",  // 钞
-    "賬",  // 账
-    "碼",  // 码
-    "編",  // 编
-    "輯",  // 辑
-    "華",  // 华
-    "麗",  // 丽
-    "從",  // 从
-    "標",  // 标
-    "準",  // 准
-    "確",  // 确
-    "實",  // 实
-    "見",  // 见
-    "東",  // 东
-    "區",  // 区
-    "兒",  // 儿
-    "兩",  // 两
-    "幾",  // 几
-    "報",  // 报
-    "紙",  // 纸
-    "選",  // 选
-    "擇",  // 择
-    "顯",  // 显
-    "對",  // 对
-    "錯",  // 错
-    "覽",  // 览
-    "視",  // 视
-    "覺",  // 觉
-    "聞",  // 闻
-    "聲",  // 声
-    "驚",  // 惊
-    "嚇",  // 吓
-    "懼",  // 惧
+    "頁", // 页
+    "國", // 国
+    "經", // 经
+    "學", // 学
+    "體", // 体
+    "後", // 后
+    "個", // 个
+    "樣", // 样
+    "變", // 变
+    "風", // 风
+    "種", // 种
+    "點", // 点
+    "達", // 达
+    "過", // 过
+    "還", // 还
+    "進", // 进
+    "這", // 这
+    "麼", // 么
+    "開", // 开
+    "關", // 关
+    "問", // 问
+    "題", // 题
+    "們", // 们
+    "發", // 发
+    "說", // 说
+    "讓", // 让
+    "給", // 给
+    "話", // 话
+    "寫", // 写
+    "聽", // 听
+    "當", // 当
+    "際", // 际
+    "樂", // 乐
+    "業", // 业
+    "師", // 师
+    "參", // 参
+    "與", // 与
+    "資", // 资
+    "產", // 产
+    "務", // 务
+    "員", // 员
+    "應", // 应
+    "該", // 该
+    "總", // 总
+    "統", // 统
+    "舉", // 举
+    "辦", // 办
+    "會", // 会
+    "議", // 议
+    "圖", // 图
+    "書", // 书
+    "畫", // 画
+    "媽", // 妈
+    "親", // 亲
+    "愛", // 爱
+    "聲", // 声
+    "響", // 响
+    "繪", // 绘
+    "認", // 认
+    "識", // 识
+    "記", // 记
+    "憶", // 忆
+    "夢", // 梦
+    "覺", // 觉
+    "鐵", // 铁
+    "車", // 车
+    "場", // 场
+    "馬", // 马
+    "電", // 电
+    "腦", // 脑
+    "軟", // 软
+    "網", // 网
+    "絡", // 络
+    "線", // 线
+    "灣", // 湾
+    "島", // 岛
+    "嶼", // 屿
+    "鄉", // 乡
+    "莊", // 庄
+    "頭", // 头
+    "淚", // 泪
+    "錢", // 钱
+    "價", // 价
+    "買", // 买
+    "賣", // 卖
+    "質", // 质
+    "傳", // 传
+    "節", // 节
+    "氣", // 气
+    "養", // 养
+    "緒", // 绪
+    "醫", // 医
+    "療", // 疗
+    "藥", // 药
+    "處", // 处
+    "劑", // 剂
+    "戶", // 户
+    "裡", // 里
+    "裏", // 里
+    "內", // 内
+    "飯", // 饭
+    "館", // 馆
+    "飲", // 饮
+    "鋪", // 铺
+    "舖", // 铺
+    "營", // 营
+    "歡", // 欢
+    "臨", // 临
+    "鎮", // 镇
+    "縣", // 县
+    "結", // 结
+    "構", // 构
+    "協", // 协
+    "權", // 权
+    "藝", // 艺
+    "術", // 术
+    "劇", // 剧
+    "戲", // 戏
+    "詞", // 词
+    "詩", // 诗
+    "廳", // 厅
+    "緊", // 紧
+    "張", // 张
+    "壓", // 压
+    "釋", // 释
+    "鬆", // 松
+    "寢", // 寝
+    "導", // 导
+    "輔", // 辅
+    "練", // 练
+    "習", // 习
+    "慣", // 惯
+    "貨", // 货
+    "幣", // 币
+    "銀", // 银
+    "儲", // 储
+    "黃", // 黄
+    "鈔", // 钞
+    "賬", // 账
+    "碼", // 码
+    "編", // 编
+    "輯", // 辑
+    "華", // 华
+    "麗", // 丽
+    "從", // 从
+    "標", // 标
+    "準", // 准
+    "確", // 确
+    "實", // 实
+    "見", // 见
+    "東", // 东
+    "區", // 区
+    "兒", // 儿
+    "兩", // 两
+    "幾", // 几
+    "報", // 报
+    "紙", // 纸
+    "選", // 选
+    "擇", // 择
+    "顯", // 显
+    "對", // 对
+    "錯", // 错
+    "覽", // 览
+    "視", // 视
+    "覺", // 觉
+    "聞", // 闻
+    "聲", // 声
+    "驚", // 惊
+    "嚇", // 吓
+    "懼", // 惧
 );
 
 /// HashSet-backed TC check. Built once on first use from the 3549-char
@@ -478,7 +478,11 @@ pub fn merge(
     let mut all: Vec<Candidate> = Vec::with_capacity(total_hint);
     use crate::composite::scoring::LIKELIHOOD_TC_DEMOTE_MULT;
     let demote = |w: &str, s: f64| -> f64 {
-        if contains_demote_tc(w) { s * LIKELIHOOD_TC_DEMOTE_MULT } else { s }
+        if contains_demote_tc(w) {
+            s * LIKELIHOOD_TC_DEMOTE_MULT
+        } else {
+            s
+        }
     };
     // v1.4.7 A5: prior_correction Q4 boosts now baked into the pinyin
     // .idf at snapshot build time (see idf_from_pinyin_dict.rs
@@ -515,11 +519,21 @@ pub fn merge(
     let weights = inputx_scoring::EngineWeights::inputx_default();
     for (w, s, c) in wubi {
         let s = demote(&w, s);
-        all.push(Candidate { word: w, source: Source::Wubi, score: s, components: c });
+        all.push(Candidate {
+            word: w,
+            source: Source::Wubi,
+            score: s,
+            components: c,
+        });
     }
     for (w, s, c) in pinyin {
         let s = demote(&w, s);
-        all.push(Candidate { word: w, source: Source::Pinyin, score: s, components: c });
+        all.push(Candidate {
+            word: w,
+            source: Source::Pinyin,
+            score: s,
+            components: c,
+        });
     }
     for (w, s, c) in jp_kanji {
         // JP candidates are explicitly JP — TC demote doesn't apply
@@ -528,10 +542,20 @@ pub fn merge(
         // entries would need to be baked into nihongo .idf at the
         // build-time level (same shape as pinyin A5), tracked under
         // the v1.4.8 nihongo facade refactor backlog.
-        all.push(Candidate { word: w, source: Source::Japanese, score: s, components: c });
+        all.push(Candidate {
+            word: w,
+            source: Source::Japanese,
+            score: s,
+            components: c,
+        });
     }
     for (w, s, c) in jp_kana {
-        all.push(Candidate { word: w, source: Source::Japanese, score: s, components: c });
+        all.push(Candidate {
+            word: w,
+            source: Source::Japanese,
+            score: s,
+            components: c,
+        });
     }
     // v1.7.4 sort key — `compute_score(data, &weights)` folds:
     //   * log_prob_corpus_q4 (real log-probability, cross-engine
@@ -545,7 +569,9 @@ pub fn merge(
     // Defensive i32::MIN keeps None-components candidates (e.g. the
     // legacy prediction_buf path) at the bottom of the merge.
     let compose = |c: &Candidate| -> i32 {
-        let Some(comp) = c.components else { return i32::MIN };
+        let Some(comp) = c.components else {
+            return i32::MIN;
+        };
         let source = match c.source {
             Source::Wubi => inputx_scoring::Source::Wubi,
             Source::Pinyin => inputx_scoring::Source::Pinyin,
@@ -567,10 +593,7 @@ pub fn merge(
         // pinyin Path 5 Viterbi (bigram_links ≥ 1) / Path 5b fallback
         // (bigram_links = 0) / JP compose_sentence — gets the same
         // treatment without per-site producer changes.
-        let is_composed = matches!(
-            comp.match_type,
-            inputx_scoring::MatchType::Composed { .. }
-        );
+        let is_composed = matches!(comp.match_type, inputx_scoring::MatchType::Composed { .. });
         let data = inputx_scoring::CandidateData {
             log_prob_corpus_q4: comp.log_prior_q4,
             log_likelihood_q4: comp.log_likelihood_q4,
@@ -600,7 +623,9 @@ pub fn merge(
     let mut seen = std::collections::HashSet::with_capacity(total_hint.min(MAX_PER_INPUT));
     let mut out: Vec<Candidate> = Vec::with_capacity(total_hint.min(MAX_PER_INPUT));
     for c in all {
-        if out.len() >= MAX_PER_INPUT { break; }
+        if out.len() >= MAX_PER_INPUT {
+            break;
+        }
         // v1.6 cleanup: the runtime `is_blacklisted` drop-list was
         // retired. With T0-locked private-dict + composition quality
         // gates (foreign-romaji ratio cap in pinyin Path-5 K-best /

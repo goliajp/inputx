@@ -23,9 +23,7 @@
 
 use wasm_bindgen::prelude::*;
 
-use inputx_nihongo::{
-    JapaneseEngine as CoreEngine, KanaKind as CoreKanaKind,
-};
+use inputx_nihongo::{JapaneseEngine as CoreEngine, KanaKind as CoreKanaKind};
 
 /// Kana kind mirrored for JS. Use as `KanaKind.Kanji` etc. Numeric
 /// values match the facade enum's discriminants.
@@ -58,7 +56,9 @@ pub struct JapaneseEngine {
 impl JapaneseEngine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> JapaneseEngine {
-        Self { engine: CoreEngine::new() }
+        Self {
+            engine: CoreEngine::new(),
+        }
     }
 
     /// Push one ASCII letter byte (`'a'..='z'`, `'A'..='Z'`) into the
@@ -108,27 +108,12 @@ impl JapaneseEngine {
         let arr = js_sys::Array::new();
         for c in self.engine.candidates() {
             let obj = js_sys::Object::new();
-            let _ = js_sys::Reflect::set(
-                &obj,
-                &"word".into(),
-                &JsValue::from_str(&c.word),
-            );
+            let _ = js_sys::Reflect::set(&obj, &"word".into(), &JsValue::from_str(&c.word));
             let kind: KanaKind = c.kind.into();
-            let _ = js_sys::Reflect::set(
-                &obj,
-                &"kind".into(),
-                &JsValue::from_f64(kind as u32 as f64),
-            );
-            let _ = js_sys::Reflect::set(
-                &obj,
-                &"freq".into(),
-                &JsValue::from_f64(c.freq as f64),
-            );
-            let _ = js_sys::Reflect::set(
-                &obj,
-                &"composed".into(),
-                &JsValue::from_bool(c.composed),
-            );
+            let _ =
+                js_sys::Reflect::set(&obj, &"kind".into(), &JsValue::from_f64(kind as u32 as f64));
+            let _ = js_sys::Reflect::set(&obj, &"freq".into(), &JsValue::from_f64(c.freq as f64));
+            let _ = js_sys::Reflect::set(&obj, &"composed".into(), &JsValue::from_bool(c.composed));
             let _ = js_sys::Reflect::set(
                 &obj,
                 &"proximityMilli".into(),

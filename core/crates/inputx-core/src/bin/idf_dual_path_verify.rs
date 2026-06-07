@@ -108,9 +108,7 @@ fn main() -> ExitCode {
     let all_wubi = wubi_dict.all_entries();
     let wubi_lookup: std::collections::HashMap<(String, String), u64> = all_wubi
         .iter()
-        .map(|(c, w, layer, freq)| {
-            ((c.clone(), w.clone()), layer.base().saturating_add(*freq))
-        })
+        .map(|(c, w, layer, freq)| ((c.clone(), w.clone()), layer.base().saturating_add(*freq)))
         .collect();
     let mismatches = verify_engine(&reader, SAMPLE_COUNT, |code, word| {
         wubi_lookup
@@ -234,8 +232,7 @@ where
                 }),
                 Some(freq) => {
                     let expected_q4 = log_prior_from_freq(freq);
-                    let expected_i16 = expected_q4
-                        .clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                    let expected_i16 = expected_q4.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
                     let drift = (entry.log_prior as i32) - (expected_i16 as i32);
                     if drift.abs() > Q4_TOLERANCE {
                         mismatches.push(Mismatch {

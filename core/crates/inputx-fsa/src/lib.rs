@@ -115,11 +115,7 @@ mod tests {
     fn shared_suffix_minimization() {
         // "ation" suffix shared → DAWG should merge those states. We can't
         // easily assert state count here, but correctness must hold.
-        let bytes = build(&[
-            (b"nation", 1),
-            (b"ration", 2),
-            (b"station", 3),
-        ]);
+        let bytes = build(&[(b"nation", 1), (b"ration", 2), (b"station", 3)]);
         let fsa = Fsa::new(bytes).unwrap();
         assert_eq!(fsa.get(b"nation"), Some(1));
         assert_eq!(fsa.get(b"ration"), Some(2));
@@ -140,7 +136,10 @@ mod tests {
             vec![(b"a".to_vec(), 1), (b"ab".to_vec(), 2)]
         );
         // composes + stops early without walking the rest
-        assert_eq!(fsa.iter().find(|(k, _)| k == b"ac"), Some((b"ac".to_vec(), 3)));
+        assert_eq!(
+            fsa.iter().find(|(k, _)| k == b"ac"),
+            Some((b"ac".to_vec(), 3))
+        );
         assert_eq!(fsa.range(b"z").next(), None);
     }
 
@@ -151,11 +150,7 @@ mod tests {
         let got: Vec<_> = fsa.prefix(b"a");
         assert_eq!(
             got,
-            vec![
-                (b"a".to_vec(), 1),
-                (b"ab".to_vec(), 2),
-                (b"ac".to_vec(), 3)
-            ]
+            vec![(b"a".to_vec(), 1), (b"ab".to_vec(), 2), (b"ac".to_vec(), 3)]
         );
         assert_eq!(fsa.prefix(b"b"), vec![(b"b".to_vec(), 4)]);
         assert_eq!(fsa.prefix(b"z"), Vec::<(Vec<u8>, u64)>::new());
@@ -187,7 +182,6 @@ mod tests {
     // `prefix` across every key + many random probes. This is what makes the
     // clean-room build *provably* correct without leaning on `fst`.
 
-
     /// Perf regression gate (run in release): `get` and a prefix scan must
     /// stay well under budget. Generous thresholds (~4x measured) so it
     /// flags real regressions, not scheduling jitter. Ignored by default;
@@ -207,7 +201,9 @@ mod tests {
             }
         }
         let dict = Dict::new(b.finish()).unwrap();
-        let codes: Vec<String> = (0..1000).map(|i| format!("code{:05}", (i * 19) % 20_000)).collect();
+        let codes: Vec<String> = (0..1000)
+            .map(|i| format!("code{:05}", (i * 19) % 20_000))
+            .collect();
 
         let iters = 50;
         let t = std::time::Instant::now();
@@ -218,7 +214,10 @@ mod tests {
         }
         let per_get = t.elapsed().as_nanos() as f64 / (iters * codes.len()) as f64;
         eprintln!("[perfgate] get = {per_get:.0} ns/op");
-        assert!(per_get < 20_000.0, "get regressed: {per_get:.0} ns/op (budget 20µs)");
+        assert!(
+            per_get < 20_000.0,
+            "get regressed: {per_get:.0} ns/op (budget 20µs)"
+        );
 
         let t = std::time::Instant::now();
         for _ in 0..iters {
@@ -228,7 +227,10 @@ mod tests {
         }
         let per_pref = t.elapsed().as_nanos() as f64 / iters as f64;
         eprintln!("[perfgate] prefix(code0* = 5000 items) = {per_pref:.0} ns/op");
-        assert!(per_pref < 5_000_000.0, "prefix regressed: {per_pref:.0} ns (budget 5ms)");
+        assert!(
+            per_pref < 5_000_000.0,
+            "prefix regressed: {per_pref:.0} ns (budget 5ms)"
+        );
     }
 
     use proptest::prelude::*;
@@ -303,12 +305,7 @@ mod tests {
     #[test]
     fn keys_with_zero_and_high_bytes() {
         // Keys are arbitrary bytes — 0x00 / 0xFF carry no special meaning.
-        let bytes = build(&[
-            (b"\x00", 1),
-            (b"\x00\xff", 2),
-            (b"\xff", 3),
-            (b"a\x00b", 4),
-        ]);
+        let bytes = build(&[(b"\x00", 1), (b"\x00\xff", 2), (b"\xff", 3), (b"a\x00b", 4)]);
         let fsa = Fsa::new(bytes).unwrap();
         assert_eq!(fsa.get(b"\x00"), Some(1));
         assert_eq!(fsa.get(b"\x00\xff"), Some(2));
@@ -321,7 +318,8 @@ mod tests {
     #[test]
     fn wide_alphabet_single_state() {
         // A root with all 256 labels exercises the u16 n_trans path.
-        let pairs: Vec<(Vec<u8>, u64)> = (0u16..256).map(|b| (vec![b as u8], u64::from(b))).collect();
+        let pairs: Vec<(Vec<u8>, u64)> =
+            (0u16..256).map(|b| (vec![b as u8], u64::from(b))).collect();
         let mut bld = Builder::new();
         for (k, v) in &pairs {
             bld.insert(k, *v);

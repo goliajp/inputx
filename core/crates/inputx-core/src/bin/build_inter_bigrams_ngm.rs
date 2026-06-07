@@ -66,9 +66,7 @@ fn main() -> ExitCode {
                     .unwrap_or(min_count);
             }
             "-h" | "--help" => {
-                println!(
-                    "build-inter-bigrams-ngm --input <tsv> --output <ngm> [--min-count N]"
-                );
+                println!("build-inter-bigrams-ngm --input <tsv> --output <ngm> [--min-count N]");
                 return ExitCode::SUCCESS;
             }
             other => {
@@ -78,9 +76,8 @@ fn main() -> ExitCode {
         }
         i += 1;
     }
-    let input = input.unwrap_or_else(|| {
-        PathBuf::from("core/crates/inputx-pinyin/data/bigrams_inter.tsv")
-    });
+    let input =
+        input.unwrap_or_else(|| PathBuf::from("core/crates/inputx-pinyin/data/bigrams_inter.tsv"));
     let output = output.unwrap_or_else(|| {
         PathBuf::from("core/crates/inputx-pinyin-helpers/data/bigrams_inter.ngm")
     });

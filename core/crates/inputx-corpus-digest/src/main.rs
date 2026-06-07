@@ -42,9 +42,12 @@ use sha2::{Digest, Sha256};
 
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent().unwrap()  // crates/
-        .parent().unwrap()  // core/
-        .parent().unwrap()  // repo
+        .parent()
+        .unwrap() // crates/
+        .parent()
+        .unwrap() // core/
+        .parent()
+        .unwrap() // repo
         .to_path_buf()
 }
 
@@ -99,10 +102,8 @@ struct Source {
 
 fn load_registry() -> Result<SourceRegistry, String> {
     let p = registry_path();
-    let raw = fs::read_to_string(&p)
-        .map_err(|e| format!("read {}: {e}", p.display()))?;
-    toml::from_str(&raw)
-        .map_err(|e| format!("parse {}: {e}", p.display()))
+    let raw = fs::read_to_string(&p).map_err(|e| format!("read {}: {e}", p.display()))?;
+    toml::from_str(&raw).map_err(|e| format!("parse {}: {e}", p.display()))
 }
 
 // ─── digest_log.toml schema ─────────────────────────────────────────
@@ -134,10 +135,8 @@ struct Event {
 
 fn load_log() -> Result<DigestLog, String> {
     let p = digest_log_path();
-    let raw = fs::read_to_string(&p)
-        .map_err(|e| format!("read {}: {e}", p.display()))?;
-    toml::from_str(&raw)
-        .map_err(|e| format!("parse {}: {e}", p.display()))
+    let raw = fs::read_to_string(&p).map_err(|e| format!("read {}: {e}", p.display()))?;
+    toml::from_str(&raw).map_err(|e| format!("parse {}: {e}", p.display()))
 }
 
 // ─── library.tsv schema ─────────────────────────────────────────────
@@ -151,23 +150,35 @@ fn load_log() -> Result<DigestLog, String> {
 // None for pinyin.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum EngineKind { Pinyin, Wubi, Nihongo }
+enum EngineKind {
+    Pinyin,
+    Wubi,
+    Nihongo,
+}
 
 impl EngineKind {
     fn parse(s: &str) -> Result<Self, String> {
         match s {
-            "pinyin"  => Ok(Self::Pinyin),
-            "wubi"    => Ok(Self::Wubi),
+            "pinyin" => Ok(Self::Pinyin),
+            "wubi" => Ok(Self::Wubi),
             "nihongo" => Ok(Self::Nihongo),
-            other     => Err(format!("unknown engine {other:?}")),
+            other => Err(format!("unknown engine {other:?}")),
         }
     }
     fn name(&self) -> &'static str {
-        match self { Self::Pinyin => "pinyin", Self::Wubi => "wubi", Self::Nihongo => "nihongo" }
+        match self {
+            Self::Pinyin => "pinyin",
+            Self::Wubi => "wubi",
+            Self::Nihongo => "nihongo",
+        }
     }
     /// How many tab-separated fields a library.tsv ROW has.
     fn library_col_count(&self) -> usize {
-        match self { Self::Pinyin => 4, Self::Wubi => 5, Self::Nihongo => 5 }
+        match self {
+            Self::Pinyin => 4,
+            Self::Wubi => 5,
+            Self::Nihongo => 5,
+        }
     }
     /// How many tab-separated fields a simple_tsv ingest input has.
     /// Same shape as library minus the trailing `source` col (the tool
@@ -184,20 +195,19 @@ struct LibraryRow {
     /// wubi: layer (0..=5); nihongo: "kanji"|"jukugo"; pinyin: None.
     extra: Option<String>,
     freq: u32,
-    source: String,  // "digested" | "polish"
+    source: String, // "digested" | "polish"
 }
 
 /// Parse a library.tsv file. Preserves header comments (returned verbatim
 /// for re-emission); blank/comment lines outside the header are dropped.
 struct ParsedLibrary {
-    header: String,           // verbatim leading `#` / blank lines
+    header: String, // verbatim leading `#` / blank lines
     rows: Vec<LibraryRow>,
 }
 
 fn load_library(engine: EngineKind) -> Result<ParsedLibrary, String> {
     let p = library_path(engine.name());
-    let raw = fs::read_to_string(&p)
-        .map_err(|e| format!("read {}: {e}", p.display()))?;
+    let raw = fs::read_to_string(&p).map_err(|e| format!("read {}: {e}", p.display()))?;
 
     let want_cols = engine.library_col_count();
     let mut header = String::new();
@@ -223,7 +233,9 @@ fn load_library(engine: EngineKind) -> Result<ParsedLibrary, String> {
         if parts.len() < want_cols {
             return Err(format!(
                 "library {}:line {}: expected ≥{want_cols} cols, got {}",
-                p.display(), lineno + 1, parts.len()
+                p.display(),
+                lineno + 1,
+                parts.len()
             ));
         }
         let (extra, freq_idx, source_idx) = match engine {
@@ -231,14 +243,20 @@ fn load_library(engine: EngineKind) -> Result<ParsedLibrary, String> {
             EngineKind::Wubi | EngineKind::Nihongo => (Some(parts[2].to_string()), 3, 4),
         };
         let freq = parts[freq_idx].parse::<u32>().map_err(|e| {
-            format!("library {}:line {}: bad freq {:?}: {e}",
-                p.display(), lineno + 1, parts[freq_idx])
+            format!(
+                "library {}:line {}: bad freq {:?}: {e}",
+                p.display(),
+                lineno + 1,
+                parts[freq_idx]
+            )
         })?;
         let source = parts[source_idx].to_string();
         if source != "digested" && source != "polish" {
             return Err(format!(
                 "library {}:line {}: bad source {:?} (want digested|polish)",
-                p.display(), lineno + 1, source
+                p.display(),
+                lineno + 1,
+                source
             ));
         }
         rows.push(LibraryRow {
@@ -256,14 +274,17 @@ fn load_library(engine: EngineKind) -> Result<ParsedLibrary, String> {
 
 fn load_garbage_filter() -> Result<std::collections::HashSet<(String, String)>, String> {
     let p = garbage_filter_path();
-    let raw = fs::read_to_string(&p)
-        .map_err(|e| format!("read {}: {e}", p.display()))?;
+    let raw = fs::read_to_string(&p).map_err(|e| format!("read {}: {e}", p.display()))?;
     let mut set = std::collections::HashSet::new();
     for line in raw.lines() {
         let line = line.trim();
-        if line.is_empty() || line.starts_with('#') { continue; }
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
         let mut parts = line.split('\t');
-        let (Some(code), Some(word)) = (parts.next(), parts.next()) else { continue };
+        let (Some(code), Some(word)) = (parts.next(), parts.next()) else {
+            continue;
+        };
         set.insert((code.trim().to_string(), word.trim().to_string()));
     }
     Ok(set)
@@ -296,20 +317,30 @@ fn parse_simple_tsv(raw: &str, engine: EngineKind) -> Result<ParseResult, String
     let mut rows = Vec::with_capacity(1024);
     for (i, line) in raw.lines().enumerate() {
         let t = line.trim();
-        if t.is_empty() || t.starts_with('#') { continue; }
+        if t.is_empty() || t.starts_with('#') {
+            continue;
+        }
         let parts: Vec<&str> = t.split('\t').collect();
         if parts.len() < want {
             return Err(format!(
                 "simple_tsv line {}: need {} cols for engine={}, got {}",
-                i + 1, want, engine.name(), parts.len()
+                i + 1,
+                want,
+                engine.name(),
+                parts.len()
             ));
         }
         let (extra, freq_idx) = match engine {
             EngineKind::Pinyin => (None, 2),
             EngineKind::Wubi | EngineKind::Nihongo => (Some(parts[2].to_string()), 3),
         };
-        let freq = parts[freq_idx].parse::<u32>()
-            .map_err(|e| format!("simple_tsv line {}: bad freq {:?}: {e}", i + 1, parts[freq_idx]))?;
+        let freq = parts[freq_idx].parse::<u32>().map_err(|e| {
+            format!(
+                "simple_tsv line {}: bad freq {:?}: {e}",
+                i + 1,
+                parts[freq_idx]
+            )
+        })?;
         rows.push((parts[0].to_string(), parts[1].to_string(), extra, freq));
     }
     Ok(ParseResult { rows, dropped: 0 })
@@ -364,12 +395,18 @@ fn parse_jieba_phrase(raw: &str, engine: EngineKind) -> Result<ParseResult, Stri
 
     for raw_line in raw.lines() {
         let t = raw_line.trim();
-        if t.is_empty() || t.starts_with('#') { continue; }
+        if t.is_empty() || t.starts_with('#') {
+            continue;
+        }
         let mut it = t.split_whitespace();
-        let (Some(word), Some(freq_s)) = (it.next(), it.next()) else { continue };
+        let (Some(word), Some(freq_s)) = (it.next(), it.next()) else {
+            continue;
+        };
         let Ok(freq) = freq_s.parse::<u32>() else {
             dropped += 1;
-            if sample_drops.len() < 5 { sample_drops.push(format!("{word} (bad freq {freq_s:?})")); }
+            if sample_drops.len() < 5 {
+                sample_drops.push(format!("{word} (bad freq {freq_s:?})"));
+            }
             continue;
         };
         if word.is_empty() {
@@ -399,12 +436,16 @@ fn parse_jieba_phrase(raw: &str, engine: EngineKind) -> Result<ParseResult, Stri
             Some("ambiguous reading") => {
                 dropped += 1;
                 dropped_ambiguous += 1;
-                if sample_drops.len() < 5 { sample_drops.push(format!("{word} (多音字)")); }
+                if sample_drops.len() < 5 {
+                    sample_drops.push(format!("{word} (多音字)"));
+                }
             }
             Some("uncovered char") => {
                 dropped += 1;
                 dropped_uncovered += 1;
-                if sample_drops.len() < 5 { sample_drops.push(format!("{word} (uncovered char)")); }
+                if sample_drops.len() < 5 {
+                    sample_drops.push(format!("{word} (uncovered char)"));
+                }
             }
             _ => {
                 dropped += 1;
@@ -413,8 +454,12 @@ fn parse_jieba_phrase(raw: &str, engine: EngineKind) -> Result<ParseResult, Stri
     }
 
     if dropped > 0 {
-        eprintln!("            dropped {dropped} rows ({} 多音字 + {} 非 Han, sample: {})",
-            dropped_ambiguous, dropped_uncovered, sample_drops.join(", "));
+        eprintln!(
+            "            dropped {dropped} rows ({} 多音字 + {} 非 Han, sample: {})",
+            dropped_ambiguous,
+            dropped_uncovered,
+            sample_drops.join(", ")
+        );
     }
     Ok(ParseResult { rows, dropped })
 }
@@ -454,7 +499,8 @@ fn fetch_file(url_or_path: &str) -> Result<FetchResult, String> {
 /// expensive only by bandwidth, not by CPU.
 fn fetch_http(url: &str, source_id: &str) -> Result<FetchResult, String> {
     eprintln!("            HTTP GET {url}");
-    let resp = ureq::get(url).call()
+    let resp = ureq::get(url)
+        .call()
         .map_err(|e| format!("HTTP GET {url}: {e}"))?;
     let status = resp.status();
     if !(200..300).contains(&status) {
@@ -463,7 +509,7 @@ fn fetch_http(url: &str, source_id: &str) -> Result<FetchResult, String> {
 
     let mut bytes = Vec::new();
     resp.into_reader()
-        .take(512 * 1024 * 1024)  // 512 MiB hard cap; jieba dict.txt is ~5 MiB
+        .take(512 * 1024 * 1024) // 512 MiB hard cap; jieba dict.txt is ~5 MiB
         .read_to_end(&mut bytes)
         .map_err(|e| format!("read body: {e}"))?;
 
@@ -475,7 +521,10 @@ fn fetch_http(url: &str, source_id: &str) -> Result<FetchResult, String> {
     // bytes; the next ingest just won't have a cached fallback.
     let dir = cache_dir();
     if let Err(e) = fs::create_dir_all(&dir) {
-        eprintln!("            (cache create_dir {} failed: {e}; continuing without cache)", dir.display());
+        eprintln!(
+            "            (cache create_dir {} failed: {e}; continuing without cache)",
+            dir.display()
+        );
     } else {
         let bin = dir.join(format!("{source_id}.bin"));
         let sha = dir.join(format!("{source_id}.sha256"));
@@ -530,13 +579,15 @@ fn sha256_file(p: &Path) -> Result<String, String> {
 fn sort_rows(rows: &mut [LibraryRow], engine: EngineKind) {
     match engine {
         EngineKind::Pinyin | EngineKind::Nihongo => rows.sort_by(|a, b| {
-            a.code.cmp(&b.code)
+            a.code
+                .cmp(&b.code)
                 .then_with(|| a.word.cmp(&b.word))
                 .then_with(|| a.extra.cmp(&b.extra))
                 .then_with(|| a.source.cmp(&b.source))
         }),
         EngineKind::Wubi => rows.sort_by(|a, b| {
-            a.extra.cmp(&b.extra)
+            a.extra
+                .cmp(&b.extra)
                 .then_with(|| a.code.cmp(&b.code))
                 .then_with(|| a.word.cmp(&b.word))
                 .then_with(|| a.source.cmp(&b.source))
@@ -545,15 +596,21 @@ fn sort_rows(rows: &mut [LibraryRow], engine: EngineKind) {
 }
 
 /// Atomic write: tempfile in same dir + fsync + rename.
-fn write_library_atomic(engine: EngineKind, header: &str, rows: &[LibraryRow]) -> Result<(), String> {
+fn write_library_atomic(
+    engine: EngineKind,
+    header: &str,
+    rows: &[LibraryRow],
+) -> Result<(), String> {
     let target = library_path(engine.name());
-    let dir = target.parent().ok_or_else(|| format!("no parent dir for {}", target.display()))?;
+    let dir = target
+        .parent()
+        .ok_or_else(|| format!("no parent dir for {}", target.display()))?;
     let tmp = dir.join(format!(".library.tsv.tmp.{}", std::process::id()));
 
     {
-        let mut f = fs::File::create(&tmp)
-            .map_err(|e| format!("create {}: {e}", tmp.display()))?;
-        f.write_all(header.as_bytes()).map_err(|e| format!("write header: {e}"))?;
+        let mut f = fs::File::create(&tmp).map_err(|e| format!("create {}: {e}", tmp.display()))?;
+        f.write_all(header.as_bytes())
+            .map_err(|e| format!("write header: {e}"))?;
         for r in rows {
             match (&r.extra, engine) {
                 (None, EngineKind::Pinyin) => {
@@ -561,16 +618,24 @@ fn write_library_atomic(engine: EngineKind, header: &str, rows: &[LibraryRow]) -
                         .map_err(|e| format!("write row: {e}"))?;
                 }
                 (Some(extra), EngineKind::Wubi | EngineKind::Nihongo) => {
-                    writeln!(f, "{}\t{}\t{}\t{}\t{}", r.code, r.word, extra, r.freq, r.source)
-                        .map_err(|e| format!("write row: {e}"))?;
+                    writeln!(
+                        f,
+                        "{}\t{}\t{}\t{}\t{}",
+                        r.code, r.word, extra, r.freq, r.source
+                    )
+                    .map_err(|e| format!("write row: {e}"))?;
                 }
-                _ => return Err(format!(
-                    "row shape ↔ engine mismatch: extra={:?}, engine={}",
-                    r.extra, engine.name(),
-                )),
+                _ => {
+                    return Err(format!(
+                        "row shape ↔ engine mismatch: extra={:?}, engine={}",
+                        r.extra,
+                        engine.name(),
+                    ));
+                }
             }
         }
-        f.sync_all().map_err(|e| format!("fsync {}: {e}", tmp.display()))?;
+        f.sync_all()
+            .map_err(|e| format!("fsync {}: {e}", tmp.display()))?;
     }
     fs::rename(&tmp, &target)
         .map_err(|e| format!("rename {} → {}: {e}", tmp.display(), target.display()))?;
@@ -581,14 +646,21 @@ fn write_library_atomic(engine: EngineKind, header: &str, rows: &[LibraryRow]) -
 
 fn cmd_list() -> Result<(), String> {
     let reg = load_registry()?;
-    println!("source_registry version={}  ({} sources)\n", reg.version, reg.sources.len());
-    println!("{:<22} {:<8} {:<10} {:<10} {:>10}  last_ingested",
-        "source_id", "engine", "type", "status", "rows");
+    println!(
+        "source_registry version={}  ({} sources)\n",
+        reg.version,
+        reg.sources.len()
+    );
+    println!(
+        "{:<22} {:<8} {:<10} {:<10} {:>10}  last_ingested",
+        "source_id", "engine", "type", "status", "rows"
+    );
     println!("{}", "─".repeat(86));
     for s in &reg.sources {
-        println!("{:<22} {:<8} {:<10} {:<10} {:>10}  {}",
-            s.source_id, s.engine, s.source_type, s.status,
-            s.current_row_count, s.last_ingested_at);
+        println!(
+            "{:<22} {:<8} {:<10} {:<10} {:>10}  {}",
+            s.source_id, s.engine, s.source_type, s.status, s.current_row_count, s.last_ingested_at
+        );
     }
     Ok(())
 }
@@ -622,17 +694,32 @@ fn cmd_show(source_id: &str) -> Result<(), String> {
 
 fn cmd_events(engine_filter: Option<&str>) -> Result<(), String> {
     let log = load_log()?;
-    println!("digest_log version={}  ({} events)\n", log.version, log.events.len());
-    println!("{:<32} {:<8} {:<10} {:>10} {:>10} {:>10}  ingested",
-        "event_id", "engine", "type", "added", "updated", "rejected");
+    println!(
+        "digest_log version={}  ({} events)\n",
+        log.version,
+        log.events.len()
+    );
+    println!(
+        "{:<32} {:<8} {:<10} {:>10} {:>10} {:>10}  ingested",
+        "event_id", "engine", "type", "added", "updated", "rejected"
+    );
     println!("{}", "─".repeat(100));
     for e in &log.events {
         if let Some(f) = engine_filter {
-            if e.engine != f { continue; }
+            if e.engine != f {
+                continue;
+            }
         }
-        println!("{:<32} {:<8} {:<10} {:>10} {:>10} {:>10}  {}",
-            e.event_id, e.engine, e.source_type,
-            e.rows_added, e.rows_updated, e.rows_rejected, e.ingested_at);
+        println!(
+            "{:<32} {:<8} {:<10} {:>10} {:>10} {:>10}  {}",
+            e.event_id,
+            e.engine,
+            e.source_type,
+            e.rows_added,
+            e.rows_updated,
+            e.rows_rejected,
+            e.ingested_at
+        );
     }
     Ok(())
 }
@@ -642,11 +729,11 @@ fn cmd_events(engine_filter: Option<&str>) -> Result<(), String> {
 struct IngestPlan {
     /// (code, word, extra, freq_after_fold)
     added: Vec<(String, String, Option<String>, u32)>,
-    skipped_same:          u64,
+    skipped_same: u64,
     /// PLAN §5 v2: 库自主 — upstream freq ≠ my freq → 我消化过,我的对.
-    skipped_library_wins:  u64,
-    skipped_polish:        u64,
-    rejected_garbage:      u64,
+    skipped_library_wins: u64,
+    skipped_polish: u64,
+    rejected_garbage: u64,
 }
 
 /// STAGE 3.5: rank-fold normalization parameters.
@@ -677,7 +764,9 @@ impl FreqFold {
     /// [p5, p95] so we never assign a brand-new word a freq above
     /// what the consensus distribution allows.
     fn apply(&self, upstream_freq: u32) -> u32 {
-        if upstream_freq == 0 { return self.p5; }
+        if upstream_freq == 0 {
+            return self.p5;
+        }
         let log_j = (upstream_freq as f64).ln();
         let log_m = self.a + self.b * log_j;
         let m = log_m.exp();
@@ -704,7 +793,9 @@ fn build_freq_fold(library: &[LibraryRow], upstream: &[IngestTuple]) -> Result<F
 
     let mut pairs: Vec<(u32, u32)> = Vec::new();
     for (c, w, _, j) in upstream {
-        if *j == 0 { continue; }
+        if *j == 0 {
+            continue;
+        }
         if let Some(&m) = my_index.get(&(c.clone(), w.clone())) {
             pairs.push((*j, m));
         }
@@ -714,7 +805,8 @@ fn build_freq_fold(library: &[LibraryRow], upstream: &[IngestTuple]) -> Result<F
         return Err(format!(
             "STAGE 3.5: only {} consensus pairs (need ≥ {}). Refusing to ingest blind — \
              this source's freq scale can't be calibrated against our library.",
-            pairs.len(), MIN_FOLD_PAIRS,
+            pairs.len(),
+            MIN_FOLD_PAIRS,
         ));
     }
 
@@ -724,12 +816,13 @@ fn build_freq_fold(library: &[LibraryRow], upstream: &[IngestTuple]) -> Result<F
     let log_ms: Vec<f64> = pairs.iter().map(|(_, m)| (*m as f64).ln()).collect();
     let mean_j: f64 = log_js.iter().sum::<f64>() / n;
     let mean_m: f64 = log_ms.iter().sum::<f64>() / n;
-    let cov: f64 = log_js.iter().zip(&log_ms)
+    let cov: f64 = log_js
+        .iter()
+        .zip(&log_ms)
         .map(|(j, m)| (j - mean_j) * (m - mean_m))
-        .sum::<f64>() / n;
-    let var: f64 = log_js.iter()
-        .map(|j| (j - mean_j).powi(2))
-        .sum::<f64>() / n;
+        .sum::<f64>()
+        / n;
+    let var: f64 = log_js.iter().map(|j| (j - mean_j).powi(2)).sum::<f64>() / n;
     if var < 1e-9 {
         return Err(format!(
             "STAGE 3.5: upstream freq variance ≈ 0 across {} consensus pairs — fold undefined.",
@@ -746,16 +839,25 @@ fn build_freq_fold(library: &[LibraryRow], upstream: &[IngestTuple]) -> Result<F
     let p95_idx = (((pairs.len() as f64) * 0.95).floor() as usize).min(pairs.len() - 1);
 
     Ok(FreqFold {
-        a, b,
+        a,
+        b,
         p5: my_freqs[p5_idx],
         p95: my_freqs[p95_idx],
         n_pairs: pairs.len(),
     })
 }
 
-fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str) -> Result<(), String> {
+fn cmd_ingest(
+    source_id: &str,
+    apply: bool,
+    rationale: Option<&str>,
+    today: &str,
+) -> Result<(), String> {
     let reg = load_registry()?;
-    let src = reg.sources.iter().find(|s| s.source_id == source_id)
+    let src = reg
+        .sources
+        .iter()
+        .find(|s| s.source_id == source_id)
         .ok_or_else(|| format!("source_id {source_id:?} not found in registry"))?
         .clone();
 
@@ -767,13 +869,15 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
     let engine = EngineKind::parse(&src.engine)?;
     match src.ingest_format.as_str() {
         "simple_tsv" | "jieba_phrase" => {}
-        other => return Err(format!(
-            "unknown ingest_format {other:?}. supported: simple_tsv, jieba_phrase \
+        other => {
+            return Err(format!(
+                "unknown ingest_format {other:?}. supported: simple_tsv, jieba_phrase \
              (unihan / mozc / cc_cedict land later).",
-        )),
+            ));
+        }
     }
     match src.fetch_kind.as_str() {
-        "file" | "http" => {},
+        "file" | "http" => {}
         "static" => {
             // legacy anchors — re-ingest is meaningless (no upstream to
             // diff against).  Block clearly rather than silently no-op.
@@ -783,8 +887,12 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
                  source instead.",
                 src.source_id
             ));
-        },
-        other => return Err(format!("Phase B-1: fetch_kind ∈ {{file, http}} (got {other:?})")),
+        }
+        other => {
+            return Err(format!(
+                "Phase B-1: fetch_kind ∈ {{file, http}} (got {other:?})"
+            ));
+        }
     }
 
     // ── STAGE 1: fetch ──────────────────────────────────────────────
@@ -798,7 +906,10 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
     eprintln!("            bytes  = {}", fetched.bytes.len());
 
     // I-3 早退路径:同 sha 重跑 → no-op,在解析前先短路。
-    if src.current_sha256 == fetched.sha256_hex && !src.current_sha256.is_empty() && src.current_sha256 != "n/a" {
+    if src.current_sha256 == fetched.sha256_hex
+        && !src.current_sha256.is_empty()
+        && src.current_sha256 != "n/a"
+    {
         eprintln!("[ingest] upstream sha256 unchanged from registry — full no-op. exit.");
         return Ok(());
     }
@@ -809,7 +920,7 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
     // ── STAGE 2: parse ──────────────────────────────────────────────
     eprintln!("[stage 2/9] parse ({})", src.ingest_format);
     let parse_result = match src.ingest_format.as_str() {
-        "simple_tsv"   => parse_simple_tsv(text, engine)?,
+        "simple_tsv" => parse_simple_tsv(text, engine)?,
         "jieba_phrase" => parse_jieba_phrase(text, engine)?,
         _ => unreachable!("validated above"),
     };
@@ -817,13 +928,17 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
 
     // ── STAGE 3: normalize (Phase B-3: trim only — NFC TBD Phase B-4) ──
     eprintln!("[stage 3/9] normalize (trim only — NFC deferred to Phase B-4)");
-    let normalized: Vec<IngestTuple> = parse_result.rows.into_iter()
-        .map(|(c, w, e, f)| (
-            c.trim().to_string(),
-            w.trim().to_string(),
-            e.map(|x| x.trim().to_string()),
-            f,
-        ))
+    let normalized: Vec<IngestTuple> = parse_result
+        .rows
+        .into_iter()
+        .map(|(c, w, e, f)| {
+            (
+                c.trim().to_string(),
+                w.trim().to_string(),
+                e.map(|x| x.trim().to_string()),
+                f,
+            )
+        })
         .filter(|(c, w, _, _)| !c.is_empty() && !w.is_empty())
         .collect();
 
@@ -838,7 +953,9 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
     let mut deduped: BTreeMap<(String, String), (Option<String>, u32)> = BTreeMap::new();
     for (c, w, e, f) in normalized {
         let slot = deduped.entry((c, w)).or_insert((None, 0));
-        if f > slot.1 { *slot = (e, f); }
+        if f > slot.1 {
+            *slot = (e, f);
+        }
     }
     eprintln!("            after dedupe = {}", deduped.len());
 
@@ -854,8 +971,10 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
             true
         }
     });
-    eprintln!("            rejected = {rejected} (parser dropped {} more in STAGE 2)",
-        parse_result.dropped);
+    eprintln!(
+        "            rejected = {rejected} (parser dropped {} more in STAGE 2)",
+        parse_result.dropped
+    );
     // Total rows that didn't make it past STAGE 2-5 — recorded in the
     // event's `rows_rejected` for full audit.
     let total_rejected = rejected + parse_result.dropped;
@@ -870,12 +989,16 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
     // Built before STAGE 6 so STAGE 6 ADD branch can apply it row-by-row.
     eprintln!("[stage 3.5/9] freq fold (log-log linear)");
     let lib = load_library(engine)?;
-    let fold_input: Vec<IngestTuple> = deduped.iter()
+    let fold_input: Vec<IngestTuple> = deduped
+        .iter()
         .map(|((c, w), (e, j))| (c.clone(), w.clone(), e.clone(), *j))
         .collect();
     let fold = build_freq_fold(&lib.rows, &fold_input)?;
     eprintln!("            n_pairs = {}", fold.n_pairs);
-    eprintln!("            slope b = {:.4}  intercept a = {:.4}", fold.b, fold.a);
+    eprintln!(
+        "            slope b = {:.4}  intercept a = {:.4}",
+        fold.b, fold.a
+    );
     eprintln!("            clamp = [p5={}, p95={}]", fold.p5, fold.p95);
 
     // ── STAGE 6: diff against library ───────────────────────────────
@@ -922,15 +1045,33 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
     let (add_min, add_med, add_max) = if added_freqs.is_empty() {
         (0, 0, 0)
     } else {
-        let mut s = added_freqs.clone(); s.sort_unstable();
+        let mut s = added_freqs.clone();
+        s.sort_unstable();
         (s[0], s[s.len() / 2], s[s.len() - 1])
     };
-    eprintln!("            ADD                       = {} (freq: min={}, med={}, max={})",
-        plan.added.len(), add_min, add_med, add_max);
-    eprintln!("            SKIP (freq unchanged)     = {}", plan.skipped_same);
-    eprintln!("            SKIP (library wins, v2)   = {}", plan.skipped_library_wins);
-    eprintln!("            SKIP (polish wins)        = {}", plan.skipped_polish);
-    eprintln!("            REJECT (garbage / drops)  = {}", plan.rejected_garbage);
+    eprintln!(
+        "            ADD                       = {} (freq: min={}, med={}, max={})",
+        plan.added.len(),
+        add_min,
+        add_med,
+        add_max
+    );
+    eprintln!(
+        "            SKIP (freq unchanged)     = {}",
+        plan.skipped_same
+    );
+    eprintln!(
+        "            SKIP (library wins, v2)   = {}",
+        plan.skipped_library_wins
+    );
+    eprintln!(
+        "            SKIP (polish wins)        = {}",
+        plan.skipped_polish
+    );
+    eprintln!(
+        "            REJECT (garbage / drops)  = {}",
+        plan.rejected_garbage
+    );
 
     if !apply {
         eprintln!("\n[dry-run] no changes written.  Re-run with --apply to commit.");
@@ -948,13 +1089,17 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
     }
 
     // ── STAGE 7: write library.tsv (atomic) ─────────────────────────
-    eprintln!("[stage 7/9] write library.tsv (atomic) — appending {} new digested rows",
-        plan.added.len());
+    eprintln!(
+        "[stage 7/9] write library.tsv (atomic) — appending {} new digested rows",
+        plan.added.len()
+    );
     for (code, word, extra, freq) in &plan.added {
         lib.rows.push(LibraryRow {
-            code: code.clone(), word: word.clone(),
+            code: code.clone(),
+            word: word.clone(),
             extra: extra.clone(),
-            freq: *freq, source: "digested".into(),
+            freq: *freq,
+            source: "digested".into(),
         });
     }
     sort_rows(&mut lib.rows, engine);
@@ -995,7 +1140,7 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
         source_sha256: fetched.sha256_hex.clone(),
         ingested_at: today.into(),
         rows_added: plan.added.len() as u64,
-        rows_updated: 0,  // v2: UPDATE branch retired
+        rows_updated: 0, // v2: UPDATE branch retired
         rows_rejected: plan.rejected_garbage,
         library_sha256_after: lib_sha_after.clone(),
         notes: full_notes,
@@ -1015,8 +1160,7 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
     // jieba source row, which would have inflated `corpus-digest list`
     // and confused future `check` heuristics.
     let row_count_this_ingest = plan.added.len() as u64;
-    let total_digested_now: u64 = lib.rows.iter()
-        .filter(|r| r.source == "digested").count() as u64;
+    let total_digested_now: u64 = lib.rows.iter().filter(|r| r.source == "digested").count() as u64;
     update_registry_source(&src.source_id, |s| {
         s.current_sha256 = fetched.sha256_hex.clone();
         s.last_event_id = event_id.clone();
@@ -1024,7 +1168,9 @@ fn cmd_ingest(source_id: &str, apply: bool, rationale: Option<&str>, today: &str
         s.current_row_count = row_count_this_ingest;
     })?;
 
-    eprintln!("\n[ingest] ✓ event {event_id} written. library now {total_digested_now} digested rows total + N polish.");
+    eprintln!(
+        "\n[ingest] ✓ event {event_id} written. library now {total_digested_now} digested rows total + N polish."
+    );
     Ok(())
 }
 
@@ -1040,13 +1186,22 @@ fn append_event(ev: &Event) -> Result<(), String> {
     block.push_str(&format!("engine = {}\n", toml_str(&ev.engine)));
     block.push_str(&format!("source_type = {}\n", toml_str(&ev.source_type)));
     block.push_str(&format!("source_name = {}\n", toml_str(&ev.source_name)));
-    block.push_str(&format!("source_version = {}\n", toml_str(&ev.source_version)));
-    block.push_str(&format!("source_sha256 = {}\n", toml_str(&ev.source_sha256)));
+    block.push_str(&format!(
+        "source_version = {}\n",
+        toml_str(&ev.source_version)
+    ));
+    block.push_str(&format!(
+        "source_sha256 = {}\n",
+        toml_str(&ev.source_sha256)
+    ));
     block.push_str(&format!("ingested_at = {}\n", toml_str(&ev.ingested_at)));
     block.push_str(&format!("rows_added = {}\n", ev.rows_added));
     block.push_str(&format!("rows_updated = {}\n", ev.rows_updated));
     block.push_str(&format!("rows_rejected = {}\n", ev.rows_rejected));
-    block.push_str(&format!("library_sha256_after = {}\n", toml_str(&ev.library_sha256_after)));
+    block.push_str(&format!(
+        "library_sha256_after = {}\n",
+        toml_str(&ev.library_sha256_after)
+    ));
     if ev.notes.is_empty() {
         block.push_str("notes = \"\"\n");
     } else {
@@ -1055,21 +1210,27 @@ fn append_event(ev: &Event) -> Result<(), String> {
 
     // Round-trip parse the existing file to make sure we didn't corrupt
     // it on a prior crash before appending.
-    let existing = fs::read_to_string(&path)
-        .map_err(|e| format!("read {}: {e}", path.display()))?;
-    let _: DigestLog = toml::from_str(&existing)
-        .map_err(|e| format!("digest_log {} is malformed before append; refusing to append: {e}", path.display()))?;
+    let existing =
+        fs::read_to_string(&path).map_err(|e| format!("read {}: {e}", path.display()))?;
+    let _: DigestLog = toml::from_str(&existing).map_err(|e| {
+        format!(
+            "digest_log {} is malformed before append; refusing to append: {e}",
+            path.display()
+        )
+    })?;
 
     let tmp = path.with_extension("toml.tmp");
     {
-        let mut f = fs::File::create(&tmp)
-            .map_err(|e| format!("create {}: {e}", tmp.display()))?;
-        f.write_all(existing.as_bytes()).map_err(|e| format!("write existing: {e}"))?;
+        let mut f = fs::File::create(&tmp).map_err(|e| format!("create {}: {e}", tmp.display()))?;
+        f.write_all(existing.as_bytes())
+            .map_err(|e| format!("write existing: {e}"))?;
         if !existing.ends_with('\n') {
             f.write_all(b"\n").map_err(|e| format!("write nl: {e}"))?;
         }
-        f.write_all(block.as_bytes()).map_err(|e| format!("write block: {e}"))?;
-        f.sync_all().map_err(|e| format!("fsync {}: {e}", tmp.display()))?;
+        f.write_all(block.as_bytes())
+            .map_err(|e| format!("write block: {e}"))?;
+        f.sync_all()
+            .map_err(|e| format!("fsync {}: {e}", tmp.display()))?;
     }
     fs::rename(&tmp, &path)
         .map_err(|e| format!("rename {} → {}: {e}", tmp.display(), path.display()))?;
@@ -1082,24 +1243,33 @@ fn append_event(ev: &Event) -> Result<(), String> {
 /// comments get stripped on the first machine write.  For Phase A we
 /// accept this; Phase B can switch to a comment-preserving edit if it
 /// becomes a problem.
-fn update_registry_source<F: FnMut(&mut Source)>(source_id: &str, mut mutate: F) -> Result<(), String> {
+fn update_registry_source<F: FnMut(&mut Source)>(
+    source_id: &str,
+    mut mutate: F,
+) -> Result<(), String> {
     let path = registry_path();
     let mut reg = load_registry()?;
     let Some(s) = reg.sources.iter_mut().find(|s| s.source_id == source_id) else {
-        return Err(format!("update_registry: source_id {source_id:?} not found"));
+        return Err(format!(
+            "update_registry: source_id {source_id:?} not found"
+        ));
     };
     mutate(s);
 
     // Serialize.  We prepend the original header comments so the file
     // remains documented; only the `[[source]]` blocks get rewritten.
-    let raw = fs::read_to_string(&path)
-        .map_err(|e| format!("read {}: {e}", path.display()))?;
-    let header: String = raw.lines()
+    let raw = fs::read_to_string(&path).map_err(|e| format!("read {}: {e}", path.display()))?;
+    let header: String = raw
+        .lines()
         .take_while(|l| {
             let t = l.trim_start();
             t.is_empty() || t.starts_with('#')
         })
-        .map(|l| { let mut s = l.to_string(); s.push('\n'); s })
+        .map(|l| {
+            let mut s = l.to_string();
+            s.push('\n');
+            s
+        })
         .collect();
 
     let mut body = String::new();
@@ -1112,14 +1282,26 @@ fn update_registry_source<F: FnMut(&mut Source)>(source_id: &str, mut mutate: F)
         body.push_str(&format!("source_name = {}\n", toml_str(&s.source_name)));
         body.push_str(&format!("fetch_kind = {}\n", toml_str(&s.fetch_kind)));
         body.push_str(&format!("fetch_url = {}\n", toml_str(&s.fetch_url)));
-        body.push_str(&format!("current_version = {}\n", toml_str(&s.current_version)));
-        body.push_str(&format!("current_sha256 = {}\n", toml_str(&s.current_sha256)));
+        body.push_str(&format!(
+            "current_version = {}\n",
+            toml_str(&s.current_version)
+        ));
+        body.push_str(&format!(
+            "current_sha256 = {}\n",
+            toml_str(&s.current_sha256)
+        ));
         body.push_str(&format!("last_event_id = {}\n", toml_str(&s.last_event_id)));
-        body.push_str(&format!("last_ingested_at = {}\n", toml_str(&s.last_ingested_at)));
+        body.push_str(&format!(
+            "last_ingested_at = {}\n",
+            toml_str(&s.last_ingested_at)
+        ));
         body.push_str(&format!("current_row_count = {}\n", s.current_row_count));
         body.push_str(&format!("ingest_format = {}\n", toml_str(&s.ingest_format)));
         body.push_str(&format!("auto_update = {}\n", s.auto_update));
-        body.push_str(&format!("auto_fetch_schedule = {}\n", toml_str(&s.auto_fetch_schedule)));
+        body.push_str(&format!(
+            "auto_fetch_schedule = {}\n",
+            toml_str(&s.auto_fetch_schedule)
+        ));
         body.push_str(&format!("status = {}\n", toml_str(&s.status)));
         if s.notes.is_empty() {
             body.push_str("notes = \"\"\n");
@@ -1130,11 +1312,13 @@ fn update_registry_source<F: FnMut(&mut Source)>(source_id: &str, mut mutate: F)
 
     let tmp = path.with_extension("toml.tmp");
     {
-        let mut f = fs::File::create(&tmp)
-            .map_err(|e| format!("create {}: {e}", tmp.display()))?;
-        f.write_all(header.as_bytes()).map_err(|e| format!("write header: {e}"))?;
-        f.write_all(body.as_bytes()).map_err(|e| format!("write body: {e}"))?;
-        f.sync_all().map_err(|e| format!("fsync {}: {e}", tmp.display()))?;
+        let mut f = fs::File::create(&tmp).map_err(|e| format!("create {}: {e}", tmp.display()))?;
+        f.write_all(header.as_bytes())
+            .map_err(|e| format!("write header: {e}"))?;
+        f.write_all(body.as_bytes())
+            .map_err(|e| format!("write body: {e}"))?;
+        f.sync_all()
+            .map_err(|e| format!("fsync {}: {e}", tmp.display()))?;
     }
     fs::rename(&tmp, &path)
         .map_err(|e| format!("rename {} → {}: {e}", tmp.display(), path.display()))?;
@@ -1143,20 +1327,23 @@ fn update_registry_source<F: FnMut(&mut Source)>(source_id: &str, mut mutate: F)
     // back to the same SourceRegistry shape.
     let _: SourceRegistry = toml::from_str(
         &fs::read_to_string(&path).map_err(|e| format!("re-read {}: {e}", path.display()))?,
-    ).map_err(|e| format!("registry I wrote doesn't parse: {e}"))?;
+    )
+    .map_err(|e| format!("registry I wrote doesn't parse: {e}"))?;
     Ok(())
 }
 
 /// Quote `s` as a TOML basic string. Escapes `\`, `"`, control chars.
 fn toml_str(s: &str) -> String {
     // If multi-line, use triple-quoted form instead.
-    if s.contains('\n') { return toml_multiline(s); }
+    if s.contains('\n') {
+        return toml_multiline(s);
+    }
     let mut out = String::with_capacity(s.len() + 2);
     out.push('"');
     for ch in s.chars() {
         match ch {
             '\\' => out.push_str("\\\\"),
-            '"'  => out.push_str("\\\""),
+            '"' => out.push_str("\\\""),
             '\n' => out.push_str("\\n"),
             '\r' => out.push_str("\\r"),
             '\t' => out.push_str("\\t"),
@@ -1174,13 +1361,18 @@ fn toml_str(s: &str) -> String {
 fn toml_multiline(s: &str) -> String {
     if s.contains("\"\"\"") {
         // Fallback to basic string with explicit \n escapes.
-        let escaped = s.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n");
+        let escaped = s
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('\n', "\\n");
         return format!("\"{escaped}\"");
     }
     let mut out = String::with_capacity(s.len() + 8);
     out.push_str("\"\"\"\n");
     out.push_str(s);
-    if !s.ends_with('\n') { out.push('\n'); }
+    if !s.ends_with('\n') {
+        out.push('\n');
+    }
     out.push_str("\"\"\"");
     out
 }
@@ -1228,18 +1420,23 @@ fn main() -> ExitCode {
             while i < argv.len() {
                 if argv[i] == "--engine" {
                     if i + 1 >= argv.len() {
-                        eprintln!("--engine needs a value"); return ExitCode::from(2);
+                        eprintln!("--engine needs a value");
+                        return ExitCode::from(2);
                     }
-                    engine = Some(&argv[i+1]); i += 2;
+                    engine = Some(&argv[i + 1]);
+                    i += 2;
                 } else {
-                    eprintln!("unknown arg: {}", argv[i]); return ExitCode::from(2);
+                    eprintln!("unknown arg: {}", argv[i]);
+                    return ExitCode::from(2);
                 }
             }
             cmd_events(engine)
         }
         "ingest" => {
             if argv.len() < 3 {
-                eprintln!("usage: corpus-digest ingest <source_id> [--apply] [--rationale <text>] [--today YYYY-MM-DD]");
+                eprintln!(
+                    "usage: corpus-digest ingest <source_id> [--apply] [--rationale <text>] [--today YYYY-MM-DD]"
+                );
                 return ExitCode::from(2);
             }
             let source_id = argv[2].clone();
@@ -1249,21 +1446,29 @@ fn main() -> ExitCode {
             let mut i = 3;
             while i < argv.len() {
                 match argv[i].as_str() {
-                    "--apply" => { apply = true; i += 1; }
+                    "--apply" => {
+                        apply = true;
+                        i += 1;
+                    }
                     "--rationale" => {
                         if i + 1 >= argv.len() {
-                            eprintln!("--rationale needs a value"); return ExitCode::from(2);
+                            eprintln!("--rationale needs a value");
+                            return ExitCode::from(2);
                         }
-                        rationale = Some(argv[i+1].clone()); i += 2;
+                        rationale = Some(argv[i + 1].clone());
+                        i += 2;
                     }
                     "--today" => {
                         if i + 1 >= argv.len() {
-                            eprintln!("--today needs a value"); return ExitCode::from(2);
+                            eprintln!("--today needs a value");
+                            return ExitCode::from(2);
                         }
-                        today = Some(argv[i+1].clone()); i += 2;
+                        today = Some(argv[i + 1].clone());
+                        i += 2;
                     }
                     other => {
-                        eprintln!("unknown arg: {other}"); return ExitCode::from(2);
+                        eprintln!("unknown arg: {other}");
+                        return ExitCode::from(2);
                     }
                 }
             }
@@ -1300,9 +1505,7 @@ fn today_fallback() -> String {
         .args(["-u", "+%Y-%m-%d"])
         .output();
     match out {
-        Ok(o) if o.status.success() => {
-            String::from_utf8_lossy(&o.stdout).trim().to_string()
-        }
+        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_string(),
         _ => "UNKNOWN-DATE".to_string(),
     }
 }
