@@ -845,6 +845,12 @@ mod tests {
             // 要是 '是'" — moved to tier_overlay tier 5; protection
             // semantics for that pair retired.
             ("you", "亦"), // existing protected
+            // 2026-06-07 (user /polish): "碰应该在第一位，这是超高频的五笔字，
+            // 现在都跑到日语后面去了". 碰 (jianma3 code duo) was wrongly
+            // tier-5 demoted by the 2026-06-03 sweep (which mis-judged duo
+            // as pinyin-freq=0); tier_overlay.tsv now promotes (duo, 碰) to
+            // tier 0 absolute so it leads even with JP enabled.
+            ("duo", "碰"),
         ];
         run("jianma3", cases, mixed_top, mixed_top10);
     }
@@ -2059,7 +2065,11 @@ mod tests {
             ("di", &["砂"]),
             ("dou", &["灰"]),
             ("du", &["磁"]),
-            ("duo", &["碰"]),
+            // (duo, 碰) retired 2026-06-07 — user: "碰应该在第一位，这是
+            // 超高频的五笔字，现在都跑到日语后面去了". The 2026-06-03 sweep
+            // mis-judged it (duo actually has a large pinyin pool, not
+            // freq=0). Promoted to tier 0 in tier_overlay.tsv; positive
+            // assertion moved to three_letter_pinyin_shaped_wubi_simcodes.
             ("er", &["遥"]),
             ("fu", &["增"]),
             // (fa, 载) retired 2026-06-06 — user: "fa 载应该在发前面，
