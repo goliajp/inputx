@@ -247,6 +247,20 @@ cut yet.
 
 **Polish — systemic sweeps:**
 
+- **wubi 日本新字体 (Shinjitai) sweep** (`17b3764`) — user report
+  `mid → 巌` "这是什么字啊".  Follow-up to the 繁体 sweep below: it
+  used opencc `t2s`, which leaves Japanese Shinjitai (巌 亀 両 伝 児
+  図 団 …) untouched (`t2s(c)==c`).  v3 upgrades the norm function to
+  `t2s ∘ jp2t` (Shinjitai→Trad→Simp) + a **GB2312 whitelist** guard
+  against opencc over-reach onto real Simplified chars (欠 予 芸 糸
+  醋 疏 沪 浜 缶 弁 — all GB2312, protected).  217 chars stripped
+  from auto_decomp.txt, 218 overlay rows from library.tsv, all logged
+  to corpus_garbage_filter_v1.tsv.  Audit + re-runnable v3 script:
+  `docs/wubi-jp-shinjitai-sweep-2026-06-08/`.  **Known follow-up:**
+  all 217 still exist as single-char noise rows in *pinyin*
+  library.tsv (same corpus origin); not yet surfacing (low freq +
+  minimal-debug gates), left for a pinyin-side cleanup pass per the
+  orthogonal-table rule (pinyin noise → pinyin engine).
 - **wubi 繁体 sweep** (`b63d6dd`) — user report `yngk → 詞 /
   词 / 肇事 / 启事`, then "你系统解决吧".  Strip 3527 TRAD
   chars from `auto_decomp.txt` whose simplified counterpart is
