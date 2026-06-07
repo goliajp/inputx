@@ -120,10 +120,7 @@ mod tests {
 
     #[test]
     fn boost_returns_table_log_prob_q4() {
-        let bytes = build_table_with(&[
-            ("今天", "是", 250),
-            ("我们", "的", 300),
-        ]);
+        let bytes = build_table_with(&[("今天", "是", 250), ("我们", "的", 300)]);
         let t = NgramTable::from_bytes(bytes).unwrap();
         assert_eq!(bigram_boost_from_ngm(&t, Some("今天"), "是"), 250);
         assert_eq!(bigram_boost_from_ngm(&t, Some("我们"), "的"), 300);
@@ -149,7 +146,9 @@ mod tests {
         // (matches v1.3 behaviour where log scaling pins anything past
         // REF=1000 to the same ~50k bonus — bigram strength saturates
         // once it's "clearly a common pair").
-        assert!(low > 0.0 && low < mid && mid <= high && high <= 50_000.0,
-            "low={low} mid={mid} high={high}");
+        assert!(
+            low > 0.0 && low < mid && mid <= high && high <= 50_000.0,
+            "low={low} mid={mid} high={high}"
+        );
     }
 }

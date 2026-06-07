@@ -18,8 +18,7 @@ use std::path::Path;
 use sha2::{Digest, Sha256};
 
 use crate::codec::{
-    encode_match_type, EngineKind, EntryFlags, EntryRecord, Header, FULL_HEADER_SIZE,
-    MAGIC,
+    EngineKind, EntryFlags, EntryRecord, FULL_HEADER_SIZE, Header, MAGIC, encode_match_type,
 };
 
 /// Drafted entry queued in [`IdfBuilder`]; pre-encoding form.
@@ -84,7 +83,9 @@ impl IdfBuilder {
     }
 
     /// Total count of queued entries (before dedupe).
-    pub fn pending_count(&self) -> usize { self.entries.len() }
+    pub fn pending_count(&self) -> usize {
+        self.entries.len()
+    }
 
     /// Build the file. Atomic: writes to `<path>.tmp` then renames over
     /// `path`. Returns the final sha256 of the payload so callers can
@@ -97,9 +98,8 @@ impl IdfBuilder {
                 .then_with(|| a.word.cmp(&b.word))
                 .then_with(|| a.log_prior.cmp(&b.log_prior))
         });
-        self.entries.dedup_by(|a, b| {
-            a.code == b.code && a.word == b.word
-        });
+        self.entries
+            .dedup_by(|a, b| a.code == b.code && a.word == b.word);
         let entry_count = self.entries.len() as u32;
 
         // 2. String pool. Dedupe distinct UTF-8 strings; assign byte
@@ -177,8 +177,7 @@ impl IdfBuilder {
         let string_pool_offset = FULL_HEADER_SIZE as u32;
         let entry_table_offset = string_pool_offset + pool_bytes.len() as u32;
         let fst_code_index_offset = entry_table_offset + entry_bytes.len() as u32;
-        let fst_word_index_offset =
-            fst_code_index_offset + fst_code_index.len() as u32;
+        let fst_word_index_offset = fst_code_index_offset + fst_code_index.len() as u32;
 
         let header = Header {
             magic: MAGIC,
@@ -331,10 +330,38 @@ mod tests {
         let path = dir.path().join("p.idf");
         let mut b = IdfBuilder::new(EngineKind::Pinyin);
         b.add_entry("z", "之", 100, 0, MatchType::Exact, EntryFlags::default());
-        b.add_entry("zhong", "中", 500, 0, MatchType::Exact, EntryFlags::default());
-        b.add_entry("zhongguo", "中国", 700, 0, MatchType::Exact, EntryFlags::default());
-        b.add_entry("zhongguodian", "中国电", 50, 0, MatchType::Exact, EntryFlags::default());
-        b.add_entry("xinjiang", "新疆", 999, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry(
+            "zhong",
+            "中",
+            500,
+            0,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
+        b.add_entry(
+            "zhongguo",
+            "中国",
+            700,
+            0,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
+        b.add_entry(
+            "zhongguodian",
+            "中国电",
+            50,
+            0,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
+        b.add_entry(
+            "xinjiang",
+            "新疆",
+            999,
+            0,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
         b.build(&path).unwrap();
         let bytes = std::fs::read(&path).unwrap();
         let r = IdfReader::from_bytes(bytes).unwrap();
@@ -358,11 +385,46 @@ mod tests {
         // reading run) so we also assert that all readings of one code
         // are visited together.
         b.add_entry("z", "之", 100, 0, MatchType::Exact, EntryFlags::default());
-        b.add_entry("zhong", "中", 500, 0, MatchType::Exact, EntryFlags::default());
-        b.add_entry("zhongguo", "中国", 700, 0, MatchType::Exact, EntryFlags::default());
-        b.add_entry("zhongguo", "种过", 50, 0, MatchType::Exact, EntryFlags::default());
-        b.add_entry("zhongguodian", "中国电", 30, 0, MatchType::Exact, EntryFlags::default());
-        b.add_entry("xinjiang", "新疆", 999, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry(
+            "zhong",
+            "中",
+            500,
+            0,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
+        b.add_entry(
+            "zhongguo",
+            "中国",
+            700,
+            0,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
+        b.add_entry(
+            "zhongguo",
+            "种过",
+            50,
+            0,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
+        b.add_entry(
+            "zhongguodian",
+            "中国电",
+            30,
+            0,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
+        b.add_entry(
+            "xinjiang",
+            "新疆",
+            999,
+            0,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
         b.build(&path).unwrap();
         let bytes = std::fs::read(&path).unwrap();
         let r = IdfReader::from_bytes(bytes).unwrap();
@@ -399,7 +461,14 @@ mod tests {
         let mut b = IdfBuilder::new(EngineKind::Pinyin);
         b.add_entry("a", "啊", 10, 0, MatchType::Exact, EntryFlags::default());
         b.add_entry("ni", "你", 20, 0, MatchType::Exact, EntryFlags::default());
-        b.add_entry("zhong", "中", 30, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry(
+            "zhong",
+            "中",
+            30,
+            0,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
         b.build(&path).unwrap();
         let bytes = std::fs::read(&path).unwrap();
         let r = IdfReader::from_bytes(bytes).unwrap();
@@ -413,9 +482,30 @@ mod tests {
         let dir = tempdir().unwrap();
         let path = dir.path().join("w.idf");
         let mut b = IdfBuilder::new(EngineKind::Pinyin);
-        b.add_entry("changchang", "长长", 100, 0, MatchType::Exact, EntryFlags::default());
-        b.add_entry("zhang", "长", 200, 0, MatchType::Exact, EntryFlags::default());
-        b.add_entry("chang", "长", 300, 0, MatchType::Exact, EntryFlags::default());
+        b.add_entry(
+            "changchang",
+            "长长",
+            100,
+            0,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
+        b.add_entry(
+            "zhang",
+            "长",
+            200,
+            0,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
+        b.add_entry(
+            "chang",
+            "长",
+            300,
+            0,
+            MatchType::Exact,
+            EntryFlags::default(),
+        );
         b.build(&path).unwrap();
         let bytes = std::fs::read(&path).unwrap();
         let r = IdfReader::from_bytes(bytes).unwrap();

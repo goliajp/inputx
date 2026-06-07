@@ -126,9 +126,7 @@ pub mod tier_overlay {
     pub fn get(buffer: &str, word: &str) -> Option<u8> {
         let buf_lc = buffer.to_ascii_lowercase();
         TIER_OVERLAY_ROWS
-            .binary_search_by(|(b, w, _t)| {
-                (*b).cmp(buf_lc.as_str()).then_with(|| (*w).cmp(word))
-            })
+            .binary_search_by(|(b, w, _t)| (*b).cmp(buf_lc.as_str()).then_with(|| (*w).cmp(word)))
             .ok()
             .map(|i| TIER_OVERLAY_ROWS[i].2)
     }
@@ -680,7 +678,10 @@ pub fn derive_log_likelihood(base_log_q4: i32, mt: MatchType) -> i32 {
             let decay_q4 = (extra_links * LN_COMPOSED_PER_LINK * q4).round() as i32;
             base_log_q4 + decay_q4
         }
-        MatchType::Initials { typed_len, full_len } => {
+        MatchType::Initials {
+            typed_len,
+            full_len,
+        } => {
             // Initials shorthand: user typed N initial-letter
             // characters as an abbreviation for a multi-syllable word
             // with full pinyin length M ≈ chars · 4. Proximity =
@@ -771,9 +772,18 @@ mod tests {
             match_type: MatchType::Exact,
             source: Source::Pinyin,
         };
-        let c_word_diff = Candidate { word: "继续。", ..a };
-        let c_source_diff = Candidate { source: Source::Wubi, ..a };
-        let c_mt_diff = Candidate { match_type: MatchType::Prefix(500), ..a };
+        let c_word_diff = Candidate {
+            word: "继续。",
+            ..a
+        };
+        let c_source_diff = Candidate {
+            source: Source::Wubi,
+            ..a
+        };
+        let c_mt_diff = Candidate {
+            match_type: MatchType::Prefix(500),
+            ..a
+        };
         assert_eq!(a, b, "score should not affect identity");
         assert_ne!(a, c_word_diff);
         assert_ne!(a, c_source_diff);
@@ -787,7 +797,10 @@ mod tests {
         let f1 = log_prior_from_freq(1);
         assert!((10..=12).contains(&f1), "ln(2)·16 ≈ 11; got {f1}");
         let f1000 = log_prior_from_freq(1000);
-        assert!((110..=112).contains(&f1000), "ln(1001)·16 ≈ 110; got {f1000}");
+        assert!(
+            (110..=112).contains(&f1000),
+            "ln(1001)·16 ≈ 110; got {f1000}"
+        );
         let f50000 = log_prior_from_freq(50_000);
         assert!(f50000 > log_prior_from_freq(1000), "monotone in freq");
     }
@@ -866,8 +879,14 @@ mod tests {
         let w = compute_score(&mk_cd(0, 0, Source::Wubi, 1), &weights);
         let p = compute_score(&mk_cd(0, 0, Source::Pinyin, 1), &weights);
         let n = compute_score(&mk_cd(0, 0, Source::Japanese, 1), &weights);
-        assert!(w > p, "wubi must lead pinyin within same tier (w={w} p={p})");
-        assert!(p > n, "pinyin must lead nihongo within same tier (p={p} n={n})");
+        assert!(
+            w > p,
+            "wubi must lead pinyin within same tier (w={w} p={p})"
+        );
+        assert!(
+            p > n,
+            "pinyin must lead nihongo within same tier (p={p} n={n})"
+        );
     }
 
     /// `compute_score` bootstrap-floor overrides `log_prob_corpus_q4`
@@ -950,14 +969,24 @@ mod tests {
         let base = 221;
         // Same nominal proximity (2/8 = 25%) — Initials should decay
         // less than Prefix (250 prox_milli) because K=1 not 3.
-        let init = derive_log_likelihood(base, MatchType::Initials { typed_len: 2, full_len: 8 });
+        let init = derive_log_likelihood(
+            base,
+            MatchType::Initials {
+                typed_len: 2,
+                full_len: 8,
+            },
+        );
         let pref = derive_log_likelihood(base, MatchType::Prefix(250));
-        assert!(init > pref,
-            "Initials decay (K=1) must be gentler than Prefix decay (K=3) at same proximity; got init={init} pref={pref}");
+        assert!(
+            init > pref,
+            "Initials decay (K=1) must be gentler than Prefix decay (K=3) at same proximity; got init={init} pref={pref}"
+        );
         // Typical pinyin initials case lands at ~199 (the calibration
         // target for inputx_default()).
-        assert!((196..=202).contains(&init),
-            "typical 2/8 initials decay should land near 199; got {init}");
+        assert!(
+            (196..=202).contains(&init),
+            "typical 2/8 initials decay should land near 199; got {init}"
+        );
     }
 
     /// WU-ξ: degenerate inputs (typed_len ≥ full_len, or zero) collapse
@@ -969,17 +998,35 @@ mod tests {
         let base = 100;
         // typed_len > full_len → proximity clamped to 1.0 → no decay.
         assert_eq!(
-            derive_log_likelihood(base, MatchType::Initials { typed_len: 8, full_len: 4 }),
+            derive_log_likelihood(
+                base,
+                MatchType::Initials {
+                    typed_len: 8,
+                    full_len: 4
+                }
+            ),
             base,
             "typed >= full collapses to no decay"
         );
         // zero typed_len/full_len → no decay (defensive).
         assert_eq!(
-            derive_log_likelihood(base, MatchType::Initials { typed_len: 0, full_len: 4 }),
+            derive_log_likelihood(
+                base,
+                MatchType::Initials {
+                    typed_len: 0,
+                    full_len: 4
+                }
+            ),
             base,
         );
         assert_eq!(
-            derive_log_likelihood(base, MatchType::Initials { typed_len: 4, full_len: 0 }),
+            derive_log_likelihood(
+                base,
+                MatchType::Initials {
+                    typed_len: 4,
+                    full_len: 0
+                }
+            ),
             base,
         );
     }
@@ -1001,8 +1048,11 @@ mod tests {
         for count in [2u8, 5, 10, 50, u8::MAX] {
             let mut d = mk_cd(10, 30, Source::Pinyin, 4);
             d.word_char_count = count;
-            assert_eq!(compute_score(&d, &weights), pin,
-                "neutral weights must be count-invariant (got count={count})");
+            assert_eq!(
+                compute_score(&d, &weights),
+                pin,
+                "neutral weights must be count-invariant (got count={count})"
+            );
         }
     }
 
@@ -1023,8 +1073,10 @@ mod tests {
         let low = derive_log_likelihood(base, MatchType::Prefix(100));
         let full = derive_log_likelihood(base, MatchType::Prefix(1000));
         assert_eq!(full, base, "prox=1000 collapses to base (ln 1 = 0)");
-        assert!(high < base && mid < high && low < mid,
-            "prefix decay must be monotone-decreasing in proximity; got full={full} high={high} mid={mid} low={low}");
+        assert!(
+            high < base && mid < high && low < mid,
+            "prefix decay must be monotone-decreasing in proximity; got full={full} high={high} mid={mid} low={low}"
+        );
     }
 
     #[cfg(feature = "std")]
@@ -1035,8 +1087,10 @@ mod tests {
         let expensive = derive_log_likelihood(base, MatchType::Fuzzy(700));
         let zero = derive_log_likelihood(base, MatchType::Fuzzy(0));
         assert_eq!(zero, base, "cost=0 collapses to base (ln 1 = 0)");
-        assert!(expensive < cheap && cheap < base,
-            "fuzzy decay must be monotone-decreasing in cost; got zero={zero} cheap={cheap} expensive={expensive}");
+        assert!(
+            expensive < cheap && cheap < base,
+            "fuzzy decay must be monotone-decreasing in cost; got zero={zero} cheap={cheap} expensive={expensive}"
+        );
     }
 
     #[cfg(feature = "std")]
@@ -1048,9 +1102,14 @@ mod tests {
         let three = derive_log_likelihood(base, MatchType::Composed { bigram_links: 3 });
         let zero = derive_log_likelihood(base, MatchType::Composed { bigram_links: 0 });
         assert_eq!(zero, base, "0 links — no chain — no decay");
-        assert_eq!(one, base, "1 link is the first segment; (links − 1) = 0, no decay");
-        assert!(two < one && three < two,
-            "composed decay must drop per extra link; got one={one} two={two} three={three}");
+        assert_eq!(
+            one, base,
+            "1 link is the first segment; (links − 1) = 0, no decay"
+        );
+        assert!(
+            two < one && three < two,
+            "composed decay must drop per extra link; got one={one} two={two} three={three}"
+        );
     }
 
     #[cfg(feature = "std")]
@@ -1077,9 +1136,12 @@ mod tests {
         // prior contribution dominates); common fuzzy sits between common
         // prefix and rare exact (rough chain, ranking-only check).
         assert!(score(&exact_common) > score(&prefix_common));
-        assert!(score(&prefix_common) > score(&exact_rare),
+        assert!(
+            score(&prefix_common) > score(&exact_rare),
             "common prefix prior wins rare exact; got pref={} rare={}",
-            score(&prefix_common), score(&exact_rare));
+            score(&prefix_common),
+            score(&exact_rare)
+        );
         assert!(score(&exact_common) > score(&fuzzy_common));
     }
 

@@ -58,11 +58,7 @@ impl CandidateRuleEngine {
 
     /// Run every rule in priority order; return the trace. The
     /// candidate list reflects all applied rules on return.
-    pub fn run(
-        &self,
-        ctx: &Context,
-        cands: &mut Vec<RuleCandidate>,
-    ) -> ExecutionTrace {
+    pub fn run(&self, ctx: &Context, cands: &mut Vec<RuleCandidate>) -> ExecutionTrace {
         let mut trace = ExecutionTrace::default();
         let total_start = Instant::now();
         for rule in &self.rules {
@@ -81,14 +77,10 @@ impl CandidateRuleEngine {
             // hold non-poisoned state across panic boundaries; if a
             // rule does need that, it should use its own RwLock and
             // poison-guard internally.
-            let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                rule.apply(ctx, cands)
-            }));
+            let result = std::panic::catch_unwind(AssertUnwindSafe(|| rule.apply(ctx, cands)));
             let effect = match result {
                 Ok(e) => e,
-                Err(_) => RuleEffect::Failed(format!(
-                    "{} panicked", rule.name()
-                )),
+                Err(_) => RuleEffect::Failed(format!("{} panicked", rule.name())),
             };
             trace.fired.push(TraceEntry {
                 rule_name: rule.name(),
@@ -119,8 +111,12 @@ mod tests {
         p: i32,
     }
     impl Rule for NoOpRule {
-        fn name(&self) -> &'static str { self.n }
-        fn priority(&self) -> i32 { self.p }
+        fn name(&self) -> &'static str {
+            self.n
+        }
+        fn priority(&self) -> i32 {
+            self.p
+        }
     }
     impl CandidateRule for NoOpRule {
         fn apply(&self, _ctx: &Context, _cands: &mut Vec<RuleCandidate>) -> RuleEffect {
@@ -128,10 +124,18 @@ mod tests {
         }
     }
 
-    struct AddRule { n: &'static str, p: i32, word: &'static str }
+    struct AddRule {
+        n: &'static str,
+        p: i32,
+        word: &'static str,
+    }
     impl Rule for AddRule {
-        fn name(&self) -> &'static str { self.n }
-        fn priority(&self) -> i32 { self.p }
+        fn name(&self) -> &'static str {
+            self.n
+        }
+        fn priority(&self) -> i32 {
+            self.p
+        }
     }
     impl CandidateRule for AddRule {
         fn apply(&self, _ctx: &Context, cands: &mut Vec<RuleCandidate>) -> RuleEffect {
@@ -146,8 +150,12 @@ mod tests {
 
     struct PanicRule;
     impl Rule for PanicRule {
-        fn name(&self) -> &'static str { "PanicRule" }
-        fn priority(&self) -> i32 { 999 }
+        fn name(&self) -> &'static str {
+            "PanicRule"
+        }
+        fn priority(&self) -> i32 {
+            999
+        }
     }
     impl CandidateRule for PanicRule {
         fn apply(&self, _ctx: &Context, _cands: &mut Vec<RuleCandidate>) -> RuleEffect {
@@ -168,13 +176,23 @@ mod tests {
     #[test]
     fn engine_runs_rules_in_priority_order() {
         let engine = CandidateRuleEngine::new(vec![
-            Arc::new(AddRule { n: "second", p: 200, word: "B" }),
-            Arc::new(AddRule { n: "first", p: 100, word: "A" }),
+            Arc::new(AddRule {
+                n: "second",
+                p: 200,
+                word: "B",
+            }),
+            Arc::new(AddRule {
+                n: "first",
+                p: 100,
+                word: "A",
+            }),
         ]);
         let mut cands = Vec::new();
         let trace = engine.run(&ctx(), &mut cands);
-        assert_eq!(cands.iter().map(|c| c.word.as_str()).collect::<Vec<_>>(),
-                   vec!["A", "B"]);
+        assert_eq!(
+            cands.iter().map(|c| c.word.as_str()).collect::<Vec<_>>(),
+            vec!["A", "B"]
+        );
         assert_eq!(trace.fired.len(), 2);
         assert_eq!(trace.fired[0].rule_name, "first");
         assert_eq!(trace.fired[1].rule_name, "second");
@@ -184,11 +202,17 @@ mod tests {
     fn applies_false_skips_rule() {
         struct Gated;
         impl Rule for Gated {
-            fn name(&self) -> &'static str { "Gated" }
-            fn priority(&self) -> i32 { 100 }
+            fn name(&self) -> &'static str {
+                "Gated"
+            }
+            fn priority(&self) -> i32 {
+                100
+            }
         }
         impl CandidateRule for Gated {
-            fn applies(&self, _: &Context) -> bool { false }
+            fn applies(&self, _: &Context) -> bool {
+                false
+            }
             fn apply(&self, _: &Context, cands: &mut Vec<RuleCandidate>) -> RuleEffect {
                 cands.push(RuleCandidate {
                     word: "SHOULD_NOT_APPEAR".into(),
@@ -211,7 +235,11 @@ mod tests {
     fn panicking_rule_does_not_block_subsequent_rules() {
         let engine = CandidateRuleEngine::new(vec![
             Arc::new(PanicRule),
-            Arc::new(AddRule { n: "after", p: 1000, word: "AFTER" }),
+            Arc::new(AddRule {
+                n: "after",
+                p: 1000,
+                word: "AFTER",
+            }),
         ]);
         let mut cands = Vec::new();
         let trace = engine.run(&ctx(), &mut cands);

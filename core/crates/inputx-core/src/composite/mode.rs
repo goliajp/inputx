@@ -74,7 +74,12 @@ mod tests {
 
     #[test]
     fn round_trip_u8() {
-        for m in [Mode::Mixed, Mode::WubiOnly, Mode::PinyinOnly, Mode::JapaneseOnly] {
+        for m in [
+            Mode::Mixed,
+            Mode::WubiOnly,
+            Mode::PinyinOnly,
+            Mode::JapaneseOnly,
+        ] {
             assert_eq!(Mode::from_u8(m.as_u8()), Some(m));
         }
         assert_eq!(Mode::from_u8(99), None);

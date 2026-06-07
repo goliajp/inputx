@@ -105,7 +105,8 @@ pub const LIKELIHOOD_JP_JUKUGO_BASE: f64 = inputx_scoring::consts::LIKELIHOOD_JP
 
 /// **LIKELIHOOD** — base for JP single-kanji match. Below jukugo (single
 /// chars typically less specific than compounds), still below Chinese bases.
-pub const LIKELIHOOD_JP_SINGLE_KANJI_BASE: f64 = inputx_scoring::consts::LIKELIHOOD_JP_SINGLE_KANJI_BASE;
+pub const LIKELIHOOD_JP_SINGLE_KANJI_BASE: f64 =
+    inputx_scoring::consts::LIKELIHOOD_JP_SINGLE_KANJI_BASE;
 
 /// **LIKELIHOOD** — base for JP hiragana (mechanical romaji→kana rendering).
 /// Tuned 2026-05-24 from 200k → 150k after user-reported `di → ぢ #1
@@ -201,7 +202,8 @@ pub const LIKELIHOOD_WUBI_PREDICT_BASE: f64 = inputx_scoring::consts::LIKELIHOOD
 /// (`has_non_speculative_candidate == false`), so exact matches like
 /// `lianxiang → 联想` are not affected (2026-05-22 user rule). Wired
 /// into `predict_score()` below.
-pub const LIKELIHOOD_PINYIN_PREDICT_BASE: f64 = inputx_scoring::consts::LIKELIHOOD_PINYIN_PREDICT_BASE;
+pub const LIKELIHOOD_PINYIN_PREDICT_BASE: f64 =
+    inputx_scoring::consts::LIKELIHOOD_PINYIN_PREDICT_BASE;
 
 /// **LIKELIHOOD** — JP full-match PROMOTE: multiplier applied to *every*
 /// JP candidate's score when the buffer yields a real full-buffer 熟語
@@ -220,7 +222,8 @@ pub const LIKELIHOOD_PINYIN_PREDICT_BASE: f64 = inputx_scoring::consts::LIKELIHO
 /// input (no jukugo) is untouched. Bounded so it only matters for long
 /// romaji buffers (jukugo ≥ ~4 chars ⇒ wubi already zeroed by
 /// wubi_length_modifier; no simcode collision).
-pub const LIKELIHOOD_JP_FULL_MATCH_PROMOTE: f64 = inputx_scoring::consts::LIKELIHOOD_JP_FULL_MATCH_PROMOTE;
+pub const LIKELIHOOD_JP_FULL_MATCH_PROMOTE: f64 =
+    inputx_scoring::consts::LIKELIHOOD_JP_FULL_MATCH_PROMOTE;
 
 /// **LIKELIHOOD** — exponent on prefix-prediction proximity
 /// (`typed_len / full_reading_len`). A predicted candidate's freq
@@ -230,7 +233,8 @@ pub const LIKELIHOOD_JP_FULL_MATCH_PROMOTE: f64 = inputx_scoring::consts::LIKELI
 /// closer to the word. K=3 (草案): 0.875→0.67, 0.5→0.125, 0.375→0.05.
 /// In the probability framing this IS `P(i|W)` for prefix matches.
 /// Tune in CP-A calibration. See PLAN-prefix-prediction.md §4.
-pub const LIKELIHOOD_PREDICT_PROXIMITY_K: f64 = inputx_scoring::consts::LIKELIHOOD_PREDICT_PROXIMITY_K;
+pub const LIKELIHOOD_PREDICT_PROXIMITY_K: f64 =
+    inputx_scoring::consts::LIKELIHOOD_PREDICT_PROXIMITY_K;
 
 /// **LIKELIHOOD** — base for `compose_sentence` products (mechanical
 /// content+particle sentence guesses: 私は for watashiwa, but junk like
@@ -262,7 +266,8 @@ pub const LIKELIHOOD_JP_COMPOSED_BASE: f64 = inputx_scoring::consts::LIKELIHOOD_
 /// (It can edge a very-low-freq real jukugo, freq<27 → <280k; acceptable
 /// — 東京都 is a legit reading.) Pure-kanji vs has-kana split is done by
 /// inspecting the word in japanese_adapter (no extra field).
-pub const LIKELIHOOD_JP_COMPOSED_KANJI_BASE: f64 = inputx_scoring::consts::LIKELIHOOD_JP_COMPOSED_KANJI_BASE;
+pub const LIKELIHOOD_JP_COMPOSED_KANJI_BASE: f64 =
+    inputx_scoring::consts::LIKELIHOOD_JP_COMPOSED_KANJI_BASE;
 
 /// **CUTOFF** — past this input length (pinyin-buffer chars), wubi
 /// candidate scores get multiplied by 0.0 via `wubi_length_modifier`.
@@ -297,7 +302,8 @@ pub const LIKELIHOOD_TC_DEMOTE_MULT: f64 = inputx_scoring::consts::LIKELIHOOD_TC
 /// Bounded below the Zigen base (500k) so wubi-internal layering is
 /// untouched. NOT applied to speculative short buffers (those keep the
 /// 0.5 demote) nor to Auto junk.
-pub const LIKELIHOOD_WUBI_FULL_CODE_PROMOTE: f64 = inputx_scoring::consts::LIKELIHOOD_WUBI_FULL_CODE_PROMOTE;
+pub const LIKELIHOOD_WUBI_FULL_CODE_PROMOTE: f64 =
+    inputx_scoring::consts::LIKELIHOOD_WUBI_FULL_CODE_PROMOTE;
 
 /// **PRIOR** — multiplier applied to L0-pinned words inside the engine's
 /// `lookup_with_scores_into`. Brings any pin above any natural score:
@@ -316,7 +322,8 @@ pub const PRIOR_L0_PIN_MULT: f64 = 1000.0;
 /// than the phrase. Documentation constant; promotion currently lives
 /// inside wubi engine's own scoring.
 #[allow(dead_code)]
-pub const LIKELIHOOD_WUBI_SINGLE_CHAR_PROMOTE_MULT: f64 = inputx_scoring::consts::LIKELIHOOD_WUBI_SINGLE_CHAR_PROMOTE_MULT;
+pub const LIKELIHOOD_WUBI_SINGLE_CHAR_PROMOTE_MULT: f64 =
+    inputx_scoring::consts::LIKELIHOOD_WUBI_SINGLE_CHAR_PROMOTE_MULT;
 
 /// **MARKER** — diagnostic anchor recognizing "this is a wubi Jianma1
 /// hit". Used by FFI / diagnostic code. Equals `LAYER_BASE[Jianma1]` in
@@ -347,7 +354,8 @@ pub fn wubi_length_modifier(input_len: usize) -> f64 {
 #[allow(dead_code)]
 pub const LIKELIHOOD_ENGINE_MULT_WUBI: f64 = inputx_scoring::consts::LIKELIHOOD_ENGINE_MULT_WUBI;
 #[allow(dead_code)]
-pub const LIKELIHOOD_ENGINE_MULT_PINYIN: f64 = inputx_scoring::consts::LIKELIHOOD_ENGINE_MULT_PINYIN;
+pub const LIKELIHOOD_ENGINE_MULT_PINYIN: f64 =
+    inputx_scoring::consts::LIKELIHOOD_ENGINE_MULT_PINYIN;
 #[allow(dead_code)]
 pub const LIKELIHOOD_ENGINE_MULT_JP: f64 = inputx_scoring::consts::LIKELIHOOD_ENGINE_MULT_JP;
 
@@ -445,13 +453,16 @@ pub fn predict_score_with_components(
     let base_log_q4 = (base.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
     let prox_milli = (proximity.clamp(0.0, 1.0) * 1000.0).round() as u16;
     let match_type = inputx_scoring::MatchType::Prefix(prox_milli);
-    let log_likelihood_q4 =
-        inputx_scoring::derive_log_likelihood(base_log_q4, match_type);
+    let log_likelihood_q4 = inputx_scoring::derive_log_likelihood(base_log_q4, match_type);
     (
         score,
         crate::composite::merge::ScoreComponents::from_predict(
-            base, prior, likelihood,
-            log_prior_q4, log_likelihood_q4, match_type,
+            base,
+            prior,
+            likelihood,
+            log_prior_q4,
+            log_likelihood_q4,
+            match_type,
         ),
     )
 }
@@ -487,11 +498,26 @@ mod tests {
         // axis decomposition honest — without this test a future refactor
         // could silently desync the two helpers.
         let cases: &[(f64, u64, f64, f64)] = &[
-            (LIKELIHOOD_PINYIN_PREDICT_BASE, 50_000, PRIOR_FREQ_MULT_PINYIN, 0.875),
-            (LIKELIHOOD_PINYIN_PREDICT_BASE, 0,      PRIOR_FREQ_MULT_PINYIN, 1.0),
-            (LIKELIHOOD_WUBI_PREDICT_BASE,   45_000, PRIOR_FREQ_MULT_WUBI,   0.5),
-            (LIKELIHOOD_JP_JUKUGO_BASE,      88,     PRIOR_FREQ_MULT_JP,     0.875),
-            (LIKELIHOOD_JP_JUKUGO_BASE,      100,    PRIOR_FREQ_MULT_JP,     1.0),
+            (
+                LIKELIHOOD_PINYIN_PREDICT_BASE,
+                50_000,
+                PRIOR_FREQ_MULT_PINYIN,
+                0.875,
+            ),
+            (
+                LIKELIHOOD_PINYIN_PREDICT_BASE,
+                0,
+                PRIOR_FREQ_MULT_PINYIN,
+                1.0,
+            ),
+            (
+                LIKELIHOOD_WUBI_PREDICT_BASE,
+                45_000,
+                PRIOR_FREQ_MULT_WUBI,
+                0.5,
+            ),
+            (LIKELIHOOD_JP_JUKUGO_BASE, 88, PRIOR_FREQ_MULT_JP, 0.875),
+            (LIKELIHOOD_JP_JUKUGO_BASE, 100, PRIOR_FREQ_MULT_JP, 1.0),
         ];
         for &(base, freq, mult, proximity) in cases {
             let plain = predict_score(base, freq, mult, proximity);
@@ -501,12 +527,16 @@ mod tests {
             // shift uniformly per engine but the linear chain is
             // unchanged.
             let (split, c) = predict_score_with_components(base, freq, mult, proximity, 1_000_000);
-            assert_eq!(plain, split,
-                "predict_score and _with_components must agree for ({base}, {freq}, {mult}, {proximity})");
+            assert_eq!(
+                plain, split,
+                "predict_score and _with_components must agree for ({base}, {freq}, {mult}, {proximity})"
+            );
             let recomputed = c.base + c.prior * c.likelihood;
-            assert!((split - recomputed).abs() < 1e-9,
+            assert!(
+                (split - recomputed).abs() < 1e-9,
                 "invariant breaks for ({base}, {freq}, {mult}, {proximity}): \
-                 score={split}, base+prior*likelihood={recomputed}");
+                 score={split}, base+prior*likelihood={recomputed}"
+            );
         }
     }
 

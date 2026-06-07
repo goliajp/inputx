@@ -23,7 +23,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use inputx_dict_format::{EngineKind, EntryFlags, IdfBuilder};
-use inputx_scoring::{log_prob_corpus_from_freq, MatchType};
+use inputx_scoring::{MatchType, log_prob_corpus_from_freq};
 use inputx_wubi::WubiDict;
 
 fn main() -> ExitCode {
@@ -42,9 +42,7 @@ fn main() -> ExitCode {
             }
         }
     }
-    let out = output.unwrap_or_else(|| {
-        PathBuf::from("crates/inputx-wubi-data/data/words.idf")
-    });
+    let out = output.unwrap_or_else(|| PathBuf::from("crates/inputx-wubi-data/data/words.idf"));
     match run(&out) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
@@ -90,8 +88,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         // additive in the legacy score, so the (layer.base + freq)
         // ordering would otherwise collapse same-bucket entries from
         // different layers).
-        let flags = EntryFlags::default()
-            .with_engine_tag(layer.as_index() as u8);
+        let flags = EntryFlags::default().with_engine_tag(layer.as_index() as u8);
         builder.add_entry(
             code,
             word,

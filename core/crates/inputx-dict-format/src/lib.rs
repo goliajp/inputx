@@ -50,7 +50,7 @@ pub mod reader;
 #[cfg(feature = "std")]
 pub mod writer;
 
-pub use codec::{EngineKind, EntryFlags, Header, Version, MAGIC, HEADER_SIZE, ENTRY_SIZE};
+pub use codec::{ENTRY_SIZE, EngineKind, EntryFlags, HEADER_SIZE, Header, MAGIC, Version};
 pub use reader::{Entry, IdfReader};
 #[cfg(feature = "std")]
 pub use writer::IdfBuilder;

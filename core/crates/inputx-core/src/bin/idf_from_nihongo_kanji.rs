@@ -17,7 +17,7 @@ use std::process::ExitCode;
 
 use inputx_dict_format::{EngineKind, EntryFlags, IdfBuilder};
 use inputx_nihongo::kanji::all_entries as kanji_entries;
-use inputx_scoring::{log_prob_corpus_from_freq, MatchType};
+use inputx_scoring::{MatchType, log_prob_corpus_from_freq};
 
 fn main() -> ExitCode {
     let mut output: Option<PathBuf> = None;
@@ -35,9 +35,8 @@ fn main() -> ExitCode {
             }
         }
     }
-    let out = output.unwrap_or_else(|| {
-        PathBuf::from("crates/inputx-nihongo-data-kanji/data/kanji.idf")
-    });
+    let out =
+        output.unwrap_or_else(|| PathBuf::from("crates/inputx-nihongo-data-kanji/data/kanji.idf"));
     match run(&out) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
@@ -58,9 +57,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
     // flattened upstream. So the corpus total is just Σ freq over rows,
     // matching the .idf rows we're about to write.
     let total_corpus: u64 = entries.iter().map(|e| e.freq as u64).sum();
-    eprintln!(
-        "[idf-from-nihongo-kanji] corpus total raw_freq = {total_corpus}"
-    );
+    eprintln!("[idf-from-nihongo-kanji] corpus total raw_freq = {total_corpus}");
     let mut builder = IdfBuilder::new(EngineKind::NihongoKanji);
     let mut total_pairs = 0usize;
     for e in entries {
@@ -78,9 +75,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         );
         total_pairs += 1;
     }
-    eprintln!(
-        "[idf-from-nihongo-kanji] {total_pairs} (reading, kanji) rows written"
-    );
+    eprintln!("[idf-from-nihongo-kanji] {total_pairs} (reading, kanji) rows written");
     let sha = builder.build(out_path)?;
     let sha_hex: String = sha.iter().map(|b| format!("{b:02x}")).collect();
     let size = std::fs::metadata(out_path)?.len();

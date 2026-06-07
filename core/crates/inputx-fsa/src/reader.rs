@@ -335,7 +335,9 @@ impl<D: AsRef<[u8]>> Fsa<D> {
             // single-transition form: [flags, label, delta], no count.
             let Some(&label) = b.get(p) else { return };
             p += 1;
-            let Some(delta) = rd_uvarint(b, &mut p) else { return };
+            let Some(delta) = rd_uvarint(b, &mut p) else {
+                return;
+            };
             if let Some(target) = decode_target(rel, delta) {
                 cur.push(label);
                 self.visit_subtree(target, cur, ord, visit);
@@ -343,12 +345,18 @@ impl<D: AsRef<[u8]>> Fsa<D> {
             }
             return;
         }
-        let Some(ntrans) = rd_uvarint(b, &mut p) else { return };
+        let Some(ntrans) = rd_uvarint(b, &mut p) else {
+            return;
+        };
         for _ in 0..ntrans {
             let Some(&label) = b.get(p) else { return };
             p += 1;
-            let Some(delta) = rd_uvarint(b, &mut p) else { return };
-            let Some(_num) = rd_uvarint(b, &mut p) else { return };
+            let Some(delta) = rd_uvarint(b, &mut p) else {
+                return;
+            };
+            let Some(_num) = rd_uvarint(b, &mut p) else {
+                return;
+            };
             if let Some(target) = decode_target(rel, delta) {
                 cur.push(label);
                 self.visit_subtree(target, cur, ord, visit);

@@ -21,10 +21,8 @@
 
 /// Inter-token word bigram FSA, in the
 /// [`inputx_fsa::Fsa`](https://docs.rs/inputx-fsa) binary format.
-pub const EMBEDDED_BIGRAMS: &[u8] =
-    include_bytes!("../data/bigrams.fsa");
+pub const EMBEDDED_BIGRAMS: &[u8] = include_bytes!("../data/bigrams.fsa");
 
 /// Intra-token char bigram FSA, in the
 /// [`inputx_fsa::Fsa`](https://docs.rs/inputx-fsa) binary format.
-pub const EMBEDDED_BIGRAMS_INTRA: &[u8] =
-    include_bytes!("../data/bigrams_intra.fsa");
+pub const EMBEDDED_BIGRAMS_INTRA: &[u8] = include_bytes!("../data/bigrams_intra.fsa");

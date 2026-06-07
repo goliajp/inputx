@@ -192,11 +192,7 @@ impl WubiDict {
     /// Zigen simcodes at full strength (the 伙 vs 嶙 distinction —
     /// 伙 is Jianma2 wubi-simcode and must lead at #0 for its code,
     /// 嶙 is typically Auto-layer and should not displace pinyin top).
-    pub fn lookup_with_layer_into(
-        &self,
-        code: &str,
-        out: &mut Vec<(String, f64, Layer)>,
-    ) {
+    pub fn lookup_with_layer_into(&self, code: &str, out: &mut Vec<(String, f64, Layer)>) {
         out.clear();
         let lower = code.to_ascii_lowercase();
 
@@ -219,14 +215,24 @@ impl WubiDict {
                 if !is_single && freq > max_phrase_freq {
                     max_phrase_freq = freq;
                 }
-                scratch.push((s.to_string(), base * pref + freq as f64, is_single, freq, layer));
+                scratch.push((
+                    s.to_string(),
+                    base * pref + freq as f64,
+                    is_single,
+                    freq,
+                    layer,
+                ));
             }
         });
 
         // Apply full-code single-char promote (lifts qualifying single
         // chars above the same-code phrases) and L0 pin (lifts the pinned
         // word above natural sort).
-        let pinned: Option<String> = self.l0.read().ok().and_then(|g| g.pins.get(&lower).cloned());
+        let pinned: Option<String> = self
+            .l0
+            .read()
+            .ok()
+            .and_then(|g| g.pins.get(&lower).cloned());
         for e in scratch.iter_mut() {
             let promote = full_code && e.2 && e.3 > max_phrase_freq;
             if promote {
@@ -238,9 +244,7 @@ impl WubiDict {
                 e.1 *= 1000.0;
             }
         }
-        scratch.sort_by(|a, b| {
-            b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
-        });
+        scratch.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         out.reserve(scratch.len());
         for (w, score, _, _, layer) in scratch.drain(..) {
@@ -307,12 +311,7 @@ impl WubiDict {
                 if !is_single && freq > max_phrase_freq {
                     max_phrase_freq = freq;
                 }
-                scratch.push((
-                    s.to_string(),
-                    base * pref + freq as f64,
-                    is_single,
-                    freq,
-                ));
+                scratch.push((s.to_string(), base * pref + freq as f64, is_single, freq));
             }
         });
         scratch.sort_by(|a, b| {
@@ -378,21 +377,20 @@ impl WubiDict {
         let lower = prefix.to_ascii_lowercase();
         let prefix_len = lower.len();
         let mut results: Vec<(String, u64, usize)> = Vec::new();
-        self.map.prefix_for_each(lower.as_bytes(), |code_bytes, word_bytes, value| {
-            if code_bytes.len() <= prefix_len {
-                return;
-            }
-            if let (Ok(_code), Ok(word)) = (
-                core::str::from_utf8(code_bytes),
-                core::str::from_utf8(word_bytes),
-            ) {
-                let (_layer, freq) = unpack(value);
-                results.push((word.to_string(), freq, code_bytes.len()));
-            }
-        });
-        results.sort_by(|a, b| {
-            b.1.cmp(&a.1).then(a.0.cmp(&b.0))
-        });
+        self.map
+            .prefix_for_each(lower.as_bytes(), |code_bytes, word_bytes, value| {
+                if code_bytes.len() <= prefix_len {
+                    return;
+                }
+                if let (Ok(_code), Ok(word)) = (
+                    core::str::from_utf8(code_bytes),
+                    core::str::from_utf8(word_bytes),
+                ) {
+                    let (_layer, freq) = unpack(value);
+                    results.push((word.to_string(), freq, code_bytes.len()));
+                }
+            });
+        results.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
         results
     }
 
@@ -407,11 +405,7 @@ impl WubiDict {
     ///
     /// Rare-CJK filter NOT applied here (caller decides; consistent
     /// with `lookup_with_layer_into`).
-    pub fn lookup_with_freq_layer_into(
-        &self,
-        code: &str,
-        out: &mut Vec<(String, Layer, u64)>,
-    ) {
+    pub fn lookup_with_freq_layer_into(&self, code: &str, out: &mut Vec<(String, Layer, u64)>) {
         out.clear();
         let lower = code.to_ascii_lowercase();
         self.map.get_for_each(lower.as_bytes(), |word, value| {
@@ -434,15 +428,16 @@ impl WubiDict {
     /// per-entry frequency score (post-`pack` / pre-`unpack`).
     pub fn all_entries(&self) -> Vec<(String, String, Layer, u64)> {
         let mut results: Vec<(String, String, Layer, u64)> = Vec::new();
-        self.map.prefix_for_each(b"", |code_bytes, word_bytes, value| {
-            if let (Ok(code), Ok(word)) = (
-                core::str::from_utf8(code_bytes),
-                core::str::from_utf8(word_bytes),
-            ) {
-                let (layer, freq) = unpack(value);
-                results.push((code.to_string(), word.to_string(), layer, freq));
-            }
-        });
+        self.map
+            .prefix_for_each(b"", |code_bytes, word_bytes, value| {
+                if let (Ok(code), Ok(word)) = (
+                    core::str::from_utf8(code_bytes),
+                    core::str::from_utf8(word_bytes),
+                ) {
+                    let (layer, freq) = unpack(value);
+                    results.push((code.to_string(), word.to_string(), layer, freq));
+                }
+            });
         results
     }
 
@@ -459,16 +454,17 @@ impl WubiDict {
             .unwrap_or(DEFAULT_LAYER_PREFS);
 
         let mut results: Vec<(String, String, f64)> = Vec::new();
-        self.map.prefix_for_each(lower.as_bytes(), |code_bytes, word_bytes, value| {
-            if let (Ok(code), Ok(word)) = (
-                core::str::from_utf8(code_bytes),
-                core::str::from_utf8(word_bytes),
-            ) {
-                let (layer, freq) = unpack(value);
-                let score = layer.base() as f64 * prefs[layer.as_index()] + freq as f64;
-                results.push((code.to_string(), word.to_string(), score));
-            }
-        });
+        self.map
+            .prefix_for_each(lower.as_bytes(), |code_bytes, word_bytes, value| {
+                if let (Ok(code), Ok(word)) = (
+                    core::str::from_utf8(code_bytes),
+                    core::str::from_utf8(word_bytes),
+                ) {
+                    let (layer, freq) = unpack(value);
+                    let score = layer.base() as f64 * prefs[layer.as_index()] + freq as f64;
+                    results.push((code.to_string(), word.to_string(), score));
+                }
+            });
         results.sort_by(|a, b| {
             b.2.partial_cmp(&a.2)
                 .unwrap_or(std::cmp::Ordering::Equal)
@@ -514,7 +510,10 @@ impl WubiDict {
     /// (raw per-entry data, no pin baked in).
     pub fn pinned_word(&self, code: &str) -> Option<String> {
         let lower = code.to_ascii_lowercase();
-        self.l0.read().ok().and_then(|g| g.pins.get(&lower).cloned())
+        self.l0
+            .read()
+            .ok()
+            .and_then(|g| g.pins.get(&lower).cloned())
     }
 
     /// Force-pin a word without going through the pick counter. Validates

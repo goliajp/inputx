@@ -41,7 +41,7 @@ pub fn ascii_to_cjk_punct(c: char) -> Option<char> {
 
 pub fn ascii_to_cjk_open_quote(c: char) -> Option<char> {
     Some(match c {
-        '"' => '\u{201C}', // LEFT DOUBLE QUOTATION MARK
+        '"' => '\u{201C}',  // LEFT DOUBLE QUOTATION MARK
         '\'' => '\u{2018}', // LEFT SINGLE QUOTATION MARK
         _ => return None,
     })
@@ -49,7 +49,7 @@ pub fn ascii_to_cjk_open_quote(c: char) -> Option<char> {
 
 pub fn ascii_to_cjk_close_quote(c: char) -> Option<char> {
     Some(match c {
-        '"' => '\u{201D}', // RIGHT DOUBLE QUOTATION MARK
+        '"' => '\u{201D}',  // RIGHT DOUBLE QUOTATION MARK
         '\'' => '\u{2019}', // RIGHT SINGLE QUOTATION MARK
         _ => return None,
     })

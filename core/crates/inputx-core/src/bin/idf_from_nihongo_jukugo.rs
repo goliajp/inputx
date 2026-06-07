@@ -17,7 +17,7 @@ use std::process::ExitCode;
 
 use inputx_dict_format::{EngineKind, EntryFlags, IdfBuilder};
 use inputx_nihongo::jukugo::all_entries as jukugo_entries;
-use inputx_scoring::{log_prob_corpus_from_freq, MatchType};
+use inputx_scoring::{MatchType, log_prob_corpus_from_freq};
 
 fn main() -> ExitCode {
     let mut output: Option<PathBuf> = None;
@@ -35,9 +35,8 @@ fn main() -> ExitCode {
             }
         }
     }
-    let out = output.unwrap_or_else(|| {
-        PathBuf::from("crates/inputx-nihongo-data-jukugo/data/jukugo.idf")
-    });
+    let out = output
+        .unwrap_or_else(|| PathBuf::from("crates/inputx-nihongo-data-jukugo/data/jukugo.idf"));
     match run(&out) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
@@ -56,9 +55,7 @@ fn run(out_path: &Path) -> std::io::Result<()> {
         std::fs::create_dir_all(parent)?;
     }
     let total_corpus: u64 = entries.iter().map(|e| e.freq as u64).sum();
-    eprintln!(
-        "[idf-from-nihongo-jukugo] corpus total raw_freq = {total_corpus}"
-    );
+    eprintln!("[idf-from-nihongo-jukugo] corpus total raw_freq = {total_corpus}");
     let mut builder = IdfBuilder::new(EngineKind::NihongoJukugo);
     for e in entries {
         let log_q4 = log_prob_corpus_from_freq(e.freq as u64, total_corpus);

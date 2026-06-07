@@ -16,15 +16,15 @@ use std::sync::{Arc, OnceLock};
 use inputx_ngram::NgramTable;
 use inputx_pinyin::PinyinEngine;
 use inputx_pinyin_helpers::{
-    bigram_boost_from_ngm, combined_bigram_log_prob_q4, legacy_bigram_boost_from_ngm,
-    pinyin_idf_reader, EMBEDDED_BIGRAMS_NGM, EMBEDDED_INTER_BIGRAMS_NGM, EMBEDDED_PINYIN_IDF,
+    EMBEDDED_BIGRAMS_NGM, EMBEDDED_INTER_BIGRAMS_NGM, EMBEDDED_PINYIN_IDF, bigram_boost_from_ngm,
+    combined_bigram_log_prob_q4, legacy_bigram_boost_from_ngm, pinyin_idf_reader,
 };
 
+use super::mode::Mode;
+use super::scoring;
 use crate::rules::builtin::RepeatedLetterExpansion;
 use crate::rules::candidate::{CandidateRule, CandidateRuleEngine, RuleCandidate};
 use crate::rules::{Context, ContextFlags};
-use super::mode::Mode;
-use super::scoring;
 
 /// Process-global NgramTable parsed once from the embedded bigrams.ngm
 /// blob in `inputx-pinyin-cement`. Composite hot path uses this in
@@ -134,9 +134,7 @@ static CANDIDATE_RULE_ENGINE: OnceLock<CandidateRuleEngine> = OnceLock::new();
 
 fn candidate_rule_engine() -> &'static CandidateRuleEngine {
     CANDIDATE_RULE_ENGINE.get_or_init(|| {
-        let rules: Vec<Arc<dyn CandidateRule>> = vec![
-            Arc::new(RepeatedLetterExpansion),
-        ];
+        let rules: Vec<Arc<dyn CandidateRule>> = vec![Arc::new(RepeatedLetterExpansion)];
         CandidateRuleEngine::new(rules)
     })
 }
@@ -177,13 +175,18 @@ struct InitialsMatches<'a> {
 impl<'a> Iterator for InitialsMatches<'a> {
     type Item = &'a str;
     fn next(&mut self) -> Option<&'a str> {
-        if self.remaining == 0 { return None; }
-        if self.offset + 2 > self.pool.len() { return None; }
-        let len = u16::from_le_bytes([self.pool[self.offset], self.pool[self.offset + 1]])
-            as usize;
+        if self.remaining == 0 {
+            return None;
+        }
+        if self.offset + 2 > self.pool.len() {
+            return None;
+        }
+        let len = u16::from_le_bytes([self.pool[self.offset], self.pool[self.offset + 1]]) as usize;
         let start = self.offset + 2;
         let end = start + len;
-        if end > self.pool.len() { return None; }
+        if end > self.pool.len() {
+            return None;
+        }
         self.offset = end;
         self.remaining -= 1;
         std::str::from_utf8(&self.pool[start..end]).ok()
@@ -299,7 +302,9 @@ impl PinyinAdapter {
     /// engine registry grows mode-specific rules, this signature
     /// will gain a `mode: Mode` parameter from the caller.
     fn build_rule_context(&self) -> Context {
-        let has_vowel = self.buffer.chars()
+        let has_vowel = self
+            .buffer
+            .chars()
             .any(|c| matches!(c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v'));
         let starts_with_z = self.buffer.starts_with('z');
         let buffer_len = self.buffer.len();
@@ -312,8 +317,7 @@ impl PinyinAdapter {
             flags: ContextFlags {
                 has_vowel,
                 has_non_speculative_pinyin: has_ns,
-                pinyin_intent: buffer_len > 0 && buffer_len <= 4
-                    && has_vowel && has_ns,
+                pinyin_intent: buffer_len > 0 && buffer_len <= 4 && has_vowel && has_ns,
                 starts_with_z,
                 buffer_len,
             },
@@ -464,8 +468,7 @@ impl PinyinAdapter {
         // Score exact-match entries via the dict; everything else
         // (initials + prefix-completion injected entries) gets a small
         // floor so the cross-engine merge still ranks them.
-        let mut scored: Vec<super::merge::Scored> =
-            Vec::with_capacity(self.candidates.len());
+        let mut scored: Vec<super::merge::Scored> = Vec::with_capacity(self.candidates.len());
         // v1.4.7 sub-phase A4 step 1: exact-match fill reads through
         // the cement-owned IdfReader over EMBEDDED_PINYIN_IDF. The
         // FST code index makes each lookup O(|buffer|) and the
@@ -491,10 +494,7 @@ impl PinyinAdapter {
         let exact_entries = pinyin_idf_reader().lookup(lookup_buf.as_bytes());
         // L0 pin lookup — cement-level state, intentionally orthogonal
         // to the corpus snapshot in EMBEDDED_PINYIN_IDF.
-        let pinned: Option<String> = self
-            .engine
-            .dict()
-            .pinned_word(&self.buffer);
+        let pinned: Option<String> = self.engine.dict().pinned_word(&self.buffer);
         // Build (word, legacy_score) map + parallel (word, log_prior_q4,
         // log_likelihood_q4) map so downstream chains can compose either.
         let mut exact_map: std::collections::HashMap<String, f64> =
@@ -524,11 +524,8 @@ impl PinyinAdapter {
             // is the writer's `Q4·ln(1+freq).round()` at .idf build.
             let log_prior_q4 = entry.log_prior as i32;
             let likelihood_linear = PINYIN_PHRASE_BASE * pin_mult;
-            let log_likelihood_q4 = (likelihood_linear
-                .max(1.0)
-                .ln()
-                * inputx_scoring::Q4 as f64)
-                .round() as i32;
+            let log_likelihood_q4 =
+                (likelihood_linear.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
             exact_map.insert(word.to_string(), legacy_score);
             // WU-ψ tier assignment for pinyin exact-match candidates
             // Phase B (2026-06-03 PLAN-tier-by-quantile §3.1):
@@ -590,16 +587,14 @@ impl PinyinAdapter {
                     let f = u64::from(entry.raw_freq);
                     if bg < inputx_scoring::consts::PHRASE_BIGRAM_SIGNAL_FLOOR
                         && f >= inputx_scoring::consts::PHRASE_INFLATION_FLOOR_FREQ
-                        && f <  inputx_scoring::consts::PHRASE_INFLATION_CEIL_FREQ
+                        && f < inputx_scoring::consts::PHRASE_INFLATION_CEIL_FREQ
                     {
                         natural_tier = (natural_tier + 2).min(9);
                     }
                 }
             }
-            let tier_pinyin: u8 = inputx_scoring::tier_overlay::get(
-                &self.buffer,
-                word,
-            ).unwrap_or(natural_tier);
+            let tier_pinyin: u8 =
+                inputx_scoring::tier_overlay::get(&self.buffer, word).unwrap_or(natural_tier);
             exact_components.insert(
                 word.to_string(),
                 super::merge::ScoreComponents::three_axis_tiered(
@@ -684,9 +679,8 @@ impl PinyinAdapter {
         // The bigram_bonus is added AFTER and not folded into
         // components — it's a cross-engine context signal, not part of
         // P(i|W) for this adapter.
-        let to_log_q4 = |s: f64| -> i32 {
-            (s.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32
-        };
+        let to_log_q4 =
+            |s: f64| -> i32 { (s.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32 };
         // v1.7.4: synthetic fill sites (composed-sentence, Path-5
         // fallback, fuzzy, NON_EXACT_FLOOR) have no raw corpus freq —
         // pre-v1.7.4 they set `log_prior_q4 = 0` which meant "log(1+0) =
@@ -709,182 +703,188 @@ impl PinyinAdapter {
             let fuzzy_edit_distance: Option<f64> = self.fuzzy_candidates.get(w).copied();
             let _is_fuzzy = fuzzy_edit_distance.is_some();
             let initials_lens: Option<(u8, u8)> = self.initials_candidates.get(w).copied();
-            let (base, components): (f64, Option<super::merge::ScoreComponents>) =
-                if is_composed {
-                    // A composition that coincides with a real exact dict word
-                    // (zhongguo→中国, women→我们) keeps its real exact score — it
-                    // is a genuine word, not forced junk. Only a segmentation
-                    // that is NOT itself a dict word (用中 for yongzhong, 是嗯据库
-                    // for shinjuku) drops to composed_base, below every exact word.
-                    let s = exact_map.get(w).copied().unwrap_or(composed_base);
-                    // v1.4.7 A3 step 4a: when the composed-top coincides with a
-                    // real exact dict entry, reuse `exact_components` — those
-                    // carry the raw-freq log_prior_q4 the composed-only path
-                    // can't reconstruct. Without this, `score_q4` for the
-                    // exact-coinciding composition is `0 + Q4·ln(s)`, missing
-                    // the entire prior axis, and ranks below mechanical
-                    // Viterbi segmentations (种过, 生火, 点映 for zhongguo /
-                    // shenghuo / dianying) that scored lower in legacy f64
-                    // but identical in q4 once the prior is dropped. Only
-                    // fall back to synthetic `three_axis(0, …)` when w is a
-                    // forced segmentation (not a dict word).
-                    let c = exact_components.get(w).copied().unwrap_or_else(|| {
-                        let mt = inputx_scoring::MatchType::Composed { bigram_links: 1 };
-                        // Phase F (2026-06-04): composed-Viterbi
-                        // segmentations that are NOT themselves a
-                        // dict word → tier 5 (less_common).
-                        //
-                        // User report 2026-06-04: "为什么组合词评分会
-                        // 这么高，这个评分当时做的不对，我还想不到
-                        // 任何一个组合词需要高分的，都是作为填充物的".
-                        //
-                        // Pre-Phase-F (WU-ψ): with_tier(1) so a real
-                        // Chinese sentence (nihaomawojiao → 你好吗我叫)
-                        // wins #0 over mechanical JP renderings.  But
-                        // that same tier 1 let 2-char jieba sub-words
-                        // (changshi → 长时 via 长+时 bigram, shoumai →
-                        // 收卖, etc.) pre-empt real dict tier-2
-                        // phrases (changshi → 尝试 freq 35k z=2.0).
-                        //
-                        // Post Phase C-3 (2026-06-04), 5+ char JP
-                        // mechanical kana is tier 4 — Composed at
-                        // tier 5 still surfaces in PinyinOnly top-10
-                        // (no other engine to compete), and in
-                        // Mixed+JP only when no dict candidate exists
-                        // (sparse pool).  Exact dict words (你好/中国
-                        // /用不了 ARE in library via the coinciding-
-                        // exact branch above) keep their natural
-                        // z-score tier.
-                        super::merge::ScoreComponents::three_axis(pinyin_floor, to_log_q4(s), mt)
-                            .with_tier(5)
-                    });
-                    (s, Some(c))
-                } else if is_fallback {
-                    // Path 5 last-resort Viterbi compose — no bigram support
-                    // (gated to short buffers where no real composition fits).
-                    let mt = inputx_scoring::MatchType::Composed { bigram_links: 0 };
-                    // Phase G (2026-06-03): Path 5b fallback → tier 8
-                    // (speculative band).  User report 2026-06-03 akashi:
-                    // "阿卡是 不是一个应该出现的东西... 同情况都要处理掉".
+            let (base, components): (f64, Option<super::merge::ScoreComponents>) = if is_composed {
+                // A composition that coincides with a real exact dict word
+                // (zhongguo→中国, women→我们) keeps its real exact score — it
+                // is a genuine word, not forced junk. Only a segmentation
+                // that is NOT itself a dict word (用中 for yongzhong, 是嗯据库
+                // for shinjuku) drops to composed_base, below every exact word.
+                let s = exact_map.get(w).copied().unwrap_or(composed_base);
+                // v1.4.7 A3 step 4a: when the composed-top coincides with a
+                // real exact dict entry, reuse `exact_components` — those
+                // carry the raw-freq log_prior_q4 the composed-only path
+                // can't reconstruct. Without this, `score_q4` for the
+                // exact-coinciding composition is `0 + Q4·ln(s)`, missing
+                // the entire prior axis, and ranks below mechanical
+                // Viterbi segmentations (种过, 生火, 点映 for zhongguo /
+                // shenghuo / dianying) that scored lower in legacy f64
+                // but identical in q4 once the prior is dropped. Only
+                // fall back to synthetic `three_axis(0, …)` when w is a
+                // forced segmentation (not a dict word).
+                let c = exact_components.get(w).copied().unwrap_or_else(|| {
+                    let mt = inputx_scoring::MatchType::Composed { bigram_links: 1 };
+                    // Phase F (2026-06-04): composed-Viterbi
+                    // segmentations that are NOT themselves a
+                    // dict word → tier 5 (less_common).
                     //
-                    // The original WU-ψ rationale ("tier 1 lifts it above
-                    // JP basic kana for kaopu") doesn't hold post-治理:
-                    //   - kaopu 靠谱 is now an Exact dict entry (library
-                    //     freq=10666 → tier 3 via Phase B z-score),
-                    //     leads JP mechanical kana via tier ordering
-                    //     without needing the fallback path
-                    //   - The remaining real fallback fires (akashi →
-                    //     阿卡是, etc.) are buffers that DON'T have a
-                    //     valid Chinese composition; user typed JP/foreign
-                    //     and got a mechanically-forced segment
+                    // User report 2026-06-04: "为什么组合词评分会
+                    // 这么高，这个评分当时做的不对，我还想不到
+                    // 任何一个组合词需要高分的，都是作为填充物的".
                     //
-                    // Tier 8 = speculative (per RANKING-MODEL-INVARIANTS
-                    // §1).  Path 5b candidate stays visible deep in the
-                    // list but never dominates JP prediction (tier 7) or
-                    // any dict-based candidate.
+                    // Pre-Phase-F (WU-ψ): with_tier(1) so a real
+                    // Chinese sentence (nihaomawojiao → 你好吗我叫)
+                    // wins #0 over mechanical JP renderings.  But
+                    // that same tier 1 let 2-char jieba sub-words
+                    // (changshi → 长时 via 长+时 bigram, shoumai →
+                    // 收卖, etc.) pre-empt real dict tier-2
+                    // phrases (changshi → 尝试 freq 35k z=2.0).
                     //
-                    // Path 5 REAL composition (bigram_links ≥ 1) at line
-                    // ~654 above keeps its tier 1 — composed sentences with
-                    // bigram support ARE real Chinese input.
-                    let c = super::merge::ScoreComponents::three_axis(
-                        pinyin_floor, to_log_q4(COMPOSED_FALLBACK_SCORE), mt,
-                    ).with_tier(8);
-                    (COMPOSED_FALLBACK_SCORE, Some(c))
-                } else if let Some(s) = exact_map.get(w).copied() {
-                    // v1.4.7 A2 step 2: use the orthodox (log_prior_q4,
-                    // log_likelihood_q4) decomposition built upstream
-                    // from raw freq + PINYIN_PHRASE_BASE. exact_components
-                    // is guaranteed to have the same key set as exact_map.
-                    let c = exact_components.get(w).copied();
-                    (s, c)
-                } else if let Some(s) = self.prefix_scored.get(w).copied() {
-                    // CP-B prediction hit: pull the decomposition from the
-                    // parallel components map so probe can render it.
-                    // Checked BEFORE fuzzy: when a word is reachable both as
-                    // a mid-typing prediction (`famin*` → 发明 via prefix
-                    // scan) AND as a typo-corrected fuzzy hit (`famin` ↔
-                    // `faming` via in↔ing swap), the prediction reading is
-                    // more confident (the user is mid-typing toward a real
-                    // word) than the typo guess. User polish-log 2026-05-27:
-                    // 发明 should rank as prediction for `famin`, not as
-                    // bottom-tier fuzzy.
-                    // WU-ψ: predictions → tier 7 (specialty).
-                    let c = self.prefix_components.get(w).copied()
-                        .map(|c| c.with_tier(7));
-                    (s, c)
-                } else if let Some((typed_len, full_len)) = initials_lens {
-                    // v1.8.1 WU-ξ: initials shorthand has its own
-                    // LIKELIHOOD tier (`MatchType::Initials`),
-                    // distinct from fuzzy. The proximity decay is
-                    // gentler than Prefix (K=1 vs K=3) — the user
-                    // typed initial letters as an abbreviation, which
-                    // is more confident than a multi-edit typo.
-                    let weights = inputx_scoring::EngineWeights::inputx_default();
-                    let mt = inputx_scoring::MatchType::Initials { typed_len, full_len };
-                    let log_likelihood_q4 = inputx_scoring::derive_log_likelihood(
-                        weights.initials_likelihood_base_q4,
-                        mt,
-                    );
-                    // Legacy f64 `score` stays at NON_EXACT_FLOOR-
-                    // tier — pre-v1.8.1 initials lived here, and the
-                    // f64 field is the secondary tiebreaker only, so
-                    // not disturbing it keeps the merge's tertiary
-                    // ordering identical.
-                    let s = NON_EXACT_FLOOR * 0.99f64.powi(i as i32);
-                    // WU-ψ: initials shorthand → tier 8 (predict-tier,
-                    // user typed letters that aren't a real syllable).
-                    let c = super::merge::ScoreComponents::three_axis(
-                        pinyin_floor, log_likelihood_q4, mt,
-                    ).with_tier(8);
-                    (s, Some(c))
-                } else if let Some(distance) = fuzzy_edit_distance {
-                    // v1.8.0 WU-ν: fuzzy candidates carry their real
-                    // `inputx_phonetic_edit::edit_distance` from the
-                    // typed buffer to the variant that hit. Map
-                    // distance → `MatchType::Fuzzy(cost_milli)` and
-                    // derive the log_likelihood via
-                    // `EngineWeights::fuzzy_likelihood_floor_q4 +
-                    // ln(1 − cost/1000)·Q4`. Closer typos pay less
-                    // decay; the canonical fuzzy distance of 0.3
-                    // (single zh↔z swap) reproduces the pre-v1.8
-                    // flat-discount log_likelihood when cost_milli ≈
-                    // 700.
-                    //
-                    // The legacy linear-space `score` field stays at
-                    // `FUZZY_BASE * FUZZY_DISCOUNT` so the merge's
-                    // f64-tiebreaker behavior is unchanged — only the
-                    // Q4 log-likelihood (primary sort) responds to
-                    // edit_distance.
-                    let weights = inputx_scoring::EngineWeights::inputx_default();
-                    // Linear distance → cost_milli mapping, clamped
-                    // to 999 (the Fuzzy(1000) edge case would push
-                    // ln(0) = -inf which the scoring crate caps
-                    // upstream, but explicit min keeps the schema
-                    // intent honest).
-                    let cost_milli = ((distance * 1000.0).round() as i32)
-                        .clamp(0, 999) as u16;
-                    let mt = inputx_scoring::MatchType::Fuzzy(cost_milli);
-                    let log_likelihood_q4 = inputx_scoring::derive_log_likelihood(
-                        weights.fuzzy_likelihood_floor_q4,
-                        mt,
-                    );
-                    let s = FUZZY_BASE * FUZZY_DISCOUNT;
-                    // WU-ψ: fuzzy → tier 8 ("你都打错了，有就不错了").
-                    let c = super::merge::ScoreComponents::three_axis(
-                        pinyin_floor, log_likelihood_q4, mt,
-                    ).with_tier(8);
-                    (s, Some(c))
-                } else {
-                    // NON_EXACT_FLOOR tier — degenerate; mark Exact for
-                    // schema purposes (these are dead-tier candidates
-                    // ranking at the bottom of the list).
-                    let s = NON_EXACT_FLOOR * 0.99f64.powi(i as i32);
-                    // WU-ψ: degenerate dead-tier → tier 9 (longtail).
-                    let c = super::merge::ScoreComponents::three_axis(
-                        pinyin_floor, to_log_q4(s), inputx_scoring::MatchType::Exact,
-                    ).with_tier(9);
-                    (s, Some(c))
+                    // Post Phase C-3 (2026-06-04), 5+ char JP
+                    // mechanical kana is tier 4 — Composed at
+                    // tier 5 still surfaces in PinyinOnly top-10
+                    // (no other engine to compete), and in
+                    // Mixed+JP only when no dict candidate exists
+                    // (sparse pool).  Exact dict words (你好/中国
+                    // /用不了 ARE in library via the coinciding-
+                    // exact branch above) keep their natural
+                    // z-score tier.
+                    super::merge::ScoreComponents::three_axis(pinyin_floor, to_log_q4(s), mt)
+                        .with_tier(5)
+                });
+                (s, Some(c))
+            } else if is_fallback {
+                // Path 5 last-resort Viterbi compose — no bigram support
+                // (gated to short buffers where no real composition fits).
+                let mt = inputx_scoring::MatchType::Composed { bigram_links: 0 };
+                // Phase G (2026-06-03): Path 5b fallback → tier 8
+                // (speculative band).  User report 2026-06-03 akashi:
+                // "阿卡是 不是一个应该出现的东西... 同情况都要处理掉".
+                //
+                // The original WU-ψ rationale ("tier 1 lifts it above
+                // JP basic kana for kaopu") doesn't hold post-治理:
+                //   - kaopu 靠谱 is now an Exact dict entry (library
+                //     freq=10666 → tier 3 via Phase B z-score),
+                //     leads JP mechanical kana via tier ordering
+                //     without needing the fallback path
+                //   - The remaining real fallback fires (akashi →
+                //     阿卡是, etc.) are buffers that DON'T have a
+                //     valid Chinese composition; user typed JP/foreign
+                //     and got a mechanically-forced segment
+                //
+                // Tier 8 = speculative (per RANKING-MODEL-INVARIANTS
+                // §1).  Path 5b candidate stays visible deep in the
+                // list but never dominates JP prediction (tier 7) or
+                // any dict-based candidate.
+                //
+                // Path 5 REAL composition (bigram_links ≥ 1) at line
+                // ~654 above keeps its tier 1 — composed sentences with
+                // bigram support ARE real Chinese input.
+                let c = super::merge::ScoreComponents::three_axis(
+                    pinyin_floor,
+                    to_log_q4(COMPOSED_FALLBACK_SCORE),
+                    mt,
+                )
+                .with_tier(8);
+                (COMPOSED_FALLBACK_SCORE, Some(c))
+            } else if let Some(s) = exact_map.get(w).copied() {
+                // v1.4.7 A2 step 2: use the orthodox (log_prior_q4,
+                // log_likelihood_q4) decomposition built upstream
+                // from raw freq + PINYIN_PHRASE_BASE. exact_components
+                // is guaranteed to have the same key set as exact_map.
+                let c = exact_components.get(w).copied();
+                (s, c)
+            } else if let Some(s) = self.prefix_scored.get(w).copied() {
+                // CP-B prediction hit: pull the decomposition from the
+                // parallel components map so probe can render it.
+                // Checked BEFORE fuzzy: when a word is reachable both as
+                // a mid-typing prediction (`famin*` → 发明 via prefix
+                // scan) AND as a typo-corrected fuzzy hit (`famin` ↔
+                // `faming` via in↔ing swap), the prediction reading is
+                // more confident (the user is mid-typing toward a real
+                // word) than the typo guess. User polish-log 2026-05-27:
+                // 发明 should rank as prediction for `famin`, not as
+                // bottom-tier fuzzy.
+                // WU-ψ: predictions → tier 7 (specialty).
+                let c = self
+                    .prefix_components
+                    .get(w)
+                    .copied()
+                    .map(|c| c.with_tier(7));
+                (s, c)
+            } else if let Some((typed_len, full_len)) = initials_lens {
+                // v1.8.1 WU-ξ: initials shorthand has its own
+                // LIKELIHOOD tier (`MatchType::Initials`),
+                // distinct from fuzzy. The proximity decay is
+                // gentler than Prefix (K=1 vs K=3) — the user
+                // typed initial letters as an abbreviation, which
+                // is more confident than a multi-edit typo.
+                let weights = inputx_scoring::EngineWeights::inputx_default();
+                let mt = inputx_scoring::MatchType::Initials {
+                    typed_len,
+                    full_len,
                 };
+                let log_likelihood_q4 =
+                    inputx_scoring::derive_log_likelihood(weights.initials_likelihood_base_q4, mt);
+                // Legacy f64 `score` stays at NON_EXACT_FLOOR-
+                // tier — pre-v1.8.1 initials lived here, and the
+                // f64 field is the secondary tiebreaker only, so
+                // not disturbing it keeps the merge's tertiary
+                // ordering identical.
+                let s = NON_EXACT_FLOOR * 0.99f64.powi(i as i32);
+                // WU-ψ: initials shorthand → tier 8 (predict-tier,
+                // user typed letters that aren't a real syllable).
+                let c =
+                    super::merge::ScoreComponents::three_axis(pinyin_floor, log_likelihood_q4, mt)
+                        .with_tier(8);
+                (s, Some(c))
+            } else if let Some(distance) = fuzzy_edit_distance {
+                // v1.8.0 WU-ν: fuzzy candidates carry their real
+                // `inputx_phonetic_edit::edit_distance` from the
+                // typed buffer to the variant that hit. Map
+                // distance → `MatchType::Fuzzy(cost_milli)` and
+                // derive the log_likelihood via
+                // `EngineWeights::fuzzy_likelihood_floor_q4 +
+                // ln(1 − cost/1000)·Q4`. Closer typos pay less
+                // decay; the canonical fuzzy distance of 0.3
+                // (single zh↔z swap) reproduces the pre-v1.8
+                // flat-discount log_likelihood when cost_milli ≈
+                // 700.
+                //
+                // The legacy linear-space `score` field stays at
+                // `FUZZY_BASE * FUZZY_DISCOUNT` so the merge's
+                // f64-tiebreaker behavior is unchanged — only the
+                // Q4 log-likelihood (primary sort) responds to
+                // edit_distance.
+                let weights = inputx_scoring::EngineWeights::inputx_default();
+                // Linear distance → cost_milli mapping, clamped
+                // to 999 (the Fuzzy(1000) edge case would push
+                // ln(0) = -inf which the scoring crate caps
+                // upstream, but explicit min keeps the schema
+                // intent honest).
+                let cost_milli = ((distance * 1000.0).round() as i32).clamp(0, 999) as u16;
+                let mt = inputx_scoring::MatchType::Fuzzy(cost_milli);
+                let log_likelihood_q4 =
+                    inputx_scoring::derive_log_likelihood(weights.fuzzy_likelihood_floor_q4, mt);
+                let s = FUZZY_BASE * FUZZY_DISCOUNT;
+                // WU-ψ: fuzzy → tier 8 ("你都打错了，有就不错了").
+                let c =
+                    super::merge::ScoreComponents::three_axis(pinyin_floor, log_likelihood_q4, mt)
+                        .with_tier(8);
+                (s, Some(c))
+            } else {
+                // NON_EXACT_FLOOR tier — degenerate; mark Exact for
+                // schema purposes (these are dead-tier candidates
+                // ranking at the bottom of the list).
+                let s = NON_EXACT_FLOOR * 0.99f64.powi(i as i32);
+                // WU-ψ: degenerate dead-tier → tier 9 (longtail).
+                let c = super::merge::ScoreComponents::three_axis(
+                    pinyin_floor,
+                    to_log_q4(s),
+                    inputx_scoring::MatchType::Exact,
+                )
+                .with_tier(9);
+                (s, Some(c))
+            };
             // v1.4.6 sub-phase C2 cutover: source the bigram bonus
             // from the NGMv1 cement table (data/private-dict/v0.0.1/
             // pinyin/bigrams.ngm, embedded via inputx-pinyin-cement)
@@ -898,11 +898,8 @@ impl PinyinAdapter {
             // window. Sort-key proper cutover (legacy f64 → Q4 log
             // additive) follows in sub-phase C3.
             let _ = dict; // dict still in scope for path 5 below; ack the unused legacy reader.
-            let bigram_bonus = legacy_bigram_boost_from_ngm(
-                embedded_bigrams_table(),
-                prev_committed,
-                w,
-            );
+            let bigram_bonus =
+                legacy_bigram_boost_from_ngm(embedded_bigrams_table(), prev_committed, w);
             // v1.8.2 WU-ο: bigram boost flows into log_likelihood_q4
             // too — the Q4 sort key (primary) finally sees the same
             // bigram signal the legacy f64 (tiebreaker) has had since
@@ -913,11 +910,8 @@ impl PinyinAdapter {
             // an i16 in Q4 log-space (`Q4 · ln(count)`), zero when
             // `prev_committed` is None or the pair is unseen — so
             // cold-session ranking is unchanged.
-            let bigram_q4 = bigram_boost_from_ngm(
-                embedded_bigrams_table(),
-                prev_committed,
-                w,
-            ) as i32;
+            let bigram_q4 =
+                bigram_boost_from_ngm(embedded_bigrams_table(), prev_committed, w) as i32;
             let components = components.map(|mut c| {
                 c.log_likelihood_q4 = c.log_likelihood_q4.saturating_add(bigram_q4);
                 c
@@ -990,7 +984,9 @@ impl PinyinAdapter {
         {
             return None;
         }
-        let consonant_prefix: String = self.buffer.chars()
+        let consonant_prefix: String = self
+            .buffer
+            .chars()
             .take_while(|c| !matches!(*c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v'))
             .collect();
         let suffix_len = self.buffer.len() - consonant_prefix.len();
@@ -1205,7 +1201,8 @@ impl PinyinAdapter {
             let ctx = self.build_rule_context();
             let mut rule_cands: Vec<RuleCandidate> = Vec::new();
             let _trace = candidate_rule_engine().run(&ctx, &mut rule_cands);
-            if let Some(c) = rule_cands.into_iter()
+            if let Some(c) = rule_cands
+                .into_iter()
                 .find(|c| c.source == "repeated-letter")
             {
                 self.composed_sentence = Some(c.word);
@@ -1229,8 +1226,8 @@ impl PinyinAdapter {
         //      no real ambiguous short composition reaches it.
         if !PINYIN_DISABLE_COMPOSE
             && self.buffer.len() >= 8
-            && let Some((score, sentence, chain))
-                = self.engine.dict().best_composition_chain(&self.buffer)
+            && let Some((score, sentence, chain)) =
+                self.engine.dict().best_composition_chain(&self.buffer)
         {
             // Two-tier quality gate:
             //
@@ -1369,9 +1366,7 @@ impl PinyinAdapter {
         // 4-5 chars total.  Long buffers are日语ローマ字, full pinyin
         // phrase composed of more syllables, or some other non-typo
         // input — never legitimate consonant-cluster typos.
-        if !PINYIN_DISABLE_FUZZY
-            && let Some(consonant_prefix) = self.path1c_consonant_prefix()
-        {
+        if !PINYIN_DISABLE_FUZZY && let Some(consonant_prefix) = self.path1c_consonant_prefix() {
             {
                 let idx = initials_index(&self.engine);
                 if let Some(matches) = idx.get(consonant_prefix.as_bytes()) {
@@ -1387,9 +1382,9 @@ impl PinyinAdapter {
                             // = 3, avg 4). proximity = typed/full
                             // drives the K=1 decay in
                             // `derive_log_likelihood`.
-                            let full_len_estimate =
-                                (owned.chars().count().saturating_mul(4))
-                                    .min(u8::MAX as usize) as u8;
+                            let full_len_estimate = (owned.chars().count().saturating_mul(4))
+                                .min(u8::MAX as usize)
+                                as u8;
                             self.candidates.push(owned.clone());
                             self.initials_candidates
                                 .insert(owned, (typed_len, full_len_estimate));
@@ -1623,23 +1618,22 @@ impl PinyinAdapter {
                     let ngm_table = embedded_bigrams_table();
                     let inter_table = embedded_inter_bigrams_table();
                     let alternate_bigrams_ok = |sentence: &str| -> bool {
-                        let chars: Vec<String> = sentence
-                            .chars()
-                            .map(|c| c.to_string())
-                            .collect();
+                        let chars: Vec<String> = sentence.chars().map(|c| c.to_string()).collect();
                         let n = chars.len();
                         if n <= 1 {
                             return true;
                         }
                         let links = n - 1;
-                        let non_zero = (1..n).filter(|&i| {
-                            combined_bigram_log_prob_q4(
-                                ngm_table,
-                                inter_table,
-                                Some(chars[i - 1].as_str()),
-                                &chars[i],
-                            ) > 0
-                        }).count();
+                        let non_zero = (1..n)
+                            .filter(|&i| {
+                                combined_bigram_log_prob_q4(
+                                    ngm_table,
+                                    inter_table,
+                                    Some(chars[i - 1].as_str()),
+                                    &chars[i],
+                                ) > 0
+                            })
+                            .count();
                         // v1.14 strict-all: see Path 0b gate comment.
                         non_zero >= links
                     };
@@ -1748,11 +1742,16 @@ fn fuzzy_buffer_variants(buffer: &str) -> Vec<String> {
     let mut out = Vec::with_capacity(8);
     out.push(buffer.to_string());
     let initial_swaps: &[(&str, &str)] = &[
-        ("zh", "z"), ("z", "zh"),
-        ("ch", "c"), ("c", "ch"),
-        ("sh", "s"), ("s", "sh"),
-        ("n", "l"), ("l", "n"),
-        ("f", "h"), ("h", "f"),
+        ("zh", "z"),
+        ("z", "zh"),
+        ("ch", "c"),
+        ("c", "ch"),
+        ("sh", "s"),
+        ("s", "sh"),
+        ("n", "l"),
+        ("l", "n"),
+        ("f", "h"),
+        ("h", "f"),
         ("r", "l"),
     ];
     for (from, to) in initial_swaps {
@@ -1770,9 +1769,12 @@ fn fuzzy_buffer_variants(buffer: &str) -> Vec<String> {
     // common case of single-syllable input where the user typed `zin`
     // wanting `zing`).
     let final_swaps: &[(&str, &str)] = &[
-        ("ing", "in"), ("in", "ing"),
-        ("eng", "en"), ("en", "eng"),
-        ("ang", "an"), ("an", "ang"),
+        ("ing", "in"),
+        ("in", "ing"),
+        ("eng", "en"),
+        ("en", "eng"),
+        ("ang", "an"),
+        ("an", "ang"),
     ];
     for (from, to) in final_swaps {
         if let Some(stem) = buffer.strip_suffix(from) {
@@ -1797,22 +1799,25 @@ fn fuzzy_buffer_variants(buffer: &str) -> Vec<String> {
 /// Heuristic: try concatenating suffix with 0/1/2/3 trailing chars
 /// (any ASCII alpha) and see if any forms a valid syllable. Cheap
 /// since we only iterate suffix len * 26^N which is bounded.
-fn suffix_could_start_syllable(
-    suffix: &str,
-    is_valid: impl Fn(&str) -> bool,
-) -> bool {
+fn suffix_could_start_syllable(suffix: &str, is_valid: impl Fn(&str) -> bool) -> bool {
     // suffix itself a valid syllable?
-    if is_valid(suffix) { return true; }
+    if is_valid(suffix) {
+        return true;
+    }
     // suffix + 1 trailing char forms valid? (l + i = li)
     for c1 in b'a'..=b'z' {
         let mut test = suffix.to_string();
         test.push(c1 as char);
-        if is_valid(&test) { return true; }
+        if is_valid(&test) {
+            return true;
+        }
         // + another char (li + a = lia? no; li + n = lin yes)
         for c2 in b'a'..=b'z' {
             let mut test2 = test.clone();
             test2.push(c2 as char);
-            if is_valid(&test2) { return true; }
+            if is_valid(&test2) {
+                return true;
+            }
         }
     }
     false
@@ -1904,7 +1909,11 @@ fn push_prefix_top_k(
             }
             heap.pop();
         }
-        heap.push(Reverse((e.raw_freq, Reverse(e.word.to_owned()), e.code.len())));
+        heap.push(Reverse((
+            e.raw_freq,
+            Reverse(e.word.to_owned()),
+            e.code.len(),
+        )));
     });
 
     // Drain in raw_freq-desc + lex-asc order. Same ordering as the
@@ -2117,7 +2126,7 @@ fn build_initials_index(engine: &PinyinEngine) -> InitialsIndex {
         for (w, _) in &scored {
             let bytes = w.as_bytes();
             if bytes.len() > u16::MAX as usize {
-                continue;  // defensive — won't happen for IME candidates
+                continue; // defensive — won't happen for IME candidates
             }
             word_pool.extend_from_slice(&(bytes.len() as u16).to_le_bytes());
             word_pool.extend_from_slice(bytes);
@@ -2230,29 +2239,46 @@ mod tests {
         for b in b"nihaomawojiao" {
             a.handle_letter(*b);
         }
-        assert!(a.composed_sentence.is_none(),
+        assert!(
+            a.composed_sentence.is_none(),
             "nihaomawojiao should NOT surface composed_sentence under \
              the strict-all bigram gate; got {:?}",
-            a.composed_sentence);
+            a.composed_sentence
+        );
     }
 
     #[test]
     fn repeat_letter_expands_to_interjection_chain() {
-        if super::PINYIN_DISABLE_ASSOCIATION { return; }
+        if super::PINYIN_DISABLE_ASSOCIATION {
+            return;
+        }
         let mut a = PinyinAdapter::new();
-        for b in b"hhhhh" { a.handle_letter(*b); }
-        assert_eq!(a.candidates().first().cloned(), Some("哈哈哈哈哈".to_string()),
-            "hhhhh should produce 哈哈哈哈哈 at #0; got {:?}", a.candidates());
+        for b in b"hhhhh" {
+            a.handle_letter(*b);
+        }
+        assert_eq!(
+            a.candidates().first().cloned(),
+            Some("哈哈哈哈哈".to_string()),
+            "hhhhh should produce 哈哈哈哈哈 at #0; got {:?}",
+            a.candidates()
+        );
 
         let mut a = PinyinAdapter::new();
-        for b in b"aaaa" { a.handle_letter(*b); }
-        assert_eq!(a.candidates().first().cloned(), Some("啊啊啊啊".to_string()));
+        for b in b"aaaa" {
+            a.handle_letter(*b);
+        }
+        assert_eq!(
+            a.candidates().first().cloned(),
+            Some("啊啊啊啊".to_string())
+        );
     }
 
     #[test]
     fn repeat_letter_below_threshold_no_expansion() {
         let mut a = PinyinAdapter::new();
-        for b in b"hh" { a.handle_letter(*b); }
+        for b in b"hh" {
+            a.handle_letter(*b);
+        }
         // hh is < 3 chars — falls through to 简拼 path (lookup "hh" in
         // initials). The auto-laughter expansion shouldn't fire.
         assert_ne!(a.candidates().first().map(String::as_str), Some("哈哈"));
@@ -2261,27 +2287,41 @@ mod tests {
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
     fn fuzzy_zongguo_surfaces_zhongguo() {
-        if super::PINYIN_DISABLE_FUZZY { return; }
+        if super::PINYIN_DISABLE_FUZZY {
+            return;
+        }
         let mut a = PinyinAdapter::new();
-        for b in b"zongguo" { a.handle_letter(*b); }
+        for b in b"zongguo" {
+            a.handle_letter(*b);
+        }
         // zongguo → no exact match, but fuzzy z→zh expansion finds 中国
         // via the zhongguo dict entry. Should appear somewhere in
         // candidates (not necessarily #0 since wubi/non-fuzzy may take
         // priority in mixed mode — here we just verify presence).
-        assert!(a.candidates().iter().any(|w| w == "中国"),
-            "fuzzy z→zh should surface 中国 for zongguo; got {:?}", a.candidates());
+        assert!(
+            a.candidates().iter().any(|w| w == "中国"),
+            "fuzzy z→zh should surface 中国 for zongguo; got {:?}",
+            a.candidates()
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
     fn typo_pyin_surfaces_pinyin_via_initials() {
-        if super::PINYIN_DISABLE_FUZZY { return; }
+        if super::PINYIN_DISABLE_FUZZY {
+            return;
+        }
         let mut a = PinyinAdapter::new();
-        for b in b"pyin" { a.handle_letter(*b); }
+        for b in b"pyin" {
+            a.handle_letter(*b);
+        }
         // pyin = missing-vowel typo for pinyin. Path 1c picks up
         // consonant prefix "py" and queries initials_index → 拼音 etc.
-        assert!(a.candidates().iter().any(|w| w == "拼音"),
-            "py initials should surface 拼音 for typo pyin; got {:?}", a.candidates());
+        assert!(
+            a.candidates().iter().any(|w| w == "拼音"),
+            "py initials should surface 拼音 for typo pyin; got {:?}",
+            a.candidates()
+        );
     }
 
     #[test]
@@ -2294,28 +2334,40 @@ mod tests {
         for b in b"nuanhe" {
             a.handle_letter(*b);
         }
-        assert!(a.composed_sentence.is_none(),
-            "composed_sentence (#0 boost) must not fire for short buffers");
+        assert!(
+            a.composed_sentence.is_none(),
+            "composed_sentence (#0 boost) must not fire for short buffers"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
     fn nuanhe_keeps_real_match_not_wrong_reading_composition() {
-        if super::PINYIN_DISABLE_COMPOSE || super::PINYIN_DISABLE_FUZZY { return; }
+        if super::PINYIN_DISABLE_COMPOSE || super::PINYIN_DISABLE_FUZZY {
+            return;
+        }
         // nuanhe is NOT empty (滦河 via n→l fuzzy), so the Path 5
         // last-resort fallback must NOT fire — the wrong-reading
         // composition 暖和 must not even appear, let alone outrank 滦河.
         let mut a = PinyinAdapter::new();
-        for b in b"nuanhe" { a.handle_letter(*b); }
+        for b in b"nuanhe" {
+            a.handle_letter(*b);
+        }
         assert!(!a.candidates().is_empty(), "nuanhe should have candidates");
-        assert_ne!(a.candidates().first().map(String::as_str), Some("暖和"),
-            "wrong-reading 暖和 must not be #0 for nuanhe; got {:?}", a.candidates());
+        assert_ne!(
+            a.candidates().first().map(String::as_str),
+            Some("暖和"),
+            "wrong-reading 暖和 must not be #0 for nuanhe; got {:?}",
+            a.candidates()
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
     fn short_non_lexeme_composes_instead_of_empty() {
-        if super::PINYIN_DISABLE_COMPOSE { return; }
+        if super::PINYIN_DISABLE_COMPOSE {
+            return;
+        }
         // Regression for user-reported 2026-05-25: short multi-syllable
         // inputs that aren't a dict lexeme and aren't a prefix of one
         // returned ZERO candidates. Path 5 composes them from single-char
@@ -2326,10 +2378,15 @@ mod tests {
             (&b"taikexi"[..], "太可惜"),
         ] {
             let mut a = PinyinAdapter::new();
-            for b in buf { a.handle_letter(*b); }
-            assert!(a.candidates().iter().any(|w| w == want),
+            for b in buf {
+                a.handle_letter(*b);
+            }
+            assert!(
+                a.candidates().iter().any(|w| w == want),
                 "{} should compose {want} (was empty before Path 5); got {:?}",
-                core::str::from_utf8(buf).unwrap(), a.candidates());
+                core::str::from_utf8(buf).unwrap(),
+                a.candidates()
+            );
         }
     }
 
@@ -2374,7 +2431,9 @@ mod tests {
 
     #[test]
     fn initials_lookup_hhh_includes_hahaha() {
-        if super::PINYIN_DISABLE_ASSOCIATION { return; }
+        if super::PINYIN_DISABLE_ASSOCIATION {
+            return;
+        }
         let mut a = PinyinAdapter::new();
         for b in b"hhh" {
             a.handle_letter(*b);
@@ -2393,7 +2452,9 @@ mod tests {
 
     #[test]
     fn initials_lookup_zg_includes_zhongguo() {
-        if super::PINYIN_DISABLE_ASSOCIATION { return; }
+        if super::PINYIN_DISABLE_ASSOCIATION {
+            return;
+        }
         let mut a = PinyinAdapter::new();
         for b in b"zg" {
             a.handle_letter(*b);
@@ -2429,7 +2490,11 @@ mod tests {
                 "shang should not trigger any auto-commit mid-stream"
             );
         }
-        assert_eq!(sess.preedit(), "shang", "preedit should preserve the full 5-char input");
+        assert_eq!(
+            sess.preedit(),
+            "shang",
+            "preedit should preserve the full 5-char input"
+        );
         let cands = sess.candidates();
         assert!(
             cands.iter().take(5).any(|w| w == "上"),
@@ -2493,7 +2558,9 @@ mod tests {
 
     #[test]
     fn initials_colloquial_words_rank_in_top_5() {
-        if super::PINYIN_DISABLE_ASSOCIATION { return; }
+        if super::PINYIN_DISABLE_ASSOCIATION {
+            return;
+        }
         // Conversational-register words should land near the top of their
         // initials bucket, not buried under proper nouns / Wikipedia entity
         // names. This is the regression net for the corpus-bias work
@@ -2527,7 +2594,9 @@ mod tests {
         // Freq-sorted initials index should put common reduplicated words
         // (哈哈哈/好好好/嘿嘿嘿/黑乎乎/呼哧哧) ahead of obscure 3-char names
         // like 何厚铧 / 侯狼何 that the user observed pre-fix.
-        if super::PINYIN_DISABLE_ASSOCIATION { return; }
+        if super::PINYIN_DISABLE_ASSOCIATION {
+            return;
+        }
         let mut a = PinyinAdapter::new();
         for b in b"hhh" {
             a.handle_letter(*b);
@@ -2844,10 +2913,24 @@ mod tests {
         // viability tier in has_future_match (8+ chars → ASCII
         // fallback check calls best_composition on up to 4 prefixes).
         let probes: &[&str] = &[
-            "z", "zh", "zho", "zhon", "zhong", "zhongguo", "wo", "women", "ni", "nihao", "h",
-            "hh", "hhh",
+            "z",
+            "zh",
+            "zho",
+            "zhon",
+            "zhong",
+            "zhongguo",
+            "wo",
+            "women",
+            "ni",
+            "nihao",
+            "h",
+            "hh",
+            "hhh",
             // Long-pinyin Viterbi-viability hot path.
-            "nihaoma", "nihaomawoj", "nihaomawojiao", "yongbuliao",
+            "nihaoma",
+            "nihaomawoj",
+            "nihaomawojiao",
+            "yongbuliao",
         ];
 
         let mut all_passed = true;
