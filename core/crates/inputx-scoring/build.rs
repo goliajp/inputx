@@ -200,6 +200,17 @@ fn main() {
     let pq_tier_4_above = read_f64(tq_p, "tier_4_above");
     let pq_tier_5_above = read_f64(tq_p, "tier_5_above");
     let pq_tier_6_above = read_f64(tq_p, "tier_6_above");
+    // [scoring.tier_wubi] — engine-internal wubi freq→tier (plain freq
+    // floors, no z-score; no cross-engine pinyin dependency). 2026-06-07.
+    let tw = parsed
+        .get("scoring")
+        .and_then(|v| v.get("tier_wubi"))
+        .and_then(|v| v.as_table())
+        .unwrap_or_else(|| panic!("[scoring.tier_wubi] section missing"));
+    let wt1 = read_i32(tw, "tier_1_floor");
+    let wt2 = read_i32(tw, "tier_2_floor");
+    let wt3 = read_i32(tw, "tier_3_floor");
+    let wt4 = read_i32(tw, "tier_4_floor");
     if pq_sigma <= 0.0 {
         panic!("scoring.tier_quantile_pinyin.log_freq_sigma must be > 0; got {pq_sigma}");
     }
@@ -426,6 +437,11 @@ pub mod consts {{
     pub const PHRASE_BIGRAM_SIGNAL_FLOOR: f64 = {phrase_bigram_floor};
     pub const PHRASE_INFLATION_FLOOR_FREQ: u64 = {phrase_inflation_floor};
     pub const PHRASE_INFLATION_CEIL_FREQ: u64 = {phrase_inflation_ceil};
+    // [scoring.tier_wubi] — wubi freq→tier floors (engine-internal, 2026-06-07).
+    pub const WUBI_TIER_1_FLOOR: u64 = {wt1};
+    pub const WUBI_TIER_2_FLOOR: u64 = {wt2};
+    pub const WUBI_TIER_3_FLOOR: u64 = {wt3};
+    pub const WUBI_TIER_4_FLOOR: u64 = {wt4};
 }}
 
 /// Tier落点 helper — Phase B (2026-06-03).
@@ -482,6 +498,20 @@ pub fn nihongo_tier_from_freq(raw_freq: u64) -> u8 {{
     else if z >= consts::NIHONGO_TIER_5_Z_ABOVE {{ 5 }}
     else if z >= consts::NIHONGO_TIER_6_Z_ABOVE {{ 6 }}
     else {{ 9 }}
+}}
+
+/// Tier落点 — wubi by its OWN corpus freq (2026-06-07, orthogonal-table
+/// design). Plain freq floors, no z-score: wubi is encoding-stable and
+/// low-cardinality so it converges high; within-tier order is deliberately
+/// not modeled (五笔不关心 t1 内谁高). Semantics: t1 常用 / t2 中低频 /
+/// t3 低频 / t4 难检 / t5 生僻. Engine-internal — NO pinyin char_max_freq
+/// dependency. CALLERS: composite/dispatch.rs jianma1/2/3 single-char path.
+pub fn wubi_tier_from_freq(raw_freq: u64) -> u8 {{
+    if raw_freq >= consts::WUBI_TIER_1_FLOOR {{ 1 }}
+    else if raw_freq >= consts::WUBI_TIER_2_FLOOR {{ 2 }}
+    else if raw_freq >= consts::WUBI_TIER_3_FLOOR {{ 3 }}
+    else if raw_freq >= consts::WUBI_TIER_4_FLOOR {{ 4 }}
+    else {{ 5 }}
 }}
 "#,
         bootstrap = bootstrap_floor_q4,
@@ -547,6 +577,10 @@ pub fn nihongo_tier_from_freq(raw_freq: u64) -> u8 {{
         phrase_bigram_floor = fmt_f64(pq_bigram_floor),
         phrase_inflation_floor = pq_inflation_floor,
         phrase_inflation_ceil = pq_inflation_ceil,
+        wt1 = wt1,
+        wt2 = wt2,
+        wt3 = wt3,
+        wt4 = wt4,
     );
 
     fs::write(&out_path, generated).unwrap_or_else(|e| panic!("write {}: {e}", out_path.display()));
