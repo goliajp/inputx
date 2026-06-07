@@ -845,12 +845,9 @@ mod tests {
             // 要是 '是'" — moved to tier_overlay tier 5; protection
             // semantics for that pair retired.
             ("you", "亦"), // existing protected
-            // 2026-06-07 (user /polish): "碰应该在第一位，这是超高频的五笔字，
-            // 现在都跑到日语后面去了". 碰 (jianma3 code duo) was wrongly
-            // tier-5 demoted by the 2026-06-03 sweep (which mis-judged duo
-            // as pinyin-freq=0); tier_overlay.tsv now promotes (duo, 碰) to
-            // tier 0 absolute so it leads even with JP enabled.
-            ("duo", "碰"),
+                           // (duo, 碰) moved to wubi_prominent_simcode_leads_after_sweep_revert
+                           // (2026-06-07) — it's part of the reverted 2026-06-03 sweep set,
+                           // asserted there alongside the other 38 restored simcodes.
         ];
         run("jianma3", cases, mixed_top, mixed_top10);
     }
@@ -2042,70 +2039,23 @@ mod tests {
 
     #[test]
     fn wubi_pollution_tier5_demoted_absent_from_mixed_top3() {
-        // 2026-06-03 200-buffer sweep — every (buffer, word) wubi top1
-        // where buffer is a valid pinyin syllable AND the wubi candidate
-        // has pinyin_freq=0 at that buffer (meaning the char's primary
-        // reading is NOT this buffer). Per user 2026-06-03: "wubi 的
-        // 内容分级都相对偏高就好了，但是真难检字也可以低下去，两级分化".
-        // Demoted to tier 5 (less_common) via tier_overlay.tsv so pinyin
-        // top wins; wubi simcode still retrievable at deeper rank.
+        // 2026-06-07: the 2026-06-03 "200-buffer sweep" that demoted ~40
+        // prominent wubi simcodes to tier 5 was REVERTED — it violated the
+        // core `wx > px > nx` rule (五笔雷打不动优先) by burying high-freq
+        // wubi chars (碰/虎/拉/谍/东…) behind pinyin and even nihongo. All
+        // 39 single-char simcodes now lead #0 naturally (prominent → tier 1);
+        // their positive assertions live in
+        // `wubi_prominent_simcode_leads_after_sweep_revert`.
         //
-        // 13 muscle-memory wubi simcodes (`jianma2_common_chars_lead_in_mixed`
-        // + `three_letter_pinyin_shaped_wubi_simcodes`) intentionally
-        // EXCLUDED from this list — those stay at natural tier 1.
+        // What LEGITIMATELY stays tier-5 demoted (the cases below):
+        //   - (shi, 椒): user-attested — "shi 要 是 不是 椒"; 椒 stays tier 5.
+        //   - multi-char phrases hijacking a pinyin-shaped buffer: nobody
+        //     types `suan` wanting 西装革履. Phrase tier-5 demote is correct.
         let cases: &[(&str, &[&str])] = &[
-            ("ai", &["东"]),
-            ("an", &["世"]),
-            ("ba", &["陈"]),
-            ("bai", &["陈"]),
-            ("bang", &["陈情"]),
-            ("bi", &["孙"]),
-            ("bu", &["联"]),
-            ("dan", &["碟"]),
-            ("di", &["砂"]),
-            ("dou", &["灰"]),
-            ("du", &["磁"]),
-            // (duo, 碰) retired 2026-06-07 — user: "碰应该在第一位，这是
-            // 超高频的五笔字，现在都跑到日语后面去了". The 2026-06-03 sweep
-            // mis-judged it (duo actually has a large pinyin pool, not
-            // freq=0). Promoted to tier 0 in tier_overlay.tsv; positive
-            // assertion moved to three_letter_pinyin_shaped_wubi_simcodes.
-            ("er", &["遥"]),
-            ("fu", &["增"]),
-            // (fa, 载) retired 2026-06-06 — user: "fa 载应该在发前面，
-            // 二级简码还是应该优先五笔的，载比隙的常见程度要高得多".
-            // Moved to jianma2_common_chars_lead_in_mixed positive list.
-            ("gang", &["开怀"]),
-            ("ha", &["虎"]),
-            ("hao", &["虚"]),
-            ("he", &["肯"]),
-            ("ji", &["晃"]),
-            ("ke", &["吸"]),
-            ("le", &["胃"]),
-            ("lu", &["较"]),
-            ("ma", &["曲"]),
-            ("me", &["骨"]),
-            ("nv", &["恨"]),
-            ("qi", &["乐"]),
-            ("qiu", &["尔"]),
-            ("qu", &["匀"]),
-            ("ran", &["拒"]),
-            ("ren", &["扔"]),
-            ("ri", &["朱"]),
-            ("ru", &["拉"]),
-            ("san", &["柜"]),
-            // (shi, 椒) added 2026-06-03 — user retired (shi, 椒) from
-            // muscle-memory protect list; expected top1=是.
-            ("shi", &["椒"]),
-            ("si", &["档"]),
-            ("suan", &["西装革履"]),
-            ("te", &["秀"]),
-            ("ti", &["秒"]),
-            ("wen", &["仍"]),
-            ("xi", &["纱"]),
-            ("yan", &["谍"]),
-            ("yao", &["庶"]),
-            ("ye", &["衣"]),
+            ("shi", &["椒"]),        // attested: shi → 是; 椒 stays tier 5
+            ("bang", &["陈情"]),     // phrase hijacking a pinyin buffer
+            ("gang", &["开怀"]),     // phrase hijacking a pinyin buffer
+            ("suan", &["西装革履"]), // phrase hijacking a pinyin buffer
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
@@ -2134,6 +2084,76 @@ mod tests {
         if !failures.is_empty() {
             panic!(
                 "{} wubi-tier5-demote cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
+        }
+    }
+
+    /// 2026-06-07 (user /polish "duo 碰应该在第一位" + design clarification
+    /// "五笔是雷打不动的优先 … wx > px > nx"): the 2026-06-03 sweep wrongly
+    /// demoted these prominent (char_max_freq ≥ floor) wubi simcodes to
+    /// tier 5, burying them behind pinyin / nihongo. Reverting the sweep
+    /// restores them to natural tier 1, where wx>px puts the wubi char #0
+    /// over same-tier pinyin. Locks the "五笔优先" invariant for the whole
+    /// reverted set.
+    #[test]
+    fn wubi_prominent_simcode_leads_after_sweep_revert() {
+        let cases: &[(&str, &str)] = &[
+            ("ai", "东"),
+            ("an", "世"),
+            ("ba", "陈"),
+            ("bai", "陈"),
+            ("bi", "孙"),
+            ("bu", "联"),
+            ("dan", "碟"),
+            ("di", "砂"),
+            ("dou", "灰"),
+            ("du", "磁"),
+            ("duo", "碰"),
+            ("er", "遥"),
+            ("fu", "增"),
+            ("ha", "虎"),
+            ("hao", "虚"),
+            ("he", "肯"),
+            ("ji", "晃"),
+            ("ke", "吸"),
+            ("le", "胃"),
+            ("lu", "较"),
+            ("ma", "曲"),
+            ("me", "骨"),
+            ("nv", "恨"),
+            ("qi", "乐"),
+            ("qiu", "尔"),
+            ("qu", "匀"),
+            ("ran", "拒"),
+            ("ren", "扔"),
+            ("ri", "朱"),
+            ("ru", "拉"),
+            ("san", "柜"),
+            ("si", "档"),
+            ("te", "秀"),
+            ("ti", "秒"),
+            ("wen", "仍"),
+            ("xi", "纱"),
+            ("yan", "谍"),
+            ("yao", "庶"),
+            ("ye", "衣"),
+        ];
+        let mut failures = Vec::new();
+        for (buf, expected) in cases {
+            let top10 = mixed_top10(buf.as_bytes());
+            let got = top10.first().map(String::as_str);
+            if got != Some(*expected) {
+                let top3: Vec<&str> = top10.iter().take(3).map(String::as_str).collect();
+                failures.push(format!(
+                    "  {buf}: expected #0={expected}, got {got:?} (top3={top3:?})"
+                ));
+            }
+        }
+        if !failures.is_empty() {
+            panic!(
+                "{} wubi-simcode-lead cases regressed:\n{}",
                 failures.len(),
                 failures.join("\n")
             );
