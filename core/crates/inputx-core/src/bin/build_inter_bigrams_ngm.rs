@@ -126,10 +126,10 @@ fn main() -> ExitCode {
         rows += 1;
     }
 
-    if let Some(parent) = Path::new(&output).parent() {
-        if !parent.as_os_str().is_empty() {
-            let _ = fs::create_dir_all(parent);
-        }
+    if let Some(parent) = Path::new(&output).parent()
+        && !parent.as_os_str().is_empty()
+    {
+        let _ = fs::create_dir_all(parent);
     }
 
     let sha = match builder.build(&output) {

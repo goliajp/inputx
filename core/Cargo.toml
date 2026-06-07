@@ -43,6 +43,16 @@ rust-version = "1.95"
 inputx-wubi = { version = "1.2", path = "crates/inputx-wubi" }
 inputx-pinyin = { version = "1.2", path = "crates/inputx-pinyin" }
 
+# Project clippy lint policy, enforced by the CI `-D warnings` gate.
+# Only doc_lazy_continuation is globally allowed: it mis-fires on the many
+# doc comments here whose prose contains math formulae with `=` / parens
+# (e.g. "log_prior_q4 = Q4·ln(1+freq)"), which the markdown parser reads as
+# list-item continuations. Forcing indentation there would corrupt the
+# docs for no benefit. Every other clippy lint stays at its default level
+# and is denied by the gate. Member crates opt in via `[lints] workspace = true`.
+[workspace.lints.clippy]
+doc_lazy_continuation = "allow"
+
 [profile.release]
 # Was `lto = true` (fat LTO). Switched to "off" because fat LTO embeds
 # LLVM 22 bitcode into the staticlib's .o files, and Xcode 26's older

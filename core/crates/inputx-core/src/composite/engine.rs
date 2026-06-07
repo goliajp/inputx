@@ -325,10 +325,10 @@ impl CompositeEngine {
         }
 
         // JP attaches in parallel as an enhancement source.
-        if self.enable_japanese {
-            if let Some(j) = self.japanese.as_mut() {
-                j.handle_letter(byte);
-            }
+        if self.enable_japanese
+            && let Some(j) = self.japanese.as_mut()
+        {
+            j.handle_letter(byte);
         }
 
         if self.mode.allows_wubi() {
@@ -557,10 +557,10 @@ impl CompositeEngine {
             } else {
                 consumed |= self.wubi.backspace();
             }
-            if self.enable_japanese {
-                if let Some(j) = self.japanese.as_mut() {
-                    consumed |= j.backspace();
-                }
+            if self.enable_japanese
+                && let Some(j) = self.japanese.as_mut()
+            {
+                consumed |= j.backspace();
             }
             return consumed;
         }
@@ -570,10 +570,10 @@ impl CompositeEngine {
         if self.mode.allows_pinyin() {
             consumed |= self.pinyin.backspace();
         }
-        if self.enable_japanese {
-            if let Some(j) = self.japanese.as_mut() {
-                consumed |= j.backspace();
-            }
+        if self.enable_japanese
+            && let Some(j) = self.japanese.as_mut()
+        {
+            consumed |= j.backspace();
         }
         consumed
     }
@@ -610,10 +610,10 @@ impl CompositeEngine {
         if self.mode.allows_pinyin() {
             consumed |= self.pinyin.escape();
         }
-        if self.enable_japanese {
-            if let Some(j) = self.japanese.as_mut() {
-                consumed |= j.escape();
-            }
+        if self.enable_japanese
+            && let Some(j) = self.japanese.as_mut()
+        {
+            consumed |= j.escape();
         }
         consumed
     }

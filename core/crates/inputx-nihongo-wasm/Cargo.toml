@@ -31,3 +31,6 @@ js-sys = "0.3"
 # bulk-memory instructions emitted by current Rust toolchains.
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
+
+[lints]
+workspace = true

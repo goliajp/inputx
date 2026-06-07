@@ -23,3 +23,6 @@ inputx-wubi = { workspace = true }
 inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
 # Q4 fixed-point constants for log_prior_q4 round-trip helpers.
 inputx-scoring = { path = "../inputx-scoring", version = "1.4" }
+
+[lints]
+workspace = true

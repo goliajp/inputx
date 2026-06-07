@@ -33,3 +33,6 @@ js-sys = "0.3"
 # unoptimized output (still ~33KB code).
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
+
+[lints]
+workspace = true

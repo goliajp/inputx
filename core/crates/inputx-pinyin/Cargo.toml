@@ -101,3 +101,6 @@ path = "tools/build_ngrams_fsa.rs"
 required-features = ["tools"]
 
 # `[[bench]]` blocks land in v0.2 once data is dense enough to bench.
+
+[lints]
+workspace = true

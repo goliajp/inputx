@@ -127,7 +127,7 @@ impl IdfBuilder {
         }
         let string_pool_size = pool_bytes.len() as u32;
         // Pad pool to 8-byte boundary.
-        while pool_bytes.len() % 8 != 0 {
+        while !pool_bytes.len().is_multiple_of(8) {
             pool_bytes.push(0);
         }
 

@@ -160,7 +160,7 @@ mod tests {
     #[test]
     fn value_widths() {
         // Force each width tier and verify round-trip.
-        for &maxv in &[0xFFu64, 0xFFFF, 0xFFFF_FFFF, 0xFFFF_FFFF_FF] {
+        for &maxv in &[0xFFu64, 0xFFFF, 0xFFFF_FFFF, 0x00FF_FFFF_FFFF] {
             let bytes = build(&[(b"lo", 0), (b"hi", maxv)]);
             let fsa = Fsa::new(bytes).unwrap();
             assert_eq!(fsa.get(b"hi"), Some(maxv));

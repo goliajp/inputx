@@ -122,3 +122,6 @@ path = "src/bin/idf_from_pinyin_bigrams.rs"
 [[bin]]
 name = "build-inter-bigrams-ngm"
 path = "src/bin/build_inter_bigrams_ngm.rs"
+
+[lints]
+workspace = true

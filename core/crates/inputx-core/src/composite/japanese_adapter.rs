@@ -43,12 +43,11 @@ fn is_jp_clean(word: &str) -> bool {
     if word.chars().any(|c| c.is_ascii_alphabetic()) {
         return false;
     }
-    if word.chars().any(is_kanji) {
-        if let Some(first) = word.chars().next() {
-            if !is_kanji(first) {
-                return false;
-            }
-        }
+    if word.chars().any(is_kanji)
+        && let Some(first) = word.chars().next()
+        && !is_kanji(first)
+    {
+        return false;
     }
     true
 }
