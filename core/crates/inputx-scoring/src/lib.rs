@@ -1155,7 +1155,7 @@ mod tests {
             source: Source::Pinyin,
         };
         let mut cands = [mk(10, 20), mk(50, -10), mk(0, 0), mk(100, 100)];
-        cands.sort_by(|a, b| score(b).cmp(&score(a)));
+        cands.sort_by_key(|b| std::cmp::Reverse(score(b)));
         assert_eq!(score(&cands[0]), 200);
         assert_eq!(score(&cands[1]), 40);
         assert_eq!(score(&cands[2]), 30);

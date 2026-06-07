@@ -69,7 +69,7 @@ impl CandidateRule for RepeatedLetterExpansion {
             // applicable but yields no expansion. NoOp keeps trace clean.
             _ => return RuleEffect::NoOp,
         };
-        let word: String = std::iter::repeat(ch).take(ctx.buffer.len()).collect();
+        let word: String = std::iter::repeat_n(ch, ctx.buffer.len()).collect();
         cands.insert(
             0,
             RuleCandidate {
@@ -133,7 +133,7 @@ mod tests {
     fn length_matches_buffer() {
         let r = RepeatedLetterExpansion;
         for n in 3..=12 {
-            let buf: String = std::iter::repeat('h').take(n).collect();
+            let buf: String = std::iter::repeat_n('h', n).collect();
             let mut cands = Vec::new();
             let _ = r.apply(&ctx(&buf), &mut cands);
             assert_eq!(

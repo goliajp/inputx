@@ -34,3 +34,6 @@ cbindgen = "0.28"
 [dev-dependencies]
 # Fuzz the C ABI: random op sequences must not panic across the boundary.
 proptest = "1"
+
+[lints]
+workspace = true

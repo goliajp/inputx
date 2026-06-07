@@ -168,9 +168,9 @@ impl WubiDict {
     ///   * layer.base() × layer_prefs   (jianma1 = 1e6, …)
     ///   * + freq                       (corpus weight)
     ///   * × 100.0                      if full-code single-char promotion fires
-    ///                                  (see lookup_into doc for the rule)
+    ///     (see lookup_into doc for the rule)
     ///   * × 1000.0                     if the candidate is L0-pinned
-    ///                                  (must dominate any natural score)
+    ///     (must dominate any natural score)
     ///
     /// The post-multipliers keep wubi simcodes and L0 pins on top across
     /// the cross-engine merge.
@@ -333,15 +333,13 @@ impl WubiDict {
         }
 
         // L0 pin: pull to position 0.
-        if let Ok(l0) = self.l0.read() {
-            if let Some(pref) = l0.pins.get(code) {
-                if let Some(idx) = out.iter().position(|w| w == pref) {
-                    if idx > 0 {
-                        let p = out.remove(idx);
-                        out.insert(0, p);
-                    }
-                }
-            }
+        if let Ok(l0) = self.l0.read()
+            && let Some(pref) = l0.pins.get(code)
+            && let Some(idx) = out.iter().position(|w| w == pref)
+            && idx > 0
+        {
+            let p = out.remove(idx);
+            out.insert(0, p);
         }
     }
 

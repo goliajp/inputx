@@ -705,10 +705,10 @@ fn cmd_events(engine_filter: Option<&str>) -> Result<(), String> {
     );
     println!("{}", "─".repeat(100));
     for e in &log.events {
-        if let Some(f) = engine_filter {
-            if e.engine != f {
-                continue;
-            }
+        if let Some(f) = engine_filter
+            && e.engine != f
+        {
+            continue;
         }
         println!(
             "{:<32} {:<8} {:<10} {:>10} {:>10} {:>10}  {}",

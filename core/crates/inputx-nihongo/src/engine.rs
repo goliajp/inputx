@@ -188,7 +188,7 @@ impl JapaneseEngine {
         // match "kou"). Cross-group ordering is then "jukugo, then
         // single-kanji, then kana" — the high-conviction kinds first.
         let mut jukugo_hits: Vec<(&str, u32)> = jukugo::lookup_by_reading(s).collect();
-        jukugo_hits.sort_by(|a, b| b.1.cmp(&a.1));
+        jukugo_hits.sort_by_key(|b| std::cmp::Reverse(b.1));
         let had_exact_jukugo = !jukugo_hits.is_empty();
         for (compound, freq) in jukugo_hits {
             self.candidates.push(Candidate {
@@ -210,7 +210,7 @@ impl JapaneseEngine {
         // keep it below an exact/full match.
         if !had_exact_jukugo && s.len() >= 3 {
             let mut pred: Vec<(&str, u32, usize)> = jukugo::lookup_by_reading_prefix(s).collect();
-            pred.sort_by(|a, b| b.1.cmp(&a.1));
+            pred.sort_by_key(|b| std::cmp::Reverse(b.1));
             for (kanji, freq, reading_len) in pred.into_iter().take(8) {
                 let proximity_milli = ((s.len() * 1000) / reading_len.max(1)) as u16;
                 self.candidates.push(Candidate {
@@ -224,7 +224,7 @@ impl JapaneseEngine {
         }
 
         let mut kanji_hits: Vec<(char, u32)> = kanji::lookup_by_reading(s).collect();
-        kanji_hits.sort_by(|a, b| b.1.cmp(&a.1));
+        kanji_hits.sort_by_key(|b| std::cmp::Reverse(b.1));
         for (kanji_char, freq) in kanji_hits {
             self.candidates.push(Candidate {
                 word: kanji_char.to_string(),
@@ -445,7 +445,7 @@ fn compose_sentence(buffer: &str) -> Vec<Candidate> {
         }
     }
     let mut sorted: Vec<(String, u32)> = best.into_iter().collect();
-    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted.sort_by_key(|b| std::cmp::Reverse(b.1));
     sorted.truncate(30);
     sorted
         .into_iter()

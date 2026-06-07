@@ -411,6 +411,7 @@ pub fn length_bias(word_len: usize) -> f64 {
 ///   - JP `japanese_adapter::candidates_with_scores` for jukugo prefix
 ///     prediction (CP-A, v1.2)
 ///   - wubi prefix-prediction (CP-C, v1.3 WU-α, planned)
+#[allow(dead_code)] // documented simple-form API; predict_score_decomposed is the wired variant
 pub fn predict_score(base: f64, freq: u64, freq_mult: f64, proximity: f64) -> f64 {
     base + (freq as f64) * freq_mult * proximity.powf(LIKELIHOOD_PREDICT_PROXIMITY_K)
 }

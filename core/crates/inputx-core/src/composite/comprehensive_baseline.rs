@@ -245,9 +245,9 @@ mod tests {
     /// than the multi_syllable test. Real everyday words.
     /// Auto-baseline: every pinyin code where #1 single-char freq is
     /// >= 20k AND >= 1.3x the #2 freq. These are "clear winners" —
-    /// scoring should never put another char at #0 here in PinyinOnly
-    /// mode. Generated 2026-05-24 from weights.tsv. Rebuild via
-    /// python audit if data shifts.
+    /// > scoring should never put another char at #0 here in PinyinOnly
+    /// > mode. Generated 2026-05-24 from weights.tsv. Rebuild via
+    /// > python audit if data shifts.
     #[test]
     fn pinyin_only_auto_clear_winners() {
         let cases: &[(&str, &str)] = &[
