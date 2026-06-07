@@ -123,7 +123,7 @@ pub(super) fn compose_sentence(buffer: &str) -> Vec<Candidate> {
         }
     }
     let mut sorted: Vec<(String, u32)> = best.into_iter().collect();
-    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted.sort_by_key(|b| std::cmp::Reverse(b.1));
     sorted.truncate(30);
     sorted
         .into_iter()

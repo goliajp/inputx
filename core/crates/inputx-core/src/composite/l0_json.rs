@@ -211,6 +211,9 @@ mod mini_json {
     /// 32 is generous headroom while bounding stack use on hostile input.
     const MAX_DEPTH: usize = 32;
 
+    // The Bool/Num/... fields model the complete JSON grammar even though the
+    // schema consumer only reads a subset — keep the full value model.
+    #[allow(dead_code)]
     #[derive(Debug)]
     pub enum Json {
         Null,

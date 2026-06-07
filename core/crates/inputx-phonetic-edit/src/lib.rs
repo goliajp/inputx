@@ -168,11 +168,11 @@ pub fn edit_distance(a: &str, b: &str, table: &EditCostTable) -> f64 {
     }
     // dp[i][j] = best cost to transform a[..i] → b[..j].
     let mut dp = vec![vec![0.0f64; m + 1]; n + 1];
-    for i in 0..=n {
-        dp[i][0] = i as f64;
+    for (i, row) in dp.iter_mut().enumerate() {
+        row[0] = i as f64;
     }
-    for j in 0..=m {
-        dp[0][j] = j as f64;
+    for (j, cell) in dp[0].iter_mut().enumerate() {
+        *cell = j as f64;
     }
     for i in 1..=n {
         for j in 1..=m {

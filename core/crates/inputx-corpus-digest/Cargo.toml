@@ -39,3 +39,6 @@ ureq = { version = "2", default-features = false, features = ["tls", "gzip"] }
 # but no reading). `inputx_pinyin::char_to_pinyin` walks the embedded
 # pinyin.dict reverse-index. Pulled at workspace version.
 inputx-pinyin = { workspace = true }
+
+[lints]
+workspace = true

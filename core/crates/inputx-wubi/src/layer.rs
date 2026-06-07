@@ -115,6 +115,7 @@ const FREQ_MASK: u64 = (1 << FREQ_BITS) - 1;
 /// that needs to clamp/validate import this rather than hardcoding a copy
 /// (a stale copy in the proptest survived the E1 `FREQ_BITS` 56→20 change and
 /// silently broke the invariants until proptest caught it).
+#[allow(dead_code)] // single source of truth for the freq domain — used by tests / external callers
 pub const MAX_FREQ_SCORE: u64 = FREQ_MASK;
 
 /// Pack `(layer, freq_score)` into a single u64 index value. `freq_score` is

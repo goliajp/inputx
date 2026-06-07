@@ -107,7 +107,7 @@ fn warm_embedded_blob(blob: &'static [u8]) {
         sum = sum.wrapping_add(blob[i]);
         i += page;
     }
-    if blob.len() > 0 {
+    if !blob.is_empty() {
         sum = sum.wrapping_add(blob[blob.len() - 1]);
     }
     std::hint::black_box(sum);
@@ -571,26 +571,27 @@ impl PinyinAdapter {
             };
             let mut chars = word.chars();
             let (c1, c2, c3) = (chars.next(), chars.next(), chars.next());
-            if c3.is_none() {
-                if let (Some(a), Some(b)) = (c1, c2) {
-                    let s1 = a.to_string();
-                    let s2 = b.to_string();
-                    let bg = self.engine.dict().bigram_boost(Some(&s1), &s2);
-                    // Combo gate: phrase looks like jieba over-segmentation
-                    // ONLY when bigram is low AND freq sits in the inflation
-                    // BAND.  Above ceil = real-common (屋里 32k / 这里 45k)
-                    // OR user-attested quickfix (锚定 40k).  Below floor =
-                    // real-rare (靠谱 10k / 铆钉 15k — consistent low-low).
-                    // jieba over-segment sweet spot is the mid band 22k-30k:
-                    // freq looks "common-ish" but bigram says the chars don't
-                    // actually co-occur in real text → over-segmentation.
-                    let f = u64::from(entry.raw_freq);
-                    if bg < inputx_scoring::consts::PHRASE_BIGRAM_SIGNAL_FLOOR
-                        && f >= inputx_scoring::consts::PHRASE_INFLATION_FLOOR_FREQ
-                        && f < inputx_scoring::consts::PHRASE_INFLATION_CEIL_FREQ
-                    {
-                        natural_tier = (natural_tier + 2).min(9);
-                    }
+            if c3.is_none()
+                && let (Some(a), Some(b)) = (c1, c2)
+            {
+                let s1 = a.to_string();
+                let s2 = b.to_string();
+                let bg = self.engine.dict().bigram_boost(Some(&s1), &s2);
+                // Combo gate: phrase looks like jieba over-segmentation
+                // ONLY when bigram is low AND freq sits in the inflation
+                // BAND.  Above ceil = real-common (屋里 32k / 这里 45k)
+                // OR user-attested quickfix (锚定 40k).  Below floor =
+                // real-rare (靠谱 10k / 铆钉 15k — consistent low-low).
+                // jieba over-segment sweet spot is the mid band 22k-30k:
+                // freq looks "common-ish" but bigram says the chars don't
+                // actually co-occur in real text → over-segmentation.
+                let f = u64::from(entry.raw_freq);
+                if bg < inputx_scoring::consts::PHRASE_BIGRAM_SIGNAL_FLOOR
+                    && (inputx_scoring::consts::PHRASE_INFLATION_FLOOR_FREQ
+                        ..inputx_scoring::consts::PHRASE_INFLATION_CEIL_FREQ)
+                        .contains(&f)
+                {
+                    natural_tier = (natural_tier + 2).min(9);
                 }
             }
             let tier_pinyin: u8 =
@@ -1777,14 +1778,14 @@ fn fuzzy_buffer_variants(buffer: &str) -> Vec<String> {
         ("an", "ang"),
     ];
     for (from, to) in final_swaps {
-        if let Some(stem) = buffer.strip_suffix(from) {
-            if !stem.is_empty() {
-                let mut alt = String::with_capacity(buffer.len() + 1);
-                alt.push_str(stem);
-                alt.push_str(to);
-                if !out.contains(&alt) {
-                    out.push(alt);
-                }
+        if let Some(stem) = buffer.strip_suffix(from)
+            && !stem.is_empty()
+        {
+            let mut alt = String::with_capacity(buffer.len() + 1);
+            alt.push_str(stem);
+            alt.push_str(to);
+            if !out.contains(&alt) {
+                out.push(alt);
             }
         }
     }

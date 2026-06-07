@@ -52,6 +52,13 @@ jobs:
         run: cargo fmt --all --check
         working-directory: core
 
+      # Clippy gate. Project lint policy lives in [workspace.lints.clippy]
+      # (core/Cargo.toml) — only doc_lazy_continuation is allowed (math-prose
+      # false positives); everything else is denied here.
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+        working-directory: core
+
       # Project-blessed Rust gate (inputx-scoring + inputx-core baseline +
       # inputx-core lib). Same target as `make baseline` locally.
       - name: Rust baseline tests

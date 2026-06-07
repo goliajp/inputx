@@ -23,3 +23,6 @@ std = []
 
 [dependencies]
 # Zero dependencies — same design point as inputx-fsa.
+
+[lints]
+workspace = true

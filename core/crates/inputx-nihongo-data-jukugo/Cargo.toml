@@ -17,3 +17,6 @@ crate-type = ["rlib"]
 
 [dependencies]
 inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
+
+[lints]
+workspace = true

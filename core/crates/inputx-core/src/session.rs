@@ -497,7 +497,7 @@ mod tests {
             assert!(sess.handle_key(b'-' as u32, 0));
         }
         let preedit_a = sess.preedit().to_string();
-        let cands_a: Vec<String> = sess.candidates().iter().cloned().collect();
+        let cands_a: Vec<String> = sess.candidates().to_vec();
         // Phase B: backspace 3 times (delete trailing 3 `-`)
         for _ in 0..3 {
             assert!(sess.handle_key(0x08, 0)); // BS
@@ -507,7 +507,7 @@ mod tests {
             assert!(sess.handle_key(b'-' as u32, 0));
         }
         let preedit_b = sess.preedit().to_string();
-        let cands_b: Vec<String> = sess.candidates().iter().cloned().collect();
+        let cands_b: Vec<String> = sess.candidates().to_vec();
         assert_eq!(
             preedit_a, preedit_b,
             "preedit must be identical after backspace-then-retype; got A={preedit_a:?} B={preedit_b:?}"
