@@ -1965,6 +1965,11 @@ mod tests {
     fn no_traditional_in_top10_for_common_wubi() {
         let cases: &[(&str, &[&str])] = &[
             ("yngk", &["詞"]), // 简体 词 leads; 詞 deleted by 2026-06-06 sweep
+            // 2026-06-09: 員 was a TRAD dup line in jianma_simplified.txt
+            // (kmu 員 alongside kmu 员) + a high-freq library overlay; both
+            // removed so 员 leads. jianma_simplified slipped past the
+            // 2026-06-06 auto_decomp-only sweep.
+            ("kmu", &["員"]),
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
