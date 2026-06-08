@@ -982,6 +982,20 @@ mod tests {
         }
     }
 
+    /// Class A polish (user report 2026-06-08): "chakong 插空，希望有这个
+    /// 词，但中等频率吧，意思是插队在空当". 插空 existed in library.tsv at
+    /// freq 0 (corpus zero-freq → below the build cutoff, never surfaced).
+    /// Bumped to 5000 (source=polish): mid-freq, visible in candidates but
+    /// still below 插孔 (7780, #0). Invariant: 插空 reachable at chakong.
+    #[test]
+    fn polish_chakong_includes_chakong() {
+        let top10 = mixed_top10("chakong".as_bytes());
+        assert!(
+            top10.iter().any(|w| w == "插空"),
+            "chakong: 插空 not in candidates; top10={top10:?}"
+        );
+    }
+
     /// 2026-06-06 polish — `jianma` cleanup. User: "捡骂 剑麻 不应该
     /// 出现，他们不是词".
     /// - 捡骂: D1 deleted from library.tsv (jieba sub-word noise) +
