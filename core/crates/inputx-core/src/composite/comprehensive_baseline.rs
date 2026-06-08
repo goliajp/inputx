@@ -996,6 +996,22 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-06-08): "kongdang 空荡 > 空当 >
+    /// 空档 > 空挡，因为空挡是专有名词". 空挡 (transmission neutral gear)
+    /// is a proper/technical term and must rank last among the four.
+    /// library.tsv freqs set to a clean descending order (空荡 21148 >
+    /// 空当 20000 > 空档 19000 > 空挡 18000). Invariant: relative order.
+    #[test]
+    fn polish_kongdang_order() {
+        let top10 = mixed_top10("kongdang".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let (a, b, c, d) = (pos("空荡"), pos("空当"), pos("空档"), pos("空挡"));
+        assert!(
+            matches!((a, b, c, d), (Some(a), Some(b), Some(c), Some(d)) if a < b && b < c && c < d),
+            "kongdang expected 空荡<空当<空档<空挡; top10={top10:?}"
+        );
+    }
+
     /// 2026-06-06 polish — `jianma` cleanup. User: "捡骂 剑麻 不应该
     /// 出现，他们不是词".
     /// - 捡骂: D1 deleted from library.tsv (jieba sub-word noise) +
