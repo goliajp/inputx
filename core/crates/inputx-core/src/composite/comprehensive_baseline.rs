@@ -2344,6 +2344,9 @@ mod tests {
             // User polish-log 2026-06-03: "cipin 次贫不应该存在" —
             // jieba sub-word noise (次 + 贫), not a real Chinese phrase.
             ("cipin", &["次贫"]),
+            // User polish-log 2026-06-09: "xiewen 斜纹就行了，写文不像
+            // 是个词" — jieba sub-word noise (写 + 文); 斜纹 now leads.
+            ("xiewen", &["写文"]),
             // User polish-log 2026-06-03: "ciping 茨坪是什么？如果
             // 不能解释也不应该存在" — obscure place name (Jinggangshan
             // town); too rare for daily IME use.
