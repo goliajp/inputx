@@ -729,6 +729,27 @@ mod tests {
         }
     }
 
+    /// Class A polish (user report 2026-06-09): "sakai 应该有 … 堺 那个
+    /// 堺雅人，日语姓氏". 堺 (kun さかい — Sakai city / surname 堺雅人)
+    /// was missing from nihongo library (corpus digest never had it; the
+    /// 2026-06-08 KANJIDIC2 backfill only covered the 217 swept Shinjitai
+    /// chars). Added sakai 堺 (kanji, freq 42). 境 (also kun さかい,
+    /// boundary) stays — both are valid さかい readings.
+    #[test]
+    fn polish_sakai_includes_sakai_kanji() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::JapaneseOnly);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in "sakai".bytes() {
+            let _ = e.handle_letter(b);
+        }
+        let words: Vec<String> = e.candidates().iter().map(|c| c.word.clone()).collect();
+        assert!(
+            words.iter().any(|w| w == "堺"),
+            "sakai: 堺 not in JP candidates — got {words:?}"
+        );
+    }
+
     #[test]
     fn jp_enabled_pinyin_top_still_leads_via_pinyin_only_mode() {
         // Note: we use PinyinOnly mode for the assertion (wubi
