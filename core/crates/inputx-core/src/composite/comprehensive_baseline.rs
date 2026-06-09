@@ -1970,6 +1970,14 @@ mod tests {
             // removed so 员 leads. jianma_simplified slipped past the
             // 2026-06-06 auto_decomp-only sweep.
             ("kmu", &["員"]),
+            // 2026-06-09 systemic jianma_simplified TRAD/Shinjitai sweep
+            // (90 dup deletes + 68 trad→simp rewrites; see
+            // docs/jianma-simplified-trad-sweep-2026-06-09/). Representative
+            // rewritten simcodes — the TRAD form must no longer surface.
+            ("deu", &["長"]), // → 长
+            ("lmu", &["買"]), // → 买
+            ("hqb", &["見"]), // → 见
+            ("qou", &["魚"]), // → 鱼
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
