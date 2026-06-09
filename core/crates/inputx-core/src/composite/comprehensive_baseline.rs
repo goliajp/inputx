@@ -1062,6 +1062,24 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-06-10): "quanquan ... 全权 >
+    /// 圈圈". Underlying library.tsv freqs have 圈圈 (26401) higher
+    /// than 全权 (18842) — without intervention, only the tier system
+    /// kept 全权 ahead, fragile to upstream tier changes. quickfix_boost
+    /// lifts 全权 to 29500 (圈圈 base + 10%) so the invariant is held by
+    /// data, not by tier interaction.
+    #[test]
+    fn polish_quanquan_quanquan_above_circlecircle() {
+        let top10 = mixed_top10("quanquan".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let q = pos("全权").expect("全权 missing from quanquan top10");
+        let r = pos("圈圈").expect("圈圈 missing from quanquan top10");
+        assert!(
+            q < r,
+            "quanquan: 全权 should rank above 圈圈; got top10={top10:?}"
+        );
+    }
+
     /// Class C polish (user report 2026-06-10): "quanquan 拳拳 劝劝
     /// 要放在最后". 拳拳 is idiom-only (拳拳之心), 劝劝 is verb
     /// reduplication (劝一劝), both real but should not crowd common
