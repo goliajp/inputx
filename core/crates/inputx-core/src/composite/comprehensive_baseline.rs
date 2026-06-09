@@ -1062,6 +1062,26 @@ mod tests {
         );
     }
 
+    /// Class C polish (user report 2026-06-10): "quanquan 拳拳 劝劝
+    /// 要放在最后". 拳拳 is idiom-only (拳拳之心), 劝劝 is verb
+    /// reduplication (劝一劝), both real but should not crowd common
+    /// daily-use peers 全权 / 圈圈. tier_overlay tier 5 (less_common)
+    /// keeps them in the dict for K-best / reverse-lookup; just
+    /// pushes them below the daily-use peers in the display.
+    #[test]
+    fn polish_quanquan_demote_fistfist_reduplication() {
+        let top10 = mixed_top10("quanquan".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let q = pos("全权").expect("全权 missing from quanquan top10");
+        let r = pos("圈圈").expect("圈圈 missing from quanquan top10");
+        let f = pos("拳拳").expect("拳拳 missing from quanquan top10");
+        let p = pos("劝劝").expect("劝劝 missing from quanquan top10");
+        assert!(
+            q < f && q < p && r < f && r < p,
+            "quanquan: 拳拳/劝劝 should rank below 全权/圈圈; got top10={top10:?}"
+        );
+    }
+
     /// 2026-06-06 polish — `jianma` cleanup. User: "捡骂 剑麻 不应该
     /// 出现，他们不是词".
     /// - 捡骂: D1 deleted from library.tsv (jieba sub-word noise) +
