@@ -2451,6 +2451,11 @@ mod tests {
             // / 空间体系, which remain unaffected). D1 deleted from
             // library.tsv + logged to corpus_garbage_filter_v1.
             ("jianti", &["间体"]),
+            // User polish-log 2026-06-10: "quanquan 泉泉 犬犬 不应该有" —
+            // single-char reduplication noise from jieba sub-word ingest;
+            // neither is a real Chinese bigram. D1 deleted from
+            // library.tsv + logged to corpus_garbage_filter_v1.
+            ("quanquan", &["泉泉", "犬犬"]),
             // User polish-log 2026-06-06: "jiaozhu 叫朱 较著 椒猪 交住
             // 这些都不算是中文词汇吧" — four jieba 主词典 sub-word noise
             // entries from the legacy external pinyin ingest. None
