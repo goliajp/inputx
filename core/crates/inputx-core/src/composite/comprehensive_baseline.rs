@@ -750,6 +750,35 @@ mod tests {
         );
     }
 
+    /// 2026-06-09 KANJIDIC2 backfill v2: filled single-kanji readings for
+    /// every 常用 (grade 1-8) + 人名用 (9-10) char missing from nihongo
+    /// (1225 + 841 chars; nihongo single-kanji coverage was ~43%). Flat
+    /// freq=10 keeps them reachable but always below corpus-attested
+    /// words (guards the akashi→明石 case in phase_g). Audit:
+    /// docs/nihongo-kanji-backfill-2026-06-09/. Pins reachability of
+    /// representative previously-missing common chars by their reading.
+    #[test]
+    fn polish_jouyou_backfill_reachable() {
+        let cases: &[(&str, &str)] = &[
+            ("nigi", "握"), // kun にぎ(る)
+            ("ei", "映"),   // on えい
+        ];
+        let mut failures = Vec::new();
+        for (reading, kanji) in cases {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::JapaneseOnly);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            for b in reading.bytes() {
+                let _ = e.handle_letter(b);
+            }
+            let words: Vec<String> = e.candidates().iter().map(|c| c.word.clone()).collect();
+            if !words.iter().any(|w| w == kanji) {
+                failures.push(format!("  {reading}: {kanji} not in JP candidates — {words:?}"));
+            }
+        }
+        assert!(failures.is_empty(), "{}", failures.join("\n"));
+    }
+
     #[test]
     fn jp_enabled_pinyin_top_still_leads_via_pinyin_only_mode() {
         // Note: we use PinyinOnly mode for the assertion (wubi
