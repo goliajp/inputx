@@ -1161,6 +1161,23 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-06-10): "dongdong 洞洞 咚咚
+    /// 动动 东东 就好了，这个顺序". After D1 删 冬冬/冻冻/栋栋, four
+    /// nickname/onomatopoeia survive at this buffer — natural-freq
+    /// order (东东>咚咚>动动>洞洞) inverts the user's preferred
+    /// order. quickfix_boost cascade (洞洞 35000 > 咚咚 30000 >
+    /// 动动 28000 > 东东 27535 base) flips it.
+    #[test]
+    fn polish_dongdong_order() {
+        let top10 = mixed_top10("dongdong".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let (a, b, c, d) = (pos("洞洞"), pos("咚咚"), pos("动动"), pos("东东"));
+        assert!(
+            matches!((a, b, c, d), (Some(a), Some(b), Some(c), Some(d)) if a < b && b < c && c < d),
+            "dongdong expected 洞洞<咚咚<动动<东东; top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-06-08): "kongdang 空荡 > 空当 >
     /// 空档 > 空挡，因为空挡是专有名词". 空挡 (transmission neutral gear)
     /// is a proper/technical term and must rank last among the four.

@@ -69,3 +69,6 @@ biguo	敝国	21000	# user 2026-06-07: 敝国>比过; 比国 D1-deleted as corpus
 quanquan	全权	29500	# 2026-06-10 user: "全权 > 圈圈" — 圈圈 base 26401, boost 全权 to 26401+10% so 全权 leads via data, not via tier interaction
 aijie	娭毑	55000	# 2026-06-10 user: "娭毑现在 t 几，我想在日语前面" — base 3000 → 55000 to beat JP exact-prefix kana あいじえ/アイジエ; same calibration as jianma 简码 55000 / fudu 复读 55000
 edu	额度	24000	# 2026-06-10 user: "额度应该第二甚至也可以第一" — base 15305 below tier-1 cutoff; boost to 24000 (between 恶毒 26372 base and the cutoff) so 额度 enters tier 1 above JP exact-prefix kana えづ while keeping 恶毒 at top
+dongdong	洞洞	35000	# 2026-06-10 user: "dongdong 洞洞 咚咚 动动 东东 这个顺序" — boost 洞洞 to top of remaining four (cascading 10% margin: 35000 > 30000 > 28000 > 东东 27535 base)
+dongdong	咚咚	30000	# 2026-06-10 same report — 咚咚 #2 after 洞洞
+dongdong	动动	28000	# 2026-06-10 same report — 动动 #3, just above 东东 27535 base
