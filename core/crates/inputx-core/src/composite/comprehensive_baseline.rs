@@ -2494,6 +2494,12 @@ mod tests {
             // neither is a real Chinese bigram. D1 deleted from
             // library.tsv + logged to corpus_garbage_filter_v1.
             ("quanquan", &["泉泉", "犬犬"]),
+            // User polish-log 2026-06-10: "tongxia 同下不像是个词，
+            // 应该是统辖" — 同下 is jieba 字字直拼 (同+下), not a real
+            // word (the academic citation idiom is 同上, not 同下).
+            // D1 deleted; 统辖 (rule, govern) auto-leads as the
+            // remaining real candidate at this buffer.
+            ("tongxia", &["同下"]),
             // User polish-log 2026-06-06: "jiaozhu 叫朱 较著 椒猪 交住
             // 这些都不算是中文词汇吧" — four jieba 主词典 sub-word noise
             // entries from the legacy external pinyin ingest. None
