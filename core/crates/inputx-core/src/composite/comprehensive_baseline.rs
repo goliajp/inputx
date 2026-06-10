@@ -773,7 +773,9 @@ mod tests {
             }
             let words: Vec<String> = e.candidates().iter().map(|c| c.word.clone()).collect();
             if !words.iter().any(|w| w == kanji) {
-                failures.push(format!("  {reading}: {kanji} not in JP candidates — {words:?}"));
+                failures.push(format!(
+                    "  {reading}: {kanji} not in JP candidates — {words:?}"
+                ));
             }
         }
         assert!(failures.is_empty(), "{}", failures.join("\n"));

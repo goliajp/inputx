@@ -278,8 +278,7 @@ pub fn dispatch(
             // (Auto) vs 水滴, 汗流浃背 (Phrase, both below 25000 floor)}
             // now ranks single chars above phrases.
             let phrase_dominates_at_full_code: bool = full_code
-                && max_phrase_freq
-                    >= inputx_scoring::consts::WUBI_PHRASE_EXTREME_FREQ_FLOOR;
+                && max_phrase_freq >= inputx_scoring::consts::WUBI_PHRASE_EXTREME_FREQ_FLOOR;
             let has_single_char_auto_at_full_code: bool = full_code
                 && !phrase_dominates_at_full_code
                 && freq_layer.iter().any(|(w, layer, _)| {
