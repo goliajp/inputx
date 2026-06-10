@@ -1032,6 +1032,21 @@ mod tests {
         }
     }
 
+    /// Class A polish (user report 2026-06-10): "加 aijie 娭毑". 娭毑
+    /// is a Xiang (Hunan) dialect word for grandmother / old lady,
+    /// absent from library.tsv before this polish. Added with
+    /// source=polish at freq 3000 — buffer aijie has no other
+    /// candidates, so 娭毑 leads trivially; freq picked low enough
+    /// to mark the entry as dialect / rare-use.
+    #[test]
+    fn polish_aijie_includes_aijie() {
+        let top10 = mixed_top10("aijie".as_bytes());
+        assert!(
+            top10.iter().any(|w| w == "娭毑"),
+            "aijie: 娭毑 not in candidates; top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-06-08): "chakong 插空，希望有这个
     /// 词，但中等频率吧，意思是插队在空当". 插空 existed in library.tsv at
     /// freq 0 (corpus zero-freq → below the build cutoff, never surfaced).
