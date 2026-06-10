@@ -122,6 +122,11 @@ fn main() {
     }
     let dw_phrase_speculative_demote = read_f64(dispatch_wubi, "phrase_speculative_demote");
     let dw_full_code_single_char_promote = read_f64(dispatch_wubi, "full_code_single_char_promote");
+    let dw_phrase_extreme_freq_floor = dispatch_wubi
+        .get("phrase_extreme_freq_floor")
+        .and_then(|v| v.as_integer())
+        .unwrap_or_else(|| panic!("dispatch.wubi.phrase_extreme_freq_floor missing"))
+        as u64;
 
     let pinyin_path = parsed
         .get("pinyin_path")
@@ -412,6 +417,7 @@ pub mod consts {{
     pub const WUBI_AUTO_LAYER_DEMOTE: [f64; 4] = [{dw_ad0}, {dw_ad1}, {dw_ad2}, {dw_ad3}];
     pub const WUBI_PHRASE_SPECULATIVE_DEMOTE: f64 = {dw_phr};
     pub const WUBI_FULL_CODE_SINGLE_CHAR_PROMOTE: f64 = {dw_sgl};
+    pub const WUBI_PHRASE_EXTREME_FREQ_FLOOR: u64 = {dw_phr_floor};
     // [scoring.tier_quantile_pinyin] — Phase B (2026-06-03):
     // z-score quantile tier mapping for pinyin single-char candidates.
     // See PLAN-tier-by-quantile.md for the math + .claude/PLAN-tier-by-
@@ -558,6 +564,7 @@ pub fn wubi_tier_from_freq(raw_freq: u64) -> u8 {{
         dw_ad3 = fmt_f64(dw_auto_demote[3]),
         dw_phr = fmt_f64(dw_phrase_speculative_demote),
         dw_sgl = fmt_f64(dw_full_code_single_char_promote),
+        dw_phr_floor = dw_phrase_extreme_freq_floor,
         pq_mu = fmt_f64(pq_mu),
         pq_sigma = fmt_f64(pq_sigma),
         pq_t1 = fmt_f64(pq_tier_1_above),

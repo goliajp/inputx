@@ -878,6 +878,68 @@ mod tests {
         );
     }
 
+    /// Structural rule (user 2026-06-10): at full wubi 4-code buffer
+    /// where a single-char Auto entry competes with phrase entries,
+    /// single chars lead unless a phrase has corpus freq ≥
+    /// `WUBI_PHRASE_EXTREME_FREQ_FLOOR` (25k by default).
+    /// User: "五笔是四码输入法，四码如果有单字除非极其生僻或词组
+    /// 顺序极高，否则都应该在词组前".
+    #[test]
+    fn full_code_single_char_leads_phrase_unless_phrase_extreme() {
+        // iiiu — 淼 (16822) + 尛 (0) Auto vs 水滴 (20391) + 汗流浃背
+        //        (16776) Phrase. No phrase ≥ 25k → single chars lead.
+        let iiiu_top = mixed_top10(b"iiiu");
+        let pos_iiiu = |w: &str| iiiu_top.iter().position(|x| x == w);
+        let p_miao = pos_iiiu("淼").expect("淼 missing iiiu");
+        let p_mu = pos_iiiu("尛").expect("尛 missing iiiu");
+        let p_sd = pos_iiiu("水滴").expect("水滴 missing iiiu");
+        let p_hl = pos_iiiu("汗流浃背").expect("汗流浃背 missing iiiu");
+        assert!(
+            p_miao < p_sd && p_miao < p_hl && p_mu < p_sd && p_mu < p_hl,
+            "iiiu: single chars 淼/尛 should lead phrases; top10={iiiu_top:?}"
+        );
+
+        // gmww — 两 (37372) Auto vs 两败俱伤 (15272) Phrase. Phrase
+        //        below 25k floor → single 两 leads (classic case).
+        let gmww_top = mixed_top10(b"gmww");
+        assert_eq!(
+            gmww_top.first().map(String::as_str),
+            Some("两"),
+            "gmww: 两 should lead; top={gmww_top:?}"
+        );
+
+        // wcng — 鹟 (5961) Auto vs 公司 (42817) Phrase. Phrase ≥ 25k
+        //        floor → phrase 公司 leads (exception case).
+        let wcng_top = mixed_top10(b"wcng");
+        assert_eq!(
+            wcng_top.first().map(String::as_str),
+            Some("公司"),
+            "wcng: 公司 should lead (phrase extreme exception); top={wcng_top:?}"
+        );
+    }
+
+    /// Structural rule (user 2026-06-10): at wubi simcode buffers (e.g.
+    /// iii = jianma3 simcode of 水), single-char prefix-predictions
+    /// (淼, 尛 at iiiu) outrank phrase prefix-predictions (沙漠 at iiia,
+    /// 水滴 at iiiu) so simcode-typing users see kanji extensions before
+    /// phrase extensions.
+    #[test]
+    fn simcode_prefix_predictions_single_char_above_phrase() {
+        let top = mixed_top10(b"iii");
+        let pos = |w: &str| top.iter().position(|x| x == w);
+        let p_miao = pos("淼").expect("淼 missing in iii predictions");
+        let p_shamo = pos("沙漠");
+        // 淼 must appear and rank above any phrase prediction (e.g. 沙漠
+        // when present). If 沙漠 isn't pulled in this run (top10 capped),
+        // skip the comparison — the absent-from-top guarantee suffices.
+        if let Some(ps) = p_shamo {
+            assert!(
+                p_miao < ps,
+                "iii: 淼 single-char prediction should rank above phrase 沙漠; top10={top:?}"
+            );
+        }
+    }
+
     // ───────────────────────────────────────────────────────────
     // Rare Jianma2 chars — must yield to common pinyin via the
     // char-prominence demote (char_max_freq < 20k → ×0.3).
