@@ -918,6 +918,19 @@ mod tests {
             Some("公司"),
             "wcng: 公司 should lead (phrase extreme exception); top={wcng_top:?}"
         );
+
+        // ywyg — 谁 (35073) Auto vs 认证 (25690) + 论证 (23346) Phrase.
+        // 认证 ≥ 25k floor BUT 谁 freq still > 认证, so dominance must
+        // NOT fire — single 谁 leads. 2026-06-10 bugfix to the
+        // dominance check: comparing against the absolute floor is
+        // not enough; the dominant phrase has to also outrank the
+        // best competing single-char freq.
+        let ywyg_top = mixed_top10(b"ywyg");
+        assert_eq!(
+            ywyg_top.first().map(String::as_str),
+            Some("谁"),
+            "ywyg: 谁 should lead — phrase 认证 above 25k floor but 谁 more popular; top={ywyg_top:?}"
+        );
     }
 
     /// Structural rule (user 2026-06-10): at wubi simcode buffers (e.g.
