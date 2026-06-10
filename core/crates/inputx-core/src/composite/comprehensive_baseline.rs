@@ -848,6 +848,36 @@ mod tests {
         }
     }
 
+    /// Class B polish (user report 2026-06-10): "edu 额度应该第二甚至
+    /// 也可以第一". 额度 base 15305 was below tier-1 cutoff, sitting
+    /// rank #5 with JP exact-prefix kana えづ at #2. quickfix_boost
+    /// → 24000 lifts 额度 into tier 1 between 恶毒 (26372, kept at #1)
+    /// and the cutoff, so the displayed order becomes 恶毒 / 额度 /
+    /// えづ / エヅ / 饿肚 — 额度 at #2 (user's "应该第二" target).
+    #[test]
+    fn polish_edu_edu_above_jp_exact_prefix_kana() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::PinyinOnly);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"edu" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        let pos = |w: &str| cands.iter().position(|x| x == w);
+        let edu = pos("额度").expect("额度 missing from edu top10");
+        let ezu = pos("えづ").expect("えづ missing from edu top10 (JP off?)");
+        assert!(
+            edu < ezu,
+            "edu: 额度 should rank above えづ; got top10={cands:?}"
+        );
+    }
+
     // ───────────────────────────────────────────────────────────
     // Rare Jianma2 chars — must yield to common pinyin via the
     // char-prominence demote (char_max_freq < 20k → ×0.3).
