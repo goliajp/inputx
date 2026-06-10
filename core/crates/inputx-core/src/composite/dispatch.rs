@@ -247,17 +247,44 @@ pub fn dispatch(
             // pinyin side DOES apply its pin in pinyin_adapter.rs.
             // Mirrors pinyin_adapter.rs:449-450 + 463 + 469-470.
             let wubi_pinned: Option<String> = wubi.pinned_word_for_buffer();
-            // Single-char promote setup: at full code, a single-char
-            // entry whose freq exceeds the per-code max phrase freq
-            // gets ×100 boost (wubi 86 "full-code single-char wins"
-            // rule, replicating inputx_wubi::PinyinDict::
-            // lookup_with_scores_into's internal logic).
+            // 2026-06-10 user "五笔是四码输入法，四码如果有单字除非
+            // 极其生僻或词组顺序极高，否则都应该在词组前". The wubi
+            // "full-code IS the single char's address" convention
+            // promotes every full-code single-char Auto entry, with one
+            // structural exception: when a competing phrase has
+            // overwhelming corpus frequency (typical case: wcng → 公司
+            // 42817 vs 鹟 5961), the phrase still wins. Encoded as:
+            //   phrase_dominates_at_full_code =
+            //     max_phrase_freq > single_freq
+            //     AND max_phrase_freq >= WUBI_PHRASE_EXTREME_FREQ_FLOOR
+            // The floor (25000) was picked from a full-corpus survey of
+            // 4-code buffers: phrases above it are decisively-common
+            // (公司 类), phrases below it are run-of-the-mill compounds
+            // (水滴 20391, 汗流浃背 16776) where single chars should
+            // still lead.
             let max_phrase_freq: u64 = freq_layer
                 .iter()
                 .filter(|(w, _, _)| w.chars().count() > 1)
                 .map(|(_, _, f)| *f)
                 .max()
                 .unwrap_or(0);
+            // Companion structural rule: at full_code, if any single-char
+            // Auto entry is competing for this buffer AND no phrase
+            // dominates, demote competing Phrase candidates from their
+            // default tier-1 down to tier 2 (below the single chars).
+            // Buffer like aiyi → 东京 (Phrase, no single-char Auto
+            // competitor) is unaffected. Buffer like wcng → 公司 (Phrase
+            // dominates 鹟) is unaffected. Buffer like iiiu → {淼, 尛
+            // (Auto) vs 水滴, 汗流浃背 (Phrase, both below 25000 floor)}
+            // now ranks single chars above phrases.
+            let phrase_dominates_at_full_code: bool = full_code
+                && max_phrase_freq
+                    >= inputx_scoring::consts::WUBI_PHRASE_EXTREME_FREQ_FLOOR;
+            let has_single_char_auto_at_full_code: bool = full_code
+                && !phrase_dominates_at_full_code
+                && freq_layer.iter().any(|(w, layer, _)| {
+                    matches!(layer, inputx_wubi::Layer::Auto) && w.chars().count() == 1
+                });
             // WU-ψ (v1.11): structural prominent_simcode_winner retired.
             // Tier assignment inside the candidate loop directly puts
             // prominent simcodes at tier 0 — the merge sort handles
@@ -336,10 +363,24 @@ pub fn dispatch(
                     // (handled at single_promote_fires below). The
                     // shorter prefix's prediction already carries the
                     // user's path to this character.
+                    //
+                    // 2026-06-10 (user "五笔是四码输入法，四码如果有
+                    // 单字...都应该在词组前"): loosen the legacy
+                    // `raw_freq > max_phrase_freq` gate. The wubi
+                    // convention is that a full code IS the canonical
+                    // address of its single char — phrases at the same
+                    // full code are coincidental, not what muscle
+                    // memory expects. Promote full-code single chars
+                    // by default; the only exception is
+                    // `phrase_dominates_at_full_code` (a competing
+                    // phrase with corpus freq >= the dominance floor,
+                    // typically common-life vocabulary like 公司).
+                    // Rare-CJK chars (Extension B+) are already
+                    // filtered upstream by the show_rare_chars toggle.
                     let single_promote = if full_code
                         && is_single
-                        && raw_freq > max_phrase_freq
                         && !is_redundant_full
+                        && !phrase_dominates_at_full_code
                     {
                         inputx_scoring::consts::WUBI_FULL_CODE_SINGLE_CHAR_PROMOTE
                     } else {
@@ -401,8 +442,10 @@ pub fn dispatch(
                     // to the layer-default tier (Auto → 4, etc.), so
                     // pinyin tier-1 candidates at the same buffer can
                     // take #0.
-                    let single_promote_fires =
-                        full_code && is_single && raw_freq > max_phrase_freq && !is_redundant_full;
+                    let single_promote_fires = full_code
+                        && is_single
+                        && !is_redundant_full
+                        && !phrase_dominates_at_full_code;
                     // Overlay (phase 5): per-(buffer, word) tier
                     // override beats every natural rule below. Buffer
                     // is the typed input (wubi.buffer_str()) — same
@@ -432,7 +475,13 @@ pub fn dispatch(
                                 }
                             }
                             inputx_wubi::Layer::Zigen => 1,
-                            inputx_wubi::Layer::Phrase => 1,
+                            inputx_wubi::Layer::Phrase => {
+                                if has_single_char_auto_at_full_code {
+                                    2
+                                } else {
+                                    1
+                                }
+                            }
                             inputx_wubi::Layer::Auto => 4,
                         }
                     };
@@ -494,10 +543,17 @@ pub fn dispatch(
                         proximity,
                         inputx_wubi_data::wubi_corpus_total(),
                     );
-                    // WU-ψ: wubi prefix predictions sit at tier 7
-                    // (specialty / prediction) — below all exact dict
-                    // hits but above fuzzy / longtail.
-                    let components = components.with_tier(7);
+                    // WU-ψ: wubi prefix predictions sit below exact dict
+                    // hits. 2026-06-10 user "iii 要有 淼 尛 在日语后面
+                    // 词组前面": split prediction tier by layer — single
+                    // chars (full-code 4-letter single kanji reached via
+                    // simcode prefix) ride one tier above phrases (full-
+                    // code phrases reached via simcode prefix), so at
+                    // simcode buffers like iii / gm / fk the user sees
+                    // single-kanji extensions before phrase extensions.
+                    // Both still sit below tier 5 JP exact-prefix kana.
+                    let pred_tier: u8 = if word.chars().count() == 1 { 6 } else { 7 };
+                    let components = components.with_tier(pred_tier);
                     wubi_cands.push((word, score, Some(components)));
                 }
             }
