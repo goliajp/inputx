@@ -268,17 +268,37 @@ pub fn dispatch(
                 .map(|(_, _, f)| *f)
                 .max()
                 .unwrap_or(0);
+            // 2026-06-10 bugfix: the dominance check has to compare against
+            // the BEST competing single-char freq, not just clear the
+            // absolute floor. ywyg has 认证 (phrase 25690 ≥ 25k floor)
+            // yet 谁 (single 35073) still outranks the phrase — so the
+            // single must win, not yield. Without this guard, every full-
+            // code buffer with a borderline-popular phrase wrongly suppresses
+            // its single-char addressee, even when the single is the more
+            // popular character.
+            let max_single_auto_freq: u64 = freq_layer
+                .iter()
+                .filter(|(w, layer, _)| {
+                    matches!(layer, inputx_wubi::Layer::Auto) && w.chars().count() == 1
+                })
+                .map(|(_, _, f)| *f)
+                .max()
+                .unwrap_or(0);
             // Companion structural rule: at full_code, if any single-char
             // Auto entry is competing for this buffer AND no phrase
             // dominates, demote competing Phrase candidates from their
             // default tier-1 down to tier 2 (below the single chars).
             // Buffer like aiyi → 东京 (Phrase, no single-char Auto
-            // competitor) is unaffected. Buffer like wcng → 公司 (Phrase
-            // dominates 鹟) is unaffected. Buffer like iiiu → {淼, 尛
-            // (Auto) vs 水滴, 汗流浃背 (Phrase, both below 25000 floor)}
-            // now ranks single chars above phrases.
+            // competitor) is unaffected. Buffer like wcng → 公司 42817
+            // (Phrase dominates 鹟 5961) is unaffected. Buffer like iiiu →
+            // {淼, 尛 (Auto) vs 水滴, 汗流浃背 (Phrase, both below 25000
+            // floor)} now ranks single chars above phrases. Buffer like
+            // ywyg → 谁 35073 (Auto) vs 认证 25690 (Phrase ≥ 25k but
+            // < 谁) now ranks 谁 above 认证 because the single is the
+            // more popular form despite the phrase being above the floor.
             let phrase_dominates_at_full_code: bool = full_code
-                && max_phrase_freq >= inputx_scoring::consts::WUBI_PHRASE_EXTREME_FREQ_FLOOR;
+                && max_phrase_freq >= inputx_scoring::consts::WUBI_PHRASE_EXTREME_FREQ_FLOOR
+                && max_phrase_freq > max_single_auto_freq;
             let has_single_char_auto_at_full_code: bool = full_code
                 && !phrase_dominates_at_full_code
                 && freq_layer.iter().any(|(w, layer, _)| {
