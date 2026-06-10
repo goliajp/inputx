@@ -154,10 +154,21 @@ auto_layer_demote = [0.01, 0.05, 0.10, 0.20]
 # codes, Phrase candidates get ×0.5 to avoid crowding out pinyin.
 phrase_speculative_demote = 0.5
 # Single-char Jianma1 hint promote: at full code (buffer.len() == 4)
-# a single-char entry whose freq exceeds the per-code max phrase freq
-# gets this multiplier. 100.0 reinforces wubi-86 "full-code single-
-# char wins" rule.
+# a single-char Auto entry gets this multiplier so it leads the
+# coincidental phrases at the same code (wubi-86 "full-code IS the
+# single char's address" muscle memory). The only exception is the
+# `phrase_extreme_freq_floor` below — when a competing phrase has
+# overwhelming corpus presence (公司 类), the phrase still wins.
 full_code_single_char_promote = 100.0
+# 2026-06-10 user "四码如果有单字除非极其生僻或词组顺序极高，否则
+# 都应该在词组前". This is the "词组顺序极高" floor — when a 4-code
+# buffer has a phrase whose corpus freq ≥ this floor, the single-char
+# promote does NOT fire (and Phrase keeps its default tier-1 placement).
+# Picked from a survey of all 4-code phrase/single collisions in
+# library.tsv: phrases ≥ 25000 form the decisively-common tier (公司
+# 42817, 集团 38604, …); phrases below are run-of-the-mill compounds
+# (水滴 20391, 汗流浃背 16776) where single chars still lead.
+phrase_extreme_freq_floor = 25_000
 
 # ─── WU-β: composite/scoring.rs ranking-formula constants ─────────
 # Per-engine + per-match-shape + per-cross-engine policy values.
