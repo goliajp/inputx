@@ -823,6 +823,12 @@ mod tests {
             // quickfix_boost → 55000 (same calibration as fudu 复读) puts
             // 简码 into tier 1, above JP.
             ("jianma", "简码"),
+            // Polish-log 2026-06-10: "娭毑现在 t 几，我想在日语前面".
+            // 娭毑 (Xiang dialect grandmother) base 3000 sat below JP
+            // exact-prefix kana あいじえ/アイジエ; quickfix_boost → 55000
+            // (same calibration as jianma 简码 / fudu 复读) lifts it
+            // above JP.
+            ("aijie", "娭毑"),
         ];
         let mut failures = Vec::new();
         for (buf, expected) in cases {
