@@ -2615,6 +2615,13 @@ mod tests {
             // D1 deleted; 统辖 (rule, govern) auto-leads as the
             // remaining real candidate at this buffer.
             ("tongxia", &["同下"]),
+            // User polish-log 2026-06-10: "dongdong 洞洞 咚咚 动动 东东
+            // 就好了，其他的不合适" — 冬冬 / 冻冻 / 栋栋 are jieba
+            // single-char reduplication noise (字字直拼 + reduplication
+            // pattern); only nicknames/onomatopoeia survive (洞洞 咚咚
+            // 动动 东东). D1 deleted from library.tsv + logged to
+            // corpus_garbage_filter_v1.
+            ("dongdong", &["冬冬", "冻冻", "栋栋"]),
             // User polish-log 2026-06-06: "jiaozhu 叫朱 较著 椒猪 交住
             // 这些都不算是中文词汇吧" — four jieba 主词典 sub-word noise
             // entries from the legacy external pinyin ingest. None
