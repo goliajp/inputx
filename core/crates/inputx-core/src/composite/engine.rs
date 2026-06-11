@@ -689,6 +689,9 @@ impl CompositeEngine {
     /// would be off-channel.
     fn refresh_predictions(&mut self) {
         self.prediction_buf.clear();
+        if super::pinyin_adapter::PINYIN_DISABLE_PREDICTION {
+            return;
+        }
         if !self.mode.allows_pinyin() {
             return;
         }
@@ -1762,6 +1765,9 @@ mod tests {
         // consecutive prediction-commits with no manual typing in
         // between, refresh_predictions returns empty. Prevents the
         // user-reported "在年月日年月日年月日…" runaway chain.
+        if super::super::pinyin_adapter::PINYIN_DISABLE_PREDICTION {
+            return;
+        }
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::PinyinOnly);
         // Seed with two manual commits to build (prev_prev, prev) context.
@@ -1841,6 +1847,9 @@ mod tests {
     fn predictions_populated_after_two_cjk_commits_with_strong_trigram() {
         // Two-word context is the minimum for predictions to fire.
         // Use 我们 → 一起 → ? — both common words with corpus trigrams.
+        if super::super::pinyin_adapter::PINYIN_DISABLE_PREDICTION {
+            return;
+        }
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::PinyinOnly);
         // First commit: 我们
@@ -1873,6 +1882,42 @@ mod tests {
                 preds.iter().map(|c| &c.word).collect::<Vec<_>>()
             );
         }
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn predictions_stay_empty_while_prediction_gate_up() {
+        // Inverse of predictions_populated_after_two_cjk_commits_…:
+        // while PINYIN_DISABLE_PREDICTION is true, even a full
+        // two-word trigram context must NOT produce a 联想 panel.
+        // Auto-retires when the const flips to false.
+        if !super::super::pinyin_adapter::PINYIN_DISABLE_PREDICTION {
+            return;
+        }
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::PinyinOnly);
+        for b in b"women" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        if let Some(idx) = cands.iter().position(|c| c.word == "我们") {
+            let _ = e.commit_index(idx);
+        }
+        for b in b"yiqi" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        if let Some(idx) = cands.iter().position(|c| c.word == "一起") {
+            let _ = e.commit_index(idx);
+        }
+        assert!(
+            e.predicted_candidates().is_empty(),
+            "PINYIN_DISABLE_PREDICTION is true — predictions must stay empty; got {:?}",
+            e.predicted_candidates()
+                .iter()
+                .map(|c| &c.word)
+                .collect::<Vec<_>>()
+        );
     }
 
     #[test]
