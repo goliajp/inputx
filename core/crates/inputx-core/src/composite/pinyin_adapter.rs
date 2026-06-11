@@ -54,11 +54,20 @@ use crate::rules::{Context, ContextFlags};
 //                 f/h, in/ing, ...) + 2-consonant-prefix typo
 //                 rescue (pyin → 拼音) + syllable-aware trim-retry
 //                 (shehv → 社会).
+// `_PREDICTION`:  post-commit next-word predictions (Sogou-style
+//                 联想 panel after committing a CJK word) + the
+//                 chained prediction-commit flow.  Added 2026-06-11
+//                 ("我们把联想也先用 flag 关闭吧").  Gate point is
+//                 `CompositeEngine::refresh_predictions` in
+//                 `composite/engine.rs` — distinct from
+//                 `_ASSOCIATION`, which covers in-buffer typing
+//                 shortcuts (简拼 / repeated-letter), not the
+//                 after-commit panel.
 //
 // Per-behavior detail + concrete examples in
 // `docs/pinyin-pipeline-gates.md`.
 //
-// Initial state: all three TRUE — only literal-syllable lookup +
+// Initial state: all TRUE — only literal-syllable lookup +
 // FST prefix completion + rare-CJK display filter survive.  This
 // is intentionally aggressive; the user will polish detail-by-
 // detail and flip whichever const back off as each category is
@@ -66,6 +75,7 @@ use crate::rules::{Context, ContextFlags};
 pub(crate) const PINYIN_DISABLE_COMPOSE: bool = true;
 pub(crate) const PINYIN_DISABLE_ASSOCIATION: bool = true;
 pub(crate) const PINYIN_DISABLE_FUZZY: bool = true;
+pub(crate) const PINYIN_DISABLE_PREDICTION: bool = true;
 
 fn embedded_bigrams_table() -> &'static NgramTable<&'static [u8]> {
     static TABLE: OnceLock<NgramTable<&'static [u8]>> = OnceLock::new();

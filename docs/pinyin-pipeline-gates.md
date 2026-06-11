@@ -1,14 +1,14 @@
 # Pinyin pipeline gates
 
-Three `pub(crate) const bool` toggles at the top of
+Four `pub(crate) const bool` toggles at the top of
 `core/crates/inputx-core/src/composite/pinyin_adapter.rs` pause whole
 families of pinyin candidate-generation behavior so the engine can be
 polished category-by-category instead of all-at-once.
 
-Initial state (2026-06-06): all three `true` — every speculative or
-mechanical generator is paused; only literal pinyin spelling +
-mid-typing prefix prediction survives.  Flip a const to `false` to
-re-enable the entire family.
+Initial state (2026-06-06, `_PREDICTION` added 2026-06-11): all
+`true` — every speculative or mechanical generator is paused; only
+literal pinyin spelling + mid-typing prefix prediction survives.
+Flip a const to `false` to re-enable the entire family.
 
 Tests that pin disabled-family behavior carry an early-return on the
 same const, so flipping it back to `false` auto-revives the
@@ -79,6 +79,30 @@ When `true`, the engine doesn't try to interpret what the user
 
 With the gate `true`, all three of those buffers return empty.
 
+## `PINYIN_DISABLE_PREDICTION`
+
+When `true`, the panel never shows post-commit next-word
+predictions (the Sogou-style 联想 panel).  Unlike the other three
+gates, the gate point lives in
+`core/crates/inputx-core/src/composite/engine.rs`
+(`CompositeEngine::refresh_predictions`) — the const itself stays in
+`pinyin_adapter.rs` with the rest of the family.  Disables:
+
+- **Post-commit next-word predictions** — after committing two
+  consecutive CJK words (strict-trigram context, v1.4 policy), the
+  panel stays visible and offers predicted continuations without
+  any typing.  Example with the gate `false`: commit 我们 then
+  一起, panel offers trigram continuations of (我们, 一起, *).
+- **Chained prediction commits** — picking a prediction re-seeds
+  the context and fires the next round (capped at
+  `PREDICTION_CHAIN_LIMIT` = 2 consecutive picks).
+
+With the gate `true`, `predicted_candidates()` is always empty, so
+the host hides the panel after every commit.  Note the distinction
+from `PINYIN_DISABLE_ASSOCIATION`: that gate covers **in-buffer
+typing shortcuts** (简拼, repeated-letter); this one covers the
+**after-commit** prediction surface.  Both are colloquially "联想".
+
 ## What's always on (not gated)
 
 Three families have no toggle because the engine would be useless
@@ -117,3 +141,8 @@ Initial state pauses all three together; the polish work that
 follows re-enables one family at a time so each detail can be
 validated in isolation rather than fighting noise from the other
 two.
+
+`PINYIN_DISABLE_PREDICTION` joined 2026-06-11 ("我们把联想也先用
+flag 关闭吧") — the post-commit prediction panel is the remaining
+"联想" surface the 2026-06-06 sweep didn't cover, paused under the
+same polish-one-at-a-time regime.
