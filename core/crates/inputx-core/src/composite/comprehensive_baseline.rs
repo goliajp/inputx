@@ -2680,8 +2680,11 @@ mod tests {
             // code) leading mixed #0 via the wubi tier. 嶙 is a real
             // char (craggy) but the reduplication isn't a standalone
             // word. D1 deleted from wubi library.tsv + logged to
-            // corpus_garbage_filter_v1.
-            ("momo", &["嶙嶙"]),
+            // corpus_garbage_filter_v1. Companion pinyin-side D1 same
+            // report: "磨磨 墨墨 莫莫 也不是词" — single-char
+            // reduplication noise from jieba sub-word ingest (compounds
+            // 磨磨蹭蹭 / 默默耕耘 etc. unaffected).
+            ("momo", &["嶙嶙", "磨磨", "墨墨", "莫莫"]),
             // User polish-log 2026-06-06: "jiaozhu 叫朱 较著 椒猪 交住
             // 这些都不算是中文词汇吧" — four jieba 主词典 sub-word noise
             // entries from the legacy external pinyin ingest. None
