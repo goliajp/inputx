@@ -529,6 +529,10 @@ mod tests {
             // Polish-log 2026-06-05: "希望 简体 在前面". base 健体 19242
             // > 简体 18344; quickfix 简体 → 21200 (top peer + 10% margin).
             ("jianti", "简体"),
+            // Polish-log 2026-06-12: "daomu 盗墓第一，道木不像个词" —
+            // 道木 (jieba sub-word noise) D1-deleted; 盗墓 (22904)
+            // auto-leads over 倒幕 (7328) as the top real candidate.
+            ("daomu", "盗墓"),
             // Polish-log 2026-06-06: "同样有 daizhe 戴着 期待有但没有,
             // 里面反而有大量 fallback 而且还 fallback 内容又大都不是词".
             // daizhe was a "宁缺毋滥" violation — both 带着 (dài-zhe,
@@ -2652,6 +2656,12 @@ mod tests {
             // 动动 东东). D1 deleted from library.tsv + logged to
             // corpus_garbage_filter_v1.
             ("dongdong", &["冬冬", "冻冻", "栋栋"]),
+            // User polish-log 2026-06-12: "daomu 盗墓第一，道木不像个词" —
+            // 道木 is jieba sub-word noise (railway-sleeper jargon at
+            // best, 字字直拼 dào+mù); was anomalously leading the
+            // buffer. D1 deleted from library.tsv + logged to
+            // corpus_garbage_filter_v1. 盗墓 leads (see top-1 fixture).
+            ("daomu", &["道木"]),
             // User polish-log 2026-06-06: "jiaozhu 叫朱 较著 椒猪 交住
             // 这些都不算是中文词汇吧" — four jieba 主词典 sub-word noise
             // entries from the legacy external pinyin ingest. None
