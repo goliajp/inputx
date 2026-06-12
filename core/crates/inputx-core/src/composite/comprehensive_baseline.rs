@@ -1195,6 +1195,19 @@ mod tests {
         );
     }
 
+    /// Class D1 polish (user report 2026-06-12): "momo 嶙嶙也不像个词，
+    /// 默默第一". The wubi phrase row (momo, 嶙嶙) held mixed #0 via the
+    /// wubi tier; deleting it lets the natural pinyin top 默默 lead the
+    /// buffer in Mixed mode.
+    #[test]
+    fn polish_momo_momo_leads_mixed() {
+        assert_eq!(
+            mixed_top("momo".as_bytes()),
+            "默默",
+            "momo mixed top-1 must be 默默"
+        );
+    }
+
     /// Class B polish (user report 2026-06-08): "kongdang 空荡 > 空当 >
     /// 空档 > 空挡，因为空挡是专有名词". 空挡 (transmission neutral gear)
     /// is a proper/technical term and must rank last among the four.
@@ -2662,6 +2675,13 @@ mod tests {
             // buffer. D1 deleted from library.tsv + logged to
             // corpus_garbage_filter_v1. 盗墓 leads (see top-1 fixture).
             ("daomu", &["道木"]),
+            // User polish-log 2026-06-12: "momo 嶙嶙也不像个词，默默第一"
+            // — 嶙嶙 was a wubi-side phrase row (momo = structural full
+            // code) leading mixed #0 via the wubi tier. 嶙 is a real
+            // char (craggy) but the reduplication isn't a standalone
+            // word. D1 deleted from wubi library.tsv + logged to
+            // corpus_garbage_filter_v1.
+            ("momo", &["嶙嶙"]),
             // User polish-log 2026-06-06: "jiaozhu 叫朱 较著 椒猪 交住
             // 这些都不算是中文词汇吧" — four jieba 主词典 sub-word noise
             // entries from the legacy external pinyin ingest. None
