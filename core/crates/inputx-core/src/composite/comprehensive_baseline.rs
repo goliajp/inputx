@@ -1208,6 +1208,25 @@ mod tests {
         );
     }
 
+    /// Class A+B polish (user report 2026-06-13): "daiban 待办 代班 代办
+    /// 呆板 这个顺序，其他的不应该有". After the polyphone D1 cleanup
+    /// (大办/大坂/大板/大阪) + the 带班 D2 hide, the surviving daiban set
+    /// is reordered to the user's preference. 代班 (substitute shift)
+    /// was missing from the dict entirely — added as a polish row
+    /// (library.tsv freq 18000), then quickfix_boost sets the clean
+    /// descending order 待办 24000 > 代班 22000 > 代办 20000 > 呆板 18000.
+    /// Invariant: exactly these four, in this order.
+    #[test]
+    fn polish_daiban_order() {
+        let top10 = mixed_top10("daiban".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let (a, b, c, d) = (pos("待办"), pos("代班"), pos("代办"), pos("呆板"));
+        assert!(
+            matches!((a, b, c, d), (Some(a), Some(b), Some(c), Some(d)) if a < b && b < c && c < d),
+            "daiban expected 待办<代班<代办<呆板; top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-06-08): "kongdang 空荡 > 空当 >
     /// 空档 > 空挡，因为空挡是专有名词". 空挡 (transmission neutral gear)
     /// is a proper/technical term and must rank last among the four.
