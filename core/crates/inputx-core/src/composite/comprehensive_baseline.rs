@@ -2685,6 +2685,13 @@ mod tests {
             // reduplication noise from jieba sub-word ingest (compounds
             // 磨磨蹭蹭 / 默默耕耘 etc. unaffected).
             ("momo", &["嶙嶙", "磨磨", "墨墨", "莫莫"]),
+            // User polish-log 2026-06-13: "daiban … 其他的是 da '大'
+            // 这个读音的东西，多音字处理的问题". 大办/大坂/大板/大阪
+            // are 大(dà)-reading words that were duplicated under the
+            // wrong code `daiban` (大 is never read dài). Each also
+            // exists correctly under `daban`. D1 deleted the daiban
+            // copies + logged to corpus_garbage_filter_v1.
+            ("daiban", &["大办", "大坂", "大板", "大阪"]),
             // User polish-log 2026-06-06: "jiaozhu 叫朱 较著 椒猪 交住
             // 这些都不算是中文词汇吧" — four jieba 主词典 sub-word noise
             // entries from the legacy external pinyin ingest. None
