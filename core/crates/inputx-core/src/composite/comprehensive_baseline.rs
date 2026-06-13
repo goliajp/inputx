@@ -1195,6 +1195,28 @@ mod tests {
         );
     }
 
+    /// 2026-06-13 polyphone-dup sweep batch1 — the COUNTERPART to the
+    /// not-in-top assertions: deleting the wrong-reading copies must not
+    /// harm each word's correct-reading code, which carries the same
+    /// (now sole) row. Catches an over-broad sweep that nukes both sides.
+    #[test]
+    fn polyphone_sweep_correct_readings_kept() {
+        let cases: &[(&str, &str)] = &[
+            ("yidali", "意大利"),  // 大 correct = dà
+            ("meicuo", "没错"),    // 没 correct = méi
+            ("daerxi", "大儿媳"),  // 大 correct, also fixes the er-typo case
+            ("guozao", "聒噪"),    // 聒 correct = guō (the kept side)
+            ("kansi", "看似"),     // 似 correct = sì (② reversed kept side)
+        ];
+        let mut missing = Vec::new();
+        for (buf, word) in cases {
+            if !mixed_top10(buf.as_bytes()).iter().any(|w| w == word) {
+                missing.push(format!("  {buf}: correct-reading {word} lost"));
+            }
+        }
+        assert!(missing.is_empty(), "sweep removed correct readings:\n{}", missing.join("\n"));
+    }
+
     /// Class D1 polish (user report 2026-06-12): "momo 嶙嶙也不像个词，
     /// 默默第一". The wubi phrase row (momo, 嶙嶙) held mixed #0 via the
     /// wubi tier; deleting it lets the natural pinyin top 默默 lead the
@@ -2327,7 +2349,12 @@ mod tests {
             // (typo_code, canonical_code, word_that_must_not_surface_at_typo)
             ("zhonghuarnv", "zhonghuaernv", "中华儿女"),
             ("darzi", "daerzi", "大儿子"),
-            ("dairxi", "daierxi", "大儿媳"),
+            // 2026-06-13 polyphone-dup sweep correction: the canonical
+            // code here was wrongly set to the 大→dài misreading
+            // `daierxi` by the original er-typo sweep. 大儿媳 reads
+            // dà-ér-xí = daerxi; the daierxi copy was a 大-polyphone
+            // dup, now deleted. Canonical fixed to daerxi.
+            ("darxi", "daerxi", "大儿媳"),
         ];
         let mut failures = Vec::new();
         for (typo, canon, word) in cases {
@@ -2694,6 +2721,16 @@ mod tests {
             // buffer. D1 deleted from library.tsv + logged to
             // corpus_garbage_filter_v1. 盗墓 leads (see top-1 fixture).
             ("daomu", &["道木"]),
+            // 2026-06-13 polyphone-dup sweep batch1 — wrong-reading corpus
+            // copies (a word mass-duplicated onto a 错读 code keyed off a
+            // secondary char reading, identical freq = pure copy). These
+            // must NOT surface at the 错读 buffer; the correct-reading
+            // version stays (asserted in polyphone_sweep_correct_readings_kept).
+            ("yidaili", &["意大利"]), // 大 da→dai
+            ("mocuo", &["没错"]),     // 没 mei→mo
+            ("wokuai", &["我会"]),    // 会 hui→kuai
+            ("yuxian", &["遇见"]),    // 见 jian→xian
+            ("guazao", &["聒噪"]),    // 聒 — pypinyin判反, 删prim(gua), 正确读 guō
             // User polish-log 2026-06-12: "momo 嶙嶙也不像个词，默默第一"
             // — 嶙嶙 was a wubi-side phrase row (momo = structural full
             // code) leading mixed #0 via the wubi tier. 嶙 is a real
