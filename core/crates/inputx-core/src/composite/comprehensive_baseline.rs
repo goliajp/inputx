@@ -1217,6 +1217,9 @@ mod tests {
             ("xiangyao", "降妖"),      // batch2b-2: 降 xiáng kept
             ("chengtang", "盛汤"),     // batch2b-2: 盛 chéng kept
             ("chairen", "差人"),       // batch2b-2: 差 chāi kept
+            ("danke", "蛋壳"),         // batch2b-3: 壳 ké kept
+            ("shoudu", "首都"),        // batch2b-3: 都 dū kept
+            ("tiandu", "天都"),        // batch2b-3: 都 dū kept
         ];
         let mut missing = Vec::new();
         for (buf, word) in cases {
@@ -2753,6 +2756,10 @@ mod tests {
             ("jiangyao", &["降妖"]),    // 降 xiáng, jiang错读
             ("shengtang", &["盛汤"]),   // 盛 chéng, sheng错读
             ("charen", &["差人"]),      // 差 chāi, cha错读
+            // batch2b-3:
+            ("danqiao", &["蛋壳"]),     // 壳 ké, qiao错读
+            ("shoudou", &["首都"]),     // 都 dū, dou错读
+            ("shene", &["深恶"]),       // 恶 wù, e错读
             // User polish-log 2026-06-12: "momo 嶙嶙也不像个词，默默第一"
             // — 嶙嶙 was a wubi-side phrase row (momo = structural full
             // code) leading mixed #0 via the wubi tier. 嶙 is a real
