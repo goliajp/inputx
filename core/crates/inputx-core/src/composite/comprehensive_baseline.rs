@@ -1220,6 +1220,8 @@ mod tests {
             ("danke", "蛋壳"),         // batch2b-3: 壳 ké kept
             ("shoudu", "首都"),        // batch2b-3: 都 dū kept
             ("tiandu", "天都"),        // batch2b-3: 都 dū kept
+            ("danpian", "弹片"),       // batch2c: 弹 dàn 名词 kept
+            ("tantiao", "弹跳"),       // batch2c: 弹 tán 动词 kept
         ];
         let mut missing = Vec::new();
         for (buf, word) in cases {
@@ -2760,6 +2762,13 @@ mod tests {
             ("danqiao", &["蛋壳"]),     // 壳 ké, qiao错读
             ("shoudou", &["首都"]),     // 都 dū, dou错读
             ("shene", &["深恶"]),       // 恶 wù, e错读
+            // batch2c — 弹 (default dàn 名词, tán 动词 exceptions):
+            // dàn-reading 弹片 / 弹幕 must NOT appear at the tan→错读 buffer;
+            // tán-reading 弹跳 / 弹奏 must NOT appear at the dan→错读 buffer.
+            ("tanpian", &["弹片"]),     // 弹 dàn, tan错读
+            ("tanmu", &["弹幕"]),       // 弹 dàn, tan错读
+            ("dantiao", &["弹跳"]),     // 弹 tán, dan错读
+            ("danbo", &["弹拨"]),       // 弹 tán, dan错读
             // User polish-log 2026-06-12: "momo 嶙嶙也不像个词，默默第一"
             // — 嶙嶙 was a wubi-side phrase row (momo = structural full
             // code) leading mixed #0 via the wubi tier. 嶙 is a real
