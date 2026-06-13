@@ -95,6 +95,33 @@ RULES = {
             "县差": "del_prim", "差转": "del_prim", "差转台": "del_prim",
             "夫差": "del_prim", "神差": "del_prim", "小差": "del_prim"},  # 出差/差遣 chāi
            {"调差", "仲差", "差劣", "纳差", "差下"}),
+    # batch2b-3
+    "壳": ("del_wrong",  # 蛋壳/外壳 ké (口语 kept)
+           {"介壳": "del_prim"},  # 介壳虫 qiào
+           {"壳质", "闭壳龟"}),
+    "恶": ("del_wrong",  # 恶劣/凶恶 è
+           {"深恶": "del_prim", "嫉恶": "del_prim", "疾恶": "del_prim",
+            "喜恶": "del_prim", "所恶": "del_prim"},  # 厌恶 wù
+           {"美恶", "恶恶"}),
+    "折": ("del_wrong",  # 打折/折叠 zhé
+           {"掰折": "del_prim", "拧折": "del_prim", "腿折": "del_prim"},  # 折断 shé
+           {"断折", "折不断", "折肉", "莫折念", "折颜", "全部折"}),
+    "称": ("del_wrong",  # 称呼/职称 chēng·chèng
+           {"不对称性": "del_prim", "宇称": "del_prim", "均称": "del_prim"},  # 相称 chèn
+           set()),
+    "薄": ("del_wrong",  # 很薄/纸薄 báo (口语 kept)
+           {"绵薄": "del_prim", "绵薄之力": "del_prim", "势单力薄": "del_prim",
+            "命比纸薄": "del_prim", "薄壁组织": "del_prim", "薄惩": "del_prim",
+            "缘薄": "del_prim"},  # 单薄/绵薄 bó
+           {"薄冰", "主薄", "薄姑", "电话薄", "留言薄", "薄壳"}),
+    "都": ("del_prim",  # 首都/都市/地名 dū (majority here)
+           {"都行": "del_wrong", "都还没": "del_wrong", "一切都是": "del_wrong",
+            "永远都是": "del_wrong", "全部都是": "del_wrong", "都还不": "del_wrong",
+            "连话都": "del_wrong", "想都别想": "del_wrong", "向来都是": "del_wrong",
+            "还都不": "del_wrong", "都悔青": "del_wrong", "早晚都是": "del_wrong",
+            "都说会": "del_wrong", "想都不想": "del_wrong", "满嘴都是": "del_wrong",
+            "一切都在": "del_wrong", "都挑明": "del_wrong", "都受了": "del_wrong"},  # 全都 dōu
+           set()),
     # whole-char uncertain
     "嗯": ("uncertain", {}, {"*"}),
     "爪": ("uncertain", {}, {"*"}),
