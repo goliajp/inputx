@@ -47,6 +47,18 @@ RULES = {
                         "沈沦": "del_prim", "沈甸甸": "del_prim"}, set()),  # 沈阳 shěn / 沈=沉 chén
     "觉": ("del_wrong", {"睡觉觉": "del_prim", "回笼觉": "del_prim", "睡大觉": "del_prim",
                         "睡着觉": "del_prim", "中觉": "del_prim"}, set()),  # 感觉 jué / 睡觉 jiào
+    # batch2b — large双向 chars with clear default + small exception set
+    "系": ("del_wrong",  # 体系/院系/各X系 = xì
+           {"系上": "del_prim"},  # 系上/系鞋带 = jì
+           {"系牢", "系留", "系链", "系民", "系甘", "系吾", "系噶",
+            "系由", "系心", "系怀", "系花", "系指"}),  # jì/xì or 粤语 unsure
+    "圈": ("del_wrong",  # 朋友圈/一圈/眼圈 = quān
+           {"猪圈": "del_prim", "羊圈": "del_prim", "鸡圈": "del_prim",
+            "兽圈": "del_prim", "圈舍": "del_prim", "圈养": "del_prim",
+            "圈牢": "del_prim", "圈肥": "del_prim", "圈羊": "del_prim",
+            "圈马": "del_prim"},  # 猪圈/圈养 = juàn
+           {"圈占", "圈住", "圈起", "圈起来", "圈进", "圈拢",
+            "圈围", "圈定", "圈选", "圈闭", "圈点"}),  # quān/juān(关住) unsure
     # whole-char uncertain
     "嗯": ("uncertain", {}, {"*"}),
     "爪": ("uncertain", {}, {"*"}),
@@ -85,7 +97,7 @@ for code, word, freq, why in deletions:
     seen.add((code, word))
     uniq.append((code, word, freq, why))
 
-with open(os.path.join(HERE, "to_delete_batch2a.tsv"), "w", encoding="utf-8") as fh:
+with open(os.path.join(HERE, "to_delete_batch2.tsv"), "w", encoding="utf-8") as fh:
     fh.write("delete_code\tword\tfreq\twhy\n")
     for r in sorted(uniq, key=lambda x: -x[2]):
         fh.write("\t".join(str(x) for x in r) + "\n")
