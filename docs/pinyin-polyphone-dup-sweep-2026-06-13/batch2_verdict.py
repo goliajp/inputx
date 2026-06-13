@@ -59,6 +59,42 @@ RULES = {
             "圈马": "del_prim"},  # 猪圈/圈养 = juàn
            {"圈占", "圈住", "圈起", "圈起来", "圈进", "圈拢",
             "圈围", "圈定", "圈选", "圈闭", "圈点"}),  # quān/juān(关住) unsure
+    # batch2b-2 — large双向 chars: default 主体 reading + minority exceptions
+    "朝": ("del_wrong",  # 清朝/朝鲜/朝南 = cháo; 朝阳* = zhāo (both → drop错读)
+           {"朝花夕拾": "del_prim", "朝九晚五": "del_prim", "朝歌": "del_prim",
+            "终朝": "del_prim"},  # 真·zhāo words inside the chao→zhao group
+           {"朝盛", "朝悦", "朝逐", "朝仍", "朝洪", "朝征"}),  # 生僻/专名 unsure
+    "降": ("del_wrong",  # 下降 jiàng
+           {"降妖": "del_prim", "降魔": "del_prim", "降妖除魔": "del_prim",
+            "伏虎降": "del_prim", "降兵": "del_prim", "降曹": "del_prim",
+            "降唐": "del_prim", "降秦": "del_prim", "死不降": "del_prim",
+            "宁死不降": "del_prim", "誓死不降": "del_prim", "逼降": "del_prim"},  # 投降 xiáng
+           {"降福", "降旨", "降附", "乘降", "降清"}),
+    "盛": ("del_wrong",  # 茂盛/盛大 shèng
+           {"盛酒": "del_prim", "盛汤": "del_prim", "盛碗": "del_prim",
+            "碗盛": "del_prim", "盛到": "del_prim", "内盛": "del_prim",
+            "盛过": "del_prim"},  # 盛饭/盛汤 chéng (装)
+           {"女体盛", "男体盛"}),
+    "模": ("del_wrong",  # 模型/模特 mó
+           {"塑料模": "del_prim", "土模": "del_prim", "铸模": "del_prim",
+            "钢模": "del_prim", "胎模": "del_prim", "金属模": "del_prim",
+            "硬模": "del_prim", "指模": "del_prim", "模铸": "del_prim",
+            "塑模": "del_prim", "人模人样": "del_prim", "狗模狗样": "del_prim"},  # 模具/模样 mú
+           {"型模", "制模", "造模", "工模", "版模", "波模"}),
+    "还": ("del_wrong",  # 还是/还有 hái (副词)
+           {"有借有还": "del_prim", "还人情": "del_prim", "还付": "del_prim",
+            "退耕还林": "del_prim", "以血还血": "del_prim", "血债血还": "del_prim",
+            "还施彼身": "del_prim", "还治其人之身": "del_prim", "借用还": "del_prim",
+            "还让出": "del_prim", "还得起": "del_prim", "素还真": "del_prim"},  # 归还 huán
+           {"欲说还休", "欲语还休", "还着", "还调", "还吞", "还织",
+            "还载", "统还", "还纳", "还于"}),
+    "差": ("del_wrong",  # 差别/太差 chà·chā
+           {"差人": "del_prim", "差旅": "del_prim", "差派": "del_prim",
+            "打差": "del_prim", "趟差": "del_prim", "派差": "del_prim",
+            "搞差": "del_prim", "差路": "del_prim", "差任": "del_prim",
+            "县差": "del_prim", "差转": "del_prim", "差转台": "del_prim",
+            "夫差": "del_prim", "神差": "del_prim", "小差": "del_prim"},  # 出差/差遣 chāi
+           {"调差", "仲差", "差劣", "纳差", "差下"}),
     # whole-char uncertain
     "嗯": ("uncertain", {}, {"*"}),
     "爪": ("uncertain", {}, {"*"}),
