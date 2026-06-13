@@ -12,7 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 LIB = os.path.join(REPO, "core/crates/inputx-pinyin/data/library.tsv")
 GARBAGE = os.path.join(REPO, "tools/scoring/data/polish/corpus_garbage_filter_v1.tsv")
-TODEL = os.path.join(HERE, "to_delete.tsv")
+TODEL = os.path.join(HERE, sys.argv[1] if len(sys.argv) > 1 else "to_delete.tsv")
 DATE = "2026-06-13"
 
 targets = set()
