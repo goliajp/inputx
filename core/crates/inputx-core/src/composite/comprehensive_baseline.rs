@@ -1207,6 +1207,9 @@ mod tests {
             ("daerxi", "大儿媳"),  // 大 correct, also fixes the er-typo case
             ("guozao", "聒噪"),    // 聒 correct = guō (the kept side)
             ("kansi", "看似"),     // 似 correct = sì (② reversed kept side)
+            ("shousha", "手刹"),   // batch2a: 刹 shā kept
+            ("niboer", "尼泊尔"),  // batch2a: 泊 bó kept
+            ("xiaopingguo", "削苹果"), // batch2a: 削 xiāo kept
         ];
         let mut missing = Vec::new();
         for (buf, word) in cases {
@@ -2731,6 +2734,10 @@ mod tests {
             ("wokuai", &["我会"]),    // 会 hui→kuai
             ("yuxian", &["遇见"]),    // 见 jian→xian
             ("guazao", &["聒噪"]),    // 聒 — pypinyin判反, 删prim(gua), 正确读 guō
+            // batch2a (双向多音字 per-word call): wrong-reading side deleted.
+            ("shoucha", &["手刹"]),     // 刹 手刹读shā, cha错读
+            ("xuepingguo", &["削苹果"]), // 削 削苹果读xiāo, xue错读
+            ("nipoer", &["尼泊尔"]),    // 泊 尼泊尔读bó, po错读
             // User polish-log 2026-06-12: "momo 嶙嶙也不像个词，默默第一"
             // — 嶙嶙 was a wubi-side phrase row (momo = structural full
             // code) leading mixed #0 via the wubi tier. 嶙 is a real
