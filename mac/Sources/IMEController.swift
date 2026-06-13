@@ -336,6 +336,53 @@ final class InputxController: IMKInputController {
             }
         }
 
+        // ---- Path A0b: Return → commit highlighted (English fallback) ----
+        // User 2026-06-14: "回车也应该是选中值上屏，如果候选没有内容就是
+        // 英文上屏". Return mirrors Space's selected-commit semantic for
+        // the highlight (#0 by default, ↑/↓ moved otherwise), in both
+        // regular and prediction modes. When the engine is composing but
+        // produced no candidates (panel hidden), Return commits the raw
+        // ASCII buffer so the user isn't trapped by an unmatched buffer.
+        // When nothing is in flight, Return falls through to the host as
+        // a literal newline.
+        //
+        // 0x0D = main-keyboard Return; 0x03 = numpad Enter (Apple's ETX).
+        if codepoint == 0x0D || codepoint == 0x03 {
+            if let panel = candidatePanel, panel.isVisible {
+                let idx = panel.selectedAbsoluteIndex() ?? 0
+                if panel.isPredictionMode {
+                    if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
+                        commitText(committed, to: sender)
+                    }
+                } else {
+                    let bufferBefore = session.preedit ?? ""
+                    let candsBefore = panel.current
+                    if let committed = session.commit(at: idx), !committed.isEmpty {
+                        commitText(committed, to: sender)
+                        PolishLog.recordIfMiss(
+                            buffer: bufferBefore,
+                            candidates: candsBefore,
+                            pickedIdx: idx,
+                            pickedWord: committed,
+                            engineMode: inputxSettings.engineMode.rawValue,
+                            japaneseEnabled: inputxSettings.japaneseEnabled
+                        )
+                    }
+                }
+                showPredictionsOrHide(client: sender)
+                updatePreedit(client: sender)
+                return true
+            }
+            if session.isComposing, let pre = session.preedit, !pre.isEmpty {
+                commitText(pre, to: sender)
+                session.clear()
+                candidatePanel?.hide()
+                clearMarkedText(client: sender)
+                return true
+            }
+            return false
+        }
+
         // ---- Path A0a: Space commits the prediction in 联想 mode -------
         // Standard Sogou / 智能ABC behavior: when the candidate panel
         // is showing 联想 predictions, Space commits the highlighted
