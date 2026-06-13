@@ -2698,6 +2698,14 @@ mod tests {
             // deleted from the correct code `daban` too. 大半/大坂/大班/
             // 大阪 (real words / Osaka place names) untouched at daban.
             ("daban", &["大板", "大办"]),
+            // User polish-log 2026-06-13: daiban 只要 待办/代班/代办/
+            // 呆板. 带班 (dài-bān, lead a shift) is a REAL word with the
+            // correct reading, so NOT a D1 delete — it's a per-case D2
+            // display-hide (exclusions_v1.tsv) so 带班 stays in the dict
+            // for reverse-lookup / K-best but never surfaces at the
+            // daiban buffer. Same NOT-in-top10 assertion shape as the
+            // D1 cases above (cf. the yichu D2 case earlier).
+            ("daiban", &["带班"]),
             // User polish-log 2026-06-06: "jiaozhu 叫朱 较著 椒猪 交住
             // 这些都不算是中文词汇吧" — four jieba 主词典 sub-word noise
             // entries from the legacy external pinyin ingest. None
