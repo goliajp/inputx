@@ -835,6 +835,13 @@ mod tests {
             // (same calibration as jianma 简码 / fudu 复读) lifts it
             // above JP.
             ("aijie", "娭毑"),
+            // Polish-log 2026-06-14: "pianse 偏色应该在日语前，是中频词
+            // 应该". 偏色 base 2367 sat at #2 below JP exact-prefix kana
+            // ぴあんせ / ピアンセ. Per user 中频词 judgment + peer freqs
+            // 偏方 18948 / 偏离 20209 / 偏向 24858 / 偏颇 18281, library.tsv
+            // freq overridden to 25000 (mid 偏向~偏见 band) + source=polish.
+            // 偏色 now leads ぴあんせ / ピアンセ.
+            ("pianse", "偏色"),
         ];
         let mut failures = Vec::new();
         for (buf, expected) in cases {
