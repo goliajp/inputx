@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-0.7 done · Phase 0 完成</span>
-      <span><b>active</b> Phase 0 验收门 → Phase 1 · CP-1.1</span>
+      <span><b>last update</b> 2026-06-15 · CP-1.1 工程✓ · soak pending</span>
+      <span><b>active</b> Phase 1 · CP-1.1(FUZZY)等 5-7 天实机 soak</span>
     </div>
   </div>
 </div>
@@ -201,9 +201,9 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
       <span class="pill future"><span class="n">5</span>trigram + 打磨 · ∞</span>
     </div>
     <div class="totals">
-      <span class="done"><b id="t-done">45</b> done</span>
+      <span class="done"><b id="t-done">54</b> done</span>
       <span class="inprog"><b id="t-inprog">0</b> inprog</span>
-      <span class="todo"><b id="t-todo">0</b> todo</span>
+      <span class="todo"><b id="t-todo">4</b> todo</span>
     </div>
   </div>
 </div>
@@ -220,8 +220,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 0 验收门通过 → Phase 1 · CP-1.1(翻 COMPOSE gate)</kbd><br>
-  <strong>Phase 0 进度</strong>:<strong>7 / 7 CP done · Phase 0 完成</strong>(CP-0.1 .. CP-0.7 全 merged + pushed origin/develop)· 下一步 CP-1.1 要翻 <code>PINYIN_DISABLE_COMPOSE</code> gate(宪法敏感 · 见 memory gates-paused)
+  <strong>当前 active</strong>:<kbd>Phase 1 · CP-1.1(翻 FUZZY)— 工程✓,等 5-7 天实机 soak</kbd><br>
+  <strong>进度</strong>:Phase 0 完成(7/7)· Phase 1 CP-1.1 工程+全自动门已过(MIU 0.00pp · 宪法 8 问过 · branch <code>feature/gate-open-fuzzy</code> commit 204dec7,<strong>未 merge</strong>)· 等用户实机 soak 通过后 merge → CP-1.2(ASSOCIATION)
 </div>
 
 <!-- ====================== HOW TO USE ====================== -->
@@ -563,23 +563,68 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
 
 
 <!-- ====================== PHASE 1 · NEXT ====================== -->
-<div class="board-section next" data-phase="1">
+<div class="board-section active" data-phase="1">
   <div class="section-header">
     <span class="pn">Phase 1</span>
     <h2>逐周翻 gate · 把已有能力还给用户</h2>
-    <span class="badge">↗ NEXT UP</span>
+    <span class="badge">▶ IN PROGRESS</span>
+  </div>
+
+  <!-- ===== CP-1.1 ===== -->
+  <div class="cp" data-status="inprog" data-cp="1.1">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-1.1</div>
+        <div class="cp-title">翻 PINYIN_DISABLE_FUZZY(模糊音)</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">9</b>/<b class="total-count">13</b></span>
+        <span class="cp-status-tag">inprog</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · Phase 0 通过</span>
+        <span>时长 · 2-3 天 + 5-7 天 soak</span>
+        <span>回退 · 翻 const 回 true · git revert merge</span>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">跑 baseline MIU,存 <code>gate_baselines/pre_fuzzy.json</code></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">新 branch <code>feature/gate-open-fuzzy</code></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">翻 <code>PINYIN_DISABLE_FUZZY = false</code><span class="hint">pinyin_adapter.rs:77 · commit 204dec7</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">跑 MIU,存 <code>post_fuzzy.json</code>,与 pre diff<span class="hint"><strong>全线 0.00 pp</strong> — FUZZY 改的是模糊/错字输入的候选,干净拼音 MIU 集不触发,故不动指标</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">polish-log replay(baseline 测试套回放历次 polish 不变量)<span class="hint">make baseline:21+69+335 全过,0 翻转</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">跑 70+ baseline 测试 · 100% 过<span class="hint">69 baseline + 335 core lib,翻 const 唤醒的 dormant FUZZY 断言全过</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">reinstall.py 装上 mac 端 · 自己 daily-use 5-7 天<span class="hint">⏳ 用户门:需实机安装 + 日常使用</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">收到 polish 报告 1-3 个 · 正常处理流程<span class="hint">⏳ soak 期间</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">Top-1 MIU 不掉超过 2%(可接受小退;若升更好)<span class="hint">0.00 pp ✓</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">polish-log wins 翻转率 ≤ 5%<span class="hint">0%(baseline 套 0 fail)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">70+ baseline 100% 通过 · 宪法门 <code>wubi_simcode_priority</code> 全过<span class="hint">12 passed · 宪法 8 问全过</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">5-7 天实机 daily-use 无新增 regression 报告<span class="hint">⏳ 用户 soak 门</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">git-flow merge 到 develop · push origin<span class="hint">⏳ soak 通过后</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>工程 + 全自动门 ▣(MIU 0.00pp · 宪法 8 问过)· 等 5-7 天实机 soak → merge → CP-1.2</div></div>
+    </div>
   </div>
 
   <div class="future-preview">
-    <b>预览 · 等 Phase 0 完成后热化</b>
-    Phase 1 含 4 个 CP · 每周翻 1 个 gate:<br>
-    <code>CP-1.1</code> 翻 PINYIN_DISABLE_FUZZY(模糊音)· 2-3 天 + 5-7 天 soak<br>
+    <b>预览 · CP-1.2 .. CP-1.4(soak 通过后逐个热化)</b>
     <code>CP-1.2</code> 翻 PINYIN_DISABLE_ASSOCIATION(简拼缩写)<br>
-    <code>CP-1.3</code> 翻 PINYIN_DISABLE_COMPOSE(Viterbi composition)<br>
+    <code>CP-1.3</code> 翻 PINYIN_DISABLE_COMPOSE(Viterbi composition)· 预期 MIU 大跳<br>
     <code>CP-1.4</code> 翻 PINYIN_DISABLE_PREDICTION(联想)<br><br>
-    <strong>每条同模式</strong>:baseline 跑数字 → 翻 const → 再跑数字 → polish-log replay 95% 守 → 实机 soak 1 周 → 决定保留或回退。<br><br>
-    <strong>宪法门(每 CP 必查)</strong> · <code>cargo test session::wubi_simcode_priority</code> 全过 · 五笔肌肉记忆未受 gate 开启影响。<br><br>
-    Phase 0 完成 → 我会展开 CP-1.1 全部 sub-tasks 到 active board。
+    <strong>每条同模式</strong>:baseline 跑数字 → 翻 const → 再跑数字 → polish-log replay 守 → 实机 soak 1 周 → 决定保留或回退。<br>
+    <strong>宪法门(每 CP 必查)</strong> · <code>cargo test session::wubi_simcode_priority</code> 全过。
   </div>
 </div>
 
