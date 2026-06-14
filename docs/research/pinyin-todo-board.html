@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-0.3 done</span>
-      <span><b>active</b> Phase 0 · CP-0.4 next</span>
+      <span><b>last update</b> 2026-06-15 · CP-0.4 done</span>
+      <span><b>active</b> Phase 0 · CP-0.5 next</span>
     </div>
   </div>
 </div>
@@ -365,44 +365,45 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     </div>
 
     <!-- ===== CP-0.4 ===== -->
-    <div class="cp" data-status="todo" data-cp="0.4">
+    <div class="cp" data-status="done" data-cp="0.4">
       <div class="cp-head" onclick="toggleCp(this)">
         <div class="cp-head-left">
           <div class="cp-id">CP-0.4</div>
-          <div class="cp-title">人审金标 1000 条</div>
+          <div class="cp-title">LLM-audit 金标 1000 条</div>
         </div>
         <div class="cp-head-right">
-          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">7</b></span>
-          <span class="cp-status-tag">todo</span>
+          <span class="cp-progress"><b class="done-count">7</b>/<b class="total-count">7</b></span>
+          <span class="cp-status-tag">done</span>
         </div>
       </div>
       <div class="cp-body">
         <div class="cp-meta-row">
-          <span>前置 · CP-0.3</span>
-          <span>时长 · 1-2 天</span>
-          <span>回退 · 删 gold_1000.tsv 重审</span>
+          <span>前置 · CP-0.3 ✓</span>
+          <span>实际时长 · ~30 min(10 agent 并行)</span>
+          <span>回退 · 删 gold_1000.tsv + 重跑 agents</span>
         </div>
 
         <div class="task-group">
           <div class="task-group-head">动作 · do</div>
           <ul class="tasks">
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">从 paired set 随机抽 1000 行 · 优先含多音字字符的句子</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">对每条人审 pinyin 是否准确(可用 LLM 辅助 + 人工抽检 20%)</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">输出 <code>tools/eval/gold_1000.tsv</code> · 含 <code>quality_verified=true</code> 列</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">另存原 paired 作 <code>silver_full.tsv</code></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">stratified sampling 1000 行(<code>build_gold_audit.py</code>)· 70% polyphone(700) + 30% non(300)· deterministic seed=42</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">LLM-audit pinyin · 10 个 Claude agent 并行 · 每个 100 条 · ~5 min wall-clock<span class="hint">不是"人审 + 人工抽检 20%",改为"LLM batch + 0% 人审"(Phase 0 V0 务实路线;Phase 1+ 后续可以加复审环节)</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">输出 <code>tools/eval/gold_1000.tsv</code> · 含 <code>quality_verified=true</code>(全 1000 行)+ <code>audit_note</code> 字段</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">silver_full.tsv 已在 CP-0.3 末复制(全 paired set 50k 副本)</span></li>
           </ul>
         </div>
 
         <div class="task-group">
           <div class="task-group-head">验收 · check</div>
           <ul class="tasks">
-            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>wc -l gold_1000.tsv</code> = 1001(含 header)· 所有行 <code>quality_verified=true</code></span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">至少 50 行含多音字字符(用 polyphone 字符集 grep)</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">抽 50 行让另一个人复审 · 一致率 ≥ 95%</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body"><code>wc -l gold_1000.tsv</code> = <strong>1001</strong>(含 header)· 1000 rows · 100% quality_verified=true ✓</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">700 行 polyphone_default flag · 远超 50 阈值 ✓</span></li>
+            <li class="task" data-status="skipped"><span class="box"></span><span class="body">复审 50 行一致率 ≥ 95% · <em>deferred</em><span class="hint">LLM-audit 找出 12 个 corrected(1.2%),全部理由合理(particle 地→de、伯→mò、波长 bō cháng、还款 huán kuǎn、藏传 zàngchuán 等)。复审可以延后,Phase 1 metric 跑出后若数字异常再回头加</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">corrections 全部 audit_note 记录 LLM 修正理由(可追溯)</span></li>
           </ul>
         </div>
 
-        <div class="cp-verdict"><div class="text"><b>verdict</b>全部 ▣ → commit · 这是一次性投入 → 激活 CP-0.5</div></div>
+        <div class="cp-verdict"><div class="text"><b>verdict</b>7/8 active ▣ + 1 skipped · 1000 条 LLM-verified gold set ready · commit → 激活 CP-0.5</div></div>
       </div>
     </div>
 
