@@ -13,9 +13,33 @@ publish = false
 # `PinyinAdapter` over the gold/silver eval sets exactly as the host feeds
 # keystrokes, then reports Top-K MIU accuracy. Read-only: never commits a
 # pick, never mutates engine state, never ships.
+#
+# lib + bin: the eval core lives in src/lib.rs so the CP-0.7 regression
+# test (tests/baseline_regression.rs) can call it in-process; main.rs is
+# the thin CLI.
+# Lib name is deliberately distinct from the bin/package name
+# (`inputx-eval-runner`): a lib target whose name normalizes to the same
+# identifier as a bin target is the cargo#6313 clash that makes integration
+# tests fail to resolve the lib. `inputx_eval` sidesteps it; `cargo run -p
+# inputx-eval-runner` still works (that selects the package, not the lib).
+[lib]
+name = "inputx_eval"
+path = "src/lib.rs"
+
 [[bin]]
 name = "inputx-eval-runner"
 path = "src/main.rs"
+# main.rs is a thin CLI with no #[test]s; all logic + tests live in the lib
+# and tests/. Skip building the bin as its own test target — under this
+# lib+bin external-workspace-member layout that build drops the dep externs
+# and fails to resolve inputx_core / inputx_eval.
+test = false
+
+[features]
+# Gates the gold MIU baseline-regression test (CP-0.7). Off by default so a
+# plain `cargo test` stays fast; CI runs `cargo test -p inputx-eval-runner
+# --features eval` to enforce the ±2pp baseline gate.
+eval = []
 
 [dependencies]
 # The runner exercises the real candidate path through the composite
