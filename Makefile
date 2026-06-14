@@ -19,7 +19,7 @@
 #                           source. Used to detect "did someone forget
 #                           to commit a rebuilt .idf?" pre-push.
 
-.PHONY: polish-rebuild baseline verify-byte-id purge-stray-ls reinstall help
+.PHONY: polish-rebuild baseline eval verify-byte-id purge-stray-ls reinstall help
 
 help:
 	@echo "Inputx polish workflow targets:"
@@ -71,6 +71,13 @@ baseline:
 	@grep -q "test result: ok" /tmp/baseline-out || (echo "[baseline] FAIL — see output above" && exit 1)
 	cd core && cargo test -p inputx-core --lib --release 2>&1 | tail -3 | tee /tmp/lib-out
 	@grep -q "test result: ok" /tmp/lib-out || (echo "[baseline] lib FAIL — see output above" && exit 1)
+
+# Phase-0 MIU eval gate (CP-0.7): regression-alarm unit tests + gold MIU
+# within ±2pp of tools/eval/results/baseline.json. Debug (not --release):
+# the release profile's panic="abort" breaks the integration-test harness.
+eval:
+	cd core && cargo test -p inputx-eval-runner --features eval 2>&1 | tail -6 | tee /tmp/eval-out
+	@grep -q "test result: ok" /tmp/eval-out || (echo "[eval] FAIL — see output above" && exit 1)
 
 # Re-run the build chain and compare the resulting .idf SHAs against
 # the committed bytes. Detects "I forgot to commit the regenerated

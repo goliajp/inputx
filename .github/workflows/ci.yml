@@ -64,6 +64,17 @@ jobs:
       - name: Rust baseline tests
         run: make baseline
 
+      # Phase-0 MIU eval gate (CP-0.7). Runs the regression-alarm unit
+      # tests + the gold MIU baseline check: gold Top-K must stay within
+      # ±2pp of tools/eval/results/baseline.json, else fail (an intentional
+      # engine change must refresh the committed baseline). Gold-only —
+      # silver_full.tsv is gitignored and absent in CI. Debug (not
+      # --release): the workspace release profile's panic="abort" is
+      # incompatible with the integration-test harness.
+      - name: MIU eval baseline gate
+        run: cargo test -p inputx-eval-runner --features eval
+        working-directory: core
+
       # Produce libinputx_core.a (staticlib) + regenerate core/include/
       # inputx_core.h via the inputx-core-ffi build.rs / cbindgen, so the
       # Swift InputxCoreC system-library target can link. Host-arch build
