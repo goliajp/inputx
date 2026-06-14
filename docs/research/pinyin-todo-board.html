@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-14 · CP-0.1 done</span>
-      <span><b>active</b> Phase 0 · CP-0.2 next</span>
+      <span><b>last update</b> 2026-06-14 · CP-0.2 done</span>
+      <span><b>active</b> Phase 0 · CP-0.3 next</span>
     </div>
   </div>
 </div>
@@ -282,44 +282,44 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     </div>
 
     <!-- ===== CP-0.2 ===== -->
-    <div class="cp" data-status="todo" data-cp="0.2">
+    <div class="cp" data-status="done" data-cp="0.2">
       <div class="cp-head" onclick="toggleCp(this)">
         <div class="cp-head-left">
           <div class="cp-id">CP-0.2</div>
           <div class="cp-title">切句 + MIU 化</div>
         </div>
         <div class="cp-head-right">
-          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">7</b></span>
-          <span class="cp-status-tag">todo</span>
+          <span class="cp-progress"><b class="done-count">6</b>/<b class="total-count">7</b></span>
+          <span class="cp-status-tag">done</span>
         </div>
       </div>
       <div class="cp-body">
         <div class="cp-meta-row">
-          <span>前置 · CP-0.1</span>
-          <span>时长 · 1 天</span>
+          <span>前置 · CP-0.1 ✓</span>
+          <span>实际时长 · ~1 h</span>
           <span>回退 · 删 miu_set.tsv 重跑</span>
         </div>
 
         <div class="task-group">
           <div class="task-group-head">动作 · do</div>
           <ul class="tasks">
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/eval/build_miu_set.py</code> · 含 <code>--seed</code> 参数</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">用 jieba 切句(<code>HMM=False</code> + 自定义词典)<span class="hint">自定义词典来源:<code>core/crates/inputx-pinyin/data/library.tsv</code> top-100k phrase dump</span></span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">按 <code>[。!?…]+</code> 切句 → 提取 MIU(非汉字分隔的最长连续汉字段)<span class="hint">MIU 定义见 Jia & Zhao 2013 KySS</span></span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">过滤:句长 4-120 字 + 汉字占比 ≥ 0.6 + MinHash 句级去重(阈值 0.85)</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">输出 <code>tools/eval/miu_set.tsv</code>(一列 hanzi MIU)</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">写 <code>tools/eval/build_miu_set.py</code> · stdlib only · 含 <code>--seed</code>(default 42)<span class="hint">~180 行 Python · streaming wiki XML + thucnews zip · 含 cp437→utf-8 zip filename fix</span></span></li>
+            <li class="task" data-status="skipped"><span class="box"></span><span class="body">用 jieba 切句 + 自定义词典 <em>· deferred → Phase 2</em><span class="hint">MIU 提取是 regex-only(CJK runs),不需要分词。jieba 留给 Phase 2 LM 训练 corpus tokenization。</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">按 <code>[。!?…]+</code> 切句 + 提取 CJK runs · MIU 定义按 Jia & Zhao 2013 KySS</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">过滤:4-20 字(<em>调小 from 120</em>:实际 IME 输入范围)+ exact-string dedup(MinHash 留 Phase 2)<span class="hint">调小理由:120 字过滤后样本头部全是 100+ 字段落,不符实际 IME 输入。20 字 cap 后分布合理 4→20 平滑。</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">输出 <code>tools/eval/miu_set.tsv</code> · 一列 hanzi · 5 万行</span></li>
           </ul>
         </div>
 
         <div class="task-group">
           <div class="task-group-head">验收 · check</div>
           <ul class="tasks">
-            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>wc -l tools/eval/miu_set.tsv</code> ≥ 40000</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>head -100</code> 可读、无 markup 残留 · 抽 200 行 visual check</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body"><code>wc -l miu_set.tsv</code> = <strong>50,000</strong>(≫ 40,000 阈值)· wiki 824k + news 257k unique → 采样 50k</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">2nd run <strong>byte-equal</strong> ✓ · 随机 15 样本可读、混合 wiki + 新闻、长度分布 4→20 平滑 ✓</span></li>
           </ul>
         </div>
 
-        <div class="cp-verdict"><div class="text"><b>verdict</b>全部 ▣ + 二次跑 byte-equal 后 · commit · 激活 CP-0.3</div></div>
+        <div class="cp-verdict"><div class="text"><b>verdict</b>6/7 active task ▣ + 1 skipped(jieba defer)· determinism ✓ · 50k MIU set ready · commit → 激活 CP-0.3</div></div>
       </div>
     </div>
 

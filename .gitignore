@@ -106,3 +106,10 @@ tools/eval/corpus/raw/pd/*
 tools/eval/corpus/processed/
 tools/eval/results/*.json
 !tools/eval/results/.gitkeep
+
+# MIU set is deterministic-generated from corpus + script + seed.
+# Regenerate via `python3 tools/eval/build_miu_set.py`.
+# Gold-1000 set (CP-0.4) IS committed since it has human annotations.
+tools/eval/miu_set.tsv
+tools/eval/miu_set_paired.tsv
+tools/eval/silver_full.tsv
