@@ -208,6 +208,22 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
   </div>
 </div>
 
+<!-- ====================== RESUME HINT ====================== -->
+<div class="howto" style="background:rgba(196,58,58,.08);border-color:var(--vermillion);border-left:6px solid var(--vermillion)">
+  <b style="color:var(--vermillion-deep)">⚡ resume from here · 下次 session 接续协议</b>
+  Claude 进新 session 后,用户说 <kbd>继续</kbd> / <kbd>继续 autorun</kbd> 时:
+  <ol style="margin:8px 0 8px 22px;padding:0">
+    <li>读 memory <kbd>session_handoff_2026-06-15.md</kbd>(已有详细接续指令)</li>
+    <li>看本页顶部 banner <kbd>active</kbd> 字段定位下一 CP</li>
+    <li>执行:<kbd>git flow feature start eval-cp-X.Y-{kebab-name}</kbd></li>
+    <li>该 CP 卡片切 <kbd>data-status="inprog"</kbd>,task 一项项做一项项切 <kbd>done</kbd></li>
+    <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
+    <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
+  </ol>
+  <strong>当前 active</strong>:<kbd>CP-0.5 · Rust MIU runner</kbd>(Phase 0 最重 CP · 估 2-3 天)<br>
+  <strong>Phase 0 进度</strong>:4 / 7 CP done(CP-0.1 .. CP-0.4 全 merged + pushed origin/develop)
+</div>
+
 <!-- ====================== HOW TO USE ====================== -->
 <div class="howto">
   <b>怎么用这份看板</b>
