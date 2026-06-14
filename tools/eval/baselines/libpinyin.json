@@ -1,0 +1,25 @@
+{
+  "date": "2026-06-15",
+  "engine": "libpinyin",
+  "engine_version": "2.10.3",
+  "note": "libpinyin 2.10.3 external reference. MIU accuracy = exact full-string match of the gold hanzi against the engine's 1-best sentence, fed continuous pinyin (spaces stripped), exact match (no trad->simp simplification). Top-5/10 equal Top-1: libpinyin's stable simple API exposes only the 1-best sentence (pinyin_get_sentence asserts on out-of-range nbest index, no public count getter), so only Top-1 is measured. Same metric and same gold/silver sets as the in-tree Rust runner — Top-1 is directly comparable.",
+  "elapsed_secs": 45.139,
+  "counts": {
+    "total": 51000,
+    "gold": 1000,
+    "silver": 50000,
+    "polyphone": 48340
+  },
+  "top1": 0.3201764705882353,
+  "top5": 0.3201764705882353,
+  "top10": 0.3201764705882353,
+  "gold_top1": 0.32,
+  "gold_top5": 0.32,
+  "gold_top10": 0.32,
+  "silver_top1": 0.32018,
+  "silver_top5": 0.32018,
+  "silver_top10": 0.32018,
+  "per_polyphone_top1": 0.3162598262308647,
+  "per_polyphone_top5": 0.3162598262308647,
+  "per_polyphone_top10": 0.3162598262308647
+}

@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-0.5 done</span>
-      <span><b>active</b> Phase 0 · CP-0.6 next</span>
+      <span><b>last update</b> 2026-06-15 · CP-0.6 done</span>
+      <span><b>active</b> Phase 0 · CP-0.7 next</span>
     </div>
   </div>
 </div>
@@ -201,9 +201,9 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
       <span class="pill future"><span class="n">5</span>trigram + 打磨 · ∞</span>
     </div>
     <div class="totals">
-      <span class="done"><b id="t-done">34</b> done</span>
+      <span class="done"><b id="t-done">40</b> done</span>
       <span class="inprog"><b id="t-inprog">0</b> inprog</span>
-      <span class="todo"><b id="t-todo">11</b> todo</span>
+      <span class="todo"><b id="t-todo">5</b> todo</span>
     </div>
   </div>
 </div>
@@ -220,8 +220,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>CP-0.6 · 外部对照线(libpinyin / SunPinyin)</kbd>(估 1-2 天)<br>
-  <strong>Phase 0 进度</strong>:5 / 7 CP done(CP-0.1 .. CP-0.5 全 merged + pushed origin/develop)
+  <strong>当前 active</strong>:<kbd>CP-0.7 · CI 集成 + 报警阈值</kbd>(估 1 天 · 前置 CP-0.5)<br>
+  <strong>Phase 0 进度</strong>:6 / 7 CP done(CP-0.1 .. CP-0.6 全 merged + pushed origin/develop)
 </div>
 
 <!-- ====================== HOW TO USE ====================== -->
@@ -467,15 +467,15 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     </div>
 
     <!-- ===== CP-0.6 ===== -->
-    <div class="cp" data-status="todo" data-cp="0.6">
+    <div class="cp" data-status="done" data-cp="0.6">
       <div class="cp-head" onclick="toggleCp(this)">
         <div class="cp-head-left">
           <div class="cp-id">CP-0.6</div>
           <div class="cp-title">外部对照线(libpinyin / SunPinyin)</div>
         </div>
         <div class="cp-head-right">
-          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">6</b></span>
-          <span class="cp-status-tag">todo</span>
+          <span class="cp-progress"><b class="done-count">6</b>/<b class="total-count">6</b></span>
+          <span class="cp-status-tag">done</span>
         </div>
       </div>
       <div class="cp-body">
@@ -488,18 +488,18 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
         <div class="task-group">
           <div class="task-group-head">动作 · do</div>
           <ul class="tasks">
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">本地装 libpinyin<span class="hint">尝试 <code>brew install libpinyin</code> · 不行则源码编 · 还不行则 fallback SunPinyin</span></span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/eval/runner_libpinyin.py</code> · 调用 libpinyin Python binding</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">同一份 gold + silver 灌进 libpinyin · 取 top-K · 计算 Top-K MIU</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">输出 <code>tools/eval/baselines/libpinyin.json</code></span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/eval/COMPARE.md</code> · 表格列出 inputx vs libpinyin 三个 Top-K</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">本地装 libpinyin<span class="hint"><code>brew install libpinyin</code> 成功 · 2.10.3 bottle(deps berkeley-db/glib/gettext)· dylib <code>/opt/homebrew/lib/libpinyin.dylib</code> · 模型数据 <code>.../lib/libpinyin/data</code></span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">写 <code>tools/eval/runner_libpinyin.py</code><span class="hint">libpinyin <strong>无 Python binding</strong> → 用 <strong>ctypes</strong>(stdlib,无 pip)直绑 C API:init → alloc_instance → parse_more_full_pinyins → guess_sentence → get_sentence。只取 1-best(get_sentence 越界 index 会 assert abort,无公开 nbest 计数)</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">同一份 gold + silver 灌进 libpinyin · 取 top-K · 计算 Top-K MIU<span class="hint">连续拼音(去空格)· exact 匹配(不做 trad→simp)· 与 Rust runner 同口径</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">输出 <code>tools/eval/baselines/libpinyin.json</code><span class="hint">同 6 字段 · overall top1 <strong>32.02%</strong> · gold 32.00% · silver 32.02% · polyphone 31.63%</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">写 <code>tools/eval/COMPARE.md</code> · 表格列出 inputx vs libpinyin 三个 Top-K</span></li>
           </ul>
         </div>
 
         <div class="task-group">
           <div class="task-group-head">验收 · check</div>
           <ul class="tasks">
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">libpinyin.json 含同样 6 字段 · COMPARE.md 表格成文 · 差距数字落在合理范围(libpinyin 显著领先;若不,evaluation harness 有 bug,回 CP-0.5)</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">libpinyin.json 含同样 6 字段 · COMPARE.md 表格成文 · 差距数字落在合理范围(libpinyin 显著领先;若不,evaluation harness 有 bug,回 CP-0.5)<span class="hint"><strong>libpinyin 32.02% vs inputx 0.73% = 领先 ~44× ✓</strong> harness 无 bug · 注:inputx 当前 gate 全关(地板),翻 COMPOSE(Phase 1)预期收窄差距 · libpinyin 32% 本身受 no-trad-norm + 混源 silver 拖低(纯简体 PD 集上 trigram 约 50%)</span></li>
           </ul>
         </div>
 
