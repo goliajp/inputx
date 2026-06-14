@@ -581,6 +581,14 @@ mod tests {
             // 4193 / 键码 3861 in modern usage. quickfix 简码 → 12000,
             // 键码 → 11000 — both above 捡骂 with 简码 leading 键码.
             ("jianma", "简码"),
+            // Polish-log 2026-06-14: "toulan 偷懒应该大于投篮". base 偷懒
+            // 27206 / 投篮 22830 (both digested) — score reflected the
+            // gap but the merge returned [投篮, 偷懒] anyway (same shape
+            // as the daiban case [[polish-ordering-quickfix-vs-libraryfreq]]).
+            // Per kongdang method: library.tsv freqs overridden to clean
+            // descending 偷懒 50000 / 投篮 15000 + source=polish. Empirical:
+            // 28k/22k gap didn't drive order; 50k/15k did.
+            ("toulan", "偷懒"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
