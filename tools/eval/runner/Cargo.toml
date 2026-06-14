@@ -1,0 +1,29 @@
+[package]
+name = "inputx-eval-runner"
+# This crate lives outside the workspace root dir (core/), so cargo can't
+# find the workspace by walking up directories — point it at core/ so the
+# `.workspace = true` inheritances below resolve.
+workspace = "../../../core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Phase-0 MIU-accuracy harness (climb plan CP-0.5). Drives the production
+# `PinyinAdapter` over the gold/silver eval sets exactly as the host feeds
+# keystrokes, then reports Top-K MIU accuracy. Read-only: never commits a
+# pick, never mutates engine state, never ships.
+[[bin]]
+name = "inputx-eval-runner"
+path = "src/main.rs"
+
+[dependencies]
+# The runner exercises the real candidate path through the composite
+# adapter, not the bare inputx-pinyin engine — that is what the macOS /
+# iOS hosts use, so the numbers reflect what a user actually sees.
+inputx-core = { path = "../../../core/crates/inputx-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[lints]
+workspace = true

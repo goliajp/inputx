@@ -106,6 +106,10 @@ tools/eval/corpus/raw/pd/*
 tools/eval/corpus/processed/
 tools/eval/results/*.json
 !tools/eval/results/.gitkeep
+# Dated daily runs accumulate and are regenerable, so they stay ignored —
+# but the canonical baseline is the cross-session diff anchor (CP-0.5) and
+# must be tracked so `--diff baseline.json` works in a fresh checkout.
+!tools/eval/results/baseline.json
 
 # MIU set is deterministic-generated from corpus + script + seed.
 # Regenerate via `python3 tools/eval/build_miu_set.py`.
