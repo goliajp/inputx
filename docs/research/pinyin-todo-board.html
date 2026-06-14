@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-14 · CP-0.2 done</span>
-      <span><b>active</b> Phase 0 · CP-0.3 next</span>
+      <span><b>last update</b> 2026-06-15 · CP-0.3 done</span>
+      <span><b>active</b> Phase 0 · CP-0.4 next</span>
     </div>
   </div>
 </div>
@@ -324,43 +324,43 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     </div>
 
     <!-- ===== CP-0.3 ===== -->
-    <div class="cp" data-status="todo" data-cp="0.3">
+    <div class="cp" data-status="done" data-cp="0.3">
       <div class="cp-head" onclick="toggleCp(this)">
         <div class="cp-head-left">
           <div class="cp-id">CP-0.3</div>
           <div class="cp-title">pinyin 回译配对</div>
         </div>
         <div class="cp-head-right">
-          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">6</b></span>
-          <span class="cp-status-tag">todo</span>
+          <span class="cp-progress"><b class="done-count">6</b>/<b class="total-count">6</b></span>
+          <span class="cp-status-tag">done</span>
         </div>
       </div>
       <div class="cp-body">
         <div class="cp-meta-row">
-          <span>前置 · CP-0.2</span>
-          <span>时长 · 0.5 天</span>
+          <span>前置 · CP-0.2 ✓</span>
+          <span>实际时长 · ~30 min(含 venv 搭建)</span>
           <span>回退 · 删 paired.tsv 重跑</span>
         </div>
 
         <div class="task-group">
           <div class="task-group-head">动作 · do</div>
           <ul class="tasks">
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/eval/pinyinize.py</code></span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">用 <code>pypinyin.lazy_pinyin(miu, Style.NORMAL)</code> 对每个 MIU 回译</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">多音字 → train/dev 取默认读音,标记 <code>polyphone_default</code> 列</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">输出 <code>tools/eval/miu_set_paired.tsv</code> · 格式 <code>pinyin\thanzi\tflags</code></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">写 <code>tools/eval/pinyinize.py</code> · ~100 行 · 用 <code>pypinyin.lazy_pinyin(Style.NORMAL)</code>(无调)<span class="hint">附建 <code>tools/eval/.venv</code> + <code>requirements.txt</code>(PEP 668 brew Python 受保护,system pip 不能用)</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">用 <code>pypinyin.lazy_pinyin(miu, Style.NORMAL)</code> 对每个 MIU 回译 · 1.6 秒处理 50k</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">多音字检测用 <code>pinyin(c, heteronym=True)</code>,len > 1 即多音字 · 标记 <code>polyphone_default</code> flag <strong>47,640 行 (95.3%)</strong><span class="hint">flag 命中率高(常用字多音字多),CP-0.4 抽样时会用作"优先抽含多音字"信号</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">输出 <code>tools/eval/miu_set_paired.tsv</code> · 50001 行(含 header)· 格式 <code>pinyin\thanzi\tflags</code></span></li>
           </ul>
         </div>
 
         <div class="task-group">
           <div class="task-group-head">验收 · check</div>
           <ul class="tasks">
-            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>awk -F'\t' '{print NF}' &lt; miu_set_paired.tsv | sort -u</code> 只显示一行 "3"</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">行数与 miu_set.tsv 等 + 随机 10 行 visual check pypinyin 拼音合理 + 多音字行 flags 含 polyphone_default</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body"><code>awk -F'\t' '{print NF}' | sort -u</code> = <strong>"3"</strong> 唯一值 ✓</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">行数 50,000 = miu_set.tsv 行数 ✓ · 15 random 拼音合理(如 学生必须 → xue sheng bi xu)· 多音字行有 flag · 单音字行(源自河名)无 flag ✓</span></li>
           </ul>
         </div>
 
-        <div class="cp-verdict"><div class="text"><b>verdict</b>全部 ▣ → commit → 激活 CP-0.4</div></div>
+        <div class="cp-verdict"><div class="text"><b>verdict</b>6/6 ▣ done · commit → 激活 CP-0.4</div></div>
       </div>
     </div>
 
