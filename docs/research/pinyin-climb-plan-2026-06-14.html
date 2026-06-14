@@ -1,0 +1,1279 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>拼音引擎稳态爬升执行表 · inputx · 2026-06-14</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Noto+Serif+SC:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f4ecd8;
+  --paper-2:#ebe1c8;
+  --paper-3:#e0d4b6;
+  --ink:#1a2540;
+  --ink-2:#2a3556;
+  --ink-soft:#4a5474;
+  --vermillion:#c43a3a;
+  --vermillion-deep:#962b2b;
+  --gold:#a87f2c;
+  --moss:#5e6d3f;
+  --moss-deep:#3d4827;
+  --rule:#c8b886;
+  --rule-soft:#dccfa6;
+  --done:#5e6d3f;
+  --inprog:#c4842c;
+  --todo:#7a8499;
+  --danger:#962b2b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--paper);color:var(--ink);font-family:"Crimson Pro","Noto Serif SC",Georgia,serif;font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
+body{background-image:
+  radial-gradient(circle at 8% 6%, rgba(196,58,58,.04), transparent 30%),
+  radial-gradient(circle at 92% 94%, rgba(26,37,64,.05), transparent 35%),
+  repeating-linear-gradient(0deg, rgba(168,127,44,.02) 0 1px, transparent 1px 4px);}
+::selection{background:var(--ink);color:var(--paper)}
+
+section{padding:48px clamp(28px,3.5vw,72px);position:relative}
+section + section{border-top:1px solid var(--rule-soft)}
+
+h1,h2,h3,h4,h5{font-family:"Noto Serif SC","Crimson Pro",serif;color:var(--ink);font-weight:700;line-height:1.2}
+h2{font-size:clamp(32px,3.6vw,56px);font-weight:800;letter-spacing:-.01em}
+h3{font-size:clamp(22px,1.8vw,28px);margin-top:36px;margin-bottom:14px}
+h4{font-size:18px}
+p{margin-bottom:12px}
+code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.82em;background:rgba(26,37,64,.07);padding:1px 6px;border-radius:3px;color:var(--ink)}
+a{color:var(--vermillion-deep);text-decoration:none;border-bottom:1px solid rgba(150,43,43,.3)}
+em{color:var(--vermillion-deep);font-style:italic}
+strong{color:var(--ink)}
+
+/* ===== hero ===== */
+.hero{padding:64px clamp(28px,3.5vw,72px) 48px;position:relative}
+.hero-frame{border:2px solid var(--ink);padding:clamp(24px,3vw,42px);background:rgba(244,236,216,.45);position:relative}
+.hero-frame::before,.hero-frame::after{content:"";position:absolute;width:16px;height:16px;border:2px solid var(--vermillion);background:var(--paper)}
+.hero-frame::before{top:-9px;left:-9px}
+.hero-frame::after{bottom:-9px;right:-9px}
+.brand{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--vermillion-deep);margin-bottom:14px}
+.hero h1{font-family:"Noto Serif SC",serif;font-size:clamp(44px,5.8vw,96px);font-weight:900;letter-spacing:-.02em;line-height:.98;color:var(--ink)}
+.hero h1 .red{color:var(--vermillion);font-style:italic;font-weight:700}
+.hero-sub{margin-top:22px;font-size:clamp(18px,1.4vw,22px);color:var(--ink-2);max-width:1200px;line-height:1.55;font-style:italic}
+.assumptions{margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px 28px;padding:18px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.assumptions dl dt{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;color:var(--vermillion-deep);text-transform:uppercase;margin-bottom:3px}
+.assumptions dl dd{font-family:"Noto Serif SC",serif;font-size:14px;color:var(--ink)}
+
+/* ===== overview gantt ===== */
+.gantt{margin-top:28px;border:1px solid var(--ink);background:var(--paper-2)}
+.gantt-row{display:grid;grid-template-columns:160px 1fr 100px;gap:0;border-bottom:1px solid var(--rule-soft);align-items:stretch}
+.gantt-row:last-child{border-bottom:none}
+.gantt-row.header{background:var(--ink);color:var(--paper)}
+.gantt-row.header > div{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:10px 14px}
+.gantt-row .label{padding:14px;font-family:"Noto Serif SC",serif;font-weight:600;font-size:14px;color:var(--ink);border-right:1px solid var(--rule-soft);display:flex;flex-direction:column;justify-content:center}
+.gantt-row .label .sub{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-soft);letter-spacing:.1em;font-weight:400;margin-top:3px}
+.gantt-row .bar{padding:14px;position:relative;display:flex;align-items:center}
+.gantt-row .bar .inner{height:18px;background:linear-gradient(90deg,var(--vermillion),var(--vermillion-deep));border-radius:1px;position:relative;display:flex;align-items:center;padding:0 10px;color:white;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em}
+.gantt-row .weeks{padding:14px;font-family:"Bebas Neue",sans-serif;font-size:24px;color:var(--vermillion);text-align:right;border-left:1px solid var(--rule-soft);line-height:1}
+.gantt-row .weeks small{display:block;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-soft);letter-spacing:.1em;font-weight:400;margin-top:2px}
+
+/* phase color bands */
+.p0{--accent:#7a8499}
+.p1{--accent:#5e6d3f}
+.p2{--accent:#c43a3a}
+.p3{--accent:#962b2b}
+.p4{--accent:#a87f2c}
+.p5{--accent:#2a3556}
+
+.phase-band{margin:48px 0 0;background:var(--accent);color:var(--paper);padding:18px clamp(28px,3.5vw,72px);margin-left:calc(-1 * clamp(28px,3.5vw,72px));margin-right:calc(-1 * clamp(28px,3.5vw,72px));position:relative}
+.phase-band::after{content:"";position:absolute;bottom:-8px;left:0;width:100%;height:8px;background:repeating-linear-gradient(90deg,var(--accent) 0 8px,transparent 8px 16px)}
+.phase-band .ptag{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.3em;text-transform:uppercase;opacity:.7;margin-bottom:4px;display:block}
+.phase-band h3{color:var(--paper);font-family:"Noto Serif SC",serif;font-weight:700;font-size:clamp(24px,2.4vw,36px);border:none;padding:0;margin:0}
+.phase-band .meta{margin-top:8px;font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.1em;opacity:.85;display:flex;gap:20px;flex-wrap:wrap}
+.phase-band .meta span::before{content:"·";margin-right:8px;opacity:.5}
+.phase-band .meta span:first-child::before{content:""}
+
+.phase-intro{margin:24px 0 16px;font-size:17px;line-height:1.65;color:var(--ink-2);font-style:italic;border-left:3px solid var(--accent);padding:8px 0 8px 18px;background:linear-gradient(90deg,rgba(0,0,0,.02),transparent)}
+.phase-gate{margin:24px 0;background:rgba(0,0,0,.04);border:1px dashed var(--accent);padding:18px 22px}
+.phase-gate b{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:8px}
+.phase-gate ul{list-style:none;padding:0;margin:0;font-size:15px;line-height:1.7}
+.phase-gate li{padding-left:22px;position:relative}
+.phase-gate li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:bold}
+
+/* ===== checkpoint cards ===== */
+.cp-grid{display:grid;grid-template-columns:1fr;gap:18px;margin-top:20px}
+@media(min-width:1100px){.cp-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1600px){.cp-grid{grid-template-columns:repeat(3,1fr)}}
+
+.cp{background:var(--paper-2);border:1px solid var(--rule);position:relative;display:flex;flex-direction:column}
+.cp::before{content:"";position:absolute;top:0;left:0;width:5px;height:100%;background:var(--accent)}
+.cp-head{padding:14px 18px 12px 24px;border-bottom:1px solid var(--rule-soft);display:flex;justify-content:space-between;align-items:flex-start;gap:14px;background:rgba(0,0,0,.02)}
+.cp-id{font-family:"Bebas Neue",sans-serif;font-size:22px;color:var(--accent);letter-spacing:.04em;line-height:1}
+.cp-title{font-family:"Noto Serif SC",serif;font-weight:700;font-size:16px;color:var(--ink);margin-top:4px;line-height:1.3}
+.cp-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.cp-status{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;padding:2px 7px;border-radius:2px;background:var(--todo);color:white;font-weight:600}
+.cp-status.done{background:var(--done)}
+.cp-status.inprog{background:var(--inprog)}
+.cp-est{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.05em}
+
+.cp-body{padding:14px 18px 16px 24px;font-size:14px;line-height:1.6;display:flex;flex-direction:column;gap:14px;flex:1}
+.cp-row{display:flex;flex-direction:column;gap:6px}
+.cp-row .rt{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.cp-row .rv{font-size:13.5px;color:var(--ink-2);line-height:1.55}
+.cp-row .rv ul, .cp-row .rv ol{margin:2px 0 0 18px;padding:0}
+.cp-row .rv li{margin-bottom:4px}
+.cp-row .rv code{font-size:.85em}
+.cp-row.accept .rv li{list-style:none;padding-left:18px;position:relative}
+.cp-row.accept .rv li::before{content:"☐";position:absolute;left:0;color:var(--moss);font-weight:bold}
+
+.cp-row.prereq .rv{color:var(--ink-soft);font-style:italic;font-size:12.5px}
+.cp-row.rollback{padding-top:10px;border-top:1px dashed var(--rule-soft);margin-top:auto}
+.cp-row.rollback .rt{color:var(--danger)}
+.cp-row.rollback .rv{color:var(--ink-soft);font-size:12.5px}
+
+/* ===== decision tree section ===== */
+.dtree{display:grid;grid-template-columns:1fr;gap:18px;margin-top:24px}
+@media(min-width:1000px){.dtree{grid-template-columns:repeat(2,1fr)}}
+.dnode{border:1px solid var(--ink);background:var(--paper-2);padding:22px 26px}
+.dnode .dtag{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--vermillion-deep);margin-bottom:8px}
+.dnode h4{font-family:"Noto Serif SC",serif;font-size:18px;margin-bottom:10px;color:var(--ink)}
+.dnode .if{font-style:italic;color:var(--ink-2);font-size:14px;margin-bottom:10px;padding:8px 12px;background:rgba(196,58,58,.05);border-left:3px solid var(--vermillion)}
+.dnode .then{font-size:14px;line-height:1.7;color:var(--ink-2)}
+
+/* ===== legend ===== */
+.legend{display:flex;flex-wrap:wrap;gap:10px 18px;font-size:12px;font-family:"JetBrains Mono",monospace;letter-spacing:.1em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:14px;align-items:center}
+.legend .l{display:flex;align-items:center;gap:6px}
+.legend .l::before{content:"";display:inline-block;width:14px;height:14px;border-radius:2px;background:var(--accent)}
+.legend .lt::before{background:var(--todo)}
+.legend .ld::before{background:var(--done)}
+.legend .li::before{background:var(--inprog)}
+
+/* ===== footer ===== */
+.foot{background:var(--ink);color:var(--paper);padding:48px clamp(28px,3.5vw,72px)}
+.foot h3{color:var(--paper);border:none;font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.2em;text-transform:uppercase;margin-top:0}
+.foot a{color:#e6a370;border-bottom-color:rgba(230,163,112,.3)}
+.foot .col{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:28px;margin-top:14px}
+.foot .credit{margin-top:32px;padding-top:18px;border-top:1px solid rgba(244,236,216,.15);font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,236,216,.5);display:flex;justify-content:space-between;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<!-- ====================== HERO ====================== -->
+<section class="hero">
+  <div class="hero-frame">
+    <div class="brand">execution workbook · pinyin engine climb · 2026.06.14</div>
+    <h1>稳态<span class="red">爬升</span><br>执行表。</h1>
+    <p class="hero-sub">配套 <a href="./pinyin-quality-gap-2026-06-14.html">《拼音引擎质量差距研究》</a> 的工作手册 —— 把"差一代"翻译成 <strong>6 个阶段 / 38 个 checkpoint</strong>,每个 CP 1-7 天可完成,带前置 / 动作 / 验收 / 时长 / 回退五字段。不画理想图,只画下一脚的落点。<br><br><strong style="color:var(--vermillion-deep)">⚠ 上位约束</strong>:本表所有改动必须服从 <a href="./inputx-engine-constitution-2026-06-14.html">《引擎宪法 · 七律》</a> —— 学主流任何东西都不能破我们的金身(wx > px > nx + 正交矩阵)。开工前必读宪法,每 CP 完成时必跑违宪自检。</p>
+
+    <div class="assumptions">
+      <dl><dt>工程师投入假设</dt><dd>单人 · half-time · 每日 4 小时实际开发</dd></dl>
+      <dl><dt>稳态约束</dt><dd>polish 工作流不中断 · gate / λ 可随时回退 · 每改一处必能跑 MIU 量化</dd></dl>
+      <dl><dt>总时长估</dt><dd>26 周(6.5 月)抵达 Phase 4 末;Phase 5 持续</dd></dl>
+      <dl><dt>立场</dt><dd>不写"未来某天再说";每一步都能在下班前 commit</dd></dl>
+      <dl><dt>验收哲学</dt><dd>所有 ☐ 项必须机械可观察(grep / cargo test / cat 输出)</dd></dl>
+      <dl><dt>回退哲学</dt><dd>每一步设计上"翻 const / revert commit"即可退回</dd></dl>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== 全景甘特 ====================== -->
+<section>
+  <h2>全景 · 6 阶段 / 26 周</h2>
+  <p style="margin-top:10px;color:var(--ink-soft);font-style:italic">这不是"理想终态"的草图,是按周可勾选的工程节奏。横条长度按 CP 数估算,不按"理想速度"灌水。</p>
+
+  <div class="gantt">
+    <div class="gantt-row header">
+      <div>Phase</div>
+      <div>Span</div>
+      <div>Weeks</div>
+    </div>
+    <div class="gantt-row">
+      <div class="label">Phase 0<span class="sub">评测脚手架</span></div>
+      <div class="bar"><div class="inner" style="width:11%;background:linear-gradient(90deg,#7a8499,#5d6680)">2-3w · 7 CP · 不动引擎</div></div>
+      <div class="weeks">3<small>weeks</small></div>
+    </div>
+    <div class="gantt-row">
+      <div class="label">Phase 1<span class="sub">逐周翻 gate</span></div>
+      <div class="bar"><div class="inner" style="width:17%;background:linear-gradient(90deg,#5e6d3f,#3d4827)">4w · 4 CP · 每周 1 gate</div></div>
+      <div class="weeks">4<small>weeks</small></div>
+    </div>
+    <div class="gantt-row">
+      <div class="label">Phase 2<span class="sub">真 LM 上线</span></div>
+      <div class="bar"><div class="inner" style="width:30%">7w · 7 CP · LM + Viterbi</div></div>
+      <div class="weeks">7<small>weeks</small></div>
+    </div>
+    <div class="gantt-row">
+      <div class="label">Phase 3<span class="sub">联合 lattice</span></div>
+      <div class="bar"><div class="inner" style="width:22%;background:linear-gradient(90deg,#962b2b,#6e1f1f)">5w · 6 CP · 多路径 → lattice</div></div>
+      <div class="weeks">5<small>weeks</small></div>
+    </div>
+    <div class="gantt-row">
+      <div class="label">Phase 4<span class="sub">用户 bigram</span></div>
+      <div class="bar"><div class="inner" style="width:13%;background:linear-gradient(90deg,#a87f2c,#7a5b1f)">3w · 4 CP · L0 升级</div></div>
+      <div class="weeks">3<small>weeks</small></div>
+    </div>
+    <div class="gantt-row">
+      <div class="label">Phase 5<span class="sub">trigram + 打磨</span></div>
+      <div class="bar"><div class="inner" style="width:18%;background:linear-gradient(90deg,#2a3556,#1a2540)">4w+ · 持续 · 朝行业水平</div></div>
+      <div class="weeks">∞<small>ongoing</small></div>
+    </div>
+  </div>
+
+  <div style="margin-top:24px;font-size:14px;color:var(--ink-soft);font-style:italic">总计 <strong style="color:var(--ink)">38 个 checkpoint</strong> · 抵达 Phase 4 末 ≈ 22 周 · Phase 5 进入持续运营节奏。</div>
+</section>
+
+
+<!-- ====================== PHASE 0 ====================== -->
+<section class="p0">
+  <div class="phase-band">
+    <span class="ptag">Phase 0 · foundation</span>
+    <h3>评测脚手架 + 数据闭环</h3>
+    <div class="meta"><span>7 CP</span><span>2-3 周</span><span>不动引擎</span><span>地基 · 不可省</span></div>
+  </div>
+
+  <p class="phase-intro">为什么先做这个 —— 没有数字,后面所有改动都是"凭感觉"。这一阶段不碰引擎一行代码,只搭"我说的话能不能被验证"的基础设施。完成后,每一次后续改动都能产生一个 ±X% 的可比数字。</p>
+
+  <div class="legend">
+    <span class="l lt">待开始</span>
+    <span class="l li">进行中</span>
+    <span class="l ld">已完成</span>
+  </div>
+
+  <div class="cp-grid">
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-0.1</div><div class="cp-title">语料拉取与归位</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">0.5-1 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">无 · 这是起点</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>在仓库新建 <code>tools/eval/corpus/raw/</code></li>
+          <li>下载 zhwiki latest dump → <code>tools/eval/corpus/raw/wiki/</code></li>
+          <li>下载 LCCC-base → <code>tools/eval/corpus/raw/lccc/</code></li>
+          <li>抓 People's Daily online 近一年新闻 → <code>tools/eval/corpus/raw/pd/</code>,目标 ≥10万句</li>
+          <li>在 <code>tools/eval/SOURCES.md</code> 记录每份的 URL / 大小 / license / 抓取日期</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li><code>du -sh tools/eval/corpus/raw/{wiki,lccc,pd}</code> 每组 ≥ 100 MB</li>
+          <li><code>wc -l</code> 每组显示行数</li>
+          <li>每组随机 100 行 <code>shuf -n 100 | cat</code> 可读、无乱码</li>
+          <li><code>SOURCES.md</code> 含三组的 license 字段</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv"><code>rm -rf tools/eval/corpus/</code> 重来。无副作用。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-0.2</div><div class="cp-title">切句 + MIU 化</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">1 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-0.1</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>写 <code>tools/eval/build_miu_set.py</code></li>
+          <li>用 jieba 切句(<code>HMM=False</code> + 自定义词典)</li>
+          <li>按 <code>。!?…</code> 切句 → 提取 MIU(非汉字分隔的最长连续汉字段,定义见 Jia & Zhao 2013)</li>
+          <li>过滤:句长 4-120 字 + 汉字占比 ≥ 0.6</li>
+          <li>MinHash 句级去重(阈值 0.85)</li>
+          <li>输出 <code>tools/eval/miu_set.tsv</code> · 一列 hanzi MIU</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li><code>wc -l tools/eval/miu_set.tsv</code> ≥ 40000</li>
+          <li><code>head -100</code> 可读、句子完整、无明显碎片</li>
+          <li>抽 200 行 visual check 无 markup 残留</li>
+          <li>脚本带 <code>--seed</code>,二次跑结果 byte-equal</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">删 <code>miu_set.tsv</code> 改脚本重跑。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-0.3</div><div class="cp-title">pinyin 回译配对</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">0.5 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-0.2</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>写 <code>tools/eval/pinyinize.py</code></li>
+          <li>用 <code>pypinyin.lazy_pinyin(miu, Style.NORMAL)</code> 对每个 MIU 回译</li>
+          <li>多音字:train/dev 取默认读音,标记 <code>polyphone_default</code></li>
+          <li>输出 <code>tools/eval/miu_set_paired.tsv</code>,格式 <code>pinyin\thanzi\tflags</code></li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li><code>awk -F'\t' '{print NF}' | sort -u</code> 只显示一行 "3"</li>
+          <li>行数与 miu_set.tsv 等</li>
+          <li>随机 10 行 visual check pypinyin 拼音合理</li>
+          <li>多音字行的 <code>flags</code> 包含 <code>polyphone_default</code></li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">删 paired.tsv 重跑。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-0.4</div><div class="cp-title">人审金标 1000 条</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">1-2 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-0.3</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>从 paired set 随机抽 1000 行,优先含多音字字符的句子</li>
+          <li>对每条人审 pinyin 是否准确(可用 LLM 辅助 + 人工抽检 20%)</li>
+          <li>输出 <code>tools/eval/gold_1000.tsv</code> · 含 <code>quality_verified=true</code> 列</li>
+          <li>另存原 paired 作 <code>silver_full.tsv</code></li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li><code>wc -l gold_1000.tsv</code> = 1001(含 header)</li>
+          <li>所有行 <code>quality_verified=true</code></li>
+          <li>至少 50 行含多音字字符(用 polyphone 字符集 grep)</li>
+          <li>抽 50 行让另一个人复审,一致率 ≥ 95%</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">删 gold_1000.tsv 重审。这是一次性投入,不必频繁回退。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-0.5</div><div class="cp-title">MIU runner 实现</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">2-3 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-0.4</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>写 <code>tools/eval/runner/</code>(Rust binary,复用 inputx-pinyin crate)</li>
+          <li>读 <code>gold_1000.tsv</code> + <code>silver_full.tsv</code></li>
+          <li>每行 pinyin 灌进 <code>PinyinAdapter</code>,取 top-1/5/10 候选</li>
+          <li>计算 Top-K MIU accuracy(候选是否含金标 hanzi 串)</li>
+          <li>输出 <code>tools/eval/results/{date}.json</code>,字段 <code>top1, top5, top10, gold_top1, silver_top1, per_polyphone_top1</code></li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li><code>cargo run -p inputx-eval-runner --release</code> 跑完不 panic</li>
+          <li>JSON 含 6 个字段,值为 [0, 1] 之间的浮点</li>
+          <li>结果首次跑作 <code>baseline.json</code> 存档(基线)</li>
+          <li>命令带 <code>--diff baseline.json</code> 能输出 ±X% 对照</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">runner 是只读工具,无副作用;改坏直接 git revert。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-0.6</div><div class="cp-title">外部对照线</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">1-2 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-0.5</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>本地装 libpinyin(<code>brew install libpinyin</code> 或源码编译)</li>
+          <li>写 <code>tools/eval/runner_libpinyin.py</code> 调用 libpinyin Python binding</li>
+          <li>同一份 <code>gold_1000.tsv</code> + <code>silver_full.tsv</code> 灌进 libpinyin,取 top-K</li>
+          <li>同样计算 Top-K MIU,输出 <code>tools/eval/baselines/libpinyin.json</code></li>
+          <li>同模式可选加 SunPinyin(若装得动)</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>libpinyin.json 含同样 6 字段</li>
+          <li><code>tools/eval/COMPARE.md</code> 表格列出 inputx vs libpinyin 三个 Top-K 数字</li>
+          <li>差距数字落在合理范围(libpinyin 应当显著领先;若不,说明评测 harness 有 bug,回 CP-0.5)</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">装不上 libpinyin 就先用 SunPinyin 或纯字典 baseline;不能放弃整条对照线。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-0.7</div><div class="cp-title">CI 集成 + 报警阈值</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">1 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-0.5</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>把 MIU runner 加进 <code>cargo test --features eval</code></li>
+          <li>(可选)GitHub Actions 跑 <code>cargo run -p inputx-eval-runner -- --diff main</code></li>
+          <li>变化超 ±2% 触发 PR comment</li>
+          <li>故意改坏一个 path 测试 CI 是否捕捉</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>本地 <code>cargo test --features eval</code> 通过</li>
+          <li>构造一个会让 Top-1 掉 5% 的改动,CI 必须报警</li>
+          <li>改动 revert 后 CI 恢复绿</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">CI 配置可单独 revert,不影响主代码。</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-gate">
+    <b>Phase 0 验收门 · 不通过禁止进入 Phase 1</b>
+    <ul>
+      <li>能跑出 <code>top1 / top5 / top10</code> 三个稳定数字(连跑三次方差 < 0.5%)</li>
+      <li>有 libpinyin(或 SunPinyin)对照线,差距数字成文</li>
+      <li>每次改动可量化(CI 自动 diff baseline)</li>
+      <li>金标 1000 条人审完毕、版本化</li>
+      <li><strong>宪法门</strong> · 评测集中无 hardcoded "应该 #0"列表(防作弊数据蒙混过门)</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ====================== PHASE 1 ====================== -->
+<section class="p1">
+  <div class="phase-band">
+    <span class="ptag">Phase 1 · unleash</span>
+    <h3>逐周翻 gate · 把已有能力还给用户</h3>
+    <div class="meta"><span>4 CP</span><span>4 周</span><span>每周 1 gate</span><span>实现已存 / 仅开关</span></div>
+  </div>
+
+  <p class="phase-intro">这一阶段不写新代码 —— 把四个已经做好但被关掉的 gate 逐周打开。每个 CP 走同一套模式:baseline 跑数字 → 翻 const → 再跑数字 → polish-log replay 95% 守 → 实机 soak 1 周 → 决定保留或回退。</p>
+
+  <div class="cp-grid">
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-1.1</div><div class="cp-title">翻 PINYIN_DISABLE_FUZZY</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">2-3 天 + 5-7 天 soak</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">Phase 0 通过</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>跑 baseline MIU,存 <code>gate_baselines/pre_fuzzy.json</code></li>
+          <li>新 branch <code>feature/gate-open-fuzzy</code></li>
+          <li>翻 <code>PINYIN_DISABLE_FUZZY</code> = <code>false</code></li>
+          <li>跑 MIU,存 <code>post_fuzzy.json</code>,与 pre diff</li>
+          <li>跑 polish-log replay(从已有 polish 报告自动回放),记录翻转率</li>
+          <li>跑 70+ 内部 baseline 测试,必须 100% 过</li>
+          <li>reinstall.py 装上 mac 端,自己 daily-use 5-7 天</li>
+          <li>收到 polish 报告 1-3 个,正常处理流程</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>Top-1 MIU 不掉超过 2%(可接受小退;若升更好)</li>
+          <li>polish-log wins 翻转率 ≤ 5%</li>
+          <li>70+ baseline 100% 通过</li>
+          <li>5-7 天实机 daily-use 无新增 regression 报告</li>
+          <li>git-flow merge 到 develop · push origin</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">翻 const 回 <code>true</code>,polish 改动保留。git revert merge commit。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-1.2</div><div class="cp-title">翻 PINYIN_DISABLE_ASSOCIATION</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">2-3 天 + 5-7 天 soak</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-1.1 通过</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv">同 CP-1.1 模式 · branch <code>feature/gate-open-association</code> · 翻 ASSOCIATION = false</div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>Top-1 MIU 不掉超过 2%</li>
+          <li>polish-log wins 翻转率 ≤ 5%</li>
+          <li>70+ baseline 100% 通过</li>
+          <li>5-7 天 daily-use 验证</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">翻回 true · git revert merge commit。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-1.3</div><div class="cp-title">翻 PINYIN_DISABLE_COMPOSE</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">2-3 天 + 7 天 soak</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-1.2 通过 · 这条牵连最广,慎</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv">同模式 · branch <code>feature/gate-open-compose</code> · 翻 COMPOSE = false · Path 0b Viterbi composition 启用</div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>Top-1 MIU 必须升 ≥ 3%(因为 Viterbi 是关键功能;若不升说明 bigram support 表覆盖不够,记录待 Phase 2 处理)</li>
+          <li>≥ 8 字节长 buffer 的 case 显著改善(单独跑长 buffer subset)</li>
+          <li>polish-log wins 翻转率 ≤ 10%(Viterbi 会改一些默认顺序,容忍度更高)</li>
+          <li>70+ baseline 100%</li>
+          <li>7 天 daily-use 含长句输入测试</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">翻回 true · 此为最易回退点,COMPOSE 是隔离 const。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-1.4</div><div class="cp-title">翻 PINYIN_DISABLE_PREDICTION</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">2-3 天 + 7 天 soak</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-1.3 通过 · 这条用户体验差异最大,放最后</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv">同模式 · branch <code>feature/gate-open-prediction</code> · 翻 PREDICTION = false · 上屏后联想启用</div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>MIU 数字不变(prediction 不影响主候选 ranking)</li>
+          <li>新增"prediction click-through rate" log,daily-use 期间记录</li>
+          <li>polish-log wins 不变</li>
+          <li>7 天 daily-use 不触发"联想骚扰"用户感(主观判断 + 1 个外部 alpha 用户)</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">翻回 true · 此 const 完全隔离。</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-gate">
+    <b>Phase 1 验收门</b>
+    <ul>
+      <li>4 个 gate 全开(grep 源码 4 个 <code>= true</code> 全部不见)</li>
+      <li>Top-1 MIU 累计变化在 -2% 到 +5% 之间(允许小退,期待小升)</li>
+      <li>polish-log wins 累计翻转率 ≤ 15%</li>
+      <li>无回退记录(若有,需写 root-cause memo 才能进 Phase 2)</li>
+      <li><strong>宪法门</strong> · <code>cargo test session::wubi_simcode_priority</code> 全过 · 五笔肌肉记忆未受 gate 开启影响</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ====================== PHASE 2 ====================== -->
+<section class="p2">
+  <div class="phase-band">
+    <span class="ptag">Phase 2 · upgrade engine</span>
+    <h3>真 bigram LM 上线</h3>
+    <div class="meta"><span>7 CP</span><span>7 周</span><span>新写代码 · 加 LM 项</span><span>这是底盘升级,最重</span></div>
+  </div>
+
+  <p class="phase-intro">把"unigram + binary bigram support"升级到"unigram + 真 bigram log-prob"。这是从"频率表"过渡到"语言模型"的关键一跃。所有后续能力(联合 lattice、用户 bigram、trigram)都建在它上面。</p>
+
+  <div class="cp-grid">
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-2.1</div><div class="cp-title">语料 + license 确认</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">1 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">Phase 1 通过</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>从 Phase 0 已有 wiki + LCCC + PD 出发</li>
+          <li>加一份 CC-100 zh 子采样(~10 GB)→ <code>tools/scoring/09_bigram_lm/raw/cc100/</code></li>
+          <li>记录每份在 <code>tools/scoring/09_bigram_lm/sources.yaml</code>:URL / 版本 / 大小 / license / 商用风险评级</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li><code>sources.yaml</code> 含 4 份,每份有 license + commerce_risk 字段</li>
+          <li>所有 commerce_risk 为 <code>safe</code> 或 <code>note</code>;无 <code>blocked</code>(如有 blocked 必须撤下)</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">删 cc100 子目录,退回 3 源。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-2.2</div><div class="cp-title">清洗 pipeline 落地</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">3-5 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-2.1</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>写 <code>tools/scoring/09_bigram_lm/clean.py</code>,严格按 §06.7 配方:</li>
+          <li>① wikiextractor 解 wiki XML</li>
+          <li>② 去 boilerplate([edit] [citation needed] URL token)</li>
+          <li>③ fasttext lid (阈值 0.7) 丢非 zh</li>
+          <li>④ OpenCC <code>t2s.json</code> 繁简归一</li>
+          <li>⑤ 按 <code>[。!?…]+</code> 切句</li>
+          <li>⑥ 长度 4-120 + 汉字占比 ≥ 0.6 过滤</li>
+          <li>⑦ MinHash 句级去重</li>
+          <li>⑧ jieba.cut(HMM=False) + 加自定义词典(从 library.tsv top-100k phrase dump)</li>
+          <li>输出 <code>tools/scoring/09_bigram_lm/cleaned.txt</code>(分词后,空格分隔)</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li><code>wc -l cleaned.txt</code> ≥ 10,000,000 句</li>
+          <li><code>wc -w cleaned.txt</code> 显示词数估算(应在 1-3 亿)</li>
+          <li>抽 200 行 cat,看不到 markup 残留</li>
+          <li>每步可单独 rerun(脚本带 step argument)</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">每步产物可单独删,流程是 resumable 的。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-2.3</div><div class="cp-title">KenLM 训 bigram</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">1-2 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-2.2</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>装 KenLM(<code>brew install kenlm</code> 或源码)</li>
+          <li><code>bin/lmplz -o 2 --prune 0 0 < cleaned.txt > bigram.arpa</code>(modified Kneser-Ney 默认)</li>
+          <li><code>bin/build_binary trie bigram.arpa bigram.binary</code></li>
+          <li>记录训练日志(<code>training.log</code>),含 ngram count、内存 peak、运行时间</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li><code>bigram.binary</code> 存在,体积 100MB-1GB</li>
+          <li><code>bin/query bigram.binary</code> 输入"<code>中国 人</code>"返回合理 log-prob(应该 > -4,接近 -2)</li>
+          <li>输入"<code>中国 嘎</code>"返回低 log-prob(< -8)</li>
+          <li><code>training.log</code> 显示 OOV rate < 5%</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">删 bigram.binary,改参数重训。完全可重复。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-2.4</div><div class="cp-title">KenLM Rust binding</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">3-5 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-2.3</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>核 <code>kenlm-rs</code> crate 是否够用;不够则 cxx-bridge 写最小 FFI</li>
+          <li>在 <code>core/crates/inputx-pinyin/</code> 新建 <code>src/bigram_lm.rs</code></li>
+          <li>定义 trait <code>LmBackend</code> · 方法 <code>log_prob(prev: &str, curr: &str) -> f32</code></li>
+          <li>实现 <code>KenLmBackend</code>,mmap 加载 <code>bigram.binary</code></li>
+          <li>写单测:查 ("中国", "人") 与 KenLM C++ query 结果一致(误差 < 0.01)</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li><code>cargo test -p inputx-pinyin bigram_lm</code> 通过</li>
+          <li>3 个 fixture query Rust 与 C++ 结果 byte-equal(转 string 后)</li>
+          <li>加载时间 < 100ms(mmap)</li>
+          <li>单次 query < 1μs(benchmark)</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">crate 是独立模块,删 src/bigram_lm.rs 不影响主路径。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-2.5</div><div class="cp-title">集成评分(可逆 λ)</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">5-7 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-2.4</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>在 Path 0b Viterbi 评分项加 <code>+ λ · log P(w_i | w_{i-1})</code></li>
+          <li>λ 通过 env var <code>PINYIN_LM_LAMBDA</code> 控制,起始值 0.3</li>
+          <li>λ=0 时完全等价 Phase 1 末</li>
+          <li>把 bigram.binary 作为 build asset 嵌入(或 runtime mmap)</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>λ=0 时 MIU 与 Phase 1 末数字 byte-equal(回归保护)</li>
+          <li>λ=0.3 时 Top-1 MIU <strong>必须升 ≥ 3%</strong>(关键 KPI;若不升说明 LM 质量不行,回 CP-2.2 reclean)</li>
+          <li>polish-log wins 翻转率 ≤ 10%</li>
+          <li>延迟 p95 < 30ms(基于 IME 实时性要求)</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">设 <code>PINYIN_LM_LAMBDA=0</code> 立即恢复 Phase 1 行为。const 设可调,无需 revert 代码。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-2.6</div><div class="cp-title">λ 调优 sweep</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">2-3 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-2.5</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>跑 λ ∈ {0.1, 0.2, 0.3, 0.5, 0.7, 1.0} 各一遍 MIU + polish-log wins</li>
+          <li>输出 <code>tools/eval/results/lm_lambda_sweep.tsv</code></li>
+          <li>选 sweet spot λ*(MIU 最优 + wins 翻转率 < 10%)</li>
+          <li>把 λ* 写入 const,删 env var(或留作 debug override)</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>sweep TSV 含 6 行 × (λ, top1, top5, top10, wins_flip_rate, p95_latency)</li>
+          <li>λ* 入 const,build 后 <code>strings ./inputx | grep PINYIN_LM_LAMBDA</code> 显示选定值</li>
+          <li>选 λ* 的理由写入 commit message</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">λ* 回 0 即等价 Phase 1 末。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-2.7</div><div class="cp-title">全 buffer 启用 Viterbi</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">3-5 天 + 7 天 soak</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-2.6</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>把 Path 0b 的 ≥ 8 字节阈值降到 ≥ 2 字节</li>
+          <li>短 buffer 走简化版 Viterbi(beam=8)</li>
+          <li>长 buffer 走 beam=32(memory budget)</li>
+          <li>跑 MIU,关注短 buffer(2-4 字节)的细分指标</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>短 buffer subset 的 Top-1 MIU 升 ≥ 5%</li>
+          <li>常用 2-3 字短词(如"中国" "你好")排序<strong>不能恶化</strong> —— 跑 baseline 70+ 守</li>
+          <li>p95 延迟 < 30ms</li>
+          <li>7 天 daily-use 无新短词排序投诉</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">阈值恢复 8 字节。是 const 改动,翻一行即可。</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-gate">
+    <b>Phase 2 验收门</b>
+    <ul>
+      <li>Top-1 MIU 相对 Phase 1 末 提升 ≥ 5%(关键 KPI)</li>
+      <li>polish-log wins 翻转率 ≤ 10%</li>
+      <li>p95 延迟 < 30ms · 内存 footprint 增 < 200MB</li>
+      <li>bigram.binary 体积 < 200MB(若超,Phase 5 处理裁剪)</li>
+      <li>vs libpinyin 差距数字应明显缩小(对照 CP-0.6 baseline)</li>
+      <li><strong>宪法门</strong> · LM 项<em>只对 pinyin engine 的候选</em>加分,wubi / nihongo 候选评分公式未变 · wx / nx 引擎内 baseline 测试全过</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ====================== PHASE 3 ====================== -->
+<section class="p3">
+  <div class="phase-band">
+    <span class="ptag">Phase 3 · unify</span>
+    <h3>联合 lattice · 多路径融合</h3>
+    <div class="meta"><span>6 CP</span><span>5 周</span><span>架构性重构</span><span>最难一阶段</span></div>
+  </div>
+
+  <p class="phase-intro">最难的一阶段。把"七路径并联 + 后置融合"重构成"单 lattice + Viterbi 一次解码"。每条 path 转成 lattice 的一种边(Exact / Fuzzy / Typo / Abbrev),所有边在同一概率空间打分。完成后,删旧多路径代码 ≥ 30%。</p>
+
+  <div class="cp-grid">
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-3.1</div><div class="cp-title">Lattice 数据结构设计</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">3-5 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">Phase 2 通过</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>新建 <code>core/crates/inputx-pinyin/src/lattice.rs</code></li>
+          <li>定义 <code>struct Edge { from: usize, to: usize, candidate: Word, log_prob: f32, kind: EdgeKind }</code></li>
+          <li><code>enum EdgeKind { Exact, Fuzzy(f32), Typo(f32), Abbrev(f32) }</code> · f32 为该类型的 channel log-prob</li>
+          <li><code>struct Graph { nodes: Vec<Node>, edges: Vec<Edge>, viterbi(beam) -> Vec<Path> }</code></li>
+          <li>单测:构造 toy lattice(3 节点 4 边),Viterbi top-2 出正确两条路径</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li><code>cargo test lattice::tests</code> 通过(≥ 5 个 case)</li>
+          <li>toy fixture 包括 ambiguity(<code>xianjin → 现金/先进</code>)</li>
+          <li>API doc 含 example</li>
+          <li>不接入主路径(仅独立模块)</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">独立模块,删 src/lattice.rs 无影响。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-3.2</div><div class="cp-title">Path 1a (Exact) 迁移</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">3-4 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-3.1</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>新加 <code>PathToLattice</code> trait,Path 1a 实现:每条精确音节查询出的候选 → 一条 Exact 边</li>
+          <li>边权 = log_prior + log_likelihood(沿用现有 Q4)</li>
+          <li>新 const <code>USE_LATTICE</code> 默认 false;true 时走 lattice,false 时走旧 path</li>
+          <li>跑 MIU,USE_LATTICE=true 与 false 的数字 diff < 1%</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>对同一 buffer,两种模式 top-K 候选 set diff < 5%</li>
+          <li>USE_LATTICE=true 时 Path 1a 的 path 代码不再被调用(grep + 覆盖率工具核)</li>
+          <li>所有现有 baseline 测试在两种模式下都过</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">USE_LATTICE=false 即回旧。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-3.3</div><div class="cp-title">Path 1b (Fuzzy) 迁移 + log-prob</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">3-4 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-3.2</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>Fuzzy 边权 = exact 边权 + log P(fuzzy_pinyin | true_pinyin)</li>
+          <li>9 对模糊音的 log P 用经验值(估算 -2 到 -3,对应 13-15% 替换概率)</li>
+          <li>不再用 FUZZY_DISCOUNT × 0.3 的常数,改用真 channel log-prob</li>
+          <li>跑 MIU,Fuzzy 候选的排序应更符合直觉(模糊但常用的词应 surface 较高)</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>Top-1 MIU 不掉</li>
+          <li>fuzzy 子集 case(已建 fuzzy fixture) Top-3 命中率升 ≥ 5%</li>
+          <li>FUZZY_DISCOUNT const 在源码中已删除(grep 0 匹配)</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">USE_LATTICE=false。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-3.4</div><div class="cp-title">Path 1c (Typo) 迁移</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">2-3 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-3.3</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>2 辅音 typo 救援 → Typo 边,权 = log P(typo|true)</li>
+          <li>P(typo|true) 默认 0.05(经验值,可后续 sweep)</li>
+          <li>删 Path 1c 独立路径</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>typo fixture(pyin→拼音 等)Top-3 命中率不掉</li>
+          <li>正常输入 case 未误增 typo 候选(false positive 率)</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">USE_LATTICE=false。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-3.5</div><div class="cp-title">Path 2 (Abbrev) 迁移</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">2-3 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-3.4</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>简拼缩写(zg→中国)→ Abbrev 边,权 = log P(abbrev|full)</li>
+          <li>P(abbrev|full) 起始 0.02(简拼比 typo 更"刻意")</li>
+          <li>删 Path 2 独立路径</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>abbrev fixture(zg/bj/sh 等) Top-3 命中率不掉</li>
+          <li>不与 Path 1a 冲突(zg 仍能查到正常字)</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">USE_LATTICE=false。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-3.6</div><div class="cp-title">全切到 lattice + 删旧多路径</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">3-5 天 + 7 天 soak</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-3.2 - 3.5 全通过</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>翻 <code>USE_LATTICE</code> = true(默认)</li>
+          <li>删 Path 0a / 1a / 1b / 1c / 2 的旧实现代码</li>
+          <li>保留 Path 0b (Viterbi composition)作为 lattice 的长 buffer 后端</li>
+          <li>保留 Path 3a/3b (prefix / trim retry)作 lattice 的前缀补全</li>
+          <li>清理 dispatch.rs 的相关分支</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>MIU 数字相对 Phase 2 末 不掉(±2% 内)</li>
+          <li>代码行数减少 ≥ 30%(<code>tokei core/crates/inputx-pinyin/src/pinyin_adapter.rs</code> 对比)</li>
+          <li>USE_LATTICE 常量改成只读 true,或彻底删去(不可逆决定,做之前再 daily-use 7 天)</li>
+          <li>所有 baseline 测试通过</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">删代码前先打 tag <code>pre-lattice-cleanup</code>;事后回退用 git reset 到 tag。<strong>这是这一阶段唯一"半不可逆"的 CP,必须 soak 7 天再 commit cleanup。</strong></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-gate">
+    <b>Phase 3 验收门</b>
+    <ul>
+      <li>单一 lattice + Viterbi 一条决策路径(代码上验证)</li>
+      <li>MIU 相对 Phase 2 末 不退(±2% 内)</li>
+      <li>p95 延迟 < 30ms</li>
+      <li><code>pinyin_adapter.rs</code> 代码行数减 ≥ 30%</li>
+      <li>polish-log wins 翻转率 ≤ 5%(架构重构,数据应该不变)</li>
+      <li><strong>宪法门 · 重要</strong> · lattice 只在 <em>pinyin engine 内</em>构造 · wubi / nihongo 引擎仍独立产生候选 · merge 排序仍是矩阵唯一入口(<code>engine_gap_q4 = 110</code> 未动)</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ====================== PHASE 4 ====================== -->
+<section class="p4">
+  <div class="phase-band">
+    <span class="ptag">Phase 4 · personalize</span>
+    <h3>用户 bigram · L0 升级</h3>
+    <div class="meta"><span>4 CP</span><span>3 周</span><span>本地学 · 不上传</span><span>隐私优先</span></div>
+  </div>
+
+  <p class="phase-intro">L0 现在只学"用户在 buffer=X 偏好 word=Y"。这一阶段加 bigram 维度 —— 让用户的语言习惯能影响"下一词的概率"。完全本地,不上传(参考 Track C.5 Citizen Lab 报告)。</p>
+
+  <div class="cp-grid">
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-4.1</div><div class="cp-title">L0 schema 扩 user_bigram</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">2-3 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">Phase 3 通过</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>在 <code>ranking.rs</code> 加 <code>user_bigram: HashMap<(String, String), u32></code></li>
+          <li>持久化到 L0Snapshot v2(向后兼容 v1 加载)</li>
+          <li>provide <code>log_p_user(prev, curr) -> f32</code> · 用 Laplace 平滑 (+1)</li>
+          <li>单测:export → mutate → import → assertions equal</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>L0Snapshot v1 文件可被 v2 加载(向后兼容测试)</li>
+          <li>v2 -> v1 写入跳过 user_bigram(向前兼容)</li>
+          <li>3 个 fixture trans test</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">删 user_bigram 字段;v2 snapshot 转 v1 保留 pins。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-4.2</div><div class="cp-title">commit hook 写入 bigram</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">2 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-4.1</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>在 <code>pinyin_adapter.commit_at()</code> 加 hook</li>
+          <li>取 last_committed_word(若存在),把 (prev, curr) 计数 +1</li>
+          <li>跨 session 边界、跨 buffer 切换不计入(行为契约)</li>
+          <li>持久化通过现有 L0 snapshot 通道</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>fixture session(commit 10 个词)→ user_bigram 表含 9 条 bigram 计数</li>
+          <li>跨 session 测试:第二 session start 不与第一 session end 形成 bigram</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">注释掉 hook,user_bigram 表不再增长(已学的保留)。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-4.3</div><div class="cp-title">评分线性插值</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">3-4 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-4.2</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>lattice 的边权 LM 项改为:<code>(1 - λ_u) · log P_system + λ_u · log P_user</code></li>
+          <li>λ_u 起始 0.2(经验值,SunPinyin 是参考)</li>
+          <li>当 user_bigram 总 count < 100 时 λ_u 自动 0(冷启动保护)</li>
+          <li>P_user 用 Laplace 平滑;避免 -∞</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>fixture user 上屏 10 次"北京 大学"后,敲 <code>beijingdaxue</code> Top-1 = 北京大学(基线可能是 北京 + 大学)</li>
+          <li>未学过的 case 不受影响(冷启动 case MIU 数字不变)</li>
+          <li>polish-log wins 不翻转 ≥ 95%(LM 主信号未变)</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">λ_u = 0 立即关闭。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-4.4</div><div class="cp-title">用户可见性 + UI</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">2 天</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-4.3</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
+          <li>SettingsWindow 加"用户学习"开关(默认 on)</li>
+          <li>显示当前学到的 bigram 数量(只读)</li>
+          <li>提供"清空个人学习"按钮(secondary 颜色)</li>
+          <li>明示"所有学习数据仅本地存储,从不上传"</li>
+        </ol></div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>开关 off 时 user_bigram hook 不写入</li>
+          <li>清空按钮点击后 L0 snapshot 中 user_bigram 字段为空</li>
+          <li>UI 文案被外部 alpha 用户 review 一遍(明示隐私承诺)</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">UI 改动可单独 revert,不影响引擎。</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase-gate">
+    <b>Phase 4 验收门</b>
+    <ul>
+      <li>fixture 验证"用户语言偏好能影响排序"</li>
+      <li>L0 snapshot 向后兼容 v1</li>
+      <li>UI 明示隐私承诺 + 开关 + 清空</li>
+      <li>polish-log wins 翻转率 ≤ 5%</li>
+      <li>无任何网络通信(<code>tcpdump</code> session 验证)</li>
+      <li><strong>宪法门</strong> · user_bigram 只学拼音侧 commit · 不污染 wubi / nihongo 候选 · 不污染跨引擎评分</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ====================== PHASE 5 ====================== -->
+<section class="p5">
+  <div class="phase-band">
+    <span class="ptag">Phase 5 · refine · ongoing</span>
+    <h3>trigram + 顶盖打磨 · 朝行业水平</h3>
+    <div class="meta"><span>10+ CP</span><span>持续运营节奏</span><span>非阻塞 · 按需挑</span></div>
+  </div>
+
+  <p class="phase-intro">前 4 阶段完成后,inputx 应已接近 libpinyin 水平。Phase 5 是"持续打磨"节奏 —— 不再有"必须依次完成"的强依赖,可按用户反馈和能力优先级挑做。每个 CP 仍配 MIU 与 polish-log 守门。</p>
+
+  <div class="cp-grid">
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-5.1</div><div class="cp-title">trigram LM 上线</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">2 周</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">Phase 2 + 4 完成</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv">同 Phase 2 模式,跑 trigram(<code>lmplz -o 3</code>),加 trigram 项到 lattice 评分。注意内存(trigram.binary 可达 5GB,需 mmap)。</div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>Top-1 MIU 相对 Phase 4 末 升 ≥ 3%</li>
+          <li>内存 footprint 增 < 1GB(mmap 不算 RSS)</li>
+          <li>p95 延迟仍 < 30ms</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">λ_3 = 0 关 trigram 项,保留 bigram。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-5.2</div><div class="cp-title">细胞词库 schema + 示范包</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">2-3 周</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">Phase 1+2 完成</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv">设计 cell-dict schema(TOML / YAML);1-2 个示范包(IT 词汇 / 金融术语);用户可下载安装。</div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>schema 文档 + 一个示范包发布在 docs/</li>
+          <li>SettingsWindow 可勾选启用</li>
+          <li>启用后,领域专词排序明显提升</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">默认不启用任何包,主路径不受影响。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-5.3</div><div class="cp-title">键盘临近键 typo edge</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">1-2 周</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">Phase 3 完成</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv">在 lattice 加 typo 边(edit-distance ≤ 1),penalty 由 keyboard adjacency 加权。q→w / a→s 之类高;q→p 低。</div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>typo fixture(常见 typo)Top-3 命中率升 ≥ 5%</li>
+          <li>正常输入 case false positive < 1%</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">typo edge 总开关 const。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-5.4</div><div class="cp-title">长简拼(zhrmghg → 中华人民共和国)</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">1-2 周</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">Phase 3 完成</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv">长 abbrev 边 — 把每个辅音字母对应 phrase 首字母,penalty 由长度调。Viterbi 自然处理多种切分歧义。</div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>10 个常用长 abbrev fixture(zhrmghg / bjdx 等)Top-1 命中</li>
+          <li>不与短 abbrev(zg → 中国)冲突</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">长 abbrev 总开关。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-5.5</div><div class="cp-title">(可选)神经 rerank</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">3-4 周</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">Phase 5.1 (trigram) 完成 · 数字仍不够时再考虑</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv">本地 trigram 出 top-K,小型 NN(BERT-tiny 中文 quantized < 50MB,经 candle.rs)rerank top-N。模型严格控体积 < 50MB、延迟 < 10ms。</div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>Top-1 MIU 相对 Phase 5.1 升 ≥ 2%</li>
+          <li>模型 < 50MB</li>
+          <li>rerank 延迟 < 10ms p95</li>
+          <li>若数字不达标,直接 abandon —— 不为"显得有 NN"而做</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">删 rerank 模块,完全可逆。</div></div>
+      </div>
+    </div>
+
+    <div class="cp">
+      <div class="cp-head">
+        <div><div class="cp-id">CP-5.6</div><div class="cp-title">side-loadable freq overlay</div></div>
+        <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">1 周</span></div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">Phase 2 完成</div></div>
+        <div class="cp-row"><span class="rt">动作</span><div class="rv">一张可热加载的 polish-overlay TSV,运行时 merge 到 FST 查询之上。把"昨天才需要 polish 的词"从重建 dict 解耦。</div></div>
+        <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
+          <li>放一条 overlay → 重启 IME → 新 freq 生效(无需 rebuild dict)</li>
+          <li>overlay 删 → 回到 FST 默认</li>
+          <li>overlay 文件可被 polish 工作流写入</li>
+        </ul></div></div>
+        <div class="cp-row rollback"><span class="rt">回退</span><div class="rv">overlay 总开关。</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="phase-gate" style="--accent:#2a3556">
+    <b>Phase 5 节奏(非门控)</b>
+    <ul>
+      <li>不再有"必须依次"的硬依赖</li>
+      <li>每个 CP 完成后跑 MIU + polish-log 守</li>
+      <li>用户反馈驱动优先级 — 哪个差距用户感知最强先做</li>
+      <li>每完成一个 CP,把对应能力从"未做"挪到"已交付"</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ====================== 决策树 ====================== -->
+<section>
+  <h2>决策树 · 出问题怎么办</h2>
+  <p style="color:var(--ink-soft);font-style:italic;margin-top:10px">稳态路径不是"一定能走通" —— 是"任何一步出问题都有明确的回退点和决策依据"。这一节列 8 种典型"路上撞墙"场景。</p>
+
+  <div class="dtree">
+    <div class="dnode" style="border:3px solid var(--vermillion);background:rgba(196,58,58,.06)">
+      <div class="dtag" style="color:var(--vermillion-deep)">decision-00 · 总守门</div>
+      <h4>动了宪法 / 想动宪法</h4>
+      <div class="if">任何 CP 的改动 diff 含:per-entry const list / engine_gap_q4 / tier 0 producer 赋值 / 跨引擎参数同改 / 新建非约定 overlay TSV / wubi simcode #0 测试挂</div>
+      <div class="then"><strong>STOP · 走宪法律七修宪程序</strong>:① 不写代码 ② 明确说出缺什么结构规则 ③ propose framework extension ④ 用户 sign-off ⑤ 才能继续。本决策<em>优先于</em> decision-01 到 08,先过这一关再讨论 MIU / 延迟 / 数据问题。详见 <a href="./inputx-engine-constitution-2026-06-14.html">《引擎宪法》</a>。</div>
+    </div>
+
+    <div class="dnode">
+      <div class="dtag">decision-01</div>
+      <h4>MIU 数字没升,反而退了</h4>
+      <div class="if">Phase 2 / 3 / 5 任何一步,跑 MIU 后 Top-1 比基线退 ≥ 2%</div>
+      <div class="then"><strong>立即回退该 CP</strong>(翻 const 或 git revert)。<strong>不准</strong>用"polish 一下应该能找回"做借口继续。然后查:① LM 训练语料质量?② λ 选得不对?③ baseline test set 是否已过时(需要扩集)?定位前不重做。</div>
+    </div>
+
+    <div class="dnode">
+      <div class="dtag">decision-02</div>
+      <h4>polish-log wins 翻转率高于阈值</h4>
+      <div class="if">Phase 1 翻 gate 后 wins 翻转 > 5%,或 Phase 2 LM 上线后 > 10%</div>
+      <div class="then">两条路:① <strong>回退</strong>该改动,重新评估是否值得;② <strong>批准</strong>翻转,但要求所有翻转的 polish 由作者人工 review 并写"接受/拒绝"记录。<strong>不能</strong>静默接受。</div>
+    </div>
+
+    <div class="dnode">
+      <div class="dtag">decision-03</div>
+      <h4>延迟 p95 超 30ms</h4>
+      <div class="if">任何 CP 后实测延迟 > 30ms(IME 实时性硬指标)</div>
+      <div class="then"><strong>立即回退</strong>,先解决延迟再继续。可能原因:① bigram.binary 没 mmap 走了拷贝;② lattice 没 prune;③ beam 太宽。先 profile(perf / instruments)再优化,不要盲改。</div>
+    </div>
+
+    <div class="dnode">
+      <div class="dtag">decision-04</div>
+      <h4>libpinyin 对照线持平或落后</h4>
+      <div class="if">Phase 0 跑出 inputx vs libpinyin 数字,我们已"持平或超过"</div>
+      <div class="then">大概率是<strong>评测 harness 有 bug</strong>(我们底盘明显弱于 libpinyin,不应该持平)。回 CP-0.5 / 0.6 审 harness。常见坑:① pypinyin 多音字默认 vs libpinyin 取词差异被算成 IME 错;② Top-K 比较口径不一(子串 vs 全等)。</div>
+    </div>
+
+    <div class="dnode">
+      <div class="dtag">decision-05</div>
+      <h4>KenLM 训出来的 bigram OOV 率高</h4>
+      <div class="if">CP-2.3 训练日志显示 OOV rate > 5%</div>
+      <div class="then">回 CP-2.2 reclean。检查:① jieba 分词词典是否含 library.tsv 的 top-100k phrase;② 训练语料是否漏了关键域(没加 LCCC 导致口语 OOV);③ 是否漏了去 boilerplate(BR_TOKEN 之类污染)。修后重训。</div>
+    </div>
+
+    <div class="dnode">
+      <div class="dtag">decision-06</div>
+      <h4>Phase 3 lattice 重构搞炸了</h4>
+      <div class="if">CP-3.6 删旧代码后某个 case 跑挂,且 USE_LATTICE=false 也跑不回去</div>
+      <div class="then"><code>git reset --hard pre-lattice-cleanup</code> 回 tag。这是 Phase 3 唯一"半不可逆"CP,所以打了 tag。重构完整重做,不要在脏树上修。</div>
+    </div>
+
+    <div class="dnode">
+      <div class="dtag">decision-07</div>
+      <h4>用户 bigram 学习被滥用(脏数据)</h4>
+      <div class="if">Phase 4 后用户报告"打字越打越差,IME 学坏了"</div>
+      <div class="then">SettingsWindow 已有清空按钮(CP-4.4)。引导用户清空。源码层加"防御 mode":若 user_bigram 出现 freq 极高的"明显错误"组合(可通过 system bigram log-prob 检测),自动 demote。</div>
+    </div>
+
+    <div class="dnode">
+      <div class="dtag">decision-08</div>
+      <h4>整个 Phase 跑下来 MIU 升幅低于预期</h4>
+      <div class="if">Phase 2 结束 Top-1 MIU 累计升 < 5%(目标是 ≥ 5%)</div>
+      <div class="then"><strong>不要继续往 Phase 3 推</strong>。先开 review:① 是不是评测 set 太"简单"(已经接近 ceiling)?② LM 训练语料是否需扩大?③ λ sweep 是否充分?根因不清前禁止上 Phase 3 的架构重构 —— 否则把"LM 效果不好"和"lattice 不对"两个问题搅在一起,无法 debug。</div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====================== 节奏与约束 ====================== -->
+<section>
+  <h2>节奏建议 · 不要太快也不要太慢</h2>
+
+  <div class="lay-with-margin" style="display:grid;grid-template-columns:1fr;gap:24px">
+    <div>
+      <h3>稳态的"稳"从哪来</h3>
+      <p>稳不是"慢" —— 稳是<strong>每一步落地后下一步起跑点稳定</strong>。具体执行约束:</p>
+      <ul style="margin-left:24px;line-height:1.9">
+        <li><strong>一周不超过两个 CP merge 到 develop</strong>。避免"积压未 soak"。CP 内部多 commit 没问题,merge 是节流点。</li>
+        <li><strong>每个 CP 完成后必跑 MIU 并写 commit message</strong>。格式:<code>CP-X.Y · short title · MIU top1=X.Y% (Δ+0.3%)</code>。让 git log 直接是 progress log。</li>
+        <li><strong>跨 Phase 必须 soak 至少 3 天</strong>。Phase 0 → 1 → 2 → 3 → 4 之间不准当天切换。</li>
+        <li><strong>每 4 周做一次"我们走到哪了" review</strong>。对照 §05 三阶段路径 + 本表 38 CP 列表,标记完成 / 待办 / 阻塞。</li>
+        <li><strong>polish 工作流不停</strong>。这条路径的所有 CP 都在保留逐字 polish 工作流的前提下做。LM 不是替代 polish,是给 polish 一个更高质量的起点。</li>
+      </ul>
+    </div>
+
+    <div>
+      <h3>稳态路径不会做的三件事</h3>
+      <p style="font-style:italic;color:var(--ink-soft)">这些是"漂亮但不稳"的诱惑 —— 路径里有意不安排。</p>
+      <ul style="margin-left:24px;line-height:1.9">
+        <li><strong>不做云输入</strong>。隐私代价高(Citizen Lab #175),且偏离"本地、可信、可审计"定位。</li>
+        <li><strong>不做激进重写</strong>。Phase 3 lattice 重构是最大动作,且做成 USE_LATTICE 开关可逆;没有"推倒重来"。</li>
+        <li><strong>不为"看起来有 AI"做神经 rerank</strong>。Phase 5.5 标记为可选;若 trigram 已经够,直接 abandon。</li>
+      </ul>
+    </div>
+
+    <div>
+      <h3>下一步(本周可做)</h3>
+      <p>不等 Phase 0 整体启动,本周即可:</p>
+      <ol style="margin-left:24px;line-height:1.9">
+        <li><strong>读这份表 + §05 路径,定 review 时间</strong>。两人或自己 review 一遍,确定优先级。</li>
+        <li><strong>CP-0.1 启动 · 拉语料</strong>。这一步零风险,纯下载 + 归位,可一晚上搞定。</li>
+        <li><strong>读 Track C.1 三篇精选(libpinyin slides · Rime 设计书 · Norvig 拼写纠错)</strong>。共 8h,看完就懂"我们要造的东西在工业上长什么样"。</li>
+        <li><strong>挑 1 个开源项目细读</strong>(推荐 google/mozc 或 vChewing-macOS),读 1-2 小时调用链跟读,不求懂全。</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====================== FOOTER ====================== -->
+<section class="foot">
+  <h3>About this workbook</h3>
+  <p style="max-width:1200px;color:var(--paper-2);font-style:italic;margin-top:14px">这份执行表是 <a href="./pinyin-quality-gap-2026-06-14.html">《拼音引擎质量差距研究》</a> 的配套工作手册。研究报告解释"为什么 / 缺什么",执行表回答"下一脚踩哪里 / 怎么知道踩对了"。</p>
+
+  <p style="margin-top:14px;font-family:'Noto Serif SC',serif;font-size:22px;color:#e6a370;max-width:1200px;line-height:1.4">"<em>稳态路径不是慢路径 —— 是每一步落地后下一步起跑点稳定的路径</em>。"</p>
+
+  <div class="col">
+    <div>
+      <h3>本表覆盖</h3>
+      <ul style="list-style:none;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--paper-2);line-height:2">
+        <li>· 6 个阶段(Phase 0-5)</li>
+        <li>· 38 个 checkpoint</li>
+        <li>· 8 种决策回退场景</li>
+        <li>· 4 条节奏约束</li>
+      </ul>
+    </div>
+    <div>
+      <h3>本表不覆盖</h3>
+      <ul style="list-style:none;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--paper-2);line-height:2">
+        <li>· wubi / 日文引擎演进</li>
+        <li>· UI / Settings 重设计</li>
+        <li>· 跨平台扩展(iOS / Win / Linux)</li>
+        <li>· OS-level integration polish</li>
+      </ul>
+    </div>
+    <div>
+      <h3>相关文档</h3>
+      <ul style="list-style:none;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:2">
+        <li><a href="./pinyin-quality-gap-2026-06-14.html">差距研究报告 v2</a></li>
+        <li>docs/BACKLOG.md</li>
+        <li>docs/SCORING.md</li>
+        <li>docs/pinyin-pipeline-gates.md</li>
+        <li>docs/PLAN-syllable-aware-pinyin.md</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="credit">
+    <span>execution workbook · pinyin engine climb</span>
+    <span>2026.06.14 · zh-hans · 38 CP</span>
+    <span>opus 4.7 · for doracawl</span>
+  </div>
+</section>
+
+</body>
+</html>
