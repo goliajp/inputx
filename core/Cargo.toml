@@ -23,6 +23,12 @@ members = [
     "crates/inputx-nihongo-data-kanji",
     "crates/inputx-pinyin-helpers",
     "crates/inputx-corpus-digest",
+    # Phase-0 eval harness (CP-0.5). Lives outside core/ under tools/eval/
+    # so it sits next to its gold/silver TSV data, but joins this workspace
+    # as a member so `cargo run -p inputx-eval-runner` resolves the shared
+    # inputx-pinyin / inputx-core members directly. Read-only tool; never
+    # shipped — excluded from any release artifact.
+    "../tools/eval/runner",
 ]
 
 [workspace.package]
