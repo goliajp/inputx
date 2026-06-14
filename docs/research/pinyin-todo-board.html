@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-0.4 done</span>
-      <span><b>active</b> Phase 0 · CP-0.5 next</span>
+      <span><b>last update</b> 2026-06-15 · CP-0.5 done</span>
+      <span><b>active</b> Phase 0 · CP-0.6 next</span>
     </div>
   </div>
 </div>
@@ -201,9 +201,9 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
       <span class="pill future"><span class="n">5</span>trigram + 打磨 · ∞</span>
     </div>
     <div class="totals">
-      <span class="done"><b id="t-done">0</b> done</span>
+      <span class="done"><b id="t-done">34</b> done</span>
       <span class="inprog"><b id="t-inprog">0</b> inprog</span>
-      <span class="todo"><b id="t-todo">56</b> todo</span>
+      <span class="todo"><b id="t-todo">11</b> todo</span>
     </div>
   </div>
 </div>
@@ -220,8 +220,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>CP-0.5 · Rust MIU runner</kbd>(Phase 0 最重 CP · 估 2-3 天)<br>
-  <strong>Phase 0 进度</strong>:4 / 7 CP done(CP-0.1 .. CP-0.4 全 merged + pushed origin/develop)
+  <strong>当前 active</strong>:<kbd>CP-0.6 · 外部对照线(libpinyin / SunPinyin)</kbd>(估 1-2 天)<br>
+  <strong>Phase 0 进度</strong>:5 / 7 CP done(CP-0.1 .. CP-0.5 全 merged + pushed origin/develop)
 </div>
 
 <!-- ====================== HOW TO USE ====================== -->
@@ -424,15 +424,15 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     </div>
 
     <!-- ===== CP-0.5 ===== -->
-    <div class="cp" data-status="todo" data-cp="0.5">
+    <div class="cp" data-status="done" data-cp="0.5">
       <div class="cp-head" onclick="toggleCp(this)">
         <div class="cp-head-left">
           <div class="cp-id">CP-0.5</div>
           <div class="cp-title">MIU runner 实现(Rust)</div>
         </div>
         <div class="cp-head-right">
-          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">8</b></span>
-          <span class="cp-status-tag">todo</span>
+          <span class="cp-progress"><b class="done-count">8</b>/<b class="total-count">8</b></span>
+          <span class="cp-status-tag">done</span>
         </div>
       </div>
       <div class="cp-body">
@@ -445,20 +445,20 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
         <div class="task-group">
           <div class="task-group-head">动作 · do</div>
           <ul class="tasks">
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">在 workspace Cargo.toml 加 <code>tools/eval/runner/</code> 成员</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/eval/runner/src/main.rs</code> · 复用 <code>inputx-pinyin</code> crate</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">读 <code>gold_1000.tsv</code> + <code>silver_full.tsv</code> · 每行 pinyin 灌进 <code>PinyinAdapter</code> · 取 top-1/5/10</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">计算 Top-K MIU accuracy(候选是否含金标 hanzi 串)</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">输出 <code>tools/eval/results/{date}.json</code> · 字段 <code>top1 / top5 / top10 / gold_top1 / silver_top1 / per_polyphone_top1</code></span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">加 <code>--diff baseline.json</code> 选项 · 输出 ±X% 对照</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">在 workspace Cargo.toml 加 <code>tools/eval/runner/</code> 成员<span class="hint">外部 member(在 core/ 之外),用 <code>package.workspace = "../../../core"</code> 让继承解析</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">写 <code>tools/eval/runner/src/main.rs</code> · 复用 <code>inputx_core::PinyinAdapter</code><span class="hint">PinyinAdapter 在 inputx-core(composite),不在 inputx-pinyin。逐字节 <code>handle_letter</code>(非字母自动忽略 → gold 空格无需处理),单实例复用 + <code>clear_all</code></span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">读 <code>gold_1000.tsv</code> + <code>silver_full.tsv</code> · 每行 pinyin 灌进 <code>PinyinAdapter</code> · 取 top-1/5/10</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">计算 Top-K MIU accuracy(候选是否含金标 hanzi 串)<span class="hint"><strong>baseline(2026-06-15, gate 全关 minimal-debug 态):overall top1 0.73% · gold 1.70% · silver 0.71% · polyphone 0.55%。</strong>引擎当前 COMPOSE/ASSOCIATION/FUZZY/PREDICTION 四 gate 均硬编码 <code>const = true</code>(关),长句整句合成路径(Path 0b)被关 → 多音节句几乎全 miss。这就是 Phase-1「翻 gate」要翻的;翻 COMPOSE 后数字预期跃升。top5/10≈top1 因引擎无 n-best 整句列表。</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">输出 <code>tools/eval/results/{date}.json</code> · 字段 <code>top1 / top5 / top10 / gold_top1 / silver_top1 / per_polyphone_top1</code></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">加 <code>--diff baseline.json</code> 选项 · 输出 ±X% 对照<span class="hint">另加 <code>--probe "pinyin"</code> 诊断模式打印候选;<code>--silver-limit N</code> 快速迭代</span></span></li>
           </ul>
         </div>
 
         <div class="task-group">
           <div class="task-group-head">验收 · check</div>
           <ul class="tasks">
-            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>cargo run -p inputx-eval-runner --release</code> 跑完不 panic · JSON 含 6 个字段 · 值 [0,1] 浮点</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">首次跑作 <code>baseline.json</code> 存档(基线)· 连跑三次方差 < 0.5%</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body"><code>cargo run -p inputx-eval-runner --release</code> 跑完不 panic · JSON 含 6 个字段 · 值 [0,1] 浮点<span class="hint">51000 行 12.6s · clippy 0 warning</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">首次跑作 <code>baseline.json</code> 存档(基线)· 连跑三次方差 < 0.5%<span class="hint">三跑数字完全一致(方差 0,无随机)· baseline.json 加 gitignore 例外纳入版本(dated 日跑仍 ignore)</span></span></li>
           </ul>
         </div>
 
