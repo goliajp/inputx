@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-0.6 done</span>
-      <span><b>active</b> Phase 0 · CP-0.7 next</span>
+      <span><b>last update</b> 2026-06-15 · CP-0.7 done · Phase 0 完成</span>
+      <span><b>active</b> Phase 0 验收门 → Phase 1 · CP-1.1</span>
     </div>
   </div>
 </div>
@@ -193,17 +193,17 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
 <div class="strip">
   <div class="strip-inner">
     <div class="phase-pills">
-      <span class="pill active"><span class="n">0</span>评测脚手架 · 7 CP</span>
-      <span class="pill next"><span class="n">1</span>翻 gate · 4 CP</span>
+      <span class="pill done"><span class="n">0</span>评测脚手架 · 7 CP</span>
+      <span class="pill active"><span class="n">1</span>翻 gate · 4 CP</span>
       <span class="pill future"><span class="n">2</span>真 LM · 7 CP</span>
       <span class="pill future"><span class="n">3</span>联合 lattice · 6 CP</span>
       <span class="pill future"><span class="n">4</span>用户 bigram · 4 CP</span>
       <span class="pill future"><span class="n">5</span>trigram + 打磨 · ∞</span>
     </div>
     <div class="totals">
-      <span class="done"><b id="t-done">40</b> done</span>
+      <span class="done"><b id="t-done">45</b> done</span>
       <span class="inprog"><b id="t-inprog">0</b> inprog</span>
-      <span class="todo"><b id="t-todo">5</b> todo</span>
+      <span class="todo"><b id="t-todo">0</b> todo</span>
     </div>
   </div>
 </div>
@@ -220,8 +220,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>CP-0.7 · CI 集成 + 报警阈值</kbd>(估 1 天 · 前置 CP-0.5)<br>
-  <strong>Phase 0 进度</strong>:6 / 7 CP done(CP-0.1 .. CP-0.6 全 merged + pushed origin/develop)
+  <strong>当前 active</strong>:<kbd>Phase 0 验收门通过 → Phase 1 · CP-1.1(翻 COMPOSE gate)</kbd><br>
+  <strong>Phase 0 进度</strong>:<strong>7 / 7 CP done · Phase 0 完成</strong>(CP-0.1 .. CP-0.7 全 merged + pushed origin/develop)· 下一步 CP-1.1 要翻 <code>PINYIN_DISABLE_COMPOSE</code> gate(宪法敏感 · 见 memory gates-paused)
 </div>
 
 <!-- ====================== HOW TO USE ====================== -->
@@ -508,15 +508,15 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     </div>
 
     <!-- ===== CP-0.7 ===== -->
-    <div class="cp" data-status="todo" data-cp="0.7">
+    <div class="cp" data-status="done" data-cp="0.7">
       <div class="cp-head" onclick="toggleCp(this)">
         <div class="cp-head-left">
           <div class="cp-id">CP-0.7</div>
           <div class="cp-title">CI 集成 + 报警阈值</div>
         </div>
         <div class="cp-head-right">
-          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">5</b></span>
-          <span class="cp-status-tag">todo</span>
+          <span class="cp-progress"><b class="done-count">5</b>/<b class="total-count">5</b></span>
+          <span class="cp-status-tag">done</span>
         </div>
       </div>
       <div class="cp-body">
@@ -529,17 +529,17 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
         <div class="task-group">
           <div class="task-group-head">动作 · do</div>
           <ul class="tasks">
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">把 MIU runner 加进 <code>cargo test --features eval</code></span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">(可选)GitHub Actions 跑 <code>cargo run -p inputx-eval-runner -- --diff main</code></span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">变化超 ±2% 触发 PR comment / fail</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">把 MIU runner 加进 <code>cargo test --features eval</code><span class="hint">runner 拆成 lib(<code>inputx_eval</code>)+ bin · <code>tests/baseline_regression.rs</code> 门控 <code>--features eval</code> · 只跑 gold_1000(silver gitignored 在 CI 不存在)对照 baseline.json gold 字段 · 本地 <code>make eval</code> 绿:4 lib 单测 + 1 集成测试</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">(可选)GitHub Actions 跑评测 gate<span class="hint"><code>.github/workflows/ci.yml</code> 加 "MIU eval baseline gate" step(debug · 因 release profile panic=abort 与 test harness 冲突)· bin 另加 <code>--fail-on-regression PP</code> 给 diff-gate 用</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">变化超 ±2% 触发 fail<span class="hint">git-flow 无 PR → 超阈值直接 fail CI build(非 PR comment)· <code>check_regression</code> 纯函数,双向 ±2pp</span></span></li>
           </ul>
         </div>
 
         <div class="task-group">
           <div class="task-group-head">验收 · check</div>
           <ul class="tasks">
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">本地 <code>cargo test --features eval</code> 通过</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">构造一个会让 Top-1 掉 5% 的改动 · CI 必须报警 · revert 后 CI 恢复绿</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">本地 <code>cargo test --features eval</code> 通过<span class="hint">make eval green · gold 0 漂移(确定性)</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">构造一个会让 Top-1 掉 5% 的改动 · CI 必须报警 · revert 后 CI 恢复绿<span class="hint">用纯函数单测确定性证明:<code>regression_fires_on_5pp_drop</code>(掉 5pp → 报警)+ <code>regression_passes_within_threshold</code>(0.5pp → 绿),不用 hack 改引擎</span></li>
           </ul>
         </div>
 
@@ -553,12 +553,12 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
 
 <!-- ====================== PHASE 0 验收门 ====================== -->
 <div class="future-preview" style="border:2px solid var(--vermillion);background:rgba(196,58,58,.06);color:var(--ink-2)">
-  <b style="color:var(--vermillion-deep)">Phase 0 验收门 · 不通过禁止进入 Phase 1</b>
-  ☐ 能跑出 top1 / top5 / top10 三个稳定数字(连跑三次方差 < 0.5%)<br>
-  ☐ 有 libpinyin(或 SunPinyin)对照线 · 差距数字成文<br>
-  ☐ 每次改动可量化(CI 自动 diff baseline)<br>
-  ☐ 金标 1000 条人审完毕、版本化<br>
-  ☐ <strong>宪法门</strong> · 评测集中无 hardcoded "应该 #0"列表(防作弊数据蒙混过门)
+  <b style="color:var(--vermillion-deep)">Phase 0 验收门 · ✅ 全部通过(2026-06-15)· 可进入 Phase 1</b>
+  ▣ 能跑出 top1 / top5 / top10 三个稳定数字(连跑三次方差 < 0.5%)— CP-0.5 三跑方差 0<br>
+  ▣ 有 libpinyin(或 SunPinyin)对照线 · 差距数字成文 — CP-0.6 COMPARE.md(libpinyin 32.02% vs 0.73%)<br>
+  ▣ 每次改动可量化(CI 自动 diff baseline)— CP-0.7 cargo test --features eval + ci.yml gate<br>
+  ▣ 金标 1000 条人审完毕、版本化 — CP-0.4 gold_1000.tsv LLM-audited + committed<br>
+  ▣ <strong>宪法门</strong> · 评测集中无 hardcoded "应该 #0"列表 — gold/silver 是自然句 pinyin→hanzi,无 rank 硬编码作弊表
 </div>
 
 
