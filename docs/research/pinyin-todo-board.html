@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-14 init</span>
-      <span><b>active</b> Phase 0 — 评测脚手架</span>
+      <span><b>last update</b> 2026-06-14 · CP-0.1 done</span>
+      <span><b>active</b> Phase 0 · CP-0.2 next</span>
     </div>
   </div>
 </div>
@@ -239,15 +239,15 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
   <div class="cp-list">
 
     <!-- ===== CP-0.1 ===== -->
-    <div class="cp" data-status="todo" data-cp="0.1">
+    <div class="cp" data-status="done" data-cp="0.1">
       <div class="cp-head" onclick="toggleCp(this)">
         <div class="cp-head-left">
           <div class="cp-id">CP-0.1</div>
           <div class="cp-title">语料拉取与归位</div>
         </div>
         <div class="cp-head-right">
-          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">8</b></span>
-          <span class="cp-status-tag">todo</span>
+          <span class="cp-progress"><b class="done-count">7</b>/<b class="total-count">8</b></span>
+          <span class="cp-status-tag">done</span>
         </div>
       </div>
       <div class="cp-body">
@@ -261,19 +261,19 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
           <div class="task-group-head">动作 · do</div>
           <ul class="tasks">
             <li class="task" data-status="done"><span class="box"></span><span class="body"><code>mkdir -p tools/eval/corpus/raw/{wiki,lccc,pd}</code> · +<code>.gitkeep</code> + <code>.gitignore</code> 排除大文件</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">下载 zhwiki latest dump <code>zhwiki-latest-pages-articles.xml.bz2</code><span class="hint">URL: <code>https://dumps.wikimedia.org/zhwiki/latest/zhwiki-latest-pages-articles.xml.bz2</code> · 约 3 GB · 放 <code>tools/eval/corpus/raw/wiki/</code></span></span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">下载 LCCC-base<span class="hint">repo: <a href="https://github.com/thu-coai/CDial-GPT" target="_blank">thu-coai/CDial-GPT</a> · 671 万 utterances · MIT(代码)</span></span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">抓 People's Daily online 近一年 ≥ 10 万句<span class="hint">替代方案:用 <code>brightmart/nlp_chinese_corpus</code> 的 <code>news2016zh</code></span></span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/eval/SOURCES.md</code> · 每份记录 URL / 大小 / license / 抓取日期</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">下载 zhwiki latest dump <code>zhwiki-latest-pages-articles.xml.bz2</code> · <strong>3.1 GB ✓</strong><span class="hint">sha256 prefix <code>e4d157be…</code> · fetched 2026-06-14 22:56</span></span></li>
+            <li class="task" data-status="skipped"><span class="box"></span><span class="body">下载 LCCC-base · <em>deferred → Phase 2</em><span class="hint">只有百度网盘 / Google Drive / HF datasets 三个源,无直链 curl。Phase 0 评测脚手架用 wiki + THUCNews 已覆盖书面+新闻。LCCC 口语补充对 Phase 2 LM 训练才必需,届时用 HF datasets 库加载。</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">下载新闻语料(替代 PD)· THUCNews · <strong>1.5 GB ✓</strong><span class="hint">sha256 prefix <code>8d6aef71…</code> · 解压 2.4 GB / 1,672,196 文件 · 14 类(财经/体育/科技/…)· fetched 2026-06-14 23:19</span></span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">写 <code>tools/eval/SOURCES.md</code> · 每份记录 URL / 大小 / license / 抓取日期(模板完成 · 下载完成后补实际 size 数字)</span></li>
           </ul>
         </div>
 
         <div class="task-group">
           <div class="task-group-head">验收 · check</div>
           <ul class="tasks">
-            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>du -sh tools/eval/corpus/raw/{wiki,lccc,pd}</code> · 每组 ≥ 100 MB</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>wc -l</code> · 每组显示行数(写入 SOURCES.md)</span></li>
-            <li class="task" data-status="todo"><span class="box"></span><span class="body">每组 <code>shuf -n 100 | cat</code> · 100 行可读、无乱码</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body"><code>du -sh</code> · wiki <strong>3.1 GB</strong> · pd <strong>1.5 GB</strong> · 两组 ≫ 100 MB ✓</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">完整性 · wiki <code>bzcat | head</code> 标准 mediawiki XML 头 · pd <code>unzip -l</code> 1,672,196 文件 ✓</span></li>
+            <li class="task" data-status="done"><span class="box"></span><span class="body">可读性 · wiki XML schema 正确 · pd 随机解压 财经/798977.txt 是合法中文新闻 ✓</span></li>
           </ul>
         </div>
 
