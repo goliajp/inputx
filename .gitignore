@@ -94,3 +94,15 @@ data/private-dict/vNEXT/
 # Python bytecode caches
 __pycache__/
 *.pyc
+
+# Evaluation corpus raw downloads (regenerable from upstream dumps)
+# Directories kept via .gitkeep; large dumps / extracted text excluded.
+tools/eval/corpus/raw/wiki/*
+!tools/eval/corpus/raw/wiki/.gitkeep
+tools/eval/corpus/raw/lccc/*
+!tools/eval/corpus/raw/lccc/.gitkeep
+tools/eval/corpus/raw/pd/*
+!tools/eval/corpus/raw/pd/.gitkeep
+tools/eval/corpus/processed/
+tools/eval/results/*.json
+!tools/eval/results/.gitkeep
