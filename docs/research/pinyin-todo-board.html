@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>拼音爬升 · 当前工作看板 · LIVE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f4ecd8;
+  --paper-2:#ebe1c8;
+  --paper-3:#e0d4b6;
+  --ink:#1a2540;
+  --ink-2:#2a3556;
+  --ink-soft:#4a5474;
+  --vermillion:#c43a3a;
+  --vermillion-deep:#962b2b;
+  --gold:#a87f2c;
+  --moss:#5e6d3f;
+  --moss-deep:#3d4827;
+  --rule:#c8b886;
+  --rule-soft:#dccfa6;
+
+  --st-todo:#7a8499;
+  --st-inprog:#c4842c;
+  --st-done:#5e6d3f;
+  --st-blocked:#962b2b;
+  --st-skipped:#b8a888;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--paper);color:var(--ink);font-family:"JetBrains Mono",ui-monospace,monospace;font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+body{background-image:repeating-linear-gradient(0deg,rgba(168,127,44,.02) 0 1px,transparent 1px 4px)}
+::selection{background:var(--ink);color:var(--paper)}
+h1,h2,h3,h4,h5{font-family:"Noto Serif SC",serif;color:var(--ink);font-weight:700;line-height:1.18}
+
+section{padding:32px clamp(20px,3vw,56px);max-width:1800px;margin:0 auto}
+
+/* ===== top header ===== */
+.banner{background:var(--ink);color:var(--paper);padding:20px clamp(20px,3vw,56px);position:sticky;top:0;z-index:10;box-shadow:0 2px 0 var(--vermillion)}
+.banner-inner{max-width:1800px;margin:0 auto;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center}
+.banner h1{font-family:"Bebas Neue",sans-serif;font-size:28px;color:var(--paper);letter-spacing:.05em;line-height:1}
+.banner h1 .live{color:#7fc99c;font-size:13px;letter-spacing:.3em;margin-left:14px;padding:3px 9px;background:rgba(127,201,156,.15);border:1px solid #7fc99c;border-radius:2px;vertical-align:middle;font-family:"JetBrains Mono",monospace;font-weight:700}
+.banner .meta{font-size:11px;color:rgba(244,236,216,.7);letter-spacing:.15em;text-transform:uppercase;display:flex;gap:18px;flex-wrap:wrap;justify-content:flex-end;text-align:right}
+.banner .meta b{color:#e6a370;font-weight:600}
+
+/* ===== progress strip ===== */
+.strip{background:var(--paper-2);border-bottom:1px solid var(--rule);padding:16px clamp(20px,3vw,56px)}
+.strip-inner{max-width:1800px;margin:0 auto;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center}
+.phase-pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{padding:6px 12px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border-radius:2px;display:flex;gap:8px;align-items:center;font-weight:600;border:1px solid transparent}
+.pill.done{background:var(--st-done);color:white}
+.pill.active{background:var(--vermillion);color:white;box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--vermillion)}
+.pill.next{background:var(--paper);color:var(--ink-2);border-color:var(--rule)}
+.pill.future{background:transparent;color:var(--ink-soft);border:1px dashed var(--rule)}
+.pill .n{background:rgba(0,0,0,.15);padding:1px 6px;border-radius:2px;font-family:"Bebas Neue",sans-serif;font-size:13px}
+.totals{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);display:flex;gap:18px}
+.totals b{color:var(--ink);font-weight:700;font-size:18px;font-family:"Bebas Neue",sans-serif;letter-spacing:.05em}
+.totals .done b{color:var(--st-done)}
+.totals .inprog b{color:var(--st-inprog)}
+.totals .todo b{color:var(--st-todo)}
+
+/* ===== how to use ===== */
+.howto{background:#fff8e7;border:1px solid var(--gold);padding:14px 20px;margin:24px clamp(20px,3vw,56px);font-size:13px;line-height:1.65;max-width:calc(1800px - 2 * clamp(20px,3vw,56px));margin-left:auto;margin-right:auto;border-radius:2px}
+.howto b{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:6px;font-weight:700}
+.howto kbd{font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--paper-3);padding:1px 6px;border:1px solid var(--rule);border-bottom-width:2px;border-radius:3px}
+
+/* ===== board section ===== */
+.board-section{margin:32px 0}
+.board-section.active{background:linear-gradient(180deg,rgba(196,58,58,.05),transparent 40%);padding-bottom:24px}
+.board-section.next{opacity:.6}
+.board-section.done{opacity:.55}
+.section-header{display:flex;align-items:baseline;gap:16px;padding:14px 20px;background:var(--paper-2);border-left:5px solid var(--ink);margin-bottom:0;flex-wrap:wrap}
+.board-section.active .section-header{border-left-color:var(--vermillion);background:rgba(196,58,58,.08)}
+.board-section.done .section-header{border-left-color:var(--st-done)}
+.board-section.next .section-header{border-left-color:var(--rule)}
+.section-header .pn{font-family:"Bebas Neue",sans-serif;font-size:28px;color:var(--vermillion);letter-spacing:.05em;line-height:1;flex-shrink:0}
+.board-section.done .section-header .pn{color:var(--st-done)}
+.section-header h2{font-family:"Noto Serif SC",serif;font-size:20px;font-weight:700;color:var(--ink);margin:0}
+.section-header .badge{font-size:10px;letter-spacing:.22em;text-transform:uppercase;padding:3px 10px;border-radius:2px;background:var(--vermillion);color:white;font-weight:700;margin-left:auto}
+.board-section.next .badge{background:var(--rule);color:var(--ink)}
+.board-section.done .badge{background:var(--st-done);color:white}
+.board-section.future .badge{background:transparent;color:var(--ink-soft);border:1px dashed var(--rule)}
+
+/* ===== CP cards ===== */
+.cp-list{padding:0 20px}
+.cp{background:var(--paper-2);border:1px solid var(--rule-soft);margin-top:14px;border-left:4px solid var(--st-todo)}
+.cp[data-status="inprog"]{border-left-color:var(--st-inprog);background:rgba(196,132,44,.05)}
+.cp[data-status="done"]{border-left-color:var(--st-done);opacity:.7}
+.cp[data-status="blocked"]{border-left-color:var(--st-blocked);background:rgba(150,43,43,.05)}
+.cp-head{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:14px;cursor:pointer;border-bottom:1px solid var(--rule-soft);background:rgba(0,0,0,.02);user-select:none}
+.cp-head:hover{background:rgba(0,0,0,.04)}
+.cp-head-left{display:flex;align-items:center;gap:14px;flex:1;min-width:0}
+.cp-id{font-family:"Bebas Neue",sans-serif;font-size:20px;color:var(--ink);letter-spacing:.04em;line-height:1;flex-shrink:0}
+.cp-title{font-family:"Noto Serif SC",serif;font-size:15px;font-weight:700;color:var(--ink)}
+.cp-head-right{display:flex;align-items:center;gap:14px;flex-shrink:0;font-size:11px}
+.cp-progress{display:flex;align-items:center;gap:8px;color:var(--ink-soft);letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+.cp-progress b{color:var(--ink);font-family:"Bebas Neue",sans-serif;font-size:16px;letter-spacing:.04em}
+.cp-status-tag{padding:3px 8px;border-radius:2px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:white}
+[data-status="todo"] .cp-status-tag{background:var(--st-todo)}
+[data-status="inprog"] .cp-status-tag{background:var(--st-inprog)}
+[data-status="done"] .cp-status-tag{background:var(--st-done)}
+[data-status="blocked"] .cp-status-tag{background:var(--st-blocked)}
+
+.cp-body{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.cp.collapsed .cp-body{display:none}
+.cp[data-status="done"]{}
+.cp[data-status="done"] .cp-body{opacity:.55}
+.cp-meta-row{display:flex;flex-wrap:wrap;gap:14px;font-size:11px;color:var(--ink-soft);letter-spacing:.08em;text-transform:uppercase;padding-bottom:10px;border-bottom:1px dashed var(--rule-soft)}
+.cp-meta-row span{display:inline-flex;align-items:center;gap:6px}
+.cp-meta-row span::before{content:"·";color:var(--vermillion);font-weight:700}
+
+.task-group{margin-top:4px}
+.task-group-head{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--vermillion-deep);font-weight:700;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--rule-soft)}
+
+.tasks{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px}
+.task{display:grid;grid-template-columns:24px 1fr;gap:10px;padding:6px 8px;border-radius:2px;font-size:13px;line-height:1.5;align-items:start;background:transparent}
+.task:hover{background:rgba(196,58,58,.04)}
+.task .box{font-family:"JetBrains Mono",monospace;font-size:16px;line-height:1;color:var(--st-todo);font-weight:700;cursor:pointer;user-select:none;text-align:center;padding-top:2px}
+.task[data-status="todo"] .box::before{content:"☐"}
+.task[data-status="inprog"] .box::before{content:"◐";color:var(--st-inprog)}
+.task[data-status="done"] .box::before{content:"▣";color:var(--st-done)}
+.task[data-status="blocked"] .box::before{content:"⊘";color:var(--st-blocked)}
+.task[data-status="skipped"] .box::before{content:"⊝";color:var(--st-skipped)}
+.task[data-status="done"] .body{text-decoration:line-through;color:var(--ink-soft);opacity:.7}
+.task[data-status="skipped"] .body{text-decoration:line-through;color:var(--st-skipped);opacity:.6;font-style:italic}
+.task .body{color:var(--ink-2)}
+.task .body code{font-size:.88em;background:rgba(26,37,64,.06);padding:1px 5px;border-radius:2px;color:var(--ink);font-weight:500}
+.task .body strong{color:var(--ink)}
+.task .body em{color:var(--vermillion-deep);font-style:italic}
+.task .hint{display:block;color:var(--ink-soft);font-size:12px;margin-top:2px;font-style:italic;line-height:1.4}
+
+.cp-verdict{margin-top:8px;padding:10px 14px;background:var(--ink);color:var(--paper);font-size:12px;border-radius:2px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.cp-verdict .text{flex:1}
+.cp-verdict .text b{color:#e6a370;font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:10px;margin-right:8px}
+.cp[data-status="done"] .cp-verdict{background:var(--st-done)}
+
+/* ===== future preview ===== */
+.future-preview{background:var(--paper-2);border:1px dashed var(--rule);padding:18px 22px;margin:14px 20px;font-size:13px;color:var(--ink-soft);line-height:1.6}
+.future-preview b{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink);display:block;margin-bottom:8px;font-weight:700}
+
+/* ===== done log ===== */
+.donelog{padding:20px 20px;background:rgba(94,109,63,.06);border-left:4px solid var(--st-done);margin:14px 20px}
+.donelog summary{font-family:"Noto Serif SC",serif;font-weight:700;font-size:14px;color:var(--st-done);cursor:pointer;letter-spacing:.05em}
+.donelog ul{margin:14px 0 0 22px;padding:0;font-size:13px;line-height:1.7;color:var(--ink-soft)}
+.donelog ul li{margin-bottom:4px}
+.donelog ul li code{color:var(--ink)}
+
+/* ===== status quick-keys ===== */
+.legend{background:var(--ink);color:var(--paper);padding:14px 20px;margin:24px clamp(20px,3vw,56px);font-size:12px;display:flex;gap:24px;flex-wrap:wrap;align-items:center;max-width:calc(1800px - 2 * clamp(20px,3vw,56px));margin-left:auto;margin-right:auto;border-radius:2px}
+.legend b{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#e6a370}
+.legend .lg{display:flex;align-items:center;gap:8px;color:var(--paper-2)}
+.legend .lg .b{font-family:"JetBrains Mono",monospace;font-size:18px;line-height:1;font-weight:700}
+.legend .lg .b.todo{color:var(--st-todo)}
+.legend .lg .b.inprog{color:var(--st-inprog)}
+.legend .lg .b.done{color:var(--st-done)}
+.legend .lg .b.blocked{color:var(--st-blocked)}
+.legend .lg .b.skipped{color:var(--st-skipped)}
+
+/* ===== footer ===== */
+footer{background:var(--ink);color:var(--paper);padding:32px clamp(20px,3vw,56px);margin-top:32px;font-size:12px;line-height:1.7;color:var(--paper-2)}
+footer .inner{max-width:1800px;margin:0 auto}
+footer a{color:#e6a370;border-bottom:1px solid rgba(230,163,112,.3);text-decoration:none}
+footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,236,216,.15);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,236,216,.5);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+/* ===== JS-toggle (optional client-side preview) ===== */
+.client-state-banner{display:none;background:#fff8e7;border-bottom:1px solid var(--gold);padding:8px 20px;font-size:12px;text-align:center;color:var(--gold);font-weight:600}
+.client-state-banner.show{display:block}
+.client-state-banner button{background:var(--gold);color:white;border:none;padding:3px 10px;font-family:"JetBrains Mono",monospace;font-size:11px;cursor:pointer;border-radius:2px;margin-left:10px}
+</style>
+</head>
+<body>
+
+<!-- ====================== BANNER ====================== -->
+<div class="banner">
+  <div class="banner-inner">
+    <h1>WORK BOARD <span class="live">● LIVE</span></h1>
+    <div class="meta">
+      <span><b>file</b> docs/research/pinyin-todo-board.html</span>
+      <span><b>last update</b> 2026-06-14 init</span>
+      <span><b>active</b> Phase 0 — 评测脚手架</span>
+    </div>
+  </div>
+</div>
+
+<div class="client-state-banner" id="csb">
+  ⚠ 你在本浏览器里勾过 task,有未保存的勾选。这只是预览,不影响 HTML 源真相。
+  <button onclick="document.getElementById('csb').classList.remove('show');localStorage.removeItem('inputx-todo-board');location.reload()">清空预览</button>
+</div>
+
+<!-- ====================== PROGRESS STRIP ====================== -->
+<div class="strip">
+  <div class="strip-inner">
+    <div class="phase-pills">
+      <span class="pill active"><span class="n">0</span>评测脚手架 · 7 CP</span>
+      <span class="pill next"><span class="n">1</span>翻 gate · 4 CP</span>
+      <span class="pill future"><span class="n">2</span>真 LM · 7 CP</span>
+      <span class="pill future"><span class="n">3</span>联合 lattice · 6 CP</span>
+      <span class="pill future"><span class="n">4</span>用户 bigram · 4 CP</span>
+      <span class="pill future"><span class="n">5</span>trigram + 打磨 · ∞</span>
+    </div>
+    <div class="totals">
+      <span class="done"><b id="t-done">0</b> done</span>
+      <span class="inprog"><b id="t-inprog">0</b> inprog</span>
+      <span class="todo"><b id="t-todo">56</b> todo</span>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== HOW TO USE ====================== -->
+<div class="howto">
+  <b>怎么用这份看板</b>
+  这是 living document,边做边更新。<strong>不靠浏览器记忆</strong> —— 真状态写在 HTML <kbd>data-status</kbd> attribute 里,git commit 是唯一持久化。<br>
+  <strong>状态流</strong>:<kbd>todo</kbd> → <kbd>inprog</kbd>(开始做)→ <kbd>done</kbd>(完成)/ <kbd>blocked</kbd>(卡住)/ <kbd>skipped</kbd>(跳过)。<br>
+  <strong>更新流程</strong>:做完一项 → 跟 Claude 说 → Claude 直接 Edit 这份 HTML 改 <kbd>data-status</kbd> + 更新 banner 的 <kbd>last update</kbd> → git commit。一个 CP 全 done 后 → 把该 CP 折叠 + 把下一个 CP 从 next 提升到 active。<br>
+  <strong>浏览器交互(可选)</strong>:点 ☐ 可临时切状态做预览,但<em>不会改 HTML 文件</em>。打开 console <kbd>exportStatus()</kbd> 可导出当前 HTML 状态作为 Edit 参考。
+</div>
+
+<!-- ====================== LEGEND ====================== -->
+<div class="legend">
+  <b>status</b>
+  <span class="lg"><span class="b todo">☐</span> todo · 待开始</span>
+  <span class="lg"><span class="b inprog">◐</span> inprog · 进行中</span>
+  <span class="lg"><span class="b done">▣</span> done · 完成</span>
+  <span class="lg"><span class="b blocked">⊘</span> blocked · 卡住</span>
+  <span class="lg"><span class="b skipped">⊝</span> skipped · 跳过</span>
+</div>
+
+
+<!-- ====================== PHASE 0 · ACTIVE ====================== -->
+<div class="board-section active" data-phase="0">
+  <div class="section-header">
+    <span class="pn">Phase 0</span>
+    <h2>评测脚手架 + 数据闭环</h2>
+    <span class="badge">★ ACTIVE</span>
+  </div>
+
+  <div class="cp-list">
+
+    <!-- ===== CP-0.1 ===== -->
+    <div class="cp" data-status="todo" data-cp="0.1">
+      <div class="cp-head" onclick="toggleCp(this)">
+        <div class="cp-head-left">
+          <div class="cp-id">CP-0.1</div>
+          <div class="cp-title">语料拉取与归位</div>
+        </div>
+        <div class="cp-head-right">
+          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">8</b></span>
+          <span class="cp-status-tag">todo</span>
+        </div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-meta-row">
+          <span>前置 · 无</span>
+          <span>时长 · 0.5-1 天</span>
+          <span>回退 · rm -rf tools/eval/corpus/</span>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">动作 · do</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>mkdir -p tools/eval/corpus/raw/{wiki,lccc,pd}</code></span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">下载 zhwiki latest dump <code>zhwiki-latest-pages-articles.xml.bz2</code><span class="hint">URL: <code>https://dumps.wikimedia.org/zhwiki/latest/zhwiki-latest-pages-articles.xml.bz2</code> · 约 3 GB · 放 <code>tools/eval/corpus/raw/wiki/</code></span></span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">下载 LCCC-base<span class="hint">repo: <a href="https://github.com/thu-coai/CDial-GPT" target="_blank">thu-coai/CDial-GPT</a> · 671 万 utterances · MIT(代码)</span></span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">抓 People's Daily online 近一年 ≥ 10 万句<span class="hint">替代方案:用 <code>brightmart/nlp_chinese_corpus</code> 的 <code>news2016zh</code></span></span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/eval/SOURCES.md</code> · 每份记录 URL / 大小 / license / 抓取日期</span></li>
+          </ul>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">验收 · check</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>du -sh tools/eval/corpus/raw/{wiki,lccc,pd}</code> · 每组 ≥ 100 MB</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>wc -l</code> · 每组显示行数(写入 SOURCES.md)</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">每组 <code>shuf -n 100 | cat</code> · 100 行可读、无乱码</span></li>
+          </ul>
+        </div>
+
+        <div class="cp-verdict"><div class="text"><b>verdict</b>全部 ▣ 后 · git commit · 状态切 done · 自动激活 CP-0.2</div></div>
+      </div>
+    </div>
+
+    <!-- ===== CP-0.2 ===== -->
+    <div class="cp" data-status="todo" data-cp="0.2">
+      <div class="cp-head" onclick="toggleCp(this)">
+        <div class="cp-head-left">
+          <div class="cp-id">CP-0.2</div>
+          <div class="cp-title">切句 + MIU 化</div>
+        </div>
+        <div class="cp-head-right">
+          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">7</b></span>
+          <span class="cp-status-tag">todo</span>
+        </div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-meta-row">
+          <span>前置 · CP-0.1</span>
+          <span>时长 · 1 天</span>
+          <span>回退 · 删 miu_set.tsv 重跑</span>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">动作 · do</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/eval/build_miu_set.py</code> · 含 <code>--seed</code> 参数</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">用 jieba 切句(<code>HMM=False</code> + 自定义词典)<span class="hint">自定义词典来源:<code>core/crates/inputx-pinyin/data/library.tsv</code> top-100k phrase dump</span></span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">按 <code>[。!?…]+</code> 切句 → 提取 MIU(非汉字分隔的最长连续汉字段)<span class="hint">MIU 定义见 Jia & Zhao 2013 KySS</span></span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">过滤:句长 4-120 字 + 汉字占比 ≥ 0.6 + MinHash 句级去重(阈值 0.85)</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">输出 <code>tools/eval/miu_set.tsv</code>(一列 hanzi MIU)</span></li>
+          </ul>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">验收 · check</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>wc -l tools/eval/miu_set.tsv</code> ≥ 40000</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>head -100</code> 可读、无 markup 残留 · 抽 200 行 visual check</span></li>
+          </ul>
+        </div>
+
+        <div class="cp-verdict"><div class="text"><b>verdict</b>全部 ▣ + 二次跑 byte-equal 后 · commit · 激活 CP-0.3</div></div>
+      </div>
+    </div>
+
+    <!-- ===== CP-0.3 ===== -->
+    <div class="cp" data-status="todo" data-cp="0.3">
+      <div class="cp-head" onclick="toggleCp(this)">
+        <div class="cp-head-left">
+          <div class="cp-id">CP-0.3</div>
+          <div class="cp-title">pinyin 回译配对</div>
+        </div>
+        <div class="cp-head-right">
+          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">6</b></span>
+          <span class="cp-status-tag">todo</span>
+        </div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-meta-row">
+          <span>前置 · CP-0.2</span>
+          <span>时长 · 0.5 天</span>
+          <span>回退 · 删 paired.tsv 重跑</span>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">动作 · do</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/eval/pinyinize.py</code></span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">用 <code>pypinyin.lazy_pinyin(miu, Style.NORMAL)</code> 对每个 MIU 回译</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">多音字 → train/dev 取默认读音,标记 <code>polyphone_default</code> 列</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">输出 <code>tools/eval/miu_set_paired.tsv</code> · 格式 <code>pinyin\thanzi\tflags</code></span></li>
+          </ul>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">验收 · check</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>awk -F'\t' '{print NF}' &lt; miu_set_paired.tsv | sort -u</code> 只显示一行 "3"</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">行数与 miu_set.tsv 等 + 随机 10 行 visual check pypinyin 拼音合理 + 多音字行 flags 含 polyphone_default</span></li>
+          </ul>
+        </div>
+
+        <div class="cp-verdict"><div class="text"><b>verdict</b>全部 ▣ → commit → 激活 CP-0.4</div></div>
+      </div>
+    </div>
+
+    <!-- ===== CP-0.4 ===== -->
+    <div class="cp" data-status="todo" data-cp="0.4">
+      <div class="cp-head" onclick="toggleCp(this)">
+        <div class="cp-head-left">
+          <div class="cp-id">CP-0.4</div>
+          <div class="cp-title">人审金标 1000 条</div>
+        </div>
+        <div class="cp-head-right">
+          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">7</b></span>
+          <span class="cp-status-tag">todo</span>
+        </div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-meta-row">
+          <span>前置 · CP-0.3</span>
+          <span>时长 · 1-2 天</span>
+          <span>回退 · 删 gold_1000.tsv 重审</span>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">动作 · do</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">从 paired set 随机抽 1000 行 · 优先含多音字字符的句子</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">对每条人审 pinyin 是否准确(可用 LLM 辅助 + 人工抽检 20%)</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">输出 <code>tools/eval/gold_1000.tsv</code> · 含 <code>quality_verified=true</code> 列</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">另存原 paired 作 <code>silver_full.tsv</code></span></li>
+          </ul>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">验收 · check</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>wc -l gold_1000.tsv</code> = 1001(含 header)· 所有行 <code>quality_verified=true</code></span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">至少 50 行含多音字字符(用 polyphone 字符集 grep)</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">抽 50 行让另一个人复审 · 一致率 ≥ 95%</span></li>
+          </ul>
+        </div>
+
+        <div class="cp-verdict"><div class="text"><b>verdict</b>全部 ▣ → commit · 这是一次性投入 → 激活 CP-0.5</div></div>
+      </div>
+    </div>
+
+    <!-- ===== CP-0.5 ===== -->
+    <div class="cp" data-status="todo" data-cp="0.5">
+      <div class="cp-head" onclick="toggleCp(this)">
+        <div class="cp-head-left">
+          <div class="cp-id">CP-0.5</div>
+          <div class="cp-title">MIU runner 实现(Rust)</div>
+        </div>
+        <div class="cp-head-right">
+          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">8</b></span>
+          <span class="cp-status-tag">todo</span>
+        </div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-meta-row">
+          <span>前置 · CP-0.4</span>
+          <span>时长 · 2-3 天</span>
+          <span>回退 · 只读工具 · git revert</span>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">动作 · do</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">在 workspace Cargo.toml 加 <code>tools/eval/runner/</code> 成员</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/eval/runner/src/main.rs</code> · 复用 <code>inputx-pinyin</code> crate</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">读 <code>gold_1000.tsv</code> + <code>silver_full.tsv</code> · 每行 pinyin 灌进 <code>PinyinAdapter</code> · 取 top-1/5/10</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">计算 Top-K MIU accuracy(候选是否含金标 hanzi 串)</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">输出 <code>tools/eval/results/{date}.json</code> · 字段 <code>top1 / top5 / top10 / gold_top1 / silver_top1 / per_polyphone_top1</code></span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">加 <code>--diff baseline.json</code> 选项 · 输出 ±X% 对照</span></li>
+          </ul>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">验收 · check</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>cargo run -p inputx-eval-runner --release</code> 跑完不 panic · JSON 含 6 个字段 · 值 [0,1] 浮点</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">首次跑作 <code>baseline.json</code> 存档(基线)· 连跑三次方差 < 0.5%</span></li>
+          </ul>
+        </div>
+
+        <div class="cp-verdict"><div class="text"><b>verdict</b>全部 ▣ + baseline 存档 → commit → 激活 CP-0.6</div></div>
+      </div>
+    </div>
+
+    <!-- ===== CP-0.6 ===== -->
+    <div class="cp" data-status="todo" data-cp="0.6">
+      <div class="cp-head" onclick="toggleCp(this)">
+        <div class="cp-head-left">
+          <div class="cp-id">CP-0.6</div>
+          <div class="cp-title">外部对照线(libpinyin / SunPinyin)</div>
+        </div>
+        <div class="cp-head-right">
+          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">6</b></span>
+          <span class="cp-status-tag">todo</span>
+        </div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-meta-row">
+          <span>前置 · CP-0.5</span>
+          <span>时长 · 1-2 天</span>
+          <span>回退 · 装不上则降级 SunPinyin / 纯字典 baseline</span>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">动作 · do</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">本地装 libpinyin<span class="hint">尝试 <code>brew install libpinyin</code> · 不行则源码编 · 还不行则 fallback SunPinyin</span></span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/eval/runner_libpinyin.py</code> · 调用 libpinyin Python binding</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">同一份 gold + silver 灌进 libpinyin · 取 top-K · 计算 Top-K MIU</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">输出 <code>tools/eval/baselines/libpinyin.json</code></span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/eval/COMPARE.md</code> · 表格列出 inputx vs libpinyin 三个 Top-K</span></li>
+          </ul>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">验收 · check</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">libpinyin.json 含同样 6 字段 · COMPARE.md 表格成文 · 差距数字落在合理范围(libpinyin 显著领先;若不,evaluation harness 有 bug,回 CP-0.5)</span></li>
+          </ul>
+        </div>
+
+        <div class="cp-verdict"><div class="text"><b>verdict</b>全部 ▣ → commit → 激活 CP-0.7</div></div>
+      </div>
+    </div>
+
+    <!-- ===== CP-0.7 ===== -->
+    <div class="cp" data-status="todo" data-cp="0.7">
+      <div class="cp-head" onclick="toggleCp(this)">
+        <div class="cp-head-left">
+          <div class="cp-id">CP-0.7</div>
+          <div class="cp-title">CI 集成 + 报警阈值</div>
+        </div>
+        <div class="cp-head-right">
+          <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">5</b></span>
+          <span class="cp-status-tag">todo</span>
+        </div>
+      </div>
+      <div class="cp-body">
+        <div class="cp-meta-row">
+          <span>前置 · CP-0.5</span>
+          <span>时长 · 1 天</span>
+          <span>回退 · CI 配置可单独 revert</span>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">动作 · do</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">把 MIU runner 加进 <code>cargo test --features eval</code></span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">(可选)GitHub Actions 跑 <code>cargo run -p inputx-eval-runner -- --diff main</code></span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">变化超 ±2% 触发 PR comment / fail</span></li>
+          </ul>
+        </div>
+
+        <div class="task-group">
+          <div class="task-group-head">验收 · check</div>
+          <ul class="tasks">
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">本地 <code>cargo test --features eval</code> 通过</span></li>
+            <li class="task" data-status="todo"><span class="box"></span><span class="body">构造一个会让 Top-1 掉 5% 的改动 · CI 必须报警 · revert 后 CI 恢复绿</span></li>
+          </ul>
+        </div>
+
+        <div class="cp-verdict"><div class="text"><b>verdict</b>全部 ▣ → commit → <strong>Phase 0 完成</strong> → 热化 Phase 1 · CP-1.1</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ====================== PHASE 0 验收门 ====================== -->
+<div class="future-preview" style="border:2px solid var(--vermillion);background:rgba(196,58,58,.06);color:var(--ink-2)">
+  <b style="color:var(--vermillion-deep)">Phase 0 验收门 · 不通过禁止进入 Phase 1</b>
+  ☐ 能跑出 top1 / top5 / top10 三个稳定数字(连跑三次方差 < 0.5%)<br>
+  ☐ 有 libpinyin(或 SunPinyin)对照线 · 差距数字成文<br>
+  ☐ 每次改动可量化(CI 自动 diff baseline)<br>
+  ☐ 金标 1000 条人审完毕、版本化<br>
+  ☐ <strong>宪法门</strong> · 评测集中无 hardcoded "应该 #0"列表(防作弊数据蒙混过门)
+</div>
+
+
+<!-- ====================== PHASE 1 · NEXT ====================== -->
+<div class="board-section next" data-phase="1">
+  <div class="section-header">
+    <span class="pn">Phase 1</span>
+    <h2>逐周翻 gate · 把已有能力还给用户</h2>
+    <span class="badge">↗ NEXT UP</span>
+  </div>
+
+  <div class="future-preview">
+    <b>预览 · 等 Phase 0 完成后热化</b>
+    Phase 1 含 4 个 CP · 每周翻 1 个 gate:<br>
+    <code>CP-1.1</code> 翻 PINYIN_DISABLE_FUZZY(模糊音)· 2-3 天 + 5-7 天 soak<br>
+    <code>CP-1.2</code> 翻 PINYIN_DISABLE_ASSOCIATION(简拼缩写)<br>
+    <code>CP-1.3</code> 翻 PINYIN_DISABLE_COMPOSE(Viterbi composition)<br>
+    <code>CP-1.4</code> 翻 PINYIN_DISABLE_PREDICTION(联想)<br><br>
+    <strong>每条同模式</strong>:baseline 跑数字 → 翻 const → 再跑数字 → polish-log replay 95% 守 → 实机 soak 1 周 → 决定保留或回退。<br><br>
+    <strong>宪法门(每 CP 必查)</strong> · <code>cargo test session::wubi_simcode_priority</code> 全过 · 五笔肌肉记忆未受 gate 开启影响。<br><br>
+    Phase 0 完成 → 我会展开 CP-1.1 全部 sub-tasks 到 active board。
+  </div>
+</div>
+
+
+<!-- ====================== DONE LOG ====================== -->
+<details class="donelog">
+  <summary>▼ Done log · 已完成 CP(0)</summary>
+  <ul>
+    <li><em>暂无完成项 · 完成一个 CP 后会在这里追加</em></li>
+  </ul>
+</details>
+
+
+<!-- ====================== FOOTER ====================== -->
+<footer>
+  <div class="inner">
+    <strong>文档体系</strong>:本文是 LIVE 工作看板 · 滚动更新 · 已完成的 CP 进 done log<br>
+    上位约束 → <a href="./inputx-engine-constitution-2026-06-14.html">引擎宪法 · 七律</a> · 任何 task 完成都必经违宪自检 8 问<br>
+    设计来源 → <a href="./pinyin-quality-gap-2026-06-14.html">差距研究报告</a> + <a href="./pinyin-climb-plan-2026-06-14.html">爬升执行表(38 CP)</a><br>
+    本文滚动展开"最近能做的事" + "做完了再热化下一章" · 不一次展全 38 CP 避免淹没<br>
+
+    <div class="credit">
+      <span>live work board · pinyin engine climb</span>
+      <span>edit me to update status · git commit to persist</span>
+      <span>opus 4.7 · for doracawl</span>
+    </div>
+  </div>
+</footer>
+
+
+<!-- ====================== JS · 可选客户端预览 ====================== -->
+<script>
+const STORAGE_KEY = 'inputx-todo-board';
+
+// 折叠/展开 CP
+function toggleCp(headEl) {
+  headEl.parentElement.classList.toggle('collapsed');
+}
+
+// 计算并更新顶部统计
+function recount() {
+  const all = document.querySelectorAll('.task');
+  let done = 0, inprog = 0, todo = 0, blocked = 0, skipped = 0;
+  all.forEach(t => {
+    const s = t.dataset.status;
+    if (s === 'done') done++;
+    else if (s === 'inprog') inprog++;
+    else if (s === 'blocked') blocked++;
+    else if (s === 'skipped') skipped++;
+    else todo++;
+  });
+  document.getElementById('t-done').textContent = done;
+  document.getElementById('t-inprog').textContent = inprog;
+  document.getElementById('t-todo').textContent = todo;
+
+  // 每个 CP 内部 done count
+  document.querySelectorAll('.cp').forEach(cp => {
+    const tasks = cp.querySelectorAll('.task');
+    const cpDone = Array.from(tasks).filter(t => t.dataset.status === 'done').length;
+    const cpTotal = tasks.length;
+    cp.querySelector('.done-count').textContent = cpDone;
+    cp.querySelector('.total-count').textContent = cpTotal;
+
+    // 自动更新 CP 状态
+    const currentStatus = cp.dataset.status;
+    if (currentStatus !== 'blocked') {  // blocked 是手动状态,不自动覆盖
+      let newStatus = 'todo';
+      if (cpDone === cpTotal && cpTotal > 0) newStatus = 'done';
+      else if (cpDone > 0) newStatus = 'inprog';
+      cp.dataset.status = newStatus;
+      cp.querySelector('.cp-status-tag').textContent = newStatus;
+    }
+  });
+}
+
+// 点击 task box 循环状态(浏览器预览,不改 HTML)
+document.querySelectorAll('.task .box').forEach(box => {
+  box.addEventListener('click', e => {
+    const task = e.target.closest('.task');
+    const cur = task.dataset.status;
+    const order = ['todo', 'inprog', 'done', 'blocked', 'skipped'];
+    const next = order[(order.indexOf(cur) + 1) % order.length];
+    task.dataset.status = next;
+    saveClient();
+    recount();
+    document.getElementById('csb').classList.add('show');
+  });
+});
+
+// localStorage 持久化(仅浏览器侧)
+function saveClient() {
+  const state = {};
+  document.querySelectorAll('.task').forEach((t, i) => {
+    state[i] = t.dataset.status;
+  });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+function loadClient() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const state = JSON.parse(raw);
+    const tasks = document.querySelectorAll('.task');
+    let changed = false;
+    Object.entries(state).forEach(([i, s]) => {
+      if (tasks[i] && tasks[i].dataset.status !== s) {
+        tasks[i].dataset.status = s;
+        changed = true;
+      }
+    });
+    if (changed) document.getElementById('csb').classList.add('show');
+  } catch (_) {}
+}
+
+// 导出当前状态(用于让 Claude/人类知道该 Edit 啥)
+window.exportStatus = function() {
+  const out = [];
+  document.querySelectorAll('.cp').forEach(cp => {
+    out.push(`[${cp.dataset.cp}] ${cp.querySelector('.cp-title').textContent.trim()} · ${cp.dataset.status}`);
+    cp.querySelectorAll('.task').forEach((t, j) => {
+      const s = t.dataset.status;
+      const body = t.querySelector('.body').textContent.trim().slice(0, 80);
+      const icon = {todo:'☐',inprog:'◐',done:'▣',blocked:'⊘',skipped:'⊝'}[s];
+      out.push(`  ${icon} ${body}`);
+    });
+  });
+  console.log(out.join('\n'));
+  return out.join('\n');
+};
+
+loadClient();
+recount();
+</script>
+
+</body>
+</html>
