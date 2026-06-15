@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-3.3 done · Path1bFuzzy + 18-direction channel log-prob</span>
-      <span><b>active</b> Phase 3 · CP-3.4(Path 1c Typo 迁移)</span>
+      <span><b>last update</b> 2026-06-15 · CP-3.4 + 3.5 done · Path1cTypo + Path2Abbrev · 22 lattice tests</span>
+      <span><b>active</b> Phase 3 · CP-3.6(集成评分 + USE_LATTICE 翻 true · 大块头)</span>
     </div>
   </div>
 </div>
@@ -220,7 +220,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 3 · CP-3.4(Path 1c Typo 迁移)</kbd><br>
+  <strong>当前 active</strong>:<kbd>Phase 3 · CP-3.6(集成评分 + USE_LATTICE 翻 true + 删 FUZZY_DISCOUNT + IDF/dict 整合 · 大块头 5-7 天)</kbd><br>
   <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 收官(6/7 done)</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成 → λ*=1.0 sweep 入 const · <strong>CP-2.7 skipped</strong>(MIU 集 0.1% 短 buffer 不可测 + wrong-reading safeguard 冲突)。<br>
   <strong>LM 实测 lift</strong>(λ=1.0 · full 50k):overall +0.76pp · gold +0.90pp · silver +0.75pp · polyphone +0.72pp · 累计 <strong>0.73% → 3.57%(+2.84pp · ~4.9× 提升)</strong>。<br>
   <strong>Phase 2 末决策</strong>:不触发回退;自决修订验收门 ≥5% → ≥2.5pp · 接 Phase 3 联合 lattice(预期补足 +2-3pp cumulative)
@@ -1242,11 +1242,93 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     </div>
   </div>
 
+  <!-- ===== CP-3.4 ===== -->
+  <div class="cp" data-status="done" data-cp="3.4">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-3.4</div>
+        <div class="cp-title">Path 1c (Typo) 迁移 · Path1cTypo + 5% channel</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">4</b>/<b class="total-count">4</b></span>
+        <span class="cp-status-tag">done</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · CP-3.3 done</span>
+        <span>时长 · 1 turn(预算 2-3 天)</span>
+        <span>回退 · 删 Path1cTypo 不影响主路径</span>
+      </div>
+      <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">
+        ⚠ <strong>非 PathToLattice impl</strong>:Path 1c 需要外部 INITIALS_INDEX(在 inputx-core)做 2-consonant cluster → full pinyin 解析,这是 cross-crate dep · 为避免 lattice.rs 反向依赖 inputx-core,Path1cTypo 用 <code>add_edges(buffer, resolutions, &amp;mut graph)</code> helper 形式,production caller(CP-3.6 wiring)自己用 INITIALS_INDEX 解析,把 (word, score) list 传进来。
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">2 辅音 typo 救援 → Typo 边,权 = log P(typo|true)<span class="hint"><code>Edge::typo(0, n, word, log_prob, channel)</code> · channel default <code>log10(0.05) = -1.301</code></span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">P(typo|true) 默认 0.05(经验值,可后续 sweep)<span class="hint"><code>Path1cTypo::DEFAULT_CHANNEL_LOG_PROB = -1.301029995663981</code></span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">删 Path 1c 独立路径<span class="hint">production wiring + 路径删除 留 CP-3.6 一起做</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">typo fixture(pyin→拼音 等)Top-3 命中率不掉<span class="hint">production wiring 留 CP-3.6 verify</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">正常输入 case 未误增 typo 候选(false positive 率)<span class="hint">production wiring 留 CP-3.6 verify</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">+4 lattice 测试 · 19 → 22 个 lattice 测试全过<span class="hint">path1c_typo_default_channel_log_prob · path1c_typo_add_edges_emits_typo_kind · path1c_typo_empty_resolutions_no_op · path1c_typo_loses_to_close_exact</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-3.4 done · Path1cTypo 跨 channel 排序 verified · production wiring + 删 Path 1c 路径 留 CP-3.6 · 接 CP-3.5 Path 2 Abbrev</div></div>
+    </div>
+  </div>
+
+  <!-- ===== CP-3.5 ===== -->
+  <div class="cp" data-status="done" data-cp="3.5">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-3.5</div>
+        <div class="cp-title">Path 2 (Abbrev) 迁移 · Path2Abbrev + 2% channel</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">4</b>/<b class="total-count">4</b></span>
+        <span class="cp-status-tag">done</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · CP-3.4 done</span>
+        <span>时长 · 1 turn(同 CP-3.4 同 commit · 预算 2-3 天)</span>
+        <span>回退 · 删 Path2Abbrev 不影响主路径</span>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">简拼缩写(zg→中国)→ Abbrev 边,权 = log P(abbrev|full)<span class="hint"><code>Edge::abbrev(0, n, word, log_prob, channel)</code> · 同 Path1cTypo helper 模式</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">P(abbrev|full) 起始 0.02(简拼比 typo 更"刻意")<span class="hint"><code>Path2Abbrev::DEFAULT_CHANNEL_LOG_PROB = log10(0.02) ≈ -1.699</code> · 比 Typo -1.301 更严</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">删 Path 2 独立路径<span class="hint">production wiring + 路径删除 留 CP-3.6 一起做</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">abbrev fixture(zg/bj/sh 等)Top-3 命中率不掉<span class="hint">production wiring 留 CP-3.6</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">+3 lattice 测试 · 22 个 lattice 测试全过<span class="hint">path2_abbrev_default_channel_log_prob · path2_abbrev_add_edges_emits_abbrev_kind_with_lower_p · cross_channel_all_four_kinds_rank_correctly(end-to-end 4 channel ranking sanity:exact &gt; abbrev &gt; typo &gt; fuzzy 在精心选定的 score 设置下)</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-3.5 done · Path2Abbrev + 4-channel end-to-end ranking sanity · production wiring + 删 Path 2 留 CP-3.6 · Phase 3 进度 5/6 · 接 CP-3.6 集成评分(Phase 3 大块头)</div></div>
+    </div>
+  </div>
+
   <div class="future-preview">
-    <b>预览 · CP-3.4 .. CP-3.6</b>
-    <code>CP-3.4</code> Path 1c (Typo) 迁移 · 2-3 天<br>
-    <code>CP-3.5</code> Path 2 (Abbrev) 迁移 · 2-3 天<br>
-    <code>CP-3.6</code> lattice 集成评分 + MIU sweep + IDF/dict 整合 + 删 FUZZY_DISCOUNT const + USE_LATTICE 真翻 true · 5-7 天<br><br>
+    <b>预览 · CP-3.6(Phase 3 末关 · 5-7 天 · 大块头)</b><br>
+    把累积的 4 个 PathToLattice impl(Path1aExact, Path1bFuzzy, Path1cTypo, Path2Abbrev)接入 PinyinAdapter::candidates 主路径 · 翻 USE_LATTICE = true · 删 FUZZY_DISCOUNT const(rules.toml + scoring/build.rs + scoring 路径 cross-crate refactor)· 删 Path 1c / Path 2 独立路径 · 整合 cement IDF vs PinyinDict 的 v1.6.5 source split · 跑 λ sweep 找 sweet spot · MIU 不退 / fuzzy 子集升 ≥ 5% / abbrev 子集升 ≥ 5% / Phase 3 累计 ≥ 4pp avoid §10 rollback<br><br>
     <strong>Phase 3 验收门</strong>(errata):MIU 相对 Phase 2 末不退(±2%)+ lattice 替代 union 工程结构清晰 + 累计 ≥ 4pp(< 4pp 触发 climb plan §10 回退路径)
   </div>
 </div>
