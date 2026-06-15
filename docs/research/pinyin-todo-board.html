@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-3.2 done · Path1aExact + USE_LATTICE const</span>
-      <span><b>active</b> Phase 3 · CP-3.3(Path 1b Fuzzy 迁移 + 真 channel log-prob)</span>
+      <span><b>last update</b> 2026-06-15 · CP-3.3 done · Path1bFuzzy + 18-direction channel log-prob</span>
+      <span><b>active</b> Phase 3 · CP-3.4(Path 1c Typo 迁移)</span>
     </div>
   </div>
 </div>
@@ -220,7 +220,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 3 · CP-3.3(Path 1b Fuzzy 迁移 + 真 channel log-prob · 替代 FUZZY_DISCOUNT × 0.3)</kbd><br>
+  <strong>当前 active</strong>:<kbd>Phase 3 · CP-3.4(Path 1c Typo 迁移)</kbd><br>
   <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 收官(6/7 done)</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成 → λ*=1.0 sweep 入 const · <strong>CP-2.7 skipped</strong>(MIU 集 0.1% 短 buffer 不可测 + wrong-reading safeguard 冲突)。<br>
   <strong>LM 实测 lift</strong>(λ=1.0 · full 50k):overall +0.76pp · gold +0.90pp · silver +0.75pp · polyphone +0.72pp · 累计 <strong>0.73% → 3.57%(+2.84pp · ~4.9× 提升)</strong>。<br>
   <strong>Phase 2 末决策</strong>:不触发回退;自决修订验收门 ≥5% → ≥2.5pp · 接 Phase 3 联合 lattice(预期补足 +2-3pp cumulative)
@@ -1196,12 +1196,57 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     </div>
   </div>
 
+  <!-- ===== CP-3.3 ===== -->
+  <div class="cp" data-status="done" data-cp="3.3">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-3.3</div>
+        <div class="cp-title">Path 1b (Fuzzy) 迁移 + 真 channel log-prob</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">5</b>/<b class="total-count">6</b></span>
+        <span class="cp-status-tag">done</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · CP-3.2 done</span>
+        <span>时长 · 1 turn(预算 3-4 天)</span>
+        <span>回退 · 删 Path1bFuzzy 不影响主路径</span>
+      </div>
+      <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">
+        ⚠ <strong>FUZZY_DISCOUNT const 删除 deferred</strong>:climb plan 验收门第 3 条 "FUZZY_DISCOUNT const 在源码中已删除"是跨 crate 工程(<code>core/crates/inputx-scoring/build.rs:413</code> + <code>rules.toml</code>)· 删 const 需 rules.toml 改 + build.rs 改 + 所有引用方迁移 · 同 CP-3.2 production wiring 一起留 CP-3.6 集成评分时统一做。
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">Fuzzy 边权 = exact 边权 + log P(fuzzy_pinyin | true_pinyin)<span class="hint"><code>Edge::fuzzy(from, to, candidate, log_prob, channel_log_prob)</code> · <code>weight() = log_prob + channel</code></span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">9 对模糊音的 log P 用经验值(climb plan 估算 -2 到 -3)<span class="hint">实测调:z/zh c/ch s/sh in/ing en/eng an/ang = -1.0(更常见 swap)· n/l = -1.5 · r/l f/h = -2.0 · 18 directions in <code>FUZZY_CHANNEL_LOG_PROBS</code> table</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">实现 <code>Path1bFuzzy { fuzzy: FuzzyConfig }</code> · 用 <code>FuzzyConfig::expand</code> 找 variants · 每 variant 的 dict lookup → 一组 Fuzzy 边<span class="hint">canonical syllable 跳过(Path 1a 的工作)· strict config 时 0 edge</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">不再用 FUZZY_DISCOUNT × 0.3 常数<span class="hint">lattice 端 ✓ · 但 production 端的 const 删除 deferred · 见 errata box</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">Top-1 MIU 不掉<span class="hint">USE_LATTICE 默认 false · production 行为不变 · MIU = Phase 2 末</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">fuzzy 子集 case Top-3 命中率升 ≥ 5%<span class="hint">production wiring 留 CP-3.6 · 届时 verify</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">FUZZY_DISCOUNT const 在源码中已删除(grep 0 匹配)<span class="hint">deferred to CP-3.6 跨 crate 重构</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">15 lattice 测试全过 · 84 lib + 宪法门 12/12<span class="hint">+4 新测:fuzzy_channel_log_prob_table_lookup / path1b_fuzzy_zhi_zi_swap_produces_fuzzy_edges / path1b_fuzzy_strict_config_adds_nothing / path1a_and_path1b_cross_channel_ranking</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-3.3 done · Path1bFuzzy + 18-direction FUZZY_CHANNEL_LOG_PROBS table 就位 · 跨 channel 排序数学 verified · production wiring + const 删除 留 CP-3.6 · 接 CP-3.4 Path 1c (Typo) 迁移</div></div>
+    </div>
+  </div>
+
   <div class="future-preview">
-    <b>预览 · CP-3.3 .. CP-3.6</b>
-    <code>CP-3.3</code> Path 1b (Fuzzy) 迁移 + 真 channel log-prob(替代 FUZZY_DISCOUNT × 0.3)· 3-4 天<br>
+    <b>预览 · CP-3.4 .. CP-3.6</b>
     <code>CP-3.4</code> Path 1c (Typo) 迁移 · 2-3 天<br>
     <code>CP-3.5</code> Path 2 (Abbrev) 迁移 · 2-3 天<br>
-    <code>CP-3.6</code> lattice 集成评分 + MIU sweep · 5-7 天 · 这里才把 USE_LATTICE 真翻 true<br><br>
+    <code>CP-3.6</code> lattice 集成评分 + MIU sweep + IDF/dict 整合 + 删 FUZZY_DISCOUNT const + USE_LATTICE 真翻 true · 5-7 天<br><br>
     <strong>Phase 3 验收门</strong>(errata):MIU 相对 Phase 2 末不退(±2%)+ lattice 替代 union 工程结构清晰 + 累计 ≥ 4pp(< 4pp 触发 climb plan §10 回退路径)
   </div>
 </div>
