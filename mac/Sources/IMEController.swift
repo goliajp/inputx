@@ -500,6 +500,18 @@ final class InputxController: IMKInputController {
                     showPredictionsOrHide(client: sender)
                     updatePreedit(client: sender)
                     // Fall through — punct is now in "not composing" state.
+                } else {
+                    // 联想 cancellation — pure-prediction state at the
+                    // host side. The engine's handle_key_cjk guard never
+                    // sees this codepoint (Path B routes around it via
+                    // applyLocaleIfApplicable), so the host must cancel
+                    // predictions itself and resync the candidate panel.
+                    // Without this, ghost predictions persist after a
+                    // user types punct following a CJK commit.
+                    if session.predictionCount > 0 {
+                        session.cancelPredictions()
+                        showPredictionsOrHide(client: sender)
+                    }
                 }
                 if let mapped = applyLocaleIfApplicable(
                     codepoint: codepoint,
@@ -524,6 +536,16 @@ final class InputxController: IMKInputController {
             // so the next `"` opens fresh rather than continuing the previous
             // open/close alternation across a sentence boundary.
             session.smartQuoteReset()
+            // Sync the candidate panel with the engine's prediction
+            // state. handle_key_cjk's association-cancel guard runs
+            // before returning false (digit / Escape / Backspace /
+            // arrow / function keys all reach it), so the engine has
+            // already dropped its prediction buffer here — but the
+            // host's CandidatePanel keeps a local `isPredictionMode`
+            // and won't notice unless we tell it. Without this call,
+            // the panel keeps showing ghost candidates after the user
+            // types a digit following a CJK commit.
+            showPredictionsOrHide(client: sender)
             return false
         }
 
