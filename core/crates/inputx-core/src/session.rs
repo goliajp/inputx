@@ -348,6 +348,22 @@ impl Session {
         self.composite.predicted_candidates().len()
     }
 
+    /// Drop pending 联想 candidates. Mirrors `composite.cancel_predictions`
+    /// at the session boundary so the host (Swift / Obj-C) can clear
+    /// stale predictions when its own keyDown path doesn't reach
+    /// `handle_key_cjk` (e.g. punct that the IMK controller maps to a
+    /// 全角 codepoint and routes around the engine — Path B in
+    /// IMEController). `handle_key_cjk` already guards this internally,
+    /// so this method exists solely for those out-of-band cancel sites.
+    ///
+    /// Leaves `last_committed_word` / `second_last_committed_word`
+    /// intact — those only feed *next* commit's bigram / trigram LM
+    /// scoring, not the currently visible prediction panel. Use
+    /// `clear()` for a full session reset.
+    pub fn cancel_predictions(&mut self) {
+        self.composite.cancel_predictions();
+    }
+
     /// Commit a prediction by index. Returns the committed text on
     /// success (and triggers a fresh round of predictions internally,
     /// keyed off the just-committed word — chained 联想). Returns

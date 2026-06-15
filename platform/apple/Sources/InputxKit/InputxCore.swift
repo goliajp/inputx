@@ -161,6 +161,16 @@ public final class InputxSession {
         return String(cString: cstr)
     }
 
+    /// Drop pending 联想 candidates. The host calls this from keyDown
+    /// paths that bypass `handleKey` (Path B in IMEController — ASCII
+    /// punct routed through locale-mapping before reaching the engine).
+    /// After this call, `predictionCount` returns 0 until the next CJK
+    /// commit repopulates predictions, so a subsequent
+    /// `showPredictionsOrHide` will hide the panel.
+    public func cancelPredictions() {
+        inputx_session_cancel_predictions(handle)
+    }
+
     /// Drop the composition without committing (Escape).
     public func clear() {
         inputx_session_clear(handle)

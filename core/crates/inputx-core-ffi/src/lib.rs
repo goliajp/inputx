@@ -154,6 +154,22 @@ pub unsafe extern "C" fn inputx_session_prediction_count(session: *const InputxS
     s.inner.prediction_count()
 }
 
+/// Drop pending 联想 candidates so the host can re-sync its candidate
+/// panel after a key event that bypassed `inputx_session_handle_key`
+/// (e.g. IMK-controller-side punct routing). After this call,
+/// `inputx_session_prediction_count` returns 0 until the next commit
+/// repopulates predictions.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_cancel_predictions(session: *mut InputxSession) {
+    let Some(s) = (unsafe { session.as_mut() }) else {
+        return;
+    };
+    s.inner.cancel_predictions();
+}
+
 /// Returns the prediction at `index` as a heap-allocated UTF-8 C string.
 /// NULL if out of range, session is NULL, or allocation fails. Caller
 /// must free via `inputx_string_free`.
