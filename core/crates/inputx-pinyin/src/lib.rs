@@ -34,6 +34,7 @@
 //! - [`session`] — mutable [`Session`] holding the user's input buffer
 //! - [`ranking`] — L0 snapshot type for host-side persistence
 
+pub mod bigram_lm;
 pub mod dict;
 pub mod encode;
 pub mod engine;
