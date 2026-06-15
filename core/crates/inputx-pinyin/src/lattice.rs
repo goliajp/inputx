@@ -179,6 +179,109 @@ pub struct Path1bFuzzy {
     pub fuzzy: crate::fuzzy::FuzzyConfig,
 }
 
+/// Phase-3 CP-3.4: Path 1c (2-consonant typo rescue) implementation.
+///
+/// Unlike Path 1a / 1b which can resolve the user's typo entirely from
+/// the dict the lattice already holds, Path 1c needs the cross-crate
+/// `INITIALS_INDEX` that lives in inputx-core (it maps a 2-consonant
+/// cluster like "py" to the full-pinyin candidates "pin yin"). To keep
+/// the lattice module free of the inputx-core dependency, Path1cTypo
+/// is not a [`PathToLattice`] impl; instead [`Path1cTypo::add_edges`]
+/// is a thin helper the production caller (CP-3.6 wiring) invokes
+/// after it has resolved the typo cluster on its own — Path1cTypo just
+/// turns the `(word, score)` resolutions into [`EdgeKind::Typo`]
+/// edges with a uniform channel cost.
+///
+/// `channel_log_prob` defaults to `log10(0.05) ≈ -1.301` — the
+/// climb-plan estimate of 5% P(2-consonant typo | true pinyin). CP-3.6
+/// will sweep this alongside λ.
+pub struct Path1cTypo {
+    /// log10 P(typo | true). Default = -1.301 = log10(0.05).
+    pub channel_log_prob: f32,
+}
+
+impl Default for Path1cTypo {
+    fn default() -> Self {
+        Self {
+            channel_log_prob: Self::DEFAULT_CHANNEL_LOG_PROB,
+        }
+    }
+}
+
+impl Path1cTypo {
+    /// log10(0.05) ≈ -1.301; the climb-plan default P(typo|true) = 5%.
+    pub const DEFAULT_CHANNEL_LOG_PROB: f32 = -1.301029995663981;
+
+    /// Turn pre-resolved typo candidates `(word, score)` into
+    /// [`EdgeKind::Typo`] edges spanning the whole buffer. Returns the
+    /// number of edges added.
+    pub fn add_edges(
+        &self,
+        buffer: &str,
+        resolutions: &[(String, f64)],
+        graph: &mut Graph,
+    ) -> usize {
+        let n = buffer.len();
+        if n == 0 || resolutions.is_empty() {
+            return 0;
+        }
+        for (word, score) in resolutions {
+            let log_prob = (score.max(1.0) as f32).log10();
+            graph.add_edge(Edge::typo(0, n, word.clone(), log_prob, self.channel_log_prob));
+        }
+        resolutions.len()
+    }
+}
+
+/// Phase-3 CP-3.5: Path 2 (简拼 abbreviation) implementation.
+///
+/// Like Path 1c, Path 2 needs an external resolution — the user typed
+/// initials only (e.g. "zg" → 中国) and the production code resolves
+/// the cluster against the cross-crate `INITIALS_INDEX`. Path2Abbrev
+/// just translates `(word, score)` pairs into [`EdgeKind::Abbrev`]
+/// edges with a uniform channel cost.
+///
+/// `channel_log_prob` defaults to `log10(0.02) ≈ -1.699` — the
+/// climb-plan estimate of 2% P(initials abbreviation | full pinyin).
+/// Abbrev is "more deliberate" than a typo so its base probability
+/// is lower than Path 1c's 5%.
+pub struct Path2Abbrev {
+    /// log10 P(abbrev | full). Default = log10(0.02) ≈ -1.699.
+    pub channel_log_prob: f32,
+}
+
+impl Default for Path2Abbrev {
+    fn default() -> Self {
+        Self {
+            channel_log_prob: Self::DEFAULT_CHANNEL_LOG_PROB,
+        }
+    }
+}
+
+impl Path2Abbrev {
+    /// log10(0.02) ≈ -1.699; the climb-plan default P(abbrev|full) = 2%.
+    pub const DEFAULT_CHANNEL_LOG_PROB: f32 = -1.6989700043360187;
+
+    /// Turn pre-resolved abbrev candidates `(word, score)` into
+    /// [`EdgeKind::Abbrev`] edges spanning the whole buffer.
+    pub fn add_edges(
+        &self,
+        buffer: &str,
+        resolutions: &[(String, f64)],
+        graph: &mut Graph,
+    ) -> usize {
+        let n = buffer.len();
+        if n == 0 || resolutions.is_empty() {
+            return 0;
+        }
+        for (word, score) in resolutions {
+            let log_prob = (score.max(1.0) as f32).log10();
+            graph.add_edge(Edge::abbrev(0, n, word.clone(), log_prob, self.channel_log_prob));
+        }
+        resolutions.len()
+    }
+}
+
 impl PathToLattice for Path1bFuzzy {
     fn populate_lattice(&self, buffer: &str, dict: &PinyinDict, graph: &mut Graph) -> usize {
         let n = buffer.len();
@@ -740,6 +843,119 @@ mod tests {
         assert_eq!(paths.len(), 2);
         assert_eq!(paths[0].sentence(), "你");
         assert_eq!(paths[1].sentence(), "拟");
+    }
+
+    /// CP-3.4: Path1cTypo default channel log-prob = log10(0.05),
+    /// i.e. ~5% P(typo | true).
+    #[test]
+    fn path1c_typo_default_channel_log_prob() {
+        let p = Path1cTypo::default();
+        // 10^(-1.301) = 0.05
+        let prob = 10f32.powf(p.channel_log_prob);
+        assert!((prob - 0.05).abs() < 1e-4, "default = log10(0.05), got prob {prob}");
+    }
+
+    /// CP-3.4: Path1cTypo.add_edges turns externally-resolved
+    /// `(word, score)` pairs into EdgeKind::Typo edges spanning the
+    /// whole buffer.
+    #[test]
+    fn path1c_typo_add_edges_emits_typo_kind() {
+        let mut g = Graph::for_buffer(4);
+        // Mock typo rescue: user typed "pyin" → "pinyin", let's say
+        // 2 candidates from the cement IDF.
+        let resolutions = vec![
+            ("拼音".to_string(), 800_000.0),
+            ("品音".to_string(), 50_000.0),
+        ];
+        let typo = Path1cTypo::default();
+        let n = typo.add_edges("pyin", &resolutions, &mut g);
+        assert_eq!(n, 2);
+        for e in g.edges() {
+            assert_eq!(e.from, 0);
+            assert_eq!(e.to, 4);
+            match e.kind {
+                EdgeKind::Typo(p) => {
+                    assert!((p - Path1cTypo::DEFAULT_CHANNEL_LOG_PROB).abs() < 1e-6);
+                }
+                _ => panic!("expected Typo, got {:?}", e.kind),
+            }
+        }
+    }
+
+    /// CP-3.4: empty resolutions add zero edges (graceful no-op when
+    /// the typo cluster failed to resolve at the index layer).
+    #[test]
+    fn path1c_typo_empty_resolutions_no_op() {
+        let mut g = Graph::for_buffer(4);
+        let n = Path1cTypo::default().add_edges("pyin", &[], &mut g);
+        assert_eq!(n, 0);
+        assert!(g.edges().is_empty());
+    }
+
+    /// CP-3.4 cross-channel: Typo edge with higher raw log_prob still
+    /// loses to a competing Exact edge if its channel penalty (~-1.3)
+    /// outweighs the raw score difference.
+    #[test]
+    fn path1c_typo_loses_to_close_exact() {
+        let mut g = Graph::for_buffer(4);
+        // Exact 拼音 at log_prob 5.9 → weight 5.9
+        g.add_edge(Edge::exact(0, 4, "拼音", 5.9));
+        // Typo 品音 at log_prob 6.5 → weight 6.5 + (-1.301) = 5.199
+        g.add_edge(Edge::typo(0, 4, "品音", 6.5, Path1cTypo::DEFAULT_CHANNEL_LOG_PROB));
+        let paths = g.viterbi(2, noop_lm);
+        assert_eq!(paths[0].sentence(), "拼音");
+    }
+
+    /// CP-3.5: Path2Abbrev default channel = log10(0.02) ≈ -1.699,
+    /// i.e. 2% P(abbrev | full).
+    #[test]
+    fn path2_abbrev_default_channel_log_prob() {
+        let p = Path2Abbrev::default();
+        let prob = 10f32.powf(p.channel_log_prob);
+        assert!((prob - 0.02).abs() < 1e-4, "default = log10(0.02), got prob {prob}");
+    }
+
+    /// CP-3.5: Path2Abbrev.add_edges emits Abbrev edges. Compare with
+    /// Path1cTypo to confirm both use the same uniform-channel pattern
+    /// but with the lower Abbrev probability (P=0.02 vs P=0.05).
+    #[test]
+    fn path2_abbrev_add_edges_emits_abbrev_kind_with_lower_p() {
+        let mut g = Graph::for_buffer(2);
+        let resolutions = vec![("中国".to_string(), 1_000_000.0)];
+        let n = Path2Abbrev::default().add_edges("zg", &resolutions, &mut g);
+        assert_eq!(n, 1);
+        match g.edges()[0].kind {
+            EdgeKind::Abbrev(p) => {
+                assert!((p - Path2Abbrev::DEFAULT_CHANNEL_LOG_PROB).abs() < 1e-6);
+                // Abbrev penalty must be stricter than Typo penalty
+                // (lower probability → more negative log10).
+                assert!(p < Path1cTypo::DEFAULT_CHANNEL_LOG_PROB);
+            }
+            _ => panic!("expected Abbrev, got {:?}", g.edges()[0].kind),
+        }
+    }
+
+    /// CP-3.5: end-to-end cross-channel sanity. Four kinds of edges
+    /// (Exact / Fuzzy / Typo / Abbrev) at the same span are ranked
+    /// correctly by their cumulative weight = log_prob + channel.
+    #[test]
+    fn cross_channel_all_four_kinds_rank_correctly() {
+        let mut g = Graph::for_buffer(2);
+        // Match the climb-plan-suggested channel costs.
+        g.add_edge(Edge::exact(0, 2, "exact", 5.0));
+        g.add_edge(Edge::fuzzy(0, 2, "fuzzy", 5.5, -1.0));
+        g.add_edge(Edge::typo(0, 2, "typo", 6.0, Path1cTypo::DEFAULT_CHANNEL_LOG_PROB));
+        g.add_edge(Edge::abbrev(0, 2, "abbrev", 6.5, Path2Abbrev::DEFAULT_CHANNEL_LOG_PROB));
+
+        // Compute expected effective weights.
+        // exact  = 5.0
+        // fuzzy  = 5.5 + -1.0  = 4.5
+        // typo   = 6.0 + -1.301 = 4.699
+        // abbrev = 6.5 + -1.699 = 4.801
+        let paths = g.viterbi(4, noop_lm);
+        assert_eq!(paths.len(), 4);
+        let order: Vec<String> = paths.iter().map(Path::sentence).collect();
+        assert_eq!(order, vec!["exact", "abbrev", "typo", "fuzzy"]);
     }
 
     /// Beam pruning actually limits the partial-path explosion. Build a
