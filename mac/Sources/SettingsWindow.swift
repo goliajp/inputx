@@ -55,6 +55,7 @@ private struct SettingsRootView: View {
     @State private var useCjkPunct: Bool = inputxSettings.useCjkPunct
     @State private var useFullWidth: Bool = inputxSettings.useFullWidth
     @State private var showRareChars: Bool = inputxSettings.showRareChars
+    @State private var userLearningEnabled: Bool = inputxSettings.userLearningEnabled
     @State private var showResetConfirm: Bool = false
     @State private var infoBanner: String?
 
@@ -135,6 +136,11 @@ private struct SettingsRootView: View {
 
             // ---- 学习与个性化 ----
             Section {
+                Toggle("用户学习（自动学习常用词组的相邻关系）", isOn: $userLearningEnabled)
+                    .onChange(of: userLearningEnabled) { _, newValue in
+                        inputxSettings.userLearningEnabled = newValue
+                        NotificationCenter.default.post(name: .inputxSettingsChanged, object: nil)
+                    }
                 Button("重置全部 L0 学习记录") {
                     showResetConfirm = true
                 }
@@ -149,9 +155,12 @@ private struct SettingsRootView: View {
                 Text("学习与个性化")
                     .font(.headline)
             } footer: {
-                Text("Polish 日志：你每次用数字键或鼠标点了**不是首位**的候选，Inputx 都会记一行到日志。Dev 周期看这个日志反推哪些 input 排序不合理 → 修 + 加 regression test。")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("用户学习：你每次上屏，Inputx 都会把 (上一个词, 这个词) 这一对记一次。当观察到 ≥ 100 对后，排序里会逐步带上你常用的相邻习惯（如 北京→大学、机器→学习）。关掉这个开关只是停止继续学习，已经学到的不会丢。")
+                    Text("Polish 日志：你每次用数字键或鼠标点了**不是首位**的候选，Inputx 都会记一行到日志。Dev 周期看这个日志反推哪些 input 排序不合理 → 修 + 加 regression test。")
+                }
+                .font(.callout)
+                .foregroundStyle(.secondary)
             }
 
             // ---- 关于 ----
