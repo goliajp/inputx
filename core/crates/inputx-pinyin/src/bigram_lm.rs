@@ -29,7 +29,7 @@
 
 use core::fmt::Debug;
 
-/// Pluggable bigram log-prob backend used by the Phase-2 Viterbi path.
+/// Pluggable bigram / trigram log-prob backend used by the Viterbi path.
 ///
 /// Implementors must be `Send + Sync` because [`LmBackend`] is queried
 /// from rayon worker threads inside the composition lattice.
@@ -39,6 +39,22 @@ pub trait LmBackend: Send + Sync + Debug {
     /// score, depending on smoothing — KenLM gives a finite KN back-off,
     /// the noop backend always returns 0.0).
     fn log_prob(&self, prev: &str, curr: &str) -> f32;
+
+    /// Return `log10 P(curr | prev_prev, prev)` for a trigram. The
+    /// default falls back to the bigram score — backends that only
+    /// support order-2 simply inherit this. KenLM order-3 binaries
+    /// override with the true conditional via a 3-state chain.
+    fn log_prob_trigram(&self, _prev_prev: &str, prev: &str, curr: &str) -> f32 {
+        self.log_prob(prev, curr)
+    }
+
+    /// Underlying n-gram order. Default is 2 (bigram). Callers use
+    /// this to decide whether to pay for an extra state in the
+    /// Viterbi DP — a 2-token backend gets a bigram-only DP, a
+    /// 3-token backend gets the prev_prev-aware DP.
+    fn order(&self) -> u8 {
+        2
+    }
 
     /// Whether this backend actually scores. `false` means the caller
     /// can skip the LM term entirely and not pay the lookup cost.
@@ -56,6 +72,9 @@ pub struct NoopLm;
 
 impl LmBackend for NoopLm {
     fn log_prob(&self, _prev: &str, _curr: &str) -> f32 {
+        0.0
+    }
+    fn log_prob_trigram(&self, _prev_prev: &str, _prev: &str, _curr: &str) -> f32 {
         0.0
     }
     fn enabled(&self) -> bool {
@@ -143,6 +162,61 @@ pub mod kenlm_backend {
             self.model
                 .base_score(&state_after_prev, curr_idx, &mut state_after_curr)
                 .unwrap_or(f32::NEG_INFINITY)
+        }
+
+        fn log_prob_trigram(&self, prev_prev: &str, prev: &str, curr: &str) -> f32 {
+            // Same stateful pipeline as log_prob but with one extra
+            // conditioning step. After feeding (prev_prev, prev) the
+            // out-state encodes context = "prev_prev prev"; scoring curr
+            // from there gives log P(curr | prev_prev, prev) using the
+            // model's trained Kneser-Ney back-off when the trigram is
+            // absent from the table.
+            //
+            // For order-2 models, the third base_score is still well-
+            // defined (KenLM truncates its context to the model's order
+            // automatically), so this method works on bigram models too
+            // — it just returns the same value as log_prob(prev, curr).
+            // We rely on `order()` to gate at the caller layer for clarity.
+            let state_null = self.model.null_context_state();
+            let mut state_after_pp = self.model.null_context_state();
+            let mut state_after_prev = self.model.null_context_state();
+            let mut state_after_curr = self.model.null_context_state();
+
+            let pp_idx = match self.model.index(prev_prev) {
+                Ok(idx) => idx,
+                Err(_) => return f32::NEG_INFINITY,
+            };
+            if self
+                .model
+                .base_score(&state_null, pp_idx, &mut state_after_pp)
+                .is_err()
+            {
+                return f32::NEG_INFINITY;
+            }
+
+            let prev_idx = match self.model.index(prev) {
+                Ok(idx) => idx,
+                Err(_) => return f32::NEG_INFINITY,
+            };
+            if self
+                .model
+                .base_score(&state_after_pp, prev_idx, &mut state_after_prev)
+                .is_err()
+            {
+                return f32::NEG_INFINITY;
+            }
+
+            let curr_idx = match self.model.index(curr) {
+                Ok(idx) => idx,
+                Err(_) => return f32::NEG_INFINITY,
+            };
+            self.model
+                .base_score(&state_after_prev, curr_idx, &mut state_after_curr)
+                .unwrap_or(f32::NEG_INFINITY)
+        }
+
+        fn order(&self) -> u8 {
+            self.model.order()
         }
     }
 }
