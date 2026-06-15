@@ -78,6 +78,11 @@ perfgate = []
 # this declaration that cfg referenced an undeclared feature — always-false,
 # so the gates were dead and `--features bootstrap_only` errored.
 bootstrap_only = ["inputx-pinyin/bootstrap_only"]
+# Phase-2 LM transit: forward inputx-pinyin's `kenlm` feature so binaries
+# in this crate (inputx-probe, eval-runner via inputx-core) can opt into
+# the real KenLM bigram LM. Off by default; the Inputx mac bundle / the
+# Phase-2 CP-2.5+ eval runs flip this on.
+kenlm = ["inputx-pinyin/kenlm"]
 
 [[bench]]
 name = "composite"
