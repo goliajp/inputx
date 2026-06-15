@@ -179,7 +179,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
       <span><b>last update</b> 2026-06-16 · CP-5.3 step-1 done · keyboard_adjacency 模块 + single_edit_neighbors helper + 11 单测 · scoring 数学独立 · 默认行为 byte-equal</span>
-      <span><b>active</b> Phase 5 · CP-5.3 step-2(lattice 接入 + typo fixture + MIU verify · 多 turn · 可与 CP-3.6 step-2 production wiring 合并)/ CP-5.2 step-2 / CP-5.4 按需挑做</span>
+      <span><b>active</b> Phase 5 · <strong>CP-5.4 step-1 (autorun 默认接续)</strong> · abbrev channel_log_prob 长度感知 + initials helper · scoring 数学独立模块 · 单 turn 可闭 · 同 CP-5.3 step-1 模式;备选 CP-5.3 step-2 / CP-5.2 step-2(均涉 lattice production wiring 或外部 corpus · 4-5 turn 大块工程)</span>
     </div>
   </div>
 </div>
@@ -220,7 +220,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 5 · CP-5.3 step-2(lattice 接入 + typo fixture + MIU verify · 多 turn · 与 CP-3.6 step-2 production wiring 合并)/ CP-5.2 step-2 / CP-5.4 按需挑做</kbd><br>
+  <strong>当前 active</strong>:<kbd>Phase 5 · CP-5.4 step-1(autorun 默认 · abbrev channel_log_prob + initials helper · 单 turn 可闭);备选 CP-5.3 step-2 / CP-5.2 step-2</kbd><br>
   <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 收官(6/7 done)</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成 → λ*=1.0 sweep 入 const · <strong>CP-2.7 skipped</strong>(MIU 集 0.1% 短 buffer 不可测 + wrong-reading safeguard 冲突)。<br>
   <strong>LM 实测 lift</strong>(λ=1.0 · full 50k):overall +0.76pp · gold +0.90pp · silver +0.75pp · polyphone +0.72pp · 累计 <strong>0.73% → 3.57%(+2.84pp · ~4.9× 提升)</strong>。<br>
   <strong>Phase 2 末决策</strong>:不触发回退;自决修订验收门 ≥5% → ≥2.5pp · 接 Phase 3 联合 lattice(预期补足 +2-3pp cumulative)
