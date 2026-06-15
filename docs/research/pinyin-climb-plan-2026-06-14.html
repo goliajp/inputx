@@ -261,8 +261,20 @@ strong{color:var(--ink)}
       <strong>修订:</strong> Phase 2-5 任何"HF 上 GB 级语料"默认走 streaming + 子采样 · 不走 download-then-process。
     </li>
     <li>
-      <strong>brew 无 kenlm formula</strong>:原 plan CP-2.3 task 1 "<code>brew install kenlm</code>" · 实测 <code>Error: No available formula with the name "kenlm"</code>。<br>
-      <strong>修订:</strong> CP-2.3 task 1 改为"<code>pip install kenlm</code>(boost + eigen brew deps)";Python wrapper 自带 <code>lmplz</code>/<code>build_binary</code> CLI 工具。boost / eigen 已通过 <code>brew install boost eigen</code> 装好。
+      <strong>brew 无 kenlm formula · 源码 build 撞 Boost 1.90 · pip 包不带 CLI</strong>:实测三条路都不顺 ——<br>
+      &nbsp;&nbsp;&bull; <code>brew install kenlm</code> · "No available formula"<br>
+      &nbsp;&nbsp;&bull; <code>git clone kpu/kenlm + cmake</code> · Boost 1.90 把 boost::system 改 header-only,<code>libboost_system.dylib</code> 不存在;<code>FindBoost.cmake</code> 找 system component 失败 · 即使 <code>BOOST_ROOT/-DBoost_NO_BOOST_CMAKE=ON</code> 也撞同样错<br>
+      &nbsp;&nbsp;&bull; <code>pip install kenlm</code> · 只装 <code>libkenlm.dylib</code> + Python query binding · 不带 <code>lmplz</code> / <code>build_binary</code> / <code>query</code> CLI<br>
+      <strong>修订:</strong> CP-2.3 真实路径三选一 ——<br>
+      &nbsp;&nbsp;① <strong>conda-forge prebuilt</strong>:装 miniconda 一次性 → <code>conda install -c conda-forge kenlm</code> 含完整 CLI<br>
+      &nbsp;&nbsp;② <strong>patch KenLM CMakeLists</strong>:把 <code>find_package(Boost COMPONENTS system thread ...)</code> 去 <code>system / thread</code> 试,这两个新 boost 是 header-only<br>
+      &nbsp;&nbsp;③ <strong>Python 实现 modified KN smoothing</strong>:~300 行 stdlib + numpy · 产 ARPA · kenlm Python 包 <code>Model.load(arpa)</code> 即可下游 query · CP-2.4 Rust binding 也用 ARPA(<code>build_binary</code> 转 .binary 是优化非必需)<br>
+      pre-req:boost / eigen 已通过 <code>brew install boost eigen</code> 装好(给路径 ① 之外的方案备用)。
+    </li>
+    <li>
+      <strong>MinHash 在 50M 行实战不可行 → exact dedup 替换</strong>:CP-2.2 step ⑦ 原 plan 用 datasketch MinHash-LSH(num_perm=64, threshold=0.8) · 实测 53M filtered 行 single-thread Python ~3.4M 行 / 25 min,推算全跑 ~5 小时太慢。<br>
+      改 blake2b 12-byte hashset exact dedup ~10 min,53M → 41M(22% drop · 主要 paste-spam / 重复新闻头 / lccc "好的好的好的" 堆 · 实测样本质量好)。<br>
+      <strong>修订:</strong> CP-2.2 step ⑦ 默认改"exact dedup"(<code>dedup_merged()</code> in <code>clean.py</code>) · KN smoothing 抗近重 · 若 CP-2.5 MIU 升不达 KPI 再回 step ⑦ 换 C-based 近重 dedup(C++ MinHash crate / duckdb hash-shingle SQL)。
     </li>
   </ol>
 
