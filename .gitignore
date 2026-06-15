@@ -105,6 +105,9 @@ tools/eval/corpus/raw/pd/*
 !tools/eval/corpus/raw/pd/.gitkeep
 tools/eval/corpus/raw/cc100/*
 !tools/eval/corpus/raw/cc100/.gitkeep
+
+# Phase 2 LM training intermediates (regenerable via clean.py).
+tools/scoring/09_bigram_lm/data/
 tools/eval/corpus/processed/
 tools/eval/results/*.json
 !tools/eval/results/.gitkeep
@@ -123,3 +126,4 @@ tools/eval/silver_full.tsv
 # Eval Python venv (per PEP 668 — brew Python is externally managed,
 # can't system-pip-install). Pin deps via tools/eval/requirements.txt.
 tools/eval/.venv/
+tools/eval/.venv.*/      # broken / archived venvs from version rebuilds
