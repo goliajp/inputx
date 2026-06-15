@@ -50,6 +50,31 @@ fn lm_lambda() -> f64 {
     })
 }
 
+/// Phase-4 CP-4.3 user-LM mixing weight read from env
+/// `PINYIN_USER_LM_LAMBDA` on first call and cached. Default 0.2
+/// (climb-plan estimate; SunPinyin is the reference). Controls the
+/// `λ_u` in `(1 - λ_u) · log P_system + λ_u · log P_user`. The actual
+/// `bigram_lm_bonus` site applies a cold-start guard on top of this
+/// (CP-4.3 task: when total user_bigram count < 100, force λ_u = 0
+/// regardless of the env value), so this raw lambda only matters
+/// once the user has committed enough words.
+fn user_lm_lambda() -> f64 {
+    const USER_LM_LAMBDA_DEFAULT: f64 = 0.2;
+    static CACHED: OnceLock<f64> = OnceLock::new();
+    *CACHED.get_or_init(|| {
+        std::env::var("PINYIN_USER_LM_LAMBDA")
+            .ok()
+            .and_then(|s| s.parse::<f64>().ok())
+            .unwrap_or(USER_LM_LAMBDA_DEFAULT)
+    })
+}
+
+/// Phase-4 CP-4.3 cold-start threshold: number of user-bigram
+/// observations below which `λ_u` is forced to 0. Below the threshold
+/// the user model is too noisy to outweigh the system LM; above it,
+/// the climb-plan-tuned `user_lm_lambda` applies.
+const USER_LM_COLD_START_THRESHOLD: u64 = 100;
+
 // Default = full pinyin dict from the committed `data/pinyin.dict` (3.9 MB,
 // an `inputx-fsa` two-level Dict pre-built by `tools/build_dict.rs` from
 // `data/weights/weights.tsv` — maintainer regenerates after data changes;
@@ -1100,25 +1125,69 @@ impl PinyinDict {
     /// (log10 P ≈ -2) at λ=0.3 contributes about -6 000.
     pub fn bigram_lm_bonus(&self, prev: Option<&str>, curr: &str) -> f64 {
         const LM_SCALE: f64 = 10_000.0;
-        let Some(lm) = self.lm.as_ref() else {
-            return 0.0;
-        };
-        if !lm.enabled() {
-            return 0.0;
-        }
         let Some(prev) = prev else { return 0.0 };
         if prev.is_empty() || curr.is_empty() {
             return 0.0;
         }
-        let lambda = lm_lambda();
-        if lambda == 0.0 {
+        let lambda_system = lm_lambda();
+        if lambda_system == 0.0 {
             return 0.0;
         }
-        let log_prob = lm.log_prob(prev, curr);
-        if !log_prob.is_finite() {
-            return 0.0;
-        }
-        LM_SCALE * lambda * (log_prob as f64)
+
+        // ── Phase-4 CP-4.3 cold-start guard ─────────────────────────
+        // Total user_bigram count below the threshold → force λ_u = 0
+        // so the interpolation collapses to the Phase-2 system LM.
+        // This makes the early-cold-start case byte-equal Phase 2 末
+        // and lets the rest of the engine warm up before the user
+        // model influences anything.
+        let user_total: u64 = self
+            .l0
+            .read()
+            .map(|l0| l0.user_bigram.values().map(|c| *c as u64).sum())
+            .unwrap_or(0);
+        let lambda_u_raw = user_lm_lambda();
+        let lambda_u = if user_total < USER_LM_COLD_START_THRESHOLD {
+            0.0
+        } else {
+            lambda_u_raw.clamp(0.0, 1.0)
+        };
+
+        // ── System component ───────────────────────────────────────
+        let log_p_system = match self.lm.as_ref() {
+            Some(lm) if lm.enabled() => {
+                let p = lm.log_prob(prev, curr);
+                if p.is_finite() {
+                    p as f64
+                } else {
+                    return 0.0;
+                }
+            }
+            _ => 0.0,
+        };
+
+        // ── User component ─────────────────────────────────────────
+        let log_p_user = if lambda_u == 0.0 {
+            0.0
+        } else {
+            let p = self
+                .l0
+                .read()
+                .map(|l0| l0.log_p_user(prev, curr) as f64)
+                .unwrap_or(0.0);
+            // log_p_user returns the -99.0 sentinel when cold; we've
+            // already forced λ_u = 0 in that case, but defensively
+            // clamp anyway so a single rogue read doesn't tank the
+            // interpolation.
+            if p < -50.0 { 0.0 } else { p }
+        };
+
+        // ── Linear interpolation ───────────────────────────────────
+        // (1 - λ_u) · log P_system + λ_u · log P_user, scaled by
+        // LM_SCALE × λ_system (so Phase-2's λ sweep stays the global
+        // gain knob and CP-4.3 just shifts mass between system and
+        // user inside that envelope).
+        let mixed = (1.0 - lambda_u) * log_p_system + lambda_u * log_p_user;
+        LM_SCALE * lambda_system * mixed
     }
 
     /// Look up the user-pinned word for a given pinyin code, if any.
@@ -1474,6 +1543,86 @@ mod tests {
         let accepted = d.import_l0(snap);
         assert_eq!(accepted, 1);
         assert_eq!(d.lookup("shi").first().map(String::as_str), Some("时"));
+    }
+
+    /// Phase-4 CP-4.3 acceptance: cold-start guard. With user_bigram
+    /// total count < USER_LM_COLD_START_THRESHOLD, λ_u is forced to
+    /// 0 → the bonus collapses to the Phase-2 system path. Without an
+    /// LM attached the system path is 0 too, so the function returns
+    /// exactly 0 on a fresh dict.
+    #[test]
+    fn cp4_3_cold_start_returns_zero() {
+        let d = PinyinDict::embedded();
+        // No LM attached, no user_bigram seeded → fresh / cold start.
+        assert_eq!(d.bigram_lm_bonus(Some("北京"), "大学"), 0.0);
+        // A handful of bumps stays under the threshold (100) → still cold.
+        for _ in 0..10 {
+            d.bump_user_bigram("北京", "大学");
+        }
+        assert_eq!(
+            d.bigram_lm_bonus(Some("北京"), "大学"),
+            0.0,
+            "10 bumps must still be under the cold-start threshold"
+        );
+    }
+
+    /// Phase-4 CP-4.3 acceptance: once the user_bigram total clears
+    /// the threshold, the user term enters the score. Build a fixture
+    /// where two equally-frequent bigrams produce a measurable
+    /// asymmetry through Laplace smoothing.
+    ///
+    /// 50 bumps of (北京, 大学) and 50 bumps of (北京, 公园) → vocab
+    /// size = 2, prev_total(北京) = 100. log_p_user("北京", "大学") =
+    /// log10((50+1)/(100+2)) = log10(0.5) ≈ -0.301. bigram_lm_bonus =
+    /// LM_SCALE × λ_sys × ((1-λ_u) × 0 + λ_u × log_p_user) =
+    /// 10_000 × 1.0 × 0.2 × -0.301 ≈ -601.
+    #[test]
+    fn cp4_3_warm_user_term_engages_after_threshold() {
+        let d = PinyinDict::embedded();
+        for _ in 0..50 {
+            d.bump_user_bigram("北京", "大学");
+            d.bump_user_bigram("北京", "公园");
+        }
+        let bonus = d.bigram_lm_bonus(Some("北京"), "大学");
+        // Expected ≈ -601. Tolerance generous to avoid binding the
+        // test to exact LM_SCALE constants if they ever get tuned.
+        assert!(
+            (bonus - (-600.0)).abs() < 20.0,
+            "warm-up user term should produce ≈ -600, got {bonus}"
+        );
+
+        // Unobserved bigram (北京, 火星) gets the Laplace cold-start
+        // probability: log10((0 + 1) / (100 + 2)) ≈ -2.01.
+        // bonus ≈ 10000 × 1.0 × 0.2 × -2.01 = -4020.
+        let unseen = d.bigram_lm_bonus(Some("北京"), "火星");
+        assert!(
+            (unseen - (-4020.0)).abs() < 200.0,
+            "unobserved bigram should get smoothed bonus ≈ -4020, got {unseen}"
+        );
+
+        // The seen pair must score strictly higher (less negative)
+        // than the unseen pair.
+        assert!(
+            bonus > unseen,
+            "seen pair {bonus} must outscore unseen pair {unseen}"
+        );
+    }
+
+    /// Phase-4 CP-4.3 acceptance: empty/None prev short-circuits to 0
+    /// regardless of how warmed-up the user model is — first commit
+    /// in any session has no prev word.
+    #[test]
+    fn cp4_3_none_or_empty_prev_returns_zero() {
+        let d = PinyinDict::embedded();
+        for _ in 0..200 {
+            d.bump_user_bigram("北京", "大学");
+        }
+        // None prev.
+        assert_eq!(d.bigram_lm_bonus(None, "大学"), 0.0);
+        // Empty prev.
+        assert_eq!(d.bigram_lm_bonus(Some(""), "大学"), 0.0);
+        // Empty curr.
+        assert_eq!(d.bigram_lm_bonus(Some("北京"), ""), 0.0);
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
