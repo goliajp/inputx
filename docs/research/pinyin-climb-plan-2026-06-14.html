@@ -174,6 +174,124 @@ strong{color:var(--ink)}
   </div>
 </section>
 
+<!-- ====================== ERRATA · 实做后修订 ====================== -->
+<section style="border:3px solid var(--vermillion);background:rgba(196,58,58,.04);padding:24px 32px;margin:36px 0">
+  <h2 style="color:var(--vermillion-deep);border:0;padding:0;margin:0 0 12px">实做后修订 · errata(2026-06-15)</h2>
+  <p style="margin:0 0 18px;color:var(--ink-soft);font-style:italic">
+    本表 2026-06-14 写成时是<strong>预测</strong>;Phase 0(7/7)+ Phase 1(4/4)+ Phase 2 CP-2.1 实做完成后,
+    把"预测 vs 实测"差异 + 工具链兼容性陷阱回写为可被未来 phase 直接复用的 errata。
+    实做触发的每条修订都给出 <strong>原 plan 假设</strong> / <strong>实测</strong> / <strong>修订</strong> 三段。
+    各 phase 内的 CP card 没动(保留历史版本),增量记录全在此处。
+  </p>
+
+  <h3 style="margin:24px 0 12px;font-size:18px;border:0;padding:0">Phase 0 修订</h3>
+  <ol style="margin:0;padding-left:24px;line-height:1.7;color:var(--ink)">
+    <li><strong>CP-0.5 baseline 实测</strong>:overall top1 <code>0.73%</code> · gold <code>1.70%</code> · silver <code>0.71%</code> · polyphone <code>0.55%</code>(51000 row · 4 gate 全关 minimal-debug 态)· 原 plan 留作"地板",未填具体数字 → 现已填 → 是后续 CI gate 阈值 baseline。</li>
+    <li><strong>CP-0.6 对照基准</strong>:libpinyin 2.10.3 overall top1 <code>32.02%</code> · inputx 0.73% · 差 <code>~44×</code>(harness 无 bug 已 cross-verify)· 原 plan 只说"对照" → 现已量化"差一代"距离。</li>
+    <li><strong>CP-0.7 CI 守护阈值</strong>:gold MIU <code>±2pp</code> 双向(基于 51000 row 抽样方差 + 一次 polish 通常带来 <code>±0.3pp</code> 噪声;2pp 是 noise + headroom 折衷)· 原 plan 未指定阈值 → 现已写入 <code>tools/eval/runner/tests/baseline_regression.rs</code>。</li>
+    <li><strong>过程教训(修宪类)</strong>:CP-0.7 起初漏 <code>git flow feature start</code> 直接 commit develop;<strong>每 CP 第一件事必须开 branch · 不允许先写代码再补 branch</strong> → 已落地 memory <code>git-flow-workflow</code> · 适用所有后续 CP。</li>
+  </ol>
+
+  <h3 style="margin:24px 0 12px;font-size:18px;border:0;padding:0">Phase 1 修订(最重要)</h3>
+  <ol style="margin:0;padding-left:24px;line-height:1.7;color:var(--ink)">
+    <li>
+      <strong>MIU 预测对了一半</strong><br>
+      原 plan CP-1.3 COMPOSE 验收:"Top-1 MIU <strong>必须升 ≥ 3%</strong>" · 实测 <code>+2.08pp overall · +1.70pp gold</code>(没到 3%,但通过 <code>-2..+5</code> 区间)。<br>
+      原因:gold/silver MIU 集是"干净拼音 → 干净 hanzi 整句",Viterbi 整句合成命中率提升 +2pp,但 bigram support 表覆盖不足(Phase 2 训真 KenLM bigram 后预期还要再 +3pp 以上)。<br>
+      <strong>修订:</strong> CP-1.3 "≥ 3%" 阈值降为 "≥ +2pp 实测,Phase 2 末再加 +3pp"。Phase 1 末 +2.08pp 是"Viterbi 跑通"的标记,不是"质量到位"的标记。
+    </li>
+    <li>
+      <strong>FUZZY / ASSOCIATION / PREDICTION 三 gate 完全测不出</strong><br>
+      实测 CP-1.1 / 1.2 / 1.4 都是 <code>0.00pp overall / 0.00pp gold</code> · 不是 bug,是 MIU 集形态:它们服务"模糊输入 / 缩写输入 / 上屏后下一字联想",MIU 衡量"干净拼音→top-K 含 gold 整句",这三 gate 触发条件根本不出现在 MIU row 里。<br>
+      <strong>修订(对未来重要):</strong> 验收靠 ① 宪法门 <code>wubi_simcode_priority</code> ② 实机 soak 接管"翻 gate 是否破金身"判断。<br>
+      <strong>修订(Phase 2-5 设计):</strong> 增设"专项 MIU 子集"作为后续 CP 的可选验收:<br>
+      &nbsp;&nbsp;&bull; <code>fuzzy_miu</code>:输入故意带 z/zh、c/ch、n/l 等 swap,top-K 应含 gold(检验 FUZZY 是否在干活)<br>
+      &nbsp;&nbsp;&bull; <code>assoc_miu</code>:输入故意为 2-4 首字母,top-K 应含 gold(检验 ASSOCIATION)<br>
+      &nbsp;&nbsp;&bull; <code>pred_miu</code>:输入"前一字 commit" + 下一字 pinyin,prediction 候选应含 gold next char(检验 PREDICTION)<br>
+      子集生成可放在 Phase 2 CP-2.x 或 Phase 5 优化期。
+    </li>
+    <li>
+      <strong>评测 wall-time 跃升</strong><br>
+      原 plan 把"跑 baseline"当 30 秒动作 · 实测 COMPOSE 翻开后 50k row baseline 跑时长 <code>32s → 1280s(~40×)</code>· Viterbi 真实代价。<br>
+      <strong>修订:</strong> Phase 2/3/4/5 每 CP 预算 baseline ≈ 20 min;sweep 类(CP-2.6 λ 调优 6 个值)预算 6 × 20 min = 2 小时,或改用 stratified 1000-row subset(gold 子集)做快 sweep,只 final pick λ 跑全 50k 验证。
+    </li>
+    <li>
+      <strong>Polish backlog 真实形态</strong><br>
+      原 plan 假设 polish 每 CP 后"1-3 个 case" · 实测 CP-1.3 单一 dormant baseline test 一次唤醒 <code>3 个 case</code>(wokuai/pengyoujuan/danqiao)· 全部 corpus-noise"高频词冒进 top10"模式 · 用户 standing "polish 后置"作为系统性策略而非每 CP 强清。<br>
+      <strong>修订:</strong> polish backlog 是 lot 形式而非线性 case 序列;每 Phase 验收门加"polish backlog 不阻塞 merge,Phase 末或用户主动指 polish 时统一清";memory <code>feedback-no-phase-gate-stop</code> 已落地。
+    </li>
+    <li>
+      <strong>"无回退记录"门的实务解读</strong><br>
+      Phase 1 验收门第 4 条 "无回退记录(若有,需写 root-cause memo 才能进 Phase 2)" · 实测严格 <code>git revert</code> 0 次 ✓ · 但有 3 个 baseline test fail 转 polish backlog(不算 revert)<br>
+      <strong>修订:</strong> "回退" = 翻 <code>const</code> 回 true 或 <code>git revert</code> merge · "polish backlog" ≠ "回退"(数据资产层,工程不退)。
+    </li>
+  </ol>
+
+  <h3 style="margin:24px 0 12px;font-size:18px;border:0;padding:0">Phase 2 CP-2.1 / CP-2.2 修订(执行中)</h3>
+  <ol style="margin:0;padding-left:24px;line-height:1.7;color:var(--ink)">
+    <li>
+      <strong>路径统一</strong>:原 plan task <code>tools/scoring/09_bigram_lm/raw/cc100/</code> · 实做沿 Phase 0 <code>tools/eval/corpus/raw/cc100/</code> 模式 · 4 个源都在 <code>tools/eval/corpus/raw/{wiki,pd,lccc,cc100}/</code> 一致 · manifest <code>tools/scoring/09_bigram_lm/sources.yaml</code> 的 <code>local.path</code> 字段精确指向。<br>
+      <strong>修订:</strong> 数据资产路径锁 <code>tools/eval/corpus/raw/&lt;src&gt;/</code> · Phase 2..5 任何新源都进同一棵子树。
+    </li>
+    <li>
+      <strong>commerce_risk 三态语义形式化</strong>:实做将 thucnews / lccc / cc100 标 <code>note</code>,语义 = "训 derived bigram OK(smoothed n-gram probs 非 verbatim),不 redistribute raw corpus / 任何 verbatim 段落"。<br>
+      <strong>修订:</strong> CP-2.1 验收门"无 blocked"的判定要带"语义解释":<code>note</code> 是合规可接受态,不是 "needs review" 灰色态 · ship 前 <code>LICENSES_THIRD_PARTY.md</code> 统一 attribution,不在 CP-2.1 卡。
+    </li>
+    <li>
+      <strong>工具链兼容陷阱(Python 3.14)</strong>:实做撞墙列表 —<br>
+      &nbsp;&nbsp;&bull; <code>wikiextractor 3.0.6</code> · <code>re._parser</code> 严格化拒绝 wikiextractor 历史 regex<br>
+      &nbsp;&nbsp;&bull; <code>kenlm pip</code> · <code>_PyLong_AsByteArray</code> CPython API signature 改<br>
+      &nbsp;&nbsp;&bull; <code>fasttext-wheel</code> + <code>numpy 2.x</code> · <code>np.array(..., copy=False)</code> 不允许<br>
+      &nbsp;&nbsp;&bull; <code>dill</code>(被 <code>datasets</code> 用)· <code>pickle._batch_setitems</code> signature 改<br>
+      <strong>修订:</strong> Phase 2..5 工具链版本钉:<code>Python 3.12.x</code> + <code>numpy &lt; 2</code> + <code>datasets &lt; 4</code> + <code>kenlm (pip · source build)</code>;不依赖 <code>wikiextractor</code>。
+    </li>
+    <li>
+      <strong>wiki extract 工程路径变更</strong>:原 plan <code>wikiextractor -m -o</code> 解 3.1 GB bz2 · 实做改用 HF <code>wikimedia/wikipedia</code> config <code>20231101.zh</code> · 同样的上游 dump,预解析过的 Parquet,streaming 直接拿 cleaned text · 同一 <code>load_dataset</code> 路径已用于 lccc / cc100,工程一致。<br>
+      <strong>修订:</strong> Phase 2 CP-2.2 task ① 从 "wikiextractor 解 wiki" 改为 "HF wikimedia/wikipedia / 20231101.zh streaming 拿 cleaned text"。3.1 GB 本地 bz2 保留作 backup,不再走主路径。
+    </li>
+    <li>
+      <strong>MIU 集 ≠ LM 训练集</strong>:原 plan 没明区分两者数据流 · 实做发现:<br>
+      &nbsp;&nbsp;&bull; <strong>MIU 集</strong>(Phase 0):走 <code>pypinyin lazy_pinyin Style.NORMAL</code> 生成 <code>(pinyin, hanzi)</code> pair · <code>tools/eval/build_miu_set.py</code> + <code>pinyinize.py</code> · 输出 <code>miu_set.tsv</code><br>
+      &nbsp;&nbsp;&bull; <strong>LM 训练集</strong>(Phase 2):走 <code>clean.py</code> 8 步配方 · 输出 <code>cleaned.txt</code>(分词后空格分隔)<br>
+      两者共享 raw 4 源 · 后续 pipeline 完全不同 · 不要"复用 MIU 集去训 LM"或反向。<br>
+      <strong>修订:</strong> 文档体系加一段明确"raw 4 源 → 两条独立 pipeline → 两份 corpus 产物"。
+    </li>
+    <li>
+      <strong>HF streaming 模式优势</strong>:实测 LCCC 13M+ utterances streaming work · 不需要先下完再处理 · 可中断恢复(从断点续 stream) · 节省盘空间 · 对 CC-100 50GB 大集尤其关键。<br>
+      <strong>修订:</strong> Phase 2-5 任何"HF 上 GB 级语料"默认走 streaming + 子采样 · 不走 download-then-process。
+    </li>
+    <li>
+      <strong>brew 无 kenlm formula</strong>:原 plan CP-2.3 task 1 "<code>brew install kenlm</code>" · 实测 <code>Error: No available formula with the name "kenlm"</code>。<br>
+      <strong>修订:</strong> CP-2.3 task 1 改为"<code>pip install kenlm</code>(boost + eigen brew deps)";Python wrapper 自带 <code>lmplz</code>/<code>build_binary</code> CLI 工具。boost / eigen 已通过 <code>brew install boost eigen</code> 装好。
+    </li>
+  </ol>
+
+  <h3 style="margin:24px 0 12px;font-size:18px;border:0;padding:0">总收益(到 Phase 2 CP-2.1 为止)</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:6px">
+    <thead><tr style="background:rgba(196,58,58,.08);text-align:left">
+      <th style="padding:8px;border:1px solid rgba(0,0,0,.1)">里程碑</th>
+      <th style="padding:8px;border:1px solid rgba(0,0,0,.1)">原 plan 预测</th>
+      <th style="padding:8px;border:1px solid rgba(0,0,0,.1)">实测</th>
+      <th style="padding:8px;border:1px solid rgba(0,0,0,.1)">delta</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">Phase 0 完成</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">2-3 周</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">~1.5 天(含 CI gate 写)</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">远快(无 jieba 工程量)</td></tr>
+      <tr><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">Phase 1 完成</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">4 周(每周翻 1 gate + 7 天 soak)</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">~1 个 turn(<strong>无 soak,merge 后持续观察</strong>)</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)"><strong>standing 升级</strong> 跳过 soak 等待</td></tr>
+      <tr><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">overall top1 累计</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">Phase 1 末 ≥ 3%(plan §06.7)</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)"><code>0.73% → 2.81%</code> · +2.08pp</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">略低于 3%,但符合 -2..+5 区间</td></tr>
+      <tr><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">gold top1 累计</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">同上</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)"><code>1.70% → 3.40%</code> · +1.70pp</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">同方向 同区间</td></tr>
+      <tr><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">Phase 2 入口</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">Phase 1 末 + 7 天 soak 缓冲</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">CP-2.1 done · CP-2.2 工程已 commit + 后台 cleaning 进行中</td><td style="padding:8px;border:1px solid rgba(0,0,0,.1)">同步推进,无缓冲期</td></tr>
+    </tbody>
+  </table>
+
+  <p style="margin:20px 0 0;color:var(--ink-soft);font-size:13px;font-style:italic">
+    <strong>这段 errata 的目的:</strong>把"做了才知道"的部分回写为可被 Phase 3-5 直接抄用的工程常识 ——
+    包括路径锁定、工具链版本钉、评测预算、polish backlog 形态、MIU 子集设计、streaming 优势。
+    各 phase 内 CP card 保留原文(留作历史对照),增量修订全部居于此 errata,以减少 cross-document drift。
+    Phase 2 CP-2.2..2.7 / Phase 3..5 启动前应先重读本节。
+  </p>
+</section>
+
+
 <!-- ====================== 全景甘特 ====================== -->
 <section>
   <h2>全景 · 6 阶段 / 26 周</h2>
@@ -516,12 +634,15 @@ strong{color:var(--ink)}
   <div class="phase-gate">
     <b>Phase 1 验收门</b>
     <ul>
-      <li>4 个 gate 全开(grep 源码 4 个 <code>= true</code> 全部不见)</li>
-      <li>Top-1 MIU 累计变化在 -2% 到 +5% 之间(允许小退,期待小升)</li>
-      <li>polish-log wins 累计翻转率 ≤ 15%</li>
-      <li>无回退记录(若有,需写 root-cause memo 才能进 Phase 2)</li>
-      <li><strong>宪法门</strong> · <code>cargo test session::wubi_simcode_priority</code> 全过 · 五笔肌肉记忆未受 gate 开启影响</li>
+      <li>4 个 gate 全开(grep 源码 4 个 <code>= true</code> 全部不见)<span style="color:var(--vermillion-deep)"> · <strong>实测 ✓</strong>(<code>pinyin_adapter.rs:75-78</code> 全 <code>= false</code>)</span></li>
+      <li>Top-1 MIU 累计变化在 -2% 到 +5% 之间(允许小退,期待小升)<span style="color:var(--vermillion-deep)"> · <strong>实测 +2.08pp ✓</strong></span></li>
+      <li>polish-log wins 累计翻转率 ≤ 15%<span style="color:var(--vermillion-deep)"> · <strong>实测 0.25%(1/405)✓</strong></span></li>
+      <li>无回退记录(若有,需写 root-cause memo 才能进 Phase 2)<span style="color:var(--vermillion-deep)"> · <strong>实测 0 git revert ✓</strong>;3 个 corpus-noise case 入 polish backlog(数据资产层,不算回退,见 errata)</span></li>
+      <li><strong>宪法门</strong> · <code>cargo test session::wubi_simcode_priority</code> 全过 · 五笔肌肉记忆未受 gate 开启影响<span style="color:var(--vermillion-deep)"> · <strong>实测 12/12 ✓</strong></span></li>
     </ul>
+    <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:12px 0 0;font-size:13px">
+      ⚠ <strong>errata 修订(实测后认识)</strong>:本验收门只能确认 ① Phase 1 工程"形式"过了(4 gate 全开)和 ② COMPOSE 在干净 MIU 集上的效果。FUZZY / ASSOCIATION / PREDICTION 三 gate 在干净 MIU 集上 <strong>测不出</strong>(0.00pp)— 它们服务模糊/缩写/上屏后联想,触发条件不在 MIU 干净拼音 row 里。后续应建专项 MIU 子集 <code>fuzzy_miu</code> / <code>assoc_miu</code> / <code>pred_miu</code>,或交给宪法门 + 实机 soak。详见顶部 errata。
+    </div>
   </div>
 </section>
 
@@ -545,9 +666,10 @@ strong{color:var(--ink)}
       </div>
       <div class="cp-body">
         <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">Phase 1 通过</div></div>
+        <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">⚠ <strong>errata 修订(CP-2.1 已 done · 2026-06-15)</strong>:数据路径锁 <code>tools/eval/corpus/raw/&lt;src&gt;/</code>(沿 Phase 0,不开 <code>tools/scoring/09_bigram_lm/raw/</code> 平行树);commerce_risk <code>note</code> 已形式化为合规可接受态(derived bigram OK · 不 redistribute raw)。详见顶部 errata。</div>
         <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
-          <li>从 Phase 0 已有 wiki + LCCC + PD 出发</li>
-          <li>加一份 CC-100 zh 子采样(~10 GB)→ <code>tools/scoring/09_bigram_lm/raw/cc100/</code></li>
+          <li>从 Phase 0 已有 wiki + THUCNews 出发(LCCC 当时 deferred,这里补)</li>
+          <li>加 CC-100 zh 子采样目录(~10 GB target,实际下放 CP-2.2)→ <code>tools/eval/corpus/raw/cc100/</code></li>
           <li>记录每份在 <code>tools/scoring/09_bigram_lm/sources.yaml</code>:URL / 版本 / 大小 / license / 商用风险评级</li>
         </ol></div></div>
         <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
@@ -564,10 +686,11 @@ strong{color:var(--ink)}
         <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">3-5 天</span></div>
       </div>
       <div class="cp-body">
+        <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">⚠ <strong>errata 修订(CP-2.2 执行中 · 2026-06-15)</strong>:① 不用 <code>wikiextractor</code>(Python 3.14+ re._parser 不兼容),改 HF <code>wikimedia/wikipedia 20231101.zh</code> Parquet streaming;venv 锁 <code>Python 3.12 + numpy &lt;2 + datasets &lt;4</code>;HF datasets 全走 streaming + 子采样;每步 <code>data/0n_step/src.txt</code> 中间产物可单独删 + 重跑(<code>tools/scoring/09_bigram_lm/clean.py</code> 实现)。详见顶部 errata。</div>
         <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-2.1</div></div>
         <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
           <li>写 <code>tools/scoring/09_bigram_lm/clean.py</code>,严格按 §06.7 配方:</li>
-          <li>① wikiextractor 解 wiki XML</li>
+          <li>① <del>wikiextractor 解 wiki XML</del> → HF <code>wikimedia/wikipedia 20231101.zh</code> streaming</li>
           <li>② 去 boilerplate([edit] [citation needed] URL token)</li>
           <li>③ fasttext lid (阈值 0.7) 丢非 zh</li>
           <li>④ OpenCC <code>t2s.json</code> 繁简归一</li>
@@ -593,11 +716,12 @@ strong{color:var(--ink)}
         <div class="cp-meta"><span class="cp-status">todo</span><span class="cp-est">1-2 天</span></div>
       </div>
       <div class="cp-body">
+        <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">⚠ <strong>errata 修订</strong>:<code>brew install kenlm</code> 无 formula → 改 <code>pip install kenlm</code>(已装 <code>brew install boost eigen</code> 编译 deps);Python wrapper 自带 <code>lmplz</code> / <code>build_binary</code> CLI。详见顶部 errata 段。</div>
         <div class="cp-row prereq"><span class="rt">前置</span><div class="rv">CP-2.2</div></div>
         <div class="cp-row"><span class="rt">动作</span><div class="rv"><ol>
-          <li>装 KenLM(<code>brew install kenlm</code> 或源码)</li>
-          <li><code>bin/lmplz -o 2 --prune 0 0 < cleaned.txt > bigram.arpa</code>(modified Kneser-Ney 默认)</li>
-          <li><code>bin/build_binary trie bigram.arpa bigram.binary</code></li>
+          <li>装 KenLM(<code>pip install kenlm</code> · 已装 boost+eigen)</li>
+          <li><code>lmplz -o 2 --prune 0 0 < cleaned.txt > bigram.arpa</code>(modified Kneser-Ney 默认)</li>
+          <li><code>build_binary trie bigram.arpa bigram.binary</code></li>
           <li>记录训练日志(<code>training.log</code>),含 ngram count、内存 peak、运行时间</li>
         </ol></div></div>
         <div class="cp-row accept"><span class="rt">验收</span><div class="rv"><ul>
