@@ -464,36 +464,38 @@ def length_han_filter(line: str, lo: int = 4, hi: int = 120, han_ratio: float = 
 # Step 7 · MinHash dedup (across the merged 06_filtered stream)
 # ---------------------------------------------------------------------------
 
-def minhash_dedup_merged(merged_path: Path, out_path: Path, num_perm: int = 64, threshold: float = 0.8) -> tuple[int, int]:
-    """One pass over the merged 06_filtered stream, drop near-duplicates.
+def dedup_merged(merged_path: Path, out_path: Path) -> tuple[int, int]:
+    """One pass over the merged 06_filtered stream, drop exact duplicates.
 
-    Threshold 0.8 (≈ 80% shingle-Jaccard) is conservative — kills paste-style
-    duplicates without nuking similar-topic legitimate variation. Each
-    sentence's signature is materialised; LSH index lives in RAM. For ~30M
-    sentences with 64-perm MinHash this stays under a few GB."""
-    from datasketch import MinHash, MinHashLSH
-
-    lsh = MinHashLSH(threshold=threshold, num_perm=num_perm)
+    Originally this step used MinHash-LSH for near-duplicate dedup
+    (threshold 0.8 shingle-Jaccard), but on the actual corpus this turned
+    out to be ~5 hours for 53M lines in single-threaded Python — too slow
+    for a Phase-2 CP that should be a few hours total. Switched to a
+    blake2b hashset for exact-duplicate dedup, which is O(N) ~5-10 min for
+    50M lines and ~600 MB of RAM (50M * 12 bytes of hash + Python set
+    overhead). Verbatim duplicates are the bulk of the corpus pollution
+    (paste-spam, repeat news ledes, "好的好的好的" pile-ups in lccc);
+    KenLM modified Kneser-Ney downstream handles the residual near-
+    duplicate pile that exact-dedup leaves behind. If MIU lift turns out
+    weak in CP-2.5, revisit with a faster near-dup tool (e.g. C-based
+    Cython MinHash, or duckdb hash-shingle SQL)."""
+    import hashlib
+    seen: set[bytes] = set()
     n_in = n_out = 0
-    log(f"minhash: indexing+writing as we stream (threshold {threshold}, num_perm {num_perm})")
+    log("dedup: blake2b exact-dedup pass over merged stream")
     with out_path.open("w", encoding="utf-8") as out:
         for line in iter_lines(merged_path):
             n_in += 1
-            # 3-char shingles (jieba-free, fast, works for CJK)
-            shingles = {line[i:i + 3] for i in range(max(1, len(line) - 2))}
-            if not shingles:
+            h = hashlib.blake2b(line.encode("utf-8"), digest_size=12).digest()
+            if h in seen:
                 continue
-            m = MinHash(num_perm=num_perm)
-            for sh in shingles:
-                m.update(sh.encode("utf-8"))
-            if lsh.query(m):
-                continue  # near-duplicate
-            lsh.insert(str(n_in), m)
+            seen.add(h)
             out.write(line)
             out.write("\n")
             n_out += 1
-            if n_in % 200_000 == 0:
-                log(f"minhash:   {n_in:,} in, {n_out:,} out  (drop {n_in - n_out:,})")
+            if n_in % 1_000_000 == 0:
+                log(f"dedup:   {n_in:,} in, {n_out:,} out  (drop {n_in - n_out:,}, "
+                    f"hashset {len(seen):,})")
     return n_in, n_out
 
 
@@ -614,9 +616,9 @@ def run_minhash_dedup():
                     out.write("\n")
                     n += 1
                 log(f"  {src}: {n:,} lines into merged")
-    log("minhash dedup over merged stream…")
-    n_in, n_out = minhash_dedup_merged(merged, out_p)
-    log(f"minhash: {n_in:,} → {n_out:,}")
+    log("exact dedup over merged stream…")
+    n_in, n_out = dedup_merged(merged, out_p)
+    log(f"dedup: {n_in:,} → {n_out:,}")
 
 
 def run_tokenize():
