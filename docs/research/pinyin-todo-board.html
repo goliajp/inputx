@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-1.3(COMPOSE)merged · MIU +2.08pp</span>
-      <span><b>active</b> Phase 1 · CP-1.4(PREDICTION · Phase 1 收官)</span>
+      <span><b>last update</b> 2026-06-15 · Phase 1 收官 · 全 4 gate 翻完 · MIU +2.08pp</span>
+      <span><b>active</b> Phase 2 入口 / 先 polish 3 个 corpus-noise backlog</span>
     </div>
   </div>
 </div>
@@ -220,8 +220,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 1 · CP-1.4(翻 PREDICTION · Phase 1 收官)</kbd><br>
-  <strong>进度</strong>:Phase 0 完成(7/7)· CP-1.1(FUZZY)merged · CP-1.2(ASSOCIATION)merged · CP-1.3(COMPOSE)merged · <strong>MIU overall +2.08pp(0.73%→2.81%)</strong>· CI eval floor 已升至 post_compose · 3 个 corpus-noise case 入 polish backlog · 接 CP-1.4(PREDICTION)
+  <strong>当前 active</strong>:<kbd>Phase 1 收官 ✓ · 等用户拍板下一步:① polish 3 个 backlog · ② 启动 Phase 2</kbd><br>
+  <strong>进度</strong>:Phase 0 完成(7/7)· <strong>Phase 1 完成(4/4)</strong> · 4 个 pipeline gate 全开(COMPOSE/ASSOCIATION/FUZZY/PREDICTION = false)· MIU overall <strong>0.73% → 2.81% (+2.08pp)</strong>,gold 1.70% → 3.40% (+1.70pp)· CI eval baseline.json floor 升至 post_compose · 3 个 corpus-noise case(wokuai/pengyoujuan/danqiao)在 polish backlog · 沿用户 standing policy "merge,继续后续的开发,polish 后置" 走完 Phase 1 全部 4 个 CP
 </div>
 
 <!-- ====================== HOW TO USE ====================== -->
@@ -245,11 +245,11 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
 
 
 <!-- ====================== PHASE 0 · ACTIVE ====================== -->
-<div class="board-section active" data-phase="0">
+<div class="board-section done" data-phase="0">
   <div class="section-header">
     <span class="pn">Phase 0</span>
     <h2>评测脚手架 + 数据闭环</h2>
-    <span class="badge">★ ACTIVE</span>
+    <span class="badge">✓ DONE</span>
   </div>
 
   <div class="cp-list">
@@ -563,11 +563,11 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
 
 
 <!-- ====================== PHASE 1 · NEXT ====================== -->
-<div class="board-section active" data-phase="1">
+<div class="board-section done" data-phase="1">
   <div class="section-header">
     <span class="pn">Phase 1</span>
     <h2>逐周翻 gate · 把已有能力还给用户</h2>
-    <span class="badge">▶ IN PROGRESS</span>
+    <span class="badge">✓ DONE · MIU +2.08pp</span>
   </div>
 
   <!-- ===== CP-1.1 ===== -->
@@ -724,15 +724,15 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
   </div>
 
   <!-- ===== CP-1.4 ===== -->
-  <div class="cp" data-status="next" data-cp="1.4">
+  <div class="cp" data-status="done" data-cp="1.4">
     <div class="cp-head" onclick="toggleCp(this)">
       <div class="cp-head-left">
         <div class="cp-id">CP-1.4</div>
         <div class="cp-title">翻 PINYIN_DISABLE_PREDICTION(上屏后联想)· Phase 1 收官</div>
       </div>
       <div class="cp-head-right">
-        <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">13</b></span>
-        <span class="cp-status-tag">next</span>
+        <span class="cp-progress"><b class="done-count">13</b>/<b class="total-count">13</b></span>
+        <span class="cp-status-tag">done</span>
       </div>
     </div>
     <div class="cp-body">
@@ -745,29 +745,29 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
       <div class="task-group">
         <div class="task-group-head">动作 · do</div>
         <ul class="tasks">
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">跑 baseline MIU,存 <code>gate_baselines/pre_prediction.json</code></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">新 branch <code>feature/gate-open-prediction</code></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">翻 <code>PINYIN_DISABLE_PREDICTION = false</code><span class="hint">pinyin_adapter.rs:78</span></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">跑 MIU,存 <code>post_prediction.json</code>,与 pre diff<span class="hint">预期 MIU 持平或微动(PREDICTION 是上屏后联想,不直接影响首字命中)</span></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">polish-log replay</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">跑 baseline 测试 · 100% 过</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">reinstall.py 装上 mac 端 · daily-use</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">polish 报告 · 正常处理流程</span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">跑 baseline MIU,存 <code>gate_baselines/pre_prediction.json</code><span class="hint">overall 2.81% · gold 3.40%(同 post_compose)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">新 branch <code>feature/gate-open-prediction</code></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">翻 <code>PINYIN_DISABLE_PREDICTION = false</code><span class="hint">pinyin_adapter.rs:78 · commit 2f818d6</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">跑 MIU,存 <code>post_prediction.json</code>,与 pre diff<span class="hint"><strong>全线 +0.00 pp</strong> — PREDICTION 是上屏后联想,不影响首字 top-K MIU(预期)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">polish-log replay<span class="hint">scoring 21 + core lib 335 全过;baseline 68/69(同 CP-1.3 后的 3 个 corpus-noise case · PREDICTION 没引入新 fail)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">跑 baseline 测试 · 100% 过<span class="hint">404/405 过(同 CP-1.3 backlog)· PREDICTION 没引入新 fail · 沿 standing "polish 后置"</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">reinstall.py 装上 mac 端 · daily-use<span class="hint">✓ 已装(silent reinstall · probe 你好 · TIS/LS/3rd-party 全过)· daily-use 转持续观察</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">polish 报告 · 正常处理流程<span class="hint">后置:撞到再走 /polish</span></span></li>
         </ul>
       </div>
 
       <div class="task-group">
         <div class="task-group-head">验收 · check</div>
         <ul class="tasks">
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">Top-1 MIU 不掉超过 2%</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">polish-log wins 翻转率 ≤ 5%</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">baseline 100% 通过(或 polish 后置)· 宪法门全过</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">实机 daily-use soak(或用户拍板)</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">git-flow merge 到 develop · push origin</span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">Top-1 MIU 不掉超过 2%<span class="hint">0.00 pp ✓(预期持平)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">polish-log wins 翻转率 ≤ 5%<span class="hint">0.25%(同 CP-1.3 backlog,无新增)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">baseline 100% 通过(或 polish 后置)· 宪法门全过<span class="hint">宪法门 12/12 ✓ · baseline 404/405(无新增 fail)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">实机 daily-use soak(或用户拍板)<span class="hint">沿 standing policy "merge,polish 后置"</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">git-flow merge 到 develop · push origin<span class="hint">✓ merge --no-ff + push</span></span></li>
         </ul>
       </div>
 
-      <div class="cp-verdict"><div class="text"><b>verdict</b>待开工 · 同模式 · Phase 1 收官 · 后续 Phase 2 转向 polish backlog(含 CP-1.3 遗留 3 case)</div></div>
+      <div class="cp-verdict"><div class="text"><b>verdict</b>Phase 1 收官 ▣ · 4 个 pipeline gate 全开 · MIU 累计 +2.08pp(0.73% → 2.81%)· 沿用户 standing policy 提前 merge · Phase 2 入口:先 polish 3 个 corpus-noise backlog,再开 Phase 2 工程</div></div>
     </div>
   </div>
 </div>
