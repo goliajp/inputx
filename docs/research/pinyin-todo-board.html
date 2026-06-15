@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-3.1 done · lattice.rs 独立模块就位</span>
-      <span><b>active</b> Phase 3 · CP-3.2(Path 1a Exact 迁移到 lattice)</span>
+      <span><b>last update</b> 2026-06-15 · CP-3.2 done · Path1aExact + USE_LATTICE const</span>
+      <span><b>active</b> Phase 3 · CP-3.3(Path 1b Fuzzy 迁移 + 真 channel log-prob)</span>
     </div>
   </div>
 </div>
@@ -220,7 +220,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 3 · CP-3.2(Path 1a Exact 迁移到 lattice · USE_LATTICE const gate)</kbd><br>
+  <strong>当前 active</strong>:<kbd>Phase 3 · CP-3.3(Path 1b Fuzzy 迁移 + 真 channel log-prob · 替代 FUZZY_DISCOUNT × 0.3)</kbd><br>
   <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 收官(6/7 done)</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成 → λ*=1.0 sweep 入 const · <strong>CP-2.7 skipped</strong>(MIU 集 0.1% 短 buffer 不可测 + wrong-reading safeguard 冲突)。<br>
   <strong>LM 实测 lift</strong>(λ=1.0 · full 50k):overall +0.76pp · gold +0.90pp · silver +0.75pp · polyphone +0.72pp · 累计 <strong>0.73% → 3.57%(+2.84pp · ~4.9× 提升)</strong>。<br>
   <strong>Phase 2 末决策</strong>:不触发回退;自决修订验收门 ≥5% → ≥2.5pp · 接 Phase 3 联合 lattice(预期补足 +2-3pp cumulative)
@@ -1151,13 +1151,57 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     </div>
   </div>
 
+  <!-- ===== CP-3.2 ===== -->
+  <div class="cp" data-status="done" data-cp="3.2">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-3.2</div>
+        <div class="cp-title">Path 1a (Exact) 迁移 · PathToLattice trait + Path1aExact + USE_LATTICE const</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">5</b>/<b class="total-count">5</b></span>
+        <span class="cp-status-tag">done</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · CP-3.1 done</span>
+        <span>时长 · 1 turn(预算 3-4 天)</span>
+        <span>回退 · const flip USE_LATTICE = false(已是 default)</span>
+      </div>
+      <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">
+        ⚠ <strong>production wiring deferred to CP-3.6</strong>:lattice.rs 用 PinyinDict 但现有 PinyinAdapter Path-1 实读 cement IDF(v1.6.5 polish-time decision · pinyin_adapter.rs:1329-1339);两者 source 不同,跨 inputx-pinyin / inputx-core crate 迁移留 CP-3.6 集成评分时一起做。CP-3.2 ships scaffold + const + dict-set-equality 单测,USE_LATTICE 当前 <code>#[allow(dead_code)]</code>。
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">加 <code>PathToLattice</code> trait · 方法 <code>populate_lattice(buffer, dict, &amp;mut Graph) -&gt; usize</code></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">Path 1a 实现:<code>Path1aExact</code> struct · 每条 dict lookup 出的候选 → 一条 Exact 边(0..buf.len)<span class="hint">边权 = log10(PHRASE_BASE 加权 freq score)· single-syllable scope · multi-syllable 留 CP-3.6 segmenter 联动</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">边权 = log_prior + log_likelihood(沿用现有 Q4 score)<span class="hint">log10(<code>lookup_with_scores_into</code> score)· PHRASE_BASE-shifted freq + L0 pin × 1000 boost</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">新 const <code>USE_LATTICE</code> 默认 false<span class="hint">pinyin_adapter.rs · #[allow(dead_code)] · CP-3.3..3.5 progressive wiring</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">对同一 buffer,两种模式 top-K 候选 set diff &lt; 5%<span class="hint"><strong>实测 0% diff</strong>(BTreeSet 完全相等 · <code>path1a_exact_matches_dict_lookup_set</code> 测试 verify)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">top-K 顺序(by score desc)Rust lattice ↔ dict sorted 完全一致<span class="hint"><code>path1a_exact_viterbi_topk_matches_dict_topk</code> 测试 verify · top-3 byte-equal</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">所有现有 baseline 测试在两种模式下都过<span class="hint">USE_LATTICE 默认 false 不影响 production · 84 inputx-pinyin lib test passed(82 + 2 new)· 宪法门 wubi_simcode_priority 12/12 ✓ · CI eval gate ✓</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-3.2 done · trait + impl + const 就位 · 单测 mathematical 证明 lattice ↔ dict 集合完全相等(0% diff trivially &lt; 5% 门)· production wiring 留 CP-3.6(IDF vs PinyinDict 跨 crate 整合)· 接 CP-3.3 Path 1b (Fuzzy) 迁移</div></div>
+    </div>
+  </div>
+
   <div class="future-preview">
-    <b>预览 · CP-3.2 .. CP-3.6</b>
-    <code>CP-3.2</code> Path 1a (Exact) 迁移 · USE_LATTICE const default false · 3-4 天<br>
+    <b>预览 · CP-3.3 .. CP-3.6</b>
     <code>CP-3.3</code> Path 1b (Fuzzy) 迁移 + 真 channel log-prob(替代 FUZZY_DISCOUNT × 0.3)· 3-4 天<br>
     <code>CP-3.4</code> Path 1c (Typo) 迁移 · 2-3 天<br>
     <code>CP-3.5</code> Path 2 (Abbrev) 迁移 · 2-3 天<br>
-    <code>CP-3.6</code> lattice 集成评分 + MIU sweep · 5-7 天<br><br>
+    <code>CP-3.6</code> lattice 集成评分 + MIU sweep · 5-7 天 · 这里才把 USE_LATTICE 真翻 true<br><br>
     <strong>Phase 3 验收门</strong>(errata):MIU 相对 Phase 2 末不退(±2%)+ lattice 替代 union 工程结构清晰 + 累计 ≥ 4pp(< 4pp 触发 climb plan §10 回退路径)
   </div>
 </div>
