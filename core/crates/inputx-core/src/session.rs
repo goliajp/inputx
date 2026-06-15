@@ -189,6 +189,24 @@ impl Session {
             return true;
         }
 
+        // 联想 cancellation guard: when the engine is sitting in a
+        // pure-prediction state (no composing buffer, but pending
+        // next-word predictions from a prior commit), any non-letter
+        // input interrupts the flow and must drop the predictions.
+        // Letter input is the only continuation path — it starts a new
+        // composing round whose next commit will rebuild predictions
+        // anyway via `refresh_predictions`. Everything else (digit,
+        // punct, Space, Enter, Tab, Backspace, Escape, function keys,
+        // arrow keys, …) reaches here and must clear the stale view
+        // before falling through to its normal routing below.
+        //
+        // Ctrl/Cmd modifiers short-circuit earlier so app shortcuts
+        // can't accidentally wipe predictions.
+        if !self.composite.is_composing() && self.composite.has_predictions() {
+            self.composite.cancel_predictions();
+            self.refresh_caches();
+        }
+
         // `-` (chōonpu / long-vowel mark) routes to the engine ONLY when JP
         // is mid-composition (e.g., `koohi` + `-` → コーヒー). Outside JP
         // composing — wubi/pinyin in progress, or no engine composing — `-`
@@ -1454,6 +1472,210 @@ mod jigao_coverage {
             "极高 must be in jigao candidates after supplemental dict add. Got: {:?}",
             cands.iter().take(10).collect::<Vec<_>>()
         );
+    }
+}
+
+#[cfg(test)]
+mod association_cancel_guard {
+    //! Bugfix 2026-06-16 — 联想 cancellation on non-continuation input.
+    //!
+    //! User report: "联想候选如果在中间间隔输入了任何别的东西都要取消，
+    //! 比如无候选的数字、符号、功能按键等".
+    //!
+    //! The contract verified here: when the engine is in a pure
+    //! prediction state (no composing buffer, but `prediction_buf` has
+    //! candidates from a prior commit), any non-letter input arriving
+    //! via `handle_key` must clear `prediction_buf` before falling
+    //! through to its normal routing. Letter input is the only
+    //! continuation path — it starts a new composing round whose next
+    //! commit will rebuild predictions.
+    //!
+    //! Predictions are seeded via the `test_seed_prediction` test
+    //! helper on `CompositeEngine` so these tests don't depend on
+    //! real bigram / trigram corpus loading (which is feature-gated
+    //! and slow).
+    use super::*;
+    use crate::composite::Mode;
+
+    fn s_with_pred() -> Session {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(Mode::PinyinOnly);
+        sess.composite.test_seed_prediction("吗");
+        sess.composite.test_seed_prediction("嗨");
+        sess.refresh_caches();
+        assert!(
+            sess.composite.has_predictions(),
+            "test setup: predictions not seeded"
+        );
+        assert!(
+            !sess.composite.is_composing(),
+            "test setup: must be in pure-prediction state, not composing"
+        );
+        sess
+    }
+
+    #[test]
+    fn digit_cancels_predictions() {
+        let mut sess = s_with_pred();
+        let consumed = sess.handle_key(b'1' as u32, 0);
+        assert!(
+            !consumed,
+            "digit with no composing buffer should pass through to host"
+        );
+        assert!(
+            !sess.composite.has_predictions(),
+            "digit must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn punct_cancels_predictions() {
+        let mut sess = s_with_pred();
+        let consumed = sess.handle_key(b'.' as u32, 0);
+        assert!(
+            !consumed,
+            "punct with no composing buffer should pass through to host"
+        );
+        assert!(
+            !sess.composite.has_predictions(),
+            "punct must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn space_cancels_predictions() {
+        let mut sess = s_with_pred();
+        let consumed = sess.handle_key(b' ' as u32, 0);
+        assert!(
+            !consumed,
+            "space with no composing buffer should pass through to host"
+        );
+        assert!(
+            !sess.composite.has_predictions(),
+            "space must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn enter_cancels_predictions() {
+        let mut sess = s_with_pred();
+        // CP_RETURN_CR = 0x0D
+        let consumed = sess.handle_key(0x0D, 0);
+        assert!(
+            !consumed,
+            "Enter with no composing buffer should pass through to host"
+        );
+        assert!(
+            !sess.composite.has_predictions(),
+            "Enter must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn escape_cancels_predictions() {
+        let mut sess = s_with_pred();
+        // CP_ESCAPE = 0x1B
+        let _ = sess.handle_key(0x1B, 0);
+        assert!(
+            !sess.composite.has_predictions(),
+            "Escape must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn backspace_cancels_predictions() {
+        let mut sess = s_with_pred();
+        // CP_BACKSPACE = 0x08
+        let _ = sess.handle_key(0x08, 0);
+        assert!(
+            !sess.composite.has_predictions(),
+            "Backspace must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn tab_cancels_predictions() {
+        let mut sess = s_with_pred();
+        // CP_TAB = 0x09
+        let _ = sess.handle_key(0x09, 0);
+        assert!(
+            !sess.composite.has_predictions(),
+            "Tab must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn arrow_key_codepoint_cancels_predictions() {
+        // Function keys / arrows arrive as private-use codepoints
+        // (e.g. macOS NSLeftArrowFunctionKey = 0xF702). Any non-letter
+        // non-digit non-punct codepoint should still cancel.
+        let mut sess = s_with_pred();
+        let _ = sess.handle_key(0xF702, 0);
+        assert!(
+            !sess.composite.has_predictions(),
+            "Arrow-key codepoint must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn letter_does_not_eagerly_cancel_predictions() {
+        // Letters are the continuation path: they start a new composing
+        // round. The guard must not run on letters — handle_letter has
+        // its own state-management. In practice the new composing buffer
+        // overrides what the host UI displays, and a subsequent commit
+        // will refresh predictions via update_bigram_context.
+        let mut sess = s_with_pred();
+        let consumed = sess.handle_key(b'n' as u32, 0);
+        assert!(consumed, "letter should be consumed");
+        // We don't assert on has_predictions here — handle_letter may
+        // or may not have touched prediction_buf depending on whether
+        // the letter triggered ASCII fallback or a commit. The
+        // important invariant is just that the guard didn't preemptively
+        // cancel before letting handle_letter run. Verify by checking
+        // that the engine has started a composing buffer (the
+        // continuation path was taken).
+        assert!(
+            sess.composite.is_composing(),
+            "letter must start a new composing round (continuation path)"
+        );
+    }
+
+    #[test]
+    fn ctrl_modifier_short_circuits_guard() {
+        // Ctrl+anything short-circuits the entire handle_key_cjk before
+        // reaching the guard — app shortcuts (Ctrl+C / Ctrl+A / …) must
+        // not wipe predictions as a side effect. Same for Cmd.
+        let mut sess = s_with_pred();
+        let consumed = sess.handle_key(b'c' as u32, MOD_CTRL);
+        assert!(!consumed, "Ctrl+c should fall through to host");
+        assert!(
+            sess.composite.has_predictions(),
+            "Ctrl modifier must short-circuit before the cancel guard"
+        );
+
+        // Cmd too.
+        let consumed = sess.handle_key(b'c' as u32, MOD_CMD);
+        assert!(!consumed, "Cmd+c should fall through to host");
+        assert!(
+            sess.composite.has_predictions(),
+            "Cmd modifier must short-circuit before the cancel guard"
+        );
+    }
+
+    #[test]
+    fn guard_no_op_when_no_predictions() {
+        // Sanity: when prediction_buf is empty, non-letter input still
+        // routes correctly (just no cancellation work to do). Catches a
+        // hypothetical regression where the guard could double-fire
+        // refresh_caches and corrupt cand_cache.
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(Mode::PinyinOnly);
+        assert!(!sess.composite.has_predictions());
+        let consumed = sess.handle_key(b'1' as u32, 0);
+        assert!(!consumed, "digit at fresh state passes through");
+        assert!(!sess.composite.has_predictions());
     }
 }
 
