@@ -212,5 +212,9 @@ fn parse_snapshot(obj: &js_sys::Object) -> L0Snapshot {
         })
         .unwrap_or_default();
 
-    L0Snapshot { pins, pick_counts }
+    L0Snapshot {
+        pins,
+        pick_counts,
+        ..Default::default()
+    }
 }

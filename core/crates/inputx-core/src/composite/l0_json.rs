@@ -169,7 +169,11 @@ pub fn pinyin_from_json(json: &str) -> Option<inputx_pinyin::L0Snapshot> {
     }
     let pins = parse_pairs(v.get("pins")?)?;
     let pick_counts = parse_triples(v.get("pick_counts")?)?;
-    Some(inputx_pinyin::L0Snapshot { pins, pick_counts })
+    Some(inputx_pinyin::L0Snapshot {
+        pins,
+        pick_counts,
+        ..Default::default()
+    })
 }
 
 fn parse_pairs(v: &mini_json::Json) -> Option<Vec<(String, String)>> {
@@ -535,6 +539,7 @@ mod tests {
         let snap = inputx_pinyin::L0Snapshot {
             pins: vec![("zhongguo".into(), "中国".into())],
             pick_counts: vec![("women".into(), "我们".into(), 1)],
+            ..Default::default()
         };
         let json = pinyin_to_json(&snap);
         assert!(json.contains("\"engine\":\"pinyin\""));
@@ -548,6 +553,7 @@ mod tests {
         let snap = inputx_pinyin::L0Snapshot {
             pins: vec![],
             pick_counts: vec![],
+            ..Default::default()
         };
         let json = pinyin_to_json(&snap);
         // Trying to import as wubi → fails (engine mismatch).
@@ -645,6 +651,7 @@ mod tests {
         (pins, pick_counts).prop_map(|(p, pc)| inputx_pinyin::L0Snapshot {
             pins: p,
             pick_counts: pc,
+            user_bigram: vec![],
         })
     }
 
