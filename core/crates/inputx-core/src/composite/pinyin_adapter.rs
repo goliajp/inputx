@@ -74,7 +74,7 @@ use crate::rules::{Context, ContextFlags};
 // ready.
 pub(crate) const PINYIN_DISABLE_COMPOSE: bool = true;
 pub(crate) const PINYIN_DISABLE_ASSOCIATION: bool = true;
-pub(crate) const PINYIN_DISABLE_FUZZY: bool = true;
+pub(crate) const PINYIN_DISABLE_FUZZY: bool = false;
 pub(crate) const PINYIN_DISABLE_PREDICTION: bool = true;
 
 fn embedded_bigrams_table() -> &'static NgramTable<&'static [u8]> {
