@@ -137,7 +137,7 @@ private struct SettingsRootView: View {
             // ---- 学习与个性化 ----
             Section {
                 Toggle("用户学习（自动学习常用词组的相邻关系）", isOn: $userLearningEnabled)
-                    .onChange(of: userLearningEnabled) { _, newValue in
+                    .onChange(of: userLearningEnabled) { newValue in
                         inputxSettings.userLearningEnabled = newValue
                         NotificationCenter.default.post(name: .inputxSettingsChanged, object: nil)
                     }
