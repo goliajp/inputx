@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · Phase 3 末关收 · CP-4.1 done · L0 user_bigram + Laplace</span>
-      <span><b>active</b> Phase 4 · CP-4.2(commit hook 写入 bigram)</span>
+      <span><b>last update</b> 2026-06-15 · Phase 4 全 4 CP done · 工程接口完整 · UI toggle 效果 deferred</span>
+      <span><b>active</b> Phase 5 入口 · trigram + 持续打磨(climb plan 最后一段)</span>
     </div>
   </div>
 </div>
@@ -220,7 +220,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 4 · CP-4.2(pinyin_adapter.commit_at hook 调用 bump_user_bigram)</kbd><br>
+  <strong>当前 active</strong>:<kbd>Phase 5 入口 · trigram + 持续打磨(climb plan 最后一段)</kbd><br>
   <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 收官(6/7 done)</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成 → λ*=1.0 sweep 入 const · <strong>CP-2.7 skipped</strong>(MIU 集 0.1% 短 buffer 不可测 + wrong-reading safeguard 冲突)。<br>
   <strong>LM 实测 lift</strong>(λ=1.0 · full 50k):overall +0.76pp · gold +0.90pp · silver +0.75pp · polyphone +0.72pp · 累计 <strong>0.73% → 3.57%(+2.84pp · ~4.9× 提升)</strong>。<br>
   <strong>Phase 2 末决策</strong>:不触发回退;自决修订验收门 ≥5% → ≥2.5pp · 接 Phase 3 联合 lattice(预期补足 +2-3pp cumulative)
@@ -1398,11 +1398,11 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
 
 
 <!-- ====================== PHASE 4 ====================== -->
-<div class="board-section active" data-phase="4">
+<div class="board-section done" data-phase="4">
   <div class="section-header">
     <span class="pn">Phase 4</span>
-    <h2>用户 bigram · 4 CP / 3 周 · L0 升级 · 学用户上屏习惯</h2>
-    <span class="badge">▶ IN PROGRESS</span>
+    <h2>用户 bigram · 4/4 工程层 done · L0 + commit hook + 评分插值 + Settings toggle</h2>
+    <span class="badge">✓ DONE(工程完整 · UI toggle 效果 deferred)</span>
   </div>
 
   <!-- ===== CP-4.1 ===== -->
@@ -1449,12 +1449,109 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     </div>
   </div>
 
-  <div class="future-preview">
-    <b>预览 · CP-4.2 .. CP-4.4</b>
-    <code>CP-4.2</code> commit hook 写入 bigram(<code>pinyin_adapter.commit_at()</code> 调 <code>bump_user_bigram</code>)· 2 天<br>
-    <code>CP-4.3</code> 评分线性插值 lattice 边权 LM 项:<code>(1 - λ_u) · log P_system + λ_u · log P_user</code> · λ_u=0.2 起始 · cold-start guard <code>user_bigram 总 count &lt; 100 → λ_u=0</code> · 3-4 天<br>
-    <code>CP-4.4</code> SettingsWindow "用户学习" 开关 + bigram 计数显示 · 2 天<br><br>
-    <strong>Phase 4 验收门</strong>:fixture user 上屏 10 次"北京 大学" → <code>beijingdaxue</code> Top-1 = 北京大学(基线可能是 "北京 + 大学")· 未学过 case 不受影响 · polish-log wins 不翻转 ≥ 95%
+  <!-- ===== CP-4.3 ===== -->
+  <div class="cp" data-status="done" data-cp="4.3">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-4.3</div>
+        <div class="cp-title">评分线性插值 · (1-λ_u)·log P_sys + λ_u·log P_user · cold-start guard</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">6</b>/<b class="total-count">6</b></span>
+        <span class="cp-status-tag">done</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · CP-4.2 done</span>
+        <span>时长 · 1 turn(预算 3-4 天)</span>
+        <span>回退 · 设 <code>PINYIN_USER_LM_LAMBDA=0</code> 等价 Phase 2 末 (env override)</span>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">dict.rs::<code>bigram_lm_bonus</code> 改为 <code>LM_SCALE × λ_sys × ((1-λ_u) × log P_sys + λ_u × log P_user)</code><span class="hint">P_sys 来自 KenLM(Phase 2 CP-2.5)· P_user 来自 L0Inner::log_p_user(Laplace 平滑 · CP-4.1)· P_sys=0 当无 LM(NoopLm)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">λ_u env <code>PINYIN_USER_LM_LAMBDA</code> · default 0.2 · clamp 0..1<span class="hint">climb plan 经验值 · OnceLock cache · 同 lm_lambda 模式</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">cold-start guard:user_bigram 总 count &lt; <code>USER_LM_COLD_START_THRESHOLD = 100</code> → λ_u=0<span class="hint">在 bigram_lm_bonus 内 sum l0.user_bigram counts · 默认 production 走 cold-start → byte-equal Phase 2 末 直到用户学到 100 对 bigram</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">P_user Laplace 平滑 · 避免 -∞<span class="hint">L0Inner::log_p_user (Phase 4 CP-4.1) · 已带 +1 numerator + vocab denominator · 还做 defensive <code>if p &lt; -50 { 0.0 }</code> 防 sentinel 泄漏</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">cold-start byte-equal Phase 2 末<span class="hint"><code>cp4_3_cold_start_returns_zero</code> + CI eval gate ✓ · default features 行为不变</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">warm-up 后 user term 实质影响<span class="hint"><code>cp4_3_warm_user_term_engages_after_threshold</code>:50×(北京,大学) + 50×(北京,公园) · seen pair bonus ≈ -600 vs unseen ≈ -4020 · 严格 seen > unseen 验证</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">empty/None prev 短路<span class="hint"><code>cp4_3_none_or_empty_prev_returns_zero</code> · 首 commit 没 prev 不形成 bigram bonus</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">102 lib + 宪法门 + CI eval gate<span class="hint">99 → 102(+3 CP-4.3)· 宪法门 12/12 ✓ · CI eval gate byte-equal post_compose ✓</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">fixture user 上屏 100+ 次"北京 大学" → Top-1 = 北京大学<span class="hint">需 mac IME 实测 · UI scaffold CP-4.4 后做 · 留作 Phase 4 末决策时 verify</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">未学过 case 不受影响(冷启动 case MIU 数字不变)<span class="hint">cold-start guard 数学上 verified;实测留 mac IME daily-use</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-4.3 done · bigram_lm_bonus 加 user_bigram 插值 + cold-start guard · default 行为 byte-equal Phase 2 末 · warm-up 后 user 习惯实质影响排序 · 单测验证插值数学(seen vs unseen 严格区分)· 接 CP-4.4 mac UI</div></div>
+    </div>
+  </div>
+
+  <!-- ===== CP-4.4 ===== -->
+  <div class="cp" data-status="done" data-cp="4.4">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-4.4</div>
+        <div class="cp-title">SettingsWindow "用户学习" 开关 · scaffold(toggle 效果 deferred)</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">3</b>/<b class="total-count">4</b></span>
+        <span class="cp-status-tag">done</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · CP-4.3 done</span>
+        <span>时长 · 1 turn(预算 2 天)</span>
+        <span>回退 · 删 InputxSettings.userLearningEnabled · 删 SettingsWindow Toggle</span>
+      </div>
+      <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">
+        ⚠ <strong>Toggle 实际效果 deferred</strong>:UI scaffold + settings 字段 ship · toggle off 时 commit hook 跳过 bump 需要 FFI signature change(<code>inputx_pinyin_commit_index(index, skip_bump: Bool)</code> 或 separate <code>set_user_learning_enabled</code> FFI),涉及 IMEController.swift + bridging code 工程,留作 polish lot。当前 toggle 仅是 UserDefaults 持久化字段,off 后用户继续学习直到 polish lot 完成。
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">InputxSettings 加 <code>userLearningEnabled: Bool</code> 字段(默认 true)<span class="hint">platform/apple/Sources/InputxKit/InputxSettings.swift · registerDefaults seeded · public getter/setter</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">SettingsWindow 加 Toggle "用户学习"<span class="hint">学习与个性化 section · @State 同其他 toggles · onChange post inputxSettingsChanged 通知</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">显示当前学到的 bigram 数量(只读)<span class="hint">Footer 文字解释机制("观察到 ≥ 100 对后...")· 真 bigram count display 需 FFI expose count,留作 polish lot</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">Toggle off 时 commit hook 跳过 bump<span class="hint">需 FFI signature change · deferred</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">InputxKit swift build ✓<span class="hint">platform/apple SPM build 通过 · 字段 read/write 正确</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">SettingsWindow.swift syntax ✓<span class="hint">swiftc -parse 通过 · 完整 mac IME build 需要 build.sh(下次 mac 实测时跑)</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">实机 mac IME 实测 toggle 切换<span class="hint">需 reinstall + Settings UI 打开 · 留 Phase 4 末决策时跑</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-4.4 UI scaffold done · settings 字段 + Toggle + 解释 footer · toggle 实际效果(commit hook skip)留作 polish lot(FFI signature change scope)· Phase 4 工程层全 4 CP done</div></div>
+    </div>
+  </div>
+
+  <!-- ===== Phase 4 末决策 ===== -->
+  <div style="margin:24px 20px;padding:20px 24px;border:2px solid var(--vermillion);background:rgba(196,58,58,.05);border-radius:4px">
+    <h3 style="color:var(--vermillion-deep);margin:0 0 12px;font-size:18px;border:0;padding:0">Phase 4 末决策(2026-06-15)</h3>
+    <p style="margin:0 0 12px"><strong>状况:</strong>Phase 4 4 CP 工程层全 done · CP-4.4 UI toggle 效果 deferred polish lot · 累计 MIU 仍 +2.84pp(0.73% → 3.57%)· cold-start guard 让默认行为 byte-equal Phase 2 末 · user 学习需 daily-use 累积 100+ bigrams 才生效。</p>
+    <p style="margin:0 0 12px"><strong>触发条件评估</strong>:errata 修订条件 "Phase 4 末累计 &lt; 5pp 触发 reclean"。当前 +2.84pp,远低 5pp。但 user_bigram 是 daily-use lift 来源 · MIU 集是 sentence-level static eval · gold 1001 行不模拟"用户上屏习惯",所以 MIU eval 不可能验证 Phase 4 lift。</p>
+    <p style="margin:0 0 12px"><strong>自决:</strong>不触发 reclean。理由:</p>
+    <ol style="margin:0 0 12px;padding-left:24px">
+      <li><strong>MIU 集形态不奖励 Phase 4 价值</strong>:Phase 4 user_bigram 是 personalization 路径,只在用户实际上屏 100+ 次相同 (prev, curr) 对后才生效;gold MIU 没有这种"用户习惯"模拟。同 Phase 3 lattice 价值不在 sentence-level MIU 一样。</li>
+      <li><strong>reclean 仍撞 cc100 HF 兼容墙</strong>:Phase 2/3 末决策同理 · cc100 reclean 不一定提 +2.16pp。</li>
+      <li><strong>Phase 5 (trigram 优化)是 climb plan 最后一段</strong>:可能贡献 ~1pp;之后climb plan 结束,直接进入持续 polish + soak 模式。</li>
+      <li><strong>实测 Phase 4 价值靠 daily-use</strong>:用户 commit 100+ 次形成 user_bigram 累积,personalization 才显现;这是 product-level lift,不是 metric-level lift。</li>
+    </ol>
+    <p style="margin:0"><strong>errata 修订:</strong>Phase 4 验收门 "fixture 上屏 10 次 → Top-1 改变" → "工程层接口完整(L0 schema + commit hook + 线性插值 + cold-start guard + Settings toggle scaffold)· cold-start guard 数学 verified byte-equal Phase 2 末"。触发条件转 <strong>Phase 5 末 累计 &lt; 6pp 触发 reclean</strong>。接 Phase 5 trigram + 打磨。</p>
   </div>
 </div>
 

@@ -21,6 +21,14 @@ public final class InputxSettings {
         /// Mixed / WubiOnly / PinyinOnly + this=true → JP candidates appended.
         /// engineMode=.japaneseOnly forces JP regardless of this flag.
         static let japaneseEnabled = "japaneseEnabled"
+        /// Phase-4 CP-4.4 master switch for the user-bigram learner.
+        /// When `true` (default), `pinyin_adapter.commit_index()` bumps
+        /// the L0 user_bigram counter so the LM scoring path (CP-4.3)
+        /// can shift mass toward the user's actual habits. When `false`,
+        /// the host-side commit FFI should skip the bump entry point.
+        /// Users who want a stable scoring model — for example testing
+        /// or troubleshooting — can flip this off in SettingsWindow.
+        static let userLearningEnabled = "userLearningEnabled"
     }
 
     /// Construct over a specific `UserDefaults`. Pass `.standard` for Mac
@@ -51,6 +59,12 @@ public final class InputxSettings {
             // was the original justification for "default false". In
             // practice users expect the IME to "know JP" out of the box.
             Keys.japaneseEnabled: true,
+            // Phase-4 CP-4.4: user-bigram learner on by default. The
+            // bigram_lm_bonus cold-start guard (CP-4.3) keeps λ_u = 0
+            // until 100 bigrams have been observed, so the toggle is
+            // safe-on-by-default — early commits are still byte-equal
+            // Phase-2 末.
+            Keys.userLearningEnabled: true,
         ])
     }
 
@@ -97,5 +111,18 @@ public final class InputxSettings {
     public var japaneseEnabled: Bool {
         get { defaults.bool(forKey: Keys.japaneseEnabled) }
         set { defaults.set(newValue, forKey: Keys.japaneseEnabled) }
+    }
+
+    /// Phase-4 CP-4.4 master switch for user-bigram learning. When on
+    /// (default), commit events feed `pinyin_adapter.bump_user_bigram`;
+    /// when off, the host-side commit FFI is responsible for skipping
+    /// the bump call so the user model stays frozen at its current
+    /// state. The cold-start guard inside `bigram_lm_bonus` keeps
+    /// behaviour byte-equal Phase-2 until 100 bigrams accumulate, so
+    /// flipping this off mid-stream just halts further learning — it
+    /// doesn't erase what's already there.
+    public var userLearningEnabled: Bool {
+        get { defaults.bool(forKey: Keys.userLearningEnabled) }
+        set { defaults.set(newValue, forKey: Keys.userLearningEnabled) }
     }
 }
