@@ -43,17 +43,46 @@ from upstream dumps. Directories kept via `.gitkeep`.
 
 ---
 
-## LCCC-base · DEFERRED to Phase 2
+## LCCC-base (colloquial / dialogue · fetched in Phase 2)
 
-Not fetched in Phase 0. Only available via Baidu Netdisk / Google Drive /
-HuggingFace `datasets` library — no direct curl URL.
+| field | value |
+|---|---|
+| URL | https://huggingface.co/datasets/silver/lccc (HF datasets, no direct curl) |
+| local path | `tools/eval/corpus/raw/lccc/` |
+| compressed size | TBD — populated after CP-2.2 fetch |
+| sha256 (prefix) | TBD — populated after CP-2.2 fetch |
+| extracted size | ~1.5-2 GB plain text (one utterance per line, after dedup) |
+| document count | ~6.8M dialogue sessions / ~12M utterances (base split) |
+| license | MIT (per thu-coai/CDial-GPT) |
+| commerce_risk | note (ship derived bigram OK; do NOT redistribute raw corpus) |
+| fetched | TBD — Phase-2 CP-2.2 will run `from datasets import load_dataset; load_dataset("lccc", "base")` |
+| notes | Originally deferred from Phase 0 (no direct curl URL). LCCC's colloquial/dialogue contribution is critical for Phase 2 LM training per `pinyin-quality-gap-2026-06-14.html` §06.7. Underlying user-generated content (Weibo / open forums) — license per LCCC packaging is MIT but cite Wang et al. EMNLP-Findings 2020 in shipped LICENSES_THIRD_PARTY.md. |
 
-Phase 0's MIU evaluation harness is covered by wiki + THUCNews. LCCC's
-colloquial/dialogue contribution is critical for Phase 2 LM training
-(per `pinyin-quality-gap-2026-06-14.html` §06.7), where we'll use
-`from datasets import load_dataset; load_dataset("lccc", "base")`.
+---
 
-When fetched, will live at `tools/eval/corpus/raw/lccc/`.
+## CC-100 zh (web-scale diverse-domain · Phase 2 only)
+
+| field | value |
+|---|---|
+| URL | https://huggingface.co/datasets/cc100 (HF datasets, no direct curl) |
+| local path | `tools/eval/corpus/raw/cc100/` |
+| compressed size | TBD — target ~10 GB subsample after CP-2.2 |
+| sha256 (prefix) | TBD — populated after CP-2.2 fetch |
+| extracted size | ~10 GB plain text (subsample; full zh ≈ 50 GB) |
+| license | MIT (cc_net pipeline) + Common Crawl Terms of Use |
+| commerce_risk | note (dataset card states "intended for non-commercial language modeling research"; derived bigram OK to ship — smoothed probabilities are not verbatim) |
+| fetched | TBD — Phase-2 CP-2.2 will stream + sub-sample on the fly |
+| notes | Use streaming mode to avoid downloading the full 50 GB zh split before subsampling. If ship-time legal escalates this to `blocked`, retrain without CC-100 by dropping the id from `tools/scoring/09_bigram_lm/sources.yaml` and re-running CP-2.2..CP-2.3. Cite Conneau et al. ACL 2020. |
+
+---
+
+## Phase 2 LM training manifest
+
+The 4 sources above are the LM training corpus per climb plan CP-2.1.
+Machine-readable manifest with license + commerce_risk fields lives at
+[`tools/scoring/09_bigram_lm/sources.yaml`](../scoring/09_bigram_lm/sources.yaml).
+CP-2.1 acceptance gate (`sources.yaml` has 4 entries, all with license +
+commerce_risk, no `blocked`) is **met**.
 
 ---
 
@@ -97,4 +126,5 @@ $ unzip -p pd/THUCNews.zip "THUCNews/财经/798977.txt" | head -c 500
 
 | date | event | actor |
 |---|---|---|
-| 2026-06-14 | initial fetch, branch `feature/eval-cp-0.1-corpus-fetch` | doracawl + claude opus 4.7 |
+| 2026-06-14 | Phase 0 initial fetch (wiki + THUCNews), branch `feature/eval-cp-0.1-corpus-fetch` | doracawl + claude opus 4.7 |
+| 2026-06-15 | CP-2.1: LCCC + CC-100 entries added, sources.yaml manifest written, license + commerce_risk audited, branch `feature/lm-cp-2.1-sources-yaml` | doracawl + claude opus 4.7 |

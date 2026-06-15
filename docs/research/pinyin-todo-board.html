@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · Phase 1 收官 · 全 4 gate 翻完 · MIU +2.08pp</span>
-      <span><b>active</b> Phase 2 入口 / 先 polish 3 个 corpus-noise backlog</span>
+      <span><b>last update</b> 2026-06-15 · Phase 2 CP-2.1(sources.yaml)done</span>
+      <span><b>active</b> Phase 2 · CP-2.2(清洗 pipeline + 下 LCCC + CC-100)</span>
     </div>
   </div>
 </div>
@@ -220,8 +220,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 1 收官 ✓ · 等用户拍板下一步:① polish 3 个 backlog · ② 启动 Phase 2</kbd><br>
-  <strong>进度</strong>:Phase 0 完成(7/7)· <strong>Phase 1 完成(4/4)</strong> · 4 个 pipeline gate 全开(COMPOSE/ASSOCIATION/FUZZY/PREDICTION = false)· MIU overall <strong>0.73% → 2.81% (+2.08pp)</strong>,gold 1.70% → 3.40% (+1.70pp)· CI eval baseline.json floor 升至 post_compose · 3 个 corpus-noise case(wokuai/pengyoujuan/danqiao)在 polish backlog · 沿用户 standing policy "merge,继续后续的开发,polish 后置" 走完 Phase 1 全部 4 个 CP
+  <strong>当前 active</strong>:<kbd>Phase 2 · CP-2.2(清洗 pipeline · 真下 LCCC + CC-100 数据 + 8 步配方)</kbd><br>
+  <strong>进度</strong>:Phase 0(7/7)· <strong>Phase 1(4/4)·MIU +2.08pp</strong> · <strong>Phase 2 CP-2.1 ✓</strong>(sources.yaml 4 entry · license + commerce_risk audit pass)· 接 CP-2.2(下 ~10GB CC-100 + ~2GB LCCC + 写 clean.py)· 用户 2026-06-15 standing 升级:climb plan execution 内不在 Phase 关口 stop;Claude 自决 Phase 边界、对结果负责
 </div>
 
 <!-- ====================== HOW TO USE ====================== -->
@@ -767,8 +767,120 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
         </ul>
       </div>
 
-      <div class="cp-verdict"><div class="text"><b>verdict</b>Phase 1 收官 ▣ · 4 个 pipeline gate 全开 · MIU 累计 +2.08pp(0.73% → 2.81%)· 沿用户 standing policy 提前 merge · Phase 2 入口:先 polish 3 个 corpus-noise backlog,再开 Phase 2 工程</div></div>
+      <div class="cp-verdict"><div class="text"><b>verdict</b>Phase 1 收官 ▣ · 4 个 pipeline gate 全开 · MIU 累计 +2.08pp(0.73% → 2.81%)· 沿用户 standing policy 提前 merge · 接 Phase 2 第一个 CP(用户 2026-06-15 升级 standing:不在 Phase 关口 stop)</div></div>
     </div>
+  </div>
+</div>
+
+
+<!-- ====================== PHASE 2 ====================== -->
+<div class="board-section active" data-phase="2">
+  <div class="section-header">
+    <span class="pn">Phase 2</span>
+    <h2>真 bigram LM 上线 · 7 CP / 7 周 · 底盘升级最重</h2>
+    <span class="badge">▶ IN PROGRESS</span>
+  </div>
+
+  <!-- ===== CP-2.1 ===== -->
+  <div class="cp" data-status="done" data-cp="2.1">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-2.1</div>
+        <div class="cp-title">语料 + license 确认 · sources.yaml 4 份 entry</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">5</b>/<b class="total-count">5</b></span>
+        <span class="cp-status-tag">done</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · Phase 1 通过</span>
+        <span>时长 · 1 天(实际:1 turn)</span>
+        <span>回退 · 删 cc100 子目录 · 删 LCCC entry,退回 3 源</span>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">从 Phase 0 已有 wiki + THUCNews + (LCCC deferred)出发<span class="hint">wiki 3.1GB + thucnews 1.5GB 已在 <code>tools/eval/corpus/raw/</code> · LCCC 目录已建,文件待 CP-2.2 拉取</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">加 CC-100 zh 子采样目录(~10 GB 目标,文件在 CP-2.2 实际拉)<span class="hint">建 <code>tools/eval/corpus/raw/cc100/.gitkeep</code> · 加 .gitignore 模式</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">写 <code>tools/scoring/09_bigram_lm/sources.yaml</code><span class="hint">manifest schema_version 1 · 4 份 entry · 每份含 URL/version/local path/size 估计/license/commerce_risk/notes · audit block 含 acceptance_gate_status: pass</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">扩 <code>tools/eval/SOURCES.md</code> 加 LCCC + CC-100 entry + Phase 2 ref<span class="hint">human-readable 版本 · 跟 sources.yaml 互为镜像 · provenance log 加 2026-06-15 CP-2.1 行</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">设计偏离:沿用 Phase 0 路径 <code>tools/eval/corpus/raw/</code>,不新建 <code>tools/scoring/09_bigram_lm/raw/</code><span class="hint">理由:Phase 0 已建了 4 个 subdir(wiki/pd/lccc 含 .gitkeep)· 数据资产位置统一,减少 cross-path 复杂度 · sources.yaml 的 local_path 字段精确指向</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body"><code>sources.yaml</code> 含 4 份 entry<span class="hint">zhwiki · thucnews · lccc_base · cc100_zh ✓</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">每份有 license + commerce_risk 字段<span class="hint">license 字段含 name/url/attribution_required/share_alike · commerce_risk 字段限 safe/note/blocked 三值</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">所有 commerce_risk 为 <code>safe</code> 或 <code>note</code>;无 <code>blocked</code><span class="hint">audit: safe=1(zhwiki)· note=3(其余,均为"derived bigram OK · 不 redistribute 原 corpus")· blocked=0 ✓ · CP-2.1 acceptance gate **pass**</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-2.1 done · sources.yaml 4 entries · CP-2.1 acceptance gate pass(no blocked)· next: CP-2.2 真下数据 + 清洗 pipeline</div></div>
+    </div>
+  </div>
+
+  <!-- ===== CP-2.2 ===== -->
+  <div class="cp" data-status="next" data-cp="2.2">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-2.2</div>
+        <div class="cp-title">清洗 pipeline 落地 · clean.py 按 §06.7 配方</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">11</b></span>
+        <span class="cp-status-tag">next</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · CP-2.1 done</span>
+        <span>时长 · 3-5 天</span>
+        <span>回退 · 每步产物可单独删,流程 resumable</span>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do(8 步配方)</div>
+        <ul class="tasks">
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/scoring/09_bigram_lm/clean.py</code>(step CLI 支持 resumable)</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">① 拉 LCCC + CC-100(HF datasets · streaming + 子采样)+ wikiextractor 解 wiki</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">② 去 boilerplate([edit] / [citation needed] / URL token / 模板残留)</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">③ fasttext lid (阈值 0.7) 丢非 zh 行</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">④ OpenCC <code>t2s.json</code> 繁简归一</li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">⑤ 按 <code>[。!?…]+</code> 切句</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">⑥ 长度 4-120 + 汉字占比 ≥ 0.6 过滤</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">⑦ MinHash 句级去重</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">⑧ jieba.cut(HMM=False) + 加自定义词典(library.tsv top-100k phrase dump)</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">输出 <code>cleaned.txt</code>(分词后空格分隔)</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>wc -l cleaned.txt</code> ≥ 10,000,000 句</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>wc -w cleaned.txt</code> 词数估算 1-3 亿</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">抽 200 行,看不到 markup 残留</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">每步可单独 rerun(--step CLI)</span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>待开工 · 这是 Phase 2 真正的"下数据 + 工程化"开始 · ~10GB CC-100 + ~2GB LCCC streaming 拉取 + 8 步配方 · 资源动作执行期不停</div></div>
+    </div>
+  </div>
+
+  <div class="future-preview">
+    <b>预览 · CP-2.3 .. CP-2.7</b>
+    <code>CP-2.3</code> KenLM 训 bigram(<code>brew install kenlm</code> · lmplz -o 2)· 1-2 天<br>
+    <code>CP-2.4</code> KenLM Rust binding · cxx-bridge FFI · 3-5 天<br>
+    <code>CP-2.5</code> 集成评分(可逆 λ via env)· **λ=0.3 时 MIU 必须升 ≥ 3%**(关键 KPI)· 5-7 天<br>
+    <code>CP-2.6</code> λ sweep 调优(λ ∈ {0.1..1.0})· 2-3 天<br>
+    <code>CP-2.7</code> 全 buffer 启用 Viterbi(短 buffer 阈值 8→2 字节)· 3-5 天 + 7 天 soak<br><br>
+    <strong>Phase 2 验收门</strong>:Top-1 MIU 累计升 ≥ 5%(若 < 5% climb plan 触发重训回退)
   </div>
 </div>
 

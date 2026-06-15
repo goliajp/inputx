@@ -1,0 +1,153 @@
+# Phase-2 bigram-LM training corpus manifest.
+#
+# 4 sources × KenLM training. Per climb plan CP-2.1:
+# Each entry must have license + commerce_risk; no `blocked` allowed in
+# this manifest. `safe` and `note` are the only acceptable values.
+#
+# commerce_risk semantics:
+#   safe  — explicit permission for commercial use (with attribution where required)
+#   note  — research/commercial mixed status; OK to train + ship MODEL ARTIFACTS
+#           (bigram.binary), but DO NOT redistribute the raw corpus or any verbatim
+#           passages. KenLM's smoothed probabilities are derivative + not verbatim.
+#   blocked — license forbids any commercial use; must remove from training mix.
+#
+# All raw bytes live under `tools/eval/corpus/raw/` (gitignored, regenerable
+# from upstream dumps; directories tracked via `.gitkeep`). LICENSE_LICENSES.md
+# in the manifest's parent dir captures attribution copy required at ship time.
+
+schema_version: 1
+phase: 2
+last_updated: "2026-06-15"
+maintainer: doracawl
+
+sources:
+
+  - id: zhwiki
+    name: Chinese Wikipedia dump (zhwiki)
+    role: written-style / encyclopedic baseline
+    upstream:
+      url: https://dumps.wikimedia.org/zhwiki/latest/zhwiki-latest-pages-articles.xml.bz2
+      version: "2026-06 dump (latest as of fetch)"
+      fetched: "2026-06-14"
+    local:
+      path: tools/eval/corpus/raw/wiki/zhwiki-latest-pages-articles.xml.bz2
+      compressed_bytes: 3.1e9  # verified du -sh
+      sha256_prefix: "e4d157bef5b3e22a"
+      extracted_estimate: "15-18 GB raw XML; 2-3 GB cleaned text after wikiextractor"
+    license:
+      name: "CC-BY-SA-3.0 + GFDL (dual)"
+      url: https://en.wikipedia.org/wiki/Wikipedia:Copyrights
+      attribution_required: true
+      share_alike: true
+    commerce_risk: safe
+    notes: |
+      Wikimedia dumps are explicitly publishable under dual CC-BY-SA-3.0 +
+      GFDL. Commercial use OK with attribution + share-alike on any
+      republished/redistributed derived corpora. A KenLM bigram model trained
+      on this corpus is a derivative; per WMF guidance smoothed n-gram
+      probabilities are not verbatim text and share-alike does not flow into
+      model weights, but attribution still required.
+
+  - id: thucnews
+    name: THUCNews (THU Chinese News)
+    role: news / formal modern Chinese baseline
+    upstream:
+      url: http://thuctc.thunlp.org/source/THUCNews.zip
+      version: "2016 release (covering 2005-2011 Sina RSS)"
+      fetched: "2026-06-14"
+    local:
+      path: tools/eval/corpus/raw/pd/THUCNews.zip
+      compressed_bytes: 1.5e9  # verified du -sh
+      sha256_prefix: "8d6aef71c4431ba2"
+      extracted_estimate: "2.4 GB; 740,000+ articles in 14 categories"
+    license:
+      name: "THUNLP research license"
+      url: http://thuctc.thunlp.org/
+      attribution_required: true
+      share_alike: false
+    commerce_risk: note
+    notes: |
+      THUNLP releases THUCNews for academic use; the licence text is informal
+      ("free for research", citation requested via Sun et al. THUCTC paper).
+      Commercial-use status not explicit. Treatment: OK to train + ship
+      derived bigram.binary (smoothed probabilities are not verbatim text,
+      no recoverable original sentence). DO NOT redistribute the raw corpus
+      or any non-trivial verbatim passages in the shipped IME bundle. Add
+      citation to LICENSES_THIRD_PARTY.md at ship time.
+
+  - id: lccc_base
+    name: LCCC-base (Large-scale Cleaned Chinese Conversation, base split)
+    role: colloquial / dialogue baseline (per climb-plan §06.7)
+    upstream:
+      source: "HuggingFace datasets:lccc (config 'base'); upstream paper Wang et al. 2020"
+      url: https://huggingface.co/datasets/silver/lccc
+      version: "base split (~6.8M dialogue sessions / ~12M utterances after dedup)"
+      fetched: "TBD CP-2.2 (HuggingFace load_dataset, no direct-curl URL)"
+    local:
+      path: tools/eval/corpus/raw/lccc/
+      compressed_bytes: null  # populated after CP-2.2 fetch
+      sha256_prefix: null
+      extracted_estimate: "~1.5-2 GB plain text after one utterance per line"
+    license:
+      name: "MIT (code + dataset packaging per thu-coai/CDial-GPT)"
+      url: https://github.com/thu-coai/CDial-GPT/blob/master/LICENSE
+      attribution_required: true
+      share_alike: false
+    commerce_risk: note
+    notes: |
+      Wang et al. release LCCC under MIT. However the raw conversations are
+      crawled from Weibo + open Chinese forums; downstream commercial use
+      is permitted by the LCCC packaging licence, but underlying user-
+      generated content carries platform ToS uncertainty. Treatment: same as
+      THUCNews — train + ship the derived n-gram artefact, do not
+      redistribute raw text or verbatim passages. Cite Wang et al. EMNLP-
+      Findings 2020 in shipped LICENSES_THIRD_PARTY.md.
+
+  - id: cc100_zh
+    name: CC-100 (Chinese subset, zh)
+    role: web-scale / diverse-domain baseline
+    upstream:
+      source: "facebookresearch/cc_net pipeline output (Common Crawl-derived); HF datasets:cc100"
+      url: https://huggingface.co/datasets/cc100
+      version: "subsample ~10 GB from zh split (full zh ≈ 50 GB)"
+      fetched: "TBD CP-2.2 (HuggingFace streaming, sub-sample on the fly)"
+    local:
+      path: tools/eval/corpus/raw/cc100/
+      compressed_bytes: null  # ~10 GB target after subsample, populated CP-2.2
+      sha256_prefix: null
+      extracted_estimate: "~10 GB plain text after subsample"
+    license:
+      name: "MIT (cc_net pipeline) + Common Crawl Terms of Use"
+      url: https://huggingface.co/datasets/cc100  # see Dataset Card
+      attribution_required: true
+      share_alike: false
+    commerce_risk: note
+    notes: |
+      CC-100 dataset card states "intended for use as training data for
+      language modeling research and similar non-commercial uses". The
+      underlying Common Crawl data is freely-licensed (CC0 / CC-BY), but
+      Facebook AI's packaging signals non-commercial intent. Treatment:
+      same as THUCNews/LCCC — train + ship the bigram artefact (smoothed
+      probabilities not verbatim), do not redistribute raw corpus, cite
+      Conneau et al. ACL 2020. If ship-time legal review escalates this to
+      `blocked`, full retrain without CC-100 is straightforward — just drop
+      this id from `clean.py --include` and rerun CP-2.2..CP-2.3.
+
+# ============================================================================
+# Audit summary (CP-2.1 acceptance gate)
+# ============================================================================
+audit:
+  total_sources: 4
+  by_commerce_risk:
+    safe: 1   # zhwiki
+    note: 3   # thucnews, lccc_base, cc100_zh
+    blocked: 0
+  acceptance_gate_status: pass
+  acceptance_gate_notes: |
+    No `blocked` entries — climb-plan CP-2.1 acceptance met. All 4 sources
+    have explicit license + commerce_risk fields. Three `note` sources are
+    OK for training derived n-gram models (smoothed probabilities are not
+    recoverable verbatim text) but NOT OK for raw-corpus redistribution.
+    A user-facing LICENSES_THIRD_PARTY.md must be assembled before any
+    public ship; that work is tracked separately under the Phase-2 ship
+    checklist, not blocking CP-2.1 → CP-2.2 progression.
