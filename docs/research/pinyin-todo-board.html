@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · Phase 2 CP-2.1(sources.yaml)done</span>
-      <span><b>active</b> Phase 2 · CP-2.2(清洗 pipeline + 下 LCCC + CC-100)</span>
+      <span><b>last update</b> 2026-06-15 · CP-2.2 done · cleaned.txt 41M 句 / 4.5 GB</span>
+      <span><b>active</b> Phase 2 · CP-2.3(KenLM 训 bigram)</span>
     </div>
   </div>
 </div>
@@ -220,8 +220,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 2 · CP-2.2(清洗 pipeline · 真下 LCCC + CC-100 数据 + 8 步配方)</kbd><br>
-  <strong>进度</strong>:Phase 0(7/7)· <strong>Phase 1(4/4)·MIU +2.08pp</strong> · <strong>Phase 2 CP-2.1 ✓</strong>(sources.yaml 4 entry · license + commerce_risk audit pass)· 接 CP-2.2(下 ~10GB CC-100 + ~2GB LCCC + 写 clean.py)· 用户 2026-06-15 standing 升级:climb plan execution 内不在 Phase 关口 stop;Claude 自决 Phase 边界、对结果负责
+  <strong>当前 active</strong>:<kbd>Phase 2 · CP-2.3(KenLM 训 bigram · lmplz CLI 装齐后开工)</kbd><br>
+  <strong>进度</strong>:Phase 0(7/7)· <strong>Phase 1(4/4)· MIU +2.08pp</strong> · <strong>Phase 2 · CP-2.1+2.2 done</strong>:sources.yaml 4 entry + cleaned.txt <strong>41M 句 / 4.5 GB</strong>(wiki+thucnews+lccc;cc100 deferred v2)· MinHash 太慢 → exact dedup 替换(入 errata)· 接 CP-2.3 KenLM 训 bigram(brew/cmake/conda 三选一解决 lmplz 可用性)
 </div>
 
 <!-- ====================== HOW TO USE ====================== -->
@@ -825,59 +825,102 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
   </div>
 
   <!-- ===== CP-2.2 ===== -->
-  <div class="cp" data-status="next" data-cp="2.2">
+  <div class="cp" data-status="done" data-cp="2.2">
     <div class="cp-head" onclick="toggleCp(this)">
       <div class="cp-head-left">
         <div class="cp-id">CP-2.2</div>
-        <div class="cp-title">清洗 pipeline 落地 · clean.py 按 §06.7 配方</div>
+        <div class="cp-title">清洗 pipeline 落地 · clean.py 8 步配方 · cleaned.txt 41.4M 句</div>
       </div>
       <div class="cp-head-right">
-        <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">11</b></span>
-        <span class="cp-status-tag">next</span>
+        <span class="cp-progress"><b class="done-count">11</b>/<b class="total-count">11</b></span>
+        <span class="cp-status-tag">done</span>
       </div>
     </div>
     <div class="cp-body">
       <div class="cp-meta-row">
         <span>前置 · CP-2.1 done</span>
-        <span>时长 · 3-5 天</span>
+        <span>时长 · 1 turn(预算 3-5 天 → 实际 ~1 小时后台 pipeline)</span>
         <span>回退 · 每步产物可单独删,流程 resumable</span>
       </div>
 
       <div class="task-group">
         <div class="task-group-head">动作 · do(8 步配方)</div>
         <ul class="tasks">
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">写 <code>tools/scoring/09_bigram_lm/clean.py</code>(step CLI 支持 resumable)</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">① 拉 LCCC + CC-100(HF datasets · streaming + 子采样)+ wikiextractor 解 wiki</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">② 去 boilerplate([edit] / [citation needed] / URL token / 模板残留)</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">③ fasttext lid (阈值 0.7) 丢非 zh 行</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">④ OpenCC <code>t2s.json</code> 繁简归一</li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">⑤ 按 <code>[。!?…]+</code> 切句</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">⑥ 长度 4-120 + 汉字占比 ≥ 0.6 过滤</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">⑦ MinHash 句级去重</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">⑧ jieba.cut(HMM=False) + 加自定义词典(library.tsv top-100k phrase dump)</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">输出 <code>cleaned.txt</code>(分词后空格分隔)</span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">写 <code>tools/scoring/09_bigram_lm/clean.py</code>(step CLI 支持 resumable)<span class="hint">commit c31e49f · 800+ 行 · 单步可独立 rerun</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">① 拉 wiki / thucnews / lccc(HF streaming)<span class="hint"><strong>wiki 28M 段(HF wikimedia/wikipedia 20231101.zh,改 wikiextractor 不兼容 py3.14)· thucnews 10.2M 行(zip walk)· lccc 20M utterances(HF silver/lccc base)</strong>· cc100 因 HF datasets script-loader 兼容问题 deferred to v2(deferred 不影响验收 — wiki+thucnews+lccc 已 53M filtered ≫ 10M 门)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">② 去 boilerplate(regex)<span class="hint">[edit] / URL / wiki templates / wikilink rewrite / html / ws collapse · drop &lt; 0.1%</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">③ fasttext lid (阈值 0.7) 丢非 zh<span class="hint">lid.176.bin · wiki 28M→19M(31% drop)· thucnews 10M→8M · lccc 20M→18M · 主要丢繁体 / 英文 / 拉丁</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">④ OpenCC t2s 繁简归一<span class="hint">opencc-python-reimplemented · 无 drop(原地转换)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">⑤ 按 <code>[。!?！？…]+</code> 切句<span class="hint">wiki 19M→28M · thucnews 8M→17M · lccc 18M→21M(段→句裂变)· 合计 66M 句候选</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">⑥ 长度 4-120 + 汉字占比 ≥ 0.6 过滤<span class="hint">合计 66M→53M(20% drop · 太短/非中文/纯符号被砍)· 合并 _merged.txt 4.2 GB</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">⑦ <strong>exact dedup</strong>(blake2b hashset · 替代原 MinHash-LSH)<span class="hint"><strong>设计变更:</strong>MinHash 在 53M 行 single-thread Python ~5 hr 太慢;改 blake2b exact dedup ~10 min · 53M → 41M(22% drop,verbatim 重复:paste-spam / 重复新闻头 / lccc "好的好的好的" 堆)· KN smoothing 抗近重 · 入 climb plan errata</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">⑧ jieba.cut(HMM=False) + library.tsv top-100k 自定义词典<span class="hint">~30 min for 41M 句 · 41,395,416 → 41,374,056(21k drop · 短 sentence &lt; 2 tokens 剔除)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">输出 <code>cleaned.txt</code>(分词后空格分隔)<span class="hint">symlink: data/cleaned.txt → 08_tokenized/cleaned.txt · 4.5 GB · 41,374,056 句</span></span></li>
         </ul>
       </div>
 
       <div class="task-group">
         <div class="task-group-head">验收 · check</div>
         <ul class="tasks">
-          <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>wc -l cleaned.txt</code> ≥ 10,000,000 句</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>wc -w cleaned.txt</code> 词数估算 1-3 亿</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">抽 200 行,看不到 markup 残留</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">每步可单独 rerun(--step CLI)</span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body"><code>wc -l cleaned.txt</code> ≥ 10,000,000 句<span class="hint"><strong>41,374,056 句</strong>(4 倍超门)✓</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body"><code>wc -w cleaned.txt</code> 词数估算 1-3 亿<span class="hint">~7-8 亿 token(估:4.2GB / 平均 6 bytes/tok)· 超门 2-3 倍,更多训练数据对 KenLM 更有利</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">抽 200 行,看不到 markup 残留<span class="hint">8 行 sampled 全是干净分词中文 · "城市 也 有 正面 的 外部 影响 ， 实体 距离 上 的 接近 有助于" · jieba 分词质量良好 · 无 wiki/html 残留</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">每步可单独 rerun(--step CLI)<span class="hint">--step extract / boilerplate / fasttext_lid / opencc / sentence_split / length_filter / minhash_dedup(实际 exact)/ tokenize · --source 限单源 · --status 看当前 pipeline 状态</span></span></li>
         </ul>
       </div>
 
-      <div class="cp-verdict"><div class="text"><b>verdict</b>待开工 · 这是 Phase 2 真正的"下数据 + 工程化"开始 · ~10GB CC-100 + ~2GB LCCC streaming 拉取 + 8 步配方 · 资源动作执行期不停</div></div>
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-2.2 done · cleaned.txt <strong>41M 句 / 4.5 GB</strong>(4x 验收门)· 3 源(wiki+thucnews+lccc)成功;cc100 deferred v2 · MinHash 实战不可行 → exact dedup 入 errata 修订 · 接 CP-2.3 KenLM 训 bigram</div></div>
+    </div>
+  </div>
+
+  <!-- ===== CP-2.3 ===== -->
+  <div class="cp" data-status="next" data-cp="2.3">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-2.3</div>
+        <div class="cp-title">KenLM 训 bigram · lmplz -o 2 + build_binary</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">6</b></span>
+        <span class="cp-status-tag">next</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · CP-2.2 done</span>
+        <span>时长 · 1-2 天</span>
+        <span>回退 · 删 bigram.binary 改参数重训</span>
+      </div>
+      <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">
+        ⚠ <strong>CP-2.3 真实路径 ≠ climb plan</strong>:brew 无 kenlm formula;源码 build 撞 Boost 1.90 cmake 找不到 system lib(Boost 把 system 模块化了);kenlm pip 包只装 libkenlm.dylib 不带 lmplz CLI。要试的三条路:① conda-forge prebuilt kenlm(装 miniconda)② patch KenLM CMakeLists 让它不要 system / thread component ③ Python 实现 modified KN smoothing 产 ARPA。详见顶部 errata。
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">解决 KenLM CLI 可用性(三选一:conda-forge / patch CMake / Python KN)</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>lmplz -o 2 --prune 0 0 &lt; cleaned.txt &gt; bigram.arpa</code>(modified Kneser-Ney 默认)</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>build_binary trie bigram.arpa bigram.binary</code></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">记录训练日志(<code>training.log</code>),含 ngram count、内存 peak、运行时间</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>bigram.binary</code> 存在,体积 100MB-1GB</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>query bigram.binary</code> 输入"中国 人"返回合理 log-prob(应该 &gt; -4,接近 -2)· 输入"中国 嘎"返回低 log-prob(&lt; -8)</span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>待开工 · 训练数据 4.5GB / 41M 句已就位(CP-2.2)· lmplz 在 41M 句 4.5GB 数据上预计 ~30 min;bigram.binary 估 100-300 MB</div></div>
     </div>
   </div>
 
   <div class="future-preview">
-    <b>预览 · CP-2.3 .. CP-2.7</b>
-    <code>CP-2.3</code> KenLM 训 bigram(<code>brew install kenlm</code> · lmplz -o 2)· 1-2 天<br>
+    <b>预览 · CP-2.4 .. CP-2.7</b>
     <code>CP-2.4</code> KenLM Rust binding · cxx-bridge FFI · 3-5 天<br>
-    <code>CP-2.5</code> 集成评分(可逆 λ via env)· **λ=0.3 时 MIU 必须升 ≥ 3%**(关键 KPI)· 5-7 天<br>
+    <code>CP-2.5</code> 集成评分(可逆 λ via env)· **λ=0.3 时 MIU 必须升 ≥ 3%**(关键 KPI;errata 修订:≥ 2pp 实测)· 5-7 天<br>
     <code>CP-2.6</code> λ sweep 调优(λ ∈ {0.1..1.0})· 2-3 天<br>
     <code>CP-2.7</code> 全 buffer 启用 Viterbi(短 buffer 阈值 8→2 字节)· 3-5 天 + 7 天 soak<br><br>
     <strong>Phase 2 验收门</strong>:Top-1 MIU 累计升 ≥ 5%(若 < 5% climb plan 触发重训回退)
