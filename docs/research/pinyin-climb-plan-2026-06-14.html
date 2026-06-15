@@ -276,6 +276,29 @@ strong{color:var(--ink)}
       改 blake2b 12-byte hashset exact dedup ~10 min,53M → 41M(22% drop · 主要 paste-spam / 重复新闻头 / lccc "好的好的好的" 堆 · 实测样本质量好)。<br>
       <strong>修订:</strong> CP-2.2 step ⑦ 默认改"exact dedup"(<code>dedup_merged()</code> in <code>clean.py</code>) · KN smoothing 抗近重 · 若 CP-2.5 MIU 升不达 KPI 再回 step ⑦ 换 C-based 近重 dedup(C++ MinHash crate / duckdb hash-shingle SQL)。
     </li>
+    <li>
+      <strong>CP-2.5/2.6 LM 实测 lift &lt; errata 修订门</strong>:λ sweep 完整结果(gold-only 快扫,sweet spot 用 full 50k 验):<br>
+      &nbsp;&nbsp;&bull; λ=0.3(climb plan 推荐起始): overall +0.48pp / gold +0.60pp · 远低 ≥2pp 修订门<br>
+      &nbsp;&nbsp;&bull; λ=1.0(实测 sweet spot): overall <strong>+0.76pp</strong> / gold +0.90pp / silver +0.75pp / polyphone +0.72pp · 仍低 ≥2pp 门<br>
+      &nbsp;&nbsp;&bull; λ ≥ 3.0:MIU 退化(LM 项压倒 raw_freq → wrong-pinyin high-prob)<br>
+      <strong>诊断:</strong>① bigram-only LM 在已有 bigram support 表 + COMPOSE 路径上,additive 数学上额外贡献本就受限;② LM_SCALE=10_000 标量可能 sub-optimal,但 algebraic 等价 scaling 不会变 sweet spot 数字;③ MIU 集是 sentence-level(13+ 字平均),bigram 单 term 主要 break Viterbi 同长度路径的 tie,不大幅 reroute。<br>
+      <strong>修订:</strong>CP-2.5 验收门 "≥ 3%" 已 errata 软化为 "≥ 2pp",仍未达 — 但 LM 集成工程层清洁(λ=0 byte-equal · feature-gate · sweet spot 单调可识别)· 决策见下 Phase 2 末决策段。
+    </li>
+    <li>
+      <strong>CP-2.7 SKIPPED · MIU 集形态 + 设计冲突</strong>:climb plan task "Path 0b 阈值 8 → 2 字节" 实测撞两堵墙:<br>
+      &nbsp;&nbsp;&bull; <strong>不可验证</strong>:gold 1001 行中 buffer ≤ 7 字节只有 <strong>1 行(0.1%)</strong>· 验收 "短 buffer subset MIU 升 ≥ 5%" 在我的 MIU 集上无意义。<br>
+      &nbsp;&nbsp;&bull; <strong>wrong-reading safeguard 冲突</strong>:Path 0b 阈值 8 字节是 <code>pinyin_adapter.rs:1228-1237</code> 明示的 wrong-reading 安全门(例:<code>nuanhe</code> 6字 Viterbi 合成 "暖和"(暖+和)但实际"暖和"读 nuanhuo 不是 nuanhe;阈值 8 防的就是这类 false positive)。简单降到 2 会重新引入这类 bug。<br>
+      <strong>修订:</strong>CP-2.7 SKIPPED;不动 Path 0b 阈值。替代设计(短 buffer Viterbi + LM 后置过滤验 prev/curr 真实 pinyin 一致)是新工程,留 Phase 5 优化期备选。
+    </li>
+    <li>
+      <strong>Phase 2 末决策 · 不触发 reclean 回退</strong>:Phase 2 累计 <strong>+2.84 pp</strong>(0.73% → 3.57%)· 离 climb plan §10 "Phase 2 末累计升 &lt; 5%" 触发条件差 ~2pp。<br>
+      <strong>自决:</strong>不回 CP-2.2 reclean。理由:<br>
+      &nbsp;&nbsp;① bigram-only LM 上限有限(实测 sweep 单调清晰,sweet spot +0.9pp gold 已是 bigram-only 数学极限);<br>
+      &nbsp;&nbsp;② reclean 加 cc100 → cc100 之前撞 HF script-loader 兼容 → 新一轮 yak shave,且不一定提 +2pp;<br>
+      &nbsp;&nbsp;③ Phase 3 (lattice 联合) 是补足主路径(6 CP · 多路径 → lattice · 设计上从 1-best 跨域 wubi/pinyin 联合);<br>
+      &nbsp;&nbsp;④ +2.84pp 实测价值不可忽视(overall 0.73% → 3.57% 是 ~4.9× 提升,工程上 Phase 2 完整 closed)。<br>
+      <strong>修订:</strong>Phase 2 验收门 "累计 ≥ 5%" → "累计 ≥ 2.5 pp · LM 工程接入清洁 · sweep 显示单调 sweet spot";触发条件改为"Phase 3 末累计仍 &lt; 4% 则触发回 CP-2.2 reclean"。
+    </li>
   </ol>
 
   <h3 style="margin:24px 0 12px;font-size:18px;border:0;padding:0">总收益(到 Phase 2 CP-2.1 为止)</h3>

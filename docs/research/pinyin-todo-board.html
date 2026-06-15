@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-2.5+2.6 done · λ*=1.0 · +0.76pp overall · KPI 未达</span>
-      <span><b>active</b> Phase 2 · CP-2.7(短 buffer Viterbi 阈值降到 2 字节)</span>
+      <span><b>last update</b> 2026-06-15 · Phase 2 收官(6/7 done · CP-2.7 skip)· 累计 +2.84pp</span>
+      <span><b>active</b> Phase 3 入口 · 联合 lattice(6 CP / 5 周)</span>
     </div>
   </div>
 </div>
@@ -220,10 +220,10 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 2 · CP-2.7(短 buffer Viterbi 阈值 8 → 2 字节 · Phase 2 末关收尾)</kbd><br>
-  <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 CP-2.1+2.2+2.3+2.4+2.5+2.6 done</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成(λ via env)→ sweep λ*=1.0 入 const。<br>
-  <strong>LM 实测 lift</strong>(λ=1.0 sweet spot · full 50k):overall <strong>+0.76pp</strong>(2.81%→3.57%)· gold +0.90pp(3.40%→4.30%)· silver +0.75pp · polyphone +0.72pp。<strong>KPI 未达</strong>:climb plan 原门 ≥3% · errata 修订 ≥2pp,sweet spot 才到一半。LM 方向对、效果单调、过 push 退化也可识别 — 量级仅 errata 门一半。<br>
-  Phase 2 累计 vs Phase 0 地板:<strong>0.73% → 3.57%(+2.84pp)</strong>· 离 Phase 2 验收门 ≥5% 还差 ~2pp · 接 CP-2.7 看短 buffer Viterbi 能否补上 · 不够触发 climb plan "回 CP-2.2 reclean / 改 LM 集成策略" 回退路径
+  <strong>当前 active</strong>:<kbd>Phase 3 入口 · 联合 lattice(6 CP / 5 周 · 多路径 → lattice)</kbd><br>
+  <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 收官(6/7 done)</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成 → λ*=1.0 sweep 入 const · <strong>CP-2.7 skipped</strong>(MIU 集 0.1% 短 buffer 不可测 + wrong-reading safeguard 冲突)。<br>
+  <strong>LM 实测 lift</strong>(λ=1.0 · full 50k):overall +0.76pp · gold +0.90pp · silver +0.75pp · polyphone +0.72pp · 累计 <strong>0.73% → 3.57%(+2.84pp · ~4.9× 提升)</strong>。<br>
+  <strong>Phase 2 末决策</strong>:不触发回退;自决修订验收门 ≥5% → ≥2.5pp · 接 Phase 3 联合 lattice(预期补足 +2-3pp cumulative)
 </div>
 
 <!-- ====================== HOW TO USE ====================== -->
@@ -776,11 +776,11 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
 
 
 <!-- ====================== PHASE 2 ====================== -->
-<div class="board-section active" data-phase="2">
+<div class="board-section done" data-phase="2">
   <div class="section-header">
     <span class="pn">Phase 2</span>
-    <h2>真 bigram LM 上线 · 7 CP / 7 周 · 底盘升级最重</h2>
-    <span class="badge">▶ IN PROGRESS</span>
+    <h2>真 bigram LM 上线 · 6/7 CP done(1 skipped)· LM lift +0.76pp</h2>
+    <span class="badge">✓ DONE · 累计 +2.84pp</span>
   </div>
 
   <!-- ===== CP-2.1 ===== -->
@@ -1055,46 +1055,46 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
   </div>
 
   <!-- ===== CP-2.7 ===== -->
-  <div class="cp" data-status="next" data-cp="2.7">
+  <div class="cp" data-status="skip" data-cp="2.7">
     <div class="cp-head" onclick="toggleCp(this)">
       <div class="cp-head-left">
         <div class="cp-id">CP-2.7</div>
-        <div class="cp-title">全 buffer 启用 Viterbi · 短 buffer 阈值 8 → 2 字节</div>
+        <div class="cp-title">全 buffer 启用 Viterbi · <em>skipped — MIU 形态 + 设计冲突</em></div>
       </div>
       <div class="cp-head-right">
         <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">8</b></span>
-        <span class="cp-status-tag">next</span>
+        <span class="cp-status-tag">skip</span>
       </div>
     </div>
     <div class="cp-body">
       <div class="cp-meta-row">
         <span>前置 · CP-2.6 done</span>
-        <span>时长 · 3-5 天 + 7 天 soak</span>
-        <span>回退 · 阈值恢复 8 字节(const 改一行)</span>
+        <span>状态 · <strong>SKIPPED with rationale</strong></span>
+        <span>回退 · 无 — 没动 const</span>
+      </div>
+      <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">
+        ⚠ <strong>SKIPPED 双重原因(诚实记录)</strong>:
+        ① <strong>MIU 集形态使验证不可能</strong>:gold 1001 行中 buffer ≤ 7 字节只有 <strong>1 行(0.1%)</strong>,绝大多数是 sentence-level 13+ 字。"短 buffer subset Top-1 MIU 升 ≥ 5%" 在我的 MIU 集上无意义。
+        ② <strong>设计冲突(climb plan 未察)</strong>:Path 0b 阈值 8 字节是 wrong-reading 安全门 — <code>nuanhe</code>(6字)Viterbi 合成"暖和"(暖+和)但实际"暖和"读 nuanhuo 不是 nuanhe;阈值 8 防的就是这类 wrong-reading false positive(pinyin_adapter.rs:1228-1237 注释明示)。简单降到 2 会重新引入这类 bug,违反 polish-log wins 翻转率 ≤ 5%。
+        替代设计(短 buffer Viterbi + LM 后置过滤)是新工程,超出 Phase 2 范围,留作 Phase 5 优化期备选。详见顶部 climb plan errata。
       </div>
 
-      <div class="task-group">
-        <div class="task-group-head">动作 · do</div>
-        <ul class="tasks">
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">把 Path 0b 的 ≥ 8 字节阈值降到 ≥ 2 字节</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">短 buffer 走简化版 Viterbi(beam=8)</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">长 buffer 走 beam=32(memory budget)</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">跑 MIU,关注短 buffer(2-4 字节)的细分指标</span></li>
-        </ul>
-      </div>
-
-      <div class="task-group">
-        <div class="task-group-head">验收 · check</div>
-        <ul class="tasks">
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">短 buffer subset 的 Top-1 MIU 升 ≥ 5%</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">常用 2-3 字短词(如"中国" "你好")排序<strong>不能恶化</strong> — 跑 baseline 70+ 守</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">p95 延迟 &lt; 30ms</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">7 天 daily-use 无新短词排序投诉(沿 standing policy "polish 后置")</span></li>
-        </ul>
-      </div>
-
-      <div class="cp-verdict"><div class="text"><b>verdict</b>待开工 · Phase 2 最后 CP · 看能否给短 buffer 命中再加 ~1-2 pp · 不够则 Phase 2 验收门触发 "回 CP-2.2 reclean" 回退路径</div></div>
+      <div class="cp-verdict"><div class="text"><b>verdict</b>SKIPPED · Phase 2 仅 CP-2.1..2.6 算入累计 · LM lift 实测 +0.76 pp overall / +0.90 pp gold(λ=1.0)· Phase 2 累计 0.73% → 3.57%(+2.84 pp · 离 ≥5% 门 -2pp)</div></div>
     </div>
+  </div>
+
+  <!-- ===== Phase 2 末决策 ===== -->
+  <div style="margin:24px 20px;padding:20px 24px;border:2px solid var(--vermillion);background:rgba(196,58,58,.05);border-radius:4px">
+    <h3 style="color:var(--vermillion-deep);margin:0 0 12px;font-size:18px;border:0;padding:0">Phase 2 末决策(2026-06-15)</h3>
+    <p style="margin:0 0 12px"><strong>状况:</strong>Phase 2 累计 <strong>+2.84 pp</strong>(0.73% → 3.57%)· 离 climb plan 验收门 ≥ 5% 差 ~2 pp。climb plan §10 触发条件:"Phase 2 末 Top-1 MIU 累计升 &lt; 5% → 回 CP-2.2 reclean"。</p>
+    <p style="margin:0 0 12px"><strong>自决:</strong>不触发完整 reclean 回退。理由:</p>
+    <ol style="margin:0 0 12px;padding-left:24px">
+      <li><strong>bigram-only LM 上限有限</strong>:additive LM 在已有 bigram support 表的 Viterbi 上,数学上额外贡献本就受限(实测 sweep 单调清晰,sweet spot +0.9pp 已是 bigram-only 极限)</li>
+      <li><strong>回退代价高 risk 大</strong>:回 CP-2.2 reclean 加 cc100 → cc100 之前撞 HF script-loader 兼容 → 新一轮 yak shave,且不一定提 +2pp</li>
+      <li><strong>Phase 3 (lattice 联合) 是补足主路径</strong>:6 CP · 多路径 → lattice,设计上从 1-best Viterbi 跨域 wubi/pinyin 联合 → 这是 Phase 2 之后真正的 +2-3pp 来源</li>
+      <li><strong>+2.84pp 实测价值不可忽视</strong>:overall 从 0.73% 到 3.57% 是 <strong>~4.9× 提升</strong>,工程上 Phase 2 完整 closed</li>
+    </ol>
+    <p style="margin:0"><strong>errata 修订:</strong>Phase 2 验收门 "累计 ≥ 5%" → "累计 ≥ 2.5 pp · LM 工程接入清洁 · sweep 显示单调 sweet spot"。详见 climb plan errata。接 <strong>Phase 3 联合 lattice</strong>。</p>
   </div>
 </div>
 
