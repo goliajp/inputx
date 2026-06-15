@@ -1727,6 +1727,7 @@ mod tests {
         let pinyin_snap = inputx_pinyin::L0Snapshot {
             pins: vec![("yi".to_string(), "以".to_string())],
             pick_counts: vec![],
+            user_bigram: vec![],
         };
         e.pinyin_import_l0(pinyin_snap);
 
@@ -1789,6 +1790,7 @@ mod tests {
         let pinyin_snap = inputx_pinyin::L0Snapshot {
             pins: vec![("yi".to_string(), "以".to_string())],
             pick_counts: vec![],
+            user_bigram: vec![],
         };
         e.pinyin_import_l0(pinyin_snap);
 

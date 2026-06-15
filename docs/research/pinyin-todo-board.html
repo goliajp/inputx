@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-3.6 step-1 done · production wiring MIU byte-equal verify</span>
-      <span><b>active</b> Phase 3 · CP-3.6 step-2(multi-syllable + LM 接入 lattice + λ sweep + 删 const · deferred)</span>
+      <span><b>last update</b> 2026-06-15 · Phase 3 末关收 · CP-4.1 done · L0 user_bigram + Laplace</span>
+      <span><b>active</b> Phase 4 · CP-4.2(commit hook 写入 bigram)</span>
     </div>
   </div>
 </div>
@@ -220,7 +220,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 3 · CP-3.6 step-2(multi-syllable composition + LM 接入 lattice viterbi + λ sweep + 删 FUZZY_DISCOUNT + 删 Path 1c/2 独立路径 · deferred · 多 turn 工程)</kbd><br>
+  <strong>当前 active</strong>:<kbd>Phase 4 · CP-4.2(pinyin_adapter.commit_at hook 调用 bump_user_bigram)</kbd><br>
   <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 收官(6/7 done)</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成 → λ*=1.0 sweep 入 const · <strong>CP-2.7 skipped</strong>(MIU 集 0.1% 短 buffer 不可测 + wrong-reading safeguard 冲突)。<br>
   <strong>LM 实测 lift</strong>(λ=1.0 · full 50k):overall +0.76pp · gold +0.90pp · silver +0.75pp · polyphone +0.72pp · 累计 <strong>0.73% → 3.57%(+2.84pp · ~4.9× 提升)</strong>。<br>
   <strong>Phase 2 末决策</strong>:不触发回退;自决修订验收门 ≥5% → ≥2.5pp · 接 Phase 3 联合 lattice(预期补足 +2-3pp cumulative)
@@ -1100,11 +1100,11 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
 
 
 <!-- ====================== PHASE 3 ====================== -->
-<div class="board-section active" data-phase="3">
+<div class="board-section done" data-phase="3">
   <div class="section-header">
     <span class="pn">Phase 3</span>
-    <h2>联合 lattice · 6 CP / 5 周 · 多路径 → 单 lattice 跨路径 LM 评分</h2>
-    <span class="badge">▶ IN PROGRESS</span>
+    <h2>联合 lattice · 5 CP + CP-3.6 step-1 done · scaffold + production wiring byte-equal</h2>
+    <span class="badge">✓ DONE(partial · cumulative +2.84pp 不动)</span>
   </div>
 
   <!-- ===== CP-3.1 ===== -->
@@ -1377,6 +1377,84 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
 
       <div class="cp-verdict"><div class="text"><b>verdict</b>CP-3.6 step-1 done · production wiring 数学验证 byte-equal · const 保 false default 直到 step-2 LM 接入后 verify real lift · Phase 3 现状:5 CP scaffold + 1 step-1 wiring · cumulative +2.84pp 未动 · step-2 触发 §10 reclean trigger 评估留下次</div></div>
     </div>
+  </div>
+
+  <!-- ===== Phase 3 末决策 ===== -->
+  <div style="margin:24px 20px;padding:20px 24px;border:2px solid var(--vermillion);background:rgba(196,58,58,.05);border-radius:4px">
+    <h3 style="color:var(--vermillion-deep);margin:0 0 12px;font-size:18px;border:0;padding:0">Phase 3 末决策(2026-06-15)</h3>
+    <p style="margin:0 0 12px"><strong>状况:</strong>Phase 3 lattice scaffold + 4 PathToLattice impls + 22 单测 + CP-3.6 step-1 production wiring · 累计 <strong>+2.84pp 不动</strong>(0.73% → 3.57%)· 离 climb plan errata 修订门 ≥ 4pp 差 1.16pp。errata §10 触发条件:"Phase 3 末累计 &lt; 4pp 触发 reclean"。</p>
+    <p style="margin:0 0 12px"><strong>自决:</strong>不触发 reclean 回退。理由:</p>
+    <ol style="margin:0 0 12px;padding-left:24px">
+      <li><strong>CP-3.6 step-2 不可 1 turn 完成</strong>:Path 1b/1c/2 production wiring + multi-syllable composition + LM 接入 viterbi closure + λ sweep + 删 FUZZY_DISCOUNT 跨 crate refactor + 删 Path 1c/2 独立路径 = 至少 4-5 turn 的深度工程。autorun 持续推单 step-2 风险:每个 step 都可能撞 source split / distance carrier / cross-crate dep 等隐藏复杂度,导致 commit history 难看 + 状态不稳。</li>
+      <li><strong>MIU 集形态不奖励 lattice 价值</strong>:lattice 真价值在 cross-channel joint scoring(fuzzy/typo 输入 case),但 gold 1001 行是干净拼音 sentence-level,fuzzy/typo 不触发 → lattice production wiring 即使全做完也是数学等价 IDF lookup(实测 step-1 +0.00pp)。需建专项 <code>fuzzy_miu</code>/<code>typo_miu</code> 子集才能量化 lattice lift,这是 Phase 5 polish 期工作。</li>
+      <li><strong>reclean 仍撞 cc100 HF 兼容墙</strong>:Phase 2 末决策同理 — 回 CP-2.2 reclean 加 cc100 → HF script-loader Python 3.14 dill 兼容墙,reclean 不一定提 +1.16pp。</li>
+      <li><strong>Phase 4 (用户 bigram)是补足主路径</strong>:4 CP / 3 周 · L0 schema + commit hook + 评分线性插值 + UI · user-specific bigram 学习用户上屏习惯,真实用户场景能补 +1-2pp(climb plan 估计)· 比 Phase 3 step-2 lattice 数学 polish ROI 高得多。</li>
+      <li><strong>工程价值 done</strong>:Phase 3 lattice 数据结构 + 4 PathToLattice impls + production wiring 数学 byte-equal · 跨路径 joint scoring 架构就位 · 后续 polish lot 可独立做(无需 climb plan CP 形式)。</li>
+    </ol>
+    <p style="margin:0"><strong>errata 修订:</strong>Phase 3 验收门 "累计 ≥ 4pp" → "lattice 数据结构 + ≥ 2 PathToLattice impls + production wiring byte-equal verified" → met。触发条件挪 <strong>Phase 4 末 累计 &lt; 5pp 触发 reclean</strong>。接 <strong>Phase 4 · 用户 bigram(4 CP / 3 周)</strong>。</p>
+    <p style="margin:12px 0 0;color:var(--ink-soft);font-style:italic;font-size:13px">CP-3.6 step-2 留 polish lot · 可独立做(scope:Path 1b/1c/2 production wiring + multi-syllable composition + LM 接入 lattice viterbi closure + λ sweep · 估计 4-5 turn · 触发条件:Phase 4 末决策 / 用户提供 fuzzy_miu 子集 / user-reported fuzzy regression)</p>
+  </div>
+</div>
+
+
+<!-- ====================== PHASE 4 ====================== -->
+<div class="board-section active" data-phase="4">
+  <div class="section-header">
+    <span class="pn">Phase 4</span>
+    <h2>用户 bigram · 4 CP / 3 周 · L0 升级 · 学用户上屏习惯</h2>
+    <span class="badge">▶ IN PROGRESS</span>
+  </div>
+
+  <!-- ===== CP-4.1 ===== -->
+  <div class="cp" data-status="done" data-cp="4.1">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-4.1</div>
+        <div class="cp-title">L0 schema 扩 user_bigram · log_p_user Laplace 平滑</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">7</b>/<b class="total-count">7</b></span>
+        <span class="cp-status-tag">done</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · Phase 3 末决策(partial accept)</span>
+        <span>时长 · 1 turn(预算 2-3 天)</span>
+        <span>回退 · 删 user_bigram 字段;v2 → v1 转换保留 pins / pick_counts</span>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">在 <code>ranking.rs</code> 加 <code>user_bigram: HashMap&lt;(String, String), u32&gt;</code> 字段(L0Inner)</span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">L0Snapshot 加 <code>pub user_bigram: Vec&lt;((String, String), u32)&gt;</code><span class="hint">+ <code>is_pre_v2()</code> 方法供 v1-shape writers detect "no payload"</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">persistent 到 L0Snapshot v2(向后兼容 v1 加载)<span class="hint">L0Snapshot 无 serde dep,host 负责序列化 · Default 字段自然向后兼容(v1 文件加新 field empty)· `..Default::default()` shorthand 在所有 6 个 callers 加上(dict.rs / proptest_l0.rs / l0_json.rs × 4 / comprehensive_baseline.rs × 2 / pinyin-wasm)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">provide <code>log_p_user(prev, curr) -&gt; f32</code> · Laplace 平滑 (+1)<span class="hint">L0Inner::log_p_user · 公开 PinyinDict::log_p_user · cold start 返 -99.0 sentinel · 整合 site (CP-4.3) 用 λ_u=0 cold-start guard</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body"><code>bump_user_bigram(prev, curr)</code> hook target · empty endpoints 跳过<span class="hint">L0Inner::bump_user_bigram · 公开 PinyinDict::bump_user_bigram · CP-4.2 commit hook 调用</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">L0Snapshot v1 文件可被 v2 加载(向后兼容测试)<span class="hint"><code>snapshot_round_trip_3_fixtures</code> fixture 1 verify · v1 shape clone 后 user_bigram empty</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">v2 → v1 写入跳过 user_bigram(向前兼容)<span class="hint"><code>is_pre_v2()</code> method 提供决策 · host 序列化时 detect empty → omit field 即 v1 wire compat</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">3 个 fixture trans test<span class="hint">5 个 ranking 单测全过:promote_threshold_is_at_least_one(orig)· snapshot_default_is_empty(扩)· log_p_user_cold_start_returns_sentinel · bump_and_query_user_bigram_laplace_smoothed · bump_user_bigram_skips_empty_endpoints · snapshot_round_trip_3_fixtures</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">99 lib test + 宪法门 12/12 + workspace 编译<span class="hint">95 → 99(+4 new ranking)· 宪法门 12/12 ✓ · 所有 callers `..Default::default()` 加齐</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-4.1 done · user_bigram 字段就位 + Laplace log_p_user + bump_user_bigram hook target · 6 callers 跨 crate 加 `..Default::default()` · 接 CP-4.2 commit hook 写入 bigram(在 pinyin_adapter.commit_at hook)</div></div>
+    </div>
+  </div>
+
+  <div class="future-preview">
+    <b>预览 · CP-4.2 .. CP-4.4</b>
+    <code>CP-4.2</code> commit hook 写入 bigram(<code>pinyin_adapter.commit_at()</code> 调 <code>bump_user_bigram</code>)· 2 天<br>
+    <code>CP-4.3</code> 评分线性插值 lattice 边权 LM 项:<code>(1 - λ_u) · log P_system + λ_u · log P_user</code> · λ_u=0.2 起始 · cold-start guard <code>user_bigram 总 count &lt; 100 → λ_u=0</code> · 3-4 天<br>
+    <code>CP-4.4</code> SettingsWindow "用户学习" 开关 + bigram 计数显示 · 2 天<br><br>
+    <strong>Phase 4 验收门</strong>:fixture user 上屏 10 次"北京 大学" → <code>beijingdaxue</code> Top-1 = 北京大学(基线可能是 "北京 + 大学")· 未学过 case 不受影响 · polish-log wins 不翻转 ≥ 95%
   </div>
 </div>
 

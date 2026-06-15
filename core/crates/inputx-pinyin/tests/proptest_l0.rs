@@ -147,6 +147,7 @@ proptest! {
                 (pinyin.clone(), "thisisnotinthelexicon".into()), // invalid
             ],
             pick_counts: vec![],
+            user_bigram: vec![],
         };
         let accepted = dict.import_l0(snap);
         prop_assert_eq!(accepted, 1);
