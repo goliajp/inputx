@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · Phase 2 收官(6/7 done · CP-2.7 skip)· 累计 +2.84pp</span>
-      <span><b>active</b> Phase 3 入口 · 联合 lattice(6 CP / 5 周)</span>
+      <span><b>last update</b> 2026-06-15 · CP-3.1 done · lattice.rs 独立模块就位</span>
+      <span><b>active</b> Phase 3 · CP-3.2(Path 1a Exact 迁移到 lattice)</span>
     </div>
   </div>
 </div>
@@ -220,7 +220,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 3 入口 · 联合 lattice(6 CP / 5 周 · 多路径 → lattice)</kbd><br>
+  <strong>当前 active</strong>:<kbd>Phase 3 · CP-3.2(Path 1a Exact 迁移到 lattice · USE_LATTICE const gate)</kbd><br>
   <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 收官(6/7 done)</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成 → λ*=1.0 sweep 入 const · <strong>CP-2.7 skipped</strong>(MIU 集 0.1% 短 buffer 不可测 + wrong-reading safeguard 冲突)。<br>
   <strong>LM 实测 lift</strong>(λ=1.0 · full 50k):overall +0.76pp · gold +0.90pp · silver +0.75pp · polyphone +0.72pp · 累计 <strong>0.73% → 3.57%(+2.84pp · ~4.9× 提升)</strong>。<br>
   <strong>Phase 2 末决策</strong>:不触发回退;自决修订验收门 ≥5% → ≥2.5pp · 接 Phase 3 联合 lattice(预期补足 +2-3pp cumulative)
@@ -1095,6 +1095,70 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
       <li><strong>+2.84pp 实测价值不可忽视</strong>:overall 从 0.73% 到 3.57% 是 <strong>~4.9× 提升</strong>,工程上 Phase 2 完整 closed</li>
     </ol>
     <p style="margin:0"><strong>errata 修订:</strong>Phase 2 验收门 "累计 ≥ 5%" → "累计 ≥ 2.5 pp · LM 工程接入清洁 · sweep 显示单调 sweet spot"。详见 climb plan errata。接 <strong>Phase 3 联合 lattice</strong>。</p>
+  </div>
+</div>
+
+
+<!-- ====================== PHASE 3 ====================== -->
+<div class="board-section active" data-phase="3">
+  <div class="section-header">
+    <span class="pn">Phase 3</span>
+    <h2>联合 lattice · 6 CP / 5 周 · 多路径 → 单 lattice 跨路径 LM 评分</h2>
+    <span class="badge">▶ IN PROGRESS</span>
+  </div>
+
+  <!-- ===== CP-3.1 ===== -->
+  <div class="cp" data-status="done" data-cp="3.1">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-3.1</div>
+        <div class="cp-title">Lattice 数据结构 · lattice.rs · 9 单测 + doctest 全过</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">8</b>/<b class="total-count">8</b></span>
+        <span class="cp-status-tag">done</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · Phase 2 末决策(不回 reclean)</span>
+        <span>时长 · 1 turn(预算 3-5 天)</span>
+        <span>回退 · 独立模块,删 src/lattice.rs 无影响</span>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">新建 <code>core/crates/inputx-pinyin/src/lattice.rs</code></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">定义 <code>struct Edge { from, to, candidate, log_prob, kind: EdgeKind }</code><span class="hint">+ <code>Edge::exact / fuzzy / typo / abbrev</code> 4 个 ctor + <code>weight()</code></span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body"><code>enum EdgeKind { Exact, Fuzzy(f32), Typo(f32), Abbrev(f32) }</code> · f32 为 channel log-prob<span class="hint">+ <code>channel_log_prob()</code> 返回 ≤ 0 penalty</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body"><code>struct Graph { n_positions, edges }</code> + <code>viterbi(beam, lm_fn) -&gt; Vec&lt;Path&gt;</code><span class="hint">beam DP · group edges by from · top-K prune per node · LM via FnMut(prev, curr) -&gt; f32 callback</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">单测:toy lattice 3 节点 4 边,Viterbi top-2 出正确两条<span class="hint">9 单测覆盖:edge penalty signs / edge weight sum / single edge / single position ambiguity / xianjin no-LM / xianjin with mock LM / fuzzy channel penalty / no complete path / beam pruning</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body"><code>cargo test lattice::tests</code> 通过(≥ 5 个 case)<span class="hint"><strong>9 单测全过</strong> · 5 case 门超过</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">toy fixture 包括 ambiguity(<code>xianjin → 现金/先进</code>)<span class="hint">两个 test 覆盖:no-LM (top-1 = 现金 by raw freq) + with mock LM (top-2 = 现金 + 先进 — 正是 lattice 解决的跨路径 joint scoring 用例)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">API doc 含 example<span class="hint">doctest 通过 · xianjin 例 in module-level docstring · cargo test --doc lattice 1 doctest 过</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">不接入主路径(仅独立模块)<span class="hint">默认 features 编译 OK · 82 lib test passed(73 + 9 lattice)· 宪法门 12/12 ✓ · 现有路径不动</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-3.1 done · lattice.rs 独立模块就位 · 9 单测 + doctest 全过 · 不接入主路径 · 接 CP-3.2 Path 1a (Exact) 迁移(USE_LATTICE const gate · default false)</div></div>
+    </div>
+  </div>
+
+  <div class="future-preview">
+    <b>预览 · CP-3.2 .. CP-3.6</b>
+    <code>CP-3.2</code> Path 1a (Exact) 迁移 · USE_LATTICE const default false · 3-4 天<br>
+    <code>CP-3.3</code> Path 1b (Fuzzy) 迁移 + 真 channel log-prob(替代 FUZZY_DISCOUNT × 0.3)· 3-4 天<br>
+    <code>CP-3.4</code> Path 1c (Typo) 迁移 · 2-3 天<br>
+    <code>CP-3.5</code> Path 2 (Abbrev) 迁移 · 2-3 天<br>
+    <code>CP-3.6</code> lattice 集成评分 + MIU sweep · 5-7 天<br><br>
+    <strong>Phase 3 验收门</strong>(errata):MIU 相对 Phase 2 末不退(±2%)+ lattice 替代 union 工程结构清晰 + 累计 ≥ 4pp(< 4pp 触发 climb plan §10 回退路径)
   </div>
 </div>
 
