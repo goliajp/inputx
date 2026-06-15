@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-3.4 + 3.5 done · Path1cTypo + Path2Abbrev · 22 lattice tests</span>
-      <span><b>active</b> Phase 3 · CP-3.6(集成评分 + USE_LATTICE 翻 true · 大块头)</span>
+      <span><b>last update</b> 2026-06-15 · CP-3.6 step-1 done · production wiring MIU byte-equal verify</span>
+      <span><b>active</b> Phase 3 · CP-3.6 step-2(multi-syllable + LM 接入 lattice + λ sweep + 删 const · deferred)</span>
     </div>
   </div>
 </div>
@@ -220,7 +220,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 3 · CP-3.6(集成评分 + USE_LATTICE 翻 true + 删 FUZZY_DISCOUNT + IDF/dict 整合 · 大块头 5-7 天)</kbd><br>
+  <strong>当前 active</strong>:<kbd>Phase 3 · CP-3.6 step-2(multi-syllable composition + LM 接入 lattice viterbi + λ sweep + 删 FUZZY_DISCOUNT + 删 Path 1c/2 独立路径 · deferred · 多 turn 工程)</kbd><br>
   <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 收官(6/7 done)</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成 → λ*=1.0 sweep 入 const · <strong>CP-2.7 skipped</strong>(MIU 集 0.1% 短 buffer 不可测 + wrong-reading safeguard 冲突)。<br>
   <strong>LM 实测 lift</strong>(λ=1.0 · full 50k):overall +0.76pp · gold +0.90pp · silver +0.75pp · polyphone +0.72pp · 累计 <strong>0.73% → 3.57%(+2.84pp · ~4.9× 提升)</strong>。<br>
   <strong>Phase 2 末决策</strong>:不触发回退;自决修订验收门 ≥5% → ≥2.5pp · 接 Phase 3 联合 lattice(预期补足 +2-3pp cumulative)
@@ -1326,10 +1326,57 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     </div>
   </div>
 
-  <div class="future-preview">
-    <b>预览 · CP-3.6(Phase 3 末关 · 5-7 天 · 大块头)</b><br>
-    把累积的 4 个 PathToLattice impl(Path1aExact, Path1bFuzzy, Path1cTypo, Path2Abbrev)接入 PinyinAdapter::candidates 主路径 · 翻 USE_LATTICE = true · 删 FUZZY_DISCOUNT const(rules.toml + scoring/build.rs + scoring 路径 cross-crate refactor)· 删 Path 1c / Path 2 独立路径 · 整合 cement IDF vs PinyinDict 的 v1.6.5 source split · 跑 λ sweep 找 sweet spot · MIU 不退 / fuzzy 子集升 ≥ 5% / abbrev 子集升 ≥ 5% / Phase 3 累计 ≥ 4pp avoid §10 rollback<br><br>
-    <strong>Phase 3 验收门</strong>(errata):MIU 相对 Phase 2 末不退(±2%)+ lattice 替代 union 工程结构清晰 + 累计 ≥ 4pp(< 4pp 触发 climb plan §10 回退路径)
+  <!-- ===== CP-3.6 step-1 ===== -->
+  <div class="cp" data-status="inprog" data-cp="3.6">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-3.6 · step-1</div>
+        <div class="cp-title">集成评分 step-1:Path 1a wiring + env override + MIU byte-equal verify</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">3</b>/<b class="total-count">7</b></span>
+        <span class="cp-status-tag">inprog</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · CP-3.5 done</span>
+        <span>状态 · step-1 done · step-2 deferred</span>
+        <span>回退 · const 仍 false · PINYIN_USE_LATTICE 0 force off</span>
+      </div>
+      <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">
+        ⚠ <strong>CP-3.6 拆 2 step</strong>:climb plan 原 task 5-7 天大块头(production wiring + multi-syllable composition + LM 接入 lattice + λ sweep + 删 FUZZY_DISCOUNT + 删 Path 1c/2 独立路径)1 turn 做不完。<br>
+        <strong>step-1(此 turn done)</strong>:Path 1a single-syllable wiring 接入 PinyinAdapter · env override · MIU byte-equal verify。<br>
+        <strong>step-2(deferred)</strong>:multi-syllable composition + LM 接入 lattice viterbi closure(KenLM bigram across edges)+ Path 1b/1c/2 wire + λ sweep + 删 FUZZY_DISCOUNT(rules.toml + scoring/build.rs 跨 crate)+ 删 Path 1c/2 独立路径。<br>
+        Phase 3 cumulative 仍 +2.84pp(因 single-syllable lattice 数学等价 IDF lookup,无 lift)· 触发 §10 reclean trigger 仍未 cleared。
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · step-1 do(此 turn)</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">PinyinAdapter::candidates Path 1 site 加 <code>use_lattice()</code> 分支<span class="hint">env <code>PINYIN_USE_LATTICE=1</code> 切换 · default const = false production unchanged</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">Lattice 用 cement IDF entries(<code>pinyin_idf_reader().lookup</code>),非 PinyinDict<span class="hint">绕过 v1.6.5 source split · IDF entry.raw_freq → log10 = edge log_prob · 64 beam viterbi · 0 LM closure</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">MIU byte-equal verify(lattice on vs Phase 2 末 post_compose)<span class="hint"><strong>+0.00 pp 全线 ✓</strong>(climb plan 门 &lt; 1% · 实测 0%)· gold 3.40% / silver 2.80% / overall 2.81% byte-equal · 见 <code>/tmp/lattice_on.json</code></span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">multi-syllable composition(segmenter 接入 lattice)<span class="hint">deferred to step-2</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">LM 接入 lattice viterbi closure(替代 0 LM)<span class="hint">deferred to step-2</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">删 FUZZY_DISCOUNT const(跨 crate)<span class="hint">deferred to step-2</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">删 Path 1c / Path 2 独立路径<span class="hint">deferred to step-2</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check(step-1)</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body"><strong>USE_LATTICE on/off MIU diff &lt; 1%</strong>(climb plan task 4)<span class="hint">+0.00 pp 全线 ✓(完全 byte-equal · single-syllable lattice 数学上 = IDF lookup)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">宪法门 wubi_simcode_priority 全过(两种模式都过)<span class="hint">USE_LATTICE off 12/12 ✓ · USE_LATTICE on 12/12 ✓</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">现有 baseline 测试在两种模式下不产生新增 fail<span class="hint">两种模式都是 68/69 过(同 1 fail = polish backlog wokuai/pengyoujuan/danqiao,非 CP-3.6 引入)</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">fuzzy / typo / abbrev 子集升 ≥ 5%<span class="hint">deferred to step-2 LM 接入后</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">Phase 3 累计 ≥ 4pp avoid §10 rollback<span class="hint">deferred to step-2 LM 接入后</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-3.6 step-1 done · production wiring 数学验证 byte-equal · const 保 false default 直到 step-2 LM 接入后 verify real lift · Phase 3 现状:5 CP scaffold + 1 step-1 wiring · cumulative +2.84pp 未动 · step-2 触发 §10 reclean trigger 评估留下次</div></div>
+    </div>
   </div>
 </div>
 
