@@ -31,16 +31,22 @@ use crate::bigram_lm::LmBackend;
 use crate::ranking::{L0Inner, L0Snapshot, PROMOTE_THRESHOLD};
 
 /// Phase-2 LM mixing weight read from env `PINYIN_LM_LAMBDA` on first
-/// call and cached. Default 0.3 (climb-plan CP-2.5 starting value).
-/// Set to 0 to disable the LM contribution entirely while keeping the
-/// model loaded — useful for byte-equal regression testing.
+/// call and cached. Default 1.0, picked at CP-2.6 sweet-spot sweep
+/// (gold-1000 MIU peaks at λ=1.0 with +0.90pp gold lift, full 50k
+/// confirms +0.76pp overall; λ=3.0 starts over-shooting the LM term
+/// vs raw_freq and degrades MIU). See
+/// `tools/eval/results/lm_lambda_sweep.tsv` for the full sweep data.
+/// Set to 0 to disable the LM contribution entirely while keeping
+/// the model loaded — useful for byte-equal regression testing /
+/// rollback without rebuilding the binary.
 fn lm_lambda() -> f64 {
+    const LM_LAMBDA_DEFAULT: f64 = 1.0;
     static CACHED: OnceLock<f64> = OnceLock::new();
     *CACHED.get_or_init(|| {
         std::env::var("PINYIN_LM_LAMBDA")
             .ok()
             .and_then(|s| s.parse::<f64>().ok())
-            .unwrap_or(0.3)
+            .unwrap_or(LM_LAMBDA_DEFAULT)
     })
 }
 

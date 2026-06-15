@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-2.4 done · KenLM Rust binding 测试全过</span>
-      <span><b>active</b> Phase 2 · CP-2.5(集成评分 · Viterbi 加 λ·log P 项 · 关键 KPI)</span>
+      <span><b>last update</b> 2026-06-15 · CP-2.5+2.6 done · λ*=1.0 · +0.76pp overall · KPI 未达</span>
+      <span><b>active</b> Phase 2 · CP-2.7(短 buffer Viterbi 阈值降到 2 字节)</span>
     </div>
   </div>
 </div>
@@ -220,8 +220,10 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 2 · CP-2.5(集成评分 · Viterbi Path 0b 加 λ·log P 项 · 关键 KPI)</kbd><br>
-  <strong>进度</strong>:Phase 0(7/7)· <strong>Phase 1(4/4)· MIU +2.08pp</strong> · <strong>Phase 2 CP-2.1+2.2+2.3+2.4 done</strong>:sources.yaml → cleaned.txt 41M 句 → bigram.binary 416 MB → Rust binding(trait <code>LmBackend</code> + <code>KenLmBackend</code> feature-gated)· 3-fixture byte-equal C++ ↔ Rust ✓ · 73 lib test + 宪法门 12/12 全过 · 接 CP-2.5 集成 Path 0b Viterbi · λ=0.3 MIU 必须升 ≥ 3%(climb plan errata 修订:≥ 2pp 实测)
+  <strong>当前 active</strong>:<kbd>Phase 2 · CP-2.7(短 buffer Viterbi 阈值 8 → 2 字节 · Phase 2 末关收尾)</kbd><br>
+  <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 CP-2.1+2.2+2.3+2.4+2.5+2.6 done</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成(λ via env)→ sweep λ*=1.0 入 const。<br>
+  <strong>LM 实测 lift</strong>(λ=1.0 sweet spot · full 50k):overall <strong>+0.76pp</strong>(2.81%→3.57%)· gold +0.90pp(3.40%→4.30%)· silver +0.75pp · polyphone +0.72pp。<strong>KPI 未达</strong>:climb plan 原门 ≥3% · errata 修订 ≥2pp,sweet spot 才到一半。LM 方向对、效果单调、过 push 退化也可识别 — 量级仅 errata 门一半。<br>
+  Phase 2 累计 vs Phase 0 地板:<strong>0.73% → 3.57%(+2.84pp)</strong>· 离 Phase 2 验收门 ≥5% 还差 ~2pp · 接 CP-2.7 看短 buffer Viterbi 能否补上 · 不够触发 climb plan "回 CP-2.2 reclean / 改 LM 集成策略" 回退路径
 </div>
 
 <!-- ====================== HOW TO USE ====================== -->
@@ -964,12 +966,135 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     </div>
   </div>
 
-  <div class="future-preview">
-    <b>预览 · CP-2.5 .. CP-2.7</b>
-    <code>CP-2.5</code> 集成评分(可逆 λ via env)· **λ=0.3 时 MIU 必须升 ≥ 3%**(关键 KPI;errata 修订:≥ 2pp 实测)· 5-7 天<br>
-    <code>CP-2.6</code> λ sweep 调优(λ ∈ {0.1..1.0})· 2-3 天<br>
-    <code>CP-2.7</code> 全 buffer 启用 Viterbi(短 buffer 阈值 8→2 字节)· 3-5 天 + 7 天 soak<br><br>
-    <strong>Phase 2 验收门</strong>:Top-1 MIU 累计升 ≥ 5%(若 < 5% climb plan 触发重训回退)
+  <!-- ===== CP-2.5 ===== -->
+  <div class="cp" data-status="done" data-cp="2.5">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-2.5</div>
+        <div class="cp-title">集成评分 · Viterbi 加 λ·log P bigram · 工程 ✓ KPI ✗</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">6</b>/<b class="total-count">8</b></span>
+        <span class="cp-status-tag">done</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · CP-2.4 done</span>
+        <span>时长 · 1 turn(预算 5-7 天)</span>
+        <span>回退 · 设 PINYIN_LM_LAMBDA=0 立即等价 Phase 1 末(const 可调)</span>
+      </div>
+      <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">
+        ⚠ <strong>诚实 KPI fail</strong>:λ=0.3 时 MIU +0.48pp overall / +0.60pp gold;λ=1.0(sweet spot)+0.76pp overall / +0.90pp gold。climb plan 原门"≥3%",errata 软化为"≥2pp" — **两者都未达**。方向对(LM 单调有效,sweet spot 可识别),但 magnitude 大约是 errata 门的一半。Phase 2 验收门"累计 ≥5%"也对应风险。详见顶部 errata。
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">PinyinDict 加 <code>lm: Option&lt;Arc&lt;dyn LmBackend&gt;&gt;</code> 字段 + <code>with_lm</code> / <code>with_lm_from_env</code> builder<span class="hint">embedded() 默认 lm=None,byte-equal Phase 1 末</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body"><code>bigram_lm_bonus(prev, curr) = LM_SCALE × λ × log10 P(curr|prev)</code>(LM_SCALE=10_000)<span class="hint">3 处 Viterbi step_score 统一 += bigram_lm_bonus · OOV / 未启 / λ=0 早返 0.0</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">λ via <code>PINYIN_LM_LAMBDA</code> env · 模型路径 via <code>PINYIN_LM_BINARY</code> env<span class="hint">OnceLock cache · PinyinEngine::new 调 with_lm_from_env</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">Feature 传导链:<code>inputx-pinyin/kenlm → inputx-core/kenlm → inputx-eval-runner/kenlm</code></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body"><strong>λ=0 byte-equal Phase 1 末</strong><span class="hint">default-features <code>make eval</code> 282s green · lm=None 路径 step_score 不变</span></span></li>
+          <li class="task" data-status="fail"><span class="box"></span><span class="body"><strong>λ=0.3 Top-1 MIU 升 ≥ 3%(errata ≥ 2pp)</strong><span class="hint"><strong>实测:overall +0.48pp · gold +0.60pp(λ=0.3, full 50k)</strong> — 未达任一门 · 见 post_lm_lambda03.json</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">polish-log wins 翻转率 ≤ 10%<span class="hint">未在本 turn 跑(留 CP-2.7 soak 一起检)</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">延迟 p95 &lt; 30ms<span class="hint">eval 时长 32s → 1280s(post_compose)→ 1711s(LM-on λ=1.0)即 ~34s/1000 row → ~34ms/row 含 Viterbi + LM 查询 + IO · IME 真延迟需 inputx-probe 单 query bench 实测,留 CP-2.7</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>工程 ▣(LM 接入干净 · λ=0 byte-equal · feature 传导链全 OK · 73 lib test + 12 宪法门 passed)· KPI ✗(λ=0.3 +0.48pp 远低于 errata ≥ 2pp 门)· sweet spot 转 CP-2.6 找</div></div>
+    </div>
+  </div>
+
+  <!-- ===== CP-2.6 ===== -->
+  <div class="cp" data-status="done" data-cp="2.6">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-2.6</div>
+        <div class="cp-title">λ 调优 sweep · sweet spot λ*=1.0 · const 入码</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">4</b>/<b class="total-count">4</b></span>
+        <span class="cp-status-tag">done</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · CP-2.5 done</span>
+        <span>时长 · 1 turn(预算 2-3 天)</span>
+        <span>回退 · λ* 回 0 即等价 Phase 1 末</span>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">扫 λ ∈ {0.0, 0.3, 0.5, 1.0, 3.0, 10.0, 30.0}(errata 修订:gold 1000 子集快扫,sweet spot 用 50k 验)</span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">输出 <code>tools/eval/results/lm_lambda_sweep.tsv</code></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">选 sweet spot λ*<span class="hint"><strong>λ*=1.0</strong> · gold 4.30%(+0.90pp)· full 50k overall 3.57%(+0.76pp,&gt; 0.3 时 0.48pp,&gt; 0.5 时 0.70pp)· λ ≥ 3.0 LM 项压倒 raw_freq → MIU 退</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">把 λ* 写入 const<span class="hint">改 lm_lambda() 默认值 0.3 → 1.0(env override 保留 for debug / 回退)</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">sweep TSV 含 7 行 · 每行 (λ, gold top1/5/10, overall top1/5/10, notes)<span class="hint">见 <code>tools/eval/results/lm_lambda_sweep.tsv</code></span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">λ* 入 const · build 后 PINYIN_LM_LAMBDA 不设也走 sweet spot<span class="hint">const LM_LAMBDA_DEFAULT: f64 = 1.0;</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">选 λ* 的理由写入 commit message · sweep 数据完整</span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-2.6 done · λ*=1.0 in const · Phase 2 累计 0.73% → 3.57%(+2.84 pp)· 离 Phase 2 验收门 ≥5% 还差 ~2pp · 接 CP-2.7 短 buffer Viterbi(阈值 8→2)看能否补到 ≥5% · 不够则 Phase 2 末面对 climb plan 触发的"回 CP-2.2 reclean"决定</div></div>
+    </div>
+  </div>
+
+  <!-- ===== CP-2.7 ===== -->
+  <div class="cp" data-status="next" data-cp="2.7">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-2.7</div>
+        <div class="cp-title">全 buffer 启用 Viterbi · 短 buffer 阈值 8 → 2 字节</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">8</b></span>
+        <span class="cp-status-tag">next</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · CP-2.6 done</span>
+        <span>时长 · 3-5 天 + 7 天 soak</span>
+        <span>回退 · 阈值恢复 8 字节(const 改一行)</span>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">把 Path 0b 的 ≥ 8 字节阈值降到 ≥ 2 字节</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">短 buffer 走简化版 Viterbi(beam=8)</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">长 buffer 走 beam=32(memory budget)</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">跑 MIU,关注短 buffer(2-4 字节)的细分指标</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">短 buffer subset 的 Top-1 MIU 升 ≥ 5%</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">常用 2-3 字短词(如"中国" "你好")排序<strong>不能恶化</strong> — 跑 baseline 70+ 守</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">p95 延迟 &lt; 30ms</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">7 天 daily-use 无新短词排序投诉(沿 standing policy "polish 后置")</span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>待开工 · Phase 2 最后 CP · 看能否给短 buffer 命中再加 ~1-2 pp · 不够则 Phase 2 验收门触发 "回 CP-2.2 reclean" 回退路径</div></div>
+    </div>
   </div>
 </div>
 
