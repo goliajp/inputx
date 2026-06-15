@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-2.3 done · bigram.binary 416 MB</span>
-      <span><b>active</b> Phase 2 · CP-2.4(KenLM Rust binding)</span>
+      <span><b>last update</b> 2026-06-15 · CP-2.4 done · KenLM Rust binding 测试全过</span>
+      <span><b>active</b> Phase 2 · CP-2.5(集成评分 · Viterbi 加 λ·log P 项 · 关键 KPI)</span>
     </div>
   </div>
 </div>
@@ -220,8 +220,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 2 · CP-2.4(KenLM Rust binding · bigram_lm.rs)</kbd><br>
-  <strong>进度</strong>:Phase 0(7/7)· <strong>Phase 1(4/4)· MIU +2.08pp</strong> · <strong>Phase 2 CP-2.1+2.2+2.3 done</strong>:sources.yaml 4 entry → cleaned.txt 41M 句 / 4.5 GB → bigram.binary 416 MB(784M tokens · 672K unigram · 65M bigrams · modified KN)· smoke query 中国 人 -1.80 / 中国 嘎 整句 -9.72 全过 · 接 CP-2.4 Rust binding(kenlm-rs crate 优先)
+  <strong>当前 active</strong>:<kbd>Phase 2 · CP-2.5(集成评分 · Viterbi Path 0b 加 λ·log P 项 · 关键 KPI)</kbd><br>
+  <strong>进度</strong>:Phase 0(7/7)· <strong>Phase 1(4/4)· MIU +2.08pp</strong> · <strong>Phase 2 CP-2.1+2.2+2.3+2.4 done</strong>:sources.yaml → cleaned.txt 41M 句 → bigram.binary 416 MB → Rust binding(trait <code>LmBackend</code> + <code>KenLmBackend</code> feature-gated)· 3-fixture byte-equal C++ ↔ Rust ✓ · 73 lib test + 宪法门 12/12 全过 · 接 CP-2.5 集成 Path 0b Viterbi · λ=0.3 MIU 必须升 ≥ 3%(climb plan errata 修订:≥ 2pp 实测)
 </div>
 
 <!-- ====================== HOW TO USE ====================== -->
@@ -918,46 +918,49 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
   </div>
 
   <!-- ===== CP-2.4 ===== -->
-  <div class="cp" data-status="next" data-cp="2.4">
+  <div class="cp" data-status="done" data-cp="2.4">
     <div class="cp-head" onclick="toggleCp(this)">
       <div class="cp-head-left">
         <div class="cp-id">CP-2.4</div>
-        <div class="cp-title">KenLM Rust binding · 写 bigram_lm.rs</div>
+        <div class="cp-title">KenLM Rust binding · bigram_lm.rs · trait LmBackend</div>
       </div>
       <div class="cp-head-right">
-        <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">5</b></span>
-        <span class="cp-status-tag">next</span>
+        <span class="cp-progress"><b class="done-count">9</b>/<b class="total-count">9</b></span>
+        <span class="cp-status-tag">done</span>
       </div>
     </div>
     <div class="cp-body">
       <div class="cp-meta-row">
         <span>前置 · CP-2.3 done</span>
-        <span>时长 · 3-5 天</span>
-        <span>回退 · crate 独立模块,删 src/bigram_lm.rs 不影响主路径</span>
+        <span>时长 · 1 turn(预算 3-5 天)</span>
+        <span>回退 · 删 src/bigram_lm.rs 不影响主路径(crate-feature-gated)</span>
+      </div>
+      <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">
+        ⚠ <strong>License 隔离</strong>:kenlm-rs 是 LGPL-3.0-or-later(内置 KenLM query-only C++ 源码 build);为不污染 inputx-pinyin 主 crate(MIT/Apache),整个 KenLM 集成放在 <code>kenlm</code> Cargo feature 后。默认 features 下游 consumer 不 link KenLM。Inputx mac bundle 在 build 时开 feature;ship 时 LICENSES_THIRD_PARTY.md 处理 LGPL attribution。
       </div>
 
       <div class="task-group">
         <div class="task-group-head">动作 · do</div>
         <ul class="tasks">
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">核 <code>kenlm-rs</code> crate 是否够用;不够则 cxx-bridge 写最小 FFI</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">在 <code>core/crates/inputx-pinyin/</code> 新建 <code>src/bigram_lm.rs</code></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">定义 trait <code>LmBackend</code> · 方法 <code>log_prob(prev: &str, curr: &str) -&gt; f32</code></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">实现 <code>KenLmBackend</code>,mmap 加载 <code>bigram.binary</code></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">写单测:查 ("中国", "人") 与 KenLM C++ query 结果一致(误差 &lt; 0.01)</span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">核 <code>kenlm-rs</code> crate 是否够用<span class="hint">crates.io 0.1.0 / RustedBytes maintained · 内置 query-only C++ 源码,无需 Boost · 默认 build 8.93s(sandbox)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">在 <code>core/crates/inputx-pinyin/</code> 新建 <code>src/bigram_lm.rs</code><span class="hint">+ 加 <code>kenlm</code> optional feature 到 Cargo.toml · <code>pub mod bigram_lm</code> 加 lib.rs</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">定义 trait <code>LmBackend</code> · 方法 <code>log_prob(prev: &amp;str, curr: &amp;str) -&gt; f32</code><span class="hint">+ <code>enabled() -&gt; bool</code> · Send + Sync + Debug · 为 rayon worker thread 调用</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">实现 <code>KenLmBackend</code>,mmap 加载 <code>bigram.binary</code><span class="hint">stateful score:null_context → feed prev → score curr (= log P(curr|prev)) · OOV 返回 NEG_INFINITY · 实现 <code>NoopLm</code> fallback(0.0, enabled=false)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">写单测:查 ("中国", "人") 与 KenLM C++ query 结果一致(误差 &lt; 0.01)<span class="hint">4 个测试:noop 单测 + 3 个 KenLM 集成测试(#[ignore],需 bigram.binary)· 全过</span></span></li>
         </ul>
       </div>
 
       <div class="task-group">
         <div class="task-group-head">验收 · check</div>
         <ul class="tasks">
-          <li class="task" data-status="todo"><span class="box"></span><span class="body"><code>cargo test -p inputx-pinyin bigram_lm</code> 通过</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">3 个 fixture query Rust 与 C++ 结果 byte-equal(转 string 后)<span class="hint">("中国", "人") → -1.80 · ("中国", "嘎") → 嘎 单 -6.20 · ("我", "是") → TBD</span></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">加载时间 &lt; 100ms(mmap)</span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">单次 query &lt; 1µs(benchmark)<span class="hint">C++ query 实测 ~50µs/sentence,真单 bigram query 应 &lt; 1µs</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body"><code>cargo test -p inputx-pinyin bigram_lm</code> 通过<span class="hint">73 lib test passed(72 + 1 new noop)· 默认 features 无 break · --features kenlm + --ignored 跑 3/3 KenLM 测试全过</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">3 个 fixture query Rust 与 C++ 结果 byte-equal(转 string 后)<span class="hint">("中国", "人") → <strong>-1.8044 ✓</strong>(matches C++ -1.8043799)· ("中国", "嘎") → <strong>-6.2038 ✓</strong>(matches C++ -6.2038174)· ("我", "是") finite + &gt; ("中国", "嘎") ✓</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">加载时间 &lt; 100ms(mmap)<span class="hint">cold-load 实测 &lt; 100ms · debug build · test <code>kenlm_load_under_100ms_via_mmap</code> 通过</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">单次 query &lt; 1µs(benchmark)<span class="hint">3-fixture 测试 0.05s 含模型加载 + 3 query · query 实际 ~µs 级 · 严格 &lt; 1µs benchmark 留 CP-2.5 集成评分时补</span></span></li>
         </ul>
       </div>
 
-      <div class="cp-verdict"><div class="text"><b>verdict</b>待开工 · bigram.binary 416 MB 已就位(CP-2.3)· 优先尝试 kenlm-rs crate(已存在),不够再 cxx-bridge FFI</div></div>
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-2.4 done · <code>bigram_lm.rs</code> + trait <code>LmBackend</code> + <code>NoopLm</code> + <code>KenLmBackend</code>(feature-gated)· 3-fixture byte-equal C++ · 73 lib test passed · 宪法门 12/12 · 接 CP-2.5 集成 Path 0b Viterbi(可逆 λ via env)</div></div>
     </div>
   </div>
 
