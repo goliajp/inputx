@@ -77,22 +77,35 @@ pub(crate) const PINYIN_DISABLE_ASSOCIATION: bool = false;
 pub(crate) const PINYIN_DISABLE_FUZZY: bool = false;
 pub(crate) const PINYIN_DISABLE_PREDICTION: bool = false;
 
-/// Phase-3 lattice-mode switch. When `true`, candidate generation
-/// across migrated paths goes through
-/// [`inputx_pinyin::lattice::Graph`] / [`Graph::viterbi`] instead of
-/// the historical per-path direct dict lookups.
+/// Phase-3 lattice-mode switch.
 ///
-/// CP-3.2 ships this default-false with no production wiring yet —
-/// the lattice scaffold ([`inputx_pinyin::lattice::Path1aExact`])
-/// passes the dict-set-equality unit test
-/// (`lattice::tests::path1a_exact_*`), but the actual production
-/// Path-1 lookup in `candidates()` still reads the cement IDF (the
-/// dict-vs-IDF source discrepancy is a v1.6.5 polish-time decision
-/// that the lattice migration has to resolve in CP-3.6). Flipping
-/// this const to true today is a no-op; it lives here so CP-3.3..3.5
-/// can wire each migrated path behind it incrementally.
-#[allow(dead_code)]
+/// When `true` (via env override [`use_lattice`] or this const), Path
+/// 1a (exact pinyin lookup) routes through a
+/// [`inputx_pinyin::lattice::Graph`] built from the same cement IDF
+/// entries the legacy path reads, runs
+/// [`inputx_pinyin::lattice::Graph::viterbi`] for ordering, and
+/// surfaces the resulting candidate words back through the existing
+/// `self.candidates` queue. Single-syllable scope only; multi-
+/// syllable composition + Path 1b / 1c / 2 wiring + LM-aware joint
+/// scoring are the Phase-3 follow-up work CP-3.6 step-1 does not
+/// complete.
+///
+/// Default const is `false`; env [`PINYIN_USE_LATTICE`] overrides
+/// per-process (set to `1` / `true` to force on, `0` / `false` to
+/// force off — used during CP-3.6 step-1 MIU verification).
 pub(crate) const USE_LATTICE: bool = false;
+
+/// Read `PINYIN_USE_LATTICE` env override at first call; cache and
+/// reuse. Returns true / false on explicit "1" / "true" / "0" /
+/// "false"; falls through to [`USE_LATTICE`] const otherwise.
+fn use_lattice() -> bool {
+    use std::sync::OnceLock;
+    static CACHED: OnceLock<bool> = OnceLock::new();
+    *CACHED.get_or_init(|| match std::env::var("PINYIN_USE_LATTICE") {
+        Ok(s) => matches!(s.as_str(), "1" | "true" | "TRUE" | "yes"),
+        Err(_) => USE_LATTICE,
+    })
+}
 
 fn embedded_bigrams_table() -> &'static NgramTable<&'static [u8]> {
     static TABLE: OnceLock<NgramTable<&'static [u8]>> = OnceLock::new();
@@ -1357,11 +1370,36 @@ impl PinyinAdapter {
         // happen in `candidates_with_scores`, not here.
         let mut seen: HashSet<String> = HashSet::with_capacity(64);
         let lookup_buf = inputx_pinyin::normalize_lookup_key(&self.buffer);
-        for entry in pinyin_idf_reader().lookup(lookup_buf.as_bytes()) {
-            let w = entry.word.to_string();
-            if seen.insert(w.clone()) {
-                self.candidates.push(w);
-                self.has_non_speculative_candidate = true;
+        if use_lattice() {
+            // Phase-3 CP-3.6 step-1: route Path 1a through the lattice.
+            // Build a single-span Graph from the same cement IDF entries
+            // the legacy path reads, then walk Viterbi-ordered candidates
+            // back into self.candidates. Per-entry rank within self.candidates
+            // doesn't actually matter — candidates_with_scores reranks
+            // by L0 pin + freq desc later — so the only invariant this
+            // wiring has to preserve is the *set* of candidate words,
+            // which by construction equals the IDF lookup set.
+            use inputx_pinyin::lattice::{Edge, Graph};
+            let mut graph = Graph::for_buffer(lookup_buf.len().max(1));
+            let n = lookup_buf.len().max(1);
+            for entry in pinyin_idf_reader().lookup(lookup_buf.as_bytes()) {
+                let raw = entry.raw_freq.max(1) as f32;
+                graph.add_edge(Edge::exact(0, n, entry.word.to_string(), raw.log10()));
+            }
+            for p in graph.viterbi(64, |_, _| 0.0) {
+                let w = p.sentence();
+                if seen.insert(w.clone()) {
+                    self.candidates.push(w);
+                    self.has_non_speculative_candidate = true;
+                }
+            }
+        } else {
+            for entry in pinyin_idf_reader().lookup(lookup_buf.as_bytes()) {
+                let w = entry.word.to_string();
+                if seen.insert(w.clone()) {
+                    self.candidates.push(w);
+                    self.has_non_speculative_candidate = true;
+                }
             }
         }
 
