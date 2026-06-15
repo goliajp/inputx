@@ -1148,8 +1148,11 @@ impl PinyinDict {
         had_pin || l0.pick_counts.len() != len_before
     }
 
-    /// Snapshot the entire L0 layer (pins + pick counts) for host-side
-    /// persistence. Pair with [`Self::import_l0`] on app startup.
+    /// Snapshot the entire L0 layer (pins + pick counts + user_bigram)
+    /// for host-side persistence. Pair with [`Self::import_l0`] on app
+    /// startup. The schema is forward-compatible: v1 hosts that don't
+    /// understand `user_bigram` can drop it; the next round-trip
+    /// through a v2-aware host repopulates it from the commit hook.
     pub fn export_l0(&self) -> L0Snapshot {
         let Ok(l0) = self.l0.read() else {
             return L0Snapshot::default();
@@ -1165,12 +1168,19 @@ impl PinyinDict {
                 .iter()
                 .map(|((p, w), n)| (p.clone(), w.clone(), *n))
                 .collect(),
+            user_bigram: l0
+                .user_bigram
+                .iter()
+                .map(|((prev, curr), n)| ((prev.clone(), curr.clone()), *n))
+                .collect(),
         }
     }
 
     /// Replace the entire L0 layer with `snap`. Pins / pick_counts whose
     /// `(pinyin, word)` isn't in L1 are silently dropped (lexicon may have
-    /// evolved between versions). Returns the count of *accepted* pins.
+    /// evolved between versions). `user_bigram` is loaded as-is — it
+    /// records the user's commit history, not the dict — so its entries
+    /// don't need L1 validation. Returns the count of *accepted* pins.
     pub fn import_l0(&self, snap: L0Snapshot) -> usize {
         let valid_pins: Vec<(String, String)> = snap
             .pins
@@ -1188,13 +1198,40 @@ impl PinyinDict {
                 }
             })
             .collect();
+        let user_bigram_entries: Vec<((String, String), u32)> = snap.user_bigram;
         let accepted = valid_pins.len();
         let Ok(mut l0) = self.l0.write() else {
             return 0;
         };
         l0.pins = valid_pins.into_iter().collect();
         l0.pick_counts = valid_counts.into_iter().collect();
+        l0.user_bigram = user_bigram_entries.into_iter().collect();
         accepted
+    }
+
+    /// Phase-4 CP-4.1: Laplace-smoothed log10 P(curr | prev) over the
+    /// user-bigram counts collected by the (still-pending) CP-4.2
+    /// commit hook. Returns `-99.0` when nothing has been learned yet
+    /// (the integration site in CP-4.3 applies a `λ_u = 0` cold-start
+    /// guard, so this sentinel never reaches scoring).
+    pub fn log_p_user(&self, prev: &str, curr: &str) -> f32 {
+        match self.l0.read() {
+            Ok(l0) => l0.log_p_user(prev, curr),
+            Err(_) => -99.0,
+        }
+    }
+
+    /// Phase-4 CP-4.2 commit hook helper. Bumps the user-bigram count
+    /// of `(prev, curr)` by 1. No-op when either side is empty
+    /// (session boundaries don't form bigrams). The actual call site
+    /// lands in CP-4.2; this entry point is the public-API contract.
+    pub fn bump_user_bigram(&self, prev: &str, curr: &str) {
+        if prev.is_empty() || curr.is_empty() {
+            return;
+        }
+        if let Ok(mut l0) = self.l0.write() {
+            l0.bump_user_bigram(prev, curr);
+        }
     }
 
     fn exists_in_l1(&self, pinyin: &str, word: &str) -> bool {
@@ -1449,6 +1486,7 @@ mod tests {
                 ("shi".into(), "bogus_word".into()),
             ],
             pick_counts: vec![("shi".into(), "ghost_word".into(), 2)],
+            ..Default::default()
         };
         let accepted = d.import_l0(snap);
         assert_eq!(accepted, 1);
