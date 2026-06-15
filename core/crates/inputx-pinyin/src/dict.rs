@@ -23,11 +23,26 @@
 //!   - `export_l0` / `import_l0` round-trip the L0 state for host-side
 //!     persistence (no `serde` dep on the lib).
 
-use std::sync::{OnceLock, RwLock};
+use std::sync::{Arc, OnceLock, RwLock};
 
 use inputx_fsa::{Dict, Fsa};
 
+use crate::bigram_lm::LmBackend;
 use crate::ranking::{L0Inner, L0Snapshot, PROMOTE_THRESHOLD};
+
+/// Phase-2 LM mixing weight read from env `PINYIN_LM_LAMBDA` on first
+/// call and cached. Default 0.3 (climb-plan CP-2.5 starting value).
+/// Set to 0 to disable the LM contribution entirely while keeping the
+/// model loaded — useful for byte-equal regression testing.
+fn lm_lambda() -> f64 {
+    static CACHED: OnceLock<f64> = OnceLock::new();
+    *CACHED.get_or_init(|| {
+        std::env::var("PINYIN_LM_LAMBDA")
+            .ok()
+            .and_then(|s| s.parse::<f64>().ok())
+            .unwrap_or(0.3)
+    })
+}
 
 // Default = full pinyin dict from the committed `data/pinyin.dict` (3.9 MB,
 // an `inputx-fsa` two-level Dict pre-built by `tools/build_dict.rs` from
@@ -120,6 +135,11 @@ pub struct PinyinDict {
     /// pinyin top for rare-char simcodes, no hardcoded special-case
     /// lists in dispatch.
     char_max_freq: OnceLock<std::collections::HashMap<char, u64>>,
+    /// Phase-2 optional bigram LM backend. None = no LM (Phase 1
+    /// byte-equal behavior). When set, [`Self::bigram_lm_bonus`]
+    /// returns a non-zero contribution that the Viterbi composition
+    /// adds to per-step scores.
+    lm: Option<Arc<dyn LmBackend>>,
 }
 
 impl PinyinDict {
@@ -167,7 +187,50 @@ impl PinyinDict {
             trigrams: load_optional_dict(TRIGRAMS_BYTES, "trigrams"),
             l0: RwLock::new(L0Inner::new()),
             char_max_freq: OnceLock::new(),
+            lm: None,
         }
+    }
+
+    /// Attach a Phase-2 bigram LM backend. Returns the same dict, now
+    /// with `lm` set, so callers can chain `PinyinDict::embedded().with_lm(...)`.
+    ///
+    /// Pass `None` (or simply skip this call) to keep Phase-1 byte-equal
+    /// behaviour. With Some(lm), Viterbi composition adds
+    /// `LM_SCALE * λ * log10 P(curr | prev)` to per-step scores; λ comes
+    /// from env `PINYIN_LM_LAMBDA` (default 0.3, climb-plan CP-2.5).
+    pub fn with_lm(mut self, lm: Option<Arc<dyn LmBackend>>) -> Self {
+        self.lm = lm;
+        self
+    }
+
+    /// Try to attach the Phase-2 KenLM bigram model from the file path
+    /// in env `PINYIN_LM_BINARY`. No-op (returns self unchanged) when:
+    ///   - the crate is built without the `kenlm` feature
+    ///   - PINYIN_LM_BINARY is unset
+    ///   - loading the file fails (a warning goes to stderr)
+    ///
+    /// `PinyinEngine::new` calls this so that the env-var conversion
+    /// happens exactly once at engine construction, and downstream
+    /// callers (sessions, adapters, etc.) just inherit the dict.
+    pub fn with_lm_from_env(self) -> Self {
+        #[cfg(feature = "kenlm")]
+        {
+            let Ok(path) = std::env::var("PINYIN_LM_BINARY") else {
+                return self;
+            };
+            match crate::bigram_lm::kenlm_backend::KenLmBackend::load(&path) {
+                Ok(lm) => {
+                    let arc: Arc<dyn LmBackend> = Arc::new(lm);
+                    return self.with_lm(Some(arc));
+                }
+                Err(e) => {
+                    eprintln!("[pinyin] failed to load PINYIN_LM_BINARY={path:?}: {e:?}");
+                    return self;
+                }
+            }
+        }
+        #[cfg(not(feature = "kenlm"))]
+        self
     }
 
     /// Max freq across all pinyin readings of single-char `c`. Returns
@@ -553,7 +616,8 @@ impl PinyinDict {
                     } else {
                         Some(prev_entry.2.as_str())
                     };
-                    let bonus = self.bigram_boost(prev_word_opt, word);
+                    let bonus = self.bigram_boost(prev_word_opt, word)
+                        + self.bigram_lm_bonus(prev_word_opt, word);
                     let step_score = (*raw_freq as f64) + bonus - STEP_PENALTY;
                     let total = prev_entry.0 + step_score;
                     let dp_better = match dp[i].as_ref() {
@@ -642,7 +706,8 @@ impl PinyinDict {
                     } else {
                         Some(prev_entry.2.as_str())
                     };
-                    let bonus = self.bigram_boost(prev_word_opt, word);
+                    let bonus = self.bigram_boost(prev_word_opt, word)
+                        + self.bigram_lm_bonus(prev_word_opt, word);
                     let step_score = (*raw_freq as f64) + bonus - STEP_PENALTY;
                     let total = prev_entry.0 + step_score;
                     let dp_better = match dp[i].as_ref() {
@@ -1008,6 +1073,46 @@ impl PinyinDict {
         }
         let scaled = ((count as f64) + 1.0).ln() / (BIGRAM_REF + 1.0).ln();
         BIGRAM_BOOST_MAX * scaled.min(1.0)
+    }
+
+    /// Phase-2 KenLM bigram bonus. Adds to Viterbi step_score on top of
+    /// [`Self::bigram_boost`] (which uses the legacy bigram support FST).
+    ///
+    /// Returns 0.0 when:
+    ///   - `prev` is None (start of buffer; no bigram yet)
+    ///   - `self.lm` is unset (Phase-1 byte-equal behaviour)
+    ///   - the LM reports `enabled() == false`
+    ///   - PINYIN_LM_LAMBDA env var is 0 or unset and the default fall-
+    ///     through resolves to 0
+    ///
+    /// Otherwise returns `LM_SCALE * λ * log10 P(curr | prev)`.
+    /// log10 P is negative (more probable bigrams → less negative),
+    /// so the per-step contribution is negative; Viterbi compares
+    /// relative totals so the absolute sign does not matter. The
+    /// LM_SCALE factor brings the value to the same order of magnitude
+    /// as `bigram_boost` (which caps at 50 000), so a "good" bigram
+    /// (log10 P ≈ -2) at λ=0.3 contributes about -6 000.
+    pub fn bigram_lm_bonus(&self, prev: Option<&str>, curr: &str) -> f64 {
+        const LM_SCALE: f64 = 10_000.0;
+        let Some(lm) = self.lm.as_ref() else {
+            return 0.0;
+        };
+        if !lm.enabled() {
+            return 0.0;
+        }
+        let Some(prev) = prev else { return 0.0 };
+        if prev.is_empty() || curr.is_empty() {
+            return 0.0;
+        }
+        let lambda = lm_lambda();
+        if lambda == 0.0 {
+            return 0.0;
+        }
+        let log_prob = lm.log_prob(prev, curr);
+        if !log_prob.is_finite() {
+            return 0.0;
+        }
+        LM_SCALE * lambda * (log_prob as f64)
     }
 
     /// Look up the user-pinned word for a given pinyin code, if any.

@@ -18,7 +18,7 @@ impl PinyinEngine {
     /// Build with the embedded dict and strict (no-fuzzy) defaults.
     pub fn new() -> Self {
         Self {
-            dict: PinyinDict::embedded(),
+            dict: PinyinDict::embedded().with_lm_from_env(),
             fuzzy: FuzzyConfig::strict(),
         }
     }
@@ -26,7 +26,7 @@ impl PinyinEngine {
     /// Build with a custom fuzzy config.
     pub fn with_fuzzy(fuzzy: FuzzyConfig) -> Self {
         Self {
-            dict: PinyinDict::embedded(),
+            dict: PinyinDict::embedded().with_lm_from_env(),
             fuzzy,
         }
     }
