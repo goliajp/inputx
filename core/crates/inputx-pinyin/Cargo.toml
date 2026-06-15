@@ -49,6 +49,14 @@ inputx-pinyin-data-bigrams = { path = "../inputx-pinyin-data-bigrams", version =
 # Vec).
 inputx-pinyin-data-trigrams = { path = "../inputx-pinyin-data-trigrams", version = "1.4", optional = true }
 
+# Phase-2 bigram LM backend — `default-off`. LGPL-3.0-or-later because
+# kenlm-rs builds KenLM's query-only C++ sources in-tree; we keep the
+# whole thing behind a feature so downstream MIT/Apache consumers of
+# inputx-pinyin aren't tainted. The Inputx mac bundle flips this on
+# at build time. The runtime model file (bigram.binary) ships
+# separately and is loaded by path, not compiled in.
+kenlm-rs = { version = "0.1", optional = true }
+
 # tools-only deps (gated behind `tools` feature). Trimmed 2026-06-03
 # 治理: the old corpus-ingest pipeline retired, so the fetch/decode
 # crate of deps (ureq/aho-corasick/flate2/bzip2-rs/tar/encoding_rs/
@@ -78,6 +86,9 @@ default = ["bigrams", "trigrams"]
 # inputx-pinyin-data-core (the required ~4 MB exact-syllable dict).
 bigrams = ["dep:inputx-pinyin-data-bigrams"]
 trigrams = ["dep:inputx-pinyin-data-trigrams"]
+# Phase-2 real bigram LM. Pulls in kenlm-rs (LGPL); leave off for
+# crates.io publish, flip on in the Inputx mac bundle.
+kenlm = ["dep:kenlm-rs"]
 # Maintainer-only tools (`pinyin-build-dict`, `pinyin-build-ngrams-fsa`).
 # Library consumers don't need this.
 tools = [
