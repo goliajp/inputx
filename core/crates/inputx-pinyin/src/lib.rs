@@ -38,6 +38,7 @@ pub mod bigram_lm;
 pub mod cell_dict;
 pub mod dict;
 pub mod encode;
+pub mod keyboard_adjacency;
 pub mod engine;
 pub mod fuzzy;
 pub mod lattice;
