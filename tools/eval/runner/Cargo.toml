@@ -40,6 +40,11 @@ test = false
 # plain `cargo test` stays fast; CI runs `cargo test -p inputx-eval-runner
 # --features eval` to enforce the ±2pp baseline gate.
 eval = []
+# Phase-2 LM transit: forward inputx-core/kenlm → inputx-pinyin/kenlm so
+# `--features kenlm` here gives the runner a real KenLM-aware adapter.
+# Pair with env `PINYIN_LM_BINARY` (path to bigram.binary) and
+# `PINYIN_LM_LAMBDA` (mixing weight, default 0.3) at runtime.
+kenlm = ["inputx-core/kenlm"]
 
 [dependencies]
 # The runner exercises the real candidate path through the composite

@@ -1,0 +1,24 @@
+{
+  "date": "2026-06-15",
+  "engine_version": "1.4.0",
+  "note": "MIU accuracy = exact full-string match of the gold hanzi within the engine's top-K candidate list, driven through the production PinyinAdapter one keystroke at a time. Top-5/10 collapse toward Top-1 because the engine exposes no n-best sentence list. Measured against the engine AS COMPILED: as of v1.4.0 the COMPOSE/ASSOCIATION/FUZZY/PREDICTION pipeline gates are hard-disabled consts (minimal-debug state) — only literal-syllable lookup + FST prefix completion survive, so multi-syllable sentence rows almost always miss. This is the intended pre-Phase-1 floor; flipping the COMPOSE gate is Phase-1 work and is expected to lift these numbers.",
+  "elapsed_secs": 1711.492,
+  "counts": {
+    "total": 51000,
+    "gold": 1000,
+    "silver": 50000,
+    "polyphone": 48340
+  },
+  "top1": 0.03568627450980392,
+  "top5": 0.036784313725490195,
+  "top10": 0.036784313725490195,
+  "gold_top1": 0.043,
+  "gold_top5": 0.044,
+  "gold_top10": 0.044,
+  "silver_top1": 0.03554,
+  "silver_top5": 0.03664,
+  "silver_top10": 0.03664,
+  "per_polyphone_top1": 0.03276789408357468,
+  "per_polyphone_top5": 0.033843607778237486,
+  "per_polyphone_top10": 0.033843607778237486
+}
