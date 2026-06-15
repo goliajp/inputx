@@ -39,6 +39,7 @@ pub mod dict;
 pub mod encode;
 pub mod engine;
 pub mod fuzzy;
+pub mod lattice;
 pub mod ranking;
 pub mod segmenter;
 pub mod session;
