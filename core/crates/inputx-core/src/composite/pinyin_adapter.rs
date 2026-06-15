@@ -73,7 +73,7 @@ use crate::rules::{Context, ContextFlags};
 // detail and flip whichever const back off as each category is
 // ready.
 pub(crate) const PINYIN_DISABLE_COMPOSE: bool = true;
-pub(crate) const PINYIN_DISABLE_ASSOCIATION: bool = true;
+pub(crate) const PINYIN_DISABLE_ASSOCIATION: bool = false;
 pub(crate) const PINYIN_DISABLE_FUZZY: bool = false;
 pub(crate) const PINYIN_DISABLE_PREDICTION: bool = true;
 
