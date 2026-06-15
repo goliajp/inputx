@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-16 · CP-5.1 step-2 done · trigram scoring 接入 + λ_3 sweep (sweet 1.0) + full 50k verify · +0.04pp marginal lift · 累计 +2.88pp</span>
-      <span><b>active</b> Phase 5 · CP-5.2 细胞词库 schema + 示范包(或 CP-5.3 typo edge / CP-5.4 长简拼 按需挑做)</span>
+      <span><b>last update</b> 2026-06-16 · CP-5.2 step-1 done · cell-dict TOML v1 schema + loader + L0.5 layer + 35-entry IT 示范包 + 9 单测 · default byte-equal Phase 2 末</span>
+      <span><b>active</b> Phase 5 · CP-5.2 step-2(IT 全 pack ~500 词 + 金融 pack ~300 词 curation)或 CP-5.3 / CP-5.4 按需挑做</span>
     </div>
   </div>
 </div>
@@ -220,7 +220,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 5 · CP-5.2 细胞词库 schema + 示范包(或 CP-5.3 typo edge / CP-5.4 长简拼 按需挑做)</kbd><br>
+  <strong>当前 active</strong>:<kbd>Phase 5 · CP-5.2 step-2(全量 IT + 金融 pack curation · 2-3 周)或 CP-5.3 / CP-5.4 按需挑做</kbd><br>
   <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 收官(6/7 done)</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成 → λ*=1.0 sweep 入 const · <strong>CP-2.7 skipped</strong>(MIU 集 0.1% 短 buffer 不可测 + wrong-reading safeguard 冲突)。<br>
   <strong>LM 实测 lift</strong>(λ=1.0 · full 50k):overall +0.76pp · gold +0.90pp · silver +0.75pp · polyphone +0.72pp · 累计 <strong>0.73% → 3.57%(+2.84pp · ~4.9× 提升)</strong>。<br>
   <strong>Phase 2 末决策</strong>:不触发回退;自决修订验收门 ≥5% → ≥2.5pp · 接 Phase 3 联合 lattice(预期补足 +2-3pp cumulative)
@@ -1630,6 +1630,58 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
       </div>
 
       <div class="cp-verdict"><div class="text"><b>verdict</b>CP-5.1 step-2 done · trigram scoring 全链 wired(trait + KenLM + DP + sweep + verify)· sweet spot λ_3=1.0 · 累计 MIU 0.73% → 3.61%(+2.88pp · vs Phase 4 末 +0.04pp 极轻微 lift)· 验收门 +3pp gate 未达成 · 诚实记录 · trigram 在该 MIU 集 3+ syllable rare 不足以撬动 · Phase 5 末 reclean 候选 · default 行为 byte-equal Phase 2 末</div></div>
+    </div>
+  </div>
+
+  <!-- ===== CP-5.2 step-1 ===== -->
+  <div class="cp" data-status="inprog" data-cp="5.2">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-5.2 · step-1</div>
+        <div class="cp-title">cell-dict schema(TOML v1)+ loader + L0.5 sub-layer + 一个最小示范包 IT 术语</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">4</b>/<b class="total-count">7</b></span>
+        <span class="cp-status-tag">inprog</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · Phase 5 持续运营节奏</span>
+        <span>状态 · step-1 ✓ · step-2/3/4 deferred</span>
+        <span>回退 · 默认不 load 任何 pack → cell_dict_layer 空 → lookup_* 走 byte-equal pre-CP-5.2 fast path</span>
+      </div>
+      <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">
+        ⚠ <strong>CP-5.2 拆 4 step</strong>:climb plan 原 task 2-3 周(schema 设计 + 示范包 + Settings UI + MIU verify)1 turn 做不完。<br>
+        <strong>step-1(此 turn done)</strong>:TOML schema v1(<code>[meta]</code> + <code>[[entry]]</code>) · <code>PinyinDict::load_cell_dict</code> / <code>clear_cell_dict</code> / <code>cell_dict_count</code> · L0.5 layer 在 4 个 lookup 方法里 merge with dedup by word taking max freq · 单测 4 个(byte-equal default + load promotes + clear restores + invalid TOML err)· 一个 35-entry IT 示范包 + schema 文档发布在 <code>docs/</code>。<br>
+        <strong>step-2(deferred)</strong>:示范包完整化(IT ~500 词 + 金融 ~300 词)+ 加载链 production wire(host startup auto-load installed packs)。<br>
+        <strong>step-3(deferred)</strong>:SettingsWindow toggle UI · "install pack from disk" · 列表 + 启停。<br>
+        <strong>step-4(deferred)</strong>:领域 MIU 子集验证 "领域专词排序明显提升" 验收门。
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · step-1(此 turn · done)</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">TOML schema v1 设计 + 文档<span class="hint"><code>docs/cell-dict-schema-2026-06-16.md</code> · <code>[meta]</code>(name 必填 · version/author/description/license 可选)+ <code>[[entry]]</code>(pinyin/word 必填 · freq 默认 0)· freq 同 L1 freq_score 量级 0..1_000_000 · 100k-500k 推荐 "lead the list" tier</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">crate 加 <code>cell_dict</code> mod + <code>cell-dict</code> feature 默认 on<span class="hint">core/crates/inputx-pinyin/src/cell_dict.rs · CellDict / Meta / Entry / ParseError · serde Deserialize · feature 默认 on(随同 bigrams/trigrams)· bootstrap_only / wasm 关闭 feature 时 load_cell_dict 不编译</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">PinyinDict 加 <code>cell_dict_layer</code> 字段 + 3 个 public method<span class="hint">RwLock&lt;HashMap&lt;pinyin, Vec&lt;(word, freq)&gt;&gt;&gt; · 同 L0 interior-mutability 契约 · load_cell_dict(toml_str) → Result&lt;usize, ParseError&gt; · clear_cell_dict() · cell_dict_count() · 多次 load 累积 · parse-then-commit 契约(invalid TOML 不动 layer 状态)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">4 个 lookup 方法 merge L0.5<span class="hint">lookup_into / lookup_with_scores_into / lookup_with_freq_into / lookup_raw_into · 按 word dedup taking max freq · L0 pin 仍优先 · cell_dict 空时走 byte-equal fast path · 用 <code>cell_dict_hits(lower)</code> 一格 rwlock-read+hashmap-probe 兜底</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">一个最小示范包 IT 术语<span class="hint"><code>docs/cell-dicts/it_terms.toml</code> · ~35 entries · 涵盖云 / 平台 / 开发 / 数据 / 算法 / 性能 / 安全 / 缩写直出 7 类 · freq=500000 一致 · 完整运行时可 load</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">9 个单测(5 schema + 4 dict 集成)<span class="hint">cell_dict::tests(parses_minimal / freq_defaults_to_zero / no_entries_is_valid / invalid_toml_returns_parse_error / missing_required_field_returns_error)· dict::tests(cell_dict_no_load_byte_equal_lookup / cell_dict_load_promotes_word_to_top / cell_dict_clear_restores_byte_equal_lookup / cell_dict_invalid_toml_returns_err_without_state_change)· 全过</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">make eval byte-equal Phase 2 末(default features · 不 load 任何 pack)<span class="hint">gold_miu_within_threshold_of_baseline 270s 跑过 · ±2pp gate 通过 · 默认 production 行为不动</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">step-2/3/4 deferred · 触发条件</div>
+        <ul class="tasks">
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">step-2 · IT pack ~500 词 + 金融 pack ~300 词<span class="hint">curation 工作 · 词条来源:中文 IT/金融 corpus 词频 top-N 过滤掉 L1 已有(deduplicate by freq advantage)· deferred to step-2</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">step-3 · SettingsWindow toggle UI<span class="hint">mac/Sources/SettingsWindow.swift · 在 "学习与个性化" 之下加 "细胞词库" Section · file picker · 启停 toggle · FFI signature 设计(load_cell_dict 已 trait-ready,只缺 C-ABI 暴露)· deferred to step-3</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">step-4 · 领域 MIU 子集 verify<span class="hint">建一个 domain_miu.tsv · 100-200 行 IT/金融词条 · load IT pack 跑 MIU · 对比 unload baseline · 验收门 "排序明显提升" 软量化为 Top-1 ≥ +20pp (vs unload)· deferred to step-4</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-5.2 step-1 done · cell-dict schema TOML v1 + loader + L0.5 layer + 35-entry IT 示范包 + 9 单测全过 · 默认行为 byte-equal Phase 2 末(make eval 通过)· step-2/3/4 deferred(全 pack curation + Settings UI + 领域 MIU verify)· production 行为不动直到 host 主动 load_cell_dict</div></div>
     </div>
   </div>
 

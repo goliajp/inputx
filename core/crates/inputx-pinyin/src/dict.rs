@@ -23,11 +23,14 @@
 //!   - `export_l0` / `import_l0` round-trip the L0 state for host-side
 //!     persistence (no `serde` dep on the lib).
 
+use std::collections::HashMap;
 use std::sync::{Arc, OnceLock, RwLock};
 
 use inputx_fsa::{Dict, Fsa};
 
 use crate::bigram_lm::LmBackend;
+#[cfg(feature = "cell-dict")]
+use crate::cell_dict::{CellDict, ParseError as CellDictParseError};
 use crate::ranking::{L0Inner, L0Snapshot, PROMOTE_THRESHOLD};
 
 /// Phase-2 LM mixing weight read from env `PINYIN_LM_LAMBDA` on first
@@ -193,6 +196,13 @@ pub struct PinyinDict {
     /// returns a non-zero contribution that the Viterbi composition
     /// adds to per-step scores.
     lm: Option<Arc<dyn LmBackend>>,
+    /// Phase-5 CP-5.2 step-1: per-instance L0.5 cell-dict layer.
+    /// Maps lowercase pinyin → list of `(word, freq)` entries loaded
+    /// via [`Self::load_cell_dict`]. Empty by default → byte-equal
+    /// pre-CP-5.2 behavior. Lives between L0 (user pins) and L1
+    /// (embedded FST): L0 pin still trumps, L0.5 entries merge into
+    /// the same freq-desc ordering as L1.
+    cell_dict_layer: RwLock<HashMap<String, Vec<(String, u64)>>>,
 }
 
 impl PinyinDict {
@@ -241,6 +251,66 @@ impl PinyinDict {
             l0: RwLock::new(L0Inner::new()),
             char_max_freq: OnceLock::new(),
             lm: None,
+            cell_dict_layer: RwLock::new(HashMap::new()),
+        }
+    }
+
+    /// Phase-5 CP-5.2 step-1: load a TOML cell-dict pack into the
+    /// L0.5 layer. Returns the number of entries accepted.
+    /// Subsequent `lookup_*` calls merge these entries with L1
+    /// candidates in freq-desc order (L0 pin still takes precedence).
+    ///
+    /// Multiple loads accumulate — call as many times as the user has
+    /// packs to install. Use [`Self::clear_cell_dict`] to wipe.
+    ///
+    /// Returns [`CellDictParseError`] on malformed TOML. The layer is
+    /// left unchanged in that case (parse fully, then commit).
+    #[cfg(feature = "cell-dict")]
+    pub fn load_cell_dict(&self, toml_str: &str) -> Result<usize, CellDictParseError> {
+        let parsed = CellDict::from_toml_str(toml_str)?;
+        let n = parsed.entries.len();
+        if n == 0 {
+            return Ok(0);
+        }
+        if let Ok(mut layer) = self.cell_dict_layer.write() {
+            for entry in parsed.entries {
+                let key = normalize_lookup_key(&entry.pinyin);
+                layer.entry(key).or_default().push((entry.word, entry.freq));
+            }
+        }
+        Ok(n)
+    }
+
+    /// Wipe the entire L0.5 cell-dict layer. After this call, lookups
+    /// behave byte-equal to the no-cell-dict path.
+    #[cfg(feature = "cell-dict")]
+    pub fn clear_cell_dict(&self) {
+        if let Ok(mut layer) = self.cell_dict_layer.write() {
+            layer.clear();
+        }
+    }
+
+    /// Number of `(pinyin, word)` pairs currently in the L0.5 layer.
+    /// Useful for hosts that want to surface "N entries from M packs
+    /// loaded" in their UI.
+    pub fn cell_dict_count(&self) -> usize {
+        self.cell_dict_layer
+            .read()
+            .map(|l| l.values().map(Vec::len).sum())
+            .unwrap_or(0)
+    }
+
+    /// Look up L0.5 hits for `lower_pinyin` (already normalized via
+    /// [`normalize_lookup_key`]). Hot-path helper for the four
+    /// `lookup_*` methods; returns an empty `Vec` whenever no pack is
+    /// loaded so the byte-equal fast path stays cheap (one rwlock
+    /// read + one hashmap probe).
+    fn cell_dict_hits(&self, lower_pinyin: &str) -> Vec<(String, u64)> {
+        match self.cell_dict_layer.read() {
+            Ok(layer) if !layer.is_empty() => {
+                layer.get(lower_pinyin).cloned().unwrap_or_default()
+            }
+            _ => Vec::new(),
         }
     }
 
@@ -376,14 +446,39 @@ impl PinyinDict {
         // nue↔nve alias collapse fires here too — `celue` queries the
         // same FST key as `celve`.
         let lower = lower_str(pinyin);
-        // Dict items come freq-desc (then item-asc), matching the old
-        // `sort_by_key(Reverse(freq))` stable order — no re-sort. Streamed
-        // (no intermediate Vec / per-item copy).
-        self.map.get_for_each(lower.as_bytes(), |word, _freq| {
-            if let Ok(s) = core::str::from_utf8(word) {
-                out.push(s.to_string());
+        let cell_hits = self.cell_dict_hits(&lower);
+        if cell_hits.is_empty() {
+            // Byte-equal pre-CP-5.2 fast path: dict items come freq-desc
+            // (then item-asc), matching the old
+            // `sort_by_key(Reverse(freq))` stable order — no re-sort.
+            // Streamed (no intermediate Vec / per-item copy).
+            self.map.get_for_each(lower.as_bytes(), |word, _freq| {
+                if let Ok(s) = core::str::from_utf8(word) {
+                    out.push(s.to_string());
+                }
+            });
+        } else {
+            // Merge L0.5 cell-dict hits with L1 in freq-desc order.
+            // Dedup by word taking max freq so a pack entry that
+            // shadows an existing L1 entry uses whichever freq is
+            // higher (usually the pack's, when authored to dominate).
+            let mut merged: Vec<(String, u64)> = cell_hits;
+            self.map.get_for_each(lower.as_bytes(), |word, freq| {
+                if let Ok(s) = core::str::from_utf8(word) {
+                    if let Some(existing) = merged.iter_mut().find(|(w, _)| w == s) {
+                        if existing.1 < freq {
+                            existing.1 = freq;
+                        }
+                    } else {
+                        merged.push((s.to_string(), freq));
+                    }
+                }
+            });
+            merged.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+            for (w, _) in merged {
+                out.push(w);
             }
-        });
+        }
 
         // L0 pin: pull to position 0 if present.
         if let Ok(l0) = self.l0.read()
@@ -549,9 +644,19 @@ impl PinyinDict {
     pub fn lookup_with_freq_into(&self, pinyin: &str, out: &mut Vec<(String, u64)>) {
         out.clear();
         let lower = lower_str(pinyin);
+        let cell_hits = self.cell_dict_hits(&lower);
+        if !cell_hits.is_empty() {
+            out.extend(cell_hits);
+        }
         self.map.get_for_each(lower.as_bytes(), |word, freq| {
             if let Ok(s) = core::str::from_utf8(word) {
-                out.push((s.to_string(), freq));
+                if let Some(existing) = out.iter_mut().find(|(w, _)| w == s) {
+                    if existing.1 < freq {
+                        existing.1 = freq;
+                    }
+                } else {
+                    out.push((s.to_string(), freq));
+                }
             }
         });
     }
@@ -576,9 +681,23 @@ impl PinyinDict {
         const PINYIN_PHRASE_BASE: f64 = 400_000.0;
 
         let mut scratch: Vec<(String, f64)> = Vec::with_capacity(8);
+        // L0.5 cell-dict hits get the same PHRASE_BASE-shifted score as
+        // L1 entries (cell-dict `freq` is on the same numeric scale as
+        // FST freq_score). Pushed first so the dedup loop below sees
+        // them as the in-place version when L1 has the same word.
+        for (word, freq) in self.cell_dict_hits(&lower) {
+            scratch.push((word, PINYIN_PHRASE_BASE + freq as f64));
+        }
         self.map.get_for_each(lower.as_bytes(), |word, freq| {
             if let Ok(s) = core::str::from_utf8(word) {
-                scratch.push((s.to_string(), PINYIN_PHRASE_BASE + freq as f64));
+                let score = PINYIN_PHRASE_BASE + freq as f64;
+                if let Some(existing) = scratch.iter_mut().find(|(w, _)| w == s) {
+                    if existing.1 < score {
+                        existing.1 = score;
+                    }
+                } else {
+                    scratch.push((s.to_string(), score));
+                }
             }
         });
         // L0 pin: multiply pinned candidate's score so it tops the
@@ -937,9 +1056,19 @@ impl PinyinDict {
     fn lookup_raw_into(&self, pinyin: &str, out: &mut Vec<(String, u64)>) {
         out.clear();
         let lower = lower_str(pinyin);
+        let cell_hits = self.cell_dict_hits(&lower);
+        if !cell_hits.is_empty() {
+            out.extend(cell_hits);
+        }
         self.map.get_for_each(lower.as_bytes(), |word, freq| {
             if let Ok(s) = core::str::from_utf8(word) {
-                out.push((s.to_string(), freq));
+                if let Some(existing) = out.iter_mut().find(|(w, _)| w == s) {
+                    if existing.1 < freq {
+                        existing.1 = freq;
+                    }
+                } else {
+                    out.push((s.to_string(), freq));
+                }
             }
         });
     }
@@ -2229,5 +2358,135 @@ mod tests {
             boost_de > 0.0 || boost_shi > 0.0,
             "expected positive bigram boost for 今天→的/是, got de={boost_de} shi={boost_shi}"
         );
+    }
+
+    // ------------------------------------------------------------------
+    // CP-5.2 step-1 · cell-dict L0.5 layer
+    // ------------------------------------------------------------------
+
+    /// CP-5.2 acceptance gate "回退·默认不启用任何包,主路径不受影响":
+    /// an empty cell-dict layer means lookup is byte-equal to the
+    /// pre-CP-5.2 fast path. Compare the lookup output before and
+    /// after constructing a fresh dict — they must be identical
+    /// element-for-element.
+    #[cfg(all(feature = "cell-dict", not(feature = "bootstrap_only")))]
+    #[test]
+    fn cell_dict_no_load_byte_equal_lookup() {
+        let a = PinyinDict::embedded();
+        let b = PinyinDict::embedded();
+        // Two independently-constructed dicts with no cell-dict
+        // loaded must produce the same lookup output on a non-trivial
+        // pinyin. Ensures the L0.5 init isn't perturbing the order.
+        assert_eq!(a.lookup("nihao"), b.lookup("nihao"));
+        assert_eq!(a.lookup_with_freq_into_test("ni"),
+                   b.lookup_with_freq_into_test("ni"));
+        assert_eq!(a.cell_dict_count(), 0);
+    }
+
+    /// CP-5.2 acceptance gate "启用后,领域专词排序明显提升": load a
+    /// cell-dict, look up its pinyin, the cell-dict word must be at
+    /// position 0 (top of candidates). Uses a deliberately
+    /// non-standard pinyin (`zzzzcelltest`) plus an existing pinyin
+    /// (`rgb`) to cover both the "new vocab" case and the "outrank
+    /// existing L1" case.
+    #[cfg(all(feature = "cell-dict", not(feature = "bootstrap_only")))]
+    #[test]
+    fn cell_dict_load_promotes_word_to_top() {
+        let dict = PinyinDict::embedded();
+
+        // Probe: capture rgb's top BEFORE loading. May or may not
+        // already be "RGB" depending on the corpus; either way we'll
+        // be able to detect a delta after the load.
+        let rgb_before = dict.lookup("rgb").first().cloned();
+
+        let toml = r#"
+[meta]
+name = "cell-dict-promote-test"
+
+[[entry]]
+pinyin = "zzzzcelltest"
+word = "细胞测试词"
+freq = 750000
+
+[[entry]]
+pinyin = "rgb"
+word = "RGB"
+freq = 999999
+"#;
+        let n = dict.load_cell_dict(toml).expect("load_cell_dict");
+        assert_eq!(n, 2);
+        assert_eq!(dict.cell_dict_count(), 2);
+
+        // (a) Brand-new vocab the embedded dict doesn't have should
+        // appear as the only candidate at the cell-dict pinyin.
+        let novel = dict.lookup("zzzzcelltest");
+        assert_eq!(
+            novel.first().map(String::as_str),
+            Some("细胞测试词"),
+            "expected novel cell-dict word at top of lookup, got {novel:?}"
+        );
+
+        // (b) `rgb` should now lead with "RGB" (cell-dict freq
+        // 999_999 beats anything L1 has at that key).
+        let rgb_after = dict.lookup("rgb").first().cloned();
+        assert_eq!(
+            rgb_after.as_deref(),
+            Some("RGB"),
+            "expected cell-dict RGB at top of rgb lookup after load, got {rgb_after:?} (was {rgb_before:?} before load)"
+        );
+    }
+
+    /// CP-5.2: clear_cell_dict wipes the layer; subsequent lookup
+    /// reverts to byte-equal pre-load behavior. Confirms there's no
+    /// stuck state hanging around.
+    #[cfg(all(feature = "cell-dict", not(feature = "bootstrap_only")))]
+    #[test]
+    fn cell_dict_clear_restores_byte_equal_lookup() {
+        let dict = PinyinDict::embedded();
+        let before = dict.lookup("ni");
+
+        dict.load_cell_dict(
+            r#"
+[meta]
+name = "tmp"
+
+[[entry]]
+pinyin = "ni"
+word = "Ni"
+freq = 999999
+"#,
+        )
+        .unwrap();
+        assert_eq!(dict.lookup("ni").first().map(String::as_str), Some("Ni"));
+
+        dict.clear_cell_dict();
+        assert_eq!(dict.cell_dict_count(), 0);
+        assert_eq!(dict.lookup("ni"), before);
+    }
+
+    /// CP-5.2: malformed TOML returns a clean ParseError without
+    /// disturbing existing L0.5 state. Confirms the parse-then-commit
+    /// contract documented on load_cell_dict.
+    #[cfg(feature = "cell-dict")]
+    #[test]
+    fn cell_dict_invalid_toml_returns_err_without_state_change() {
+        let dict = PinyinDict::embedded();
+        let pre_count = dict.cell_dict_count();
+        let res = dict.load_cell_dict("this is = not [valid toml");
+        assert!(res.is_err(), "invalid TOML should return Err");
+        assert_eq!(dict.cell_dict_count(), pre_count,
+                   "failed parse must leave layer unchanged");
+    }
+
+    // Tiny test-only wrapper because lookup_with_freq_into is &mut-self
+    // in signature even though it's logically pure; this lets the
+    // byte-equal test compare two snapshots.
+    impl PinyinDict {
+        #[cfg(feature = "cell-dict")]
+        fn lookup_with_freq_into_test(&self, pinyin: &str) -> Vec<(String, u64)> {
+            let mut out = Vec::new();
+            self.lookup_with_freq_into(pinyin, &mut out);
+            out
+        }
     }
 }

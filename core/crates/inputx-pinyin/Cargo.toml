@@ -77,7 +77,7 @@ name = "lookup"
 harness = false
 
 [features]
-default = ["bigrams", "trigrams"]
+default = ["bigrams", "trigrams", "cell-dict"]
 # v1.4.7 sub-phase B: opt-in feature flags for the bigrams / trigrams
 # data stones. Both default-on so consumers writing `inputx-pinyin =
 # "1.4"` get the full historical engine surface (bigram boost +
@@ -92,6 +92,15 @@ kenlm = ["dep:kenlm-rs"]
 # Maintainer-only tools (`pinyin-build-dict`, `pinyin-build-ngrams-fsa`).
 # Library consumers don't need this.
 tools = [
+    "dep:toml",
+    "dep:serde",
+]
+# Phase-5 CP-5.2: user-installable cell-dict packs (domain vocab —
+# IT, finance, medical, etc.). Pulls in toml + serde for the runtime
+# loader. Default-on so the typical Inputx host build accepts
+# `pinyin.load_cell_dict(toml_bytes)` out of the box; turn off via
+# `default-features = false` for size-sensitive WASM / bootstrap builds.
+cell-dict = [
     "dep:toml",
     "dep:serde",
 ]
