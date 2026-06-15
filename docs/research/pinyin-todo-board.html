@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-5.1 step-1 done · trigram trained · trie binary 2.7 GB</span>
-      <span><b>active</b> Phase 5 · CP-5.1 step-2(Viterbi DP 扩 prev_prev + scoring 接入 · 多 turn)</span>
+      <span><b>last update</b> 2026-06-16 · CP-5.1 step-2 done · trigram scoring 接入 + λ_3 sweep (sweet 1.0) + full 50k verify · +0.04pp marginal lift · 累计 +2.88pp</span>
+      <span><b>active</b> Phase 5 · CP-5.2 细胞词库 schema + 示范包(或 CP-5.3 typo edge / CP-5.4 长简拼 按需挑做)</span>
     </div>
   </div>
 </div>
@@ -220,7 +220,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 5 · CP-5.1 step-2(Viterbi DP 扩 prev_prev state + dict.rs trigram_lm_bonus + λ_3 sweep + MIU verify · 多 turn 工程)</kbd><br>
+  <strong>当前 active</strong>:<kbd>Phase 5 · CP-5.2 细胞词库 schema + 示范包(或 CP-5.3 typo edge / CP-5.4 长简拼 按需挑做)</kbd><br>
   <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 收官(6/7 done)</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成 → λ*=1.0 sweep 入 const · <strong>CP-2.7 skipped</strong>(MIU 集 0.1% 短 buffer 不可测 + wrong-reading safeguard 冲突)。<br>
   <strong>LM 实测 lift</strong>(λ=1.0 · full 50k):overall +0.76pp · gold +0.90pp · silver +0.75pp · polyphone +0.72pp · 累计 <strong>0.73% → 3.57%(+2.84pp · ~4.9× 提升)</strong>。<br>
   <strong>Phase 2 末决策</strong>:不触发回退;自决修订验收门 ≥5% → ≥2.5pp · 接 Phase 3 联合 lattice(预期补足 +2-3pp cumulative)
@@ -1564,39 +1564,49 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <span class="badge">▶ IN PROGRESS</span>
   </div>
 
-  <!-- ===== CP-5.1 step-1 ===== -->
-  <div class="cp" data-status="inprog" data-cp="5.1">
+  <!-- ===== CP-5.1 step-1 + step-2 ===== -->
+  <div class="cp" data-status="done" data-cp="5.1">
     <div class="cp-head" onclick="toggleCp(this)">
       <div class="cp-head-left">
-        <div class="cp-id">CP-5.1 · step-1</div>
-        <div class="cp-title">trigram LM step-1:训练 + binary + smoke query · scoring 接入 step-2 deferred</div>
+        <div class="cp-id">CP-5.1 · step-1+2</div>
+        <div class="cp-title">trigram LM:训练 + binary + smoke + scoring 接入 + λ_3 sweep + MIU verify</div>
       </div>
       <div class="cp-head-right">
-        <span class="cp-progress"><b class="done-count">3</b>/<b class="total-count">6</b></span>
-        <span class="cp-status-tag">inprog</span>
+        <span class="cp-progress"><b class="done-count">6</b>/<b class="total-count">6</b></span>
+        <span class="cp-status-tag">done</span>
       </div>
     </div>
     <div class="cp-body">
       <div class="cp-meta-row">
         <span>前置 · Phase 4 末决策(self-close)</span>
-        <span>状态 · step-1 done · step-2 deferred</span>
-        <span>回退 · λ_3 = 0(留 bigram)· 当前未接入,无副作用</span>
+        <span>状态 · step-1 ✓ · step-2 ✓ (MIU lift gate failed)</span>
+        <span>回退 · 取消 PINYIN_LM_BINARY 或换 bigram.binary · 默认 PINYIN_LM_BINARY 未设 → 完全 byte-equal Phase 2 末</span>
       </div>
       <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">
         ⚠ <strong>CP-5.1 拆 2 step</strong>:climb plan 原 task 2 周(trigram 训练 + lattice 评分接入 + λ sweep + MIU ≥ 3% verify)1 turn 做不完。<br>
-        <strong>step-1(此 turn done)</strong>:trigram model 训练 + trie binary + smoke query verify order=3。<br>
-        <strong>step-2(deferred)</strong>:Viterbi DP 状态扩 prev_prev word · dict.rs::bigram_lm_bonus 改 trigram-aware 或新 trigram_lm_bonus method · KenLM Rust binding 已支持(Model::order)· λ_3 sweep · MIU ≥ 3% verify。架构改动:Viterbi 现 state = `(score, last_word)`,trigram 需 `(score, last_word, prev_last_word)`,DP 转移 O(N × V²) → O(N × V³)。
+        <strong>step-1(2026-06-15 done)</strong>:trigram model 训练 + trie binary + smoke query verify order=3。<br>
+        <strong>step-2(2026-06-16 done)</strong>:<code>LmBackend::log_prob_trigram</code> + <code>order()</code> 加 trait method · KenLM 实现 3-state base_score chain · <code>PinyinDict::lm_bonus(prev_prev, prev, curr)</code> 统一入口(order&lt;3 委托 bigram_lm_bonus byte-equal;order≥3 走 trigram + bigram backoff,λ_3 × LM_SCALE 单一缩放)· best_composition + best_composition_chain DP 不扩 tuple,直接 hop 一格读 grandparent (dp[prev_entry.1].2) · λ_3 sweep gold-only ∈ {0.1, 0.3, 0.5, 1.0, 1.2, 1.5, 2.0, 3.0} · sweet spot λ_3 = 1.0 · full 50k verify
       </div>
 
       <div class="task-group">
-        <div class="task-group-head">动作 · step-1 do(此 turn)</div>
+        <div class="task-group-head">动作 · step-1(2026-06-15)</div>
         <ul class="tasks">
           <li class="task" data-status="done"><span class="box"></span><span class="body"><code>lmplz -o 3 --prune 0 0 0 &lt; cleaned.txt &gt; trigram.arpa</code><span class="hint"><strong>4 min</strong>(245s)· modified Kneser-Ney 默认 · D 系数:bigram D1=0.69 D2=1.08 D3+=1.42;trigram D1=0.78 D2=1.16 D3+=1.41 · ARPA 10 GB</span></span></li>
           <li class="task" data-status="done"><span class="box"></span><span class="body"><code>build_binary trie trigram.arpa trigram.binary</code><span class="hint">trie 无 quantization · binary <strong>2.7 GB</strong>(climb plan 估 5 GB · 实际更紧凑)· 加载 ~240ms(2.7 GB mmap)</span></span></li>
           <li class="task" data-status="done"><span class="box"></span><span class="body">smoke query 验证 trigram order<span class="hint">"我 是 中国 人" total -8.35 · 人 在 trigram context "是 中国 人" → -1.60(比 bigram "中国 人" -1.98 更精) · order=3 verified</span></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">dict.rs trigram_lm_bonus method(需 prev_prev word)<span class="hint">deferred to step-2</span></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">Viterbi DP 扩 prev_prev state(架构改)<span class="hint">deferred to step-2 · O(N × V²) → O(N × V³)</span></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">λ_3 sweep + MIU ≥ 3% verify<span class="hint">deferred to step-2</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · step-2(2026-06-16)</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">LmBackend trait 加 <code>log_prob_trigram</code> + <code>order()</code> + NoopLm 实现<span class="hint">bigram_lm.rs · default log_prob_trigram 委托 log_prob(prev, curr),order() default = 2 — bigram backend 不需要覆写就 OK</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">KenLmBackend 加 trigram base_score chain<span class="hint">null → pp → prev → curr 三段 base_score · state_after_prev 编码 (pp, prev) context · log P(curr | pp, prev) 走模型自带 KN backoff</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">PinyinDict 加 <code>lm_bonus(prev_prev, prev, curr)</code> + <code>trigram_lm_lambda()</code> env<span class="hint">PINYIN_LM_TRIGRAM_LAMBDA default 0.3 · order&lt;3 → delegate bigram_lm_bonus (byte-equal) · order≥3 → 单 λ_3 缩放 trigram(无 grandparent 走 model 的 bigram backoff)+ user-bigram 插值 + cold-start guard</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">best_composition / best_composition_chain DP 接 lm_bonus · 不扩 DP tuple<span class="hint">grandparent = dp[prev_entry.1].2 一格 hop · use_trigram = self.lm_order() &gt;= 3 决定是否求 grandparent · O(N × V²) 不变(避免 climb plan 估的 O(N × V³))</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">unit test 验证 trigram path 在 DP 内 fires<span class="hint">dict::tests::trigram_path_fires_in_dp_state(ignored · 需 trigram.binary + PINYIN_LM_BINARY)· lm_order()==3 + lm_bonus(None, p, c) ≠ lm_bonus(Some(pp), p, c) · 数值 -24862 vs -25470 · 防 silently dropping prev_prev arg 的回归</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">λ_3 sweep ∈ {0.1, 0.3, 0.5, 1.0, 1.2, 1.5, 2.0, 3.0} · sweet spot λ_3=1.0<span class="hint">tools/eval/results/lm_trigram_lambda_sweep.tsv · 同 Phase-2 bigram 的 sweep 形状 · λ_3 ∈ [1.0, 2.0] gold flat 4.30(trigram-specific 在 3rd+ edge 才 fire,MIU 集 typical 1-2 syllable span 很少触发)· λ_3=3.0 overshoot 3.30%</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">full 50k verify at λ_3=1.0<span class="hint">overall 3.61% / gold 4.30% / silver 3.59% / polyphone 3.32% · vs bigram baseline overall 3.57% = <strong>+0.04pp marginal lift</strong> · vs post_compose overall 2.81% = +0.79pp 累计</span></span></li>
         </ul>
       </div>
 
@@ -1610,7 +1620,16 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
         </ul>
       </div>
 
-      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-5.1 step-1 done · trigram model trained + binary built + smoke query verified order=3 · 接 step-2(Viterbi state 扩 + scoring 接入 + MIU verify · 多 turn 工程)· 累计 MIU 仍 +2.84pp(step-1 是 infrastructure,未接入 scoring)</div></div>
+      <div class="task-group">
+        <div class="task-group-head">step-2 验收门 honesty</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">climb plan 原 gate "Top-1 MIU 相对 Phase 4 末 ≥ +3pp (累计 ≥ 5.84pp)" — <strong>未达成</strong></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">实际 lift +0.04pp overall · 0.00pp gold · 累计 +2.88pp(baseline 0.73% → 3.61%)<span class="hint">trigram path mathematically 正确 + 单测证 fires · MIU set 3+ syllable phrase 太少不足以撬动 — Phase 5 errata "末 累计 &lt; 6pp 触发 reclean (回 CP-2.2)" candidate · 决策延到 Phase 5 末 CP-5.2/3/4 lot 跑完再评估</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">默认 PINYIN_LM_BINARY 未设 → 完全 byte-equal Phase 2 末<span class="hint">production 行为不动 · daily-use mac IME 仍走 bigram(env 决定)· 验证:full 50k bigram baseline = overall 3.57% / gold 4.30%(与 Phase 2 末 数字完全一致)</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-5.1 step-2 done · trigram scoring 全链 wired(trait + KenLM + DP + sweep + verify)· sweet spot λ_3=1.0 · 累计 MIU 0.73% → 3.61%(+2.88pp · vs Phase 4 末 +0.04pp 极轻微 lift)· 验收门 +3pp gate 未达成 · 诚实记录 · trigram 在该 MIU 集 3+ syllable rare 不足以撬动 · Phase 5 末 reclean 候选 · default 行为 byte-equal Phase 2 末</div></div>
     </div>
   </div>
 

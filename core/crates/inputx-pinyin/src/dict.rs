@@ -75,6 +75,28 @@ fn user_lm_lambda() -> f64 {
 /// the climb-plan-tuned `user_lm_lambda` applies.
 const USER_LM_COLD_START_THRESHOLD: u64 = 100;
 
+/// Phase-5 CP-5.1 step-2 trigram LM mixing weight read from env
+/// `PINYIN_LM_TRIGRAM_LAMBDA` on first call and cached. Default 0.3,
+/// the climb-plan starting point — actual sweet spot lands in the
+/// CP-5.1 step-2 sweep on top of the trigram.binary model.
+///
+/// Like [`lm_lambda`], a value of 0 disables the trigram LM
+/// contribution entirely while keeping the model loaded; useful for
+/// byte-equal regression testing without rebuilding the binary.
+///
+/// Only consulted when `self.lm.order() >= 3` — bigram-only models
+/// stay on the Phase-2 λ knob.
+fn trigram_lm_lambda() -> f64 {
+    const TRIGRAM_LM_LAMBDA_DEFAULT: f64 = 0.3;
+    static CACHED: OnceLock<f64> = OnceLock::new();
+    *CACHED.get_or_init(|| {
+        std::env::var("PINYIN_LM_TRIGRAM_LAMBDA")
+            .ok()
+            .and_then(|s| s.parse::<f64>().ok())
+            .unwrap_or(TRIGRAM_LM_LAMBDA_DEFAULT)
+    })
+}
+
 // Default = full pinyin dict from the committed `data/pinyin.dict` (3.9 MB,
 // an `inputx-fsa` two-level Dict pre-built by `tools/build_dict.rs` from
 // `data/weights/weights.tsv` — maintainer regenerates after data changes;
@@ -623,6 +645,12 @@ impl PinyinDict {
         if !(MIN_LEN..=MAX_LEN).contains(&n) {
             return None;
         }
+        // Phase-5 CP-5.1 step-2: when an order-3 LM is attached, the DP
+        // step asks for grandparent context too. We don't widen the DP
+        // tuple — `dp[j].1` already records the position we came from
+        // when choosing dp[j].2; `dp[dp[j].1].2` is the grandparent
+        // word. One extra hop, no extra state.
+        let use_trigram = self.lm_order() >= 3;
         let mut dp: Vec<Option<(f64, usize, String)>> = vec![None; n + 1];
         dp[0] = Some((0.0, 0, String::new()));
         let mut scratch: Vec<(String, u64)> = Vec::new();
@@ -641,6 +669,16 @@ impl PinyinDict {
                 if scratch.is_empty() {
                     continue;
                 }
+                // Resolve grandparent word once per (i, j) — it only
+                // depends on dp[prev_entry.1] and doesn't change across
+                // candidates of this segment.
+                let prev_prev_word_opt: Option<String> = if use_trigram && prev_entry.1 != 0 {
+                    dp[prev_entry.1].as_ref().and_then(|e| {
+                        if e.2.is_empty() { None } else { Some(e.2.clone()) }
+                    })
+                } else {
+                    None
+                };
                 for (word, raw_freq) in scratch.iter() {
                     let prev_word_opt = if prev_entry.2.is_empty() {
                         None
@@ -648,7 +686,7 @@ impl PinyinDict {
                         Some(prev_entry.2.as_str())
                     };
                     let bonus = self.bigram_boost(prev_word_opt, word)
-                        + self.bigram_lm_bonus(prev_word_opt, word);
+                        + self.lm_bonus(prev_prev_word_opt.as_deref(), prev_word_opt, word);
                     let step_score = (*raw_freq as f64) + bonus - STEP_PENALTY;
                     let total = prev_entry.0 + step_score;
                     let dp_better = match dp[i].as_ref() {
@@ -709,6 +747,11 @@ impl PinyinDict {
         if !(MIN_LEN..=MAX_LEN).contains(&n) {
             return None;
         }
+        // Phase-5 CP-5.1 step-2: same trigram extension as
+        // [`Self::best_composition_chain`] — read grandparent word from
+        // dp[prev_entry.1] without widening the DP tuple. Falls back to
+        // bigram path when no order-3 LM is attached.
+        let use_trigram = self.lm_order() >= 3;
         // Pinyin is always ASCII, so byte indexing is safe.
         // dp[i] = (best_cumulative_score, prev_position, chosen_word_at_this_step)
         // dp[0] is the start sentinel with empty chosen word.
@@ -731,6 +774,13 @@ impl PinyinDict {
                 if scratch.is_empty() {
                     continue;
                 }
+                let prev_prev_word_opt: Option<String> = if use_trigram && prev_entry.1 != 0 {
+                    dp[prev_entry.1].as_ref().and_then(|e| {
+                        if e.2.is_empty() { None } else { Some(e.2.clone()) }
+                    })
+                } else {
+                    None
+                };
                 for (word, raw_freq) in scratch.iter() {
                     let prev_word_opt = if prev_entry.2.is_empty() {
                         None
@@ -738,7 +788,7 @@ impl PinyinDict {
                         Some(prev_entry.2.as_str())
                     };
                     let bonus = self.bigram_boost(prev_word_opt, word)
-                        + self.bigram_lm_bonus(prev_word_opt, word);
+                        + self.lm_bonus(prev_prev_word_opt.as_deref(), prev_word_opt, word);
                     let step_score = (*raw_freq as f64) + bonus - STEP_PENALTY;
                     let total = prev_entry.0 + step_score;
                     let dp_better = match dp[i].as_ref() {
@@ -1190,6 +1240,125 @@ impl PinyinDict {
         LM_SCALE * lambda_system * mixed
     }
 
+    /// Phase-5 CP-5.1 step-2 unified LM scoring entry point. Routes by
+    /// the attached LM's reported order:
+    ///   - no LM, order ≤ 2, or `prev_prev` unknown → delegates to
+    ///     [`Self::bigram_lm_bonus`] verbatim (bigram path stays
+    ///     byte-equal for production rollback).
+    ///   - order ≥ 3 with both `prev_prev` and `prev` available →
+    ///     computes the trigram score using
+    ///     [`crate::bigram_lm::LmBackend::log_prob_trigram`], scaled by
+    ///     [`trigram_lm_lambda`], interpolated against the user bigram
+    ///     (same `λ_u` mass-shift as the bigram path — there is no
+    ///     user trigram in Phase 4/5; the user contribution stays a
+    ///     bigram conditioned on `prev`).
+    ///
+    /// First-edge / second-edge transitions where `prev_prev` is
+    /// `None` always fall back to the bigram bonus — there is no
+    /// grandparent context to condition on. The DP that drives this
+    /// only starts producing trigram contexts at step 3, matching the
+    /// climb-plan O(N×V²) → O(N×V³) state extension.
+    pub fn lm_bonus(
+        &self,
+        prev_prev: Option<&str>,
+        prev: Option<&str>,
+        curr: &str,
+    ) -> f64 {
+        // ── Order-2 path: keep Phase-2's λ_system × log_prob bigram bonus
+        // verbatim, including the prev_prev signal being silently
+        // discarded (a bigram model has no use for it). This preserves
+        // byte-equal behavior for any bigram-only PINYIN_LM_BINARY.
+        let order = self.lm_order();
+        if order < 3 {
+            return self.bigram_lm_bonus(prev, curr);
+        }
+        // ── Order-3 path: SCORE THE WHOLE DP WITH λ_3 × trigram (with
+        // bigram back-off when no grandparent yet). Avoiding the λ
+        // mix-and-match the previous draft had — first edges would
+        // have been scored by λ_system × log_prob(prev,curr), middle
+        // edges by λ_3 × log_prob_trigram, giving two scoring
+        // regimes inside one DP path.
+        let Some(p) = prev else {
+            // First edge of a path has no LM context regardless of order.
+            return 0.0;
+        };
+        if p.is_empty() || curr.is_empty() {
+            return 0.0;
+        }
+
+        const LM_SCALE: f64 = 10_000.0;
+        let lambda_3 = trigram_lm_lambda();
+        if lambda_3 == 0.0 {
+            return 0.0;
+        }
+
+        // ── Cold-start guard for the user-bigram interpolation ────
+        // Same threshold as bigram_lm_bonus: until the user has
+        // committed ≥USER_LM_COLD_START_THRESHOLD bigram observations
+        // the user term is held at 0 so the system trigram speaks alone.
+        let user_total: u64 = self
+            .l0
+            .read()
+            .map(|l0| l0.user_bigram.values().map(|c| *c as u64).sum())
+            .unwrap_or(0);
+        let lambda_u_raw = user_lm_lambda();
+        let lambda_u = if user_total < USER_LM_COLD_START_THRESHOLD {
+            0.0
+        } else {
+            lambda_u_raw.clamp(0.0, 1.0)
+        };
+
+        // ── System component ──────────────────────────────────────
+        // With grandparent: full trigram via log_prob_trigram. Without
+        // grandparent (path's 2nd edge): bigram back-off from the
+        // SAME trigram binary — that's what the trigram model's
+        // Kneser-Ney back-off returns for an order-1 context.
+        let log_p_system = match self.lm.as_ref() {
+            Some(lm) if lm.enabled() => {
+                let p_score = match prev_prev {
+                    Some(pp) if !pp.is_empty() => lm.log_prob_trigram(pp, p, curr),
+                    _ => lm.log_prob(p, curr),
+                };
+                if p_score.is_finite() {
+                    p_score as f64
+                } else {
+                    // OOV: skip the LM contribution rather than
+                    // tanking the path. The path still pays the
+                    // bigram_boost / freq components from the DP step.
+                    return 0.0;
+                }
+            }
+            _ => 0.0,
+        };
+
+        // ── User component (still bigram — Phase 4 only has user-bigram) ──
+        let log_p_user = if lambda_u == 0.0 {
+            0.0
+        } else {
+            let u = self
+                .l0
+                .read()
+                .map(|l0| l0.log_p_user(p, curr) as f64)
+                .unwrap_or(0.0);
+            if u < -50.0 { 0.0 } else { u }
+        };
+
+        let mixed = (1.0 - lambda_u) * log_p_system + lambda_u * log_p_user;
+        LM_SCALE * lambda_3 * mixed
+    }
+
+    /// Cached LM order from the attached backend. Returns 0 when no
+    /// LM is attached or it reports `enabled() == false`. Callers
+    /// (Viterbi DP) use this to decide whether to extend the per-cell
+    /// state with a `prev_prev` slot.
+    pub fn lm_order(&self) -> u8 {
+        self.lm
+            .as_ref()
+            .filter(|lm| lm.enabled())
+            .map(|lm| lm.order())
+            .unwrap_or(0)
+    }
+
     /// Look up the user-pinned word for a given pinyin code, if any.
     /// Composite hosts use this to apply cross-engine pin promotion —
     /// e.g. if the user pinned pinyin `jixu → 继续`, the merged
@@ -1353,6 +1522,57 @@ mod tests {
     fn embedded_loads() {
         let d = PinyinDict::embedded();
         assert!(d.len() >= 50, "bootstrap should have at least 50 entries");
+    }
+
+    /// CP-5.1 step-2 sanity: with `PINYIN_LM_BINARY` pointing at
+    /// `trigram.binary`, `lm_order()` reports 3 and `lm_bonus` produces
+    /// a numerically different result from `bigram_lm_bonus` when a
+    /// grandparent is supplied. Skipped by default (needs the 2.7 GB
+    /// trigram model on disk + the `kenlm` feature).
+    #[cfg(all(not(feature = "bootstrap_only"), feature = "kenlm"))]
+    #[test]
+    #[ignore = "needs trigram.binary + PINYIN_LM_BINARY env; run with --ignored"]
+    fn trigram_path_fires_in_dp_state() {
+        // SAFETY: setting an env var inside a single-threaded test
+        // before the dict reads it. Acceptable for an ignored manual
+        // probe — not the kind of thing we'd ever leave on by default.
+        let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../tools/scoring/09_bigram_lm/data/trigram.binary");
+        let path_str = path.to_str().unwrap();
+        unsafe {
+            std::env::set_var("PINYIN_LM_BINARY", path_str);
+            std::env::set_var("PINYIN_LM_TRIGRAM_LAMBDA", "1.0");
+        }
+        let dict = PinyinDict::embedded().with_lm_from_env();
+        assert_eq!(
+            dict.lm_order(), 3,
+            "trigram.binary should report order=3"
+        );
+
+        // Bigram contribution: P(中国 | 是) ~ -2 ish, scaled.
+        let bonus_bigram = dict.lm_bonus(None, Some("是"), "中国");
+        // Trigram contribution: P(中国 | 我, 是) — different number.
+        let bonus_trigram = dict.lm_bonus(Some("我"), Some("是"), "中国");
+
+        assert!(
+            bonus_bigram.is_finite() && bonus_trigram.is_finite(),
+            "both LM bonuses must be finite: bigram={bonus_bigram}, trigram={bonus_trigram}"
+        );
+        // Numeric reference from one good local probe (2026-06-15,
+        // trigram.binary post-CP-5.1 step-1):
+        //   bigram  log P(中国 | 是)    × LM_SCALE × λ_3 ≈ -24862
+        //   trigram log P(中国 | 我, 是) × LM_SCALE × λ_3 ≈ -25470
+        // The trigram is slightly less likely than the bigram in this
+        // chain ("我是" usually leads to "中国人" not just "中国"),
+        // so the trigram bonus is MORE negative. The point of this
+        // probe is just to assert the DP is actually consuming the
+        // grandparent — if `lm_bonus` silently dropped prev_prev, the
+        // two numbers would be byte-equal.
+        assert!(
+            bonus_bigram != bonus_trigram,
+            "trigram bonus ({bonus_trigram}) must differ from bigram bonus ({bonus_bigram}); \
+             if equal, the DP is silently dropping the prev_prev arg"
+        );
     }
 
     /// Standing sanity gate on the SHIPPED data (full-dict builds only):
