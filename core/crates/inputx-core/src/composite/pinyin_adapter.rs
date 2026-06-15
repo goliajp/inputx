@@ -77,6 +77,23 @@ pub(crate) const PINYIN_DISABLE_ASSOCIATION: bool = false;
 pub(crate) const PINYIN_DISABLE_FUZZY: bool = false;
 pub(crate) const PINYIN_DISABLE_PREDICTION: bool = false;
 
+/// Phase-3 lattice-mode switch. When `true`, candidate generation
+/// across migrated paths goes through
+/// [`inputx_pinyin::lattice::Graph`] / [`Graph::viterbi`] instead of
+/// the historical per-path direct dict lookups.
+///
+/// CP-3.2 ships this default-false with no production wiring yet —
+/// the lattice scaffold ([`inputx_pinyin::lattice::Path1aExact`])
+/// passes the dict-set-equality unit test
+/// (`lattice::tests::path1a_exact_*`), but the actual production
+/// Path-1 lookup in `candidates()` still reads the cement IDF (the
+/// dict-vs-IDF source discrepancy is a v1.6.5 polish-time decision
+/// that the lattice migration has to resolve in CP-3.6). Flipping
+/// this const to true today is a no-op; it lives here so CP-3.3..3.5
+/// can wire each migrated path behind it incrementally.
+#[allow(dead_code)]
+pub(crate) const USE_LATTICE: bool = false;
+
 fn embedded_bigrams_table() -> &'static NgramTable<&'static [u8]> {
     static TABLE: OnceLock<NgramTable<&'static [u8]>> = OnceLock::new();
     TABLE.get_or_init(|| {

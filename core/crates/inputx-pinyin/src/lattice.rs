@@ -76,6 +76,58 @@
 
 use core::cmp::Ordering;
 
+use crate::dict::PinyinDict;
+
+/// Phase-3 path migration trait. Each historical candidate-generation
+/// path (Path 1a Exact, Path 1b Fuzzy, Path 1c Typo, Path 2 Abbrev, ...)
+/// implements this trait to populate a shared lattice with its edges.
+/// CP-3.2..3.5 add one impl at a time; CP-3.6 wires the result back
+/// into the candidate stream behind the `PINYIN_USE_LATTICE` env gate.
+///
+/// Implementors are stateless — they take the buffer, the dict (for
+/// lookup), and a mutable `Graph` to add edges into. Returning `usize`
+/// = number of edges added is for diagnostics; production code ignores
+/// it.
+pub trait PathToLattice {
+    /// Populate `graph` with all edges this path would emit for `buffer`.
+    /// Returns the number of edges added.
+    fn populate_lattice(&self, buffer: &str, dict: &PinyinDict, graph: &mut Graph) -> usize;
+}
+
+/// Phase-3 CP-3.2: Path 1a (Exact pinyin lookup) implementation.
+///
+/// For a single-syllable buffer (the simple case the migration starts
+/// with), looks every dict entry up at `(0, buf.len)` and emits an
+/// [`EdgeKind::Exact`] edge per candidate. Edge log_prob is the
+/// natural log of the dict's score (PHRASE_BASE-shifted freq, see
+/// [`PinyinDict::lookup_with_scores_into`]).
+///
+/// Multi-syllable buffers currently fall through with zero edges —
+/// segmentation lives in CP-3.6 once enough paths have migrated to
+/// make it worth wiring the segmenter into the lattice.
+pub struct Path1aExact;
+
+impl PathToLattice for Path1aExact {
+    fn populate_lattice(&self, buffer: &str, dict: &PinyinDict, graph: &mut Graph) -> usize {
+        let n = buffer.len();
+        if n == 0 {
+            return 0;
+        }
+        let mut scratch: Vec<(String, f64)> = Vec::new();
+        dict.lookup_with_scores_into(buffer, &mut scratch);
+        let mut added = 0;
+        for (word, score) in scratch {
+            // Dict score is positive (PHRASE_BASE + freq, possibly L0-
+            // boosted). Convert to log10 (negative when below 1.0 but
+            // in practice always well above 1.0 thanks to PHRASE_BASE).
+            let log_prob = (score.max(1.0) as f32).log10();
+            graph.add_edge(Edge::exact(0, n, word, log_prob));
+            added += 1;
+        }
+        added
+    }
+}
+
 /// One word (or phrase) chosen for a single edge.
 pub type Word = String;
 
@@ -434,6 +486,73 @@ mod tests {
         g.add_edge(Edge::exact(0, 4, "现", -1.0));
         let paths = g.viterbi(3, noop_lm);
         assert!(paths.is_empty());
+    }
+
+    /// CP-3.2: Path1aExact populate_lattice produces one Edge per
+    /// dict candidate for a single-syllable buffer, covering the
+    /// whole buffer span (0..n). Set of edge candidate words must
+    /// equal the set returned by lookup_with_scores_into byte-for-byte.
+    #[test]
+    fn path1a_exact_matches_dict_lookup_set() {
+        use crate::dict::PinyinDict;
+
+        let dict = PinyinDict::embedded();
+        let buf = "ni"; // single syllable
+
+        // Old path: dict lookup directly.
+        let mut scratch: Vec<(String, f64)> = Vec::new();
+        dict.lookup_with_scores_into(buf, &mut scratch);
+        let old_words: std::collections::BTreeSet<String> =
+            scratch.iter().map(|(w, _)| w.clone()).collect();
+
+        // New path: PathToLattice → Graph → enumerate edges.
+        let mut g = Graph::for_buffer(buf.len());
+        let n_added = Path1aExact.populate_lattice(buf, &dict, &mut g);
+        let new_words: std::collections::BTreeSet<String> = g
+            .edges()
+            .iter()
+            .map(|e| e.candidate.clone())
+            .collect();
+
+        assert_eq!(n_added, old_words.len(), "edge count must match dict lookup count");
+        assert_eq!(old_words, new_words, "lattice edges must cover the same candidate set as the dict lookup");
+
+        // Every edge must span the whole buffer (single-syllable case).
+        for e in g.edges() {
+            assert_eq!(e.from, 0);
+            assert_eq!(e.to, buf.len());
+            assert_eq!(e.kind, EdgeKind::Exact);
+        }
+    }
+
+    /// CP-3.2: beam-Viterbi on a single-syllable lattice must produce
+    /// the same top-K candidates the dict lookup would, in the same
+    /// order (highest score first). This is the "USE_LATTICE=true vs
+    /// false top-K diff < 5%" invariant the climb plan calls for.
+    #[test]
+    fn path1a_exact_viterbi_topk_matches_dict_topk() {
+        use crate::dict::PinyinDict;
+
+        let dict = PinyinDict::embedded();
+        let buf = "ni";
+
+        let mut scratch: Vec<(String, f64)> = Vec::new();
+        dict.lookup_with_scores_into(buf, &mut scratch);
+        // dict lookup order is FST iteration order, not score order;
+        // sort by score desc to compare against lattice viterbi top-K.
+        scratch.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
+        let top_k_dict: Vec<String> =
+            scratch.iter().take(3).map(|(w, _)| w.clone()).collect();
+
+        let mut g = Graph::for_buffer(buf.len());
+        Path1aExact.populate_lattice(buf, &dict, &mut g);
+        let paths = g.viterbi(3, |_, _| 0.0);
+        let top_k_lattice: Vec<String> = paths.iter().map(Path::sentence).collect();
+
+        assert_eq!(
+            top_k_dict, top_k_lattice,
+            "lattice viterbi top-3 must match dict-sorted-by-score top-3"
+        );
     }
 
     /// Beam pruning actually limits the partial-path explosion. Build a
