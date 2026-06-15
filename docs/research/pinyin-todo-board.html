@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-16 · CP-5.3 step-1 done · keyboard_adjacency 模块 + single_edit_neighbors helper + 11 单测 · scoring 数学独立 · 默认行为 byte-equal</span>
-      <span><b>active</b> Phase 5 · <strong>CP-5.4 step-1 (autorun 默认接续)</strong> · abbrev channel_log_prob 长度感知 + initials helper · scoring 数学独立模块 · 单 turn 可闭 · 同 CP-5.3 step-1 模式;备选 CP-5.3 step-2 / CP-5.2 step-2(均涉 lattice production wiring 或外部 corpus · 4-5 turn 大块工程)</span>
+      <span><b>last update</b> 2026-06-16 · CP-5.4 step-1 done · abbrev_channel 模块(abbrev_channel_log_prob 长度感知 + split_initials zh/ch/sh 贪心分解)+ 13 单测 · scoring 数学独立 · 默认行为 byte-equal</span>
+      <span><b>active</b> Phase 5 · 后续 step-1 类独立 scoring 模块均已就位(键盘 adjacency · cell-dict · trigram LM · abbrev length-aware)· 下一步默认进入 step-2 类 production wiring 整合大工程(CP-3.6 step-2 lattice production wiring + CP-5.3 step-2 typo edge 接入 + CP-5.4 step-2 INITIALS_INDEX 3+ 扩展 一起做,4-5 turn);备选 CP-5.2 step-2(全 pack curation 需外部 corpus)。autorun 接续等用户主动开 sprint 指明合并 step-2 还是先做别的。</span>
     </div>
   </div>
 </div>
@@ -220,7 +220,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 5 · CP-5.4 step-1(autorun 默认 · abbrev channel_log_prob + initials helper · 单 turn 可闭);备选 CP-5.3 step-2 / CP-5.2 step-2</kbd><br>
+  <strong>当前 active</strong>:<kbd>Phase 5 · step-1 类独立 scoring 模块全就位;下一默认 step-2 production wiring 整合 sprint(CP-3.6 + CP-5.3 + CP-5.4 step-2 一起,4-5 turn);备选 CP-5.2 step-2(全 pack curation 需外部 corpus)</kbd><br>
   <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 收官(6/7 done)</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成 → λ*=1.0 sweep 入 const · <strong>CP-2.7 skipped</strong>(MIU 集 0.1% 短 buffer 不可测 + wrong-reading safeguard 冲突)。<br>
   <strong>LM 实测 lift</strong>(λ=1.0 · full 50k):overall +0.76pp · gold +0.90pp · silver +0.75pp · polyphone +0.72pp · 累计 <strong>0.73% → 3.57%(+2.84pp · ~4.9× 提升)</strong>。<br>
   <strong>Phase 2 末决策</strong>:不触发回退;自决修订验收门 ≥5% → ≥2.5pp · 接 Phase 3 联合 lattice(预期补足 +2-3pp cumulative)
@@ -1730,6 +1730,54 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
       </div>
 
       <div class="cp-verdict"><div class="text"><b>verdict</b>CP-5.3 step-1 done · keyboard_adjacency 模块独立 + scoring 数学验证(11 单测全过)· production wiring + MIU verify deferred to step-2 · 默认行为 byte-equal · 模块可独立被 lattice production wiring 调用,无副作用</div></div>
+    </div>
+  </div>
+
+  <div class="cp" data-status="done" data-cp="5.4">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-5.4 · step-1</div>
+        <div class="cp-title">abbrev channel_log_prob 长度感知 + initials helper(zh/ch/sh 贪心分解)+ 单测</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">6</b>/<b class="total-count">6</b></span>
+        <span class="cp-status-tag">done</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · Phase 3 lattice scaffold + Path2Abbrev(CP-3.5 ✓ uniform channel_log_prob=-1.699)</span>
+        <span>状态 · step-1 此 turn 落地 scoring 数学独立 · step-2 deferred for INITIALS_INDEX 3+ letter 扩展 + lattice 接入 + MIU verify</span>
+        <span>回退 · 模块独立 · 不接 production · 删 mod 引用即可 · Path2Abbrev 仍走 const -1.699</span>
+      </div>
+      <div style="background:rgba(196,58,58,.08);border-left:3px solid var(--vermillion);padding:8px 12px;margin:0 0 12px;font-size:13px">
+        ⚠ <strong>CP-5.4 拆 2 step</strong>:climb plan 原 task 1-2 周(abbrev 数学 + INITIALS_INDEX 扩展 + lattice 接入 + fixture verify)1 turn 做不完。<br>
+        <strong>step-1(此 turn done)</strong>:abbrev_channel 模块 — abbrev_channel_log_prob(n_syllables) 长度感知阶梯(n=2 → -1.699 同 Path2Abbrev::DEFAULT_CHANNEL_LOG_PROB 锚定 legacy · n 增大 → less negative 因长串 abbrev specificity 更高)· split_initials(typed) 贪心 zh/ch/sh 分解 ("zhrmghg" → ["zh","r","m","g","h","g"]) · 12 单测全过(legacy_anchor / monotone / len_clamp / ladder_band / zhrmghg / single_letter / zsh_no_compound / chsh / empty / vowel_reject / non_ascii_reject / zhh_keeps_compound_then_single)。scoring 数学独立,无 production wiring,daily-use 行为不动。<br>
+        <strong>step-2(deferred)</strong>:lattice 接入 — INITIALS_INDEX 在 inputx-core 扩展支持 3+ letter 长简拼查询 · Path2Abbrev::add_edges 接 abbrev_channel_log_prob(initials.len()) 替代 const -1.699 · production wiring(CP-3.6 step-2 lot 一起做)· acceptance: "zhrmghg → 中华人民共和国" Top-3 命中 + 正常输入 false positive < 1%。
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · step-1(此 turn · inprog)</div>
+        <ul class="tasks">
+          <li class="task" data-status="done"><span class="box"></span><span class="body">abbrev_channel 模块 mod 声明 · pub mod 列入 lib.rs<span class="hint">core/crates/inputx-pinyin/src/abbrev_channel.rs · lib.rs 加 <code>pub mod abbrev_channel;</code></span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">abbrev_channel_log_prob(n_syllables) → f32<span class="hint">长度感知阶梯 · n=0 → +∞(无效)· n=1 → -2.000(1% · ambiguous 单字简拼)· n=2 → -1.699(2% · legacy Path2Abbrev::DEFAULT_CHANNEL_LOG_PROB)· n=3 → -1.301(5%)· n=4 → -1.000(10%)· n=5 → -0.699(20%)· n=6 → -0.481(33%)· n≥7 → -0.301(50%)· monotone 非递减 P</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">split_initials(typed) → Vec&lt;String&gt;<span class="hint">贪心 left-to-right 分解 vowel-free 简拼为 syllable-initial 序列 · 检 'z'/'c'/'s' + 'h' 取 compound 否则 single · 空输入 / 含 vowel(aeiouv) / 含 non-ASCII-lowercase 字符返 empty Vec · "zhrmghg" → ["zh","r","m","g","h","g"](6 syllables · 对应 中华人民共和国 6 字)</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">13 单测全过<span class="hint">legacy_anchor_at_len_2 / log_prob_monotone_non_decreasing_in_length / len_zero_returns_infinity / len_clamps_at_high_band / ladder_band_values_are_correct / split_initials_empty_inputs / split_initials_zhrmghg_decomposes_into_six_syllables / split_initials_single_letter / split_initials_zsh_no_compound_at_start / split_initials_chsh_two_compounds / split_initials_zhh_keeps_compound_then_single / split_initials_vowel_rejects / split_initials_non_ascii_rejects</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">lib test 全过 + 宪法门 session::wubi_simcode_priority 12/12<span class="hint">135 inputx-pinyin lib pass(122 + 13 new) · 宪法门 12/12 ✓</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">make eval byte-equal Phase 2 末<span class="hint">默认 features · 不动 Path2Abbrev::DEFAULT_CHANNEL_LOG_PROB · production 不调 abbrev_channel 模块 · gold_miu_within_threshold_of_baseline ±2pp gate pass ✓</span></span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">step-2 deferred · 触发条件</div>
+        <ul class="tasks">
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">INITIALS_INDEX 3+ letter 扩展(in inputx-core)<span class="hint">composite/pinyin_adapter.rs 当前 InitialsIndex 限 2-letter · 长简拼需多字 abbrev → word 查询 · 触发条件:CP-3.6 step-2 production wiring 时一起做</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">lattice 接入 — Path2Abbrev 接 abbrev_channel_log_prob(split_initials(typed).len())<span class="hint">替代 const DEFAULT_CHANNEL_LOG_PROB · 长简拼边 channel cost 自动按 length 调整 · daily-use 行为变化(短简拼仍按 legacy · 长简拼 less negative 更易胜)</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">abbrev fixture 集 + MIU/fixture verify<span class="hint">zhrmghg → 中华人民共和国 · zgrm → 中国人民 · cdwd → 程度问题 等 · acceptance: Top-3 命中率提升 · 正常输入 false positive &lt; 1%</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-5.4 step-1 done · abbrev_channel 模块独立 + scoring 数学验证(13 单测全过)· abbrev_channel_log_prob(n_syllables) 长度感知阶梯 n=2 锚定 Path2Abbrev::DEFAULT_CHANNEL_LOG_PROB 兼容 legacy · split_initials greedy zh/ch/sh 分解 vowel-free 简拼 · INITIALS_INDEX 3+ letter 扩展 + lattice 接入 + MIU verify deferred to step-2 · 默认行为 byte-equal · 模块可独立被 lattice production wiring 调用,无副作用</div></div>
     </div>
   </div>
 

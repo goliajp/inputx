@@ -34,6 +34,7 @@
 //! - [`session`] — mutable [`Session`] holding the user's input buffer
 //! - [`ranking`] — L0 snapshot type for host-side persistence
 
+pub mod abbrev_channel;
 pub mod bigram_lm;
 pub mod cell_dict;
 pub mod dict;
