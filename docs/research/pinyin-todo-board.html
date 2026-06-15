@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-15 · CP-1.2(ASSOCIATION)工程✓ · 待 merge</span>
-      <span><b>active</b> Phase 1 · CP-1.2(ASSOCIATION)reinstalled · 同 CP-1.1 模式提前 merge</span>
+      <span><b>last update</b> 2026-06-15 · CP-1.2(ASSOCIATION)merged → develop</span>
+      <span><b>active</b> Phase 1 · CP-1.3(翻 COMPOSE · 预期 MIU 大跳)</span>
     </div>
   </div>
 </div>
@@ -220,8 +220,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 1 · CP-1.2(ASSOCIATION)工程+全自动门✓,reinstalled,待 merge</kbd><br>
-  <strong>进度</strong>:Phase 0 完成(7/7)· CP-1.1(FUZZY)已 merge → develop · CP-1.2(ASSOCIATION)翻 const ✓(0.00pp · 21+69+335 baseline ok · 宪法门 10/10 · eval gate ok)· branch <code>feature/gate-open-association</code> · 已 reinstall mac · 同 CP-1.1 模式:soak 转持续观察、polish 后置,等用户拍板 merge → CP-1.3(COMPOSE,预期 MIU 大跳)
+  <strong>当前 active</strong>:<kbd>Phase 1 · CP-1.3(翻 COMPOSE 整句合成 · 预期 MIU 大跳)</kbd><br>
+  <strong>进度</strong>:Phase 0 完成(7/7)· CP-1.1(FUZZY)merged · CP-1.2(ASSOCIATION)merged(0.00pp · 全门 ✓ · 已装机)· 用户 standing policy "merge,继续后续的开发,polish 后置" → CP-1.3(COMPOSE)开工
 </div>
 
 <!-- ====================== HOW TO USE ====================== -->
@@ -619,15 +619,15 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
   </div>
 
   <!-- ===== CP-1.2 ===== -->
-  <div class="cp" data-status="inprog" data-cp="1.2">
+  <div class="cp" data-status="done" data-cp="1.2">
     <div class="cp-head" onclick="toggleCp(this)">
       <div class="cp-head-left">
         <div class="cp-id">CP-1.2</div>
         <div class="cp-title">翻 PINYIN_DISABLE_ASSOCIATION(简拼缩写)</div>
       </div>
       <div class="cp-head-right">
-        <span class="cp-progress"><b class="done-count">11</b>/<b class="total-count">13</b></span>
-        <span class="cp-status-tag">inprog</span>
+        <span class="cp-progress"><b class="done-count">13</b>/<b class="total-count">13</b></span>
+        <span class="cp-status-tag">done</span>
       </div>
     </div>
     <div class="cp-body">
@@ -657,20 +657,67 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
           <li class="task" data-status="done"><span class="box"></span><span class="body">Top-1 MIU 不掉超过 2%(可接受小退;若升更好)<span class="hint">0.00 pp ✓</span></span></li>
           <li class="task" data-status="done"><span class="box"></span><span class="body">polish-log wins 翻转率 ≤ 5%<span class="hint">0%(baseline 套 0 fail)</span></span></li>
           <li class="task" data-status="done"><span class="box"></span><span class="body">baseline 100% 通过 · 宪法门 <code>wubi_simcode_priority</code> 全过<span class="hint">10/10 全过 · 宪法 8 问全过</span></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">实机 daily-use soak(或用户拍板)<span class="hint">⏳ 待用户拍板"merge"(同 CP-1.1 模式 → soak 转持续观察)</span></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">git-flow merge 到 develop · push origin<span class="hint">⏳ 用户拍板后</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">实机 daily-use soak(或用户拍板)<span class="hint">用户 2026-06-15 standing policy: "merge,继续后续的开发,polish 后置" → soak 转持续观察</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">git-flow merge 到 develop · push origin<span class="hint">✓ merge --no-ff + push</span></span></li>
         </ul>
       </div>
 
-      <div class="cp-verdict"><div class="text"><b>verdict</b>工程 + 全自动门 ▣(MIU 0.00pp · 宪法 8 问过 · 已 reinstall)· 等用户拍板 merge → CP-1.3(COMPOSE,预期 MIU 大跳)</div></div>
+      <div class="cp-verdict"><div class="text"><b>verdict</b>工程 + 全自动门 ▣(MIU 0.00pp · 宪法 8 问过 · 已 reinstall)· 沿用户 standing policy 提前 merge → 激活 CP-1.3(COMPOSE)</div></div>
+    </div>
+  </div>
+
+  <!-- ===== CP-1.3 ===== -->
+  <div class="cp" data-status="next" data-cp="1.3">
+    <div class="cp-head" onclick="toggleCp(this)">
+      <div class="cp-head-left">
+        <div class="cp-id">CP-1.3</div>
+        <div class="cp-title">翻 PINYIN_DISABLE_COMPOSE(Viterbi 整句合成)· 预期 MIU 大跳</div>
+      </div>
+      <div class="cp-head-right">
+        <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">13</b></span>
+        <span class="cp-status-tag">next</span>
+      </div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-meta-row">
+        <span>前置 · CP-1.2 merged</span>
+        <span>时长 · 2-3 天 + soak</span>
+        <span>回退 · 翻 const 回 true · git revert merge</span>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">动作 · do</div>
+        <ul class="tasks">
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">跑 baseline MIU,存 <code>gate_baselines/pre_compose.json</code></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">新 branch <code>feature/gate-open-compose</code></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">翻 <code>PINYIN_DISABLE_COMPOSE = false</code><span class="hint">pinyin_adapter.rs:75</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">跑 MIU,存 <code>post_compose.json</code>,与 pre diff<span class="hint">预期 MIU 大跳(Path 0b 整句合成被唤醒,多音节句开始命中)</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">polish-log replay</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">跑 baseline 测试 · 100% 过</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">reinstall.py 装上 mac 端 · daily-use</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">polish 报告 · 正常处理流程</span></li>
+        </ul>
+      </div>
+
+      <div class="task-group">
+        <div class="task-group-head">验收 · check</div>
+        <ul class="tasks">
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">Top-1 MIU 不掉(预期上升,COMPOSE 是关键路径)</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">polish-log wins 翻转率 ≤ 5%</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">baseline 100% 通过 · 宪法门 <code>wubi_simcode_priority</code> 全过</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">实机 daily-use soak(或用户拍板)</span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">git-flow merge 到 develop · push origin</span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>待开工 · 同前两个 CP 模式 + 这次是"大块头":COMPOSE 翻完整句路径唤醒,MIU 预期跳。若大涨继续 → CP-1.4;若意外退,翻 const 回 true,转 polish 路径</div></div>
     </div>
   </div>
 
   <div class="future-preview">
-    <b>预览 · CP-1.3 .. CP-1.4(CP-1.2 后逐个热化)</b>
-    <code>CP-1.3</code> 翻 PINYIN_DISABLE_COMPOSE(Viterbi composition)· 预期 MIU 大跳<br>
+    <b>预览 · CP-1.4(CP-1.3 后热化)</b>
     <code>CP-1.4</code> 翻 PINYIN_DISABLE_PREDICTION(联想)<br><br>
-    <strong>每条同模式</strong>:baseline 跑数字 → 翻 const → 再跑数字 → polish-log replay 守 → 实机 soak 1 周 → 决定保留或回退。<br>
+    <strong>每条同模式</strong>:baseline 跑数字 → 翻 const → 再跑数字 → polish-log replay 守 → 实机 soak / 用户拍板 → merge 或回退。<br>
     <strong>宪法门(每 CP 必查)</strong> · <code>cargo test session::wubi_simcode_priority</code> 全过。
   </div>
 </div>
