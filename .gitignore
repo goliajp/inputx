@@ -108,6 +108,9 @@ tools/eval/corpus/raw/cc100/*
 
 # Phase 2 LM training intermediates (regenerable via clean.py).
 tools/scoring/09_bigram_lm/data/
+# Phase 2 KenLM source tree (cloned + patched + built locally;
+# regenerable via tools/scoring/09_bigram_lm/build_kenlm.sh).
+tools/scoring/09_bigram_lm/kenlm_src/
 tools/eval/corpus/processed/
 tools/eval/results/*.json
 !tools/eval/results/.gitkeep
