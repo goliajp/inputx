@@ -602,6 +602,10 @@ impl CompositeEngine {
             if let Some(j) = self.japanese.as_mut() {
                 consumed |= j.escape();
             }
+            // JP-only mode has no Chinese 联想 to clear, but cancel
+            // anyway to stay state-clean — predictions are gated to
+            // pinyin mode and never populate here, so this is a no-op.
+            self.cancel_predictions();
             return consumed;
         }
         if self.mode.allows_wubi() {
@@ -615,7 +619,54 @@ impl CompositeEngine {
         {
             consumed |= j.escape();
         }
+        // 联想 cancellation: escape semantically ends the current
+        // composing flow, so any pending next-word predictions from a
+        // prior commit are stale and must go. Without this the host UI
+        // keeps showing ghost predictions after the user dismisses
+        // composing via Escape / Enter / punctuation force-commit.
+        self.cancel_predictions();
         consumed
+    }
+
+    /// Whether `prediction_buf` currently holds 联想 (next-word)
+    /// candidates that the host's UI would render. Cheap O(1) field
+    /// check; intended for the session layer's "cancel predictions
+    /// on non-continuation input" guard.
+    pub fn has_predictions(&self) -> bool {
+        !self.prediction_buf.is_empty()
+    }
+
+    /// Drop pending 联想 candidates and reset the consecutive-prediction
+    /// chain counter. Use when the input flow is interrupted by something
+    /// other than a continuation keystroke (digit / punct / Tab / Space /
+    /// Enter / Backspace / Escape / etc.) so the next round of
+    /// predictions starts fresh and the host's UI doesn't carry ghost
+    /// candidates forward.
+    ///
+    /// Note: `last_committed_word` / `second_last_committed_word` are
+    /// intentionally kept — they only feed *next* commit's bigram /
+    /// trigram LM scoring, not the current visible predictions, and
+    /// clearing them would weaken the LM signal on the user's next
+    /// pinyin commit. If a future use case truly needs a discourse
+    /// boundary, use [`Self::clear_all`] instead.
+    pub fn cancel_predictions(&mut self) {
+        self.prediction_buf.clear();
+        self.consecutive_predictions = 0;
+    }
+
+    /// Test-only helper that seeds `prediction_buf` with a single
+    /// candidate so callers (notably `session::tests`) can verify the
+    /// 联想 cancellation guard without standing up real bigram /
+    /// trigram corpus state.
+    #[cfg(test)]
+    pub(crate) fn test_seed_prediction(&mut self, word: &str) {
+        use super::merge::{Candidate, Source};
+        self.prediction_buf.push(Candidate {
+            word: word.to_string(),
+            source: Source::Pinyin,
+            score: 0.0,
+            components: None,
+        });
     }
 
     /// Eagerly run every cold-init path in the composite stack: wubi dict
@@ -1918,6 +1969,87 @@ mod tests {
                 .map(|c| &c.word)
                 .collect::<Vec<_>>()
         );
+    }
+
+    // ---- 联想 cancellation (bugfix 2026-06-16) ----
+    //
+    // Bug report: "联想候选如果在中间间隔输入了任何别的东西都要取消，
+    // 比如无候选的数字、符号、功能按键等". Root cause was that
+    // `escape()` only cleaned wubi/pinyin/jp buffers and left
+    // `prediction_buf` intact, so any non-letter input that drained the
+    // composing buffer (Escape / Return / punctuation force-commit, plus
+    // every "no composing → return false" path in session.rs) left
+    // ghost predictions visible. Fix: escape() now also calls
+    // cancel_predictions(), and session-level guard cancels on any
+    // non-letter input while in a pure-prediction state.
+
+    #[test]
+    fn cancel_predictions_clears_buffer_and_counter() {
+        let mut e = CompositeEngine::new();
+        e.test_seed_prediction("嗨");
+        e.test_seed_prediction("吗");
+        e.consecutive_predictions = 3;
+        assert!(e.has_predictions());
+        e.cancel_predictions();
+        assert!(!e.has_predictions(), "buffer not cleared");
+        assert!(
+            e.predicted_candidates().is_empty(),
+            "predicted_candidates surface still non-empty after cancel"
+        );
+        assert_eq!(
+            e.consecutive_predictions, 0,
+            "consecutive_predictions counter not reset"
+        );
+    }
+
+    #[test]
+    fn cancel_predictions_keeps_bigram_context_for_next_commit() {
+        // cancel_predictions wipes the visible prediction state but
+        // leaves last_committed_word alone so the NEXT pinyin commit
+        // still gets a bigram-aware LM score. clear_all is what kills
+        // the discourse boundary (see clear_all docs); cancel is
+        // narrower.
+        let mut e = CompositeEngine::new();
+        e.last_committed_word = Some("你好".to_string());
+        e.second_last_committed_word = Some("说".to_string());
+        e.test_seed_prediction("吗");
+        e.cancel_predictions();
+        assert_eq!(
+            e.last_committed_word.as_deref(),
+            Some("你好"),
+            "cancel_predictions must keep last_committed_word"
+        );
+        assert_eq!(
+            e.second_last_committed_word.as_deref(),
+            Some("说"),
+            "cancel_predictions must keep second_last_committed_word"
+        );
+    }
+
+    #[test]
+    fn escape_cancels_predictions() {
+        // The core fix. After this regression test exists, removing
+        // the cancel_predictions call from escape() would surface as
+        // ghost candidates in the user's panel, NOT as a silent state
+        // bug.
+        let mut e = CompositeEngine::new();
+        e.test_seed_prediction("嗨");
+        assert!(e.has_predictions());
+        let _ = e.escape();
+        assert!(
+            !e.has_predictions(),
+            "escape() must cancel pending 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn has_predictions_reflects_buffer_state() {
+        let mut e = CompositeEngine::new();
+        assert!(!e.has_predictions(), "fresh engine reports has_predictions=true");
+        e.test_seed_prediction("吗");
+        assert!(e.has_predictions(), "seeded prediction not reflected");
+        e.cancel_predictions();
+        assert!(!e.has_predictions(), "cancel did not clear has_predictions");
     }
 
     #[test]
