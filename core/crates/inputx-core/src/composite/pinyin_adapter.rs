@@ -75,7 +75,7 @@ use crate::rules::{Context, ContextFlags};
 pub(crate) const PINYIN_DISABLE_COMPOSE: bool = false;
 pub(crate) const PINYIN_DISABLE_ASSOCIATION: bool = false;
 pub(crate) const PINYIN_DISABLE_FUZZY: bool = false;
-pub(crate) const PINYIN_DISABLE_PREDICTION: bool = true;
+pub(crate) const PINYIN_DISABLE_PREDICTION: bool = false;
 
 fn embedded_bigrams_table() -> &'static NgramTable<&'static [u8]> {
     static TABLE: OnceLock<NgramTable<&'static [u8]>> = OnceLock::new();
