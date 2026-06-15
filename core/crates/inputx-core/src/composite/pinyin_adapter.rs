@@ -321,6 +321,12 @@ pub struct PinyinAdapter {
     /// to emit `Scored` tuples carrying the (base, prior, likelihood)
     /// view for `inputx-probe`.
     prefix_components: HashMap<String, super::merge::ScoreComponents>,
+    /// Phase-4 CP-4.2 last-committed-word tracker. `Some(prev)` after
+    /// a successful `commit_index`; `None` at adapter construction
+    /// and after `clear_all` (session boundary contract — boundary
+    /// commits do not form bigrams). Used by the commit hook to
+    /// produce `(prev, curr)` pairs for `bump_user_bigram`.
+    last_committed_word: Option<String>,
 }
 
 impl Default for PinyinAdapter {
@@ -376,6 +382,7 @@ impl PinyinAdapter {
             fallback_composition: None,
             prefix_scored: HashMap::new(),
             prefix_components: HashMap::new(),
+            last_committed_word: None,
         }
     }
 
@@ -1173,6 +1180,11 @@ impl PinyinAdapter {
         self.has_non_speculative_candidate = false;
         self.prefix_scored.clear();
         self.prefix_components.clear();
+        // Phase-4 CP-4.2: clear_all marks a session boundary. The next
+        // commit must not form a bigram with whatever was committed
+        // before this clear (e.g. user pressed escape to abandon a
+        // half-typed buffer, switched apps, then started typing again).
+        self.last_committed_word = None;
     }
 
     /// Commit candidate at `index`. Records the pick into the engine's L0
@@ -1181,6 +1193,15 @@ impl PinyinAdapter {
     pub fn commit_index(&mut self, index: usize) -> Option<String> {
         let word = self.candidates.get(index)?.clone();
         self.engine.dict().record_pick(&self.buffer, &word);
+        // Phase-4 CP-4.2: bump the user-bigram for (last_committed, word)
+        // BEFORE updating last_committed. The bump_user_bigram call is a
+        // no-op when prev is empty (i.e. this is the first commit in the
+        // session, or the previous commit was cleared by clear_all), so
+        // session boundaries don't produce spurious bigrams.
+        if let Some(prev) = self.last_committed_word.as_deref() {
+            self.engine.dict().bump_user_bigram(prev, &word);
+        }
+        self.last_committed_word = Some(word.clone());
         self.buffer.clear();
         self.candidates.clear();
         self.has_non_speculative_candidate = false;
@@ -2276,6 +2297,122 @@ mod tests {
             a.handle_letter(*b);
         }
         assert_eq!(a.candidates().first().map(String::as_str), Some("中国"));
+    }
+
+    /// Phase-4 CP-4.2 acceptance: commit a sequence of `n` words,
+    /// the user_bigram table should contain `n-1` bigrams (the first
+    /// commit has no prev). Snapshot via export_l0 to verify.
+    #[test]
+    fn cp4_2_commit_hook_writes_n_minus_one_bigrams() {
+        // Commit 10 known-good single-syllable words back-to-back.
+        // Each `handle_letter` + `commit_index(0)` exercises the hook
+        // once; after 10 commits, user_bigram should hold 9 entries.
+        let commits = [
+            ("ni", "你"),
+            ("hao", "好"),
+            ("wo", "我"),
+            ("shi", "是"),
+            ("zhong", "中"),
+            ("guo", "国"),
+            ("ren", "人"),
+            ("xie", "谢"),
+            ("xie", "谢"),
+            ("ni", "你"),
+        ];
+        let mut a = PinyinAdapter::new();
+        for (typed, _expected) in commits {
+            for b in typed.bytes() {
+                a.handle_letter(b);
+            }
+            // Find the expected candidate's index, fall back to 0 if it
+            // isn't surfaced (dict variations are OK — we just want to
+            // exercise the commit hook, not pin specific candidate words).
+            let idx = a
+                .candidates()
+                .iter()
+                .position(|c| c == _expected)
+                .unwrap_or(0);
+            let committed = a.commit_index(idx);
+            assert!(committed.is_some());
+        }
+        let snap = a.engine.dict().export_l0();
+        // 10 commits → 9 bigrams (the first commit has no prev).
+        // Sum the counts to account for any duplicated pair.
+        let total_bigram_count: u32 = snap.user_bigram.iter().map(|(_, c)| c).sum();
+        assert_eq!(
+            total_bigram_count, 9,
+            "10 commits should produce exactly 9 bigram increments, got {total_bigram_count}"
+        );
+    }
+
+    /// Phase-4 CP-4.2 acceptance: clear_all is a session boundary;
+    /// the next commit must NOT form a bigram with the last commit
+    /// from the previous session.
+    #[test]
+    fn cp4_2_clear_all_breaks_the_bigram_chain() {
+        let mut a = PinyinAdapter::new();
+
+        // Session 1: commit `你`.
+        for b in b"ni" {
+            a.handle_letter(*b);
+        }
+        let idx = a.candidates().iter().position(|c| c == "你").unwrap_or(0);
+        a.commit_index(idx);
+
+        // Session boundary: explicit clear_all.
+        a.clear_all();
+
+        // Session 2: commit `好`. No bigram should form with the prior
+        // `你` because the session boundary cleared last_committed_word.
+        for b in b"hao" {
+            a.handle_letter(*b);
+        }
+        let idx = a.candidates().iter().position(|c| c == "好").unwrap_or(0);
+        a.commit_index(idx);
+
+        // Now commit `啊` continuing session 2 — that one SHOULD form a
+        // (好, 啊) bigram because there was no clear in between.
+        for b in b"a" {
+            a.handle_letter(*b);
+        }
+        // Skip if a single-letter buffer doesn't surface `啊` in this
+        // dict snapshot — the in-session-chain link is the invariant
+        // we care about; total count = 1 either way (the cross-session
+        // pair must be absent).
+        if let Some(idx) = a.candidates().iter().position(|c| c == "啊") {
+            a.commit_index(idx);
+        }
+
+        let snap = a.engine.dict().export_l0();
+        // There must NOT be a (你, 好) bigram. Anything else is fine.
+        let has_cross_session = snap
+            .user_bigram
+            .iter()
+            .any(|((p, c), _)| p == "你" && c == "好");
+        assert!(
+            !has_cross_session,
+            "clear_all should have broken the chain; user_bigram = {:?}",
+            snap.user_bigram
+        );
+    }
+
+    /// Phase-4 CP-4.2 acceptance: a fresh adapter has no prev. The
+    /// very first commit must be a no-op for the bigram counter — no
+    /// "(empty, word)" entries.
+    #[test]
+    fn cp4_2_first_commit_does_not_form_bigram() {
+        let mut a = PinyinAdapter::new();
+        for b in b"ni" {
+            a.handle_letter(*b);
+        }
+        let idx = a.candidates().iter().position(|c| c == "你").unwrap_or(0);
+        a.commit_index(idx);
+        let snap = a.engine.dict().export_l0();
+        assert!(
+            snap.user_bigram.is_empty(),
+            "single commit should not produce a bigram, got {:?}",
+            snap.user_bigram
+        );
     }
 
     #[test]
