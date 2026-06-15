@@ -94,6 +94,62 @@ pub trait PathToLattice {
     fn populate_lattice(&self, buffer: &str, dict: &PinyinDict, graph: &mut Graph) -> usize;
 }
 
+/// Phase-3 CP-3.3 channel log-prob table for the 9 fuzzy-pair swaps.
+///
+/// Each entry is `(from_substring, to_substring, log10 P(swap))`
+/// where the user typed `to_substring` but the real pinyin is
+/// `from_substring`. Values follow the climb-plan estimate (-2 to -3,
+/// "13-15% substitution probability"); the order of magnitude
+/// roughly matches the per-pair substitution rates we see in soak
+/// reports — z/zh and in/ing are the noisiest at ~10% (≈ log10 -1.0)
+/// while r/l and f/h are rarer at ~1% (≈ log10 -2.0). The actual
+/// per-pair values are tuned in CP-3.6's λ sweep; CP-3.3 just plugs
+/// them into the lattice as channel costs so the legacy
+/// `FUZZY_DISCOUNT * 0.3` flat penalty is no longer hard-coded into
+/// the score path.
+pub const FUZZY_CHANNEL_LOG_PROBS: &[(&str, &str, f32)] = &[
+    // Initial-position swaps (6 pairs, 12 directions).
+    ("zh", "z",  -1.0),  ("z",  "zh", -1.0),
+    ("ch", "c",  -1.0),  ("c",  "ch", -1.0),
+    ("sh", "s",  -1.0),  ("s",  "sh", -1.0),
+    ("n",  "l",  -1.5),  ("l",  "n",  -1.5),
+    ("f",  "h",  -2.0),  ("h",  "f",  -2.0),
+    ("r",  "l",  -2.0),  ("l",  "r",  -2.0),
+    // Final-position swaps (3 pairs, 6 directions).
+    ("ing", "in",  -1.0), ("in",  "ing", -1.0),
+    ("eng", "en",  -1.0), ("en",  "eng", -1.0),
+    ("ang", "an",  -1.0), ("an",  "ang", -1.0),
+];
+
+/// Compute the channel cost of substituting `variant` for the user's
+/// typed syllable `typed`. Walks [`FUZZY_CHANNEL_LOG_PROBS`] for the
+/// single applicable swap; returns `0.0` when they're identical
+/// (canonical, i.e. EdgeKind::Exact territory).
+pub fn fuzzy_channel_log_prob(typed: &str, variant: &str) -> f32 {
+    if typed == variant {
+        return 0.0;
+    }
+    // Initial-position: typed = prefix + rest, variant = swap + rest.
+    for (from, to, p) in FUZZY_CHANNEL_LOG_PROBS {
+        if let (Some(rest_typed), Some(rest_variant)) =
+            (typed.strip_prefix(to), variant.strip_prefix(from))
+            && rest_typed == rest_variant
+        {
+            return *p;
+        }
+        if let (Some(head_typed), Some(head_variant)) =
+            (typed.strip_suffix(to), variant.strip_suffix(from))
+            && head_typed == head_variant
+        {
+            return *p;
+        }
+    }
+    // Should not happen if `variant` came from FuzzyConfig::expand —
+    // but if the caller passes an unrelated pair, treat it as
+    // maximally penalised so the Viterbi doesn't accidentally pick it.
+    -10.0
+}
+
 /// Phase-3 CP-3.2: Path 1a (Exact pinyin lookup) implementation.
 ///
 /// For a single-syllable buffer (the simple case the migration starts
@@ -106,6 +162,45 @@ pub trait PathToLattice {
 /// segmentation lives in CP-3.6 once enough paths have migrated to
 /// make it worth wiring the segmenter into the lattice.
 pub struct Path1aExact;
+
+/// Phase-3 CP-3.3: Path 1b (Fuzzy pinyin lookup) implementation.
+///
+/// For a single-syllable buffer, calls [`crate::fuzzy::FuzzyConfig::expand`]
+/// to enumerate the 1-2 fuzzy variants the user might have typed, looks
+/// each variant up in the dict, and emits one [`EdgeKind::Fuzzy`] edge
+/// per candidate. The channel log-prob comes from
+/// [`fuzzy_channel_log_prob`] — replacing the legacy
+/// `FUZZY_DISCOUNT * 0.3` flat penalty with a per-pair empirical value.
+///
+/// Like [`Path1aExact`], the canonical (zero-swap) syllable is skipped
+/// — Path 1a covers that.
+pub struct Path1bFuzzy {
+    /// Which fuzzy pairs are enabled; respects user preferences.
+    pub fuzzy: crate::fuzzy::FuzzyConfig,
+}
+
+impl PathToLattice for Path1bFuzzy {
+    fn populate_lattice(&self, buffer: &str, dict: &PinyinDict, graph: &mut Graph) -> usize {
+        let n = buffer.len();
+        if n == 0 {
+            return 0;
+        }
+        let mut added = 0;
+        let variants = self.fuzzy.expand(buffer);
+        // variants[0] is the canonical syllable; skip it — that's Path 1a's job.
+        for variant in variants.iter().skip(1) {
+            let channel = fuzzy_channel_log_prob(buffer, variant);
+            let mut scratch: Vec<(String, f64)> = Vec::new();
+            dict.lookup_with_scores_into(variant, &mut scratch);
+            for (word, score) in scratch {
+                let log_prob = (score.max(1.0) as f32).log10();
+                graph.add_edge(Edge::fuzzy(0, n, word, log_prob, channel));
+                added += 1;
+            }
+        }
+        added
+    }
+}
 
 impl PathToLattice for Path1aExact {
     fn populate_lattice(&self, buffer: &str, dict: &PinyinDict, graph: &mut Graph) -> usize {
@@ -553,6 +648,98 @@ mod tests {
             top_k_dict, top_k_lattice,
             "lattice viterbi top-3 must match dict-sorted-by-score top-3"
         );
+    }
+
+    /// CP-3.3: `fuzzy_channel_log_prob` picks the correct per-pair
+    /// value from the table and returns 0 for the canonical (no-swap)
+    /// case.
+    #[test]
+    fn fuzzy_channel_log_prob_table_lookup() {
+        // Initial-position swaps.
+        assert_eq!(fuzzy_channel_log_prob("zi", "zhi"), -1.0);
+        assert_eq!(fuzzy_channel_log_prob("zhi", "zi"), -1.0);
+        assert_eq!(fuzzy_channel_log_prob("li", "ri"), -2.0); // r/l rarer
+        assert_eq!(fuzzy_channel_log_prob("hua", "fua"), -2.0); // f/h rarer
+        // Final-position swap.
+        assert_eq!(fuzzy_channel_log_prob("xin", "xing"), -1.0);
+        assert_eq!(fuzzy_channel_log_prob("ban", "bang"), -1.0);
+        // Identity = 0.
+        assert_eq!(fuzzy_channel_log_prob("ni", "ni"), 0.0);
+        // Unrelated pair = penalised.
+        assert_eq!(fuzzy_channel_log_prob("ni", "wo"), -10.0);
+    }
+
+    /// CP-3.3: Path1bFuzzy emits one Fuzzy edge per dict candidate per
+    /// fuzzy variant. For `"zhi"` with z↔zh enabled, variants are
+    /// `["zhi", "zi"]`; canonical "zhi" is skipped (Path 1a's job), so
+    /// edges come from looking up "zi" only.
+    #[test]
+    fn path1b_fuzzy_zhi_zi_swap_produces_fuzzy_edges() {
+        use crate::dict::PinyinDict;
+        use crate::fuzzy::FuzzyConfig;
+
+        let dict = PinyinDict::embedded();
+        let buf = "zhi";
+        let mut fuzzy = FuzzyConfig::strict();
+        fuzzy.z_zh = true;
+        let path = Path1bFuzzy { fuzzy };
+
+        let mut g = Graph::for_buffer(buf.len());
+        let n_added = path.populate_lattice(buf, &dict, &mut g);
+
+        // The "zi" lookup must produce at least one candidate, given
+        // it is a common syllable (字 / 自 / 子 / 紫 / 资 / 仔 etc).
+        assert!(
+            n_added > 0,
+            "Path1bFuzzy expected to add edges for 'zi' variant of 'zhi'"
+        );
+
+        // Every emitted edge must be Fuzzy with channel = -1.0
+        // (z↔zh swap penalty from FUZZY_CHANNEL_LOG_PROBS).
+        for e in g.edges() {
+            assert_eq!(e.from, 0);
+            assert_eq!(e.to, buf.len());
+            match e.kind {
+                EdgeKind::Fuzzy(p) => assert!((p - (-1.0)).abs() < 1e-6),
+                _ => panic!("Path1bFuzzy edge was not EdgeKind::Fuzzy: {:?}", e.kind),
+            }
+        }
+    }
+
+    /// CP-3.3: when fuzzy is OFF (strict config), Path1bFuzzy adds
+    /// nothing — the only "variant" returned by FuzzyConfig::expand
+    /// is the canonical syllable itself, which Path1bFuzzy skips.
+    #[test]
+    fn path1b_fuzzy_strict_config_adds_nothing() {
+        use crate::dict::PinyinDict;
+        use crate::fuzzy::FuzzyConfig;
+
+        let dict = PinyinDict::embedded();
+        let path = Path1bFuzzy { fuzzy: FuzzyConfig::strict() };
+
+        let mut g = Graph::for_buffer(2);
+        let n = path.populate_lattice("ni", &dict, &mut g);
+        assert_eq!(n, 0, "strict fuzzy should add zero edges");
+        assert!(g.edges().is_empty());
+    }
+
+    /// CP-3.3 cross-channel: at the same buffer span, an Exact edge
+    /// for "你" and a Fuzzy edge for a competing word must rank with
+    /// Exact preferred unless the Fuzzy candidate's dict log_prob
+    /// outweighs the channel penalty.
+    #[test]
+    fn path1a_and_path1b_cross_channel_ranking() {
+        let mut g = Graph::for_buffer(2);
+        // Exact: 你 with mid log_prob.
+        g.add_edge(Edge::exact(0, 2, "你", 5.0));
+        // Fuzzy: 拟 with higher raw log_prob but -1.0 channel cost.
+        // Effective weight: 5.5 + (-1.0) = 4.5 — still loses to Exact 5.0.
+        g.add_edge(Edge::fuzzy(0, 2, "拟", 5.5, -1.0));
+
+        let paths = g.viterbi(2, noop_lm);
+        assert_eq!(paths.len(), 2);
+        assert_eq!(paths[0].sentence(), "你");
+        assert_eq!(paths[1].sentence(), "拟");
     }
 
     /// Beam pruning actually limits the partial-path explosion. Build a
