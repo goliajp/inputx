@@ -126,3 +126,4 @@ tools/eval/silver_full.tsv
 # Eval Python venv (per PEP 668 — brew Python is externally managed,
 # can't system-pip-install). Pin deps via tools/eval/requirements.txt.
 tools/eval/.venv/
+tools/eval/.venv.*/      # broken / archived venvs from version rebuilds
