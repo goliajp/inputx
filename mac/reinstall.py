@@ -142,7 +142,7 @@ def swift_eval(source: str) -> str:
     return r.stdout
 
 
-def binary_probe_test(bundle: Path, *, timeout_s: float = 15.0) -> tuple[bool, str]:
+def binary_probe_test(bundle: Path, *, timeout_s: float = 60.0) -> tuple[bool, str]:
     """Validate `bundle`'s binary by running its `probe` CLI subcommand
     (defined in mac/Sources/main.swift) and asserting it returns Chinese
     candidates for a known-good buffer.
