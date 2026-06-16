@@ -961,7 +961,7 @@ impl PinyinDict {
     /// closure adds `bigram_boost + lm_bonus(prev_prev=None, prev, curr)`,
     /// matching best_composition's per-step bonus (dict.rs lines 807-810).
     pub fn best_composition_via_lattice(&self, buffer: &str) -> Option<String> {
-        self.compose_via_lattice_paths(buffer, 1, true, None)?
+        self.compose_via_lattice_paths(buffer, 1, true, true, None)?
             .into_iter()
             .next()
             .map(|p| p.sentence())
@@ -985,7 +985,7 @@ impl PinyinDict {
         &self,
         buffer: &str,
     ) -> Option<(f64, String, Vec<String>)> {
-        let mut paths = self.compose_via_lattice_paths(buffer, 1, true, None)?;
+        let mut paths = self.compose_via_lattice_paths(buffer, 1, true, true, None)?;
         let top = paths.drain(..).next()?;
         let sentence = top.sentence();
         Some((top.score as f64, sentence, top.words))
@@ -1018,8 +1018,13 @@ impl PinyinDict {
         // (abbrev+abbrev at ~-158k) for K-best top-1. The user typed
         // abbrev, so we resolve as abbrev only — no mixed typo/abbrev
         // hybrid paths.
+        // Fuzzy edges DO apply here — abbrev intent doesn't preclude
+        // fuzzy alternates on individual segments (vowel-free abbrev
+        // segments produce empty fuzzy variant sets so this is a
+        // no-op for typical abbrev input; for the rare abbrev that
+        // contains a fuzzy-eligible segment, harmless extra edges).
         let mut paths =
-            self.compose_via_lattice_paths(buffer, 1, false, Some(abbrev_resolver))?;
+            self.compose_via_lattice_paths(buffer, 1, false, true, Some(abbrev_resolver))?;
         let top = paths.drain(..).next()?;
         let sentence = top.sentence();
         Some((top.score as f64, sentence, top.words))
@@ -1040,7 +1045,7 @@ impl PinyinDict {
         buffer: &str,
         k: usize,
     ) -> Vec<(f64, String)> {
-        let paths = match self.compose_via_lattice_paths(buffer, k, true, None) {
+        let paths = match self.compose_via_lattice_paths(buffer, k, true, true, None) {
             Some(p) => p,
             None => return Vec::new(),
         };
@@ -1073,6 +1078,7 @@ impl PinyinDict {
             buffer,
             k,
             false,
+            true,
             Some(abbrev_resolver),
         ) {
             Some(p) => p,
@@ -1154,11 +1160,13 @@ impl PinyinDict {
         buffer: &str,
         k: usize,
         include_typo_edges: bool,
+        include_fuzzy_edges: bool,
         abbrev_resolver: Option<&dyn Fn(&str) -> Vec<(String, u64)>>,
     ) -> Option<Vec<crate::lattice::Path>> {
         use crate::abbrev_channel::{abbrev_channel_log_prob, split_initials};
+        use crate::fuzzy::FuzzyConfig;
         use crate::keyboard_adjacency::single_edit_neighbors;
-        use crate::lattice::{Edge, Graph};
+        use crate::lattice::{fuzzy_channel_log_prob, Edge, Graph};
 
         const MIN_LEN: usize = 4;
         const MAX_LEN: usize = 30;
@@ -1202,6 +1210,34 @@ impl PinyinDict {
                 for (word, raw_freq) in scratch.iter() {
                     let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
                     graph.add_edge(Edge::exact(j, i, word.clone(), weight));
+                }
+                // Fuzzy edges (CP-3.6 step-2 fuzzy follow-up · 2026-06-16)
+                // — gated by flag + syllable shape. FuzzyConfig::permissive
+                // enables all 9 fuzzy pairs (z↔zh / c↔ch / s↔sh / n↔l /
+                // f↔h / r↔l / in↔ing / en↔eng / an↔ang), matching the
+                // southern-dialect tolerance the engine's legacy Path 1b
+                // path uses. Edge channel = fuzzy_channel_log_prob (per-
+                // pair, ~ -1.0 to -2.0).
+                if include_fuzzy_edges && seg.len() <= TYPO_MAX_SEG_LEN {
+                    let fuzzy = FuzzyConfig::permissive();
+                    let variants = fuzzy.expand(seg);
+                    // variants[0] is `seg` itself — already covered by the
+                    // exact-edge branch above. Skip to fuzzy alternates.
+                    for variant in variants.iter().skip(1) {
+                        let channel = fuzzy_channel_log_prob(seg, variant);
+                        scratch.clear();
+                        self.lookup_raw_into(variant, &mut scratch);
+                        for (word, raw_freq) in scratch.iter() {
+                            let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
+                            graph.add_edge(Edge::fuzzy(
+                                j,
+                                i,
+                                word.clone(),
+                                weight,
+                                channel,
+                            ));
+                        }
+                    }
                 }
                 // Typo edges — gated by flag + syllable shape.
                 if include_typo_edges && seg.len() <= TYPO_MAX_SEG_LEN {
