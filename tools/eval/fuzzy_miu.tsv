@@ -1,0 +1,31 @@
+pinyin	hanzi	flags	quality_verified	audit_note
+zi shi	知识	fuzzy_z_zh	true	canonical pinyin zhi shi; user dropped the h in zh (Southern-dialect z↔zh confusion)
+zong guo	中国	fuzzy_z_zh	true	canonical zhong guo; z↔zh
+zhi liao	资料	fuzzy_z_zh	true	canonical zi liao; user over-corrected (added h to z) → tests zh→z reverse
+ceng shi	城市	fuzzy_c_ch	true	canonical cheng shi; c↔ch
+cu xian	出现	fuzzy_c_ch	true	canonical chu xian; c↔ch
+ca ye	茶叶	fuzzy_c_ch	true	canonical cha ye; c↔ch
+si jian	时间	fuzzy_s_sh	true	canonical shi jian; s↔sh
+si ji	实际	fuzzy_s_sh	true	canonical shi ji; s↔sh
+xue seng	学生	fuzzy_s_sh	true	canonical xue sheng; s↔sh in position 2
+nao shi	老师	fuzzy_n_l	true	canonical lao shi; n↔l initial
+li men	你们	fuzzy_n_l	true	canonical ni men; n↔l initial
+lu li	努力	fuzzy_n_l	true	canonical nu li; n→l swap on initial
+hei ji	飞机	fuzzy_f_h	true	canonical fei ji; f↔h initial (Southern-dialect)
+hang zi	房子	fuzzy_f_h	true	canonical fang zi; f↔h initial
+hang ha	方法	fuzzy_f_h	true	canonical fang fa; double f↔h swap
+lan hou	然后	fuzzy_r_l	true	canonical ran hou; r↔l initial
+long yi	容易	fuzzy_r_l	true	canonical rong yi; r↔l initial
+len shi	认识	fuzzy_r_l	true	canonical ren shi; r↔l initial
+jing xin	进行	fuzzy_in_ing	true	canonical jin xing; in↔ing double swap
+xing xi	信息	fuzzy_in_ing	true	canonical xin xi; in↔ing
+xing qin	心情	fuzzy_in_ing	true	canonical xin qing; in↔ing double swap
+pen you	朋友	fuzzy_en_eng	true	canonical peng you; en↔eng
+zheng de	真的	fuzzy_en_eng	true	canonical zhen de; en↔eng
+fen ge	风格	fuzzy_en_eng	true	canonical feng ge; en↔eng
+shan mian	上面	fuzzy_an_ang	true	canonical shang mian; an↔ang
+gang jing	干净	fuzzy_an_ang	true	canonical gan jing; an↔ang double swap
+ban zhu	帮助	fuzzy_an_ang	true	canonical bang zhu; an↔ang
+ying wei	因为	fuzzy_in_ing	true	canonical yin wei; in↔ing
+la bian	那边	fuzzy_n_l	true	canonical na bian; n↔l initial
+bu si	不是	fuzzy_s_sh	true	canonical bu shi; s↔sh
