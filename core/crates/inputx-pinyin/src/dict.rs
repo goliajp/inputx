@@ -961,107 +961,31 @@ impl PinyinDict {
     /// closure adds `bigram_boost + lm_bonus(prev_prev=None, prev, curr)`,
     /// matching best_composition's per-step bonus (dict.rs lines 807-810).
     pub fn best_composition_via_lattice(&self, buffer: &str) -> Option<String> {
-        use crate::lattice::{Edge, Graph};
-        const MIN_LEN: usize = 4;
-        const MAX_LEN: usize = 30;
-        const MAX_SYL: usize = 24;
-        const STEP_PENALTY: f64 = 100_000.0;
-
-        let buf = buffer.as_bytes();
-        let n = buf.len();
-        if !(MIN_LEN..=MAX_LEN).contains(&n) {
-            return None;
-        }
-        if self.lm_order() >= 3 {
-            return None;
-        }
-
-        let mut graph = Graph::for_buffer(n);
-        let mut scratch: Vec<(String, u64)> = Vec::new();
-        for i in 1..=n {
-            let lo = i.saturating_sub(MAX_SYL);
-            for j in lo..i {
-                let seg = match core::str::from_utf8(&buf[j..i]) {
-                    Ok(s) => s,
-                    Err(_) => continue,
-                };
-                scratch.clear();
-                self.lookup_raw_into(seg, &mut scratch);
-                if scratch.is_empty() {
-                    continue;
-                }
-                for (word, raw_freq) in scratch.iter() {
-                    let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
-                    graph.add_edge(Edge::exact(j, i, word.clone(), weight));
-                }
-            }
-        }
-
-        let lm_closure = |prev: &str, curr: &str| -> f32 {
-            let prev_opt = if prev.is_empty() { None } else { Some(prev) };
-            (self.bigram_boost(prev_opt, curr) + self.lm_bonus(None, prev_opt, curr)) as f32
-        };
-
-        let paths = graph.viterbi(1, lm_closure);
-        paths.first().map(|p| p.sentence())
+        self.compose_via_lattice_paths(buffer, 1, true)?
+            .into_iter()
+            .next()
+            .map(|p| p.sentence())
     }
 
     /// Phase-5 CP-3.6 step-2 turn 2 — `best_composition_chain`'s lattice
     /// counterpart. Returns `(score, sentence, chain)`, matching the
     /// legacy method's signature so it can be swapped at production call
     /// sites without changing caller logic. Sentence is byte-equal with
-    /// `best_composition_chain(buf).map(|(_, s, _)| s)` for LM order ≤ 2;
-    /// `score` may differ by an f32-vs-f64 quantum (the lattice viterbi
-    /// accumulates f32 weights) but the magnitude (~1e6) is far larger
-    /// than any quality-floor tolerance the caller checks against.
-    /// `chain` is the winning lattice path's per-segment word sequence,
-    /// matching `best_composition_chain`'s chain shape.
+    /// `best_composition_chain(buf).map(|(_, s, _)| s)` for LM order ≤ 2
+    /// on clean (typo-free) inputs; `score` may differ by an f32-vs-f64
+    /// quantum (the lattice viterbi accumulates f32 weights) but the
+    /// magnitude (~1e6) is far larger than any quality-floor tolerance
+    /// the caller checks against. `chain` is the winning lattice path's
+    /// per-segment word sequence, matching `best_composition_chain`'s
+    /// chain shape. CP-5.3 step-2 added keyboard-adjacent typo edges
+    /// on top of the exact edges, so for typo inputs the winning path
+    /// can resolve a typo (e.g. `bi hao` → 你好 via n↔b adjacency) —
+    /// that's the whole point of CP-5.3.
     pub fn best_composition_chain_via_lattice(
         &self,
         buffer: &str,
     ) -> Option<(f64, String, Vec<String>)> {
-        use crate::lattice::{Edge, Graph};
-        const MIN_LEN: usize = 4;
-        const MAX_LEN: usize = 30;
-        const MAX_SYL: usize = 24;
-        const STEP_PENALTY: f64 = 100_000.0;
-
-        let buf = buffer.as_bytes();
-        let n = buf.len();
-        if !(MIN_LEN..=MAX_LEN).contains(&n) {
-            return None;
-        }
-        if self.lm_order() >= 3 {
-            return None;
-        }
-
-        let mut graph = Graph::for_buffer(n);
-        let mut scratch: Vec<(String, u64)> = Vec::new();
-        for i in 1..=n {
-            let lo = i.saturating_sub(MAX_SYL);
-            for j in lo..i {
-                let seg = match core::str::from_utf8(&buf[j..i]) {
-                    Ok(s) => s,
-                    Err(_) => continue,
-                };
-                scratch.clear();
-                self.lookup_raw_into(seg, &mut scratch);
-                if scratch.is_empty() {
-                    continue;
-                }
-                for (word, raw_freq) in scratch.iter() {
-                    let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
-                    graph.add_edge(Edge::exact(j, i, word.clone(), weight));
-                }
-            }
-        }
-
-        let lm_closure = |prev: &str, curr: &str| -> f32 {
-            let prev_opt = if prev.is_empty() { None } else { Some(prev) };
-            (self.bigram_boost(prev_opt, curr) + self.lm_bonus(None, prev_opt, curr)) as f32
-        };
-
-        let mut paths = graph.viterbi(1, lm_closure);
+        let mut paths = self.compose_via_lattice_paths(buffer, 1, true)?;
         let top = paths.drain(..).next()?;
         let sentence = top.sentence();
         Some((top.score as f64, sentence, top.words))
@@ -1070,57 +994,22 @@ impl PinyinDict {
     /// Phase-5 CP-3.6 step-2 turn 2 — `top_k_compositions`'s lattice
     /// counterpart. Returns `Vec<(score, sentence)>` ranked by score
     /// desc, deduped by sentence. For LM order ≤ 2 top-1 is byte-equal
-    /// with `top_k_compositions(buf, k)`'s top-1 (proven by
+    /// with `top_k_compositions(buf, k)`'s top-1 for clean inputs
+    /// (proven by
     /// `multi_syllable_lattice_top1_matches_legacy_best_composition`);
     /// the k+1th-rank results may permute when scores tie within the
-    /// beam since lattice viterbi prunes per-node, not per-final.
+    /// beam since lattice viterbi prunes per-node, not per-final. CP-5.3
+    /// step-2 added typo edges so K-best now includes typo-rescued
+    /// alternates for typo inputs.
     pub fn top_k_compositions_via_lattice(
         &self,
         buffer: &str,
         k: usize,
     ) -> Vec<(f64, String)> {
-        use crate::lattice::{Edge, Graph};
-        const MIN_LEN: usize = 4;
-        const MAX_LEN: usize = 30;
-        const MAX_SYL: usize = 24;
-        const STEP_PENALTY: f64 = 100_000.0;
-
-        let buf = buffer.as_bytes();
-        let n = buf.len();
-        if !(MIN_LEN..=MAX_LEN).contains(&n) || k == 0 {
-            return Vec::new();
-        }
-        if self.lm_order() >= 3 {
-            return Vec::new();
-        }
-
-        let mut graph = Graph::for_buffer(n);
-        let mut scratch: Vec<(String, u64)> = Vec::new();
-        for i in 1..=n {
-            let lo = i.saturating_sub(MAX_SYL);
-            for j in lo..i {
-                let seg = match core::str::from_utf8(&buf[j..i]) {
-                    Ok(s) => s,
-                    Err(_) => continue,
-                };
-                scratch.clear();
-                self.lookup_raw_into(seg, &mut scratch);
-                if scratch.is_empty() {
-                    continue;
-                }
-                for (word, raw_freq) in scratch.iter() {
-                    let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
-                    graph.add_edge(Edge::exact(j, i, word.clone(), weight));
-                }
-            }
-        }
-
-        let lm_closure = |prev: &str, curr: &str| -> f32 {
-            let prev_opt = if prev.is_empty() { None } else { Some(prev) };
-            (self.bigram_boost(prev_opt, curr) + self.lm_bonus(None, prev_opt, curr)) as f32
+        let paths = match self.compose_via_lattice_paths(buffer, k, true) {
+            Some(p) => p,
+            None => return Vec::new(),
         };
-
-        let paths = graph.viterbi(k, lm_closure);
         let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut out: Vec<(f64, String)> = Vec::with_capacity(paths.len());
         for p in paths {
@@ -1130,6 +1019,131 @@ impl PinyinDict {
             }
         }
         out
+    }
+
+    /// Phase-5 CP-3.6 step-2 + CP-5.3 step-2 — shared graph builder
+    /// for the three `*_via_lattice` public helpers above. Builds a
+    /// lattice from segmenting `buffer` into all valid `(j, i)` spans
+    /// where `i - j ≤ MAX_SYL`, then runs `Graph::viterbi(k, lm_closure)`
+    /// over it.
+    ///
+    /// Returns `None` for buffers outside `[MIN_LEN, MAX_LEN]`, for
+    /// `k == 0`, or when LM order ≥ 3 — the lattice viterbi closure is
+    /// 2-arg `(prev, curr)` and can't express trigram grandparent
+    /// scoring, so callers must fall back to the legacy DP in that case.
+    ///
+    /// # Edge types added
+    ///
+    /// - **Exact edges** (always): every dict hit for `buf[j..i]`
+    ///   becomes one `Edge::exact(j, i, word, raw_freq − STEP_PENALTY)`.
+    ///   Raw-domain weight encoding so the additive viterbi score
+    ///   equals legacy `best_composition`'s additive DP score exactly
+    ///   on clean inputs.
+    ///
+    /// - **Typo edges** (when `include_typo_edges = true` and the
+    ///   segment is syllable-shaped — `seg.len() ≤ TYPO_MAX_SEG_LEN`):
+    ///   for each single-letter adjacent-key substitution variant of
+    ///   the segment (per
+    ///   [`crate::keyboard_adjacency::single_edit_neighbors`] with
+    ///   `max_distance = 1.05` — strict horizontal-or-vertical
+    ///   adjacency only, no diagonals, to keep the per-segment variant
+    ///   count manageable in the per-keystroke hot path), every dict
+    ///   hit for the variant becomes one
+    ///   `Edge::typo(j, i, word, raw_freq − STEP_PENALTY, channel)`.
+    ///   Channel is the variant's `adjacency_log_prob` (~ −1.3, matching
+    ///   `Path1cTypo`'s legacy uniform default at d ≤ 1.05). On clean
+    ///   inputs the typo edges all lose to the matching exact edge for
+    ///   the same word (channel is negative, exact's is 0); on typo
+    ///   inputs the typo edge resolves to the intended word at the cost
+    ///   of the channel penalty.
+    ///
+    /// # Cost
+    ///
+    /// Exact lookups: ~MAX_SYL × n per call (≈ n × 24 lookups).
+    /// Typo lookups: up to ~25 variants × syllable-shaped segments
+    /// (≈ n × 4 × 12 ≈ 50n at typical short adjacency-counts), each a
+    /// fast FST walk. For n = 13 (typical buffer length) the wall-clock
+    /// stays under a few milliseconds on the per-keystroke path.
+    fn compose_via_lattice_paths(
+        &self,
+        buffer: &str,
+        k: usize,
+        include_typo_edges: bool,
+    ) -> Option<Vec<crate::lattice::Path>> {
+        use crate::keyboard_adjacency::single_edit_neighbors;
+        use crate::lattice::{Edge, Graph};
+
+        const MIN_LEN: usize = 4;
+        const MAX_LEN: usize = 30;
+        const MAX_SYL: usize = 24;
+        const STEP_PENALTY: f64 = 100_000.0;
+        // Pinyin syllables are 1-7 bytes (`a` / `ni` / `zhong` /
+        // `zhuang`). Restricting typo enumeration to ≤ TYPO_MAX_SEG_LEN
+        // keeps the variant count manageable — multi-syllable phrase
+        // segments (e.g. `zhongguo` 8 bytes) would otherwise generate
+        // 25× variants × 8 positions = 200 lookups apiece.
+        const TYPO_MAX_SEG_LEN: usize = 7;
+        // Strict horizontal-/-vertical adjacency only (no diagonals).
+        // Matches the d ≤ 1.05 band of `keyboard_adjacency`'s ladder
+        // (channel ≈ -1.301, the legacy `Path1cTypo` uniform default).
+        // Tighter than 1.5 (which includes diagonals) so the per-segment
+        // variant count stays ≈ 4 instead of ≈ 8, keeping the
+        // per-keystroke wall-clock under a few ms for typical buffers.
+        const TYPO_MAX_DISTANCE: f32 = 1.05;
+
+        let buf = buffer.as_bytes();
+        let n = buf.len();
+        if !(MIN_LEN..=MAX_LEN).contains(&n) || k == 0 {
+            return None;
+        }
+        if self.lm_order() >= 3 {
+            return None;
+        }
+
+        let mut graph = Graph::for_buffer(n);
+        let mut scratch: Vec<(String, u64)> = Vec::new();
+        for i in 1..=n {
+            let lo = i.saturating_sub(MAX_SYL);
+            for j in lo..i {
+                let seg = match core::str::from_utf8(&buf[j..i]) {
+                    Ok(s) => s,
+                    Err(_) => continue,
+                };
+                // Exact edges — always added.
+                scratch.clear();
+                self.lookup_raw_into(seg, &mut scratch);
+                for (word, raw_freq) in scratch.iter() {
+                    let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
+                    graph.add_edge(Edge::exact(j, i, word.clone(), weight));
+                }
+                // Typo edges — gated by flag + syllable shape.
+                if include_typo_edges && seg.len() <= TYPO_MAX_SEG_LEN {
+                    for (variant, channel) in
+                        single_edit_neighbors(seg, TYPO_MAX_DISTANCE)
+                    {
+                        scratch.clear();
+                        self.lookup_raw_into(&variant, &mut scratch);
+                        for (word, raw_freq) in scratch.iter() {
+                            let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
+                            graph.add_edge(Edge::typo(
+                                j,
+                                i,
+                                word.clone(),
+                                weight,
+                                channel,
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        let lm_closure = |prev: &str, curr: &str| -> f32 {
+            let prev_opt = if prev.is_empty() { None } else { Some(prev) };
+            (self.bigram_boost(prev_opt, curr) + self.lm_bonus(None, prev_opt, curr)) as f32
+        };
+
+        Some(graph.viterbi(k, lm_closure))
     }
 
     /// K-best Viterbi composition: like [`Self::best_composition`] but

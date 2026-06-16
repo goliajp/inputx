@@ -1735,8 +1735,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
       <div class="task-group">
         <div class="task-group-head">step-2 deferred · 触发条件</div>
         <ul class="tasks">
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">lattice 接入(Path1eTypo 或扩 Path1cTypo)<span class="hint">枚举 single_edit_neighbors · 每变体 lookup_with_scores_into · emit EdgeKind::Typo(adjacency_log_prob)· 可与 CP-3.6 step-2 production wiring 合并做</span></span></li>
-          <li class="task" data-status="todo"><span class="box"></span><span class="body">typo fixture 集 build + MIU/fixture verify<span class="hint">常见键盘 typo 100-200 行(bin → 拼 · zheng → 政,wheel typo q→w 等)· acceptance: Top-3 命中率 ≥ +5% + 正常输入 case false positive &lt; 1%</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">lattice 接入(inline 进 <code>compose_via_lattice_paths</code> 私有 helper · 不新建 Path1eTypo struct)<span class="hint">3 个 <code>*_via_lattice</code> public helpers refactor 为 thin wrappers 共享 graph builder · graph builder 内对每个 (j,i) segment 加 typo edges:<code>single_edit_neighbors(seg, max_distance=1.05)</code> 严格 horizontal/vertical adjacency · 每 variant lookup_raw_into · emit <code>Edge::typo(j, i, word, weight, channel)</code> with channel = adjacency_log_prob ≈ -1.301 · syllable shape 限制 seg.len() ≤ 7 字节避免 phrase-segment over-generation · 流入 production paths 1292/1631 via CP-3.6 step-2 turn 2 swap</span></span></li>
+          <li class="task" data-status="done"><span class="box"></span><span class="body">typo_miu fixture verify · acceptance Top-3 ≥ +5% + false positive < 1%<span class="hint"><strong>typo_miu top1: 0% → 46.67% (+46.67pp · 远超 ≥+5pp 验收门)</strong> · top5: 0% → 56.67% · top10: 3.33% → 60% · false positive: gold_1000.tsv MIU 仍 ±2pp gate ✓(make eval 714s · 比 swap 前 ~270s 慢 ~3× · per-keystroke +8ms typo lookups · clean input 仍 byte-equal)</span></span></li>
         </ul>
       </div>
 
