@@ -195,12 +195,20 @@ static INITIALS_INDEX: OnceLock<Arc<InitialsIndex>> = OnceLock::new();
 
 /// Compact replacement for `HashMap<String, Vec<String>>`. All matching
 /// words across every initials bucket are stored back-to-back in
-/// `word_pool` as `[u16 length-LE][utf-8 bytes...]` records. The `fsa`
-/// (`inputx_fsa::Fsa`) maps initials_bytes → packed `(first_word_offset
-/// in low 32 bits | count in high 32 bits)`, both addressing the pool.
-/// Lookups return an iterator that walks the pool slice in place — no
-/// heap allocation per `next()`. Consumer copies to `String` only when
-/// it needs an owned value.
+/// `word_pool` as `[u16 length-LE][utf-8 bytes...][u64 score-LE]`
+/// records. The `fsa` (`inputx_fsa::Fsa`) maps initials_bytes → packed
+/// `(first_word_offset in low 32 bits | count in high 32 bits)`, both
+/// addressing the pool. Lookups return an iterator that walks the pool
+/// slice in place — no heap allocation per `next()`. Consumer copies
+/// to `String` only when it needs an owned value.
+///
+/// Climb-final Stage B2 (2026-06-16) — added u64 `score` slot per word
+/// (was just word bytes). The score is the char-quality-weighted
+/// `combined` value computed at build time (see
+/// `build_initials_index`'s `geomean.sqrt() * phrase_freq` formula).
+/// Surfaces real bucket ranking to consumers (the abbrev_resolver
+/// previously used a synthetic `30000 / (rank+1)` rank-decay that
+/// ignored the actual combined score gap between, e.g., 大学 vs 多谢).
 struct InitialsIndex {
     word_pool: Vec<u8>,
     fsa_bytes: Vec<u8>,
@@ -213,8 +221,11 @@ struct InitialsMatches<'a> {
 }
 
 impl<'a> Iterator for InitialsMatches<'a> {
-    type Item = &'a str;
-    fn next(&mut self) -> Option<&'a str> {
+    /// Returns `(word, combined_score)` where `combined_score` is the
+    /// build-time char-quality-weighted ranking value (higher = better).
+    /// Consumers wanting only the word can `.map(|(w, _)| w)`.
+    type Item = (&'a str, u64);
+    fn next(&mut self) -> Option<(&'a str, u64)> {
         if self.remaining == 0 {
             return None;
         }
@@ -224,12 +235,16 @@ impl<'a> Iterator for InitialsMatches<'a> {
         let len = u16::from_le_bytes([self.pool[self.offset], self.pool[self.offset + 1]]) as usize;
         let start = self.offset + 2;
         let end = start + len;
-        if end > self.pool.len() {
+        if end + 8 > self.pool.len() {
             return None;
         }
-        self.offset = end;
+        let word = std::str::from_utf8(&self.pool[start..end]).ok()?;
+        let mut score_bytes = [0u8; 8];
+        score_bytes.copy_from_slice(&self.pool[end..end + 8]);
+        let score = u64::from_le_bytes(score_bytes);
+        self.offset = end + 8;
         self.remaining -= 1;
-        std::str::from_utf8(&self.pool[start..end]).ok()
+        Some((word, score))
     }
 }
 
@@ -1351,14 +1366,19 @@ impl PinyinAdapter {
                 let Some(matches) = idx.get(seg.as_bytes()) else {
                     return Vec::new();
                 };
-                // Rank-decay raw-domain score. Top of bucket gets 30k —
-                // comparable to a mid-frequency exact word's raw_freq.
+                // Climb-final Stage B2 (2026-06-16): use real bucket
+                // combined_score scaled by 1000 (typical 2-char bucket
+                // top combined ~1e7 → ~1e4 score, comparable to
+                // mid-frequency exact word raw_freq). Bucket-internal
+                // ranking now drives lattice K-best directly — e.g.
+                // dx-bucket: 东西 ~10000, 大学 ~9900, 多谢 ~7300 →
+                // 上海+大学 / 上海+东西 win over 时候+多谢 by real
+                // bucket signal not rank-decay synthetic.
                 // Cap at 10 candidates per segment.
                 matches
                     .take(10)
-                    .enumerate()
-                    .map(|(i, w)| {
-                        let score = 30_000_u64 / (i as u64 + 1);
+                    .map(|(w, combined)| {
+                        let score = (combined / 1000).max(1);
                         (w.to_string(), score)
                     })
                     .collect()
@@ -1543,7 +1563,7 @@ impl PinyinAdapter {
                 let idx = initials_index(&self.engine);
                 if let Some(matches) = idx.get(consonant_prefix.as_bytes()) {
                     let typed_len = consonant_prefix.len().min(u8::MAX as usize) as u8;
-                    for w in matches.take(50) {
+                    for (w, _score) in matches.take(50) {
                         let owned = w.to_owned();
                         if seen.insert(owned.clone()) {
                             // v1.8.1 WU-ξ: initials shorthand has its
@@ -1623,7 +1643,7 @@ impl PinyinAdapter {
         if !PINYIN_DISABLE_ASSOCIATION && looks_like_initials(&self.buffer) {
             let idx = initials_index(&self.engine);
             if let Some(matches) = idx.get(self.buffer.as_bytes()) {
-                for w in matches.take(200) {
+                for (w, _score) in matches.take(200) {
                     let owned = w.to_owned();
                     if seen.insert(owned.clone()) {
                         self.candidates.push(owned);
@@ -1732,11 +1752,13 @@ impl PinyinAdapter {
                     let Some(matches) = idx.get(seg.as_bytes()) else {
                         return Vec::new();
                     };
+                    // Climb-final Stage B2 (2026-06-16): real bucket
+                    // combined_score scaled by 1000 — see the chain
+                    // variant resolver above for rationale.
                     matches
                         .take(10)
-                        .enumerate()
-                        .map(|(i, w)| {
-                            let score = 30_000_u64 / (i as u64 + 1);
+                        .map(|(w, combined)| {
+                            let score = (combined / 1000).max(1);
                             (w.to_string(), score)
                         })
                         .collect()
@@ -2374,13 +2396,17 @@ fn build_initials_index(engine: &PinyinEngine) -> InitialsIndex {
 
         let first_offset = word_pool.len() as u32;
         let mut count: u32 = 0;
-        for (w, _) in &scored {
+        for (w, score) in &scored {
             let bytes = w.as_bytes();
             if bytes.len() > u16::MAX as usize {
                 continue; // defensive — won't happen for IME candidates
             }
             word_pool.extend_from_slice(&(bytes.len() as u16).to_le_bytes());
             word_pool.extend_from_slice(bytes);
+            // Climb-final Stage B2 (2026-06-16): append u64 combined
+            // score so InitialsMatches iterator can surface it. See
+            // InitialsIndex struct doc for format change rationale.
+            word_pool.extend_from_slice(&score.to_le_bytes());
             count += 1;
         }
         let value = (first_offset as u64) | ((count as u64) << 32);
