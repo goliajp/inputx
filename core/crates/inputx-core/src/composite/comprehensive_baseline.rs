@@ -369,6 +369,14 @@ mod tests {
             // INITIALS_INDEX bucket "shdx" so Path 2 direct lookup
             // surfaces 上海大学 as top-1 for the abbreviation.
             ("shanghaidaxue", "上海大学"),
+            // Climb-final Stage A1 2026-06-16 — zhishi → 知识 was at
+            // rank #1 behind 只是 (#0 at base freq 46040; 知识 at
+            // 35575). Boosted 知识 in quickfix_boost.tsv to 51000
+            // (top peer + 10% margin) so canonical zhishi resolves to
+            // 知识 at top-1, enabling fuzzy variant edges (z↔zh fuzzy
+            // pair like `zi shi` / `zhi xi`) to deliver 知识 in
+            // fuzzy_miu fixture cases.
+            ("zhishi", "知识"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
