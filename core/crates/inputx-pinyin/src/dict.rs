@@ -961,7 +961,7 @@ impl PinyinDict {
     /// closure adds `bigram_boost + lm_bonus(prev_prev=None, prev, curr)`,
     /// matching best_composition's per-step bonus (dict.rs lines 807-810).
     pub fn best_composition_via_lattice(&self, buffer: &str) -> Option<String> {
-        self.compose_via_lattice_paths(buffer, 1, true)?
+        self.compose_via_lattice_paths(buffer, 1, true, None)?
             .into_iter()
             .next()
             .map(|p| p.sentence())
@@ -985,7 +985,33 @@ impl PinyinDict {
         &self,
         buffer: &str,
     ) -> Option<(f64, String, Vec<String>)> {
-        let mut paths = self.compose_via_lattice_paths(buffer, 1, true)?;
+        let mut paths = self.compose_via_lattice_paths(buffer, 1, true, None)?;
+        let top = paths.drain(..).next()?;
+        let sentence = top.sentence();
+        Some((top.score as f64, sentence, top.words))
+    }
+
+    /// CP-5.4 step-2 — production variant of
+    /// [`Self::best_composition_chain_via_lattice`] that also accepts
+    /// an `abbrev_resolver` closure. The closure is invoked per
+    /// candidate `(j, i)` segment to resolve a 简拼 / initials
+    /// abbreviation key (e.g. `"zhrm"` → `[("中华人民", score), …]`).
+    /// Each match becomes an `Edge::abbrev` in the lattice with
+    /// `channel = abbrev_channel_log_prob(n_syllables)` — the
+    /// length-aware ladder from `crate::abbrev_channel`, replacing
+    /// `Path2Abbrev::DEFAULT_CHANNEL_LOG_PROB`'s fixed −1.699.
+    ///
+    /// The `u64` slot in the resolver's return tuple is a raw-domain
+    /// score (same shape as `lookup_raw_into`'s freq field) so the
+    /// lattice edge weight encoding stays uniform:
+    /// `weight = score − STEP_PENALTY`.
+    pub fn best_composition_chain_via_lattice_with_abbrev(
+        &self,
+        buffer: &str,
+        abbrev_resolver: &dyn Fn(&str) -> Vec<(String, u64)>,
+    ) -> Option<(f64, String, Vec<String>)> {
+        let mut paths =
+            self.compose_via_lattice_paths(buffer, 1, true, Some(abbrev_resolver))?;
         let top = paths.drain(..).next()?;
         let sentence = top.sentence();
         Some((top.score as f64, sentence, top.words))
@@ -1006,7 +1032,38 @@ impl PinyinDict {
         buffer: &str,
         k: usize,
     ) -> Vec<(f64, String)> {
-        let paths = match self.compose_via_lattice_paths(buffer, k, true) {
+        let paths = match self.compose_via_lattice_paths(buffer, k, true, None) {
+            Some(p) => p,
+            None => return Vec::new(),
+        };
+        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut out: Vec<(f64, String)> = Vec::with_capacity(paths.len());
+        for p in paths {
+            let s = p.sentence();
+            if seen.insert(s.clone()) {
+                out.push((p.score as f64, s));
+            }
+        }
+        out
+    }
+
+    /// CP-5.4 step-2 — production variant of
+    /// [`Self::top_k_compositions_via_lattice`] with 简拼 abbreviation
+    /// resolver support. See
+    /// [`Self::best_composition_chain_via_lattice_with_abbrev`] for the
+    /// resolver contract.
+    pub fn top_k_compositions_via_lattice_with_abbrev(
+        &self,
+        buffer: &str,
+        k: usize,
+        abbrev_resolver: &dyn Fn(&str) -> Vec<(String, u64)>,
+    ) -> Vec<(f64, String)> {
+        let paths = match self.compose_via_lattice_paths(
+            buffer,
+            k,
+            true,
+            Some(abbrev_resolver),
+        ) {
             Some(p) => p,
             None => return Vec::new(),
         };
@@ -1057,19 +1114,38 @@ impl PinyinDict {
     ///   inputs the typo edge resolves to the intended word at the cost
     ///   of the channel penalty.
     ///
+    /// - **Abbrev edges** (CP-5.4 step-2, when `abbrev_resolver` is
+    ///   `Some(_)` and the segment is vowel-free + ≥ 2 bytes): the
+    ///   resolver maps a 简拼 key like `"zhrm"` to candidate phrases
+    ///   like `[("中华人民", score)]`. Each match becomes one
+    ///   `Edge::abbrev(j, i, word, score − STEP_PENALTY, channel)`
+    ///   where channel is the length-aware
+    ///   `abbrev_channel_log_prob(n_syllables)` from
+    ///   [`crate::abbrev_channel`] (n_syllables computed via
+    ///   `split_initials(seg)`). The host wires the resolver to its
+    ///   `INITIALS_INDEX` so long abbreviations like `"zhrmghg"` can
+    ///   compose via lattice viterbi from shorter abbrev segments
+    ///   (e.g. `"zhrm"` + `"ghg"`) even when no whole-buffer dict
+    ///   entry exists.
+    ///
     /// # Cost
     ///
     /// Exact lookups: ~MAX_SYL × n per call (≈ n × 24 lookups).
     /// Typo lookups: up to ~25 variants × syllable-shaped segments
     /// (≈ n × 4 × 12 ≈ 50n at typical short adjacency-counts), each a
-    /// fast FST walk. For n = 13 (typical buffer length) the wall-clock
-    /// stays under a few milliseconds on the per-keystroke path.
+    /// fast FST walk. Abbrev lookups: one resolver call per
+    /// vowel-free ≥ 2-byte segment (≤ n²/2 calls for vowel-free
+    /// buffers, far fewer for typical mixed inputs). For n = 13
+    /// (typical buffer length) the wall-clock stays under a few
+    /// milliseconds on the per-keystroke path.
     fn compose_via_lattice_paths(
         &self,
         buffer: &str,
         k: usize,
         include_typo_edges: bool,
+        abbrev_resolver: Option<&dyn Fn(&str) -> Vec<(String, u64)>>,
     ) -> Option<Vec<crate::lattice::Path>> {
+        use crate::abbrev_channel::{abbrev_channel_log_prob, split_initials};
         use crate::keyboard_adjacency::single_edit_neighbors;
         use crate::lattice::{Edge, Graph};
 
@@ -1132,6 +1208,38 @@ impl PinyinDict {
                                 weight,
                                 channel,
                             ));
+                        }
+                    }
+                }
+                // Abbrev edges (CP-5.4 step-2) — gated by resolver
+                // presence + vowel-free + ≥ 2 bytes (the standard
+                // initials-abbreviation shape).
+                if let Some(resolver) = abbrev_resolver {
+                    if seg.len() >= 2
+                        && seg.bytes().all(|b| {
+                            !matches!(b, b'a' | b'e' | b'i' | b'o' | b'u' | b'v')
+                        })
+                    {
+                        let initials = split_initials(seg);
+                        if !initials.is_empty() {
+                            let channel = abbrev_channel_log_prob(initials.len());
+                            // INFINITY guards against caller-error
+                            // (0-syllable input). Defensive but should
+                            // never fire because split_initials returned
+                            // non-empty Vec.
+                            if channel.is_finite() {
+                                for (word, score) in resolver(seg) {
+                                    let weight =
+                                        (score as f64 - STEP_PENALTY) as f32;
+                                    graph.add_edge(Edge::abbrev(
+                                        j,
+                                        i,
+                                        word,
+                                        weight,
+                                        channel,
+                                    ));
+                                }
+                            }
                         }
                     }
                 }
