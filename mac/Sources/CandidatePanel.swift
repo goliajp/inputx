@@ -27,6 +27,14 @@ final class CandidatePanel {
     private var pageIndex: Int = 0
     /// 0-based selected index within the current page (0…pageSize-1).
     private var selectedInPage: Int = 0
+    /// Whether the user has actively moved selection / paged this round
+    /// (since the last `refresh(words:)` / `hide()` / `showPredictions`).
+    /// True iff `moveSelectionUp` / `moveSelectionDown` / `prevPage` /
+    /// `nextPage` actually mutated state. Read by `IMEController` so
+    /// Enter can split: untouched → 上屏 raw preedit (英文 passthrough);
+    /// touched → commit the highlighted candidate. Per user 2026-06-16
+    /// directive "如果没有上下或 [] 调整过选择的话，回车是英文上屏".
+    private(set) var selectionTouched: Bool = false
 
     /// Per-page candidate count. User-requested 10.
     static let pageSize = 10
@@ -320,6 +328,11 @@ final class CandidatePanel {
             current = words
             pageIndex = 0
             selectedInPage = 0
+            // Fresh candidate set = a fresh selection round, even if the
+            // user paged/arrowed in the previous round. Enter on the new
+            // round defaults back to 英文 passthrough until they touch
+            // selection again.
+            selectionTouched = false
         }
         // Reposition when transitioning out of prediction mode — the
         // caret moved while predictions were on (commit advanced it),
@@ -358,6 +371,7 @@ final class CandidatePanel {
         isPredictionMode = false
         pageIndex = 0
         selectedInPage = 0
+        selectionTouched = false
         lastRenderedFingerprint = ""
         cachedMaxWordRenderWidth = 0
         hideVisually()
@@ -385,6 +399,7 @@ final class CandidatePanel {
         isPredictionMode = true
         pageIndex = 0
         selectedInPage = 0
+        selectionTouched = false
         rebuildRows()
         // ALWAYS reposition for predictions — each commit advances the
         // host's caret (the just-committed word shifts everything right),
@@ -420,10 +435,12 @@ final class CandidatePanel {
         guard isVisible else { return false }
         if selectedInPage > 0 {
             selectedInPage -= 1
+            selectionTouched = true
             updateRowHighlight()
             return true
         }
-        // At top of page — try previous page.
+        // At top of page — try previous page. prevPage() owns its own
+        // selectionTouched flip (no-op at first page).
         return prevPage()
     }
 
@@ -433,10 +450,12 @@ final class CandidatePanel {
         let lastOnPage = min(Self.pageSize, current.count - pageIndex * Self.pageSize) - 1
         if selectedInPage < lastOnPage {
             selectedInPage += 1
+            selectionTouched = true
             updateRowHighlight()
             return true
         }
-        // At bottom of page — try next page.
+        // At bottom of page — try next page. nextPage() owns its own
+        // selectionTouched flip (no-op at last page).
         return nextPage()
     }
 
@@ -446,6 +465,7 @@ final class CandidatePanel {
         guard isVisible, pageIndex > 0 else { return false }
         pageIndex -= 1
         selectedInPage = 0
+        selectionTouched = true
         rebuildRows()
         return true
     }
@@ -458,6 +478,7 @@ final class CandidatePanel {
         guard pageIndex + 1 < totalPages else { return false }
         pageIndex += 1
         selectedInPage = 0
+        selectionTouched = true
         rebuildRows()
         return true
     }
