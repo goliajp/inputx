@@ -1499,18 +1499,20 @@ mod tests {
         e.set_mode(Mode::PinyinOnly);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
         let mut last_commit: Option<String> = None;
-        for b in b"qwxzy" {
+        // CP-3.6 step-2 long-abbrev wire (2026-06-16) made vowel-free
+        // 5+ char buffers an abbreviation-intent signal; legitimate
+        // strings like `qwxzy` now resolve to 请问下周一. Use `vvvvv`
+        // (v is in the vowel-exclusion list and never a pinyin
+        // initial) so the buffer reliably routes to ASCII fallback.
+        for b in b"vvvvv" {
             if let Some(c) = e.handle_letter(*b) {
                 last_commit = Some(c);
             }
         }
-        // Either the 5th byte triggered ASCII fallback (Some commit
-        // returned), OR engine accumulated and we should check the
-        // commit drain.
         assert_eq!(
             last_commit.as_deref(),
-            Some("qwxzy"),
-            "expected ASCII fallback to commit 'qwxzy' as raw ASCII"
+            Some("vvvvv"),
+            "expected ASCII fallback to commit 'vvvvv' as raw ASCII"
         );
     }
 

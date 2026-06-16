@@ -467,6 +467,18 @@ impl CompositeEngine {
         if self.pinyin.has_clean_syllable_prefix() {
             return false;
         }
+        // CP-3.6 step-2 follow-up (2026-06-16, user report `zhrmghg`):
+        // long abbreviation intent (5+ char vowel-free buffer) is an
+        // unambiguous "user means abbrev" signal. The lattice K-best
+        // composition with abbrev resolver can compose e.g.
+        // `zhrm + ghg → 中华人民 + 共和国 → 中华人民共和国` even though
+        // none of the above escape valves fire (no pinyin prefix,
+        // no 2-consonant typo shape, no clean syllable prefix). Don't
+        // let ASCII-fallback wipe the buffer before lattice gets a
+        // chance to deliver.
+        if self.pinyin.is_long_abbrev_intent() {
+            return false;
+        }
         true
     }
 
@@ -1614,9 +1626,17 @@ mod tests {
     #[test]
     fn ascii_fallback_at_5_chars_no_match() {
         let mut e = CompositeEngine::new();
-        // 'qwxz' at 4 chars produces no candidates either (from the probe),
-        // but 4 isn't long enough for the fallback. Add a 5th letter.
-        for &b in b"qwxz" {
+        // Use `vvvvv` as guaranteed garbage. CP-3.6 step-2 long-abbrev
+        // wire (2026-06-16) made vowel-free buffers ≥ 5 char an
+        // explicit abbreviation-intent signal — buffers like `qwxzy`
+        // (formerly assumed garbage) actually resolve to a legitimate
+        // 5-char Chinese phrase via INITIALS_INDEX (q+w+x+z+y =
+        // 请问下周一), so the test must pick a buffer that's
+        // unambiguously garbage. `v` is in `looks_like_initials`'s
+        // vowel-exclusion list — it's never a valid pinyin initial,
+        // so `vvvvv` short-circuits the long-abbrev escape valve and
+        // routes to the original ASCII fallback path as designed.
+        for &b in b"vvvv" {
             let r = e.handle_letter(b);
             assert!(
                 r.is_none(),
@@ -1626,10 +1646,10 @@ mod tests {
             );
         }
         // 5th letter — fallback fires.
-        let committed = e.handle_letter(b'y');
+        let committed = e.handle_letter(b'v');
         assert_eq!(
             committed.as_deref(),
-            Some("qwxzy"),
+            Some("vvvvv"),
             "expected ASCII fallback at 5 chars, got {:?} (preedit={:?})",
             committed,
             e.preedit()
