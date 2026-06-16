@@ -1010,8 +1010,16 @@ impl PinyinDict {
         buffer: &str,
         abbrev_resolver: &dyn Fn(&str) -> Vec<(String, u64)>,
     ) -> Option<(f64, String, Vec<String>)> {
+        // CP-5.4 step-2 follow-up (user report 2026-06-16 `shdx`):
+        // abbreviation inputs are unambiguous user intent — keyboard
+        // typo edges should NOT be considered here. With typo enabled,
+        // `shdx`'s typo s→a → 啊 (raw freq ~500k) + abbrev hdx → 坏东西
+        // composed to "啊坏东西" at score +329k, beating 上海+大学
+        // (abbrev+abbrev at ~-158k) for K-best top-1. The user typed
+        // abbrev, so we resolve as abbrev only — no mixed typo/abbrev
+        // hybrid paths.
         let mut paths =
-            self.compose_via_lattice_paths(buffer, 1, true, Some(abbrev_resolver))?;
+            self.compose_via_lattice_paths(buffer, 1, false, Some(abbrev_resolver))?;
         let top = paths.drain(..).next()?;
         let sentence = top.sentence();
         Some((top.score as f64, sentence, top.words))
@@ -1058,10 +1066,13 @@ impl PinyinDict {
         k: usize,
         abbrev_resolver: &dyn Fn(&str) -> Vec<(String, u64)>,
     ) -> Vec<(f64, String)> {
+        // CP-5.4 step-2 follow-up: same typo-disable as the chain
+        // variant above. Abbreviation input is unambiguous — no typo
+        // hybrid composition.
         let paths = match self.compose_via_lattice_paths(
             buffer,
             k,
-            true,
+            false,
             Some(abbrev_resolver),
         ) {
             Some(p) => p,
