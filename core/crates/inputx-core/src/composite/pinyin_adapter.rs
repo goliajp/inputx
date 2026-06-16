@@ -1827,7 +1827,17 @@ impl PinyinAdapter {
                     // both came up dry). Top-1 has to pass the gate
                     // on its own merits; `靠谱` does ((靠, 谱) > 0),
                     // mechanical force-segmentations don't.
-                    if !alternate_bigrams_ok(top) {
+                    // CP-5.4 step-2 carve-out (user report 2026-06-16
+                    // `shdx`): abbreviation top-1 composes across dict
+                    // entry boundaries (上海+大学 = 上海大学; (海,大)
+                    // bigram is corpus-rare because nobody types the
+                    // literal 4-char phrase). The strict-all gate is
+                    // calibrated for foreign-romaji junk (kakarimasu
+                    // → 卡卡日马苏) — bypass top-1 only when input is
+                    // unambiguously abbrev shape. Alternates below
+                    // still go through the strict gate, so junk K-best
+                    // fanout can't sneak in.
+                    if !is_abbrev_input && !alternate_bigrams_ok(top) {
                         self.fallback_composition = None;
                     }
                     for (_, sentence) in comps {
