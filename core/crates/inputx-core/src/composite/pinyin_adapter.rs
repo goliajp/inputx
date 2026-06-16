@@ -486,6 +486,24 @@ impl PinyinAdapter {
         &self.engine
     }
 
+    /// CP-5.2 step-3: forward TOML cell-dict bytes into the PinyinDict
+    /// L0.5 layer. Returns the number of accepted entries on success.
+    /// Multiple calls accumulate; use `clear_cell_dict` to wipe.
+    pub fn load_cell_dict(&self, toml: &str) -> Result<usize, String> {
+        self.engine
+            .dict()
+            .load_cell_dict(toml)
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn clear_cell_dict(&self) {
+        self.engine.dict().clear_cell_dict();
+    }
+
+    pub fn cell_dict_count(&self) -> usize {
+        self.engine.dict().cell_dict_count()
+    }
+
     pub fn candidates(&self) -> &[String] {
         &self.candidates
     }
