@@ -1097,6 +1097,46 @@ impl PinyinAdapter {
     /// auto-commit when pinyin's still building toward a multi-syllable
     /// word — exact-match candidates may be empty (e.g., `beij` has no
     /// stand-alone entry) but `prefix("beij")` returns `北京` etc.
+    /// CP-3.6 step-2 follow-up (2026-06-16, user report `zhrmghg`):
+    /// vowel-free buffer ≥ 5 bytes is an abbreviation-intent
+    /// candidate — vowel-free input is never a real pinyin syllable
+    /// (every valid pinyin contains a vowel). But not every vowel-
+    /// free string is an *actual* abbrev — random garbage like
+    /// `qwxzy` is also vowel-free. To distinguish, require at least
+    /// one prefix of the buffer to have INITIALS_INDEX bucket hits
+    /// (any length ≥ 2). For `zhrmghg`, prefix `zhrm` matches
+    /// (中华人民), so the buffer is real abbrev. For `qwxzy`, no
+    /// prefix has matches (q+w+x+z initials don't form any common
+    /// Chinese phrase), so it's garbage and ASCII-fallback should
+    /// fire.
+    ///
+    /// Used by the engine's `is_pure_garbage()` escape valve so
+    /// long abbreviations don't get wiped by the 5-char ASCII-
+    /// fallback when `has_future_match` / `path1c_would_fire` /
+    /// `has_clean_syllable_prefix` all return false (which they
+    /// legitimately do for long abbrev input).
+    pub fn is_long_abbrev_intent(&self) -> bool {
+        if self.buffer.len() < 5 {
+            return false;
+        }
+        if !looks_like_initials(&self.buffer) {
+            return false;
+        }
+        // Walk INITIALS_INDEX from longest prefix to shortest,
+        // stop on first hit. Hot-path call — INITIALS_INDEX was
+        // already built by Path 2 earlier in the same
+        // refresh_candidates cycle (same gate: looks_like_initials),
+        // so this is just `Arc::clone()` + ≤ (n-2) FST lookups.
+        let idx = initials_index(&self.engine);
+        for prefix_len in (2..=self.buffer.len()).rev() {
+            let prefix = &self.buffer[..prefix_len];
+            if idx.get(prefix.as_bytes()).is_some() {
+                return true;
+            }
+        }
+        false
+    }
+
     pub fn has_future_match(&self) -> bool {
         if self.buffer.is_empty() {
             return false;
@@ -1854,6 +1894,27 @@ impl PinyinAdapter {
                         if !self.candidates.iter().any(|w| w == &sentence) {
                             self.candidates.push(sentence);
                         }
+                    }
+                    // 2026-06-16 long-abbrev Mixed-mode fix: when K-best
+                    // produced a legitimate abbrev composition (top-1
+                    // surfaced via the abbrev fallback_composition path
+                    // above), promote pinyin to "non-speculative" status
+                    // so wubi's 4-char force-commit is vetoed. Without
+                    // this, typing `zhrmghg` in Mixed mode lets wubi
+                    // auto-commit `zhrm`→睛 at the 4th char (because
+                    // pinyin Path 1a/2 are empty for vowel-free 5+ char
+                    // buffers — Path 2's bucket lookup needs exact key
+                    // length match), splitting the user's abbrev intent
+                    // before lattice composition can deliver
+                    // 中华人民共和国. Gate on `is_abbrev_input` so non-
+                    // abbrev K-best (e.g. yongbuliao → 用不了) doesn't
+                    // accidentally trigger this — that path already has
+                    // its own non-speculative signal via Path 1a exact.
+                    if is_abbrev_input
+                        && !self.candidates.is_empty()
+                        && self.fallback_composition.is_some()
+                    {
+                        self.has_non_speculative_candidate = true;
                     }
                 }
                 // ratio < 2.0: drop all K-best comps. self.candidates stays
