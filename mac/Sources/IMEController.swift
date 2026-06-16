@@ -337,18 +337,35 @@ final class InputxController: IMKInputController {
         }
 
         // ---- Path A0b: Return → commit highlighted (English fallback) ----
-        // User 2026-06-14: "回车也应该是选中值上屏，如果候选没有内容就是
-        // 英文上屏". Return mirrors Space's selected-commit semantic for
-        // the highlight (#0 by default, ↑/↓ moved otherwise), in both
-        // regular and prediction modes. When the engine is composing but
-        // produced no candidates (panel hidden), Return commits the raw
-        // ASCII buffer so the user isn't trapped by an unmatched buffer.
-        // When nothing is in flight, Return falls through to the host as
-        // a literal newline.
+        // User 2026-06-16 (refined): "如果没有上下或 [] 调整过选择的话，
+        // 回车是英文上屏". Enter splits on `panel.selectionTouched`:
+        //
+        //   - panel visible AND user actively moved selection (↑/↓ or
+        //     `[`/`]`) → commit the highlighted candidate (Sogou-style
+        //     "commit my pick"). Restores 2026-06-14's selected-commit
+        //     semantic for the case where the user expressed intent.
+        //
+        //   - panel visible BUT untouched → fall through to the
+        //     raw-preedit path below. The user typed pinyin and pressed
+        //     Enter without picking anything; that's an unambiguous
+        //     "I meant English, not Chinese — let me out" intent.
+        //
+        //   - panel hidden but composing (no candidates) → raw preedit
+        //     up-screen so the user isn't trapped by an unmatched
+        //     buffer (this branch was already correct).
+        //
+        //   - nothing in flight → fall through to the host as a literal
+        //     newline.
+        //
+        // Prediction mode follows the same rule: untouched Enter in the
+        // 联想 panel = raw preedit (which is empty in prediction mode,
+        // so effectively a no-op committed dismissal that lets the
+        // user keep typing). Touched Enter commits the selected
+        // prediction (chained 联想).
         //
         // 0x0D = main-keyboard Return; 0x03 = numpad Enter (Apple's ETX).
         if codepoint == 0x0D || codepoint == 0x03 {
-            if let panel = candidatePanel, panel.isVisible {
+            if let panel = candidatePanel, panel.isVisible, panel.selectionTouched {
                 let idx = panel.selectedAbsoluteIndex() ?? 0
                 if panel.isPredictionMode {
                     if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
