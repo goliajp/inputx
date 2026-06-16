@@ -377,6 +377,13 @@ mod tests {
             // pair like `zi shi` / `zhi xi`) to deliver 知识 in
             // fuzzy_miu fixture cases.
             ("zhishi", "知识"),
+            // Climb-final Stage A3 2026-06-16 — long-abbrev wire
+            // invariant pin: zhrmghg → 中华人民共和国 #0 in PinyinOnly
+            // (climb plan flagship). Pinned by `compose_via_lattice_paths`
+            // abbrev_resolver + INITIALS_INDEX wrapper + long-abbrev
+            // ASCII-fallback escape valve. If any of those regress, this
+            // case flips and test fails.
+            ("zhrmghg", "中华人民共和国"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
