@@ -935,6 +935,325 @@ impl PinyinDict {
         Some((final_score, chain.concat()))
     }
 
+    /// Phase-5 CP-3.6 step-2 — multi-syllable composition routed
+    /// through the lattice viterbi engine. Mirrors [`Self::best_composition`]'s
+    /// DP exactly so for any LM order ≤ 2 the returned sentence equals
+    /// `self.best_composition(buffer).map(|(_, s)| s)`. This is the
+    /// byte-equal proof point pinned by
+    /// `lattice::tests::multi_syllable_lattice_top1_matches_legacy_best_composition`.
+    ///
+    /// LM order ≥ 3 returns None — the lattice viterbi closure is
+    /// `(prev, curr) -> f32` and can't express trigram grandparent
+    /// scoring. Callers should fall back to [`Self::best_composition`]
+    /// in that case until the viterbi closure interface is extended (or
+    /// we accept the bigram-equivalent approximation for the trigram
+    /// path; sprint step #5 turn 2 decision).
+    ///
+    /// Out-of-range buffers (length outside [MIN_LEN, MAX_LEN]) return
+    /// None matching `best_composition`.
+    ///
+    /// Edge weight encoding: `Edge::exact(j, i, word, raw_freq − STEP_PENALTY)`
+    /// — raw-domain, not log10. The lattice library treats `Edge::exact`'s
+    /// f32 slot as a generic edge weight; the "log_prob" name on the
+    /// API is a hint from the original Path 1a single-span use, not a
+    /// contract. Using raw-domain here is what makes the additive viterbi
+    /// score equal best_composition's additive DP score exactly. The LM
+    /// closure adds `bigram_boost + lm_bonus(prev_prev=None, prev, curr)`,
+    /// matching best_composition's per-step bonus (dict.rs lines 807-810).
+    pub fn best_composition_via_lattice(&self, buffer: &str) -> Option<String> {
+        self.compose_via_lattice_paths(buffer, 1, true, None)?
+            .into_iter()
+            .next()
+            .map(|p| p.sentence())
+    }
+
+    /// Phase-5 CP-3.6 step-2 turn 2 — `best_composition_chain`'s lattice
+    /// counterpart. Returns `(score, sentence, chain)`, matching the
+    /// legacy method's signature so it can be swapped at production call
+    /// sites without changing caller logic. Sentence is byte-equal with
+    /// `best_composition_chain(buf).map(|(_, s, _)| s)` for LM order ≤ 2
+    /// on clean (typo-free) inputs; `score` may differ by an f32-vs-f64
+    /// quantum (the lattice viterbi accumulates f32 weights) but the
+    /// magnitude (~1e6) is far larger than any quality-floor tolerance
+    /// the caller checks against. `chain` is the winning lattice path's
+    /// per-segment word sequence, matching `best_composition_chain`'s
+    /// chain shape. CP-5.3 step-2 added keyboard-adjacent typo edges
+    /// on top of the exact edges, so for typo inputs the winning path
+    /// can resolve a typo (e.g. `bi hao` → 你好 via n↔b adjacency) —
+    /// that's the whole point of CP-5.3.
+    pub fn best_composition_chain_via_lattice(
+        &self,
+        buffer: &str,
+    ) -> Option<(f64, String, Vec<String>)> {
+        let mut paths = self.compose_via_lattice_paths(buffer, 1, true, None)?;
+        let top = paths.drain(..).next()?;
+        let sentence = top.sentence();
+        Some((top.score as f64, sentence, top.words))
+    }
+
+    /// CP-5.4 step-2 — production variant of
+    /// [`Self::best_composition_chain_via_lattice`] that also accepts
+    /// an `abbrev_resolver` closure. The closure is invoked per
+    /// candidate `(j, i)` segment to resolve a 简拼 / initials
+    /// abbreviation key (e.g. `"zhrm"` → `[("中华人民", score), …]`).
+    /// Each match becomes an `Edge::abbrev` in the lattice with
+    /// `channel = abbrev_channel_log_prob(n_syllables)` — the
+    /// length-aware ladder from `crate::abbrev_channel`, replacing
+    /// `Path2Abbrev::DEFAULT_CHANNEL_LOG_PROB`'s fixed −1.699.
+    ///
+    /// The `u64` slot in the resolver's return tuple is a raw-domain
+    /// score (same shape as `lookup_raw_into`'s freq field) so the
+    /// lattice edge weight encoding stays uniform:
+    /// `weight = score − STEP_PENALTY`.
+    pub fn best_composition_chain_via_lattice_with_abbrev(
+        &self,
+        buffer: &str,
+        abbrev_resolver: &dyn Fn(&str) -> Vec<(String, u64)>,
+    ) -> Option<(f64, String, Vec<String>)> {
+        let mut paths =
+            self.compose_via_lattice_paths(buffer, 1, true, Some(abbrev_resolver))?;
+        let top = paths.drain(..).next()?;
+        let sentence = top.sentence();
+        Some((top.score as f64, sentence, top.words))
+    }
+
+    /// Phase-5 CP-3.6 step-2 turn 2 — `top_k_compositions`'s lattice
+    /// counterpart. Returns `Vec<(score, sentence)>` ranked by score
+    /// desc, deduped by sentence. For LM order ≤ 2 top-1 is byte-equal
+    /// with `top_k_compositions(buf, k)`'s top-1 for clean inputs
+    /// (proven by
+    /// `multi_syllable_lattice_top1_matches_legacy_best_composition`);
+    /// the k+1th-rank results may permute when scores tie within the
+    /// beam since lattice viterbi prunes per-node, not per-final. CP-5.3
+    /// step-2 added typo edges so K-best now includes typo-rescued
+    /// alternates for typo inputs.
+    pub fn top_k_compositions_via_lattice(
+        &self,
+        buffer: &str,
+        k: usize,
+    ) -> Vec<(f64, String)> {
+        let paths = match self.compose_via_lattice_paths(buffer, k, true, None) {
+            Some(p) => p,
+            None => return Vec::new(),
+        };
+        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut out: Vec<(f64, String)> = Vec::with_capacity(paths.len());
+        for p in paths {
+            let s = p.sentence();
+            if seen.insert(s.clone()) {
+                out.push((p.score as f64, s));
+            }
+        }
+        out
+    }
+
+    /// CP-5.4 step-2 — production variant of
+    /// [`Self::top_k_compositions_via_lattice`] with 简拼 abbreviation
+    /// resolver support. See
+    /// [`Self::best_composition_chain_via_lattice_with_abbrev`] for the
+    /// resolver contract.
+    pub fn top_k_compositions_via_lattice_with_abbrev(
+        &self,
+        buffer: &str,
+        k: usize,
+        abbrev_resolver: &dyn Fn(&str) -> Vec<(String, u64)>,
+    ) -> Vec<(f64, String)> {
+        let paths = match self.compose_via_lattice_paths(
+            buffer,
+            k,
+            true,
+            Some(abbrev_resolver),
+        ) {
+            Some(p) => p,
+            None => return Vec::new(),
+        };
+        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut out: Vec<(f64, String)> = Vec::with_capacity(paths.len());
+        for p in paths {
+            let s = p.sentence();
+            if seen.insert(s.clone()) {
+                out.push((p.score as f64, s));
+            }
+        }
+        out
+    }
+
+    /// Phase-5 CP-3.6 step-2 + CP-5.3 step-2 — shared graph builder
+    /// for the three `*_via_lattice` public helpers above. Builds a
+    /// lattice from segmenting `buffer` into all valid `(j, i)` spans
+    /// where `i - j ≤ MAX_SYL`, then runs `Graph::viterbi(k, lm_closure)`
+    /// over it.
+    ///
+    /// Returns `None` for buffers outside `[MIN_LEN, MAX_LEN]`, for
+    /// `k == 0`, or when LM order ≥ 3 — the lattice viterbi closure is
+    /// 2-arg `(prev, curr)` and can't express trigram grandparent
+    /// scoring, so callers must fall back to the legacy DP in that case.
+    ///
+    /// # Edge types added
+    ///
+    /// - **Exact edges** (always): every dict hit for `buf[j..i]`
+    ///   becomes one `Edge::exact(j, i, word, raw_freq − STEP_PENALTY)`.
+    ///   Raw-domain weight encoding so the additive viterbi score
+    ///   equals legacy `best_composition`'s additive DP score exactly
+    ///   on clean inputs.
+    ///
+    /// - **Typo edges** (when `include_typo_edges = true` and the
+    ///   segment is syllable-shaped — `seg.len() ≤ TYPO_MAX_SEG_LEN`):
+    ///   for each single-letter adjacent-key substitution variant of
+    ///   the segment (per
+    ///   [`crate::keyboard_adjacency::single_edit_neighbors`] with
+    ///   `max_distance = 1.05` — strict horizontal-or-vertical
+    ///   adjacency only, no diagonals, to keep the per-segment variant
+    ///   count manageable in the per-keystroke hot path), every dict
+    ///   hit for the variant becomes one
+    ///   `Edge::typo(j, i, word, raw_freq − STEP_PENALTY, channel)`.
+    ///   Channel is the variant's `adjacency_log_prob` (~ −1.3, matching
+    ///   `Path1cTypo`'s legacy uniform default at d ≤ 1.05). On clean
+    ///   inputs the typo edges all lose to the matching exact edge for
+    ///   the same word (channel is negative, exact's is 0); on typo
+    ///   inputs the typo edge resolves to the intended word at the cost
+    ///   of the channel penalty.
+    ///
+    /// - **Abbrev edges** (CP-5.4 step-2, when `abbrev_resolver` is
+    ///   `Some(_)` and the segment is vowel-free + ≥ 2 bytes): the
+    ///   resolver maps a 简拼 key like `"zhrm"` to candidate phrases
+    ///   like `[("中华人民", score)]`. Each match becomes one
+    ///   `Edge::abbrev(j, i, word, score − STEP_PENALTY, channel)`
+    ///   where channel is the length-aware
+    ///   `abbrev_channel_log_prob(n_syllables)` from
+    ///   [`crate::abbrev_channel`] (n_syllables computed via
+    ///   `split_initials(seg)`). The host wires the resolver to its
+    ///   `INITIALS_INDEX` so long abbreviations like `"zhrmghg"` can
+    ///   compose via lattice viterbi from shorter abbrev segments
+    ///   (e.g. `"zhrm"` + `"ghg"`) even when no whole-buffer dict
+    ///   entry exists.
+    ///
+    /// # Cost
+    ///
+    /// Exact lookups: ~MAX_SYL × n per call (≈ n × 24 lookups).
+    /// Typo lookups: up to ~25 variants × syllable-shaped segments
+    /// (≈ n × 4 × 12 ≈ 50n at typical short adjacency-counts), each a
+    /// fast FST walk. Abbrev lookups: one resolver call per
+    /// vowel-free ≥ 2-byte segment (≤ n²/2 calls for vowel-free
+    /// buffers, far fewer for typical mixed inputs). For n = 13
+    /// (typical buffer length) the wall-clock stays under a few
+    /// milliseconds on the per-keystroke path.
+    fn compose_via_lattice_paths(
+        &self,
+        buffer: &str,
+        k: usize,
+        include_typo_edges: bool,
+        abbrev_resolver: Option<&dyn Fn(&str) -> Vec<(String, u64)>>,
+    ) -> Option<Vec<crate::lattice::Path>> {
+        use crate::abbrev_channel::{abbrev_channel_log_prob, split_initials};
+        use crate::keyboard_adjacency::single_edit_neighbors;
+        use crate::lattice::{Edge, Graph};
+
+        const MIN_LEN: usize = 4;
+        const MAX_LEN: usize = 30;
+        const MAX_SYL: usize = 24;
+        const STEP_PENALTY: f64 = 100_000.0;
+        // Pinyin syllables are 1-7 bytes (`a` / `ni` / `zhong` /
+        // `zhuang`). Restricting typo enumeration to ≤ TYPO_MAX_SEG_LEN
+        // keeps the variant count manageable — multi-syllable phrase
+        // segments (e.g. `zhongguo` 8 bytes) would otherwise generate
+        // 25× variants × 8 positions = 200 lookups apiece.
+        const TYPO_MAX_SEG_LEN: usize = 7;
+        // Strict horizontal-/-vertical adjacency only (no diagonals).
+        // Matches the d ≤ 1.05 band of `keyboard_adjacency`'s ladder
+        // (channel ≈ -1.301, the legacy `Path1cTypo` uniform default).
+        // Tighter than 1.5 (which includes diagonals) so the per-segment
+        // variant count stays ≈ 4 instead of ≈ 8, keeping the
+        // per-keystroke wall-clock under a few ms for typical buffers.
+        const TYPO_MAX_DISTANCE: f32 = 1.05;
+
+        let buf = buffer.as_bytes();
+        let n = buf.len();
+        if !(MIN_LEN..=MAX_LEN).contains(&n) || k == 0 {
+            return None;
+        }
+        if self.lm_order() >= 3 {
+            return None;
+        }
+
+        let mut graph = Graph::for_buffer(n);
+        let mut scratch: Vec<(String, u64)> = Vec::new();
+        for i in 1..=n {
+            let lo = i.saturating_sub(MAX_SYL);
+            for j in lo..i {
+                let seg = match core::str::from_utf8(&buf[j..i]) {
+                    Ok(s) => s,
+                    Err(_) => continue,
+                };
+                // Exact edges — always added.
+                scratch.clear();
+                self.lookup_raw_into(seg, &mut scratch);
+                for (word, raw_freq) in scratch.iter() {
+                    let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
+                    graph.add_edge(Edge::exact(j, i, word.clone(), weight));
+                }
+                // Typo edges — gated by flag + syllable shape.
+                if include_typo_edges && seg.len() <= TYPO_MAX_SEG_LEN {
+                    for (variant, channel) in
+                        single_edit_neighbors(seg, TYPO_MAX_DISTANCE)
+                    {
+                        scratch.clear();
+                        self.lookup_raw_into(&variant, &mut scratch);
+                        for (word, raw_freq) in scratch.iter() {
+                            let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
+                            graph.add_edge(Edge::typo(
+                                j,
+                                i,
+                                word.clone(),
+                                weight,
+                                channel,
+                            ));
+                        }
+                    }
+                }
+                // Abbrev edges (CP-5.4 step-2) — gated by resolver
+                // presence + vowel-free + ≥ 2 bytes (the standard
+                // initials-abbreviation shape).
+                if let Some(resolver) = abbrev_resolver {
+                    if seg.len() >= 2
+                        && seg.bytes().all(|b| {
+                            !matches!(b, b'a' | b'e' | b'i' | b'o' | b'u' | b'v')
+                        })
+                    {
+                        let initials = split_initials(seg);
+                        if !initials.is_empty() {
+                            let channel = abbrev_channel_log_prob(initials.len());
+                            // INFINITY guards against caller-error
+                            // (0-syllable input). Defensive but should
+                            // never fire because split_initials returned
+                            // non-empty Vec.
+                            if channel.is_finite() {
+                                for (word, score) in resolver(seg) {
+                                    let weight =
+                                        (score as f64 - STEP_PENALTY) as f32;
+                                    graph.add_edge(Edge::abbrev(
+                                        j,
+                                        i,
+                                        word,
+                                        weight,
+                                        channel,
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let lm_closure = |prev: &str, curr: &str| -> f32 {
+            let prev_opt = if prev.is_empty() { None } else { Some(prev) };
+            (self.bigram_boost(prev_opt, curr) + self.lm_bonus(None, prev_opt, curr)) as f32
+        };
+
+        Some(graph.viterbi(k, lm_closure))
+    }
+
     /// K-best Viterbi composition: like [`Self::best_composition`] but
     /// retains the top-`k` paths to every position instead of just the
     /// single best, so the top-K full-buffer paths are recovered. Returns

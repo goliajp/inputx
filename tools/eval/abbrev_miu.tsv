@@ -1,0 +1,18 @@
+pinyin	hanzi	flags	quality_verified	audit_note
+zg	中国	abbrev_short	true	2-letter initials abbreviation; canonical zhong guo
+bj	北京	abbrev_short	true	2-letter initials; canonical bei jing
+sh	上海	abbrev_short	true	2-letter initials (sh = shang hai); also collides with 是 / 时候 — top-K test
+xs	学生	abbrev_short	true	2-letter initials; canonical xue sheng
+gj	国家	abbrev_short	true	2-letter initials; canonical guo jia
+rm	人民	abbrev_short	true	2-letter initials; canonical ren min
+zd	知道	abbrev_short	true	2-letter initials; canonical zhi dao
+jk	健康	abbrev_short	true	2-letter initials; canonical jian kang
+gd	高度	abbrev_short	true	2-letter initials; canonical gao du
+tj	天津	abbrev_short	true	2-letter initials; canonical tian jin
+zhrm	中华人民	abbrev_long	true	4-syllable abbrev (zh r m → 3 syllables; "zhrm" = zh+r+m = 中华人 + 民 → 中华人民); canonical zhong hua ren min
+bjdx	北京大学	abbrev_long	true	4-syllable initials; canonical bei jing da xue
+shdx	上海大学	abbrev_long	true	4-syllable initials (sh+d+x); canonical shang hai da xue
+xjp	习近平	abbrev_long	true	3-syllable initials; canonical xi jin ping
+mzd	毛泽东	abbrev_long	true	3-syllable initials; canonical mao ze dong
+wmdj	我们大家	abbrev_long	true	4-syllable initials (w+m+d+j); canonical wo men da jia
+zhrmghg	中华人民共和国	abbrev_climb_plan	true	flagship 7-letter / 6-syllable test (zh+r+m+g+h+g — 共和国 = g+h+g); canonical zhong hua ren min gong he guo — climb plan §06.7 specifically named this case

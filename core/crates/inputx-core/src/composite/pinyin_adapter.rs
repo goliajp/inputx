@@ -1286,10 +1286,55 @@ impl PinyinAdapter {
         //      Pushing this composition to #0 would be a wrong-reading
         //      false positive. Threshold 8 sidesteps this entirely:
         //      no real ambiguous short composition reaches it.
+        // Phase-5 CP-3.6 step-2 turn 2 + CP-5.4 step-2: route through
+        // the lattice viterbi (byte-equal for LM order ≤ 2). Trigram
+        // (order ≥ 3) falls back to the legacy DP. The abbrev resolver
+        // wraps the process-global INITIALS_INDEX so the lattice can
+        // pick 简拼 (initials abbreviation) edges alongside exact +
+        // typo edges — long abbreviations like `zhrmghg → 中华人民共和国`
+        // compose across multiple lattice segments even when no
+        // whole-buffer dict entry exists.
+        // Abbrev resolver is only wired in when the WHOLE buffer
+        // looks like an initials abbreviation (vowel-free, len ≥ 2).
+        // For mixed-vowel buffers like "yongbuliao", per-segment
+        // abbrev enumeration would fire on coincidental vowel-free
+        // substrings ("ng", "ngb") and let those edges compete with
+        // the correct exact composition — breaking clean long-buffer
+        // composition (initial sprint try did this, killing 5 baseline
+        // tests). Whole-buffer gate matches how Path 2 (line 1546)
+        // decides whether the user's intent is abbrev at all.
+        let chain_result = if self.engine.dict().lm_order() >= 3 {
+            self.engine.dict().best_composition_chain(&self.buffer)
+        } else if looks_like_initials(&self.buffer) {
+            let idx = initials_index(&self.engine);
+            let abbrev_resolver = |seg: &str| -> Vec<(String, u64)> {
+                let Some(matches) = idx.get(seg.as_bytes()) else {
+                    return Vec::new();
+                };
+                // Rank-decay raw-domain score. Top of bucket gets 30k —
+                // comparable to a mid-frequency exact word's raw_freq.
+                // Cap at 10 candidates per segment.
+                matches
+                    .take(10)
+                    .enumerate()
+                    .map(|(i, w)| {
+                        let score = 30_000_u64 / (i as u64 + 1);
+                        (w.to_string(), score)
+                    })
+                    .collect()
+            };
+            self.engine
+                .dict()
+                .best_composition_chain_via_lattice_with_abbrev(
+                    &self.buffer,
+                    &abbrev_resolver,
+                )
+        } else {
+            self.engine.dict().best_composition_chain_via_lattice(&self.buffer)
+        };
         if !PINYIN_DISABLE_COMPOSE
             && self.buffer.len() >= 8
-            && let Some((score, sentence, chain)) =
-                self.engine.dict().best_composition_chain(&self.buffer)
+            && let Some((score, sentence, chain)) = chain_result
         {
             // Two-tier quality gate:
             //
@@ -1628,7 +1673,44 @@ impl PinyinAdapter {
             // Cap K=5: enough to bring in real-bigram alternates, small
             // enough that even pathological short-buffer cases finish in
             // microseconds (perfgate-validated).
-            let comps = self.engine.dict().top_k_compositions(&self.buffer, 5);
+            // Phase-5 CP-3.6 step-2 turn 2 + CP-5.4 step-2: route
+            // through the lattice viterbi with abbrev resolver (top-1
+            // byte-equal for LM order ≤ 2 clean inputs; ranks 2..k may
+            // permute when scores tie within the beam — acceptable
+            // because the K-best fanout is a last-resort fallback that
+            // the caller already gates on ratio + bigram-support).
+            // Trigram (order ≥ 3) falls back to legacy DP.
+            // Same whole-buffer abbrev gate as the chain_result branch
+            // above. For mixed-vowel buffers, the K-best stays pure
+            // exact+typo (no abbrev edges) — abbrev only contributes
+            // when the user's input is clearly an abbreviation.
+            let comps = if self.engine.dict().lm_order() >= 3 {
+                self.engine.dict().top_k_compositions(&self.buffer, 5)
+            } else if looks_like_initials(&self.buffer) {
+                let idx = initials_index(&self.engine);
+                let abbrev_resolver = |seg: &str| -> Vec<(String, u64)> {
+                    let Some(matches) = idx.get(seg.as_bytes()) else {
+                        return Vec::new();
+                    };
+                    matches
+                        .take(10)
+                        .enumerate()
+                        .map(|(i, w)| {
+                            let score = 30_000_u64 / (i as u64 + 1);
+                            (w.to_string(), score)
+                        })
+                        .collect()
+                };
+                self.engine
+                    .dict()
+                    .top_k_compositions_via_lattice_with_abbrev(
+                        &self.buffer,
+                        5,
+                        &abbrev_resolver,
+                    )
+            } else {
+                self.engine.dict().top_k_compositions_via_lattice(&self.buffer, 5)
+            };
             // Clone `top` so the borrow of `comps` ends before the
             // `for (_, sentence) in comps` move below.
             let top_owned: Option<String> = comps.first().map(|(_, t)| t.clone());
@@ -1663,7 +1745,18 @@ impl PinyinAdapter {
                 //   nihaomawojiao (13/5) ratio 2.60 → REAL
                 let top_chars = top.chars().count().max(1);
                 let ratio = self.buffer.len() as f64 / top_chars as f64;
-                if ratio >= 2.0 {
+                // CP-5.4 step-2: abbrev inputs naturally have ratio ≈
+                // 1.0 (1 letter per Chinese char in the output) — the
+                // `ratio ≥ 2.0` gate above was calibrated for foreign-
+                // romaji junk, not for legitimate initials abbreviation.
+                // When the whole buffer is vowel-free + ≥ 2 bytes (the
+                // same shape Path 2 uses to decide whether the user
+                // means abbrev), bypass the ratio gate. The K-best
+                // path with `_with_abbrev` only fires under this same
+                // gate, so this branch only applies when we know the
+                // K-best result is abbrev-derived.
+                let is_abbrev_input = looks_like_initials(&self.buffer);
+                if ratio >= 2.0 || is_abbrev_input {
                     // Mark only the top composition with fallback_composition so
                     // candidates_with_scores gives it COMPOSED_FALLBACK_SCORE
                     // (250k). Subsequent compositions fall through to
