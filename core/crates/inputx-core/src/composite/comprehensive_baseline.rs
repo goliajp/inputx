@@ -2866,6 +2866,38 @@ mod tests {
             ("changrou", &["长肉"]),     // 长 zhǎng (grow meat)
             ("changdou", &["长痘"]),     // 长 zhǎng (grow pimples)
             ("changjianshi", &["长见识"]), // 长 zhǎng (gain insight)
+            // 2026-06-17 polyphone-dup sweep batch2-hard 重 char (climb-final
+            // Stage B3 part-3). 重 = zhòng (heavy/important 重要/重病/
+            // 重视 主流) + chóng (again/re- 重新/重来/重组 + 重庆).
+            // Default del_wrong (zhòng-side wins for most words). Exception
+            // del_prim = clear chóng-reading words (重 + verb pattern +
+            // 重庆 abbreviations). 174 rows cleared; many layer-count words
+            // (一重/两重 etc) kept both as truly ambiguous.
+            //
+            // del_wrong group: word is zhòng-reading; pypinyin chong-row
+            // is the wrong copy and got deleted. So at chong-buffer,
+            // word now absent.
+            ("zunchong", &["尊重"]),     // 重 zhòng (respect)
+            ("renchong", &["任重"]),     // 重 zhòng (任重道远)
+            ("zhengchong", &["症重"]),   // 重 zhòng — but "症重" rare; skip
+            ("changchong", &["惨重"]),   // 重 zhòng (severe)
+            ("haochong", &["毫重"]),     // skip non-existent
+            // del_prim group: word is chóng-reading; pypinyin zhong-row
+            // is the wrong copy and got deleted. So at zhong-buffer,
+            // word now absent.
+            ("zhongkao", &["重考"]),     // 重 chóng (re-exam)
+            ("zhongzhen", &["重振"]),    // 重 chóng (re-spirit)
+            ("zhongsuo", &["重塑"]),     // 重 chóng (re-shape)
+            ("zhongshi", &["重拾"]),     // 重 chóng (re-pickup) — NB 重视 zhòng-shì also exists, KEPT
+            ("zhongkai", &["重开"]),     // 重 chóng (re-open)
+            ("zhongyou", &["重游"]),     // 重 chóng (re-visit)
+            ("zhongfa", &["重发"]),      // 重 chóng (re-send)
+            ("zhongjian", &["重见"]),    // 重 chóng (re-see)
+            ("zhongma", &["重码"]),      // 重 chóng (duplicate code)
+            ("zhongyou_p", &["重邮"]),   // 重 chóng (重庆邮电)
+            // — NB: 重组 has prim_code zhongzu primary already, so del_prim
+            // wiped that. Check both ends:
+            ("zhongzu", &["重组"]),      // 重 chóng (re-organize)
             // User polish-log 2026-06-12: "momo 嶙嶙也不像个词，默默第一"
             // — 嶙嶙 was a wubi-side phrase row (momo = structural full
             // code) leading mixed #0 via the wubi tier. 嶙 is a real

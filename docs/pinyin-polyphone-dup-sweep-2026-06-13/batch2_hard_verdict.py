@@ -21,6 +21,10 @@ Currently filled:
     most usage; pypinyin's zhang→ row is the wrong-syl copy). Exception
     list = zhǎng-reading words ("grow" 长胖/长肉/长智 + 官名 营长/
     族长/委员长/教务长 + 长 prefix as senior — 长嫂/长媳).
+  重 — 220 unique words, single direction zhong→chong per pypinyin
+    prim. Default del_wrong (zhòng = heavy/important/serious 重要/
+    重病/重视 主流). Exception del_prim = chóng-reading words (重 =
+    again/re-: 重来/重塑/重新做/重整旗鼓/重见光明 + 重庆-abbreviations).
 """
 import collections, os
 
@@ -224,6 +228,75 @@ RULES = {
                "摆长",      # uncertain
                "炮长",      # rare zhǎng
                "副长",      # rare zhǎng
+           }),
+    "重": ("del_wrong",
+           {
+               # chóng (again / re-) — del_prim (delete zhong-copy, keep chong)
+               "重来": "del_prim", "重回": "del_prim", "重塑": "del_prim",
+               "重蹈": "del_prim", "重振": "del_prim", "重整": "del_prim",
+               "重制": "del_prim", "重考": "del_prim", "重拾": "del_prim",
+               "重开": "del_prim", "重游": "del_prim", "重发": "del_prim",
+               "重见": "del_prim", "重燃": "del_prim", "重刷": "del_prim",
+               "重放": "del_prim", "重画": "del_prim", "重抄": "del_prim",
+               "重入": "del_prim", "重描": "del_prim", "重号": "del_prim",
+               "重涂": "del_prim", "重爬": "del_prim", "重接": "del_prim",
+               "重计": "del_prim", "重访": "del_prim", "重考生": "del_prim",
+               "重码": "del_prim", "重组": "del_prim", "重归": "del_prim",
+               "重归于好": "del_prim", "重见光明": "del_prim",
+               "重做": "del_prim", "重定向": "del_prim", "重划": "del_prim",
+               "重学": "del_prim", "重晚": "del_prim",
+               # chóng phrases
+               "推倒重来": "del_prim", "故地重游": "del_prim",
+               "故技重施": "del_prim", "重施故技": "del_prim",
+               "重整旗鼓": "del_prim", "重整齐鼓": "del_prim",
+               "催化重整": "del_prim", "重轰炸机": "del_prim",
+               "中联重科": "del_wrong",  # NB 中联重科 = 重 zhòng (heavy industry)
+               # 重庆 abbrev (重 reads chóng in 重庆)
+               "重邮": "del_prim",
+           },
+           {
+               # 双向 / 真模糊 (keep both)
+               "重为",       # zhòng (重视 do as 主) vs chóng (do again)
+               "重作",       # chóng-zuò (redo) vs zhòng-zuò (do importantly)
+               "重排",       # zhòng-pái (heavy rank) vs chóng-pái (rearrange)
+               "重挫",       # zhòng (heavy blow) vs chóng (re-defeat)
+               "重传",       # zhòng (heavy biography) vs chóng (retransmit)
+               "重报",       # zhòng (heavy reward) vs chóng (re-report)
+               "重信",       # zhòng (重信用) vs chóng (re-letter)
+               "重摔",       # zhòng (heavy fall) vs chóng (re-throw)
+               "重跌",       # zhòng (heavy fall) vs chóng (再跌)
+               "重耳",       # 春秋人名 — debated reading
+               "重雪",       # rare
+               "重当",       # rare
+               "重百",       # rare
+               "重氮",       # zhòng (chemistry double-N) — uncertain
+               "重难点",     # zhòng-nán-diǎn — but could be chong-nan-dian rare
+               "重特大",     # zhòng-tè-dà (heavy + very big) — uncertain
+               "重瓣",       # uncertain
+               "重疾",       # zhòng-jí (serious illness) — uncertain
+               "重剑",       # zhòng (heavy sword) — uncertain
+               "重旱",       # uncertain
+               "重场",       # uncertain
+               "重宝",       # zhòng (heavy treasure) — uncertain
+               "重图",       # uncertain
+               "重谢",       # zhòng-xiè (heavy thanks) — uncertain
+               "重压",       # zhòng (heavy press) — uncertain
+               "重者",       # 重的 = zhòng, 重者 = those who emphasize — uncertain
+               "重描",       # NB del_prim above (重新描) — but in case ambiguous
+               # 数 + 重 (layer count chóng)
+               "一重", "两重", "三重", "四重", "五重",
+               "六重", "七重", "八重", "十重", "几重",
+               "多重", "几重", "多次重",
+               "第一重", "第四重", "千重",
+               "两重性", "多重性", "多重人格",
+               "重叠",   # chóng (overlap) — pretty clear chong but mark uncertain to be safe
+               "重排",   # already above
+               "孰轻孰重",  # zhòng — clear (pattern hard)
+               "千钧之重",  # zhòng — clear
+               "稳稳重重",  # zhòng — duplicate
+               "前重后轻",  # zhòng — clear
+               "不轻不重",  # zhòng — clear
+               "一石激起千重浪",  # chóng (layer of waves)
            }),
 }
 
