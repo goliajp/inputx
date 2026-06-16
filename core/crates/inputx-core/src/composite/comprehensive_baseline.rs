@@ -2812,6 +2812,32 @@ mod tests {
             ("tanmu", &["弹幕"]),       // 弹 dàn, tan错读
             ("dantiao", &["弹跳"]),     // 弹 tán, dan错读
             ("danbo", &["弹拨"]),       // 弹 tán, dan错读
+            // 2026-06-17 polyphone-dup sweep batch2-hard 行 char (climb-final
+            // Stage B3 part-1). 行 = xíng (走/进行 主流) + háng (银行/
+            // 行业/商店/线 of text). pypinyin defaults 行 prim_syl=xing for
+            // every word — wrong副本 either lives at hang→ (xíng-reading
+            // copy mass-duped) or at xing→ (háng-reading mis-primaried).
+            // 252 rows deleted; 20 truly-ambiguous kept both (人行/大行/
+            // 民行/三人行 — see batch2_hard_verdict.py).
+            //
+            // del_wrong group: word is xíng-reading; hang→ copy is the wrong
+            // one and got deleted. So at hang-buffer, word now absent.
+            ("jiuhangle", &["就行了"]),   // 行 xíng
+            ("haihang", &["还行"]),      // 行 xíng
+            ("hangbuxing", &["行不行"]),  // 行 xíng (双 occur)
+            ("hangdetong", &["行得通"]),  // 行 xíng
+            // NB: jinhangqu (进行曲) excluded — lattice composer
+            // reconstructs it via single-char heteronym path (进+行háng+
+            // 曲); dict-row deletion alone can't suppress this without
+            // a D2-style hide list, which is a separate concern.
+            // del_prim group: word is háng-reading; pypinyin mis-primaried as
+            // xing → xing-copy deleted. So at xing-buffer, word now absent.
+            ("xingyuan", &["行员"]),     // 行 háng (bank teller)
+            ("zhixing", &["支行"]),      // 行 háng (financial branch)
+            ("gexing", &["各行"]),       // 行 háng (各行各业)
+            ("minxing", &["闵行"]),      // 行 háng (上海地名)
+            ("qinxing", &["琴行"]),      // 行 háng (instrument shop)
+            ("taixing", &["太行"]),      // 行 háng (山名)
             // User polish-log 2026-06-12: "momo 嶙嶙也不像个词，默默第一"
             // — 嶙嶙 was a wubi-side phrase row (momo = structural full
             // code) leading mixed #0 via the wubi tier. 嶙 is a real
