@@ -958,6 +958,102 @@ mod tests {
         assert_eq!(order, vec!["exact", "abbrev", "typo", "fuzzy"]);
     }
 
+    // ------------------------------------------------------------------
+    // CP-3.6 step-2 byte-equal gate (spec · 2026-06-16 sprint step #4)
+    //
+    // Contract pinned by this test:
+    //   When the multi-syllable composition wire lands (Path 1a
+    //   composition via the lattice rather than `PinyinDict::
+    //   best_composition`'s standalone DP), the lattice's top-1 sentence
+    //   for a multi-syllable buffer MUST equal what `best_composition`
+    //   returns for the same buffer. Same dict, same LM, same input →
+    //   same top-1 hanzi. Anything else means the wire's edge-weight
+    //   encoding doesn't preserve the legacy DP's score ordering.
+    //
+    // Why this test is #[ignore]'d:
+    //   The wire is not yet implemented — `multi_syllable_lattice_top1`
+    //   below is an `unimplemented!()` stub. When the wire-developer
+    //   adds the multi-syllable lattice path:
+    //     1. Replace the stub body with a call into the new wire API
+    //        (or inline-mirror its DP — whatever proves the wire's
+    //         output, not just its existence).
+    //     2. Remove `#[ignore]`.
+    //     3. Run `cargo test --release multi_syllable_lattice_top1`
+    //        with `--ignored` removed. Test must pass for every case.
+    //        If it fails for a specific buffer, the wire's edge-weight
+    //        encoding isn't preserving best_composition's ordering —
+    //        fix the wire, not the test.
+    //
+    // Why not test it bit-equal:
+    //   The test asserts top-1 hanzi parity, not numeric score parity.
+    //   `best_composition` accumulates `raw_freq + bonuses - STEP_PENALTY`
+    //   per segment; the lattice viterbi accumulates `edge.weight +
+    //   lm(prev,curr)`. The wire can pick any edge-weight encoding that
+    //   preserves the same ordering — log-domain, raw-domain, scaled,
+    //   doesn't matter, as long as top-1 hanzi matches. That's the
+    //   only invariant the host's candidate panel cares about.
+
+    /// Byte-equal gate for the future CP-3.6 step-2 multi-syllable wire.
+    /// See the section comment above for the contract this pins.
+    #[test]
+    #[ignore = "CP-3.6 step-2 multi-syllable composition wire pending — ungate when the wire lands and replace `multi_syllable_lattice_top1` stub"]
+    fn multi_syllable_lattice_top1_matches_legacy_best_composition() {
+        let dict = crate::dict::PinyinDict::embedded();
+
+        // Representative multi-syllable buffers. Each must have a
+        // `best_composition` hit (return Some) — if any fails to
+        // resolve via the legacy path, the fixture is stale (dict
+        // drifted) and the test is wrong, not the wire.
+        let test_cases: &[&str] = &[
+            "nihao",          // 2 syllables
+            "wojiao",         // 2 syllables
+            "nihaoma",        // 3 syllables
+            "wodejia",        // 3 syllables
+            "nihaomawojiao",  // 5 syllables — exercises deeper DP
+        ];
+
+        // Stub the wire-developer fills in. Until then, calling this
+        // panics — but the `#[ignore]` attribute keeps the test out of
+        // the default test run so the panic doesn't impact CI.
+        fn multi_syllable_lattice_top1(
+            _dict: &crate::dict::PinyinDict,
+            _buf: &str,
+        ) -> Option<String> {
+            unimplemented!(
+                "CP-3.6 step-2 multi-syllable lattice wire is not yet \
+                 implemented. Replace this stub with a call into the new \
+                 lattice composition path (see board CP-3.6 step-2 main \
+                 task: \"multi-syllable composition (segmenter 接入 lattice)\")."
+            )
+        }
+
+        for buf in test_cases {
+            let legacy = dict
+                .best_composition(buf)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "test fixture stale: legacy best_composition returned None \
+                         for buf={buf:?}. Either the dict has drifted (update the \
+                         fixture) or the buffer is below MIN_LEN (pick a longer one)."
+                    )
+                })
+                .1;
+
+            let lattice = multi_syllable_lattice_top1(&dict, buf).expect(
+                "wire returned None — the wire should always produce SOME top-1 \
+                 sentence for an input legacy can resolve",
+            );
+
+            assert_eq!(
+                lattice, legacy,
+                "BYTE-EQUAL GATE for buf={buf:?}: lattice multi-syllable top-1 \
+                 {lattice:?} must equal legacy best_composition top-1 {legacy:?}. \
+                 The wire's edge-weight encoding isn't preserving \
+                 best_composition's DP ordering for this input."
+            );
+        }
+    }
+
     /// Beam pruning actually limits the partial-path explosion. Build a
     /// fan-out lattice where naive Viterbi would keep `3^k` partials at
     /// node k; with beam=2 the result must still be the top-2 globally.
