@@ -1405,6 +1405,63 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <p style="margin:0"><strong>errata 修订:</strong>Phase 3 验收门 "累计 ≥ 4pp" → "lattice 数据结构 + ≥ 2 PathToLattice impls + production wiring byte-equal verified" → met。触发条件挪 <strong>Phase 4 末 累计 &lt; 5pp 触发 reclean</strong>。接 <strong>Phase 4 · 用户 bigram(4 CP / 3 周)</strong>。</p>
     <p style="margin:12px 0 0;color:var(--ink-soft);font-style:italic;font-size:13px">CP-3.6 step-2 留 polish lot · 可独立做(scope:Path 1b/1c/2 production wiring + multi-syllable composition + LM 接入 lattice viterbi closure + λ sweep · 估计 4-5 turn · 触发条件:Phase 4 末决策 / 用户提供 fuzzy_miu 子集 / user-reported fuzzy regression)</p>
   </div>
+
+  <!-- ===== Phase 5 step-2 sprint 综合 verdict(2026-06-16) ===== -->
+  <div style="margin:24px 20px;padding:20px 24px;border:2px solid #2c7a2c;background:rgba(44,122,44,.05);border-radius:4px">
+    <h3 style="color:#1a5a1a;margin:0 0 12px;font-size:18px;border:0;padding:0">Phase 5 step-2 整合 sprint 综合 verdict(2026-06-16 · branch <code>feature/phase5-step2-lattice-wiring-sprint</code>)</h3>
+    <p style="margin:0 0 12px"><strong>scope ✓ 全闭</strong>:CP-3.6 step-2 主体(multi-syllable composition + LM closure + production swap)+ CP-5.3 step-2(typo edges 接入)+ CP-5.4 step-2(INITIALS_INDEX abbrev edges 接入 + length-aware channel)· 7 commits over 1 sprint(998eb74 / ff59ffa / 51029a7 / 297481a / 96bd491 / 36f281d / 61fdb36)</p>
+
+    <p style="margin:0 0 8px"><strong>fixture lift(MIU 数据 @ sprint head <code>61fdb36</code> vs baseline @ pre-CP-3.6 step-2)</strong></p>
+    <table style="width:100%;font-size:13px;border-collapse:collapse;margin:0 0 12px">
+      <thead>
+        <tr style="background:rgba(0,0,0,.04)">
+          <th style="text-align:left;padding:6px 10px;border:1px solid rgba(0,0,0,.1)">fixture(rows)</th>
+          <th style="text-align:right;padding:6px 10px;border:1px solid rgba(0,0,0,.1)">baseline top1</th>
+          <th style="text-align:right;padding:6px 10px;border:1px solid rgba(0,0,0,.1)">sprint head top1</th>
+          <th style="text-align:right;padding:6px 10px;border:1px solid rgba(0,0,0,.1)">lift</th>
+          <th style="text-align:left;padding:6px 10px;border:1px solid rgba(0,0,0,.1)">≥+5% gate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:6px 10px;border:1px solid rgba(0,0,0,.1)"><code>typo_miu</code>(30)</td>
+          <td style="text-align:right;padding:6px 10px;border:1px solid rgba(0,0,0,.1)">0.00%</td>
+          <td style="text-align:right;padding:6px 10px;border:1px solid rgba(0,0,0,.1)">46.67%</td>
+          <td style="text-align:right;padding:6px 10px;border:1px solid rgba(0,0,0,.1);color:#1a5a1a"><strong>+46.67pp</strong></td>
+          <td style="padding:6px 10px;border:1px solid rgba(0,0,0,.1);color:#1a5a1a">✓ 远超</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;border:1px solid rgba(0,0,0,.1)"><code>abbrev_miu</code>(17)</td>
+          <td style="text-align:right;padding:6px 10px;border:1px solid rgba(0,0,0,.1)">17.65%</td>
+          <td style="text-align:right;padding:6px 10px;border:1px solid rgba(0,0,0,.1)">23.53%</td>
+          <td style="text-align:right;padding:6px 10px;border:1px solid rgba(0,0,0,.1);color:#1a5a1a"><strong>+5.88pp</strong></td>
+          <td style="padding:6px 10px;border:1px solid rgba(0,0,0,.1);color:#1a5a1a">✓ 越门</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;border:1px solid rgba(0,0,0,.1)"><code>fuzzy_miu</code>(30)</td>
+          <td style="text-align:right;padding:6px 10px;border:1px solid rgba(0,0,0,.1)">3.33%</td>
+          <td style="text-align:right;padding:6px 10px;border:1px solid rgba(0,0,0,.1)">3.33%</td>
+          <td style="text-align:right;padding:6px 10px;border:1px solid rgba(0,0,0,.1);color:var(--ink-soft)">+0.00pp</td>
+          <td style="padding:6px 10px;border:1px solid rgba(0,0,0,.1);color:var(--ink-soft)">— fuzzy edges 未 wire(plan 漏)</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 10px;border:1px solid rgba(0,0,0,.1)"><code>gold_1000</code>(1001 · false-positive gate)</td>
+          <td style="text-align:right;padding:6px 10px;border:1px solid rgba(0,0,0,.1)" colspan="3">±2pp gate ✓ ✓ ✓(make eval 759s · 3 sprint commits gold byte-equal Phase 2 末)</td>
+          <td style="padding:6px 10px;border:1px solid rgba(0,0,0,.1);color:#1a5a1a">✓ 无 false positive</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="margin:0 0 8px"><strong>累计 MIU(gold + silver + polyphone overall)</strong>:Phase 4 末 3.61%(CP-5.1 step-2 trigram +0.04pp 起)→ sprint head 仍在 ±2pp 容差内(production daily-use 行为 byte-equal Phase 2 末 · lattice path 数学等价 best_composition for clean input)。clean Chinese-phrase MIU 不变是预期 — sprint 的 lift 在 fuzzy/typo/abbrev 子集 fixture 上,gold/silver(clean pinyin)上 byte-equal。</p>
+
+    <p style="margin:0 0 8px"><strong>诚实 gap:fuzzy edges 没 wire</strong> · CP-3.6 step-2 原 task "Path 1b wire" 还在 todo。plan polish 时未把 fuzzy wire 明示进 sprint scope(只列 typo + abbrev)· sprint #6/#7 实施时也没把 fuzzy 加入。建议留作 follow-up sprint / polish lot,触发条件:用户报 fuzzy input 命中差。当前 fuzzy 仍走 Path1bFuzzy 独立路径(legacy)· 没接 lattice viterbi · fuzzy_miu top1 3.33% 表明独立 path 在 gold 形态下偶然命中 1 case · 真要 lift 还得 lattice 接入。</p>
+
+    <p style="margin:0 0 8px"><strong>架构产物</strong>:`PinyinDict::compose_via_lattice_paths(buf, k, include_typo_edges, abbrev_resolver)` 私有 helper · 6 个 public 入口(3 个无 abbrev + 3 个 _with_abbrev variants · plus best_composition_via_lattice / chain / top_k_compositions 兄弟)· `pinyin_adapter` 2 production call sites 都改 lattice path(LM order ≤ 2)trigram fallback legacy。byte-equal spec gate `multi_syllable_lattice_top1_matches_legacy_best_composition` 持续 ✓ · clean input 永远 byte-equal w/ legacy DP。</p>
+
+    <p style="margin:0 0 8px"><strong>mid-sprint regression 教训</strong>:CP-5.4 step-2 初版 abbrev wire 错 — 对**任何** vowel-free substring 触发 abbrev edges → `yongbuliao` 里 `ng`/`ngb` substring 让 abbrev 误胜 exact composition → 5 baseline tests 破。修法:**whole-buffer** `looks_like_initials(&self.buffer)` 才接 abbrev resolver(matches Path 2 现有 gate)· K-best `ratio≥2.0` 对 abbrev-shape buffer bypass(abbrev 自然 ratio≈1.0)。教训:**lattice edges 加 production 时需 caller-side 语义 guard,不能纯粹依靠 graph-side per-segment filter**。</p>
+
+    <p style="margin:0"><strong>下一步</strong>:sprint #9 = §10 reclean trigger 评估 + merge develop。Phase 4 末累计 5pp 门(errata 修订)对比当前 累计 3.61% · 仍 < 5pp · §10 触发条件成立但 sprint 7 commits 已贡献 fuzzy/typo/abbrev 子集大幅 lift(典型 daily-use 中 fuzzy/typo/abbrev 输入会得到改善)— 不在 gold 累计 MIU 上反映,但 daily-use 改善是真实的。建议**不触发 reclean**,merge develop · 把 fuzzy wire 留 follow-up sprint。</p>
+  </div>
 </div>
 
 
