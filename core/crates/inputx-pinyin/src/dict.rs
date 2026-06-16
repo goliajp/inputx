@@ -935,6 +935,77 @@ impl PinyinDict {
         Some((final_score, chain.concat()))
     }
 
+    /// Phase-5 CP-3.6 step-2 — multi-syllable composition routed
+    /// through the lattice viterbi engine. Mirrors [`Self::best_composition`]'s
+    /// DP exactly so for any LM order ≤ 2 the returned sentence equals
+    /// `self.best_composition(buffer).map(|(_, s)| s)`. This is the
+    /// byte-equal proof point pinned by
+    /// `lattice::tests::multi_syllable_lattice_top1_matches_legacy_best_composition`.
+    ///
+    /// LM order ≥ 3 returns None — the lattice viterbi closure is
+    /// `(prev, curr) -> f32` and can't express trigram grandparent
+    /// scoring. Callers should fall back to [`Self::best_composition`]
+    /// in that case until the viterbi closure interface is extended (or
+    /// we accept the bigram-equivalent approximation for the trigram
+    /// path; sprint step #5 turn 2 decision).
+    ///
+    /// Out-of-range buffers (length outside [MIN_LEN, MAX_LEN]) return
+    /// None matching `best_composition`.
+    ///
+    /// Edge weight encoding: `Edge::exact(j, i, word, raw_freq − STEP_PENALTY)`
+    /// — raw-domain, not log10. The lattice library treats `Edge::exact`'s
+    /// f32 slot as a generic edge weight; the "log_prob" name on the
+    /// API is a hint from the original Path 1a single-span use, not a
+    /// contract. Using raw-domain here is what makes the additive viterbi
+    /// score equal best_composition's additive DP score exactly. The LM
+    /// closure adds `bigram_boost + lm_bonus(prev_prev=None, prev, curr)`,
+    /// matching best_composition's per-step bonus (dict.rs lines 807-810).
+    pub fn best_composition_via_lattice(&self, buffer: &str) -> Option<String> {
+        use crate::lattice::{Edge, Graph};
+        const MIN_LEN: usize = 4;
+        const MAX_LEN: usize = 30;
+        const MAX_SYL: usize = 24;
+        const STEP_PENALTY: f64 = 100_000.0;
+
+        let buf = buffer.as_bytes();
+        let n = buf.len();
+        if !(MIN_LEN..=MAX_LEN).contains(&n) {
+            return None;
+        }
+        if self.lm_order() >= 3 {
+            return None;
+        }
+
+        let mut graph = Graph::for_buffer(n);
+        let mut scratch: Vec<(String, u64)> = Vec::new();
+        for i in 1..=n {
+            let lo = i.saturating_sub(MAX_SYL);
+            for j in lo..i {
+                let seg = match core::str::from_utf8(&buf[j..i]) {
+                    Ok(s) => s,
+                    Err(_) => continue,
+                };
+                scratch.clear();
+                self.lookup_raw_into(seg, &mut scratch);
+                if scratch.is_empty() {
+                    continue;
+                }
+                for (word, raw_freq) in scratch.iter() {
+                    let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
+                    graph.add_edge(Edge::exact(j, i, word.clone(), weight));
+                }
+            }
+        }
+
+        let lm_closure = |prev: &str, curr: &str| -> f32 {
+            let prev_opt = if prev.is_empty() { None } else { Some(prev) };
+            (self.bigram_boost(prev_opt, curr) + self.lm_bonus(None, prev_opt, curr)) as f32
+        };
+
+        let paths = graph.viterbi(1, lm_closure);
+        paths.first().map(|p| p.sentence())
+    }
+
     /// K-best Viterbi composition: like [`Self::best_composition`] but
     /// retains the top-`k` paths to every position instead of just the
     /// single best, so the top-K full-buffer paths are recovered. Returns
