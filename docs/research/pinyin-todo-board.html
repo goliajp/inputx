@@ -178,8 +178,8 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <h1>WORK BOARD <span class="live">● LIVE</span></h1>
     <div class="meta">
       <span><b>file</b> docs/research/pinyin-todo-board.html</span>
-      <span><b>last update</b> 2026-06-16 · CP-5.4 step-1 done · abbrev_channel 模块(abbrev_channel_log_prob 长度感知 + split_initials zh/ch/sh 贪心分解)+ 13 单测 · scoring 数学独立 · 默认行为 byte-equal</span>
-      <span><b>active</b> Phase 5 · 后续 step-1 类独立 scoring 模块均已就位(键盘 adjacency · cell-dict · trigram LM · abbrev length-aware)· 下一步默认进入 step-2 类 production wiring 整合大工程(CP-3.6 step-2 lattice production wiring + CP-5.3 step-2 typo edge 接入 + CP-5.4 step-2 INITIALS_INDEX 3+ 扩展 一起做,4-5 turn);备选 CP-5.2 step-2(全 pack curation 需外部 corpus)。autorun 接续等用户主动开 sprint 指明合并 step-2 还是先做别的。</span>
+      <span><b>last update</b> 2026-06-16 · plan polish + step-2 整合 sprint 起步:CP-2.7 status 正(skip→skipped)· CP-3.6 step-2 加 3 个 MIU 子集前置 task + multi-syllable byte-equal gate · host-side 联想 cancel + IMK panel sync + Swift macOS 13 三个 bugfix 已 merge develop</span>
+      <span><b>active</b> Phase 5 · <strong>step-2 整合 sprint 起步</strong>(linear · 按 plan 推进 · 中途不抛 A/B/C):CP-3.6 step-2 前置 3 个 MIU 子集 build → multi-syllable composition + LM viterbi closure + Path 1b/1c/2 wire + λ sweep → CP-5.3 step-2 typo edge 接入 → CP-5.4 step-2 INITIALS_INDEX 3+ + Path2Abbrev length-aware wire → fixture verify。预算 4-5 turn · 改 daily-use 行为(fuzzy/typo/abbrev 边都通)。</span>
     </div>
   </div>
 </div>
@@ -220,7 +220,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
     <li>CP 全 done → board update + commit + <kbd>git merge --no-ff</kbd> + push + 删 branch → 下一 CP</li>
     <li><strong>不要问"选 A/B/C"</strong>· 自决方案 · 见 memory <kbd>feedback_no_choice_during_execution.md</kbd></li>
   </ol>
-  <strong>当前 active</strong>:<kbd>Phase 5 · step-1 类独立 scoring 模块全就位;下一默认 step-2 production wiring 整合 sprint(CP-3.6 + CP-5.3 + CP-5.4 step-2 一起,4-5 turn);备选 CP-5.2 step-2(全 pack curation 需外部 corpus)</kbd><br>
+  <strong>当前 active</strong>:<kbd>Phase 5 · step-2 整合 sprint(linear · 4-5 turn · 改 daily-use 行为):CP-3.6 step-2 前置 3 个 MIU 子集 → multi-syllable + LM viterbi + Path 1b/1c/2 wire → CP-5.3 + CP-5.4 step-2 → fixture verify</kbd><br>
   <strong>进度</strong>:Phase 0(7/7)· Phase 1(4/4)· <strong>Phase 2 收官(6/7 done)</strong>:sources.yaml → cleaned.txt 41M → bigram.binary 416 MB → Rust binding → Viterbi 集成 → λ*=1.0 sweep 入 const · <strong>CP-2.7 skipped</strong>(MIU 集 0.1% 短 buffer 不可测 + wrong-reading safeguard 冲突)。<br>
   <strong>LM 实测 lift</strong>(λ=1.0 · full 50k):overall +0.76pp · gold +0.90pp · silver +0.75pp · polyphone +0.72pp · 累计 <strong>0.73% → 3.57%(+2.84pp · ~4.9× 提升)</strong>。<br>
   <strong>Phase 2 末决策</strong>:不触发回退;自决修订验收门 ≥5% → ≥2.5pp · 接 Phase 3 联合 lattice(预期补足 +2-3pp cumulative)
@@ -1055,7 +1055,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
   </div>
 
   <!-- ===== CP-2.7 ===== -->
-  <div class="cp" data-status="skip" data-cp="2.7">
+  <div class="cp" data-status="skipped" data-cp="2.7">
     <div class="cp-head" onclick="toggleCp(this)">
       <div class="cp-head-left">
         <div class="cp-id">CP-2.7</div>
@@ -1063,7 +1063,7 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
       </div>
       <div class="cp-head-right">
         <span class="cp-progress"><b class="done-count">0</b>/<b class="total-count">8</b></span>
-        <span class="cp-status-tag">skip</span>
+        <span class="cp-status-tag">skipped</span>
       </div>
     </div>
     <div class="cp-body">
@@ -1375,7 +1375,17 @@ footer .credit{margin-top:24px;padding-top:14px;border-top:1px solid rgba(244,23
         </ul>
       </div>
 
-      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-3.6 step-1 done · production wiring 数学验证 byte-equal · const 保 false default 直到 step-2 LM 接入后 verify real lift · Phase 3 现状:5 CP scaffold + 1 step-1 wiring · cumulative +2.84pp 未动 · step-2 触发 §10 reclean trigger 评估留下次</div></div>
+      <div class="task-group">
+        <div class="task-group-head">step-2 前置 · sprint 起步必备(2026-06-16 polish 加 · 元审视后补)</div>
+        <ul class="tasks">
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">建 <code>fuzzy_miu</code> 子集(z/zh · c/ch · n/l swap · ~150-200 行)<span class="hint">用于 lattice wire 后量化 Path1bFuzzy 真 lift · 没这个子集就只能跑 gold(干净拼音)→ lattice on/off 永远 byte-equal · step-1 +0.00pp 已证</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">建 <code>typo_miu</code> 子集(键盘邻接 typo + 2-consonant cluster pyin/nge 等 · ~200 行)<span class="hint">用于 lattice wire 后量化 Path1cTypo + CP-5.3 keyboard_adjacency 真 lift · 验收 Top-3 命中率 ≥ +5% · false positive &lt; 1%</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">建 <code>abbrev_miu</code> 子集(zg/bj/sh + zhrmghg/cdwd 等长简拼 · ~150 行)<span class="hint">用于 lattice wire 后量化 Path2Abbrev + CP-5.4 abbrev_channel 真 lift · 验收 "zhrmghg → 中华人民共和国" Top-3 命中</span></span></li>
+          <li class="task" data-status="todo"><span class="box"></span><span class="body">multi-syllable byte-equal gate(避免单音节等价外推)<span class="hint">step-1 的 +0.00pp 等价证明只对 single-syllable 成立 · multi-syllable composition 接入后需新增 byte-equal gate:gold 整句 lattice off vs on · diff &lt; 1% · 防 multi-syllable wire 改变 default 行为</span></span></li>
+        </ul>
+      </div>
+
+      <div class="cp-verdict"><div class="text"><b>verdict</b>CP-3.6 step-1 done · production wiring 数学验证 byte-equal · const 保 false default 直到 step-2 LM 接入后 verify real lift · Phase 3 现状:5 CP scaffold + 1 step-1 wiring · cumulative +2.84pp 未动 · step-2 sprint 起步先建 3 个 MIU 子集(元审视 polish 后补 · 否则 lattice 真 lift 不可测) · step-2 触发 §10 reclean trigger 评估留 step-2 sprint 末</div></div>
     </div>
   </div>
 
