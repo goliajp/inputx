@@ -360,6 +360,15 @@ mod tests {
             // them within 1k (不周 20613 / 步骤 19628) but steps is
             // far more common in everyday CN usage.
             ("buzhou", "步骤"),
+            // Polish-log 2026-06-16 — 上海大学 user-reported missing
+            // in lib (probe shdx returned only K-best 时候多谢, not
+            // 上海大学). Added shanghaidaxue → 上海大学 freq=16000 to
+            // library.tsv (calibrated against peer university 4-char
+            // phrases: 北京 16628 / 复旦 14657 / 清华 18555 / 同济
+            // 14181 / 南京 16402 — median ~16k). This row populates
+            // INITIALS_INDEX bucket "shdx" so Path 2 direct lookup
+            // surfaces 上海大学 as top-1 for the abbreviation.
+            ("shanghaidaxue", "上海大学"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
