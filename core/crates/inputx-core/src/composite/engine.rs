@@ -276,6 +276,20 @@ impl CompositeEngine {
         self.pinyin.buffer_str()
     }
 
+    /// CP-5.2 step-3: forward TOML cell-dict bytes to the pinyin
+    /// adapter's PinyinDict L0.5 layer. See [`PinyinAdapter::load_cell_dict`].
+    pub fn load_cell_dict(&self, toml: &str) -> Result<usize, String> {
+        self.pinyin.load_cell_dict(toml)
+    }
+
+    pub fn clear_cell_dict(&self) {
+        self.pinyin.clear_cell_dict();
+    }
+
+    pub fn cell_dict_count(&self) -> usize {
+        self.pinyin.cell_dict_count()
+    }
+
     /// Recompute and return the merged candidate list. Slice borrows
     /// internal storage; subsequent calls invalidate.
     ///

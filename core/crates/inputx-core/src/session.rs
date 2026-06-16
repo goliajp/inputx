@@ -76,6 +76,22 @@ impl Session {
 
     /// Map an ASCII quote char to its smart-CJK form, advancing state.
     /// Non-quote chars return `None`.
+    /// CP-5.2 step-3: forward TOML cell-dict bytes into the underlying
+    /// PinyinDict L0.5 layer. Returns the number of entries accepted on
+    /// success, or a human-readable error string on parse failure. Multiple
+    /// calls accumulate; `clear_cell_dict` wipes everything.
+    pub fn load_cell_dict(&self, toml: &str) -> Result<usize, String> {
+        self.composite.load_cell_dict(toml)
+    }
+
+    pub fn clear_cell_dict(&self) {
+        self.composite.clear_cell_dict();
+    }
+
+    pub fn cell_dict_count(&self) -> usize {
+        self.composite.cell_dict_count()
+    }
+
     pub fn smart_quote(&mut self, c: char) -> Option<char> {
         self.smart_quote.map(c)
     }
