@@ -2838,6 +2838,34 @@ mod tests {
             ("minxing", &["闵行"]),      // 行 háng (上海地名)
             ("qinxing", &["琴行"]),      // 行 háng (instrument shop)
             ("taixing", &["太行"]),      // 行 háng (山名)
+            // 2026-06-17 polyphone-dup sweep batch2-hard 长 char (climb-final
+            // Stage B3 part-2). 长 = cháng (长城/长时间/place names) +
+            // zhǎng (长胖/长肉 + 官名 营长/族长). 246 wrong-syl copies
+            // deleted; 43 truly-ambiguous kept both (长长/长头/子长/
+            // 长大 — see batch2_hard_verdict.py uncertain set).
+            //
+            // del_prim group: word is cháng-reading; pypinyin zhang-row
+            // is the wrong copy and got deleted. So at zhang-buffer,
+            // word now absent.
+            ("zhangdao", &["长岛"]),     // 长 cháng (place)
+            ("zhangtan", &["长滩"]),     // 长 cháng (place)
+            ("zhangyi", &["长椅"]),      // 长 cháng (long chair)
+            ("zhanglu", &["长路"]),      // 长 cháng (long road)
+            ("zhangzhi", &["长治"]),     // 长 cháng (place 长治市)
+            ("zhangjing", &["长颈"]),    // 长 cháng (long neck)
+            ("zhangqun", &["长裙"]),     // 长 cháng (long skirt)
+            // del_wrong group: word is zhǎng-reading; pypinyin chang-row
+            // is the wrong copy and got deleted. So at chang-buffer,
+            // word now absent.
+            ("yingchang", &["营长"]),    // 长 zhǎng (officer)
+            ("zuchang", &["族长"]),      // 长 zhǎng (clan chief)
+            ("tanchang", &["探长"]),     // 长 zhǎng (detective)
+            ("yuanchang", &["园长"]),    // 长 zhǎng (school principal)
+            ("quchang", &["区长"]),      // 长 zhǎng (district chief)
+            ("changpang", &["长胖"]),    // 长 zhǎng (grow fat)
+            ("changrou", &["长肉"]),     // 长 zhǎng (grow meat)
+            ("changdou", &["长痘"]),     // 长 zhǎng (grow pimples)
+            ("changjianshi", &["长见识"]), // 长 zhǎng (gain insight)
             // User polish-log 2026-06-12: "momo 嶙嶙也不像个词，默默第一"
             // — 嶙嶙 was a wubi-side phrase row (momo = structural full
             // code) leading mixed #0 via the wubi tier. 嶙 is a real
