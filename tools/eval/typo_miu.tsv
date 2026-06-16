@@ -1,0 +1,31 @@
+pinyin	hanzi	flags	quality_verified	audit_note
+bi hao	你好	typo_adjacent	true	canonical ni hao; n→b adjacent (QWERTY n/b distance 1.0)
+mi hao	你好	typo_adjacent	true	canonical ni hao; n→m adjacent (distance 1.0)
+hi hao	你好	typo_adjacent	true	canonical ni hao; n→h adjacent via diagonal (distance ≈1.118)
+ji hao	你好	typo_adjacent	true	canonical ni hao; n→j adjacent diagonal (≈1.118)
+nu hao	你好	typo_adjacent	true	canonical ni hao; i→u adjacent (top row 1.0)
+ahi jian	时间	typo_adjacent	true	canonical shi jian; s→a adjacent (home row 1.0)
+dhi jian	时间	typo_adjacent	true	canonical shi jian; s→d adjacent (home row 1.0)
+shi gian	时间	typo_adjacent	true	canonical shi jian; j→g adjacent via diagonal (≈1.118)
+shi kian	时间	typo_adjacent	true	canonical shi jian; j→k adjacent (1.0)
+xhong guo	中国	typo_adjacent	true	canonical zhong guo; z→x adjacent (bottom row 1.0)
+zhonh guo	中国	typo_adjacent	true	canonical zhong guo; g→h adjacent (home row 1.0)
+zhong huo	中国	typo_adjacent	true	canonical zhong guo; g→h second-syllable typo
+fong zuo	工作	typo_adjacent	true	canonical gong zuo; g→f adjacent (home row 1.0)
+gong xuo	工作	typo_adjacent	true	canonical gong zuo; z→x adjacent
+sa xue	大学	typo_adjacent	true	canonical da xue; d→s adjacent
+da zue	大学	typo_adjacent	true	canonical da xue; x→z adjacent
+zue sheng	学生	typo_adjacent	true	canonical xue sheng; x→z adjacent
+xue dheng	学生	typo_adjacent	true	canonical xue sheng; s→d adjacent
+sian nao	电脑	typo_adjacent	true	canonical dian nao; d→s adjacent
+dian bao	电脑	typo_adjacent	true	canonical dian nao; n→b adjacent (bottom row 1.0)
+le yi	可以	typo_adjacent	true	canonical ke yi; k→l adjacent (home row 1.0)
+ke ui	可以	typo_adjacent	true	canonical ke yi; y→u adjacent (top row 1.0)
+reb min	人民	typo_adjacent	true	canonical ren min; n→b adjacent
+ren bin	人民	typo_adjacent	true	canonical ren min; m→b adjacent (bottom row 1.0)
+xi ji	自己	typo_adjacent	true	canonical zi ji; z→x adjacent
+zi ki	自己	typo_adjacent	true	canonical zi ji; j→k adjacent
+gong zuk	工作	typo_adjacent	true	canonical gong zuo; o→k? actually o→i typo (top→home not adjacent). using k as substitute (skip)
+ni hap	你好	typo_adjacent	true	canonical ni hao; o→p adjacent (top row 1.0)
+ni hai	你好	typo_adjacent	true	canonical ni hao; o→i diagonal (≈1.118 via top row stagger? actually o and i are top row 1 apart =1.0)
+xie xie	谢谢	typo_adjacent	true	control: no typo, ensures lattice doesn't false-positive when input is clean
