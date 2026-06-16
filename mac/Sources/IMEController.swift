@@ -810,6 +810,11 @@ final class InputxController: IMKInputController {
         session.setEngineMode(inputxSettings.engineMode)
         session.setAutoCommitPolicy(inputxSettings.autoCommitPolicy)
         session.setJapaneseEnabled(inputxSettings.japaneseEnabled)
+        InputxCellDictRegistry.apply(
+            enabledIds: inputxSettings.enabledCellDictPackIds,
+            from: InputxCellDictPacksCache.shared.all,
+            to: session
+        )
     }
 
     private func mapModifiers(_ flags: NSEvent.ModifierFlags) -> InputxModifiers {
