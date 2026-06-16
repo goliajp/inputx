@@ -16,6 +16,11 @@ Currently filled:
   行 — 265 unique words, single direction xing→hang. Default del_wrong
     (xíng 走/动/进行 主流读). del_prim whitelist covers 行业/银行/
     商店/线行 (matrix row, code line) categories explicitly.
+  长 — 283 unique words, single direction zhang→chang per pypinyin
+    prim choice. Default del_prim (cháng = "long" 长度/时间/place names —
+    most usage; pypinyin's zhang→ row is the wrong-syl copy). Exception
+    list = zhǎng-reading words ("grow" 长胖/长肉/长智 + 官名 营长/
+    族长/委员长/教务长 + 长 prefix as senior — 长嫂/长媳).
 """
 import collections, os
 
@@ -93,6 +98,132 @@ RULES = {
                "末行书",   # rare
                "句行",     # rare
                "草行",     # rare 草行书 vs 草地而行 — actually uncertain
+           }),
+    "长": ("del_prim",
+           {
+               # zhǎng (grow) — del_wrong (delete chang-copy, keep zhang)
+               "长胖": "del_wrong", "长肉": "del_wrong", "长痘": "del_wrong",
+               "长痘痘": "del_wrong", "长肥": "del_wrong", "长智": "del_wrong",
+               "长见识": "del_wrong", "长一智": "del_wrong",
+               "长见识了": "del_wrong", "长得帅": "del_wrong",
+               "越长越": "del_wrong", "长胡子": "del_wrong",
+               "长皱纹": "del_wrong", "长皮": "del_wrong", "长斑": "del_wrong",
+               "长痣": "del_wrong", "渐长": "del_wrong",
+               "改长": "del_wrong",  # (let it 长 grow longer? actually uncertain — but lean zhǎng)
+               "吃一堑长一智": "del_wrong",
+               "不长一智": "del_wrong",
+               "此消彼长": "del_wrong",
+               "春生夏长": "del_wrong",
+               "争长": "del_wrong",   # 争长论短 zhǎng
+               "一家之长": "del_wrong",  # zhǎng (家长)
+               "愈长": "del_wrong",
+               # zhǎng (senior official / 官名) — del_wrong
+               "探长": "del_wrong", "营长": "del_wrong", "族长": "del_wrong",
+               "大队长": "del_wrong", "室长": "del_wrong", "舰长": "del_wrong",
+               "厅长": "del_wrong", "园长": "del_wrong", "车长": "del_wrong",
+               "区长": "del_wrong", "秘书长": "del_wrong",
+               "检察长": "del_wrong", "委员长": "del_wrong",
+               "中队长": "del_wrong", "旅长": "del_wrong", "级长": "del_wrong",
+               "署长": "del_wrong", "理事长": "del_wrong",
+               "场长": "del_wrong", "处处长": "del_wrong",
+               "总参谋长": "del_wrong", "副委员长": "del_wrong",
+               "副科长": "del_wrong", "副大队长": "del_wrong",
+               "副厅长": "del_wrong", "副区长": "del_wrong",
+               "副理事长": "del_wrong", "副检察长": "del_wrong",
+               "教务长": "del_wrong", "教育长": "del_wrong",
+               "教育厅长": "del_wrong", "教长": "del_wrong",
+               "段长": "del_wrong",
+               "拉拉队长": "del_wrong",
+               "幕僚长": "del_wrong",
+               "事务长": "del_wrong",
+               "书记长": "del_wrong",
+               "艇长": "del_wrong",
+               "炊事班长": "del_wrong",
+               "调度长": "del_wrong",
+               "执行长": "del_wrong",  # 台 = CEO
+               "片儿长": "del_wrong",
+               "块长": "del_wrong",
+               "舍长": "del_wrong",
+               "分队长": "del_wrong",
+               "分局长": "del_wrong",
+               "岗长": "del_wrong",
+               "军士长": "del_wrong",
+               "郡长": "del_wrong",
+               "信长": "del_wrong",  # 织田信长
+               "小学校长": "del_wrong",
+               "中学校长": "del_wrong",
+               "织田信长": "del_wrong",
+               "典狱长": "del_wrong",
+               "监狱长": "del_wrong",
+               "狱长": "del_wrong",
+               "廷长": "del_wrong",
+               "参议长": "del_wrong",
+               "女家长": "del_wrong",
+               "新大长": "del_wrong",  # 新大头娘大 — zhǎng (rare)
+               "片长": "del_wrong",  # 制片长 (film team head)
+               "钱长": "del_wrong",  # rare zhǎng
+               "尊长": "del_wrong",  # 尊敬长辈 zhǎng-bèi
+               # zhǎng (senior) family role
+               "长媳": "del_wrong",
+               "长嫂": "del_wrong",
+               "长嫂如母": "del_wrong",
+           },
+           {
+               # 双向 / 真模糊 (keep both)
+               "长长",      # cháng-cháng vs zhǎng-zhǎng
+               "长头",      # 长头(发) cháng vs zhǎng (grow head)
+               "长大",      # cháng-dà (big and long?) vs zhǎng-dà (grow up)
+               "子长",      # place name zǐ-zhǎng (Shaanxi 县) vs name
+               "长黑",      # zhǎng (grow black hair) vs cháng (long-black)
+               "长尾巴",    # zhǎng (grow tail) vs cháng (long tail)
+               "长嘴",      # cháng (long beak) vs zhǎng (grow mouth)
+               "长耳朵",    # cháng (long ear) vs zhǎng (grow ears)
+               "长明",      # 长明灯 cháng — but uncertain in isolation
+               "长留",      # cháng-liú vs zhǎng (let it grow more)
+               "长鼻",      # cháng (long nose) — but zhǎng (grow nose) rare
+               "长嚎",      # cháng-háo (long howl) — but zhǎng-háo (grow loud) rare
+               "长忧",      # rare · ambiguous
+               "长情",      # cháng-qíng — but uncertain spelled this way alone
+               "长针",      # cháng (long needle) — but zhǎng-zhēn-yǎn rare
+               "渔长",      # rare
+               "扁长",      # cháng (oblong) — uncertain
+               "码长",      # cháng (码 长 = numbering length) — uncertain
+               "幽长",      # rare
+               "音长",      # cháng (audio length) — uncertain (zhǎng meaningless)
+               "字长",      # cháng (word length, bytes) — uncertain
+               "颈长",      # uncertain
+               "桥长",      # cháng (bridge length) — uncertain (zhǎng meaningless)
+               "纵长",      # uncertain
+               "横长",      # uncertain
+               "条长",      # uncertain
+               "线长",      # cháng (line length) but uncertain
+               "弦长",      # cháng (chord length) — uncertain
+               "细长",      # cháng (slender) — but spelled this often zhǎng-cháng rare
+               "细细长长",  # cháng (slender repeat) — usually cháng
+               "瘦瘦长长",  # cháng — usually cháng
+               "副长",      # rare zhǎng senior
+               "主长",      # rare zhǎng
+               "群长",      # rare zhǎng (group leader)
+               "渔船长",    # zhǎng — but rare
+               "辉长岩",    # 辉长岩 = huī-cháng-yán (geology rock) — uncertain
+               "渊远流长",  # cháng (variant of 源远流长)
+               "可长可短",  # cháng — but pattern hard
+               "前短后长",  # cháng — usually cháng
+               "忽长忽短",  # cháng — usually cháng
+               "有长有短",  # cháng — usually cháng
+               "昼短夜长",  # cháng — clear cháng but pattern hard
+               "不长不短",  # cháng — pattern
+               "情深谊长",  # cháng (long affection) — clear
+               "长盛不衰",  # cháng-shèng — clear cháng
+               "又臭又长",  # cháng — clear
+               "风物长宜放眼量",  # cháng — clear
+               "新大长",    # 新大头娘大 — rare/uncertain
+               "渔长",      # rare
+               "挂长",      # uncertain
+               "托长",      # uncertain
+               "摆长",      # uncertain
+               "炮长",      # rare zhǎng
+               "副长",      # rare zhǎng
            }),
 }
 
