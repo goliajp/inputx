@@ -1006,6 +1006,132 @@ impl PinyinDict {
         paths.first().map(|p| p.sentence())
     }
 
+    /// Phase-5 CP-3.6 step-2 turn 2 — `best_composition_chain`'s lattice
+    /// counterpart. Returns `(score, sentence, chain)`, matching the
+    /// legacy method's signature so it can be swapped at production call
+    /// sites without changing caller logic. Sentence is byte-equal with
+    /// `best_composition_chain(buf).map(|(_, s, _)| s)` for LM order ≤ 2;
+    /// `score` may differ by an f32-vs-f64 quantum (the lattice viterbi
+    /// accumulates f32 weights) but the magnitude (~1e6) is far larger
+    /// than any quality-floor tolerance the caller checks against.
+    /// `chain` is the winning lattice path's per-segment word sequence,
+    /// matching `best_composition_chain`'s chain shape.
+    pub fn best_composition_chain_via_lattice(
+        &self,
+        buffer: &str,
+    ) -> Option<(f64, String, Vec<String>)> {
+        use crate::lattice::{Edge, Graph};
+        const MIN_LEN: usize = 4;
+        const MAX_LEN: usize = 30;
+        const MAX_SYL: usize = 24;
+        const STEP_PENALTY: f64 = 100_000.0;
+
+        let buf = buffer.as_bytes();
+        let n = buf.len();
+        if !(MIN_LEN..=MAX_LEN).contains(&n) {
+            return None;
+        }
+        if self.lm_order() >= 3 {
+            return None;
+        }
+
+        let mut graph = Graph::for_buffer(n);
+        let mut scratch: Vec<(String, u64)> = Vec::new();
+        for i in 1..=n {
+            let lo = i.saturating_sub(MAX_SYL);
+            for j in lo..i {
+                let seg = match core::str::from_utf8(&buf[j..i]) {
+                    Ok(s) => s,
+                    Err(_) => continue,
+                };
+                scratch.clear();
+                self.lookup_raw_into(seg, &mut scratch);
+                if scratch.is_empty() {
+                    continue;
+                }
+                for (word, raw_freq) in scratch.iter() {
+                    let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
+                    graph.add_edge(Edge::exact(j, i, word.clone(), weight));
+                }
+            }
+        }
+
+        let lm_closure = |prev: &str, curr: &str| -> f32 {
+            let prev_opt = if prev.is_empty() { None } else { Some(prev) };
+            (self.bigram_boost(prev_opt, curr) + self.lm_bonus(None, prev_opt, curr)) as f32
+        };
+
+        let mut paths = graph.viterbi(1, lm_closure);
+        let top = paths.drain(..).next()?;
+        let sentence = top.sentence();
+        Some((top.score as f64, sentence, top.words))
+    }
+
+    /// Phase-5 CP-3.6 step-2 turn 2 — `top_k_compositions`'s lattice
+    /// counterpart. Returns `Vec<(score, sentence)>` ranked by score
+    /// desc, deduped by sentence. For LM order ≤ 2 top-1 is byte-equal
+    /// with `top_k_compositions(buf, k)`'s top-1 (proven by
+    /// `multi_syllable_lattice_top1_matches_legacy_best_composition`);
+    /// the k+1th-rank results may permute when scores tie within the
+    /// beam since lattice viterbi prunes per-node, not per-final.
+    pub fn top_k_compositions_via_lattice(
+        &self,
+        buffer: &str,
+        k: usize,
+    ) -> Vec<(f64, String)> {
+        use crate::lattice::{Edge, Graph};
+        const MIN_LEN: usize = 4;
+        const MAX_LEN: usize = 30;
+        const MAX_SYL: usize = 24;
+        const STEP_PENALTY: f64 = 100_000.0;
+
+        let buf = buffer.as_bytes();
+        let n = buf.len();
+        if !(MIN_LEN..=MAX_LEN).contains(&n) || k == 0 {
+            return Vec::new();
+        }
+        if self.lm_order() >= 3 {
+            return Vec::new();
+        }
+
+        let mut graph = Graph::for_buffer(n);
+        let mut scratch: Vec<(String, u64)> = Vec::new();
+        for i in 1..=n {
+            let lo = i.saturating_sub(MAX_SYL);
+            for j in lo..i {
+                let seg = match core::str::from_utf8(&buf[j..i]) {
+                    Ok(s) => s,
+                    Err(_) => continue,
+                };
+                scratch.clear();
+                self.lookup_raw_into(seg, &mut scratch);
+                if scratch.is_empty() {
+                    continue;
+                }
+                for (word, raw_freq) in scratch.iter() {
+                    let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
+                    graph.add_edge(Edge::exact(j, i, word.clone(), weight));
+                }
+            }
+        }
+
+        let lm_closure = |prev: &str, curr: &str| -> f32 {
+            let prev_opt = if prev.is_empty() { None } else { Some(prev) };
+            (self.bigram_boost(prev_opt, curr) + self.lm_bonus(None, prev_opt, curr)) as f32
+        };
+
+        let paths = graph.viterbi(k, lm_closure);
+        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut out: Vec<(f64, String)> = Vec::with_capacity(paths.len());
+        for p in paths {
+            let s = p.sentence();
+            if seen.insert(s.clone()) {
+                out.push((p.score as f64, s));
+            }
+        }
+        out
+    }
+
     /// K-best Viterbi composition: like [`Self::best_composition`] but
     /// retains the top-`k` paths to every position instead of just the
     /// single best, so the top-K full-buffer paths are recovered. Returns

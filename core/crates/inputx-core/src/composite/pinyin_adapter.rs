@@ -1286,10 +1286,18 @@ impl PinyinAdapter {
         //      Pushing this composition to #0 would be a wrong-reading
         //      false positive. Threshold 8 sidesteps this entirely:
         //      no real ambiguous short composition reaches it.
+        // Phase-5 CP-3.6 step-2 turn 2: route through the lattice
+        // viterbi (byte-equal for LM order ≤ 2). Trigram (order ≥ 3)
+        // falls back to the legacy DP since the lattice viterbi closure
+        // is 2-arg and can't express grandparent scoring.
+        let chain_result = if self.engine.dict().lm_order() >= 3 {
+            self.engine.dict().best_composition_chain(&self.buffer)
+        } else {
+            self.engine.dict().best_composition_chain_via_lattice(&self.buffer)
+        };
         if !PINYIN_DISABLE_COMPOSE
             && self.buffer.len() >= 8
-            && let Some((score, sentence, chain)) =
-                self.engine.dict().best_composition_chain(&self.buffer)
+            && let Some((score, sentence, chain)) = chain_result
         {
             // Two-tier quality gate:
             //
@@ -1628,7 +1636,17 @@ impl PinyinAdapter {
             // Cap K=5: enough to bring in real-bigram alternates, small
             // enough that even pathological short-buffer cases finish in
             // microseconds (perfgate-validated).
-            let comps = self.engine.dict().top_k_compositions(&self.buffer, 5);
+            // Phase-5 CP-3.6 step-2 turn 2: route through the lattice
+            // viterbi (top-1 byte-equal for LM order ≤ 2; ranks 2..k may
+            // permute when scores tie within the beam — acceptable
+            // because the K-best fanout is a last-resort fallback that
+            // the caller already gates on ratio + bigram-support).
+            // Trigram (order ≥ 3) falls back to legacy DP.
+            let comps = if self.engine.dict().lm_order() >= 3 {
+                self.engine.dict().top_k_compositions(&self.buffer, 5)
+            } else {
+                self.engine.dict().top_k_compositions_via_lattice(&self.buffer, 5)
+            };
             // Clone `top` so the borrow of `comps` ends before the
             // `for (_, sentence) in comps` move below.
             let top_owned: Option<String> = comps.first().map(|(_, t)| t.clone());
