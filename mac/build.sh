@@ -89,6 +89,17 @@ cp Info.plist "$APP_DIR/Contents/Info.plist"
 # a 1-resolution legacy `il32` blob that crashes host apps on input-source
 # switch. See mac/Info.plist comment on CFBundleIconFile for details.
 cp -R Resources/. "$APP_DIR/Contents/Resources/"
+# CP-5.2 step-3: ship the bundled cell-dict packs from `docs/cell-dicts/`
+# at runtime path `Resources/cell-dicts/*.toml`. SettingsWindow scans
+# this directory via `InputxCellDictRegistry.bundled(in: .main)` and
+# renders one toggle per pack; user prefs key each pack by filename stem.
+CELL_DICT_SRC="../docs/cell-dicts"
+CELL_DICT_DST="$APP_DIR/Contents/Resources/cell-dicts"
+if [ -d "$CELL_DICT_SRC" ]; then
+    mkdir -p "$CELL_DICT_DST"
+    cp -f "$CELL_DICT_SRC"/*.toml "$CELL_DICT_DST/" 2>/dev/null || true
+    echo "[build] bundled cell-dicts: $(ls "$CELL_DICT_DST"/*.toml 2>/dev/null | wc -l | tr -d ' ') pack(s)"
+fi
 printf "APPLINPX" > "$APP_DIR/Contents/PkgInfo"
 
 # ----- Codesign -----

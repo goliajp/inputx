@@ -29,6 +29,11 @@ public final class InputxSettings {
         /// Users who want a stable scoring model — for example testing
         /// or troubleshooting — can flip this off in SettingsWindow.
         static let userLearningEnabled = "userLearningEnabled"
+        /// CP-5.2 step-3 — IDs of bundled cell-dict packs the user has
+        /// enabled. Stored as `Set<String>` (= unordered string array in
+        /// UserDefaults). Pack metadata (name / path / description) lives
+        /// in the bundle; this set only records "which IDs are on".
+        static let enabledCellDictPackIds = "enabledCellDictPackIds"
     }
 
     /// Construct over a specific `UserDefaults`. Pass `.standard` for Mac
@@ -124,5 +129,18 @@ public final class InputxSettings {
     public var userLearningEnabled: Bool {
         get { defaults.bool(forKey: Keys.userLearningEnabled) }
         set { defaults.set(newValue, forKey: Keys.userLearningEnabled) }
+    }
+
+    /// CP-5.2 step-3 — IDs of bundled cell-dict packs the user has
+    /// enabled. Empty set means "no packs active"; the embedded dict
+    /// answers every query (byte-equal Phase 0 baseline).
+    public var enabledCellDictPackIds: Set<String> {
+        get {
+            (defaults.array(forKey: Keys.enabledCellDictPackIds) as? [String])
+                .map(Set.init) ?? []
+        }
+        set {
+            defaults.set(Array(newValue).sorted(), forKey: Keys.enabledCellDictPackIds)
+        }
     }
 }

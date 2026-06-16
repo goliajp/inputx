@@ -267,6 +267,43 @@ public final class InputxSession {
     public func smartQuoteReset() {
         inputx_session_smart_quote_reset(handle)
     }
+
+    // MARK: - Cell-dict L0.5 (CP-5.2 step-3) --------------------------------
+
+    /// Result of `loadCellDict`. Distinguishes "successfully loaded N
+    /// entries" from the three negative error paths the FFI reports.
+    public enum CellDictLoadResult: Equatable {
+        case ok(Int)
+        case nullInput
+        case nonUtf8
+        case parseError
+    }
+
+    /// Load a TOML cell-dict pack into the session's L0.5 layer.
+    /// Multiple calls accumulate; use `clearCellDict` to wipe.
+    @discardableResult
+    public func loadCellDict(toml: String) -> CellDictLoadResult {
+        let raw = toml.withCString { ptr -> Int64 in
+            inputx_session_load_cell_dict(handle, ptr)
+        }
+        switch raw {
+        case let n where n >= 0: return .ok(Int(n))
+        case -1: return .nullInput
+        case -2: return .nonUtf8
+        case -3: return .parseError
+        default: return .parseError
+        }
+    }
+
+    /// Wipe the session's L0.5 cell-dict layer.
+    public func clearCellDict() {
+        inputx_session_clear_cell_dict(handle)
+    }
+
+    /// Number of `(pinyin, word)` entries currently in the L0.5 layer.
+    public var cellDictCount: Int {
+        Int(inputx_session_cell_dict_count(handle))
+    }
 }
 
 // MARK: - Process-global locale helpers (stateless) --------------------------

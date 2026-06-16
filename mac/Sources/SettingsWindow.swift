@@ -56,8 +56,11 @@ private struct SettingsRootView: View {
     @State private var useFullWidth: Bool = inputxSettings.useFullWidth
     @State private var showRareChars: Bool = inputxSettings.showRareChars
     @State private var userLearningEnabled: Bool = inputxSettings.userLearningEnabled
+    @State private var enabledPackIds: Set<String> = inputxSettings.enabledCellDictPackIds
     @State private var showResetConfirm: Bool = false
     @State private var infoBanner: String?
+
+    private let availablePacks = InputxCellDictPacksCache.shared.all
 
     var body: some View {
         Form {
@@ -132,6 +135,39 @@ private struct SettingsRootView: View {
             } header: {
                 Text("中文输入习惯")
                     .font(.headline)
+            }
+
+            // ---- 词库扩展（cell-dict 包）----
+            if !availablePacks.isEmpty {
+                Section {
+                    ForEach(availablePacks) { pack in
+                        Toggle(isOn: Binding(
+                            get: { enabledPackIds.contains(pack.id) },
+                            set: { on in
+                                if on { enabledPackIds.insert(pack.id) }
+                                else  { enabledPackIds.remove(pack.id) }
+                                inputxSettings.enabledCellDictPackIds = enabledPackIds
+                                broadcastChanged()
+                            }
+                        )) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(pack.displayName)
+                                if !pack.description.isEmpty {
+                                    Text(pack.description)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                } header: {
+                    Text("词库扩展")
+                        .font(.headline)
+                } footer: {
+                    Text("勾选要启用的细胞词库（domain vocab pack）。每次勾选 / 取消后立即生效——下一次输入对应拼音会带上包内词条。L0 个人学习不受影响。")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             // ---- 学习与个性化 ----
