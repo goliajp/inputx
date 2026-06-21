@@ -360,11 +360,11 @@ composed_score = 500_000.0
 # Short-buffer last-resort Path 5 composition (e.g. kaopu → 靠谱
 # when no exact). Sits above mechanical JP kana but below real dict.
 composed_fallback_score = 250_000.0
-# Pre-discount fuzzy floor (gets multiplied by fuzzy_discount).
+# Linear-space `score` field for fuzzy-tier candidates: a fixed
+# `FUZZY_BASE * 0.3 = 105k` used only as the merge f64-tiebreaker
+# (primary sort is the Q4 log-likelihood derived from real phonetic
+# edit-distance via `fuzzy_likelihood_floor_q4` + `MatchType::Fuzzy`).
 fuzzy_base = 350_000.0
-# Linear-space discount on FUZZY_BASE for fuzzy-tier candidates.
-# 0.3 = ×0.7 below FUZZY_BASE; calibrated against pre-v1.8 behavior.
-fuzzy_discount = 0.3
 # Composition-quality cutoff: Viterbi paths whose log_quality falls
 # below this drop entirely (never shown). Negative since quality is
 # a log-prob.

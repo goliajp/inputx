@@ -361,8 +361,8 @@ pub struct EngineWeights {
     /// derived from the real phonetic edit distance — closer typos pay
     /// less decay, distant ones pay more.
     ///
-    /// Pre-v1.8 the fuzzy path used a flat `Q4·ln(FUZZY_BASE ·
-    /// FUZZY_DISCOUNT) = Q4·ln(105_000) ≈ 185` regardless of typo
+    /// Pre-v1.8 the fuzzy path used a flat `Q4·ln(FUZZY_BASE · 0.3)
+    /// = Q4·ln(105_000) ≈ 185` regardless of typo
     /// magnitude. The v1.8 default of `Q4·ln(FUZZY_BASE) ≈ 205` plus
     /// `Fuzzy(cost_milli)` decay reproduces that 185 baseline at
     /// `cost_milli ≈ 700` (`ln(1 − 0.7)·Q4 ≈ -19`, `205 − 19 = 186` ≈

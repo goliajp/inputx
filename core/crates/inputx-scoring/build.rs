@@ -138,7 +138,6 @@ fn main() {
     let pp_composed_score = read_f64(pinyin_path, "composed_score");
     let pp_composed_fallback_score = read_f64(pinyin_path, "composed_fallback_score");
     let pp_fuzzy_base = read_f64(pinyin_path, "fuzzy_base");
-    let pp_fuzzy_discount = read_f64(pinyin_path, "fuzzy_discount");
     let pp_composed_quality_floor = read_f64(pinyin_path, "composed_quality_floor");
 
     let jp_jukugo_base = read_f64(scoring_jp, "jukugo_base");
@@ -410,7 +409,6 @@ pub mod consts {{
     pub const COMPOSED_SCORE: f64 = {pp_composed_score};
     pub const COMPOSED_FALLBACK_SCORE: f64 = {pp_composed_fallback_score};
     pub const FUZZY_BASE: f64 = {pp_fuzzy_base};
-    pub const FUZZY_DISCOUNT: f64 = {pp_fuzzy_discount};
     pub const COMPOSED_QUALITY_FLOOR: f64 = {pp_composed_quality_floor};
     // [dispatch.wubi]
     pub const WUBI_CHAR_PROMINENT_FLOOR_FREQ: u64 = {dw_floor};
@@ -555,7 +553,6 @@ pub fn wubi_tier_from_freq(raw_freq: u64) -> u8 {{
         pp_composed_score = fmt_f64(pp_composed_score),
         pp_composed_fallback_score = fmt_f64(pp_composed_fallback_score),
         pp_fuzzy_base = fmt_f64(pp_fuzzy_base),
-        pp_fuzzy_discount = fmt_f64(pp_fuzzy_discount),
         pp_composed_quality_floor = fmt_f64(pp_composed_quality_floor),
         dw_floor = dw_char_prominent_floor,
         dw_ad0 = fmt_f64(dw_auto_demote[0]),
