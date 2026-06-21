@@ -105,8 +105,8 @@ pub trait PathToLattice {
 /// while r/l and f/h are rarer at ~1% (≈ log10 -2.0). The actual
 /// per-pair values are tuned in CP-3.6's λ sweep; CP-3.3 just plugs
 /// them into the lattice as channel costs so the legacy
-/// `FUZZY_DISCOUNT * 0.3` flat penalty is no longer hard-coded into
-/// the score path.
+/// `FUZZY_BASE * 0.3 = 105k` flat penalty is no longer hard-coded
+/// into the score path.
 pub const FUZZY_CHANNEL_LOG_PROBS: &[(&str, &str, f32)] = &[
     // Initial-position swaps (6 pairs, 12 directions).
     ("zh", "z",  -1.0),  ("z",  "zh", -1.0),
@@ -170,7 +170,7 @@ pub struct Path1aExact;
 /// each variant up in the dict, and emits one [`EdgeKind::Fuzzy`] edge
 /// per candidate. The channel log-prob comes from
 /// [`fuzzy_channel_log_prob`] — replacing the legacy
-/// `FUZZY_DISCOUNT * 0.3` flat penalty with a per-pair empirical value.
+/// `FUZZY_BASE * 0.3` flat penalty with a per-pair empirical value.
 ///
 /// Like [`Path1aExact`], the canonical (zero-swap) syllable is skipped
 /// — Path 1a covers that.

@@ -179,8 +179,8 @@ pub const LIKELIHOOD_WUBI_PREDICT_BASE: f64 = inputx_scoring::consts::LIKELIHOOD
 /// user types closer to the word.
 ///
 /// Must also sit BELOW:
-///   - `FUZZY_BASE * FUZZY_DISCOUNT` (= 350k * 0.7 = 245k in
-///     pinyin_adapter): a fuzzy match (`famin` → `faming` via in↔ing
+///   - `FUZZY_BASE * 0.3` (= 350k * 0.3 = 105k in pinyin_adapter):
+///     a fuzzy match (`famin` → `faming` via in↔ing
 ///     swap) is a higher-confidence match than mid-typing prediction —
 ///     user typed a typo of an EXISTING word, vs typed a prefix toward
 ///     SOME word. Polish-log 2026-05-27 (`famin`): user reported
