@@ -1356,11 +1356,16 @@ mod tests {
     }
 
     /// Class C polish (user report 2026-06-10): "quanquan 拳拳 劝劝
-    /// 要放在最后". 拳拳 is idiom-only (拳拳之心), 劝劝 is verb
-    /// reduplication (劝一劝), both real but should not crowd common
-    /// daily-use peers 全权 / 圈圈. tier_overlay tier 5 (less_common)
-    /// keeps them in the dict for K-best / reverse-lookup; just
-    /// pushes them below the daily-use peers in the display.
+    /// 要放在最后". 拳拳 is idiom-only (拳拳之心), kept in the dict
+    /// (and on the AA-redup-sweep keep whitelist) but tier-demoted so
+    /// it doesn't crowd common daily peers 全权 / 圈圈.
+    ///
+    /// 2026-06-22 update: AA-redup sweep batch 2 (commit pending)
+    /// deleted 劝劝 entirely as noise (verb-redup "劝一劝" too weak
+    /// for a dict entry — recapture via `source=polish` row if a user
+    /// reports it). Original test pinned 劝劝 alongside 拳拳 in the
+    /// demote invariant; with 劝劝 gone from the dict the assertion
+    /// reduces to "拳拳 ranks below 全权 / 圈圈".
     #[test]
     fn polish_quanquan_demote_fistfist_reduplication() {
         let top10 = mixed_top10("quanquan".as_bytes());
@@ -1368,10 +1373,9 @@ mod tests {
         let q = pos("全权").expect("全权 missing from quanquan top10");
         let r = pos("圈圈").expect("圈圈 missing from quanquan top10");
         let f = pos("拳拳").expect("拳拳 missing from quanquan top10");
-        let p = pos("劝劝").expect("劝劝 missing from quanquan top10");
         assert!(
-            q < f && q < p && r < f && r < p,
-            "quanquan: 拳拳/劝劝 should rank below 全权/圈圈; got top10={top10:?}"
+            q < f && r < f,
+            "quanquan: 拳拳 should rank below 全权/圈圈; got top10={top10:?}"
         );
     }
 
