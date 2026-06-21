@@ -1,0 +1,30 @@
+# Recapture round 2 — second-pass per-row audit 2026-06-22.
+# After commit c79cbd4 (first recapture of 57), user 2026-06-22
+# "后续全部你来审完" → I re-audited every remaining to_delete entry
+# in batch 1a (459 leftover) and batch 2 (404 leftover), plus
+# resolved the 10 batch 1b uncertain markers.
+#
+# Findings:
+#   batch 1b uncertain → 8 keep (猎猎/幢幢/寸寸/讷讷/溶溶/荧荧/眷眷/施施),
+#                       2 delete (窣窣/劳劳) — already deleted, no action.
+#   batch 1a second-pass → 0 new misses (initial 6 recapture covered).
+#   batch 2 second-pass → 4 new misses (云云/霍霍/momo脉脉/蛐蛐).
+#   batch 3 second-pass → 0 misses (50 surgical picks confirmed).
+#
+# Schema: code\tword\tfreq\t# note
+
+# --- batch 1b uncertain → keep (8) ---
+chuangchuang	幢幢	9302	# 人影幢幢 文学
+cuncun	寸寸	9083	# 寸寸断 / 寸寸光阴
+juanjuan	眷眷	5895	# 眷眷之心
+lielie	猎猎	9346	# 旌旗猎猎
+nene	讷讷	8913	# 讷讷不能言 古文
+rongrong	溶溶	8322	# 月光溶溶 文学
+shishi	施施	5375	# 施施然 文言
+yingying	荧荧	7959	# 灯火荧荧 文学
+
+# --- batch 2 second-pass → keep (4) ---
+huohuo	霍霍	19489	# 磨刀霍霍 / 霍霍燃烧 真叠词拟声+状态
+momo	脉脉	17028	# 脉脉含情 (momo 是 'mo-mo' 正读; maimai 脉脉 同步保 batch 1a)
+ququ	蛐蛐	16865	# 蛐蛐 = 蟋蟀 虫名本字重叠 (同 蝈蝈)
+yunyun	云云	19774	# 如此云云 现代书面引用末尾
