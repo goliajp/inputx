@@ -621,6 +621,16 @@ mod tests {
             // descending 偷懒 50000 / 投篮 15000 + source=polish. Empirical:
             // 28k/22k gap didn't drive order; 50k/15k did.
             ("toulan", "偷懒"),
+            // Polish-log 2026-06-21 Phase A (AA-redup sweep, fanfan): user
+            // "感觉现在叠词的问题还是很严重，有相当多根本不是个词".
+            // fanfan top10 was 8/10 noise (饭饭/反反/烦烦/范范/帆帆/犯犯/
+            // 繁繁/翻翻) + 凡凡/番番 in low ranks. D1 deleted 10 corpus-
+            // noise rows from library.tsv (jieba reduplication artefacts +
+            // name nicknames), preserved only 翻番(double) and 泛泛
+            // (superficial) — the two real fanfan words. 翻番 leads as the
+            // higher-freq true compound. See docs/pinyin-AA-redup-sweep-
+            // 2026-06-21/ for the broader 1566-entry sweep plan.
+            ("fanfan", "翻番"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
