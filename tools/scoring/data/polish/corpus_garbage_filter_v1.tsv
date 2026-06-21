@@ -7861,14 +7861,19 @@ zunchongzhishi	尊重知识	2026-06-13
 # 2026-06-21 user: "fanfan 感觉现在叠词的问题还是很严重，有相当多
 # 根本不是个词，日常也用不了" — fanfan top 显示 8/10 非词(饭饭/
 # 反反/烦烦/范范/帆帆/犯犯/繁繁/翻翻),实际 fanfan 段唯二真词只有
-# 翻番(double)和泛泛(superficial)。Phase A 精确删 10 行噪音:
+# 翻番(double)和泛泛(superficial)。Phase A 精确删 9 行噪音:
 # 6 个纯单字叠音(反反/烦烦/犯犯/番番/繁繁/饭饭 — 不是词)+
-# 3 个人名叠呼(凡凡/帆帆/范范 — 名字,不该当通用候选)+
+# 2 个人名叠呼(帆帆/范范 — 名字,不该当通用候选)+
 # 1 个 borderline 动词叠词独立形(翻翻 — "翻翻书"合法但 standalone
 # 不该当 #0;若复打 fanfanshu 应能命中)。
 # 保:翻番(double)+ 泛泛(superficial)。
 # Phase B sweep 见 docs/pinyin-AA-redup-sweep-2026-06-21/.
-fanfan	凡凡	2026-06-21
+#
+# Recapture 2026-06-22 user: "先把凡凡加回来，这个是我要用的" —
+# 凡凡 re-added to library.tsv as source=polish row freq=16100 (just
+# below 翻番 16305 so 翻番 stays #0, 凡凡 takes #1 as a usable
+# nickname position). Garbage-filter row removed; future regen of
+# pinyin-build-weights must NOT re-block 凡凡.
 fanfan	反反	2026-06-21
 fanfan	帆帆	2026-06-21
 fanfan	范范	2026-06-21
