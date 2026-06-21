@@ -49,7 +49,7 @@ inputx-nihongo-data-jukugo = { path = "../inputx-nihongo-data-jukugo", version =
 inputx-nihongo-data-kanji = { path = "../inputx-nihongo-data-kanji", version = "1.6" }
 # v1.8.0 WU-ν: real weighted phonetic edit-distance for the pinyin fuzzy
 # path. Pre-v1.8 the fuzzy candidates all shared a flat `FUZZY_BASE *
-# FUZZY_DISCOUNT = 105k` score regardless of how far the typo strayed
+# 0.3 = 105k` score regardless of how far the typo strayed
 # from the dict spelling; now each fuzzy candidate carries the true
 # `edit_distance(typed_buf, variant)` so closer typos rank higher than
 # distant ones.

@@ -719,10 +719,8 @@ impl PinyinAdapter {
         // and BELOW JP exact whole-buffer (240k). User-reported: `fami`
         // surfaced 哈密 / 哈米 (fuzzy of `hami` via f↔h swap) above
         // ファミ — the typo-correction guess outranked the JP exact
-        // match. Calibration: FUZZY_BASE * FUZZY_DISCOUNT = 350k * 0.3
-        // = 105k, comfortably below prediction min 180k and JP exact
-        // 240k.
-        const FUZZY_DISCOUNT: f64 = inputx_scoring::consts::FUZZY_DISCOUNT;
+        // match. Calibration: FUZZY_BASE * 0.3 = 350k * 0.3 = 105k,
+        // comfortably below prediction min 180k and JP exact 240k.
         // Fuzzy candidates need a synthetic base if they have no exact
         // dict entry at the typed buffer — they DO have an entry at the
         // fuzzy-variant buffer (`zhongguo` for typed `zongguo`), but
@@ -932,10 +930,9 @@ impl PinyinAdapter {
                 // 700.
                 //
                 // The legacy linear-space `score` field stays at
-                // `FUZZY_BASE * FUZZY_DISCOUNT` so the merge's
-                // f64-tiebreaker behavior is unchanged — only the
-                // Q4 log-likelihood (primary sort) responds to
-                // edit_distance.
+                // `FUZZY_BASE * 0.3` so the merge's f64-tiebreaker
+                // behavior is unchanged — only the Q4 log-likelihood
+                // (primary sort) responds to edit_distance.
                 let weights = inputx_scoring::EngineWeights::inputx_default();
                 // Linear distance → cost_milli mapping, clamped
                 // to 999 (the Fuzzy(1000) edge case would push
@@ -946,7 +943,7 @@ impl PinyinAdapter {
                 let mt = inputx_scoring::MatchType::Fuzzy(cost_milli);
                 let log_likelihood_q4 =
                     inputx_scoring::derive_log_likelihood(weights.fuzzy_likelihood_floor_q4, mt);
-                let s = FUZZY_BASE * FUZZY_DISCOUNT;
+                let s = FUZZY_BASE * 0.3;
                 // WU-ψ: fuzzy → tier 8 ("你都打错了，有就不错了").
                 let c =
                     super::merge::ScoreComponents::three_axis(pinyin_floor, log_likelihood_q4, mt)
@@ -1640,10 +1637,9 @@ impl PinyinAdapter {
                 );
                 // v1.4.7 A4 step 1: fuzzy variant lookup routes
                 // through cement IdfReader. Fuzzy candidates carry no
-                // freq downstream (they hit the FUZZY_BASE *
-                // FUZZY_DISCOUNT path in candidates_with_scores), so
-                // we only need the word list — entry.log_prior is
-                // discarded here.
+                // freq downstream (they hit the `FUZZY_BASE * 0.3`
+                // path in candidates_with_scores), so we only need
+                // the word list — entry.log_prior is discarded here.
                 for entry in pinyin_idf_reader().lookup(variant.as_bytes()) {
                     let w = entry.word.to_string();
                     if seen.insert(w.clone()) {
