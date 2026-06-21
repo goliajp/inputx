@@ -384,6 +384,14 @@ mod tests {
             // ASCII-fallback escape valve. If any of those regress, this
             // case flips and test fails.
             ("zhrmghg", "中华人民共和国"),
+            // Polish-log 2026-06-21 — `ziqia` user-reported missing 自洽
+            // in top-N (probe showed 自强/自谦/资浅/子枪 fuzzy fallbacks
+            // 0..6, 自洽场/自洽性 at #7/#8, root 自洽 absent). Added
+            // ziqia → 自洽 freq=22000 to library.tsv (calibrated against
+            // peer 自欺 22283 / 自强 24113 / 自谦 13932). Exact Path 1a
+            // hit now wins over fuzzy fallbacks; downstream consumers
+            // (K-best, initials reverse-lookup) get the entry too.
+            ("ziqia", "自洽"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
