@@ -631,6 +631,11 @@ mod tests {
             // higher-freq true compound. See docs/pinyin-AA-redup-sweep-
             // 2026-06-21/ for the broader 1566-entry sweep plan.
             ("fanfan", "翻番"),
+            // Polish-log 2026-06-26: "xuxian 虚线 续弦 都要在许仙前面".
+            // 许仙 (白蛇传 proper noun) base 17781 was crowding #0 over
+            // 虚线 16059 and 续弦 8669. quickfix_boost lifts 虚线→19600
+            // (#0) and 续弦→18700 (#1), 许仙 base falls to #2.
+            ("xuxian", "虚线"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
@@ -1352,6 +1357,24 @@ mod tests {
         assert!(
             q < r,
             "quanquan: 全权 should rank above 圈圈; got top10={top10:?}"
+        );
+    }
+
+    /// Class B polish (user report 2026-06-26): "xuxian 虚线 续弦 都要
+    /// 在许仙前面". 许仙 (白蛇传 proper noun) base 17781 was crowding
+    /// #0 over the common-usage 虚线 (16059) and 续弦 (8669).
+    /// quickfix_boost lifts 虚线 → 19600 and 续弦 → 18700 so the order
+    /// becomes [虚线 #0, 续弦 #1, 许仙 #2].
+    #[test]
+    fn polish_xuxian_xuxian_xuxian_above_xuxian() {
+        let top10 = mixed_top10("xuxian".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("虚线").expect("虚线 missing from xuxian top10");
+        let b = pos("续弦").expect("续弦 missing from xuxian top10");
+        let c = pos("许仙").expect("许仙 missing from xuxian top10");
+        assert!(
+            a < b && b < c,
+            "xuxian: expected 虚线<续弦<许仙; got top10={top10:?}"
         );
     }
 
