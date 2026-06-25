@@ -897,6 +897,12 @@ mod tests {
             // freq overridden to 25000 (mid 偏向~偏见 band) + source=polish.
             // 偏色 now leads ぴあんせ / ピアンセ.
             ("pianse", "偏色"),
+            // Polish-log 2026-06-26: "微信第一，惟心也要在日语前". 威信
+            // base 23029 was #0 over 微信 18206; 惟心 base 3094 sat #7
+            // below JP exact-prefix kana ウェイィン. quickfix_boost lifts
+            // 微信 → 25500 (top1) and 惟心 → 15500 (tier 1, above JP).
+            // Full-order assertion in polish_weixin_weixin_above_weixin_惟心_above_jp.
+            ("weixin", "微信"),
         ];
         let mut failures = Vec::new();
         for (buf, expected) in cases {
@@ -922,6 +928,42 @@ mod tests {
     /// → 24000 lifts 额度 into tier 1 between 恶毒 (26372, kept at #1)
     /// and the cutoff, so the displayed order becomes 恶毒 / 额度 /
     /// えづ / エヅ / 饿肚 — 额度 at #2 (user's "应该第二" target).
+    /// Class B polish (user report 2026-06-26): "weixin 微信第一，惟心
+    /// 也要在日语前". 威信 base 23029 led #0 over 微信 18206; 惟心 base
+    /// 3094 sat at #7 below JP exact-prefix kana ウェイィン (tier 2).
+    /// quickfix_boost lifts 微信 → 25500 (top1) and 惟心 → 15500 (tier
+    /// 1, just above 维新 14931 base). Asserts full structural invariant:
+    /// 微信 < 威信 (微信 leads) AND 惟心 < ウェイィン (惟心 above JP).
+    #[test]
+    fn polish_weixin_weixin_top_and_weixin_above_jp() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::PinyinOnly);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"weixin" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        let pos = |w: &str| cands.iter().position(|x| x == w);
+        let wx = pos("微信").expect("微信 missing from weixin top10");
+        let wxin = pos("威信").expect("威信 missing from weixin top10");
+        let wxinc = pos("惟心").expect("惟心 missing from weixin top10");
+        let jp = pos("ウェイィン").expect("ウェイィン missing from weixin top10 (JP off?)");
+        assert!(
+            wx < wxin,
+            "weixin: 微信 should lead 威信; got top10={cands:?}"
+        );
+        assert!(
+            wxinc < jp,
+            "weixin: 惟心 should rank above ウェイィン; got top10={cands:?}"
+        );
+    }
+
     #[test]
     fn polish_edu_edu_above_jp_exact_prefix_kana() {
         let mut e = CompositeEngine::new();
