@@ -75,3 +75,5 @@ dongdong	动动	28000	# 2026-06-10 same report — 动动 #3, just above 东东 
 zhishi	知识	51000	# 2026-06-16 climb-final Stage A1 — fuzzy_miu canonical zhishi → 知识 was rank #1 (只是 46040 #0). Boost to 51000 (46040 + 10% margin) so 知识 wins top1, enabling fuzzy variant edges to surface 知识 for zi shi / zhi xi etc fuzzy inputs.
 xuxian	虚线	19600	# 2026-06-26 user: "xuxian 虚线 续弦 都要在许仙前面" — 许仙 base 17781 抢 #0 (白蛇传专名); 虚线 base 16059, 续弦 base 8669. Boost 虚线 → 19600 (17781 + 10% margin) for #0.
 xuxian	续弦	18700	# 2026-06-26 same report — 续弦 #1, just above 许仙 17781 base, below 虚线 19600.
+weixin	微信	25500	# 2026-06-26 user: "微信第一，惟心也要在日语前" — 威信 base 23029 was #0; boost 微信 to 23029+10% = 25500 for #0.
+weixin	惟心	15500	# 2026-06-26 same report — 惟心 base 3094 sat at #7 below JP exact-prefix kana ウェイィン/うぇいぃん. Boost to 15500 (just above 维新 14931 base) so 惟心 enters tier 1 above JP.
