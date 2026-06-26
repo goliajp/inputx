@@ -3021,6 +3021,14 @@ mod tests {
             // full-code entry. D1 deleted from library.tsv +
             // logged to corpus_garbage_filter_v1.
             ("zouta", &["邹韬奋"]),
+            // User polish-log 2026-06-26: "zoue 字也 子也 子叶 这些都不要,
+            // 而且出现的原因也不正常". Root cause: lattice K-best stacked
+            // typo edges across segments [zo→zi | ue→ye] with no Exact
+            // anchor — pure 2-edit-distance speculation. Structural fix in
+            // dict.rs::compose_via_lattice_paths: drop any path with no
+            // Exact or Abbrev edge as anchor. Test pins the absence of
+            // all three stacked-typo products at this buffer.
+            ("zoue", &["字也", "子也", "子叶"]),
             // User polish-log 2026-06-13: "daiban … 其他的是 da '大'
             // 这个读音的东西，多音字处理的问题". 大办/大坂/大板/大阪
             // are 大(dà)-reading words that were duplicated under the

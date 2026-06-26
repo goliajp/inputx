@@ -1298,7 +1298,29 @@ impl PinyinDict {
             (self.bigram_boost(prev_opt, curr) + self.lm_bonus(None, prev_opt, curr)) as f32
         };
 
-        Some(graph.viterbi(k, lm_closure))
+        let mut paths = graph.viterbi(k, lm_closure);
+        // Anchor invariant — every K-best path must have at least one
+        // Exact (real pinyin reading) or Abbrev (real initials shorthand)
+        // edge to anchor it. All-Typo + all-Fuzzy paths are pure
+        // speculation: each typo/fuzzy edge accepts a single-letter or
+        // single-pair substitution, and N such edges across N segments
+        // compose a buffer that corresponds to no real pinyin reading.
+        // User report 2026-06-26 (`zoue` → 字也/子也/子叶): buffer has no
+        // exact segmentation, lattice stacks [zo→zi typo | ue→ye typo]
+        // and the (字, 也) / (子, 也) / (子, 叶) corpus bigrams (古汉语
+        // 残留) let the resulting 2-edit-distance composition pass
+        // downstream `alternate_bigrams_ok`. The fix is structural:
+        // reject the composition at lattice level when no segment was
+        // matched on its real reading.
+        paths.retain(|p| {
+            p.edges.iter().any(|e| {
+                matches!(
+                    e.kind,
+                    crate::lattice::EdgeKind::Exact | crate::lattice::EdgeKind::Abbrev(_)
+                )
+            })
+        });
+        Some(paths)
     }
 
     /// K-best Viterbi composition: like [`Self::best_composition`] but
