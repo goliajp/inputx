@@ -392,6 +392,13 @@ mod tests {
             // hit now wins over fuzzy fallbacks; downstream consumers
             // (K-best, initials reverse-lookup) get the entry too.
             ("ziqia", "自洽"),
+            // Polish-log 2026-06-26 — "sisi 思思第一,咝咝不需要,
+            // 要加嘶嘶". 思思 (人名/昵称) was on corpus_garbage_filter
+            // as "name" — removed so the polish row takes effect.
+            // Added to library.tsv freq=35000 (beats 丝丝 21713
+            // with margin). Companion D1: 咝咝 deleted; A: 嘶嘶
+            // 拟声 added at freq=8000 (visible deeper).
+            ("sisi", "思思"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
@@ -2995,6 +3002,12 @@ mod tests {
             // reduplication noise from jieba sub-word ingest (compounds
             // 磨磨蹭蹭 / 默默耕耘 etc. unaffected).
             ("momo", &["嶙嶙", "磨磨", "墨墨", "莫莫"]),
+            // User polish-log 2026-06-26: "sisi 思思第一，咝咝不需要,
+            // 要加嘶嘶" — 咝咝 (jieba 单字 reduplication 拟声, weak)
+            // D1 deleted from library.tsv; companion A 加: 思思 (人名
+            // / 昵称, removed from corpus_garbage_filter so polish row
+            // takes effect) leads, 嘶嘶 (onomatopoeia) added at low freq.
+            ("sisi", &["咝咝"]),
             // User polish-log 2026-06-13: "daiban … 其他的是 da '大'
             // 这个读音的东西，多音字处理的问题". 大办/大坂/大板/大阪
             // are 大(dà)-reading words that were duplicated under the
