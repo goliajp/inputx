@@ -399,6 +399,13 @@ mod tests {
             // with margin). Companion D1: 咝咝 deleted; A: 嘶嘶
             // 拟声 added at freq=8000 (visible deeper).
             ("sisi", "思思"),
+            // Polish-log 2026-06-26 — "zouta 揍他可以有,邹韬奋删除".
+            // 揍他 (zòu+tā) was missing from library.tsv at the
+            // exact-match code; user wanted it visible. Added
+            // zouta 揍他 freq=10000 polish. Companion D1: zoutaofen
+            // 邹韬奋 (obscure historical journalist name) deleted —
+            // was leaking into the zouta prefix-completion top-N.
+            ("zouta", "揍他"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
@@ -3008,6 +3015,12 @@ mod tests {
             // / 昵称, removed from corpus_garbage_filter so polish row
             // takes effect) leads, 嘶嘶 (onomatopoeia) added at low freq.
             ("sisi", &["咝咝"]),
+            // User polish-log 2026-06-26: "zouta 邹韬奋删除" —
+            // 邹韬奋 (historical journalist) was leaking into the
+            // zouta prefix-completion top-N from the zoutaofen
+            // full-code entry. D1 deleted from library.tsv +
+            // logged to corpus_garbage_filter_v1.
+            ("zouta", &["邹韬奋"]),
             // User polish-log 2026-06-13: "daiban … 其他的是 da '大'
             // 这个读音的东西，多音字处理的问题". 大办/大坂/大板/大阪
             // are 大(dà)-reading words that were duplicated under the
