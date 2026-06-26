@@ -555,6 +555,27 @@ def register_install_path_with_launchservices() -> None:
     run([LSREGISTER, "-f", str(APP_DST)])
 
 
+def _intl_data_cache_paths() -> tuple[Path, list[Path]]:
+    """Resolve $DARWIN_USER_CACHE_DIR and the two cache file paths.
+
+    Factored out so `invalidate_intl_data_cache`,
+    `force_intl_data_cache_rebuild`, and `diagnose_silent_fail` all
+    read from the same canonical location.
+    """
+    r = subprocess.run(
+        ["getconf", "DARWIN_USER_CACHE_DIR"],
+        stdout=subprocess.PIPE, text=True, check=True,
+    )
+    cache_dir = Path(r.stdout.strip())
+    if not cache_dir.exists():
+        die(f"DARWIN_USER_CACHE_DIR doesn't exist: {cache_dir}")
+    files = [
+        cache_dir / "com.apple.IntlDataCache.le",
+        cache_dir / "com.apple.IntlDataCache.le.kbdx",
+    ]
+    return cache_dir, files
+
+
 def invalidate_intl_data_cache() -> None:
     """Delete macOS 26's TIS enumeration cache.
 
@@ -564,18 +585,78 @@ def invalidate_intl_data_cache() -> None:
     TextInputMenuAgent, lsregister -f, FSEvents, and the private
     TISUpdateIntlFileCache() symbol all leave it untouched).
     Documented in docs/macos-ime-recipe-2026.md.
+
+    Pairs with `force_intl_data_cache_rebuild`: delete invalidates,
+    rebuild writes fresh — together they guarantee no daemon ends up
+    holding a malformed in-process cache header.
     """
-    r = subprocess.run(
-        ["getconf", "DARWIN_USER_CACHE_DIR"],
-        stdout=subprocess.PIPE, text=True, check=True,
-    )
-    cache_dir = Path(r.stdout.strip())
-    if not cache_dir.exists():
-        die(f"DARWIN_USER_CACHE_DIR doesn't exist: {cache_dir}")
-    for stem in ("com.apple.IntlDataCache.le", "com.apple.IntlDataCache.le.kbdx"):
-        p = cache_dir / stem
+    _, files = _intl_data_cache_paths()
+    for p in files:
         if p.exists():
             p.unlink()
+
+
+def force_intl_data_cache_rebuild() -> None:
+    """Trigger HIToolbox to rebuild `IntlDataCache.le[+.kbdx]` on disk.
+
+    `invalidate_intl_data_cache` deletes the cache files but doesn't
+    write fresh ones — the rebuild happens lazily on the next process
+    that links HIToolbox and queries TIS (TextInputMenuAgent on user
+    click, an opening app, etc.).
+
+    Under fast reinstall sequences the cache can linger in a
+    "deleted on disk + malformed/zero header still cached in some
+    long-lived daemon's address space" state. Symptom observed
+    2026-06-26 after the 3rd reinstall in 1h:
+
+        imklaunchagent: (HIToolbox) TISFileInterrogator
+            updateSystemInputSources false but old data invalid:
+            currentCacheHeaderPtr nonNULL? 0, ->cacheFormatVersion 0,
+            ->magicCookie 00000000, inputSourceTableCountSys 0
+
+    imklaunchagent saw the deletion, started a rebuild — and that
+    rebuild RACE the second invalidate-and-restart pass in
+    `do_reinstall`, leaving the daemon's view stuck on a zero-header
+    cache. Subsequent `TISSelectInputSource` calls returned
+    OSStatus=0 but never actually flipped the active source
+    (nothing to bind against).
+
+    Fix: explicitly enumerate via `TISCreateInputSourceList(nil, true)`
+    in a fresh subprocess. The `inIncludeAllInstalled=true` flag is
+    documented to force a full filesystem rescan + persistent cache
+    write. By the time this function returns, the cache files exist
+    on disk with the new bundle's row included.
+
+    Verify post-condition: cache files exist + non-zero size. If
+    rebuild silently no-op'd (rare, but possible if HIToolbox decides
+    its in-process header is "still valid" against the deleted file),
+    log so the warm-cycle step downstream can correlate.
+    """
+    out = swift_eval(r"""
+import Carbon
+// `inIncludeAllInstalled = true` forces TISFileInterrogator to
+// rescan ~/Library/Input Methods/ + /Library/Input Methods/ +
+// system bundles, ignoring its "cache still valid" shortcut.
+// The rescan persists to IntlDataCache.le[+.kbdx] as a side effect.
+if let arr = TISCreateInputSourceList(nil, true)?.takeRetainedValue()
+    as? [TISInputSource]
+{
+    print("rebuild=\(arr.count)")
+} else {
+    print("rebuild=nil")
+}
+""")
+    _, files = _intl_data_cache_paths()
+    for p in files:
+        if not p.exists():
+            log(f"⚠ {p.name} missing after rebuild ({out.strip()}) — "
+                "warm-cycle will catch any downstream symptom")
+        elif p.stat().st_size == 0:
+            log(f"⚠ {p.name} is zero-byte after rebuild ({out.strip()}) — "
+                "warm-cycle will catch any downstream symptom")
+    # Soft-success log (always print, so reinstall transcript records
+    # the rebuild moment even when the cache files look right).
+    log(f"✓ forced IntlDataCache rebuild ({out.strip()})")
 
 
 def restart_text_input_menu_agent() -> None:
@@ -590,6 +671,249 @@ def restart_text_input_menu_agent() -> None:
         ["killall", "TextInputMenuAgent"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
     )
+
+
+def bounce_imklaunchagent() -> None:
+    """Restart `com.apple.imklaunchagent` so its in-process bundle /
+    connection-name cache is rebuilt from disk.
+
+    Why this is needed (root-cause analysis 2026-06-26):
+
+    imklaunchagent is the user-level LaunchAgent that brokers every
+    IME activation request from host apps. It caches each known
+    bundle's `(bundleIdentifier → InputMethodConnectionName)` mapping
+    on first request, and reuses that mapping for the lifetime of the
+    daemon. After a bundle swap, even when:
+
+      - `lsregister -f` refreshed LaunchServices
+      - `IntlDataCache.le` was deleted and rebuilt
+      - `TextInputMenuAgent` was killed (lazy-respawned on next click)
+
+    imklaunchagent's IN-PROCESS map is untouched. When the freshly-
+    spawned new binary tries to publish its `IMKServer(name: …)`
+    Mach connection, imklaunchagent looks up the cached name for the
+    bundle, finds it doesn't match the launch request, and logs:
+
+        imklaunchagent: (InputMethodKit) [com.apple.inputmethodkit:Server]
+            Refusing connection name for bundle:
+            unrecognized 'InputMethodConnectionName' value
+
+    The host app's IMK client gets no Mach service to connect to.
+    Symptom from the user side: "picker shows Inputx, clicking it
+    silently fails / typing produces nothing". Documented in
+    docs/macos-ime-recipe-2026.md gate 2 (symptom-fix table line 103);
+    the doc's suggested fix ("fresh `lsregister -f` + restart of
+    `TextInputMenuAgent`") works most of the time but is insufficient
+    under fast reinstall sequences — the in-process map can survive
+    both.
+
+    Forensic evidence (2026-06-26 incident, 3 polish reinstalls in 1h):
+    `Refusing connection name for bundle` was logged at 17:45:38,
+    17:46:46, 19:50:02, 20:34:47 — every time the user / a host app
+    tried to activate Inputx, until they manually re-added via
+    System Settings (which made Settings UI itself force-rebuild
+    imklaunchagent's mapping).
+
+    Fix: kill imklaunchagent's process — `launchd` auto-respawns it.
+
+    Why `kill -9 <pid>` and not `launchctl kickstart -k`: kickstart
+    on a system-domain LaunchAgent (the plist lives in
+    `/System/Library/LaunchAgents/`) is rejected by SIP with errno
+    150 "Operation not permitted while System Integrity Protection
+    is engaged", even when the service runs in the user `gui/$UID/`
+    domain. SIP gates the launchctl management API, not the
+    process-table kill path: SIGKILL through `kill -9` succeeds
+    against a non-SIP-protected process address space, and launchd's
+    KeepAlive contract for imklaunchagent guarantees a respawn
+    within ~1s. We use `pkill -9 -f .../imklaunchagent$` so we
+    target only the system imklaunchagent binary (not anything that
+    happens to have the string in its argv), then poll for the new
+    PID to confirm the respawn.
+
+    Side effect on other IMEs is bounded: existing host-app Mach
+    connections to other IMEs survive the kill (they were
+    established directly, bypassing imklaunchagent); only new IMK
+    launches during the ~0.5–1s gap pause briefly until launchd
+    finishes respawning. Acceptable cost during a reinstall.
+    """
+    # Resolve the imklaunchagent pid via pgrep so we can verify the
+    # respawn produced a different one (== launchd kicked in).
+    def pid_of() -> int | None:
+        r = subprocess.run(
+            ["pgrep", "-f", r"/imklaunchagent$"],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, check=False,
+        )
+        for line in (r.stdout or "").splitlines():
+            line = line.strip()
+            if line.isdigit():
+                return int(line)
+        return None
+
+    before = pid_of()
+    if before is None:
+        # No live imklaunchagent: launchd will lazy-spawn it on next
+        # IMK call. No cache to clear because there's no process. Done.
+        log("✓ imklaunchagent not currently running (no cached state to clear)")
+        return
+
+    subprocess.run(
+        ["kill", "-9", str(before)],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+    )
+
+    # Poll until launchd respawns it (or until our 3s budget runs
+    # out — way more than the typical ~0.3s respawn latency).
+    deadline = time.monotonic() + 3.0
+    after = None
+    while time.monotonic() < deadline:
+        after = pid_of()
+        if after is not None and after != before:
+            break
+        time.sleep(0.1)
+
+    if after is None or after == before:
+        log(f"⚠ imklaunchagent did not respawn within 3s "
+            f"(before={before}, after={after}). The warm-cycle step "
+            "downstream will catch any resulting selection failure.")
+        return
+    log(f"✓ bounced imklaunchagent ({before} → {after}, "
+        "fresh bundle/connection-name cache)")
+
+
+def verify_can_switch_to_us(*, restore_to: str | None = None) -> bool:
+    """Warm-cycle: programmatically select OUR mode, confirm the
+    system actually flipped, then restore the prior selection.
+
+    Why this is needed:
+
+    `TISSelectInputSource` is documented to return `noErr` (=0) on
+    success — but observed behavior under stale-state conditions
+    (malformed IntlDataCache header, stale imklaunchagent
+    bundle-name map) is "returns 0 + silently no-ops". The active
+    source stays at whatever it was. No host-app symptom until the
+    user notices "I can't switch to Inputx" minutes/hours later,
+    long disconnected from the reinstall that caused it.
+
+    The warm-cycle gives `do_reinstall` an end-to-end signal:
+      1. Read current selection (the source we'll restore to).
+      2. `TISSelectInputSource(our mode)`.
+      3. Sleep briefly so the dispatcher commits.
+      4. Read current selection again.
+      5. If it doesn't start with our `BUNDLE_ID` → silent fail
+         detected → caller `die()`s with diagnostics.
+      6. Restore the original selection (best effort — the user's
+         workflow is more important than perfect symmetry, and a
+         failed restore is non-fatal).
+
+    Returns True if the round-trip switched and back; False if the
+    select silently failed. The caller is expected to surface the
+    False result loudly.
+
+    NOTE: `restore_to` overrides the captured pre-state when the
+    caller already knows what selection should be restored (e.g.
+    `do_reinstall` captures `pre_selected` at the very start, before
+    any disruptive step, so passes that in here).
+    """
+    pre = restore_to if restore_to is not None else current_selected_source_id()
+
+    # Step 1 — try to select us.
+    if not restore_input_source(MODE_ID):
+        log(f"✗ warm-cycle: TISSelectInputSource({MODE_ID}) was refused "
+            "(TIS returned a non-zero status code)")
+        return False
+
+    # Step 2 — give the dispatcher a chance to commit. Empirically
+    # 0.5s is enough for the macOS HID + IMK plumbing to settle; we
+    # also leave a tighter polling window below as belt-and-braces.
+    deadline = time.monotonic() + 1.5
+    actual: str | None = None
+    while time.monotonic() < deadline:
+        actual = current_selected_source_id()
+        if (actual or "").startswith(BUNDLE_ID):
+            break
+        time.sleep(0.1)
+
+    ok = (actual or "").startswith(BUNDLE_ID)
+    if not ok:
+        log(f"✗ warm-cycle: TISSelectInputSource returned 0 but "
+            f"current source is {actual!r} (expected prefix "
+            f"{BUNDLE_ID!r}) after 1.5s of polling")
+
+    # Step 3 — restore (best effort, never blocks the result).
+    if pre and pre != MODE_ID:
+        restore_input_source(pre)
+
+    return ok
+
+
+def diagnose_silent_fail() -> None:
+    """Dump the diagnostic context that explains a warm-cycle failure.
+
+    Called when `verify_can_switch_to_us` returns False. Three pieces
+    are useful to a future debugger / to the user staring at a broken
+    picker:
+
+      1. IntlDataCache files — present / size / mtime. A zero-byte
+         or missing cache after `force_intl_data_cache_rebuild` is a
+         very strong signal that the rebuild itself didn't take.
+
+      2. Recent `imklaunchagent: Refusing connection name` log lines
+         — these are the smoking gun for the stale-name-cache
+         scenario.
+
+      3. The orthodox user-side recovery: re-add via System Settings.
+         Settings UI's "Add Input Source" flow internally forces
+         imklaunchagent + HIToolbox to do a full re-read, which is
+         the only path that reliably unsticks them when the script's
+         bounce + rebuild somehow didn't.
+    """
+    log("─── diagnostics for silent input-source selection failure ───")
+
+    # 1. IntlDataCache file state.
+    _, files = _intl_data_cache_paths()
+    for p in files:
+        if not p.exists():
+            log(f"  {p.name}: MISSING")
+        else:
+            stat = p.stat()
+            mtime = time.strftime("%Y-%m-%d %H:%M:%S",
+                                  time.localtime(stat.st_mtime))
+            log(f"  {p.name}: {stat.st_size} bytes, mtime={mtime}")
+
+    # 2. imklaunchagent refusals over the last 5 minutes — those
+    # are the canonical Gate-2 silent-fail symptom.
+    log("  imklaunchagent refusals (last 5m):")
+    r = subprocess.run(
+        ["log", "show", "--last", "5m", "--predicate",
+         'eventMessage CONTAINS "Refusing connection name"'],
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        text=True, check=False,
+    )
+    # Filter on BOTH process name and message — `log show` echoes its
+    # own `--predicate` argv in a meta log line that would otherwise
+    # match a bare "Refusing connection name" substring search.
+    refusal_lines = [
+        ln for ln in (r.stdout or "").splitlines()
+        if "imklaunchagent" in ln
+        and "Refusing connection name" in ln
+        and "predicate" not in ln
+    ]
+    if not refusal_lines:
+        log("    (none — silent fail is upstream of imklaunchagent, "
+            "likely an IntlDataCache or TIS state issue)")
+    else:
+        for ln in refusal_lines[-5:]:
+            log(f"    {ln}")
+
+    # 3. The user-side recovery the script can't perform from CLI.
+    log("")
+    log("  RECOVERY: open System Settings → Keyboard → 文本输入 → 编辑")
+    log("  (or 'Edit…' under Input Sources), remove Inputx via '−',")
+    log("  then re-add via '+'. This forces macOS to re-issue a fresh")
+    log("  InputMethodConnectionName binding through the same UI flow")
+    log("  that originally granted TCC trust, bypassing whatever cache")
+    log("  is sticky in the script's own state-cleaning attempt.")
 
 
 # ─── State classification ────────────────────────────────────────────
@@ -743,18 +1067,62 @@ def do_first_install(with_build: bool) -> None:
 
 
 def do_reinstall(with_build: bool) -> None:
-    """Silent reinstall: atomic bundle swap + LS refresh. We kill any
-    running Inputx process at the END so the next host-app use lazy-
-    spawns the new bundle via imklaunchagent (the canonical and ONLY
-    spawn path). If the user was actively typing through Inputx, we
-    capture-then-restore the selection so the swap is invisible to
-    them.
+    """Silent reinstall: atomic bundle swap + LS refresh + warm-cycle
+    verify. We kill any running Inputx process during the flow so the
+    next host-app use lazy-spawns the new bundle via imklaunchagent.
+    If the user was actively typing through Inputx, we capture-then-
+    restore the selection so the swap is invisible to them.
 
     Explicitly NOT done here (would create duplicates / re-trigger TCC):
       - `Inputx install` / TISRegisterInputSource (Settings owns it)
       - AppleEnabledThirdPartyInputSources writes (Settings owns it)
       - LaunchAgent install (retired 2026-06-06 — was a workaround for
         a refusal scenario that no longer exists)
+
+    Cache + daemon hardening (2026-06-26 incident retrospective):
+
+      A reinstall's last-mile failure mode is "bundle on disk is correct
+      + TIS row enabled + picker shows our entry + TISSelectInputSource
+      returns OSStatus 0 — but the active source never actually changes".
+      Two independent caches collude to produce it:
+
+      1. `IntlDataCache.le[+.kbdx]` — the on-disk TIS enumeration cache.
+         `invalidate_intl_data_cache` deletes the files but doesn't write
+         fresh ones; rebuild waits for the next process to query TIS.
+         Under fast reinstall sequences the cache can linger in a
+         "deleted on disk + malformed/zero header still cached in a long-
+         lived daemon's address space" state, in which subsequent TIS
+         API calls succeed nominally but bind against nothing.
+
+      2. `imklaunchagent`'s in-process `(bundleId → InputMethodConnectionName)`
+         map. The daemon caches this on first request and reuses it for
+         its full lifetime. After a bundle swap, the cached name no
+         longer matches the new bundle's Info.plist; when the new binary
+         tries to publish `IMKServer(name:)`, imklaunchagent refuses with
+         `Refusing connection name for bundle: unrecognized
+         'InputMethodConnectionName' value`.
+
+      Forensic evidence collected 2026-06-26 (3 polish reinstalls in 1h):
+      after the 3rd reinstall, `Refusing connection name` was logged at
+      17:45 / 17:46 / 19:50 / 20:34 — every user attempt to activate
+      Inputx — until they manually re-added via System Settings (whose
+      Add UI internally forces the same rebuild + bounce we now do).
+
+      Fix in this function, in order:
+        - `force_intl_data_cache_rebuild`: explicit TIS enumeration in
+          a fresh subprocess persists a fresh cache to disk after the
+          deletion, so no daemon ends up holding a malformed header.
+        - `bounce_imklaunchagent`: `launchctl kickstart -k` the user-
+          level LaunchAgent, clearing its in-process bundle/name map.
+        - `verify_can_switch_to_us`: end-to-end warm cycle that
+          programmatically selects our mode and confirms the active
+          source actually flipped. If it didn't, `diagnose_silent_fail`
+          dumps the cache state + recent imklaunchagent refusals + the
+          user-side recovery path, then `die()`.
+
+      Net effect: a reinstall either succeeds end-to-end (verified) or
+      fails loudly with diagnostics. No silent-broken-IME-after-reinstall
+      window.
     """
     if with_build:
         build_bundle()
@@ -775,24 +1143,44 @@ def do_reinstall(with_build: bool) -> None:
     register_install_path_with_launchservices()
     invalidate_intl_data_cache()
     restart_text_input_menu_agent()
-    # kill last: keeps the old binary serving host apps for the brief
-    # duration of all the above steps, then this triggers imklaunchagent
-    # to lazy-spawn fresh on next use with all updated state in place.
+    # kill late: keeps the old binary serving host apps through the
+    # earlier swap+LS steps, then this triggers imklaunchagent to
+    # lazy-spawn fresh on next use with all updated state in place.
     stop_running_ime()
     # Second invalidate + agent restart pass — the picker rebuild after
     # the first pass races the kill; this second pass gives the rebuild
-    # a clean view of "no live Inputx, but TIS row enabled" and
-    # ensures the next TISSelectInputSource triggers a fresh lazy
-    # spawn against the new bundle.
+    # a clean view of "no live Inputx, but TIS row enabled".
     invalidate_intl_data_cache()
     restart_text_input_menu_agent()
+    # Now that the cache is invalidated for the second time and no
+    # live Inputx is racing it, EXPLICITLY rebuild the cache rather
+    # than waiting for the next ambient TIS query to do it. This
+    # guarantees the cache files exist on disk with the new bundle's
+    # row by the time the warm-cycle below tries to bind.
+    force_intl_data_cache_rebuild()
+    # And bounce imklaunchagent — the on-disk cache being correct is
+    # not sufficient; the daemon's IN-PROCESS bundle/connection-name
+    # map also has to be fresh, otherwise the next
+    # `IMKServer(name:)` publish gets refused.
+    bounce_imklaunchagent()
+
+    # Warm-cycle: programmatically prove that selecting us actually
+    # works, before reporting success to the user. Always run — even
+    # when `user_was_on_us` is False, the diagnostic value of catching
+    # a silent fail HERE (during reinstall, with full context) is far
+    # higher than catching it later via "user reports can't switch".
+    restore_target = pre_selected if user_was_on_us else pre_selected
+    if not verify_can_switch_to_us(restore_to=restore_target):
+        diagnose_silent_fail()
+        die("warm-cycle verification failed — the bundle on disk is "
+            "correct and TIS reports our row as enabled and selectable, "
+            "but `TISSelectInputSource(our mode)` did not flip the "
+            "active source. See diagnostics above; the user-side "
+            "recovery path is System Settings → re-add Inputx.")
     if user_was_on_us:
-        if restore_input_source(pre_selected):
-            log(f"✓ restored input source selection → {pre_selected} "
-                "(this triggers imklaunchagent to lazy-spawn the new bundle)")
-        else:
-            log(f"⚠ could not restore selection to {pre_selected}; "
-                "user will need to ⌃Space back manually")
+        log(f"✓ restored input source selection → {pre_selected}")
+    else:
+        log(f"✓ warm-cycle confirmed switching to {MODE_ID} works")
     verify_post_conditions(expect_first_install=False)
 
 
