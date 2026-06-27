@@ -2884,6 +2884,12 @@ mod tests {
             // buffer. D1 deleted from library.tsv + logged to
             // corpus_garbage_filter_v1. 盗墓 leads (see top-1 fixture).
             ("daomu", &["道木"]),
+            // User polish-log 2026-06-27: "wuliu 五六不是个词" — 字字直拼
+            // wǔ+liù, jieba sub-word noise (counts from patterns like
+            // 五六个/五六十, not a standalone word). D1 deleted from
+            // library.tsv + logged to corpus_garbage_filter_v1. 物流
+            // auto-leads.
+            ("wuliu", &["五六"]),
             // 2026-06-13 polyphone-dup sweep batch1 — wrong-reading corpus
             // copies (a word mass-duplicated onto a 错读 code keyed off a
             // secondary char reading, identical freq = pure copy). These
