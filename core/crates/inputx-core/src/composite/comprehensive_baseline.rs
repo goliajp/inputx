@@ -2890,6 +2890,12 @@ mod tests {
             // library.tsv + logged to corpus_garbage_filter_v1. 物流
             // auto-leads.
             ("wuliu", &["五六"]),
+            // User polish-log 2026-06-27: "zhengyu 正宇 正于 证于 都不是
+            // 词" — 正宇 is a given name (proper noun), 正于/证于 are
+            // 字字直拼 jieba noise (e.g. 正于此时). All three D1 deleted
+            // from library.tsv + logged to corpus_garbage_filter_v1.
+            // 蒸鱼 (steamed fish) is a real word and auto-leads.
+            ("zhengyu", &["正宇", "正于", "证于"]),
             // 2026-06-13 polyphone-dup sweep batch1 — wrong-reading corpus
             // copies (a word mass-duplicated onto a 错读 code keyed off a
             // secondary char reading, identical freq = pure copy). These
