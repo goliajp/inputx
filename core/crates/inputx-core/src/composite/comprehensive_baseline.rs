@@ -1514,6 +1514,10 @@ mod tests {
             // ws + 感=dg, top-2 each); user's `wsdgd` had an extra
             // trailing `d` — added at canonical 4-letter code.
             ("wsdg", "体感"),
+            // 2026-06-27 user: "thgf 牌 > 处于". Single-char full code
+            // (牌 = thgf) must beat 2-char phrase encoding (处=th, 于=
+            // gf). Phrase 处于 demoted to tier 5 via tier_overlay.
+            ("thgf", "牌"),
         ];
         run("wubi_phrase_full", cases, mixed_top, mixed_top10);
     }
