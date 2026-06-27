@@ -516,7 +516,7 @@ mod tests {
         let cases: &[(&str, &str)] = &[
             // Polish-log + user-confirmed.
             ("lixiang", "理想"),
-            ("queshi", "缺失"),
+            ("queshi", "确实"), // user 2026-06-27 re-attestation: 确实 > 缺失
             ("youshi", "优势"),
             ("rongyu", "冗余"),
             ("zhineng", "智能"),
@@ -1668,7 +1668,7 @@ mod tests {
         // overriding the historical signal when the context that produced
         // the picks isn't representative of daily usage.
         let cases: &[(&str, &str)] = &[
-            ("queshi", "缺失"), // user picked 4× over 确实
+            ("queshi", "确实"), // user 2026-06-27 re-attestation reversed prior polish-log (n=4 缺失 → 确实)
             ("youshi", "优势"), // 5×
             ("rongyu", "冗余"), // 5×
             // jixu: polish-log 28× had been 积蓄 (likely from a

@@ -108,7 +108,7 @@ mod tests {
         let cases: &[(&str, &str)] = &[
             // Polish-log hits.
             ("lixiang", "理想"), // not 立项 (user 2026-05-24)
-            ("queshi", "缺失"),  // user picked 4×
+            ("queshi", "确实"),  // user 2026-06-27 re-attestation: 确实 > 缺失
             ("youshi", "优势"),  // user picked 5×
             ("rongyu", "冗余"),  // user picked 5×
             ("zhineng", "智能"), // polish-log n=3
