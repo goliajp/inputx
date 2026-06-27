@@ -9039,3 +9039,6 @@ zhouzhou	周周	2026-06-22	# name
 zhuzhu	猪猪	2026-06-22	# childlike_duplicate
 zoutaofen	邹韬奋	2026-06-26	# obscure_name_prefix_leak
 wuliu	五六	2026-06-27	# jieba_subword_noise (from "五六个"/"五六十" patterns; not a standalone word)
+zhengyu	正宇	2026-06-27	# given_name (proper noun, not daily-use word)
+zhengyu	正于	2026-06-27	# jieba_subword_noise (from "正于此时" etc; not a standalone word)
+zhengyu	证于	2026-06-27	# jieba_subword_noise (字字直拼 zhèng+yú)
