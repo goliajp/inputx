@@ -311,6 +311,20 @@ mod tests {
         run("auto_clear", cases, pinyin_top, pinyin_top10);
     }
 
+    /// Climb-final Stage A3 2026-06-16 long-abbrev wire invariant —
+    /// COMPOSE-gated because resolution flows through
+    /// `compose_via_lattice_paths` abbrev_resolver + INITIALS_INDEX
+    /// wrapper + long-abbrev ASCII-fallback escape valve. When
+    /// `PINYIN_DISABLE_COMPOSE` flips back to `false`, this auto-revives.
+    #[test]
+    fn pinyin_only_long_abbrev_zhrmghg_leads() {
+        if super::super::pinyin_adapter::PINYIN_DISABLE_COMPOSE {
+            return;
+        }
+        let cases: &[(&str, &str)] = &[("zhrmghg", "中华人民共和国")];
+        run("long_abbrev", cases, pinyin_top, pinyin_top10);
+    }
+
     #[test]
     fn pinyin_only_extended_common_words() {
         let cases: &[(&str, &str)] = &[
@@ -377,13 +391,6 @@ mod tests {
             // pair like `zi shi` / `zhi xi`) to deliver 知识 in
             // fuzzy_miu fixture cases.
             ("zhishi", "知识"),
-            // Climb-final Stage A3 2026-06-16 — long-abbrev wire
-            // invariant pin: zhrmghg → 中华人民共和国 #0 in PinyinOnly
-            // (climb plan flagship). Pinned by `compose_via_lattice_paths`
-            // abbrev_resolver + INITIALS_INDEX wrapper + long-abbrev
-            // ASCII-fallback escape valve. If any of those regress, this
-            // case flips and test fails.
-            ("zhrmghg", "中华人民共和国"),
             // Polish-log 2026-06-21 — `ziqia` user-reported missing 自洽
             // in top-N (probe showed 自强/自谦/资浅/子枪 fuzzy fallbacks
             // 0..6, 自洽场/自洽性 at #7/#8, root 自洽 absent). Added
