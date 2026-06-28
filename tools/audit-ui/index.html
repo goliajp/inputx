@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>Pinyin Library Audit · 高密度审计台</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --row: #1b2029;
+    --row-alt: #1e242f;
+    --row-hover: #2a3142;
+    --row-cursor: #3a4a6b;
+    --fg: #e5e8ee;
+    --fg-dim: #9aa3b3;
+    --accent: #6db7ff;
+    --del: #ff6b6b;
+    --keep: #5dd47a;
+    --tier: #f0c860;
+    --flag: #c08fff;
+    --border: #232a36;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font: 13px/1.35 -apple-system, system-ui, "Helvetica Neue", sans-serif; height: 100%; overflow: hidden; }
+  body { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
+  header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 8px 12px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 13px; margin: 0; font-weight: 600; color: var(--accent); letter-spacing: 0.4px; }
+  header .group { display: flex; gap: 8px; align-items: center; }
+  header label { color: var(--fg-dim); font-size: 12px; }
+  header input[type=text], header input[type=search] { background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 12px; font-family: var(--mono); width: 180px; }
+  header input[type=file] { color: var(--fg-dim); font-size: 11px; }
+  header button { background: var(--row); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+  header button:hover { background: var(--row-hover); }
+  header .badge { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 3px; background: var(--row); color: var(--fg-dim); border: 1px solid var(--border); }
+  header .badge.del { color: var(--del); }
+  header .badge.keep { color: var(--keep); }
+  header .badge.tier { color: var(--tier); }
+  header .badge.flag { color: var(--flag); }
+  header .badge.undecided { color: var(--fg-dim); }
+
+  main { display: grid; grid-template-columns: 1fr 320px; min-height: 0; }
+  #tablewrap { overflow: auto; background: var(--bg); }
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  thead { position: sticky; top: 0; z-index: 5; background: var(--panel); }
+  th { text-align: left; padding: 6px 8px; font-weight: 600; color: var(--fg-dim); border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 3px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; vertical-align: middle; }
+  tbody tr { background: var(--row); }
+  tbody tr:nth-child(even) { background: var(--row-alt); }
+  tbody tr.cursor { background: var(--row-cursor) !important; }
+  tbody tr td.word { font-size: 14px; font-family: -apple-system, system-ui, "PingFang SC", "Hiragino Sans GB", sans-serif; }
+  td.code { color: var(--accent); }
+  td.freq { color: var(--fg-dim); text-align: right; }
+  td.rank { color: var(--fg-dim); text-align: right; width: 50px; }
+  td.dec { width: 40px; text-align: center; font-weight: 700; }
+  td.dec.del { color: var(--del); }
+  td.dec.keep { color: var(--keep); }
+  td.dec.tier { color: var(--tier); }
+  td.dec.flag { color: var(--flag); }
+  td.note { color: var(--fg-dim); font-style: italic; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+
+  aside { background: var(--panel); border-left: 1px solid var(--border); padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+  aside h2 { margin: 0 0 6px 0; font-size: 11px; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
+  aside .focus-word { font-size: 28px; font-family: -apple-system, system-ui, "PingFang SC", sans-serif; padding: 8px 0; line-height: 1; }
+  aside .kv { font-family: var(--mono); font-size: 12px; }
+  aside .kv div { padding: 2px 0; }
+  aside .kv span.k { color: var(--fg-dim); display: inline-block; width: 70px; }
+  aside .helptable { font-size: 11px; font-family: var(--mono); color: var(--fg-dim); border-top: 1px solid var(--border); padding-top: 10px; }
+  aside .helptable b { color: var(--fg); }
+  aside .related { font-family: var(--mono); font-size: 12px; line-height: 1.6; max-height: 240px; overflow-y: auto; }
+  aside .related .row { display: flex; gap: 8px; justify-content: space-between; padding: 2px 4px; border-bottom: 1px dotted var(--border); }
+  aside .related .row .w { font-family: -apple-system, system-ui, "PingFang SC", sans-serif; font-size: 14px; }
+  aside textarea { background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 6px; font-family: var(--mono); font-size: 12px; width: 100%; min-height: 60px; }
+  .empty { padding: 40px; color: var(--fg-dim); text-align: center; }
+  .hint { color: var(--fg-dim); font-size: 11px; }
+
+  /* compact density tweaks */
+  td { padding: 2px 8px; }
+  .density-tight td { padding: 1px 6px; font-size: 11px; }
+  .density-tight tbody tr td.word { font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PINYIN AUDIT</h1>
+  <span class="group">
+    <label>candidates.tsv</label>
+    <input type="file" id="loadFile" accept=".tsv,.txt,text/tab-separated-values" />
+  </span>
+  <span class="group">
+    <label>decisions.tsv</label>
+    <input type="file" id="loadDecisions" accept=".tsv,.txt,text/tab-separated-values" />
+    <button id="exportBtn">Export</button>
+  </span>
+  <span class="group">
+    <label>filter</label>
+    <input type="search" id="filter" placeholder="code / word substring" />
+    <label><input type="checkbox" id="onlyUndecided" /> only undecided</label>
+    <label><input type="checkbox" id="tight" /> tight</label>
+  </span>
+  <span class="group" style="margin-left:auto">
+    <span class="badge" id="cTotal">0 / 0</span>
+    <span class="badge undecided" id="cUndecided">U 0</span>
+    <span class="badge del" id="cDel">D 0</span>
+    <span class="badge keep" id="cKeep">K 0</span>
+    <span class="badge tier" id="cTier">T 0</span>
+    <span class="badge flag" id="cFlag">F 0</span>
+  </span>
+</header>
+
+<main>
+  <div id="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="rank">#</th>
+          <th>code</th>
+          <th>word</th>
+          <th class="freq">freq</th>
+          <th class="dec">dec</th>
+          <th>note</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="emptyMsg">点上方「candidates.tsv」加载一段的候选(每行 `code\tword\tfreq` 或 `code\tword\tfreq\t<extra>`),然后用键盘审。</div>
+  </div>
+  <aside>
+    <div>
+      <h2>focus</h2>
+      <div class="focus-word" id="fWord">—</div>
+      <div class="kv" id="fKv"></div>
+    </div>
+    <div>
+      <h2>note (per-row)</h2>
+      <textarea id="fNote" placeholder="optional reason, will be exported in decisions.tsv"></textarea>
+    </div>
+    <div>
+      <h2>same word, other codes</h2>
+      <div class="related" id="fRelatedByWord"><span class="hint">—</span></div>
+    </div>
+    <div>
+      <h2>same code, other words</h2>
+      <div class="related" id="fRelatedByCode"><span class="hint">—</span></div>
+    </div>
+    <div class="helptable">
+      <b>键盘</b><br>
+      <b>j / ↓</b> next · <b>k / ↑</b> prev · <b>g</b> top · <b>G</b> bottom<br>
+      <b>d</b> delete · <b>s</b> keep · <b>t</b> tier-demote · <b>f</b> flag · <b>u</b> undecide<br>
+      <b>n</b> next undecided · <b>N</b> prev undecided<br>
+      <b>/</b> focus filter · <b>Esc</b> blur · <b>e</b> edit note<br>
+      <b>1..5</b> page-size 30/60/100/200/all · <b>x</b> tight density toggle
+    </div>
+  </aside>
+</main>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+
+const state = {
+  rows: [],          // [{code, word, freq, extra}]
+  byWord: new Map(), // word -> [row...]
+  byCode: new Map(), // code -> [row...]
+  decisions: new Map(), // key -> {dec, note} ; key = code+"\t"+word
+  fileTag: "",       // sha-ish id from file content for localStorage scoping
+  cursor: 0,
+  filtered: [],      // current visible rows (subset of state.rows)
+};
+
+const DEC_LABEL = { d: "D", s: "K", t: "T", f: "F", u: "" };
+
+function tagFromString(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return "f" + (h >>> 0).toString(36);
+}
+
+function key(row) { return row.code + "\t" + row.word; }
+
+function getDec(row) { return state.decisions.get(key(row)) || { dec: "u", note: "" }; }
+
+function setDec(row, dec) {
+  const k = key(row);
+  const cur = state.decisions.get(k) || { dec: "u", note: "" };
+  cur.dec = dec;
+  state.decisions.set(k, cur);
+  persist();
+}
+
+function setNote(row, note) {
+  const k = key(row);
+  const cur = state.decisions.get(k) || { dec: "u", note: "" };
+  cur.note = note;
+  state.decisions.set(k, cur);
+  persist();
+}
+
+function persist() {
+  if (!state.fileTag) return;
+  const obj = {};
+  for (const [k, v] of state.decisions) obj[k] = v;
+  localStorage.setItem("audit:" + state.fileTag, JSON.stringify(obj));
+}
+
+function restoreLocal() {
+  if (!state.fileTag) return;
+  const raw = localStorage.getItem("audit:" + state.fileTag);
+  if (!raw) return;
+  try {
+    const obj = JSON.parse(raw);
+    for (const [k, v] of Object.entries(obj)) state.decisions.set(k, v);
+  } catch (e) { /* ignore */ }
+}
+
+function parseTSV(text) {
+  const lines = text.split(/\r?\n/);
+  const rows = [];
+  for (const ln of lines) {
+    if (!ln || ln.startsWith("#")) continue;
+    const parts = ln.split("\t");
+    if (parts.length < 2) continue;
+    const code = parts[0].trim();
+    const word = parts[1].trim();
+    const freq = parts[2] ? Number(parts[2]) : 0;
+    const extra = parts.slice(3).join("\t");
+    if (!code || !word) continue;
+    rows.push({ code, word, freq, extra });
+  }
+  return rows;
+}
+
+function loadCandidates(text, name) {
+  state.rows = parseTSV(text);
+  state.fileTag = tagFromString(name + ":" + state.rows.length + ":" + (state.rows[0]?.word || ""));
+  state.byWord = new Map();
+  state.byCode = new Map();
+  for (const r of state.rows) {
+    if (!state.byWord.has(r.word)) state.byWord.set(r.word, []);
+    state.byWord.get(r.word).push(r);
+    if (!state.byCode.has(r.code)) state.byCode.set(r.code, []);
+    state.byCode.get(r.code).push(r);
+  }
+  state.decisions = new Map();
+  restoreLocal();
+  state.cursor = 0;
+  applyFilter();
+  $("#emptyMsg").style.display = state.rows.length ? "none" : "";
+}
+
+function loadDecisions(text) {
+  // decisions.tsv: <code>\t<word>\t<dec>\t<note?>
+  const lines = text.split(/\r?\n/);
+  let n = 0;
+  for (const ln of lines) {
+    if (!ln || ln.startsWith("#")) continue;
+    const parts = ln.split("\t");
+    if (parts.length < 3) continue;
+    const code = parts[0].trim();
+    const word = parts[1].trim();
+    const dec = parts[2].trim();
+    const note = parts[3] || "";
+    if (!code || !word || !"dstfu".includes(dec)) continue;
+    state.decisions.set(code + "\t" + word, { dec, note });
+    n++;
+  }
+  persist();
+  renderAll();
+  return n;
+}
+
+function exportDecisions() {
+  const out = [
+    "# audit decisions — exported by tools/audit-ui",
+    "# format: code\\tword\\tdecision\\tnote",
+    "# decision: d=delete, s=keep, t=tier-demote, f=flag-uncertain, u=undecided",
+  ];
+  for (const r of state.rows) {
+    const d = getDec(r);
+    if (d.dec === "u" && !d.note) continue;
+    out.push([r.code, r.word, d.dec, d.note || ""].join("\t"));
+  }
+  const blob = new Blob([out.join("\n") + "\n"], { type: "text/tab-separated-values" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "decisions-" + state.fileTag + ".tsv";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function applyFilter() {
+  const q = $("#filter").value.trim().toLowerCase();
+  const onlyU = $("#onlyUndecided").checked;
+  state.filtered = state.rows.filter((r) => {
+    if (onlyU && getDec(r).dec !== "u") return false;
+    if (!q) return true;
+    return r.code.toLowerCase().includes(q) || r.word.toLowerCase().includes(q);
+  });
+  if (state.cursor >= state.filtered.length) state.cursor = Math.max(0, state.filtered.length - 1);
+  renderAll();
+}
+
+function renderAll() { renderRows(); renderCounts(); renderFocus(); }
+
+function renderRows() {
+  const tbody = $("#rows");
+  tbody.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  state.filtered.forEach((r, i) => {
+    const d = getDec(r);
+    const tr = document.createElement("tr");
+    if (i === state.cursor) tr.classList.add("cursor");
+    tr.dataset.idx = i;
+    tr.innerHTML = `
+      <td class="rank">${i + 1}</td>
+      <td class="code">${esc(r.code)}</td>
+      <td class="word">${esc(r.word)}</td>
+      <td class="freq">${r.freq.toLocaleString()}</td>
+      <td class="dec ${decClass(d.dec)}">${DEC_LABEL[d.dec] || ""}</td>
+      <td class="note">${esc(d.note || r.extra || "")}</td>`;
+    tr.addEventListener("click", () => { state.cursor = i; renderAll(); scrollCursorIntoView(); });
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+  scrollCursorIntoView();
+}
+
+function decClass(d) { return ({ d: "del", s: "keep", t: "tier", f: "flag" })[d] || ""; }
+
+function renderCounts() {
+  const counts = { u: 0, d: 0, s: 0, t: 0, f: 0 };
+  for (const r of state.rows) counts[getDec(r).dec]++;
+  $("#cTotal").textContent = state.filtered.length + " / " + state.rows.length;
+  $("#cUndecided").textContent = "U " + counts.u;
+  $("#cDel").textContent = "D " + counts.d;
+  $("#cKeep").textContent = "K " + counts.s;
+  $("#cTier").textContent = "T " + counts.t;
+  $("#cFlag").textContent = "F " + counts.f;
+}
+
+function renderFocus() {
+  const r = state.filtered[state.cursor];
+  if (!r) { $("#fWord").textContent = "—"; $("#fKv").innerHTML = ""; $("#fNote").value = ""; $("#fRelatedByWord").innerHTML = '<span class="hint">—</span>'; $("#fRelatedByCode").innerHTML = '<span class="hint">—</span>'; return; }
+  const d = getDec(r);
+  $("#fWord").textContent = r.word;
+  $("#fKv").innerHTML = `
+    <div><span class="k">code</span> ${esc(r.code)}</div>
+    <div><span class="k">freq</span> ${r.freq.toLocaleString()}</div>
+    <div><span class="k">chars</span> ${[...r.word].length}</div>
+    <div><span class="k">decision</span> ${d.dec.toUpperCase()}</div>
+    ${r.extra ? `<div><span class="k">extra</span> ${esc(r.extra)}</div>` : ""}`;
+  $("#fNote").value = d.note || "";
+  // same word, other codes (polyphone-dup signal)
+  const byWord = (state.byWord.get(r.word) || []).filter((x) => x !== r);
+  $("#fRelatedByWord").innerHTML = byWord.length
+    ? byWord.map((x) => `<div class="row"><span><span class="w">${esc(x.word)}</span> <span style="color:var(--accent)">${esc(x.code)}</span></span><span style="color:var(--fg-dim)">${x.freq.toLocaleString()} · ${DEC_LABEL[getDec(x).dec] || "·"}</span></div>`).join("")
+    : '<span class="hint">single-code(no polyphone-dup risk in this dataset)</span>';
+  // same code, other words (normal polyphone peer)
+  const byCode = (state.byCode.get(r.code) || []).filter((x) => x !== r);
+  $("#fRelatedByCode").innerHTML = byCode.length
+    ? byCode.slice(0, 30).map((x) => `<div class="row"><span><span class="w">${esc(x.word)}</span></span><span style="color:var(--fg-dim)">${x.freq.toLocaleString()} · ${DEC_LABEL[getDec(x).dec] || "·"}</span></div>`).join("") + (byCode.length > 30 ? `<div class="hint">… +${byCode.length - 30} more</div>` : "")
+    : '<span class="hint">unique-code-in-dataset</span>';
+}
+
+function scrollCursorIntoView() {
+  const tr = $("tbody tr.cursor");
+  if (!tr) return;
+  const wrap = $("#tablewrap");
+  const r = tr.getBoundingClientRect();
+  const wr = wrap.getBoundingClientRect();
+  if (r.top < wr.top + 40) wrap.scrollTop -= (wr.top + 40 - r.top);
+  else if (r.bottom > wr.bottom - 20) wrap.scrollTop += (r.bottom - wr.bottom + 20);
+}
+
+function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+function moveCursor(delta) {
+  state.cursor = Math.max(0, Math.min(state.filtered.length - 1, state.cursor + delta));
+  renderAll();
+}
+
+function jumpUndecided(dir) {
+  const start = state.cursor + dir;
+  for (let i = 0; i < state.filtered.length; i++) {
+    const idx = (start + i * dir + state.filtered.length * Math.abs(dir)) % state.filtered.length;
+    if (getDec(state.filtered[idx]).dec === "u") { state.cursor = idx; renderAll(); return; }
+  }
+}
+
+function decide(dec) {
+  const r = state.filtered[state.cursor];
+  if (!r) return;
+  setDec(r, dec);
+  moveCursor(1);
+}
+
+// File input handlers
+$("#loadFile").addEventListener("change", async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  const txt = await f.text();
+  loadCandidates(txt, f.name);
+});
+$("#loadDecisions").addEventListener("change", async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  const txt = await f.text();
+  const n = loadDecisions(txt);
+  alert("Loaded " + n + " decisions.");
+});
+$("#exportBtn").addEventListener("click", exportDecisions);
+$("#filter").addEventListener("input", applyFilter);
+$("#onlyUndecided").addEventListener("change", applyFilter);
+$("#tight").addEventListener("change", (e) => { document.body.classList.toggle("density-tight", e.target.checked); });
+
+$("#fNote").addEventListener("input", (e) => {
+  const r = state.filtered[state.cursor]; if (!r) return;
+  setNote(r, e.target.value);
+  renderCounts();
+});
+
+// Keyboard
+document.addEventListener("keydown", (ev) => {
+  const tag = (ev.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "textarea") {
+    if (ev.key === "Escape") ev.target.blur();
+    return;
+  }
+  const k = ev.key;
+  if (k === "j" || k === "ArrowDown") { moveCursor(1); ev.preventDefault(); }
+  else if (k === "k" || k === "ArrowUp") { moveCursor(-1); ev.preventDefault(); }
+  else if (k === "g") { state.cursor = 0; renderAll(); }
+  else if (k === "G") { state.cursor = state.filtered.length - 1; renderAll(); }
+  else if (k === "d") decide("d");
+  else if (k === "s") decide("s");
+  else if (k === "t") decide("t");
+  else if (k === "f") decide("f");
+  else if (k === "u") { const r = state.filtered[state.cursor]; if (r) { setDec(r, "u"); renderAll(); } }
+  else if (k === "n") jumpUndecided(1);
+  else if (k === "N") jumpUndecided(-1);
+  else if (k === "/") { $("#filter").focus(); ev.preventDefault(); }
+  else if (k === "e") { $("#fNote").focus(); ev.preventDefault(); }
+  else if (k === "x") { $("#tight").checked = !$("#tight").checked; document.body.classList.toggle("density-tight", $("#tight").checked); }
+});
+</script>
+</body>
+</html>
