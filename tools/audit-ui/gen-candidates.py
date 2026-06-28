@@ -101,14 +101,31 @@ def main() -> int:
     # densest first (high freq before low; tiebreak code asc for determinism)
     rows.sort(key=lambda r: (-r[2], r[0]))
 
-    out = args.out or (Path(__file__).resolve().parent / f"candidates-{args.phase}.tsv")
-    with out.open("w") as f:
+    here = Path(__file__).resolve().parent
+
+    # TSV side-output (still useful for apply.py / diff review).
+    tsv_out = here / f"candidates-{args.phase}.tsv"
+    with tsv_out.open("w") as f:
         f.write(f"# Phase {args.phase} — {len(rows)} candidates from library.tsv\n")
         f.write("# format: code\\tword\\tfreq\n")
         for code, word, freq in rows:
             f.write(f"{code}\t{word}\t{freq}\n")
 
-    print(f"[gen] phase {args.phase}: {len(rows)} rows → {out}", file=sys.stderr)
+    # Self-contained HTML with data injected — no file-input step needed.
+    template = (here / "index.html").read_text()
+    import json
+    payload = {"name": args.phase, "rows": [[c, w, f] for c, w, f in rows]}
+    inject = f"window.AUDIT_DATA = {json.dumps(payload, ensure_ascii=False)};"
+    if "// __INJECTED_DATA__" not in template:
+        print("[gen] ERROR: index.html missing `// __INJECTED_DATA__` placeholder", file=sys.stderr)
+        return 1
+    html = template.replace("// __INJECTED_DATA__", inject)
+    html_out = args.out or (here / f"audit-{args.phase}.html")
+    html_out.write_text(html)
+
+    print(f"[gen] phase {args.phase}: {len(rows)} rows", file=sys.stderr)
+    print(f"      tsv  → {tsv_out}", file=sys.stderr)
+    print(f"      html → {html_out}", file=sys.stderr)
     return 0
 
 
