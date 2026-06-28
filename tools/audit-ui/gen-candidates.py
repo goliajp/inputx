@@ -92,15 +92,16 @@ def compute_suggestion(code: str, word: str, freq: int,
     # signal: contains CJK Ext-A rare char
     if any(is_cjk_extA(ord(c)) for c in chars):
         signals.append("ExtA")
-    # signal: polyphone-dup risk — same word at ≥2 codes with same freq
-    # (典型 corpus 机械复制 pattern: 一个真词被复制到错读 code).
-    # 但**一定有一个 code 是正读**,不能全删 — 标 F 让人审,选哪个保留.
+    # signal: polyphone-dup at IDENTICAL freq — corpus 机械复制 pattern.
+    # 关键 insight (用户 2026-06-28): 真多音字的不同读音 freq 必然差别很大
+    # (还 hái 主读 vs huán 副读,行 xíng 主读 vs háng 副读). 同 freq 跨多
+    # code = 一定是 corpus 复制噪音 (字级或词级都成立). 但**一定有一个 code
+    # 是正读**,不能全删 — 标 F 让人审,选哪个保留.
     #
-    # 关键: 此信号仅在 2c+ 词级别有意义. 1c 单字天然多 code = 正常多音字
-    # (还 hái/huán, 行 háng/xíng, 重 zhòng/chóng …), 不是噪音 — skip.
+    # 注意只检测 same-freq peers; 不同 freq 的 peers 是正常多音字,不报警.
     peers = byword.get(word, [])
     same_freq_peers = []
-    if n >= 2 and len(peers) >= 2:
+    if len(peers) >= 2:
         same_freq_peers = [p for p in peers if p[2] == freq and (p[0], p[1]) != (code, word)]
         if same_freq_peers:
             signals.append(f"dup×{len(same_freq_peers)+1}")
