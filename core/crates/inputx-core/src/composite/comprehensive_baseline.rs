@@ -1693,8 +1693,31 @@ mod tests {
             // Same pattern as jixu — corpus over-represents 涉及 (academic /
             // news bias). User: "设计肯定应该高于涉及". prior_correction × 2.
             ("sheji", "设计"),
+            // User polish-log 2026-06-28: "tuidao 推倒 > 推导 > 退到". 推倒
+            // already leads naturally (base 23966); 推导 boosted above 退到
+            // via quickfix_boost (see polish_log_tuidao_order for the
+            // relative-rank invariant).
+            ("tuidao", "推倒"),
         ];
         run("polish_log", cases, pinyin_top, pinyin_top10);
+    }
+
+    /// 2026-06-28 user: "tuidao 推倒 > 推导 > 退到". 推倒 leads via natural
+    /// freq (base 23966 > peers); 推导 boost (quickfix_boost.tsv freq=20000)
+    /// flips order against 退到 (base 16854, raw freq lower than 推导's
+    /// boosted 20000). This test pins the relative ordering 推导 > 退到
+    /// — the actual polish goal. 推倒 leadership covered separately above.
+    #[test]
+    fn polish_log_tuidao_order() {
+        let top10 = pinyin_top10(b"tuidao");
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let p_tuidao_dao = pos("推导");
+        let p_tuidao_tui = pos("退到");
+        assert!(p_tuidao_dao.is_some() && p_tuidao_tui.is_some(),
+            "tuidao top10 missing 推导 or 退到: {:?}", top10);
+        assert!(p_tuidao_dao.unwrap() < p_tuidao_tui.unwrap(),
+            "tuidao: 推导 must rank above 退到 (got 推导@{} 退到@{}, top10={:?})",
+            p_tuidao_dao.unwrap(), p_tuidao_tui.unwrap(), top10);
     }
 
     /// Class-A polish "the word should appear in top-N" assertions.
