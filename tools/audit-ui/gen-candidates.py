@@ -95,9 +95,12 @@ def compute_suggestion(code: str, word: str, freq: int,
     # signal: polyphone-dup risk — same word at ≥2 codes with same freq
     # (典型 corpus 机械复制 pattern: 一个真词被复制到错读 code).
     # 但**一定有一个 code 是正读**,不能全删 — 标 F 让人审,选哪个保留.
+    #
+    # 关键: 此信号仅在 2c+ 词级别有意义. 1c 单字天然多 code = 正常多音字
+    # (还 hái/huán, 行 háng/xíng, 重 zhòng/chóng …), 不是噪音 — skip.
     peers = byword.get(word, [])
     same_freq_peers = []
-    if len(peers) >= 2:
+    if n >= 2 and len(peers) >= 2:
         same_freq_peers = [p for p in peers if p[2] == freq and (p[0], p[1]) != (code, word)]
         if same_freq_peers:
             signals.append(f"dup×{len(same_freq_peers)+1}")
