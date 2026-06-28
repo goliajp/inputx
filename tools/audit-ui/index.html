@@ -156,6 +156,7 @@
 
 <script>
 "use strict";
+// __INJECTED_DATA__   ← gen-candidates.py replaces this line with `window.AUDIT_DATA = {name, rows}`.
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 
@@ -418,6 +419,27 @@ $("#fNote").addEventListener("input", (e) => {
   setNote(r, e.target.value);
   renderCounts();
 });
+
+// Auto-load injected dataset if gen-candidates.py baked one in.
+if (typeof window.AUDIT_DATA === "object" && Array.isArray(window.AUDIT_DATA.rows)) {
+  const d = window.AUDIT_DATA;
+  state.rows = d.rows.map((r) => ({ code: r[0], word: r[1], freq: r[2] || 0, extra: r[3] || "" }));
+  state.fileTag = "inj:" + (d.name || "anon") + ":" + state.rows.length;
+  state.byWord = new Map();
+  state.byCode = new Map();
+  for (const r of state.rows) {
+    if (!state.byWord.has(r.word)) state.byWord.set(r.word, []);
+    state.byWord.get(r.word).push(r);
+    if (!state.byCode.has(r.code)) state.byCode.set(r.code, []);
+    state.byCode.get(r.code).push(r);
+  }
+  state.decisions = new Map();
+  restoreLocal();
+  state.cursor = 0;
+  applyFilter();
+  $("#emptyMsg").style.display = "none";
+  document.title = "Audit · " + (d.name || "?") + " (" + state.rows.length + ")";
+}
 
 // Keyboard
 document.addEventListener("keydown", (ev) => {
