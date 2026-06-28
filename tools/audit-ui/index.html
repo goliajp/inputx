@@ -77,13 +77,18 @@
   td.dec.tier { color: var(--tier); }
   td.dec.flag { color: var(--flag); }
   td.note { color: var(--fg-dim); font-style: italic; }
+  td.flags { color: var(--fg-dim); font-size: 10px; font-family: var(--mono); }
+  td.flags .sip { background: #5a2a2a; color: #ffb0b0; padding: 1px 4px; border-radius: 2px; }
+  td.flags .codepoints { color: var(--fg-dim); font-size: 9.5px; margin-left: 4px; }
+  tbody tr.has-sip td.word { color: #ff9090; }
 
   /* Column widths */
-  col.cRank { width: 60px; }
-  col.cCode { width: 110px; }
-  col.cWord { width: 30%; }
-  col.cFreq { width: 80px; }
-  col.cDec  { width: 42px; }
+  col.cRank { width: 50px; }
+  col.cCode { width: 100px; }
+  col.cWord { width: 22%; }
+  col.cFreq { width: 75px; }
+  col.cDec  { width: 38px; }
+  col.cFlags { width: 90px; }
   col.cNote { width: auto; }
 
   /* Focus side */
@@ -116,6 +121,7 @@
     <label>filter</label>
     <input type="search" id="filter" placeholder="code / word substring" />
     <label><input type="checkbox" id="onlyUndecided" /> only undecided</label>
+    <label><input type="checkbox" id="onlySIP" title="只显示含 SIP 罕字 (U+20000+,CJK Ext-B/C/D+,字体大概率无字形)" /> only SIP</label>
     <label><input type="checkbox" id="tight" /> tight</label>
   </span>
   <span class="group">
@@ -150,6 +156,7 @@
         <col class="cWord" />
         <col class="cFreq" />
         <col class="cDec" />
+        <col class="cFlags" />
         <col class="cNote" />
       </colgroup>
       <thead>
@@ -159,6 +166,7 @@
           <th>word</th>
           <th class="freq">freq</th>
           <th class="dec">dec</th>
+          <th>flags</th>
           <th>note</th>
         </tr>
       </thead>
@@ -266,12 +274,40 @@ function setActivePhase(idx) {
   renderPhaseList();
 }
 
+function hasSIP(word) {
+  for (const ch of word) if (ch.codePointAt(0) >= 0x20000) return true;
+  return false;
+}
+function isCJKUnified(cp) {
+  return (cp >= 0x4E00 && cp <= 0x9FFF)        // CJK Unified
+      || (cp >= 0x3400 && cp <= 0x4DBF)        // CJK Ext-A
+      || (cp >= 0x20000 && cp <= 0x2FFFF)      // CJK Ext-B..F (SIP)
+      || (cp >= 0x30000 && cp <= 0x3134F);     // CJK Ext-G..H
+}
+function nonCJKChars(word) {
+  const bad = [];
+  for (const ch of word) {
+    const cp = ch.codePointAt(0);
+    if (!isCJKUnified(cp) && cp >= 0x80) bad.push(ch);
+  }
+  return bad;
+}
+function rowFlags(r) {
+  const flags = [];
+  if (hasSIP(r.word)) flags.push("SIP");
+  const nc = nonCJKChars(r.word);
+  if (nc.length) flags.push("nonCJK");
+  return flags;
+}
+
 function applyFilter() {
   const ph = activePhase(); if (!ph) { state.filtered = []; renderAll(); return; }
   const q = $("#filter").value.trim().toLowerCase();
   const onlyU = $("#onlyUndecided").checked;
+  const onlySIP = $("#onlySIP").checked;
   state.filtered = ph.rows.filter((r) => {
     if (onlyU && getDec(r).dec !== "u") return false;
+    if (onlySIP && !hasSIP(r.word)) return false;
     if (!q) return true;
     return r.code.toLowerCase().includes(q) || r.word.toLowerCase().includes(q);
   });
@@ -341,13 +377,20 @@ function renderRows() {
     const d = getDec(r);
     const tr = document.createElement("tr");
     if (i === state.cursor) tr.classList.add("cursor");
+    const flags = rowFlags(r);
+    if (flags.includes("SIP")) tr.classList.add("has-sip");
     tr.dataset.idx = i;
+    const flagHTML = flags.map((f) => f === "SIP" ? '<span class="sip">SIP</span>' : `<span>${esc(f)}</span>`).join(" ");
+    const codepointsHTML = flags.includes("SIP")
+      ? `<span class="codepoints">${[...r.word].map((c) => "U+" + c.codePointAt(0).toString(16).toUpperCase()).join(" ")}</span>`
+      : "";
     tr.innerHTML = `
       <td class="rank">${i + 1}</td>
       <td class="code">${esc(r.code)}</td>
       <td class="word">${esc(r.word)}</td>
       <td class="freq">${r.freq.toLocaleString()}</td>
       <td class="dec ${decClass(d.dec)}">${DEC_LABEL[d.dec] || ""}</td>
+      <td class="flags">${flagHTML}${codepointsHTML}</td>
       <td class="note">${esc(d.note || "")}</td>`;
     tr.addEventListener("click", () => { state.cursor = i; renderAll(); scrollCursorIntoView(); });
     frag.appendChild(tr);
@@ -375,12 +418,17 @@ function renderFocus() {
   if (!r) { $("#fWord").textContent = "—"; $("#fKv").innerHTML = ""; $("#fNote").value = ""; $("#fRelatedByWord").innerHTML = '<span class="hint">—</span>'; $("#fRelatedByCode").innerHTML = '<span class="hint">—</span>'; return; }
   const d = getDec(r);
   $("#fWord").textContent = r.word;
+  const cps = [...r.word].map((c) => "U+" + c.codePointAt(0).toString(16).toUpperCase()).join(" ");
+  const flags = rowFlags(r);
+  const sipNote = flags.includes("SIP") ? '<div style="color:#ff9090;font-size:11px;margin-top:4px">⚠ SIP (U+20000+) — 系统字体大概率无字形</div>' : "";
   $("#fKv").innerHTML = `
     <div><span class="k">code</span> ${esc(r.code)}</div>
     <div><span class="k">freq</span> ${r.freq.toLocaleString()}</div>
     <div><span class="k">chars</span> ${[...r.word].length}</div>
+    <div><span class="k">codepoints</span> ${cps}</div>
     <div><span class="k">decision</span> ${d.dec.toUpperCase()}</div>
-    <div><span class="k">phase</span> ${esc(activePhase().id)}</div>`;
+    <div><span class="k">phase</span> ${esc(activePhase().id)}</div>
+    ${sipNote}`;
   $("#fNote").value = d.note || "";
   const byWord = (state.byWord.get(r.word) || []).filter((x) => x !== r);
   $("#fRelatedByWord").innerHTML = byWord.length
@@ -429,8 +477,9 @@ function decide(dec) {
   // re-render row cell + counts; cheaper than full rebuild
   const tr = document.querySelector("tbody tr.cursor");
   if (tr) {
-    tr.children[4].className = "dec " + decClass(dec);
-    tr.children[4].textContent = DEC_LABEL[dec] || "";
+    const c = tr.children;
+    c[4].className = "dec " + decClass(dec);
+    c[4].textContent = DEC_LABEL[dec] || "";
   }
   moveCursor(1);
   renderCounts(); renderPhaseList();
@@ -510,6 +559,7 @@ function boot() {
 // Wire UI
 $("#filter").addEventListener("input", applyFilter);
 $("#onlyUndecided").addEventListener("change", applyFilter);
+$("#onlySIP").addEventListener("change", applyFilter);
 $("#tight").addEventListener("change", (e) => document.body.classList.toggle("density-tight", e.target.checked));
 $("#exportBtn").addEventListener("click", () => exportDecisions(false));
 $("#exportAllBtn").addEventListener("click", () => exportDecisions(true));
