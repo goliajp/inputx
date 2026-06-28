@@ -2903,6 +2903,10 @@ mod tests {
             // from library.tsv + logged to corpus_garbage_filter_v1.
             // 蒸鱼 (steamed fish) is a real word and auto-leads.
             ("zhengyu", &["正宇", "正于", "证于"]),
+            // User polish-log 2026-06-28: "tuidao 推到删" — 字字直拼
+            // tuī+dào (e.g. 把车推到那边), not a standalone word. D1
+            // deleted; 推倒 (push over) auto-leads as the real verb.
+            ("tuidao", &["推到"]),
             // 2026-06-13 polyphone-dup sweep batch1 — wrong-reading corpus
             // copies (a word mass-duplicated onto a 错读 code keyed off a
             // secondary char reading, identical freq = pure copy). These
