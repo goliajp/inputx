@@ -72,10 +72,10 @@ use crate::rules::{Context, ContextFlags};
 // is intentionally aggressive; the user will polish detail-by-
 // detail and flip whichever const back off as each category is
 // ready.
-pub(crate) const PINYIN_DISABLE_COMPOSE: bool = false;
+pub(crate) const PINYIN_DISABLE_COMPOSE: bool = true;
 pub(crate) const PINYIN_DISABLE_ASSOCIATION: bool = true;
 pub(crate) const PINYIN_DISABLE_FUZZY: bool = true;
-pub(crate) const PINYIN_DISABLE_PREDICTION: bool = false;
+pub(crate) const PINYIN_DISABLE_PREDICTION: bool = true;
 
 /// Phase-3 lattice-mode switch.
 ///
