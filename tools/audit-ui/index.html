@@ -88,8 +88,18 @@
   col.cWord { width: 22%; }
   col.cFreq { width: 75px; }
   col.cDec  { width: 38px; }
-  col.cFlags { width: 90px; }
+  col.cSug  { width: 38px; }
+  col.cFlags { width: 110px; }
   col.cNote { width: auto; }
+
+  td.sug { text-align: center; font-weight: 600; opacity: 0.65; }
+  td.sug.del { color: var(--del); }
+  td.sug.keep { color: var(--keep); }
+  td.sug.tier { color: var(--tier); }
+  td.sug.flag { color: var(--flag); }
+  td.sug.match-decision { opacity: 1; text-decoration: underline; }
+  nav#phases li.phase-group { background: var(--panel2); font-size: 11px; color: var(--fg-dim); cursor: default; padding: 4px 12px; border-bottom: 1px solid var(--border); }
+  nav#phases li.phase-group:hover { background: var(--panel2); }
 
   /* Focus side */
   aside { background: var(--panel); border-left: 1px solid var(--border); padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
@@ -127,6 +137,7 @@
   <span class="group">
     <button id="exportBtn">Export decisions</button>
     <button id="exportAllBtn" title="export all phases combined">Export all</button>
+    <button id="acceptAllBtn" title="press 'A' / button: apply suggestions to ALL undecided rows in current sub-phase">Accept all suggestions</button>
     <label style="font-size:11px;color:var(--fg-dim);cursor:pointer">
       Import <input type="file" id="loadDecisions" accept=".tsv,.txt" style="display:none" />
     </label>
@@ -156,6 +167,7 @@
         <col class="cWord" />
         <col class="cFreq" />
         <col class="cDec" />
+        <col class="cSug" />
         <col class="cFlags" />
         <col class="cNote" />
       </colgroup>
@@ -166,6 +178,7 @@
           <th>word</th>
           <th class="freq">freq</th>
           <th class="dec">dec</th>
+          <th class="dec" title="suggested decision — press 'a' to accept">sug</th>
           <th>flags</th>
           <th>note</th>
         </tr>
@@ -198,8 +211,9 @@
       <b>键盘</b><br>
       <b>j / ↓</b> next · <b>k / ↑</b> prev · <b>g</b> top · <b>G</b> bottom<br>
       <b>d</b> delete · <b>s</b> keep · <b>t</b> tier-demote · <b>f</b> flag · <b>u</b> undecide<br>
+      <b>a</b> 采纳本行 sug · <b>A</b> (shift+a) 采纳当前 sub-phase 所有 undecided 的 sug<br>
       <b>n</b> next undecided · <b>N</b> prev undecided<br>
-      <b>[ / ]</b> prev / next phase · <b>/</b> focus filter · <b>Esc</b> blur<br>
+      <b>[ / ]</b> prev / next sub-phase · <b>/</b> focus filter · <b>Esc</b> blur<br>
       <b>e</b> edit note · <b>x</b> tight density · <b>?</b> help
     </div>
   </aside>
@@ -321,15 +335,40 @@ function phaseCounts(ph) {
   return c;
 }
 
+function phaseGroupKey(ph) {
+  // "B3-001" → "B3"; "D" → "D"
+  return ph.id.split("-")[0];
+}
+
 function renderPhaseList() {
   const ul = $("#phaseList");
   ul.innerHTML = "";
   let grandTotal = 0, grandDecided = 0;
+  let curGroup = null, groupTotal = 0, groupDecided = 0;
+  let groupHeaderLi = null;
+
+  const flushGroupHeader = () => {
+    if (groupHeaderLi && curGroup) {
+      const pct = groupTotal ? Math.round((groupDecided / groupTotal) * 100) : 0;
+      groupHeaderLi.innerHTML = `<span>${esc(curGroup)}</span><span style="float:right">${groupDecided.toLocaleString()}/${groupTotal.toLocaleString()} · ${pct}%</span>`;
+    }
+  };
+
   state.phases.forEach((ph, idx) => {
+    const grp = phaseGroupKey(ph);
+    if (grp !== curGroup) {
+      flushGroupHeader();
+      curGroup = grp;
+      groupTotal = 0; groupDecided = 0;
+      groupHeaderLi = document.createElement("li");
+      groupHeaderLi.className = "phase-group";
+      ul.appendChild(groupHeaderLi);
+    }
     const c = phaseCounts(ph);
     const total = ph.rows.length;
     const decided = total - c.u;
     grandTotal += total; grandDecided += decided;
+    groupTotal += total; groupDecided += decided;
     const pct = total ? Math.round((decided / total) * 100) : 0;
     const li = document.createElement("li");
     if (idx === state.activeIdx) li.classList.add("active");
@@ -339,11 +378,11 @@ function renderPhaseList() {
         <span class="pid">${esc(ph.id)}</span>
         <span class="pcount">${decided.toLocaleString()} / ${total.toLocaleString()} · ${pct}%</span>
       </div>
-      <div class="plabel">${esc(ph.label.replace(/^[A-Z0-9]+ · /, ""))}</div>
       <div class="bar" style="width: ${pct}%"></div>`;
     li.addEventListener("click", () => setActivePhase(idx));
     ul.appendChild(li);
   });
+  flushGroupHeader();
   const pct = grandTotal ? Math.round((grandDecided / grandTotal) * 100) : 0;
   $("#phasesSummary").textContent = `Σ  ${grandDecided.toLocaleString()} / ${grandTotal.toLocaleString()} · ${pct}%`;
 }
@@ -377,20 +416,25 @@ function renderRows() {
     const d = getDec(r);
     const tr = document.createElement("tr");
     if (i === state.cursor) tr.classList.add("cursor");
-    const flags = rowFlags(r);
+    const flags = (r.signals || []).slice();
+    const visualFlags = rowFlags(r);  // SIP / nonCJK from UI-side detector (cross-check)
+    for (const v of visualFlags) if (!flags.includes(v)) flags.push(v);
     if (flags.includes("SIP")) tr.classList.add("has-sip");
     tr.dataset.idx = i;
-    const flagHTML = flags.map((f) => f === "SIP" ? '<span class="sip">SIP</span>' : `<span>${esc(f)}</span>`).join(" ");
-    const codepointsHTML = flags.includes("SIP")
-      ? `<span class="codepoints">${[...r.word].map((c) => "U+" + c.codePointAt(0).toString(16).toUpperCase()).join(" ")}</span>`
-      : "";
+    const flagHTML = flags.map((f) => {
+      if (f === "SIP") return '<span class="sip">SIP</span>';
+      return `<span>${esc(f)}</span>`;
+    }).join(" ");
+    const sug = r.sug || "u";
+    const sugMatch = d.dec === sug;
     tr.innerHTML = `
       <td class="rank">${i + 1}</td>
       <td class="code">${esc(r.code)}</td>
       <td class="word">${esc(r.word)}</td>
       <td class="freq">${r.freq.toLocaleString()}</td>
       <td class="dec ${decClass(d.dec)}">${DEC_LABEL[d.dec] || ""}</td>
-      <td class="flags">${flagHTML}${codepointsHTML}</td>
+      <td class="sug ${decClass(sug)} ${sugMatch ? "match-decision" : ""}">${DEC_LABEL[sug] || "·"}</td>
+      <td class="flags">${flagHTML}</td>
       <td class="note">${esc(d.note || "")}</td>`;
     tr.addEventListener("click", () => { state.cursor = i; renderAll(); scrollCursorIntoView(); });
     frag.appendChild(tr);
@@ -421,12 +465,15 @@ function renderFocus() {
   const cps = [...r.word].map((c) => "U+" + c.codePointAt(0).toString(16).toUpperCase()).join(" ");
   const flags = rowFlags(r);
   const sipNote = flags.includes("SIP") ? '<div style="color:#ff9090;font-size:11px;margin-top:4px">⚠ SIP (U+20000+) — 系统字体大概率无字形</div>' : "";
+  const sigsHTML = (r.signals && r.signals.length) ? r.signals.map((s) => esc(s)).join(", ") : "—";
   $("#fKv").innerHTML = `
     <div><span class="k">code</span> ${esc(r.code)}</div>
     <div><span class="k">freq</span> ${r.freq.toLocaleString()}</div>
     <div><span class="k">chars</span> ${[...r.word].length}</div>
     <div><span class="k">codepoints</span> ${cps}</div>
     <div><span class="k">decision</span> ${d.dec.toUpperCase()}</div>
+    <div><span class="k">sug</span> <b style="color:var(--accent)">${(r.sug || "u").toUpperCase()}</b> <span class="hint">(a 采纳)</span></div>
+    <div><span class="k">signals</span> ${sigsHTML}</div>
     <div><span class="k">phase</span> ${esc(activePhase().id)}</div>
     ${sipNote}`;
   $("#fNote").value = d.note || "";
@@ -480,9 +527,31 @@ function decide(dec) {
     const c = tr.children;
     c[4].className = "dec " + decClass(dec);
     c[4].textContent = DEC_LABEL[dec] || "";
+    // sug-match underline
+    const sug = r.sug || "u";
+    c[5].className = "sug " + decClass(sug) + (dec === sug ? " match-decision" : "");
   }
   moveCursor(1);
   renderCounts(); renderPhaseList();
+}
+
+function acceptSuggestion() {
+  const r = state.filtered[state.cursor];
+  if (!r || !r.sug || r.sug === "u") return;
+  decide(r.sug);
+}
+
+function acceptAllSuggestionsInPhase() {
+  const ph = activePhase(); if (!ph) return;
+  let n = 0;
+  for (const r of ph.rows) {
+    if (getDec(r).dec !== "u") continue;       // don't overwrite human-set decisions
+    if (!r.sug || r.sug === "u") continue;     // no usable suggestion
+    setDec(r, r.sug);
+    n++;
+  }
+  renderAll();
+  alert(`Applied ${n} suggestions in ${ph.id}.`);
 }
 
 function switchPhase(delta) {
@@ -540,7 +609,10 @@ function boot() {
   state.phases = data.phases.map((p) => ({
     id: p.id,
     label: p.label || p.id,
-    rows: p.rows.map((r) => ({ code: r[0], word: r[1], freq: r[2] || 0 })),
+    rows: p.rows.map((r) => ({
+      code: r[0], word: r[1], freq: r[2] || 0,
+      sug: r[3] || "u", signals: r[4] || []
+    })),
   }));
   // global cross-phase index for polyphone-dup / peer-reading hover
   for (const ph of state.phases) {
@@ -553,7 +625,7 @@ function boot() {
   }
   restoreLocal();
   setActivePhase(0);
-  document.title = "Pinyin Audit · " + state.phases.length + " phases · " + (data.lib_total || "?").toLocaleString() + " lib rows";
+  document.title = "Pinyin Audit · " + state.phases.length + " sub-phases · " + (data.lib_total || "?").toLocaleString() + " lib rows";
 }
 
 // Wire UI
@@ -563,6 +635,7 @@ $("#onlySIP").addEventListener("change", applyFilter);
 $("#tight").addEventListener("change", (e) => document.body.classList.toggle("density-tight", e.target.checked));
 $("#exportBtn").addEventListener("click", () => exportDecisions(false));
 $("#exportAllBtn").addEventListener("click", () => exportDecisions(true));
+$("#acceptAllBtn").addEventListener("click", acceptAllSuggestionsInPhase);
 $("#loadDecisions").addEventListener("change", async (ev) => {
   const f = ev.target.files[0]; if (!f) return;
   const n = loadDecisionsTSV(await f.text());
@@ -594,6 +667,8 @@ document.addEventListener("keydown", (ev) => {
   else if (k === "u") { const r = state.filtered[state.cursor]; if (r) { setDec(r, "u"); renderAll(); } }
   else if (k === "n") jumpUndecided(1);
   else if (k === "N") jumpUndecided(-1);
+  else if (k === "a") acceptSuggestion();
+  else if (k === "A") acceptAllSuggestionsInPhase();
   else if (k === "[") { switchPhase(-1); ev.preventDefault(); }
   else if (k === "]") { switchPhase(+1); ev.preventDefault(); }
   else if (k === "/") { $("#filter").focus(); ev.preventDefault(); }
