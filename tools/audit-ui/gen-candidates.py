@@ -93,38 +93,49 @@ def compute_suggestion(code: str, word: str, freq: int,
     if any(is_cjk_extA(ord(c)) for c in chars):
         signals.append("ExtA")
     # signal: polyphone-dup risk — same word at ≥2 codes with same freq
+    # (典型 corpus 机械复制 pattern: 一个真词被复制到错读 code).
+    # 但**一定有一个 code 是正读**,不能全删 — 标 F 让人审,选哪个保留.
     peers = byword.get(word, [])
+    same_freq_peers = []
     if len(peers) >= 2:
-        same_freq = [p for p in peers if p[2] == freq and (p[0], p[1]) != (code, word)]
-        if same_freq:
-            signals.append(f"dup×{len(same_freq)+1}")
+        same_freq_peers = [p for p in peers if p[2] == freq and (p[0], p[1]) != (code, word)]
+        if same_freq_peers:
+            signals.append(f"dup×{len(same_freq_peers)+1}")
     # signal: 1-char word (single CJK) — keep-bias unless rare
     if n == 1:
         signals.append("1c")
 
-    # Decision tree:
-    # Highest-confidence delete:
+    # Decision tree (priority order):
+
+    # 1. nonCJK = mojibake / latin / digit / punct in word — high-confidence delete
     if "nonCJK" in signals:
         return "d", signals
-    # Very low freq multi-char = likely noise (post-freq0-sweep, this is
-    # the 1k-3k band which has high noise density)
+
+    # 2. Polyphone-dup with identical freq — DON'T bulk-delete (would kill
+    #    the canonical reading too). Flag for human to pick which to keep.
+    if same_freq_peers:
+        return "f", signals
+
+    # 3. Very low freq multi-char = likely noise (post-freq0-sweep, 1k-3k band)
     if n >= 2 and freq < 3000:
         return "d", signals
-    # Ext-A rare chars in multi-char compound = likely noise
+
+    # 4. Ext-A rare chars in multi-char compound = likely noise
     if "ExtA" in signals and n >= 2:
         return "d", signals
-    # Polyphone-dup at identical freq = mechanical copy noise
-    if any(s.startswith("dup×") for s in signals) and freq < 30000:
-        return "d", signals
-    # Single-char Ext-A = rare but real; flag for human eyeball
+
+    # 5. Single-char Ext-A = rare but real; flag for human eyeball
     if "ExtA" in signals and n == 1:
         return "f", signals
-    # Mid-freq multi-char without bad signals = likely real
+
+    # 6. Mid-freq multi-char without bad signals = likely real
     if freq >= 10000:
         return "s", signals
-    # Borderline (3k-10k) multi-char without bad signals = uncertain
+
+    # 7. Borderline (3k-10k) multi-char without bad signals = uncertain
     if n >= 2:
         return "f", signals
+
     # Default: keep
     return "s", signals
 
