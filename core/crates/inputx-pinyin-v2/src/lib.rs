@@ -166,6 +166,12 @@ pub fn query(buffer: &str) -> Vec<(String, f64)> {
             if !ce.is_primary {
                 score -= 5_000.0;
             }
+            // HSK char muscle-memory overlay: HSK 1 → +30k, HSK 6 → +5k,
+            // non-HSK → 0. Lifts 我 (HSK 1) over 卧 (non-HSK) at same
+            // 通用规范 tier 1.
+            if ce.hsk_level > 0 {
+                score += (7.0 - ce.hsk_level as f64) * 5_000.0;
+            }
             out.push((key, score));
         }
     }
@@ -234,11 +240,15 @@ fn compose_greedy(buffer: &str) -> Option<(String, f64)> {
                     break;
                 }
             }
-            // Else single-char match.
+            // Else single-char match. Pick by (tier asc, non-HSK after
+            // HSK, primary before secondary) so 我 wins 卧 at `wo`.
             if let Some(chars) = char_index().get(prefix) {
                 if let Some(top) = chars
                     .iter()
-                    .min_by_key(|c| (c.char_tier, !c.is_primary))
+                    .min_by_key(|c| {
+                        let hsk_rank = if c.hsk_level == 0 { 99 } else { c.hsk_level };
+                        (c.char_tier, hsk_rank, !c.is_primary)
+                    })
                 {
                     best = Some((len, top.ch.to_string(), top.char_tier));
                     break;
@@ -304,6 +314,10 @@ fn extract_initials(reading_path: &str) -> String {
 struct CharLookupRow {
     ch: char,
     char_tier: u8,
+    /// HSK 2.0 single-char level (0 = non-HSK, 1-6 = HSK level). Used
+    /// as a tier-internal muscle-memory ordering signal: HSK 1 chars
+    /// rank above same-tier non-HSK chars so 我 beats 卧 at `wo`.
+    hsk_level: u8,
     is_primary: bool,
 }
 
@@ -311,18 +325,19 @@ fn char_index() -> &'static std::collections::HashMap<String, Vec<CharLookupRow>
     use std::collections::HashMap;
     static CACHED: OnceLock<HashMap<String, Vec<CharLookupRow>>> = OnceLock::new();
     CACHED.get_or_init(|| {
-        // Join chars.tsv (for char_tier) × readings.tsv (for bare reading).
-        let mut char_tier: HashMap<char, u8> = HashMap::with_capacity(8200);
+        // Join chars.tsv (tier + hsk_level) × readings.tsv (bare reading).
+        let mut char_meta: HashMap<char, (u8, u8)> = HashMap::with_capacity(8200);
         for c in data::chars() {
-            char_tier.insert(c.ch, c.tier);
+            char_meta.insert(c.ch, (c.tier, c.hsk_level));
         }
         let mut m: HashMap<String, Vec<CharLookupRow>> = HashMap::new();
         for r in data::readings() {
-            let Some(&tier) = char_tier.get(&r.ch) else { continue };
+            let Some(&(tier, hsk_level)) = char_meta.get(&r.ch) else { continue };
             let bare = bare_letter_form(&r.reading);
             m.entry(bare).or_default().push(CharLookupRow {
                 ch: r.ch,
                 char_tier: tier,
+                hsk_level,
                 is_primary: matches!(r.rank, data::ReadingRank::Primary),
             });
         }
@@ -521,5 +536,37 @@ mod tests {
         // sure we DON'T emit such.
         assert!(!q.iter().any(|(w, _)| w == "你你"),
             "短 buffer 不应触发 composition");
+    }
+
+    #[test]
+    fn hsk_char_overlay_wo_yields_wo_first() {
+        // Phase 6: 我 (HSK 1) must rank above 卧 (non-HSK, same 通用规范
+        // tier 1, same primary reading). Previously 卧 won by codepoint.
+        let q = query("wo");
+        let p_wo = q.iter().position(|(w, _)| w == "我").expect("我 in result");
+        let p_wo_other = q.iter().position(|(w, _)| w == "卧").expect("卧 in result");
+        assert!(p_wo < p_wo_other,
+            "HSK 1 我 must beat non-HSK 卧 (got 我@{} 卧@{})", p_wo, p_wo_other);
+    }
+
+    #[test]
+    fn hsk_char_overlay_hai_yields_hai_first() {
+        // Phase 6: 还 (HSK 1) must rank above 亥 (non-HSK, same tier 1).
+        let q = query("hai");
+        let p_hai = q.iter().position(|(w, _)| w == "还").expect("还 in result");
+        let p_hai_other = q.iter().position(|(w, _)| w == "亥").expect("亥 in result");
+        assert!(p_hai < p_hai_other,
+            "HSK 1 还 must beat non-HSK 亥 (got 还@{} 亥@{})", p_hai, p_hai_other);
+    }
+
+    #[test]
+    fn composition_uses_hsk_char_picking() {
+        // Phase 6: 我的好 (我 HSK 1 + 的 HSK 1 + 好 HSK 1) not 卧得号.
+        let q = query("wodehao");
+        let words: Vec<&str> = q.iter().map(|(w, _)| w.as_str()).collect();
+        assert!(words.contains(&"我的好"),
+            "composition picked HSK chars: {words:?}");
+        assert!(!words.contains(&"卧得号"),
+            "composition should NOT pick non-HSK chars when HSK option exists");
     }
 }

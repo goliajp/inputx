@@ -18,6 +18,10 @@ pub struct CharEntry {
     /// 1 = 通用规范汉字表 一级 (常用 3500),
     /// 2 = 二级 (3000), 3 = 三级 (1605).
     pub tier: u8,
+    /// HSK 2.0 single-char level overlay: 0 = non-HSK, 1-6 = HSK level.
+    /// Used by single-char ranking to push muscle-memory chars
+    /// (我 / 你 / 好 / 的 ...) above same-tier non-HSK chars.
+    pub hsk_level: u8,
     /// `kMandarin_8105.txt` canonical reading (e.g. "yī" for 一).
     pub canonical_reading: String,
 }
@@ -67,17 +71,20 @@ fn parse_chars_tsv(text: &str) -> Vec<CharEntry> {
         let ch_str = it.next();
         let cp_hex = it.next();
         let tier_s = it.next();
+        let hsk_s = it.next();
         let canonical = it.next();
-        if let (Some(ch_str), Some(cp_hex), Some(tier_s), Some(canonical)) =
-            (ch_str, cp_hex, tier_s, canonical)
+        if let (Some(ch_str), Some(cp_hex), Some(tier_s), Some(hsk_s), Some(canonical)) =
+            (ch_str, cp_hex, tier_s, hsk_s, canonical)
         {
             let Some(ch) = ch_str.chars().next() else { continue };
             let Ok(cp) = u32::from_str_radix(cp_hex.trim(), 16) else { continue };
             let Ok(tier) = tier_s.trim().parse::<u8>() else { continue };
+            let hsk_level = hsk_s.trim().parse::<u8>().unwrap_or(0);
             out.push(CharEntry {
                 ch,
                 codepoint: cp,
                 tier,
+                hsk_level,
                 canonical_reading: canonical.trim().to_owned(),
             });
         }
@@ -206,10 +213,25 @@ mod tests {
         let cs = chars();
         let yi = cs.iter().find(|c| c.ch == '一').unwrap();
         assert_eq!(yi.tier, 1);
+        assert_eq!(yi.hsk_level, 1, "一 is HSK 1");
         assert_eq!(yi.canonical_reading, "yī");
         let ding = cs.iter().find(|c| c.ch == '丁').unwrap();
         assert_eq!(ding.tier, 1);
+        assert_eq!(ding.hsk_level, 5, "丁 is HSK 5");
         assert_eq!(ding.canonical_reading, "dīng");
+    }
+
+    #[test]
+    fn hsk_char_overlay_count() {
+        let cs = chars();
+        let hsk: Vec<&CharEntry> = cs.iter().filter(|c| c.hsk_level > 0).collect();
+        // 696 单字 in HSK 1-6 (per ingest log).
+        assert_eq!(hsk.len(), 696, "HSK char overlay total");
+        // Sanity: each HSK level non-empty.
+        for level in 1..=6 {
+            let n = hsk.iter().filter(|c| c.hsk_level == level).count();
+            assert!(n > 0, "HSK level {level} has no chars in overlay");
+        }
     }
 
     #[test]
