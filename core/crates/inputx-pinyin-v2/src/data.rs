@@ -8,6 +8,7 @@ use std::sync::OnceLock;
 
 const CHARS_TSV: &str = include_str!("../data/chars.tsv");
 const READINGS_TSV: &str = include_str!("../data/readings.tsv");
+const WORDS_TSV: &str = include_str!("../data/words.tsv");
 
 /// One row of `chars.tsv`.
 #[derive(Debug, Clone)]
@@ -126,6 +127,52 @@ pub fn readings() -> &'static [ReadingEntry] {
     CACHED.get_or_init(|| parse_readings_tsv(READINGS_TSV))
 }
 
+/// One row of `words.tsv`.
+#[derive(Debug, Clone)]
+pub struct WordEntry {
+    pub code: String,
+    pub word: String,
+    /// `[char|reading][char|reading]…` — exact reading-path per char.
+    pub reading_path: String,
+    pub tier: u8,
+    /// `cedict` / `cedict+hsk1` / … / `polish-A` (future).
+    pub source: String,
+}
+
+fn parse_words_tsv(text: &str) -> Vec<WordEntry> {
+    let mut out = Vec::with_capacity(90_000);
+    for ln in text.lines() {
+        if ln.is_empty() || ln.starts_with('#') {
+            continue;
+        }
+        let mut it = ln.split('\t');
+        let code = it.next();
+        let word = it.next();
+        let rp = it.next();
+        let tier_s = it.next();
+        let source = it.next();
+        if let (Some(code), Some(word), Some(rp), Some(tier_s), Some(source)) =
+            (code, word, rp, tier_s, source)
+        {
+            let Ok(tier) = tier_s.trim().parse::<u8>() else { continue };
+            out.push(WordEntry {
+                code: code.to_owned(),
+                word: word.to_owned(),
+                reading_path: rp.to_owned(),
+                tier,
+                source: source.to_owned(),
+            });
+        }
+    }
+    out
+}
+
+/// Parsed `words.tsv` (lazy, cached).
+pub fn words() -> &'static [WordEntry] {
+    static CACHED: OnceLock<Vec<WordEntry>> = OnceLock::new();
+    CACHED.get_or_init(|| parse_words_tsv(WORDS_TSV))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -200,6 +247,52 @@ mod tests {
         let rs = readings();
         for r in rs.iter().filter(|r| r.rank == ReadingRank::Primary) {
             assert_eq!(r.tier_offset, 0, "primary reading must be tier_offset 0 ({} {})", r.ch, r.reading);
+        }
+    }
+
+    #[test]
+    fn words_table_size_within_expected_band() {
+        let ws = words();
+        // Phase-2 ingest produced 88,097 words. Hard-pin for regen drift.
+        assert_eq!(ws.len(), 88_097);
+    }
+
+    #[test]
+    fn words_tier_distribution() {
+        let ws = words();
+        let mut by_t = [0usize; 10];
+        for w in ws { by_t[w.tier as usize] += 1; }
+        // Hard pins per Phase 2 ingest output (CC-CEDICT 2026-06-22 + HSK 2.0):
+        assert_eq!(by_t[1], 146,   "tier 1 (HSK 1-2 multi-char)");
+        assert_eq!(by_t[2], 693,   "tier 2 (HSK 3-4 multi-char)");
+        assert_eq!(by_t[3], 3468,  "tier 3 (HSK 5-6 multi-char)");
+        assert_eq!(by_t[4], 49734, "tier 4 (cedict 2-char non-HSK)");
+        assert_eq!(by_t[5], 31357, "tier 5 (cedict 3-4-char non-HSK)");
+        assert_eq!(by_t[6], 2699,  "tier 6 (cedict 5+-char non-HSK)");
+    }
+
+    #[test]
+    fn words_spotcheck_known_entries() {
+        let ws = words();
+        let nihao: Vec<&WordEntry> = ws.iter().filter(|w| w.word == "你好").collect();
+        assert!(!nihao.is_empty());
+        let nh = nihao[0];
+        assert_eq!(nh.code, "nihao");
+        assert_eq!(nh.reading_path, "[你|nǐ][好|hǎo]");
+        let xiuxi: Vec<&WordEntry> = ws.iter().filter(|w| w.word == "休息").collect();
+        assert!(!xiuxi.is_empty(), "休息 HSK 2 polyphone-neutral case must be in");
+        assert_eq!(xiuxi[0].tier, 1, "休息 is HSK 2 → tier 1");
+    }
+
+    #[test]
+    fn words_reading_path_has_brackets_for_every_char() {
+        let ws = words();
+        for w in ws.iter().take(1000) {
+            let bracket_count = w.reading_path.matches('|').count();
+            let char_count = w.word.chars().count();
+            assert_eq!(bracket_count, char_count,
+                "reading_path must have one |-separator per char (word={}, path={})",
+                w.word, w.reading_path);
         }
     }
 }
