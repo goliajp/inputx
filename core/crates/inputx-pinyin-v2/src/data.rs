@@ -16,6 +16,7 @@ const WORDS_TSV: &str = include_str!("../data/words.tsv");
 const TIER_OVERLAY_TSV: &str = include_str!("../../../../tools/scoring/data/polish/tier_overlay.tsv");
 const QUICKFIX_BOOST_TSV: &str = include_str!("../../../../tools/scoring/data/polish/quickfix_boost.tsv");
 const EXCLUSIONS_TSV: &str = include_str!("../../../../tools/scoring/data/polish/exclusions_v1.tsv");
+const PRIOR_CORRECTIONS_TSV: &str = include_str!("../../../../tools/scoring/data/polish/prior_corrections_v1.tsv");
 
 /// One row of `chars.tsv`.
 #[derive(Debug, Clone)]
@@ -226,6 +227,29 @@ pub fn quickfix_boost() -> &'static std::collections::HashMap<(String, String), 
             if let (Some(b), Some(w), Some(f)) = (buffer, word, freq_s) {
                 if let Ok(freq) = f.trim().parse::<u32>() {
                     m.insert((b.to_owned(), w.to_owned()), freq);
+                }
+            }
+        }
+        m
+    })
+}
+
+/// `prior_corrections_v1.tsv` word → Q4 log-prior boost. Applies globally
+/// to that word regardless of buffer (lifts e.g. 继续 over 积蓄 anywhere
+/// they compete).
+pub fn prior_corrections() -> &'static std::collections::HashMap<String, i32> {
+    use std::collections::HashMap;
+    static CACHED: OnceLock<HashMap<String, i32>> = OnceLock::new();
+    CACHED.get_or_init(|| {
+        let mut m = HashMap::new();
+        for ln in PRIOR_CORRECTIONS_TSV.lines() {
+            if ln.is_empty() || ln.starts_with('#') { continue; }
+            let mut it = ln.split('\t');
+            let word = it.next();
+            let boost_s = it.next();
+            if let (Some(w), Some(b)) = (word, boost_s) {
+                if let Ok(boost) = b.trim().parse::<i32>() {
+                    m.insert(w.to_owned(), boost);
                 }
             }
         }
