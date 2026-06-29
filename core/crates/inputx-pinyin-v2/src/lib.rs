@@ -190,11 +190,17 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
                 .get(&(buf_owned.clone(), key.clone()))
                 .copied()
                 .unwrap_or(ce.char_tier);
-            let mut score = 500_000.0 - (tier as f64) * 30_000.0;
-            if !ce.is_primary {
-                score -= 5_000.0;
-            }
-            if ce.hsk_level > 0 && tier == ce.char_tier {
+            // Secondary reading penalty (Phase 7c.11): bump to effective
+            // tier + 1 so 是(tí 副读) doesn't outscore 题(tí 主读) at
+            // buffer "ti". Display tier follows so cross-engine merge
+            // sees the demotion too.
+            let effective_tier = if ce.is_primary {
+                tier
+            } else {
+                tier.saturating_add(1).min(9)
+            };
+            let mut score = 500_000.0 - (effective_tier as f64) * 30_000.0;
+            if ce.hsk_level > 0 && tier == ce.char_tier && ce.is_primary {
                 score += (7.0 - ce.hsk_level as f64) * 5_000.0;
             }
             // Word-prominence tiebreaker (Phase 7c.1): HSK-weighted
@@ -202,7 +208,7 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
             // a full 30k tier boundary.
             let prominence = *char_word_count().get(&ce.ch).unwrap_or(&0);
             score += (prominence as f64).min(20_000.0);
-            out.push((key, score, tier));
+            out.push((key, score, effective_tier));
         }
     }
 

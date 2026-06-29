@@ -80,6 +80,7 @@ Wire 点: `core/crates/inputx-core/src/composite/pinyin_adapter.rs::refresh_cand
 | 7c.8 | corpus_garbage_filter exclude + quickfix override + ≥1-word compose | **DONE 2026-06-30** (27 → 25) |
 | 7c.9 | polish-A 8 词 backfill modern_vocab (中华儿女 / 大儿子 / 大儿媳 / 插空 / 空荡 / 许仙 / 退到 / 具体) | **DONE 2026-06-30** (25 → 21) |
 | 7c.10 | kongdang / daiban 4 词 quickfix_boost 锁顺 | **DONE 2026-06-30** (21 → 19) |
+| 7c.11 | tuidao 推倒 quickfix + secondary 读音 effective tier+1 (是 ti bug 修) | **DONE 2026-06-30** (19 → 18) |
 | 7c | 更全 fuzzy (南方音 z/zh 互换 / typo rescue) | next |
 | 7d | v2 加 L0 user pin session state | |
 | 7e | v2 加 bigram personal context | |
