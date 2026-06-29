@@ -38,12 +38,20 @@ use inputx_core::{AutoCommitPolicy, EngineMode as Mode, ScoreComponents, Session
 fn print_help() {
     eprintln!("inputx-probe — engine introspection CLI\n");
     eprintln!("Usage:");
-    eprintln!("    inputx-probe <buffer> [--mode mixed|wubi|pinyin|japanese] [--jp]");
+    eprintln!("    inputx-probe <buffer> [--mode mixed|wubi|pinyin|japanese] [--jp] [--pinyin v1|v2]");
     eprintln!();
     eprintln!("Examples:");
     eprintln!("    inputx-probe jixu");
     eprintln!("    inputx-probe chongming --mode pinyin");
     eprintln!("    inputx-probe yama --jp");
+    eprintln!("    inputx-probe nihao --pinyin v2     # explicitly run v2 char-centric engine");
+    eprintln!();
+    eprintln!("Pinyin engine selection (precedence — first hit wins):");
+    eprintln!("  1. --pinyin / --pinyin-version CLI flag (sets env var)");
+    eprintln!("  2. INPUTX_PINYIN_VERSION env var");
+    eprintln!("  3. $XDG_CONFIG_HOME/inputx/pinyin-version file");
+    eprintln!("  4. ~/Library/Application Support/Inputx/pinyin-version file");
+    eprintln!("  5. default = v1");
 }
 
 fn main() -> ExitCode {
@@ -79,6 +87,22 @@ fn main() -> ExitCode {
             }
             "--jp" => {
                 jp_on = true;
+            }
+            "--pinyin" | "--pinyin-version" => {
+                i += 1;
+                if i >= args.len() {
+                    eprintln!("{} requires v1 or v2", args[i - 1]);
+                    return ExitCode::from(2);
+                }
+                let v = args[i].as_str();
+                if !matches!(v, "v1" | "V1" | "1" | "v2" | "V2" | "2") {
+                    eprintln!("--pinyin must be v1 or v2, got: {v}");
+                    return ExitCode::from(2);
+                }
+                // SAFETY: set before any v2-crate code paths read it.
+                // OnceLock cache hasn't fired because Session not yet created.
+                // safe because main has no other threads at this point.
+                unsafe { env::set_var("INPUTX_PINYIN_VERSION", v); }
             }
             other => {
                 eprintln!("unknown arg: {other}");
