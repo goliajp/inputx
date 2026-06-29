@@ -146,19 +146,32 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
     let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
     let buf_owned = buffer.to_owned();
 
-    // 1. Words (multi-char): exact code match.
-    if let Some(rows) = code_index().get(buffer) {
-        for w in rows {
-            if data::exclusions().contains(&(buf_owned.clone(), w.word.clone())) {
-                continue;
-            }
-            if seen.insert(w.word.clone()) {
-                let tier = data::tier_overlay()
-                    .get(&(buf_owned.clone(), w.word.clone()))
-                    .copied()
-                    .unwrap_or(w.tier);
-                let score = 500_000.0 - (tier as f64) * 30_000.0;
-                out.push((w.word.clone(), score, tier));
+    // Fuzzy normalization (Phase 7c.5): lue/nue ↔ lve/nve (ü encoding
+    // convention). Try the normalized form alongside the literal.
+    let normalized = normalize_uv(buffer);
+    let alt_buffer = if normalized != buffer {
+        Some(normalized.as_str())
+    } else {
+        None
+    };
+
+    // 1. Words (multi-char): exact code match (literal + normalized lue→lve).
+    for try_buf in std::iter::once(buffer).chain(alt_buffer) {
+        if let Some(rows) = code_index().get(try_buf) {
+            for w in rows {
+                if data::exclusions().contains(&(buf_owned.clone(), w.word.clone())) {
+                    continue;
+                }
+                if seen.insert(w.word.clone()) {
+                    let tier = data::tier_overlay()
+                        .get(&(buf_owned.clone(), w.word.clone()))
+                        .copied()
+                        .unwrap_or(w.tier);
+                    let mut score = 500_000.0 - (tier as f64) * 30_000.0;
+                    // Slight penalty for fuzzy-normalized match.
+                    if try_buf != buffer { score -= 2_000.0; }
+                    out.push((w.word.clone(), score, tier));
+                }
             }
         }
     }
@@ -222,8 +235,11 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
             if !data::exclusions().contains(&(buf_owned.clone(), word.clone()))
                 && seen.insert(word.clone())
             {
-                // Composition tier = max char tier + 1 (below exact)
-                let display_tier = max_tier.saturating_add(1).min(9);
+                // Composition is char-stacking — never a "high quality"
+                // candidate by itself. Floor display_tier at 5 so it
+                // can't outrank any tier 1-4 exact match (even a fuzzy
+                // one). max_tier + 3 lifts noisy compositions further.
+                let display_tier = max_tier.saturating_add(3).max(5).min(9);
                 out.push((word, score, display_tier));
             }
         }
@@ -289,7 +305,8 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
                 .then_with(|| a_hsk.cmp(&b_hsk))
                 .then_with(|| (!a.1.is_primary).cmp(&!b.1.is_primary))
         });
-        for (_, ce) in prefix_chars.iter().take(PREFIX_CAP) {
+        let remaining = PREFIX_CAP.saturating_sub(prefix_added);
+        for (_, ce) in prefix_chars.iter().take(remaining) {
             let key = ce.ch.to_string();
             if !seen.insert(key.clone()) { continue; }
             let tier = ce.char_tier;
@@ -409,7 +426,31 @@ fn compose_greedy(buffer: &str) -> Option<(String, f64, u8)> {
     let score = 300_000.0
         - (piece_count as f64) * 10_000.0
         - (max_tier as f64) * 5_000.0;
+    // Phase 7c.4 validation: if composed_word EXISTS in words.tsv,
+    // the buffer MUST be one of its registered codes. Otherwise the
+    // composition picked a wrong char-reading combo (e.g. nuanhe →
+    // 暖+和(he) = 暖和, but 暖和 only reads as nuanhuo). Reject.
+    if let Some(valid_codes) = word_codes().get(composed_word.as_str()) {
+        if !valid_codes.iter().any(|c| *c == buffer) {
+            return None;
+        }
+    }
     Some((composed_word, score, max_tier))
+}
+
+/// Lazy index: word → set of valid codes (from words.tsv). Used by
+/// compose_greedy to reject "this word exists but at a different
+/// reading" compositions.
+fn word_codes() -> &'static std::collections::HashMap<&'static str, Vec<&'static str>> {
+    use std::collections::HashMap;
+    static CACHED: OnceLock<HashMap<&'static str, Vec<&'static str>>> = OnceLock::new();
+    CACHED.get_or_init(|| {
+        let mut m: HashMap<&'static str, Vec<&'static str>> = HashMap::new();
+        for w in data::words() {
+            m.entry(w.word.as_str()).or_default().push(w.code.as_str());
+        }
+        m
+    })
 }
 
 /// Initials index for Phase 4 reverse-lookup.
@@ -515,6 +556,19 @@ fn char_index() -> &'static std::collections::HashMap<String, Vec<CharLookupRow>
         }
         m
     })
+}
+
+/// Fuzzy buffer normalization: replace `lue` → `lve` and `nue` → `nve`
+/// (and uppercase variants). Mirrors the v1 normalize_lookup_key
+/// behavior — common typing variant for ü-after-l/n syllables.
+fn normalize_uv(buffer: &str) -> String {
+    let mut out = buffer.to_owned();
+    // Only the lue/nue/lüe/nüe followed by consonant patterns. Restrict
+    // to exact 3-letter sequences "lue" / "nue" anywhere in the buffer
+    // (longer ones like "lüe" don't occur in ASCII IME input).
+    if out.contains("lue") { out = out.replace("lue", "lve"); }
+    if out.contains("nue") { out = out.replace("nue", "nve"); }
+    out
 }
 
 /// Strip tone marks from a tone-marked pinyin reading; ü → v.
