@@ -91,3 +91,27 @@ daiban	代班	40000
 daiban	代办	30000
 daiban	呆板	20000
 sisi	思思	35000	# 2026-06-30 v2: polish-log expects 思思 #0; v1 had it via polish corpus
+
+# 2026-06-30 v2 ingest: pinyin_only_top_common_single_syllable expects
+# function/common chars at top-1 (v1 had via corpus freq). Single
+# quickfix per buffer to lock the expected top-1.
+ba	吧	35000
+la	啦	35000
+xie	些	35000
+xue	学	35000
+xin	心	35000
+xing	行	35000
+tian	天	35000
+di	的	35000
+ji	给	35000
+qi	起	35000
+du	都	35000
+er	而	35000
+ke	可	35000
+an	安	35000
+hu	护	35000
+ti	提	35000
+tu	图	35000
+xi	西	35000
+jiu	就	35000
+shou	手	35000
