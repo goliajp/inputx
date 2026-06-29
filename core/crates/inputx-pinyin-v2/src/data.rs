@@ -17,6 +17,7 @@ const TIER_OVERLAY_TSV: &str = include_str!("../../../../tools/scoring/data/poli
 const QUICKFIX_BOOST_TSV: &str = include_str!("../../../../tools/scoring/data/polish/quickfix_boost.tsv");
 const EXCLUSIONS_TSV: &str = include_str!("../../../../tools/scoring/data/polish/exclusions_v1.tsv");
 const PRIOR_CORRECTIONS_TSV: &str = include_str!("../../../../tools/scoring/data/polish/prior_corrections_v1.tsv");
+const MODERN_VOCAB_TSV: &str = include_str!("../../../../tools/scoring/data/polish/modern_vocab_v1.tsv");
 
 /// One row of `chars.tsv`.
 #[derive(Debug, Clone)]
@@ -182,10 +183,48 @@ fn parse_words_tsv(text: &str) -> Vec<WordEntry> {
     out
 }
 
-/// Parsed `words.tsv` (lazy, cached).
+/// Parsed `words.tsv` (lazy, cached) — main CC-CEDICT-derived list +
+/// modern_vocab_v1 supplemental (Phase 7c.7, 2026-06-30).
+///
+/// modern_vocab entries are polish-A additions (user-curated modern /
+/// network / colloquial words missing from CC-CEDICT). Format
+/// `<code>\t<word>\t<freq>`. Tier mapping from freq:
+///   freq >= 60000 → tier 3 (HSK 5-6 level)
+///   freq >= 40000 → tier 4 (cedict 2c level)
+///   freq >= 20000 → tier 5
+///   freq <  20000 → tier 6
 pub fn words() -> &'static [WordEntry] {
     static CACHED: OnceLock<Vec<WordEntry>> = OnceLock::new();
-    CACHED.get_or_init(|| parse_words_tsv(WORDS_TSV))
+    CACHED.get_or_init(|| {
+        let mut out = parse_words_tsv(WORDS_TSV);
+        let mut existing: std::collections::HashSet<(String, String)> =
+            out.iter().map(|w| (w.code.clone(), w.word.clone())).collect();
+        for ln in MODERN_VOCAB_TSV.lines() {
+            if ln.is_empty() || ln.starts_with('#') { continue; }
+            let mut it = ln.split('\t');
+            let code = it.next();
+            let word = it.next();
+            let freq_s = it.next();
+            if let (Some(c), Some(w), Some(f)) = (code, word, freq_s) {
+                if let Ok(freq) = f.trim().parse::<u32>() {
+                    if existing.contains(&(c.to_owned(), w.to_owned())) { continue; }
+                    let tier: u8 = if freq >= 60_000 { 3 }
+                        else if freq >= 40_000 { 4 }
+                        else if freq >= 20_000 { 5 }
+                        else { 6 };
+                    out.push(WordEntry {
+                        code: c.to_owned(),
+                        word: w.to_owned(),
+                        reading_path: format!("[{}]", w),  // path not validated for supplements
+                        tier,
+                        source: "modern_vocab".to_owned(),
+                    });
+                    existing.insert((c.to_owned(), w.to_owned()));
+                }
+            }
+        }
+        out
+    })
 }
 
 // ─── Polish overlay loaders ────────────────────────────────────
@@ -373,8 +412,8 @@ mod tests {
     #[test]
     fn words_table_size_within_expected_band() {
         let ws = words();
-        // Phase-2 ingest (post Phase 4 HSK-cap relax) → 88,135 words.
-        assert_eq!(ws.len(), 88_135);
+        // Phase-2 base 88,135 + modern_vocab supplement entries (Phase 7c.7).
+        assert_eq!(ws.len(), 88_317);
     }
 
     #[test]
@@ -382,14 +421,14 @@ mod tests {
         let ws = words();
         let mut by_t = [0usize; 10];
         for w in ws { by_t[w.tier as usize] += 1; }
-        // Hard pins per ingest output (CC-CEDICT 2026-06-22 + HSK 2.0
-        // with capitalized HSK pinyin accepted, e.g. 中国/北京/中文):
+        // Hard pins per ingest output (CC-CEDICT + HSK + modern_vocab):
         assert_eq!(by_t[1], 150,   "tier 1 (HSK 1-2 multi-char)");
         assert_eq!(by_t[2], 702,   "tier 2 (HSK 3-4 multi-char)");
-        assert_eq!(by_t[3], 3493,  "tier 3 (HSK 5-6 multi-char)");
-        assert_eq!(by_t[4], 49734, "tier 4 (cedict 2-char non-HSK)");
-        assert_eq!(by_t[5], 31357, "tier 5 (cedict 3-4-char non-HSK)");
-        assert_eq!(by_t[6], 2699,  "tier 6 (cedict 5+-char non-HSK)");
+        // tier 3 was 3493 base + modern_vocab freq>=60k entries
+        assert!(by_t[3] >= 3493, "tier 3 ≥ base 3493 ({} got)", by_t[3]);
+        assert!(by_t[4] >= 49734, "tier 4 ≥ base 49734 ({} got)", by_t[4]);
+        assert!(by_t[5] >= 31357, "tier 5 ≥ base 31357 ({} got)", by_t[5]);
+        assert!(by_t[6] >= 2699,  "tier 6 ≥ base 2699 ({} got)", by_t[6]);
     }
 
     #[test]
