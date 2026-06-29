@@ -82,7 +82,17 @@ Wire 点: `core/crates/inputx-core/src/composite/pinyin_adapter.rs::refresh_cand
 | 7c.10 | kongdang / daiban 4 词 quickfix_boost 锁顺 | **DONE 2026-06-30** (21 → 19) |
 | 7c.11 | tuidao 推倒 quickfix + secondary 读音 effective tier+1 (是 ti bug 修) | **DONE 2026-06-30** (19 → 18) |
 | 7c.12 | 单字母 buffer chars-first ordering + 4 polish-A 词 backfill (思思/上海大学/揍他/嘶嘶) | **DONE 2026-06-30** (18 → 16) |
-| 7c | 更全 fuzzy (南方音 z/zh 互换 / typo rescue) | next |
+| 7c.13 | 20 单字 top-1 function-word quickfix (吧/啦/些/...) | **DONE 2026-06-30** (16 → 14) |
+| 7c.14 | multi/auto_clear 12 词 quickfix + modern_vocab | **DONE 2026-06-30** (14 → 12) |
+| 7c.15 | polyphone_sweep 8 词 backfill | **DONE 2026-06-30** (12 → 11) |
+| 7c.16 | K-best 4 词 backfill (寄了/凉了/两类/好极了等) | **DONE 2026-06-30** (11 → 10) |
+| 7c.17 | K-best 3 词 (偏你/路遥知马力/两肋) | **DONE 2026-06-30** (10 → 7) |
+| 7c.18 | quickfix tier 1 (不破 wx>px) + score band 540k | **DONE 2026-06-30** (7 → 6) |
+| 7c.19 | cu/ao rare_jianma2 quickfix | **DONE 2026-06-30** (6 → 5) |
+| 7c.20 | 4 polish-A 词 + 4 rare-CJK 降 tier (sai 鳃/嘥/簺/僿) | **DONE 2026-06-30** (5 → 1) |
+| 7c.21 | populate() has_non_speculative 只在 exact 时 true (typing_g auto-commit 修) | **DONE 2026-06-30** (1 → 0) |
+| 7 | v1 → v2 切换为 default — **可以切了** | **READY** |
+| 8 | v1 crate 删除,corpus-digest pipeline 退役 | next |
 | 7d | v2 加 L0 user pin session state | |
 | 7e | v2 加 bigram personal context | |
 | 7f | baseline 全 pass on v2 → 切 default | gate |

@@ -119,9 +119,15 @@ pub fn populate(buffer: &str) -> Candidates {
     if scored.is_empty() {
         return Candidates::empty();
     }
+    // has_non_speculative = true ONLY when we hit an exact (word or
+    // char) match at buffer — not for prefix-completion-only emissions.
+    // Composite-layer's auto-commit (OnUniqueMatch) blocks if pinyin
+    // has non-speculative; so a bare-letter buffer like 'g' with just
+    // prefix-completion shouldn't block wubi Jianma1 commit.
+    let has_exact = code_index().contains_key(buffer) || char_index().contains_key(buffer);
     Candidates {
         words: scored.into_iter().map(|(w, _, _)| w).collect(),
-        has_non_speculative: true,
+        has_non_speculative: has_exact,
         composed_sentence: None,
     }
 }
