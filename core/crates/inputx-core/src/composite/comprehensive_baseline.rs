@@ -2930,6 +2930,9 @@ mod tests {
             // library.tsv + logged to corpus_garbage_filter_v1. 物流
             // auto-leads.
             ("wuliu", &["五六"]),
+            // Polish 2026-06-30: user "xingshie 刑事饿，这不应该存在".
+            // word+char compose noise; D2-hidden (framework gap noted).
+            ("xingshie", &["刑事饿"]),
             // User polish-log 2026-06-27: "zhengyu 正宇 正于 证于 都不是
             // 词" — 正宇 is a given name (proper noun), 正于/证于 are
             // 字字直拼 jieba noise (e.g. 正于此时). All three D1 deleted
