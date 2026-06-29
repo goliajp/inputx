@@ -77,3 +77,15 @@ xuxian	虚线	19600	# 2026-06-26 user: "xuxian 虚线 续弦 都要在许仙前�
 xuxian	续弦	18700	# 2026-06-26 same report — 续弦 #1, just above 许仙 17781 base, below 虚线 19600.
 weixin	微信	25500	# 2026-06-26 user: "微信第一，惟心也要在日语前" — 威信 base 23029 was #0; boost 微信 to 23029+10% = 25500 for #0.
 weixin	惟心	15500	# 2026-06-26 same report — 惟心 base 3094 sat at #7 below JP exact-prefix kana ウェイィン/うぇいぃん. Boost to 15500 (just above 维新 14931 base) so 惟心 enters tier 1 above JP.
+
+# 2026-06-30 v2 ingest gap — lock baseline polish orders that were
+# corpus-freq derived in v1 but no quickfix existed. Per polish_kongdang_order
+# and polish_daiban_order tests.
+kongdang	空荡	50000
+kongdang	空当	40000
+kongdang	空档	30000
+kongdang	空挡	20000
+daiban	待办	50000
+daiban	代班	40000
+daiban	代办	30000
+daiban	呆板	20000
