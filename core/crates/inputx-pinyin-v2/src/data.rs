@@ -1,0 +1,205 @@
+//! Phase 1 data tables — char + reading layer from authoritative sources.
+//!
+//! Embedded via `include_str!` so the crate has no runtime fs dependency.
+//! Sources documented in `docs/pinyin-char-centric-rewrite-2026-06-29/PLAN.md`
+//! and regeneratable via `tools/v2-ingest/build-chars-readings.py`.
+
+use std::sync::OnceLock;
+
+const CHARS_TSV: &str = include_str!("../data/chars.tsv");
+const READINGS_TSV: &str = include_str!("../data/readings.tsv");
+
+/// One row of `chars.tsv`.
+#[derive(Debug, Clone)]
+pub struct CharEntry {
+    pub ch: char,
+    pub codepoint: u32,
+    /// 1 = 通用规范汉字表 一级 (常用 3500),
+    /// 2 = 二级 (3000), 3 = 三级 (1605).
+    pub tier: u8,
+    /// `kMandarin_8105.txt` canonical reading (e.g. "yī" for 一).
+    pub canonical_reading: String,
+}
+
+/// One row of `readings.tsv`.
+#[derive(Debug, Clone)]
+pub struct ReadingEntry {
+    pub ch: char,
+    pub reading: String,
+    pub rank: ReadingRank,
+    /// Added to the char's tier when this reading is used to surface
+    /// a word — primary = 0, others = +1.
+    pub tier_offset: i8,
+    /// Source TSV column (kMandarin / kHanyuPinyin / kXHC1983).
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReadingRank {
+    /// 通用规范汉字表 + mozillazg/pinyin-data kMandarin_8105 主读.
+    Primary,
+    /// 汉语大字典 kHanyuPinyin 收录的额外读音 (副读 / 文白异读 …).
+    Secondary,
+    /// 仅新华字典 1983 kXHC1983 收录,未在 kHanyuPinyin 重出现 —
+    /// 补充读音 (rare / supplementary).
+    Supplementary,
+}
+
+impl ReadingRank {
+    pub fn parse(s: &str) -> Option<Self> {
+        Some(match s {
+            "primary" => Self::Primary,
+            "secondary" => Self::Secondary,
+            "supplementary" => Self::Supplementary,
+            _ => return None,
+        })
+    }
+}
+
+fn parse_chars_tsv(text: &str) -> Vec<CharEntry> {
+    let mut out = Vec::with_capacity(8200);
+    for ln in text.lines() {
+        if ln.is_empty() || ln.starts_with('#') {
+            continue;
+        }
+        let mut it = ln.split('\t');
+        let ch_str = it.next();
+        let cp_hex = it.next();
+        let tier_s = it.next();
+        let canonical = it.next();
+        if let (Some(ch_str), Some(cp_hex), Some(tier_s), Some(canonical)) =
+            (ch_str, cp_hex, tier_s, canonical)
+        {
+            let Some(ch) = ch_str.chars().next() else { continue };
+            let Ok(cp) = u32::from_str_radix(cp_hex.trim(), 16) else { continue };
+            let Ok(tier) = tier_s.trim().parse::<u8>() else { continue };
+            out.push(CharEntry {
+                ch,
+                codepoint: cp,
+                tier,
+                canonical_reading: canonical.trim().to_owned(),
+            });
+        }
+    }
+    out
+}
+
+fn parse_readings_tsv(text: &str) -> Vec<ReadingEntry> {
+    let mut out = Vec::with_capacity(12_500);
+    for ln in text.lines() {
+        if ln.is_empty() || ln.starts_with('#') {
+            continue;
+        }
+        let mut it = ln.split('\t');
+        let ch_str = it.next();
+        let reading = it.next();
+        let rank_s = it.next();
+        let offset_s = it.next();
+        let source = it.next();
+        if let (Some(ch_str), Some(reading), Some(rank_s), Some(offset_s), Some(source)) =
+            (ch_str, reading, rank_s, offset_s, source)
+        {
+            let Some(ch) = ch_str.chars().next() else { continue };
+            let Some(rank) = ReadingRank::parse(rank_s.trim()) else { continue };
+            let Ok(offset) = offset_s.trim().parse::<i8>() else { continue };
+            out.push(ReadingEntry {
+                ch,
+                reading: reading.trim().to_owned(),
+                rank,
+                tier_offset: offset,
+                source: source.trim().to_owned(),
+            });
+        }
+    }
+    out
+}
+
+/// Parsed `chars.tsv` (lazy, cached).
+pub fn chars() -> &'static [CharEntry] {
+    static CACHED: OnceLock<Vec<CharEntry>> = OnceLock::new();
+    CACHED.get_or_init(|| parse_chars_tsv(CHARS_TSV))
+}
+
+/// Parsed `readings.tsv` (lazy, cached).
+pub fn readings() -> &'static [ReadingEntry] {
+    static CACHED: OnceLock<Vec<ReadingEntry>> = OnceLock::new();
+    CACHED.get_or_init(|| parse_readings_tsv(READINGS_TSV))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chars_table_has_8105_entries() {
+        let cs = chars();
+        assert_eq!(cs.len(), 8105, "通用规范汉字表 2013 total = 3500+3000+1605");
+    }
+
+    #[test]
+    fn chars_tier_distribution() {
+        let cs = chars();
+        let t1 = cs.iter().filter(|c| c.tier == 1).count();
+        let t2 = cs.iter().filter(|c| c.tier == 2).count();
+        let t3 = cs.iter().filter(|c| c.tier == 3).count();
+        assert_eq!(t1, 3500, "一级");
+        assert_eq!(t2, 3000, "二级");
+        assert_eq!(t3, 1605, "三级");
+    }
+
+    #[test]
+    fn chars_canonical_reading_present_for_all() {
+        let cs = chars();
+        let missing = cs.iter().filter(|c| c.canonical_reading.is_empty()).count();
+        assert_eq!(missing, 0, "all 8105 chars must have kMandarin canonical reading");
+    }
+
+    #[test]
+    fn chars_spotcheck_known_entries() {
+        let cs = chars();
+        let yi = cs.iter().find(|c| c.ch == '一').unwrap();
+        assert_eq!(yi.tier, 1);
+        assert_eq!(yi.canonical_reading, "yī");
+        let ding = cs.iter().find(|c| c.ch == '丁').unwrap();
+        assert_eq!(ding.tier, 1);
+        assert_eq!(ding.canonical_reading, "dīng");
+    }
+
+    #[test]
+    fn readings_table_size_within_expected_band() {
+        let rs = readings();
+        // Phase-1 ingest produced 12,149 rows.  Hard-pin to the same
+        // count so future regenerations that drift are caught.
+        assert_eq!(rs.len(), 12_149);
+    }
+
+    #[test]
+    fn readings_polyphone_chars_count() {
+        let rs = readings();
+        // Phase-1: 2,712 chars have ≥2 readings.
+        use std::collections::HashMap;
+        let mut by_char: HashMap<char, usize> = HashMap::new();
+        for r in rs {
+            *by_char.entry(r.ch).or_insert(0) += 1;
+        }
+        let polyphone = by_char.values().filter(|&&n| n >= 2).count();
+        assert_eq!(polyphone, 2_712);
+    }
+
+    #[test]
+    fn readings_spotcheck_polyphone() {
+        let rs = readings();
+        let yi_readings: Vec<&ReadingEntry> = rs.iter().filter(|r| r.ch == '一').collect();
+        // 一 should have at least the primary "yī" + a polyphone "yí" (一会儿)
+        assert!(yi_readings.iter().any(|r| r.reading == "yī" && r.rank == ReadingRank::Primary));
+        assert!(yi_readings.iter().any(|r| r.reading == "yí"));
+    }
+
+    #[test]
+    fn readings_primary_has_offset_zero() {
+        let rs = readings();
+        for r in rs.iter().filter(|r| r.rank == ReadingRank::Primary) {
+            assert_eq!(r.tier_offset, 0, "primary reading must be tier_offset 0 ({} {})", r.ch, r.reading);
+        }
+    }
+}

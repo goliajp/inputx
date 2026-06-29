@@ -59,8 +59,9 @@ Wire 点: `core/crates/inputx-core/src/composite/pinyin_adapter.rs::refresh_cand
 | Phase | 内容 | 状态 |
 |---|---|---|
 | 0 | v2 crate 骨架 + wire 通路 + INPUTX_PINYIN_VERSION env 控制 | **DONE 2026-06-29** |
-| 1 | chars + readings 表 ingest (从 mozillazg/pinyin-data + Unihan) | next |
-| 2 | words 表 ingest (CC-CEDICT 筛选 + HSK tier + reading_path 反向解析) | |
+| 0.5 | 多路 config (CLI flag / env / 2 config file 路径) | **DONE 2026-06-29** |
+| 1 | chars + readings 表 ingest 8105 字 / 12149 readings | **DONE 2026-06-29** |
+| 2 | words 表 ingest (CC-CEDICT 筛选 + HSK tier + reading_path 反向解析) | next |
 | 3 | v2 Path-1 lookup 上线 (chars/readings/words query) | |
 | 4 | v2 path 1c initials reverse-lookup (从 readings.tsv 自然导出) | |
 | 5 | v2 path 5 K-best (从 reading_path graph 走 Viterbi) | |
