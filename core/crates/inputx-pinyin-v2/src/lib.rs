@@ -269,6 +269,47 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
     const PREFIX_CAP: usize = 30;
     let mut prefix_added = 0;
     if !buffer.is_empty() && !has_exact_syllable {
+        // Bare-letter buffer: collect chars FIRST so PREFIX_CAP doesn't
+        // run out of slots before single chars surface.
+        let bare_letter = buffer.len() == 1;
+        if bare_letter {
+            let mut prefix_chars_first: Vec<(&str, &CharLookupRow)> = Vec::new();
+            for (bare, rows) in char_index() {
+                if !bare.starts_with(buffer) || bare.as_str() == buffer {
+                    continue;
+                }
+                for ce in rows {
+                    if seen.contains(&ce.ch.to_string()) { continue; }
+                    if data::exclusions().contains(&(buf_owned.clone(), ce.ch.to_string())) { continue; }
+                    prefix_chars_first.push((bare.as_str(), ce));
+                }
+            }
+            prefix_chars_first.sort_by(|a, b| {
+                let a_hsk = if a.1.hsk_level == 0 { 99u8 } else { a.1.hsk_level };
+                let b_hsk = if b.1.hsk_level == 0 { 99u8 } else { b.1.hsk_level };
+                a.1.char_tier.cmp(&b.1.char_tier)
+                    .then_with(|| a_hsk.cmp(&b_hsk))
+                    .then_with(|| (!a.1.is_primary).cmp(&!b.1.is_primary))
+            });
+            // Bias: take half of cap for chars first.
+            let half = PREFIX_CAP / 2;
+            for (_, ce) in prefix_chars_first.iter().take(half) {
+                let key = ce.ch.to_string();
+                if !seen.insert(key.clone()) { continue; }
+                let tier = ce.char_tier;
+                let mut score = 220_000.0 - (tier as f64) * 30_000.0;
+                if !ce.is_primary { score -= 5_000.0; }
+                if ce.hsk_level > 0 {
+                    score += (7.0 - ce.hsk_level as f64) * 5_000.0;
+                }
+                let prominence = *char_word_count().get(&ce.ch).unwrap_or(&0);
+                score += (prominence as f64).min(20_000.0);
+                let display_tier = tier.saturating_add(3).min(9);
+                out.push((key, score, display_tier));
+                prefix_added += 1;
+            }
+        }
+
         // Word prefix matches — iterate words.tsv, filter by starts_with.
         let mut prefix_words: Vec<&data::WordEntry> = data::words()
             .iter()
@@ -282,10 +323,16 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
                 .then_with(|| a.word.chars().count().cmp(&b.word.chars().count()))
                 .then_with(|| a.code.cmp(&b.code))
         });
-        for w in prefix_words.iter().take(PREFIX_CAP) {
+        // For bare-letter buffer (e.g. "q"), single chars should lead
+        // phrases — user typing one letter intends to see chars.
+        // Score band: words 250k normally, but 150k at len==1 so chars
+        // (200k base) rank above. See q_bare_letter_single_chars_lead_phrases.
+        let word_prefix_base = if buffer.len() == 1 { 150_000.0 } else { 250_000.0 };
+        let word_cap = PREFIX_CAP.saturating_sub(prefix_added);
+        for w in prefix_words.iter().take(word_cap) {
             if !seen.insert(w.word.clone()) { continue; }
             let tier = w.tier;
-            let score = 250_000.0 - (tier as f64) * 30_000.0;
+            let score = word_prefix_base - (tier as f64) * 30_000.0;
             let display_tier = tier.saturating_add(3).min(9);
             out.push((w.word.clone(), score, display_tier));
             prefix_added += 1;
