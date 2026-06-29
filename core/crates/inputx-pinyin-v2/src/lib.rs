@@ -184,6 +184,18 @@ pub fn query(buffer: &str) -> Vec<(String, f64)> {
         }
     }
 
+    // 4. Composition (Phase 5). Greedy longest-prefix split into
+    //    words/chars; concat the pieces. e.g. `nihaoma` → 你好 + 吗 =
+    //    你好吗. Skip if buffer.len() < 4 (covered by exact paths)
+    //    or if a same-string result already exists.
+    if buffer.len() >= 4 {
+        if let Some((word, score)) = compose_greedy(buffer) {
+            if seen.insert(word.clone()) {
+                out.push((word, score));
+            }
+        }
+    }
+
     out.sort_by(|a, b| {
         b.1.partial_cmp(&a.1)
             .unwrap_or(std::cmp::Ordering::Equal)
@@ -191,6 +203,63 @@ pub fn query(buffer: &str) -> Vec<(String, f64)> {
             .then_with(|| a.0.cmp(&b.0))
     });
     out
+}
+
+/// Phase 5 greedy longest-prefix composition.
+///
+/// Walks the buffer left-to-right, at each step consuming the longest
+/// prefix that matches a word `code` (highest priority) or a char's
+/// bare reading. Returns `None` if any step fails to find a match
+/// (= unsegmentable buffer) OR if the composition is a single piece
+/// (= already covered by exact paths).
+///
+/// Score: `300_000 - piece_count * 10_000 - max_tier * 5_000`. Always
+/// below exact-match band (320k+) and above initials reverse-lookup.
+fn compose_greedy(buffer: &str) -> Option<(String, f64)> {
+    let bytes = buffer.as_bytes();
+    let mut composed_word = String::new();
+    let mut piece_count: u32 = 0;
+    let mut max_tier: u8 = 0;
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        let remaining = &buffer[cursor..];
+        let mut best: Option<(usize, String, u8)> = None;
+        // Try longest prefix first.
+        for len in (1..=remaining.len()).rev() {
+            let prefix = &remaining[..len];
+            // Word match takes priority.
+            if let Some(rows) = code_index().get(prefix) {
+                if let Some(top) = rows.iter().min_by_key(|w| w.tier) {
+                    best = Some((len, top.word.clone(), top.tier));
+                    break;
+                }
+            }
+            // Else single-char match.
+            if let Some(chars) = char_index().get(prefix) {
+                if let Some(top) = chars
+                    .iter()
+                    .min_by_key(|c| (c.char_tier, !c.is_primary))
+                {
+                    best = Some((len, top.ch.to_string(), top.char_tier));
+                    break;
+                }
+            }
+        }
+        let (consumed, piece, tier) = best?;
+        composed_word.push_str(&piece);
+        piece_count += 1;
+        if tier > max_tier {
+            max_tier = tier;
+        }
+        cursor += consumed;
+    }
+    if piece_count <= 1 {
+        return None;
+    }
+    let score = 300_000.0
+        - (piece_count as f64) * 10_000.0
+        - (max_tier as f64) * 5_000.0;
+    Some((composed_word, score))
 }
 
 /// Initials index for Phase 4 reverse-lookup.
@@ -420,5 +489,37 @@ mod tests {
         // never an "initials match" emission (which would inflate
         // to thousands of words starting with 'a').
         assert!(q.len() < 100, "single-letter must not balloon: got {}", q.len());
+    }
+
+    #[test]
+    fn composition_nihaoma_yields_nihao_plus_ma() {
+        let q = query("nihaoma");
+        let words: Vec<&str> = q.iter().map(|(w, _)| w.as_str()).collect();
+        assert!(words.contains(&"你好吗"),
+            "nihaoma must compose into 你好吗 ({words:?})");
+    }
+
+    #[test]
+    fn composition_score_below_exact() {
+        // jintianwomen: not a single word; composes to 今天我们.
+        // 今天 (HSK 1) and 我们 (HSK 1) both tier 1.
+        // Should NOT outrank single-word exact matches (none exist
+        // for this buffer, but invariant must hold structurally).
+        let q = query("jintianwomen");
+        if let Some((w, s)) = q.iter().find(|(w, _)| w == "今天我们") {
+            assert!(*s < 320_000.0,
+                "composition score must be below exact match band: {w} = {s}");
+        }
+    }
+
+    #[test]
+    fn composition_short_buffer_skipped() {
+        // buffer < 4 letters: skip composition path (covered by exact).
+        // "ni" len=2 should NOT compose.
+        let q = query("ni");
+        // Composition would produce e.g. 你你 (greedy double); make
+        // sure we DON'T emit such.
+        assert!(!q.iter().any(|(w, _)| w == "你你"),
+            "短 buffer 不应触发 composition");
     }
 }
