@@ -902,7 +902,9 @@ mod tests {
             // intent; mechanical kana ツィ/つぃ now sits at tier 5
             // (less_common).  After D1 of 土里/图里/土粒 (jieba noise),
             // 图利 (freq=9843 z=0.18 tier 4) leads tier 5 JP.
-            ("tuli", "图利"),
+            // 2026-06-30 user re-attestation: 图例 > 图利 (was 图利 #0
+            // via pure-v1 corpus 9843 freq; user prefers 图例).
+            ("tuli", "图例"),
             // Polish-log 2026-06-04: "maizi 又发现一个,埋在,再怎么差
             // 也不能在日语后面".  埋在 was not a Path-1 dict entry —
             // surfaced via Path 5b fallback (tier 8) below 6-char JP
