@@ -67,7 +67,13 @@ Wire 点: `core/crates/inputx-core/src/composite/pinyin_adapter.rs::refresh_cand
 | 5 | v2 path 5 multi-syllable composition (greedy longest-prefix) | **DONE 2026-06-29** |
 | 6 | tier 内 ranking — HSK 字表 overlay (muscle memory) | **DONE 2026-06-29** |
 | 6.5 | personal freq runtime overlay | (deferred) |
-| 7 | v1 → v2 切换为 default,v1 转 deprecation | next |
+| 7 | v1 → v2 切换为 default | **blocked by feature gap**, 见 PHASE-7-blocker.md |
+| 7a | v2 加 polish overlay (tier_overlay + quickfix_boost) 读 | next |
+| 7b | v2 加 prefix completion (path 3) | |
+| 7c | v2 加 fuzzy (path 1b consonant-prefix) | |
+| 7d | v2 加 L0 user pin session state | |
+| 7e | v2 加 bigram personal context | |
+| 7f | baseline 全 pass on v2 → 切 default | gate |
 | 8 | v1 crate 删除,corpus-digest pipeline 退役 | |
 
 ## 不在 scope
