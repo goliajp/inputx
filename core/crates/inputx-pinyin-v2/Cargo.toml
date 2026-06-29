@@ -1,0 +1,14 @@
+[package]
+name = "inputx-pinyin-v2"
+version = "0.1.0"
+edition = "2024"
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Inputx pinyin engine v2 — char-centric (字+读音+词) data model. Built parallel to v1; wires via `INPUTX_PINYIN_VERSION` env var. Phase 0 stub: returns no candidates so callers fall back to literal-only behavior."
+authors = ["GOLIA K.K."]
+repository = "https://github.com/goliajp/inputx"
+
+[dependencies]
+
+[lints]
+workspace = true

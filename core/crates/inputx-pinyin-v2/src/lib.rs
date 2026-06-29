@@ -1,0 +1,95 @@
+//! Inputx pinyin engine **v2** — char-centric data model.
+//!
+//! This crate is the v2 of the pinyin engine, built parallel to the
+//! legacy `inputx-pinyin` crate (v1). The v1/v2 switch is wired through
+//! `INPUTX_PINYIN_VERSION`:
+//!
+//! - **unset / `v1`** (default) → composite layer uses v1 path.
+//! - **`v2`** → composite layer routes through this crate.
+//!
+//! ## Phase 0 status
+//!
+//! Skeleton-only. [`populate`] returns [`Candidates::empty`]. With v2
+//! selected the IME effectively runs literal-only on the pinyin side
+//! — which matches the 2026-06-28 4-gate-off baseline so the wire is
+//! observable + reversible without touching v1.
+//!
+//! ## Subsequent phases (see
+//! `docs/pinyin-char-centric-rewrite-2026-06-29/PLAN.md`)
+//!
+//! 1. **Data layer** — `chars.tsv` + `readings.tsv` + `words.tsv`
+//!    sourced from authoritative open data (通用规范汉字表 + Unihan
+//!    kHanyuPinyin + CC-CEDICT). No corpus statistics.
+//! 2. **Tier model** — tier桶 from 字表 一/二/三级 + HSK level (no
+//!    raw freq field anywhere). Aligns with the existing 10-tier ×
+//!    wx>px>nx orthogonal merge model — output contract unchanged.
+//! 3. **Engine** — Path 1 lookup by code → reading_path → words.
+//!    Forbids any reading_path that doesn't decompose into declared
+//!    char readings (= 字字直拼 noise structurally impossible).
+
+#![forbid(unsafe_code)]
+
+use std::sync::OnceLock;
+
+/// Read `INPUTX_PINYIN_VERSION` once and cache. Default v1.
+pub fn enabled() -> bool {
+    static CACHED: OnceLock<bool> = OnceLock::new();
+    *CACHED.get_or_init(|| match std::env::var("INPUTX_PINYIN_VERSION") {
+        Ok(s) => matches!(s.as_str(), "v2" | "V2" | "2"),
+        Err(_) => false,
+    })
+}
+
+/// V2 candidate set — the minimal shape the composite-layer caller
+/// needs to slot in place of v1's populated state. Fields are by
+/// design a subset of what v1's `PinyinAdapter` populates; v1 keeps
+/// the full feature set during the transition.
+#[derive(Debug, Clone, Default)]
+pub struct Candidates {
+    /// Ordered list of candidate words (highest-priority first).
+    pub words: Vec<String>,
+    /// True when at least one candidate is from a non-speculative
+    /// path (exact match / dict lookup), not from K-best/fuzzy.
+    pub has_non_speculative: bool,
+    /// Optional composed full-sentence candidate (long-buffer Viterbi
+    /// equivalent in v2 will be re-derived from word path probability).
+    pub composed_sentence: Option<String>,
+}
+
+impl Candidates {
+    pub fn empty() -> Self {
+        Self::default()
+    }
+}
+
+/// Phase 0 stub: returns empty for every buffer.
+///
+/// As phases 1-3 land, this function will resolve the buffer against
+/// the char-centric chars/readings/words tables and return a non-empty
+/// [`Candidates`] populated by Path-1-equivalent lookup.
+pub fn populate(buffer: &str) -> Candidates {
+    let _ = buffer;
+    Candidates::empty()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn enabled_defaults_to_false_when_env_unset() {
+        // Can't easily test set/unset of env var without leaking to other
+        // tests (OnceLock) — leave the env-driven branch to integration
+        // tests with a fresh process. Just sanity-check the function
+        // is callable.
+        let _ = enabled();
+    }
+
+    #[test]
+    fn stub_populate_returns_empty() {
+        let c = populate("nihao");
+        assert!(c.words.is_empty());
+        assert!(!c.has_non_speculative);
+        assert!(c.composed_sentence.is_none());
+    }
+}

@@ -1315,6 +1315,22 @@ impl PinyinAdapter {
             return;
         }
 
+        // v2 wire (2026-06-29 char-centric rewrite, Phase 0).
+        // When `INPUTX_PINYIN_VERSION=v2` is set in the environment,
+        // route through the v2 char-centric engine instead of v1
+        // paths below. v2 Phase 0 is a stub returning no candidates;
+        // selecting v2 today is equivalent to pinyin-disabled (wubi /
+        // nihongo unaffected). When v2 grows real candidates this
+        // entire if-block becomes the production path; v1 below stays
+        // until v2 reaches feature parity.
+        if inputx_pinyin_v2::enabled() {
+            let v2 = inputx_pinyin_v2::populate(&self.buffer);
+            self.candidates = v2.words;
+            self.has_non_speculative_candidate = v2.has_non_speculative;
+            self.composed_sentence = v2.composed_sentence;
+            return;
+        }
+
         // Path 0a (v3.0.2b: migrated to rule-engine).
         // RepeatedLetterExpansion in rules/builtin/repeated_letter.rs.
         // Engine output is read here and placed into the existing
