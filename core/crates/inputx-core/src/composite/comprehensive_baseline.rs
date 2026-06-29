@@ -419,6 +419,9 @@ mod tests {
             // 时髦/视盲 (prefix from shimao/shimang). Added 是吗
             // 50000 to modern_vocab_v1.tsv.
             ("shima", "是吗"),
+            // Polish 2026-06-30: user "xingshi 形式 > 形势 > 姓氏 > 刑事".
+            // 4-way order lock via cascading quickfix_boost (50/40/30/20k).
+            ("xingshi", "形式"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
