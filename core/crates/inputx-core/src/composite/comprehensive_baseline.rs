@@ -422,6 +422,9 @@ mod tests {
             // Polish 2026-06-30: user "xingshi 形式 > 形势 > 姓氏 > 刑事".
             // 4-way order lock via cascading quickfix_boost (50/40/30/20k).
             ("xingshi", "形式"),
+            // Polish 2026-06-30: user "lianxu 连续 >> 怜恤" — 连续 HSK 4
+            // 强 boost,怜恤 文言 tier_overlay → 5 (双管齐下 since >>).
+            ("lianxu", "连续"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
