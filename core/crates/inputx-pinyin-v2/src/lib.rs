@@ -109,14 +109,145 @@ impl Candidates {
     }
 }
 
-/// Phase 0 stub: returns empty for every buffer.
+/// Phase 3: Path-1 exact-code lookup against the words.tsv index.
 ///
-/// As phases 1-3 land, this function will resolve the buffer against
-/// the char-centric chars/readings/words tables and return a non-empty
-/// [`Candidates`] populated by Path-1-equivalent lookup.
+/// Buffer is the user-typed ASCII code (e.g. "nihao"). Returns words
+/// whose `code` field matches exactly, ordered by (tier asc, word len asc,
+/// alphabetical).
 pub fn populate(buffer: &str) -> Candidates {
-    let _ = buffer;
-    Candidates::empty()
+    let scored = query(buffer);
+    if scored.is_empty() {
+        return Candidates::empty();
+    }
+    Candidates {
+        words: scored.into_iter().map(|(w, _)| w).collect(),
+        has_non_speculative: true,
+        composed_sentence: None,
+    }
+}
+
+/// Phase 3: scored variant — returns (word, score) pairs in same order
+/// as [`populate`]. Used by composite/pinyin_adapter.rs's
+/// `candidates_with_scores` early-return when v2 enabled.
+///
+/// Score formula:
+/// - **Words** (`code` == buffer in words.tsv): `500_000 - tier * 30_000`
+///   — HSK 1-2 ~ 470k, tail ~ 320k.
+/// - **Single chars** (any reading's bare form == buffer in readings.tsv):
+///   `500_000 - char_tier * 30_000 - if primary { 0 } else { 5_000 }`.
+///   Single chars rank inside the same tier band as words; primary
+///   readings 5k above secondary so 还(hái) beats 还(huán) at `hai`.
+///
+/// Order: score desc → shorter word first → alphabetical (stable).
+pub fn query(buffer: &str) -> Vec<(String, f64)> {
+    if buffer.is_empty() {
+        return Vec::new();
+    }
+    let mut out: Vec<(String, f64)> = Vec::new();
+
+    // 1. Words (multi-char): exact code match in words.tsv.
+    if let Some(rows) = code_index().get(buffer) {
+        for w in rows {
+            let score = 500_000.0 - (w.tier as f64) * 30_000.0;
+            out.push((w.word.clone(), score));
+        }
+    }
+
+    // 2. Single chars: bare-form of any reading == buffer.
+    //    Skip duplicates (a 1-char word in CC-CEDICT might re-emit a char
+    //    already present via words; rare since we filter single-char
+    //    cedict entries during ingest).
+    let mut seen: std::collections::HashSet<String> = out.iter().map(|(w, _)| w.clone()).collect();
+    if let Some(rows) = char_index().get(buffer) {
+        for ce in rows {
+            let key = ce.ch.to_string();
+            if seen.contains(&key) {
+                continue;
+            }
+            seen.insert(key.clone());
+            let mut score = 500_000.0 - (ce.char_tier as f64) * 30_000.0;
+            if !ce.is_primary {
+                score -= 5_000.0;
+            }
+            out.push((key, score));
+        }
+    }
+
+    out.sort_by(|a, b| {
+        b.1.partial_cmp(&a.1)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.0.chars().count().cmp(&b.0.chars().count()))
+            .then_with(|| a.0.cmp(&b.0))
+    });
+    out
+}
+
+/// Compact char-by-reading lookup row. Built once at the same time as the
+/// `code_index` from chars.tsv + readings.tsv joined.
+struct CharLookupRow {
+    ch: char,
+    char_tier: u8,
+    is_primary: bool,
+}
+
+fn char_index() -> &'static std::collections::HashMap<String, Vec<CharLookupRow>> {
+    use std::collections::HashMap;
+    static CACHED: OnceLock<HashMap<String, Vec<CharLookupRow>>> = OnceLock::new();
+    CACHED.get_or_init(|| {
+        // Join chars.tsv (for char_tier) × readings.tsv (for bare reading).
+        let mut char_tier: HashMap<char, u8> = HashMap::with_capacity(8200);
+        for c in data::chars() {
+            char_tier.insert(c.ch, c.tier);
+        }
+        let mut m: HashMap<String, Vec<CharLookupRow>> = HashMap::new();
+        for r in data::readings() {
+            let Some(&tier) = char_tier.get(&r.ch) else { continue };
+            let bare = bare_letter_form(&r.reading);
+            m.entry(bare).or_default().push(CharLookupRow {
+                ch: r.ch,
+                char_tier: tier,
+                is_primary: matches!(r.rank, data::ReadingRank::Primary),
+            });
+        }
+        m
+    })
+}
+
+/// Strip tone marks from a tone-marked pinyin reading; ü → v.
+/// E.g. "huán" → "huan", "lǚ" → "lv".
+fn bare_letter_form(reading: &str) -> String {
+    let mut out = String::with_capacity(reading.len());
+    for c in reading.chars() {
+        let stripped = match c {
+            'ā' | 'á' | 'ǎ' | 'à' => 'a',
+            'ē' | 'é' | 'ě' | 'è' => 'e',
+            'ī' | 'í' | 'ǐ' | 'ì' => 'i',
+            'ō' | 'ó' | 'ǒ' | 'ò' => 'o',
+            'ū' | 'ú' | 'ǔ' | 'ù' => 'u',
+            'ǖ' | 'ǘ' | 'ǚ' | 'ǜ' | 'ü' => 'v',
+            _ => c,
+        };
+        out.push(stripped);
+    }
+    out
+}
+
+/// Lazy index: `code` → list of [`WordEntry`] rows. Built once on
+/// first call by walking `data::words()`.
+fn code_index() -> &'static std::collections::HashMap<&'static str, Vec<&'static data::WordEntry>> {
+    use std::collections::HashMap;
+    static CACHED: OnceLock<HashMap<&'static str, Vec<&'static data::WordEntry>>> = OnceLock::new();
+    CACHED.get_or_init(|| {
+        let mut m: HashMap<&'static str, Vec<&'static data::WordEntry>> = HashMap::new();
+        for w in data::words() {
+            // Safety: data::words() returns &'static [WordEntry] (cached
+            // forever via OnceLock), so taking &'static references into it
+            // is sound for the lifetime of the process.
+            let w_static: &'static data::WordEntry = w;
+            m.entry(w_static.code.as_str()).or_default().push(w_static);
+        }
+        m
+    })
 }
 
 #[cfg(test)]
@@ -147,10 +278,57 @@ mod tests {
     }
 
     #[test]
-    fn stub_populate_returns_empty() {
+    fn populate_returns_nihao_for_nihao() {
         let c = populate("nihao");
-        assert!(c.words.is_empty());
-        assert!(!c.has_non_speculative);
-        assert!(c.composed_sentence.is_none());
+        assert!(!c.words.is_empty(), "v2 should resolve nihao → 你好");
+        assert_eq!(c.words[0], "你好", "你好 must be top");
+        assert!(c.has_non_speculative);
+    }
+
+    #[test]
+    fn query_returns_scored_pairs() {
+        let q = query("nihao");
+        assert!(!q.is_empty());
+        let (w, s) = &q[0];
+        assert_eq!(w, "你好");
+        assert!(*s > 300_000.0 && *s < 500_000.0, "score in expected band: {s}");
+    }
+
+    #[test]
+    fn query_empty_buffer_returns_empty() {
+        assert!(query("").is_empty());
+    }
+
+    #[test]
+    fn query_unknown_buffer_returns_empty() {
+        assert!(query("zzzzzz").is_empty());
+    }
+
+    #[test]
+    fn query_tier1_outranks_tier4() {
+        // jixu: 继续 (HSK 4 → tier 2) should outrank 几许 (cedict, tier 4)
+        let q = query("jixu");
+        let p_jixu = q.iter().position(|(w, _)| w == "继续").expect("继续 in result");
+        let p_jixu_lit = q.iter().position(|(w, _)| w == "几许").expect("几许 in result");
+        assert!(p_jixu < p_jixu_lit, "HSK 继续 must rank above non-HSK 几许");
+    }
+
+    #[test]
+    fn query_single_syllable_returns_chars() {
+        // duan: returns 短/段/断/端 single chars from readings.tsv.
+        let q = query("duan");
+        let words: Vec<&str> = q.iter().map(|(w, _)| w.as_str()).collect();
+        for expected in &["短", "段", "断", "端"] {
+            assert!(words.contains(expected),
+                "duan must return single char {expected}; got {words:?}");
+        }
+    }
+
+    #[test]
+    fn bare_letter_form_strips_tones() {
+        assert_eq!(bare_letter_form("huán"), "huan");
+        assert_eq!(bare_letter_form("lǚ"), "lv");
+        assert_eq!(bare_letter_form("nǚ"), "nv");
+        assert_eq!(bare_letter_form("yī"), "yi");
     }
 }
