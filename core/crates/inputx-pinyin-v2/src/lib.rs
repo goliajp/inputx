@@ -481,6 +481,22 @@ fn compose_greedy(buffer: &str) -> Option<(String, f64, u8)> {
             }
         }
         let (consumed, piece, tier, is_word) = best?;
+        // Phase 7c.22 char-piece gate: if a piece is a single char
+        // (non-word), it must be a grammatical completer particle.
+        // This blocks "<word>+<random char>" compose noise like
+        // 刑事饿 (刑事+饿) / 你好吃 (你好+吃 — actually this might be
+        // valid if 你好吃 is a real word; check after) / 今天吃 etc.
+        // Categorical filter (not per-entry list) — sanctioned by
+        // RANKING-MODEL-INVARIANTS §2 char-class allowlist.
+        if !is_word {
+            const COMPLETERS: &[&str] = &[
+                "的", "了", "吗", "呢", "啊", "吧", "着", "过",
+                "呀", "嘛", "哦", "哈", "嘿",
+            ];
+            if !COMPLETERS.contains(&piece.as_str()) {
+                return None;
+            }
+        }
         composed_word.push_str(&piece);
         piece_count += 1;
         if is_word { word_piece_count += 1; }
@@ -492,10 +508,8 @@ fn compose_greedy(buffer: &str) -> Option<(String, f64, u8)> {
     if piece_count <= 1 {
         return None;
     }
-    // Phase 7c.8: ≥1 word-piece rule. Pure char+char compositions
-    // surface corpus-noise like 次贫 / 弹片 / 较著 — single-char pairs
-    // that aren't real words. Mixed (你好+吗) or word+word (今天+我们)
-    // still allowed.
+    // ≥1 word-piece rule still in effect for buffers that decompose
+    // into pure completer chars (e.g. "lema" → 了+吗? — no real word).
     if word_piece_count == 0 {
         return None;
     }
