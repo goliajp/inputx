@@ -13,6 +13,9 @@ crate-type = ["rlib"]
 [dependencies]
 inputx-wubi = { workspace = true }
 inputx-pinyin = { workspace = true }
+# v2 char-centric pinyin engine — wires via `INPUTX_PINYIN_VERSION` env
+# var. Phase 0 stub returns no candidates; v1 stays default.
+inputx-pinyin-v2 = { path = "../inputx-pinyin-v2", version = "0.1" }
 # Pluggable Japanese plugin — adapter lives in composite/japanese_adapter.rs.
 # This dep is unconditional (no Cargo feature) because Inputx ships one
 # binary that handles the toggle at runtime via Session.enable_japanese;
