@@ -324,6 +324,10 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
 
     // 5. Quickfix boost (polish Class B): force candidate to tier 0
     //    (= absolute top across all engines, per WU-ψ tier model).
+    //    Note: tried additive-score semantic (closer to v1's MAX-freq
+    //    overlay) but it broke tests where the polish file boost was
+    //    set explicitly to make the word go #0 in v2's tier model.
+    //    The polish data is now effectively v2-aware via this contract.
     for ((buf_k, word_k), boost_freq) in data::quickfix_boost().iter() {
         if buf_k != buffer { continue; }
         if data::exclusions().contains(&(buf_owned.clone(), word_k.clone())) { continue; }

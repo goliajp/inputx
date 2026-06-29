@@ -76,6 +76,7 @@ Wire 点: `core/crates/inputx-core/src/composite/pinyin_adapter.rs::refresh_cand
 | 7c.4 | compose 校验 (composed word 必须在 buffer code 下存在) | **DONE 2026-06-30** (nuanhe → ∅) |
 | 7c.5 | lue/nue ↔ lve/nve fuzzy 规范化 | **DONE 2026-06-30** (celue → 策略) |
 | 7c.6 | compose tier ≥ 5 floor + prefix cap 30 (合计 word+char) | **DONE 2026-06-30** (34 → 29) |
+| 7c.7 | modern_vocab_v1.tsv supplement (julei→巨累 等) | **DONE 2026-06-30** (29 → 27) |
 | 7c | 更全 fuzzy (南方音 z/zh 互换 / typo rescue) | next |
 | 7d | v2 加 L0 user pin session state | |
 | 7e | v2 加 bigram personal context | |
