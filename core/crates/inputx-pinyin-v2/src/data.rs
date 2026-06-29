@@ -18,6 +18,7 @@ const QUICKFIX_BOOST_TSV: &str = include_str!("../../../../tools/scoring/data/po
 const EXCLUSIONS_TSV: &str = include_str!("../../../../tools/scoring/data/polish/exclusions_v1.tsv");
 const PRIOR_CORRECTIONS_TSV: &str = include_str!("../../../../tools/scoring/data/polish/prior_corrections_v1.tsv");
 const MODERN_VOCAB_TSV: &str = include_str!("../../../../tools/scoring/data/polish/modern_vocab_v1.tsv");
+const CORPUS_GARBAGE_FILTER_TSV: &str = include_str!("../../../../tools/scoring/data/polish/corpus_garbage_filter_v1.tsv");
 
 /// One row of `chars.tsv`.
 #[derive(Debug, Clone)]
@@ -296,14 +297,16 @@ pub fn prior_corrections() -> &'static std::collections::HashMap<String, i32> {
     })
 }
 
-/// `exclusions_v1.tsv` set of (code, word) — entries hidden from Path-1
-/// top display (still kept for K-best / reverse-lookup in v1; in v2
-/// they're filtered from `query` output).
+/// Runtime exclusion set — (code, word) pairs filtered from v2 output.
+/// Composition: exclusions_v1.tsv ∪ corpus_garbage_filter_v1.tsv,
+/// MINUS quickfix_boost entries (those are explicit resurrections —
+/// e.g. user D1-deleted 洞洞 then later added a quickfix_boost to
+/// bring it back).
 pub fn exclusions() -> &'static std::collections::HashSet<(String, String)> {
     use std::collections::HashSet;
     static CACHED: OnceLock<HashSet<(String, String)>> = OnceLock::new();
     CACHED.get_or_init(|| {
-        let mut s = HashSet::new();
+        let mut s: HashSet<(String, String)> = HashSet::new();
         for ln in EXCLUSIONS_TSV.lines() {
             if ln.is_empty() || ln.starts_with('#') { continue; }
             let mut it = ln.split('\t');
@@ -311,6 +314,27 @@ pub fn exclusions() -> &'static std::collections::HashSet<(String, String)> {
             let word = it.next();
             if let (Some(c), Some(w)) = (code, word) {
                 s.insert((c.to_owned(), w.to_owned()));
+            }
+        }
+        for ln in CORPUS_GARBAGE_FILTER_TSV.lines() {
+            if ln.is_empty() || ln.starts_with('#') { continue; }
+            let mut it = ln.split('\t');
+            let code = it.next();
+            let word = it.next();
+            if let (Some(c), Some(w)) = (code, word) {
+                s.insert((c.to_owned(), w.to_owned()));
+            }
+        }
+        // Remove entries that have an explicit quickfix_boost (= user
+        // wanted them back). Reads quickfix_boost directly to avoid
+        // a dep cycle.
+        for ln in QUICKFIX_BOOST_TSV.lines() {
+            if ln.is_empty() || ln.starts_with('#') { continue; }
+            let mut it = ln.split('\t');
+            let code = it.next();
+            let word = it.next();
+            if let (Some(c), Some(w)) = (code, word) {
+                s.remove(&(c.to_owned(), w.to_owned()));
             }
         }
         s

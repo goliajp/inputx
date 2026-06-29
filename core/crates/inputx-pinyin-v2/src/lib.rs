@@ -382,26 +382,21 @@ fn compose_greedy(buffer: &str) -> Option<(String, f64, u8)> {
     let bytes = buffer.as_bytes();
     let mut composed_word = String::new();
     let mut piece_count: u32 = 0;
+    let mut word_piece_count: u32 = 0;
     let mut max_tier: u8 = 0;
     let mut cursor = 0;
     while cursor < bytes.len() {
         let remaining = &buffer[cursor..];
-        let mut best: Option<(usize, String, u8)> = None;
-        // Try longest prefix first.
+        let mut best: Option<(usize, String, u8, bool /*is_word*/)> = None;
         for len in (1..=remaining.len()).rev() {
             let prefix = &remaining[..len];
-            // Word match takes priority.
             if let Some(rows) = code_index().get(prefix) {
                 if let Some(top) = rows.iter().min_by_key(|w| w.tier) {
-                    best = Some((len, top.word.clone(), top.tier));
+                    best = Some((len, top.word.clone(), top.tier, true));
                     break;
                 }
             }
-            // Else single-char match. Pick by (tier asc, non-HSK after
-            // HSK, primary before secondary) so 我 wins 卧 at `wo`.
             if let Some(chars) = char_index().get(prefix) {
-                // Phase 7c.1: 4-key sort — char_tier asc, HSK asc,
-                // primary first, word-prominence desc.
                 if let Some(top) = chars
                     .iter()
                     .min_by_key(|c| {
@@ -411,20 +406,28 @@ fn compose_greedy(buffer: &str) -> Option<(String, f64, u8)> {
                         (c.char_tier, hsk_rank, !c.is_primary, prominence_inv)
                     })
                 {
-                    best = Some((len, top.ch.to_string(), top.char_tier));
+                    best = Some((len, top.ch.to_string(), top.char_tier, false));
                     break;
                 }
             }
         }
-        let (consumed, piece, tier) = best?;
+        let (consumed, piece, tier, is_word) = best?;
         composed_word.push_str(&piece);
         piece_count += 1;
+        if is_word { word_piece_count += 1; }
         if tier > max_tier {
             max_tier = tier;
         }
         cursor += consumed;
     }
     if piece_count <= 1 {
+        return None;
+    }
+    // Phase 7c.8: ≥1 word-piece rule. Pure char+char compositions
+    // surface corpus-noise like 次贫 / 弹片 / 较著 — single-char pairs
+    // that aren't real words. Mixed (你好+吗) or word+word (今天+我们)
+    // still allowed.
+    if word_piece_count == 0 {
         return None;
     }
     let score = 300_000.0
@@ -791,11 +794,15 @@ mod tests {
 
     #[test]
     fn composition_uses_hsk_char_picking() {
-        // Phase 6: 我的好 (我 HSK 1 + 的 HSK 1 + 好 HSK 1) not 卧得号.
+        // Phase 6 original: 我的好 (我 + 的 + 好) shown.
+        // Phase 7c.8 ≥1 word-piece rule: pure char+char+char rejected
+        // (`wodehao` doesn't contain any multi-char word piece). The
+        // HSK char picking invariant is now indirectly tested via
+        // `hsk_char_overlay_wo_yields_wo_first` (path 1b char query
+        // for buffer "wo"). composition test deprecated for pure-char
+        // sequences.
         let q = query("wodehao");
         let words: Vec<&str> = q.iter().map(|(w, _, _)| w.as_str()).collect();
-        assert!(words.contains(&"我的好"),
-            "composition picked HSK chars: {words:?}");
         assert!(!words.contains(&"卧得号"),
             "composition should NOT pick non-HSK chars when HSK option exists");
     }
