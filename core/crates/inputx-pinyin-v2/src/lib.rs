@@ -234,9 +234,19 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
     //    results, surface words/chars whose code or reading STARTS WITH
     //    the buffer. Capped at PREFIX_CAP to avoid flooding short
     //    buffers ("z" matches 10k+ entries).
+    //
+    // Suppression rule (Phase 7c.3): if buffer is already a "complete
+    // current input" — either a valid syllable (char_index hit) or an
+    // exact-code multi-syllable word (code_index hit) — the user is
+    // composing a CURRENT candidate, not asking for prefix extensions.
+    // Skip path 6 so:
+    //   zhong     → 中/众/终 only, not 中国/中午
+    //   lianxiang → 联想 only, not 联想学习/联想起
+    let has_exact_syllable = char_index().contains_key(buffer)
+        || code_index().contains_key(buffer);
     const PREFIX_CAP: usize = 30;
     let mut prefix_added = 0;
-    if !buffer.is_empty() {
+    if !buffer.is_empty() && !has_exact_syllable {
         // Word prefix matches — iterate words.tsv, filter by starts_with.
         let mut prefix_words: Vec<&data::WordEntry> = data::words()
             .iter()
@@ -311,6 +321,17 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
         } else {
             seen.insert(word_k.clone());
             out.push((word_k.clone(), boost_score, 0));
+        }
+    }
+
+    // Apply prior_corrections globally (Phase 7c.2). Q4 log-units boost,
+    // mapped to v2 linear score as boost_q4 * 1000 (so e.g. 继续 +17 →
+    // +17k score, comfortably within tier band but enough to flip a
+    // mis-ordered pair).
+    let priors = data::prior_corrections();
+    for entry in out.iter_mut() {
+        if let Some(&boost_q4) = priors.get(&entry.0) {
+            entry.1 += (boost_q4 as f64) * 1000.0;
         }
     }
 
