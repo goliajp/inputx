@@ -425,6 +425,8 @@ mod tests {
             // Polish 2026-06-30: user "lianxu 连续 >> 怜恤" — 连续 HSK 4
             // 强 boost,怜恤 文言 tier_overlay → 5 (双管齐下 since >>).
             ("lianxu", "连续"),
+            // Polish 2026-06-30: "shenru 深入 > 渗入 > 慎入".
+            ("shenru", "深入"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
