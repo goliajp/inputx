@@ -184,6 +184,11 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
             if ce.hsk_level > 0 && tier == ce.char_tier {
                 score += (7.0 - ce.hsk_level as f64) * 5_000.0;
             }
+            // Word-prominence tiebreaker (Phase 7c.1): HSK-weighted
+            // sum of word containments. Cap at +20k so it never crosses
+            // a full 30k tier boundary.
+            let prominence = *char_word_count().get(&ce.ch).unwrap_or(&0);
+            score += (prominence as f64).min(20_000.0);
             out.push((key, score, tier));
         }
     }
@@ -353,11 +358,15 @@ fn compose_greedy(buffer: &str) -> Option<(String, f64, u8)> {
             // Else single-char match. Pick by (tier asc, non-HSK after
             // HSK, primary before secondary) so 我 wins 卧 at `wo`.
             if let Some(chars) = char_index().get(prefix) {
+                // Phase 7c.1: 4-key sort — char_tier asc, HSK asc,
+                // primary first, word-prominence desc.
                 if let Some(top) = chars
                     .iter()
                     .min_by_key(|c| {
                         let hsk_rank = if c.hsk_level == 0 { 99 } else { c.hsk_level };
-                        (c.char_tier, hsk_rank, !c.is_primary)
+                        let prominence_inv = u32::MAX
+                            .saturating_sub(*char_word_count().get(&c.ch).unwrap_or(&0));
+                        (c.char_tier, hsk_rank, !c.is_primary, prominence_inv)
                     })
                 {
                     best = Some((len, top.ch.to_string(), top.char_tier));
@@ -429,6 +438,38 @@ struct CharLookupRow {
     /// rank above same-tier non-HSK chars so 我 beats 卧 at `wo`.
     hsk_level: u8,
     is_primary: bool,
+}
+
+/// Lazy index: char → HSK-weighted word-containment score. Higher =
+/// more central to common modern usage.
+///
+/// Formula: for each word containing the char, add:
+///   tier 1 (HSK 1-2 multi-char): weight 1000
+///   tier 2 (HSK 3-4): weight 300
+///   tier 3 (HSK 5-6): weight 100
+///   tier 4+: 1
+///
+/// Total word count alone misled (十 in many number compounds inflates
+/// it above 是); HSK-tier-weighted signal is closer to "is this char
+/// part of words a learner / daily user encounters".
+fn char_word_count() -> &'static std::collections::HashMap<char, u32> {
+    use std::collections::HashMap;
+    static CACHED: OnceLock<HashMap<char, u32>> = OnceLock::new();
+    CACHED.get_or_init(|| {
+        let mut m: HashMap<char, u32> = HashMap::with_capacity(8200);
+        for w in data::words() {
+            let weight = match w.tier {
+                1 => 1000,
+                2 => 300,
+                3 => 100,
+                _ => 1,
+            };
+            for c in w.word.chars() {
+                *m.entry(c).or_insert(0) += weight;
+            }
+        }
+        m
+    })
 }
 
 fn char_index() -> &'static std::collections::HashMap<String, Vec<CharLookupRow>> {
