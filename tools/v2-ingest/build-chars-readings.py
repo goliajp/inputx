@@ -21,11 +21,26 @@ Outputs (to core/crates/inputx-pinyin-v2/data/):
 
 from __future__ import annotations
 from pathlib import Path
+import json
 import sys
 
 HERE = Path(__file__).resolve().parent
 SRC = HERE / "sources"
 OUT = HERE.parents[1] / "core/crates/inputx-pinyin-v2/data"
+
+
+def load_hsk_chars() -> dict[str, int]:
+    """Return {single-char ∈ HSK → level}. Only 1-char entries."""
+    out: dict[str, int] = {}
+    for level in range(1, 7):
+        p = SRC / f"{level}.json"
+        if not p.exists():
+            continue
+        for entry in json.loads(p.read_text()):
+            w = entry.get("simplified", "")
+            if len(w) == 1 and w not in out:
+                out[w] = level
+    return out
 
 
 def read_level(path: Path) -> list[str]:
@@ -89,6 +104,11 @@ def main() -> int:
     k_mandarin = parse_unihan(SRC / "kMandarin_8105.txt")
     print(f"[ingest] kMandarin entries: {len(k_mandarin)}", file=sys.stderr)
 
+    # 2b. HSK 2.0 single-char overlay — gives muscle-memory tier-internal
+    # ordering signal: 我 (HSK 1) > 卧 (not HSK) at the same 通用规范 tier 1.
+    hsk_chars = load_hsk_chars()
+    print(f"[ingest] HSK single-char entries: {len(hsk_chars)}", file=sys.stderr)
+
     # 3. full polyphone readings — kHanyuPinyin (汉语大字典).
     k_hanyu = parse_unihan(SRC / "kHanyuPinyin.txt")
     print(f"[ingest] kHanyuPinyin entries: {len(k_hanyu)}", file=sys.stderr)
@@ -103,10 +123,12 @@ def main() -> int:
     chars_path = OUT / "chars.tsv"
     n_chars = 0
     n_missing_reading = 0
+    n_hsk_overlay = 0
     with chars_path.open("w") as f:
-        f.write("# char\\tcodepoint\\ttier\\tcanonical_reading\n")
-        f.write("# Source: 通用规范汉字表 2013 (3500/3000/1605) + mozillazg/pinyin-data kMandarin_8105\n")
-        # Order: t1 (sorted by codepoint), t2, t3
+        f.write("# char\\tcodepoint\\ttier\\thsk_level\\tcanonical_reading\n")
+        f.write("# tier: 1/2/3 from 通用规范汉字表 一/二/三级\n")
+        f.write("# hsk_level: 0=non-HSK, 1-6 HSK 2.0 single-char level\n")
+        f.write("# Source: 通用规范汉字表 2013 + mozillazg kMandarin_8105 + HSK 2.0\n")
         for tier_n, level_set in [(1, chars_t1), (2, chars_t2), (3, chars_t3)]:
             for ch in sorted(level_set, key=ord):
                 cp = ord(ch)
@@ -116,9 +138,12 @@ def main() -> int:
                     canonical = ""
                 else:
                     canonical = readings[0]
-                f.write(f"{ch}\t{cp:04X}\t{tier_n}\t{canonical}\n")
+                hsk_lvl = hsk_chars.get(ch, 0)
+                if hsk_lvl:
+                    n_hsk_overlay += 1
+                f.write(f"{ch}\t{cp:04X}\t{tier_n}\t{hsk_lvl}\t{canonical}\n")
                 n_chars += 1
-    print(f"[ingest] wrote {chars_path} — {n_chars} chars ({n_missing_reading} without kMandarin reading)", file=sys.stderr)
+    print(f"[ingest] wrote {chars_path} — {n_chars} chars ({n_missing_reading} missing reading, {n_hsk_overlay} HSK overlay)", file=sys.stderr)
 
     # === readings.tsv ===
     # For each char in chars 一/二/三级 set, emit each reading as a row.

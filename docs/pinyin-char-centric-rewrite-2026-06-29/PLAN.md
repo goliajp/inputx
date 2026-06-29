@@ -65,8 +65,9 @@ Wire 点: `core/crates/inputx-core/src/composite/pinyin_adapter.rs::refresh_cand
 | 3 | v2 Path-1 lookup (exact-code words + single-syllable chars) | **DONE 2026-06-29** |
 | 4 | v2 path 1c initials reverse-lookup (wsm → 为什么) | **DONE 2026-06-29** |
 | 5 | v2 path 5 multi-syllable composition (greedy longest-prefix) | **DONE 2026-06-29** |
-| 6 | tier 内 ranking (HSK 字表 + personal freq 主导) | next |
-| 7 | v1 → v2 切换为 default,v1 转 deprecation | |
+| 6 | tier 内 ranking — HSK 字表 overlay (muscle memory) | **DONE 2026-06-29** |
+| 6.5 | personal freq runtime overlay | (deferred) |
+| 7 | v1 → v2 切换为 default,v1 转 deprecation | next |
 | 8 | v1 crate 删除,corpus-digest pipeline 退役 | |
 
 ## 不在 scope
