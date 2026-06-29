@@ -2678,6 +2678,7 @@ mod tests {
             ("bang", &["陈情"]),     // phrase hijacking a pinyin buffer
             ("gang", &["开怀"]),     // phrase hijacking a pinyin buffer
             ("suan", &["西装革履"]), // phrase hijacking a pinyin buffer
+            ("duan", &["雄姿英发"]), // 2026-06-29: wubi 4-char DUAN collides with pinyin duan
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
