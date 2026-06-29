@@ -1,11 +1,19 @@
 //! Inputx pinyin engine **v2** — char-centric data model.
 //!
 //! This crate is the v2 of the pinyin engine, built parallel to the
-//! legacy `inputx-pinyin` crate (v1). The v1/v2 switch is wired through
-//! `INPUTX_PINYIN_VERSION`:
+//! legacy `inputx-pinyin` crate (v1). The v1/v2 switch resolves
+//! through this precedence (first hit wins):
 //!
-//! - **unset / `v1`** (default) → composite layer uses v1 path.
-//! - **`v2`** → composite layer routes through this crate.
+//! 1. `INPUTX_PINYIN_VERSION` env var — `v2`/`V2`/`2` → v2; `v1`/`V1`/`1` → v1.
+//! 2. `$XDG_CONFIG_HOME/inputx/pinyin-version` file (default
+//!    `~/.config/inputx/pinyin-version`) — same accepted strings.
+//! 3. `~/Library/Application Support/Inputx/pinyin-version` — macOS
+//!    IME daemon reads this on launch (LaunchAgent can't easily pass
+//!    env vars).
+//! 4. **default = v1**.
+//!
+//! Probes / CLIs accept `--pinyin v1|v2` and set the env var before
+//! resolution — same as 1.
 //!
 //! ## Phase 0 status
 //!
@@ -31,12 +39,49 @@
 
 use std::sync::OnceLock;
 
-/// Read `INPUTX_PINYIN_VERSION` once and cache. Default v1.
+fn parse_token(s: &str) -> Option<bool> {
+    let s = s.trim();
+    match s {
+        "v2" | "V2" | "2" => Some(true),
+        "v1" | "V1" | "1" => Some(false),
+        _ => None,
+    }
+}
+
+fn resolve_from_config_files() -> Option<bool> {
+    let home = std::env::var_os("HOME")?;
+    let home = home.to_string_lossy().into_owned();
+    let xdg = std::env::var("XDG_CONFIG_HOME").ok();
+    let candidates: [String; 3] = [
+        xdg.map(|x| format!("{}/inputx/pinyin-version", x))
+            .unwrap_or_else(|| format!("{}/.config/inputx/pinyin-version", home)),
+        format!("{}/.config/inputx/pinyin-version", home),
+        format!("{}/Library/Application Support/Inputx/pinyin-version", home),
+    ];
+    for path in candidates {
+        if let Ok(content) = std::fs::read_to_string(&path) {
+            if let Some(v) = parse_token(&content) {
+                return Some(v);
+            }
+        }
+    }
+    None
+}
+
+/// Resolve v1 / v2 selection via the precedence documented in
+/// the crate-level docs. Read once and cache.
 pub fn enabled() -> bool {
     static CACHED: OnceLock<bool> = OnceLock::new();
-    *CACHED.get_or_init(|| match std::env::var("INPUTX_PINYIN_VERSION") {
-        Ok(s) => matches!(s.as_str(), "v2" | "V2" | "2"),
-        Err(_) => false,
+    *CACHED.get_or_init(|| {
+        if let Ok(s) = std::env::var("INPUTX_PINYIN_VERSION") {
+            if let Some(v) = parse_token(&s) {
+                return v;
+            }
+        }
+        if let Some(v) = resolve_from_config_files() {
+            return v;
+        }
+        false
     })
 }
 
@@ -83,6 +128,20 @@ mod tests {
         // tests with a fresh process. Just sanity-check the function
         // is callable.
         let _ = enabled();
+    }
+
+    #[test]
+    fn parse_token_matches_accepted_strings() {
+        assert_eq!(parse_token("v2"), Some(true));
+        assert_eq!(parse_token("V2"), Some(true));
+        assert_eq!(parse_token("2"), Some(true));
+        assert_eq!(parse_token("v1"), Some(false));
+        assert_eq!(parse_token("V1"), Some(false));
+        assert_eq!(parse_token("1"), Some(false));
+        assert_eq!(parse_token("  v2 \n"), Some(true), "trim whitespace");
+        assert_eq!(parse_token("on"), None);
+        assert_eq!(parse_token(""), None);
+        assert_eq!(parse_token("3"), None);
     }
 
     #[test]
