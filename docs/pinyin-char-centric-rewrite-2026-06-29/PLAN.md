@@ -68,8 +68,8 @@ Wire 点: `core/crates/inputx-core/src/composite/pinyin_adapter.rs::refresh_cand
 | 6 | tier 内 ranking — HSK 字表 overlay (muscle memory) | **DONE 2026-06-29** |
 | 6.5 | personal freq runtime overlay | (deferred) |
 | 7 | v1 → v2 切换为 default | **blocked by feature gap**, 见 PHASE-7-blocker.md |
-| 7a | v2 加 polish overlay (tier_overlay + quickfix_boost) 读 | next |
-| 7b | v2 加 prefix completion (path 3) | |
+| 7a | v2 加 polish overlay (tier_overlay + quickfix_boost) 读 | **DONE 2026-06-29** (58 → 43) |
+| 7b | v2 加 prefix completion (path 3) | **DONE 2026-06-29** (43 → 40) |
 | 7c | v2 加 fuzzy (path 1b consonant-prefix) | |
 | 7d | v2 加 L0 user pin session state | |
 | 7e | v2 加 bigram personal context | |

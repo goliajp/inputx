@@ -224,6 +224,72 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
         }
     }
 
+    // 6. Prefix completion (Phase 7b). When buffer doesn't fully match
+    //    any syllable (e.g. "zho" / "zhon" / "z") OR returns thin
+    //    results, surface words/chars whose code or reading STARTS WITH
+    //    the buffer. Capped at PREFIX_CAP to avoid flooding short
+    //    buffers ("z" matches 10k+ entries).
+    const PREFIX_CAP: usize = 30;
+    let mut prefix_added = 0;
+    if !buffer.is_empty() {
+        // Word prefix matches — iterate words.tsv, filter by starts_with.
+        let mut prefix_words: Vec<&data::WordEntry> = data::words()
+            .iter()
+            .filter(|w| w.code.starts_with(buffer) && w.code.as_str() != buffer)
+            .filter(|w| !seen.contains(&w.word))
+            .filter(|w| !data::exclusions().contains(&(buf_owned.clone(), w.word.clone())))
+            .collect();
+        // Tier asc, then code asc for determinism; pick top N.
+        prefix_words.sort_by(|a, b| {
+            a.tier.cmp(&b.tier)
+                .then_with(|| a.word.chars().count().cmp(&b.word.chars().count()))
+                .then_with(|| a.code.cmp(&b.code))
+        });
+        for w in prefix_words.iter().take(PREFIX_CAP) {
+            if !seen.insert(w.word.clone()) { continue; }
+            let tier = w.tier;
+            let score = 250_000.0 - (tier as f64) * 30_000.0;
+            let display_tier = tier.saturating_add(3).min(9);
+            out.push((w.word.clone(), score, display_tier));
+            prefix_added += 1;
+        }
+
+        // Char prefix matches — for single-letter buffers in particular.
+        // Iterate char_index keys, filter by starts_with.
+        let mut prefix_chars: Vec<(&str, &CharLookupRow)> = Vec::new();
+        for (bare, rows) in char_index() {
+            if !bare.starts_with(buffer) || bare.as_str() == buffer {
+                continue;
+            }
+            for ce in rows {
+                if seen.contains(&ce.ch.to_string()) { continue; }
+                if data::exclusions().contains(&(buf_owned.clone(), ce.ch.to_string())) { continue; }
+                prefix_chars.push((bare.as_str(), ce));
+            }
+        }
+        prefix_chars.sort_by(|a, b| {
+            let a_hsk = if a.1.hsk_level == 0 { 99u8 } else { a.1.hsk_level };
+            let b_hsk = if b.1.hsk_level == 0 { 99u8 } else { b.1.hsk_level };
+            a.1.char_tier.cmp(&b.1.char_tier)
+                .then_with(|| a_hsk.cmp(&b_hsk))
+                .then_with(|| (!a.1.is_primary).cmp(&!b.1.is_primary))
+        });
+        for (_, ce) in prefix_chars.iter().take(PREFIX_CAP) {
+            let key = ce.ch.to_string();
+            if !seen.insert(key.clone()) { continue; }
+            let tier = ce.char_tier;
+            let mut score = 200_000.0 - (tier as f64) * 30_000.0;
+            if !ce.is_primary { score -= 5_000.0; }
+            if ce.hsk_level > 0 {
+                score += (7.0 - ce.hsk_level as f64) * 5_000.0;
+            }
+            let display_tier = tier.saturating_add(3).min(9);
+            out.push((key, score, display_tier));
+            prefix_added += 1;
+        }
+    }
+    let _ = prefix_added;
+
     // 5. Quickfix boost (polish Class B): force candidate to tier 0
     //    (= absolute top across all engines, per WU-ψ tier model).
     for ((buf_k, word_k), boost_freq) in data::quickfix_boost().iter() {
