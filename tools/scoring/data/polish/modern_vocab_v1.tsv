@@ -527,3 +527,15 @@ wudayu	无大语	40000
 xueyalaman	血压拉满	40000
 xueyashangsheng	血压上升	40000
 youdaoyun	有道云	40000
+
+# 2026-06-30 polish-A v2 ingest gap closure: baseline tests reference
+# these words but CC-CEDICT 2026-06-22 doesn't carry them. v1 corpus had
+# them; v2 backfills via this supplemental.
+zhonghuaernv	中华儿女	30000
+daerzi	大儿子	22000
+daerxi	大儿媳	10000
+chakong	插空	25000
+kongdang	空荡	20000
+xuxian	许仙	18000
+tuidao	退到	16000
+juti	具体	50000

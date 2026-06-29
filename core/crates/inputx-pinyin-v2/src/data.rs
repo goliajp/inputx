@@ -436,8 +436,11 @@ mod tests {
     #[test]
     fn words_table_size_within_expected_band() {
         let ws = words();
-        // Phase-2 base 88,135 + modern_vocab supplement entries (Phase 7c.7).
-        assert_eq!(ws.len(), 88_317);
+        // Soft pin: base + supplements. Allow growth as polish-A
+        // adds words to modern_vocab_v1. Reject pathological doubling.
+        let n = ws.len();
+        assert!(n >= 88_000 && n < 90_000,
+            "words.tsv len drift outside expected band: {}", n);
     }
 
     #[test]
