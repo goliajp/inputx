@@ -73,7 +73,10 @@ Wire 点: `core/crates/inputx-core/src/composite/pinyin_adapter.rs::refresh_cand
 | 7c.1 | 单字 HSK-weighted prominence tiebreaker (shi→是 等) | **DONE 2026-06-29** (40 → 39) |
 | 7c.2 | prior_corrections_v1.tsv 读 (设计/继续 等 word boost) | **DONE 2026-06-29** (39 → 36) |
 | 7c.3 | 完整音节/词时 prefix completion 抑制 (zhong/lianxiang) | **DONE 2026-06-29** (36 → 34) |
-| 7c | v2 加 fuzzy (path 1b consonant-prefix / lue alias) | next |
+| 7c.4 | compose 校验 (composed word 必须在 buffer code 下存在) | **DONE 2026-06-30** (nuanhe → ∅) |
+| 7c.5 | lue/nue ↔ lve/nve fuzzy 规范化 | **DONE 2026-06-30** (celue → 策略) |
+| 7c.6 | compose tier ≥ 5 floor + prefix cap 30 (合计 word+char) | **DONE 2026-06-30** (34 → 29) |
+| 7c | 更全 fuzzy (南方音 z/zh 互换 / typo rescue) | next |
 | 7d | v2 加 L0 user pin session state | |
 | 7e | v2 加 bigram personal context | |
 | 7f | baseline 全 pass on v2 → 切 default | gate |
