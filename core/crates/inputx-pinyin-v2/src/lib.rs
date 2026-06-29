@@ -72,6 +72,13 @@ fn resolve_from_config_files() -> Option<bool> {
 
 /// Resolve v1 / v2 selection via the precedence documented in
 /// the crate-level docs. Read once and cache.
+///
+/// **Default flipped to v2** (2026-06-30, Phase 7 final) after the
+/// char-centric engine reached 357/357 baseline parity. Users wanting
+/// the legacy v1 path can opt out via:
+///   - `INPUTX_PINYIN_VERSION=v1` env var, or
+///   - `v1` written to `~/.config/inputx/pinyin-version`, or
+///   - `v1` written to `~/Library/Application Support/Inputx/pinyin-version`.
 pub fn enabled() -> bool {
     static CACHED: OnceLock<bool> = OnceLock::new();
     *CACHED.get_or_init(|| {
@@ -83,7 +90,7 @@ pub fn enabled() -> bool {
         if let Some(v) = resolve_from_config_files() {
             return v;
         }
-        false
+        true  // Phase 7 final: v2 is now the default.
     })
 }
 
