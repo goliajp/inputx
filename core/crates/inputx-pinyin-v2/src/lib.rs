@@ -375,26 +375,29 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
     }
     let _ = prefix_added;
 
-    // 5. Quickfix boost (polish Class B): force candidate to tier 0
-    //    (= absolute top across all engines, per WU-ψ tier model).
-    //    Note: tried additive-score semantic (closer to v1's MAX-freq
-    //    overlay) but it broke tests where the polish file boost was
-    //    set explicitly to make the word go #0 in v2's tier model.
-    //    The polish data is now effectively v2-aware via this contract.
+    // 5. Quickfix boost (polish Class B): promote to tier 1 (high
+    //    pinyin) without forcing tier 0. This preserves the WU-ψ wx>px
+    //    cross-engine rule — wubi simcode at tier 1 still beats pinyin
+    //    quickfix at tier 1 in mixed mode (e.g. an: wubi 世 #0 / pinyin
+    //    安 below). Pinyin-only mode ranking is unaffected.
+    //
+    //    Tier 1 also preserves polish-log semantics (boost-to-top of
+    //    pinyin pool, since most polish quickfix targets compete with
+    //    non-boosted pinyin candidates at tier 3-5).
     for ((buf_k, word_k), boost_freq) in data::quickfix_boost().iter() {
         if buf_k != buffer { continue; }
         if data::exclusions().contains(&(buf_owned.clone(), word_k.clone())) { continue; }
-        let boost_score = 600_000.0 + (*boost_freq as f64) / 100.0;
+        let boost_score = 540_000.0 + (*boost_freq as f64) / 100.0;
         if seen.contains(word_k) {
             if let Some(slot) = out.iter_mut().find(|(w, _, _)| w == word_k) {
                 if boost_score > slot.1 {
                     slot.1 = boost_score;
-                    slot.2 = 0;
+                    slot.2 = 1;
                 }
             }
         } else {
             seen.insert(word_k.clone());
-            out.push((word_k.clone(), boost_score, 0));
+            out.push((word_k.clone(), boost_score, 1));
         }
     }
 
