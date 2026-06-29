@@ -253,8 +253,8 @@ mod tests {
     #[test]
     fn words_table_size_within_expected_band() {
         let ws = words();
-        // Phase-2 ingest produced 88,097 words. Hard-pin for regen drift.
-        assert_eq!(ws.len(), 88_097);
+        // Phase-2 ingest (post Phase 4 HSK-cap relax) → 88,135 words.
+        assert_eq!(ws.len(), 88_135);
     }
 
     #[test]
@@ -262,10 +262,11 @@ mod tests {
         let ws = words();
         let mut by_t = [0usize; 10];
         for w in ws { by_t[w.tier as usize] += 1; }
-        // Hard pins per Phase 2 ingest output (CC-CEDICT 2026-06-22 + HSK 2.0):
-        assert_eq!(by_t[1], 146,   "tier 1 (HSK 1-2 multi-char)");
-        assert_eq!(by_t[2], 693,   "tier 2 (HSK 3-4 multi-char)");
-        assert_eq!(by_t[3], 3468,  "tier 3 (HSK 5-6 multi-char)");
+        // Hard pins per ingest output (CC-CEDICT 2026-06-22 + HSK 2.0
+        // with capitalized HSK pinyin accepted, e.g. 中国/北京/中文):
+        assert_eq!(by_t[1], 150,   "tier 1 (HSK 1-2 multi-char)");
+        assert_eq!(by_t[2], 702,   "tier 2 (HSK 3-4 multi-char)");
+        assert_eq!(by_t[3], 3493,  "tier 3 (HSK 5-6 multi-char)");
         assert_eq!(by_t[4], 49734, "tier 4 (cedict 2-char non-HSK)");
         assert_eq!(by_t[5], 31357, "tier 5 (cedict 3-4-char non-HSK)");
         assert_eq!(by_t[6], 2699,  "tier 6 (cedict 5+-char non-HSK)");

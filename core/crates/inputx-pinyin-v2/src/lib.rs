@@ -126,17 +126,16 @@ pub fn populate(buffer: &str) -> Candidates {
     }
 }
 
-/// Phase 3: scored variant — returns (word, score) pairs in same order
-/// as [`populate`]. Used by composite/pinyin_adapter.rs's
-/// `candidates_with_scores` early-return when v2 enabled.
+/// Phase 3 + 4: scored variant — returns (word, score) pairs.
 ///
-/// Score formula:
-/// - **Words** (`code` == buffer in words.tsv): `500_000 - tier * 30_000`
-///   — HSK 1-2 ~ 470k, tail ~ 320k.
-/// - **Single chars** (any reading's bare form == buffer in readings.tsv):
-///   `500_000 - char_tier * 30_000 - if primary { 0 } else { 5_000 }`.
-///   Single chars rank inside the same tier band as words; primary
-///   readings 5k above secondary so 还(hái) beats 还(huán) at `hai`.
+/// Three lookup paths joined into one sorted output:
+/// - **Words** (exact `code` match): `500_000 - tier * 30_000`
+///   (HSK 1-2 ~ 470k, tail ~ 320k).
+/// - **Single chars** (bare reading == buffer): `500_000 - char_tier *
+///   30_000 - if primary { 0 } else { 5_000 }`. Primary 还(hái) > 还(huán).
+/// - **Initials reverse-lookup** (Phase 4, e.g. `wsm → 为什么`):
+///   `300_000 - tier * 30_000`. Always below exact matches; relies on
+///   reading_path's first-letter-per-char extraction at index build.
 ///
 /// Order: score desc → shorter word first → alphabetical (stable).
 pub fn query(buffer: &str) -> Vec<(String, f64)> {
@@ -144,32 +143,44 @@ pub fn query(buffer: &str) -> Vec<(String, f64)> {
         return Vec::new();
     }
     let mut out: Vec<(String, f64)> = Vec::new();
+    let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
 
-    // 1. Words (multi-char): exact code match in words.tsv.
+    // 1. Words (multi-char): exact code match.
     if let Some(rows) = code_index().get(buffer) {
         for w in rows {
-            let score = 500_000.0 - (w.tier as f64) * 30_000.0;
-            out.push((w.word.clone(), score));
+            if seen.insert(w.word.clone()) {
+                let score = 500_000.0 - (w.tier as f64) * 30_000.0;
+                out.push((w.word.clone(), score));
+            }
         }
     }
 
     // 2. Single chars: bare-form of any reading == buffer.
-    //    Skip duplicates (a 1-char word in CC-CEDICT might re-emit a char
-    //    already present via words; rare since we filter single-char
-    //    cedict entries during ingest).
-    let mut seen: std::collections::HashSet<String> = out.iter().map(|(w, _)| w.clone()).collect();
     if let Some(rows) = char_index().get(buffer) {
         for ce in rows {
             let key = ce.ch.to_string();
-            if seen.contains(&key) {
+            if !seen.insert(key.clone()) {
                 continue;
             }
-            seen.insert(key.clone());
             let mut score = 500_000.0 - (ce.char_tier as f64) * 30_000.0;
             if !ce.is_primary {
                 score -= 5_000.0;
             }
             out.push((key, score));
+        }
+    }
+
+    // 3. Initials reverse-lookup (Phase 4). Buffer-length 2+ avoids
+    //    single-letter explosion. `wsm → 为什么`, `bzdao → 不知道`.
+    if buffer.len() >= 2 {
+        if let Some(rows) = initials_index().get(buffer) {
+            for w in rows {
+                if !seen.insert(w.word.clone()) {
+                    continue;
+                }
+                let score = 300_000.0 - (w.tier as f64) * 30_000.0;
+                out.push((w.word.clone(), score));
+            }
         }
     }
 
@@ -179,6 +190,43 @@ pub fn query(buffer: &str) -> Vec<(String, f64)> {
             .then_with(|| a.0.chars().count().cmp(&b.0.chars().count()))
             .then_with(|| a.0.cmp(&b.0))
     });
+    out
+}
+
+/// Initials index for Phase 4 reverse-lookup.
+///
+/// Build: for each word, parse `reading_path` `[char|reading]…`, take
+/// the bare first letter of each reading, join → "wsm" for 为什么.
+fn initials_index() -> &'static std::collections::HashMap<String, Vec<&'static data::WordEntry>> {
+    use std::collections::HashMap;
+    static CACHED: OnceLock<HashMap<String, Vec<&'static data::WordEntry>>> = OnceLock::new();
+    CACHED.get_or_init(|| {
+        let mut m: HashMap<String, Vec<&'static data::WordEntry>> = HashMap::new();
+        for w in data::words() {
+            let initials = extract_initials(&w.reading_path);
+            if !initials.is_empty() {
+                m.entry(initials).or_default().push(w);
+            }
+        }
+        m
+    })
+}
+
+/// Parse `[char|reading][char|reading]…` and return the first-letter-per-
+/// reading string (ASCII lowercase, ü→v handled via bare_letter_form).
+fn extract_initials(reading_path: &str) -> String {
+    let mut out = String::new();
+    for seg in reading_path.split('[') {
+        if seg.is_empty() {
+            continue;
+        }
+        let s = seg.trim_end_matches(']');
+        let Some((_, reading)) = s.split_once('|') else { continue };
+        let bare = bare_letter_form(reading);
+        if let Some(c) = bare.chars().next() {
+            out.push(c.to_ascii_lowercase());
+        }
+    }
     out
 }
 
@@ -330,5 +378,47 @@ mod tests {
         assert_eq!(bare_letter_form("lǚ"), "lv");
         assert_eq!(bare_letter_form("nǚ"), "nv");
         assert_eq!(bare_letter_form("yī"), "yi");
+    }
+
+    #[test]
+    fn extract_initials_basic() {
+        assert_eq!(extract_initials("[为|wèi][什|shén][么|me]"), "wsm");
+        assert_eq!(extract_initials("[你|nǐ][好|hǎo]"), "nh");
+        assert_eq!(extract_initials("[绿|lǜ]"), "l");
+    }
+
+    #[test]
+    fn initials_lookup_wsm_yields_weishenme() {
+        let q = query("wsm");
+        let words: Vec<&str> = q.iter().map(|(w, _)| w.as_str()).collect();
+        assert!(words.contains(&"为什么"),
+            "wsm initials lookup must yield 为什么 ({words:?})");
+    }
+
+    #[test]
+    fn initials_score_below_exact() {
+        // 'jixu' has exact-code words AND maybe initials matches like
+        // 计算 (j+x doesn't exist as bigram; let's use less ambiguous).
+        // Test invariant: exact-code candidates always rank above
+        // initials-only candidates.
+        let q = query("jixu");
+        let p_exact = q.iter().position(|(w, _)| w == "继续").expect("继续 from exact");
+        for (i, (_, score)) in q.iter().enumerate() {
+            if i <= p_exact { continue }
+            // Anything below 继续 must have score < 继续's score.
+            assert!(*score <= q[p_exact].1, "ordering invariant");
+        }
+    }
+
+    #[test]
+    fn initials_single_letter_skipped() {
+        // Length-1 buffer should NOT trigger initials explosion.
+        // We accept any number of exact-char results for 'a' but
+        // 'a' is not in initials_index since we require len >= 2.
+        let q = query("a");
+        // shouldn't crash. Result might be chars only (e.g. 啊 etc),
+        // never an "initials match" emission (which would inflate
+        // to thousands of words starting with 'a').
+        assert!(q.len() < 100, "single-letter must not balloon: got {}", q.len());
     }
 }

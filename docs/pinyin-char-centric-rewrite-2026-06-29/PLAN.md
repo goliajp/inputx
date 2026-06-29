@@ -63,8 +63,8 @@ Wire 点: `core/crates/inputx-core/src/composite/pinyin_adapter.rs::refresh_cand
 | 1 | chars + readings 表 ingest 8105 字 / 12149 readings | **DONE 2026-06-29** |
 | 2 | words 表 ingest 88,097 词 (CC-CEDICT + HSK 2.0 tier overlay) | **DONE 2026-06-29** |
 | 3 | v2 Path-1 lookup (exact-code words + single-syllable chars) | **DONE 2026-06-29** |
-| 4 | v2 path 1c initials reverse-lookup (从 readings.tsv 自然导出) | next |
-| 5 | v2 path 5 K-best (从 reading_path graph 走 Viterbi) | |
+| 4 | v2 path 1c initials reverse-lookup (wsm → 为什么) | **DONE 2026-06-29** |
+| 5 | v2 path 5 K-best (从 reading_path graph 走 Viterbi) | next |
 | 6 | tier 内 ranking (corpus 兜底 → personal freq 主导) | |
 | 7 | v1 → v2 切换为 default,v1 转 deprecation | |
 | 8 | v1 crate 删除,corpus-digest pipeline 退役 | |

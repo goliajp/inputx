@@ -206,7 +206,8 @@ def assign_tier(word: str, hsk_level: int | None) -> int:
 
 
 # ── Reject filters (CC-CEDICT noise classes) ─────────────────────
-def should_reject_pre_path(simp: str, syls: list[str], gloss: str) -> str | None:
+def should_reject_pre_path(simp: str, syls: list[str], gloss: str,
+                            hsk: dict[str, int]) -> str | None:
     """Cheap rejects before the (expensive) reading_path resolver.
     Returns reject reason or None to keep."""
     if len(simp) < 2:
@@ -218,8 +219,12 @@ def should_reject_pre_path(simp: str, syls: list[str], gloss: str) -> str | None
         return "old-variant"
     if gloss.startswith("see "):
         return "alias"
-    # Proper-noun pinyin (capitalized) — sound names, place names
-    if any(re.search(r"[A-Z]", s) for s in syls):
+    # Proper-noun pinyin (capitalized) — typically person/place names.
+    # CC-CEDICT capitalizes 中国/北京/中文/美国 too despite being common
+    # words — accept those via HSK presence (国家/语言/地名 in HSK 1-6
+    # are conceptually closer to common nouns than proper).
+    has_cap = any(re.search(r"[A-Z]", s) for s in syls)
+    if has_cap and simp not in hsk:
         return "proper-noun"
     # No Han chars (e.g., "3D打印")
     if not all('一' <= c <= '鿿' or '㐀' <= c <= '䶿' for c in simp):
@@ -244,7 +249,7 @@ def main() -> int:
     total = 0
     for simp, syls, gloss in parse_cedict(SRC / "cc-cedict.txt"):
         total += 1
-        reason = should_reject_pre_path(simp, syls, gloss)
+        reason = should_reject_pre_path(simp, syls, gloss, hsk)
         if reason:
             reject_reasons[reason] += 1
             continue
