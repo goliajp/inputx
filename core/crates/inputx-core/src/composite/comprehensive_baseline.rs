@@ -413,6 +413,12 @@ mod tests {
             // 邹韬奋 (obscure historical journalist name) deleted —
             // was leaking into the zouta prefix-completion top-N.
             ("zouta", "揍他"),
+            // Polish 2026-06-30: user "shima 是吗 这个拼音要有" —
+            // common question particle 是吗 (shì + ma) missing from
+            // CC-CEDICT/modern_vocab; user typed shima and saw only
+            // 时髦/视盲 (prefix from shimao/shimang). Added 是吗
+            // 50000 to modern_vocab_v1.tsv.
+            ("shima", "是吗"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
