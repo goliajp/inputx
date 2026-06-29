@@ -39,6 +39,8 @@
 
 use std::sync::OnceLock;
 
+pub mod data;
+
 fn parse_token(s: &str) -> Option<bool> {
     let s = s.trim();
     match s {
