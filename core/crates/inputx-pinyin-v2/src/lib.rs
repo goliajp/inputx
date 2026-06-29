@@ -120,13 +120,13 @@ pub fn populate(buffer: &str) -> Candidates {
         return Candidates::empty();
     }
     Candidates {
-        words: scored.into_iter().map(|(w, _)| w).collect(),
+        words: scored.into_iter().map(|(w, _, _)| w).collect(),
         has_non_speculative: true,
         composed_sentence: None,
     }
 }
 
-/// Phase 3 + 4: scored variant — returns (word, score) pairs.
+/// Phase 7a: scored variant — returns (word, score, tier) triples.
 ///
 /// Three lookup paths joined into one sorted output:
 /// - **Words** (exact `code` match): `500_000 - tier * 30_000`
@@ -138,19 +138,27 @@ pub fn populate(buffer: &str) -> Candidates {
 ///   reading_path's first-letter-per-char extraction at index build.
 ///
 /// Order: score desc → shorter word first → alphabetical (stable).
-pub fn query(buffer: &str) -> Vec<(String, f64)> {
+pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
     if buffer.is_empty() {
         return Vec::new();
     }
-    let mut out: Vec<(String, f64)> = Vec::new();
+    let mut out: Vec<(String, f64, u8)> = Vec::new();
     let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let buf_owned = buffer.to_owned();
 
     // 1. Words (multi-char): exact code match.
     if let Some(rows) = code_index().get(buffer) {
         for w in rows {
+            if data::exclusions().contains(&(buf_owned.clone(), w.word.clone())) {
+                continue;
+            }
             if seen.insert(w.word.clone()) {
-                let score = 500_000.0 - (w.tier as f64) * 30_000.0;
-                out.push((w.word.clone(), score));
+                let tier = data::tier_overlay()
+                    .get(&(buf_owned.clone(), w.word.clone()))
+                    .copied()
+                    .unwrap_or(w.tier);
+                let score = 500_000.0 - (tier as f64) * 30_000.0;
+                out.push((w.word.clone(), score, tier));
             }
         }
     }
@@ -159,52 +167,88 @@ pub fn query(buffer: &str) -> Vec<(String, f64)> {
     if let Some(rows) = char_index().get(buffer) {
         for ce in rows {
             let key = ce.ch.to_string();
+            if data::exclusions().contains(&(buf_owned.clone(), key.clone())) {
+                continue;
+            }
             if !seen.insert(key.clone()) {
                 continue;
             }
-            let mut score = 500_000.0 - (ce.char_tier as f64) * 30_000.0;
+            let tier = data::tier_overlay()
+                .get(&(buf_owned.clone(), key.clone()))
+                .copied()
+                .unwrap_or(ce.char_tier);
+            let mut score = 500_000.0 - (tier as f64) * 30_000.0;
             if !ce.is_primary {
                 score -= 5_000.0;
             }
-            // HSK char muscle-memory overlay: HSK 1 → +30k, HSK 6 → +5k,
-            // non-HSK → 0. Lifts 我 (HSK 1) over 卧 (non-HSK) at same
-            // 通用规范 tier 1.
-            if ce.hsk_level > 0 {
+            if ce.hsk_level > 0 && tier == ce.char_tier {
                 score += (7.0 - ce.hsk_level as f64) * 5_000.0;
             }
-            out.push((key, score));
+            out.push((key, score, tier));
         }
     }
 
-    // 3. Initials reverse-lookup (Phase 4). Buffer-length 2+ avoids
-    //    single-letter explosion. `wsm → 为什么`, `bzdao → 不知道`.
+    // 3. Initials reverse-lookup (Phase 4).
     if buffer.len() >= 2 {
         if let Some(rows) = initials_index().get(buffer) {
             for w in rows {
+                if data::exclusions().contains(&(buf_owned.clone(), w.word.clone())) {
+                    continue;
+                }
                 if !seen.insert(w.word.clone()) {
                     continue;
                 }
-                let score = 300_000.0 - (w.tier as f64) * 30_000.0;
-                out.push((w.word.clone(), score));
+                let tier = data::tier_overlay()
+                    .get(&(buf_owned.clone(), w.word.clone()))
+                    .copied()
+                    .unwrap_or(w.tier);
+                // Initials tier is +2 buckets to make sure exact match
+                // always sorts above (cross-engine merge primary is tier).
+                let display_tier = tier.saturating_add(2).min(9);
+                let score = 300_000.0 - (tier as f64) * 30_000.0;
+                out.push((w.word.clone(), score, display_tier));
             }
         }
     }
 
-    // 4. Composition (Phase 5). Greedy longest-prefix split into
-    //    words/chars; concat the pieces. e.g. `nihaoma` → 你好 + 吗 =
-    //    你好吗. Skip if buffer.len() < 4 (covered by exact paths)
-    //    or if a same-string result already exists.
+    // 4. Composition (Phase 5).
     if buffer.len() >= 4 {
-        if let Some((word, score)) = compose_greedy(buffer) {
-            if seen.insert(word.clone()) {
-                out.push((word, score));
+        if let Some((word, score, max_tier)) = compose_greedy(buffer) {
+            if !data::exclusions().contains(&(buf_owned.clone(), word.clone()))
+                && seen.insert(word.clone())
+            {
+                // Composition tier = max char tier + 1 (below exact)
+                let display_tier = max_tier.saturating_add(1).min(9);
+                out.push((word, score, display_tier));
             }
         }
     }
 
+    // 5. Quickfix boost (polish Class B): force candidate to tier 0
+    //    (= absolute top across all engines, per WU-ψ tier model).
+    for ((buf_k, word_k), boost_freq) in data::quickfix_boost().iter() {
+        if buf_k != buffer { continue; }
+        if data::exclusions().contains(&(buf_owned.clone(), word_k.clone())) { continue; }
+        let boost_score = 600_000.0 + (*boost_freq as f64) / 100.0;
+        if seen.contains(word_k) {
+            if let Some(slot) = out.iter_mut().find(|(w, _, _)| w == word_k) {
+                if boost_score > slot.1 {
+                    slot.1 = boost_score;
+                    slot.2 = 0;
+                }
+            }
+        } else {
+            seen.insert(word_k.clone());
+            out.push((word_k.clone(), boost_score, 0));
+        }
+    }
+
+    // Sort: tier asc, score desc, len asc, word asc — matches
+    // composite/merge.rs sort order so v2's intra-pinyin order stays
+    // stable when fed into the cross-engine merge.
     out.sort_by(|a, b| {
-        b.1.partial_cmp(&a.1)
-            .unwrap_or(std::cmp::Ordering::Equal)
+        a.2.cmp(&b.2)
+            .then_with(|| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal))
             .then_with(|| a.0.chars().count().cmp(&b.0.chars().count()))
             .then_with(|| a.0.cmp(&b.0))
     });
@@ -221,7 +265,7 @@ pub fn query(buffer: &str) -> Vec<(String, f64)> {
 ///
 /// Score: `300_000 - piece_count * 10_000 - max_tier * 5_000`. Always
 /// below exact-match band (320k+) and above initials reverse-lookup.
-fn compose_greedy(buffer: &str) -> Option<(String, f64)> {
+fn compose_greedy(buffer: &str) -> Option<(String, f64, u8)> {
     let bytes = buffer.as_bytes();
     let mut composed_word = String::new();
     let mut piece_count: u32 = 0;
@@ -269,7 +313,7 @@ fn compose_greedy(buffer: &str) -> Option<(String, f64)> {
     let score = 300_000.0
         - (piece_count as f64) * 10_000.0
         - (max_tier as f64) * 5_000.0;
-    Some((composed_word, score))
+    Some((composed_word, score, max_tier))
 }
 
 /// Initials index for Phase 4 reverse-lookup.
@@ -421,7 +465,7 @@ mod tests {
     fn query_returns_scored_pairs() {
         let q = query("nihao");
         assert!(!q.is_empty());
-        let (w, s) = &q[0];
+        let (w, s, _t) = &q[0];
         assert_eq!(w, "你好");
         assert!(*s > 300_000.0 && *s < 500_000.0, "score in expected band: {s}");
     }
@@ -440,8 +484,8 @@ mod tests {
     fn query_tier1_outranks_tier4() {
         // jixu: 继续 (HSK 4 → tier 2) should outrank 几许 (cedict, tier 4)
         let q = query("jixu");
-        let p_jixu = q.iter().position(|(w, _)| w == "继续").expect("继续 in result");
-        let p_jixu_lit = q.iter().position(|(w, _)| w == "几许").expect("几许 in result");
+        let p_jixu = q.iter().position(|(w, _, _)| w == "继续").expect("继续 in result");
+        let p_jixu_lit = q.iter().position(|(w, _, _)| w == "几许").expect("几许 in result");
         assert!(p_jixu < p_jixu_lit, "HSK 继续 must rank above non-HSK 几许");
     }
 
@@ -449,7 +493,7 @@ mod tests {
     fn query_single_syllable_returns_chars() {
         // duan: returns 短/段/断/端 single chars from readings.tsv.
         let q = query("duan");
-        let words: Vec<&str> = q.iter().map(|(w, _)| w.as_str()).collect();
+        let words: Vec<&str> = q.iter().map(|(w, _, _)| w.as_str()).collect();
         for expected in &["短", "段", "断", "端"] {
             assert!(words.contains(expected),
                 "duan must return single char {expected}; got {words:?}");
@@ -474,7 +518,7 @@ mod tests {
     #[test]
     fn initials_lookup_wsm_yields_weishenme() {
         let q = query("wsm");
-        let words: Vec<&str> = q.iter().map(|(w, _)| w.as_str()).collect();
+        let words: Vec<&str> = q.iter().map(|(w, _, _)| w.as_str()).collect();
         assert!(words.contains(&"为什么"),
             "wsm initials lookup must yield 为什么 ({words:?})");
     }
@@ -486,8 +530,8 @@ mod tests {
         // Test invariant: exact-code candidates always rank above
         // initials-only candidates.
         let q = query("jixu");
-        let p_exact = q.iter().position(|(w, _)| w == "继续").expect("继续 from exact");
-        for (i, (_, score)) in q.iter().enumerate() {
+        let p_exact = q.iter().position(|(w, _, _)| w == "继续").expect("继续 from exact");
+        for (i, (_, score, _)) in q.iter().enumerate() {
             if i <= p_exact { continue }
             // Anything below 继续 must have score < 继续's score.
             assert!(*score <= q[p_exact].1, "ordering invariant");
@@ -509,7 +553,7 @@ mod tests {
     #[test]
     fn composition_nihaoma_yields_nihao_plus_ma() {
         let q = query("nihaoma");
-        let words: Vec<&str> = q.iter().map(|(w, _)| w.as_str()).collect();
+        let words: Vec<&str> = q.iter().map(|(w, _, _)| w.as_str()).collect();
         assert!(words.contains(&"你好吗"),
             "nihaoma must compose into 你好吗 ({words:?})");
     }
@@ -521,7 +565,7 @@ mod tests {
         // Should NOT outrank single-word exact matches (none exist
         // for this buffer, but invariant must hold structurally).
         let q = query("jintianwomen");
-        if let Some((w, s)) = q.iter().find(|(w, _)| w == "今天我们") {
+        if let Some((w, s, _t)) = q.iter().find(|(w, _, _)| w == "今天我们") {
             assert!(*s < 320_000.0,
                 "composition score must be below exact match band: {w} = {s}");
         }
@@ -534,7 +578,7 @@ mod tests {
         let q = query("ni");
         // Composition would produce e.g. 你你 (greedy double); make
         // sure we DON'T emit such.
-        assert!(!q.iter().any(|(w, _)| w == "你你"),
+        assert!(!q.iter().any(|(w, _, _)| w == "你你"),
             "短 buffer 不应触发 composition");
     }
 
@@ -543,8 +587,8 @@ mod tests {
         // Phase 6: 我 (HSK 1) must rank above 卧 (non-HSK, same 通用规范
         // tier 1, same primary reading). Previously 卧 won by codepoint.
         let q = query("wo");
-        let p_wo = q.iter().position(|(w, _)| w == "我").expect("我 in result");
-        let p_wo_other = q.iter().position(|(w, _)| w == "卧").expect("卧 in result");
+        let p_wo = q.iter().position(|(w, _, _)| w == "我").expect("我 in result");
+        let p_wo_other = q.iter().position(|(w, _, _)| w == "卧").expect("卧 in result");
         assert!(p_wo < p_wo_other,
             "HSK 1 我 must beat non-HSK 卧 (got 我@{} 卧@{})", p_wo, p_wo_other);
     }
@@ -553,8 +597,8 @@ mod tests {
     fn hsk_char_overlay_hai_yields_hai_first() {
         // Phase 6: 还 (HSK 1) must rank above 亥 (non-HSK, same tier 1).
         let q = query("hai");
-        let p_hai = q.iter().position(|(w, _)| w == "还").expect("还 in result");
-        let p_hai_other = q.iter().position(|(w, _)| w == "亥").expect("亥 in result");
+        let p_hai = q.iter().position(|(w, _, _)| w == "还").expect("还 in result");
+        let p_hai_other = q.iter().position(|(w, _, _)| w == "亥").expect("亥 in result");
         assert!(p_hai < p_hai_other,
             "HSK 1 还 must beat non-HSK 亥 (got 还@{} 亥@{})", p_hai, p_hai_other);
     }
@@ -563,7 +607,7 @@ mod tests {
     fn composition_uses_hsk_char_picking() {
         // Phase 6: 我的好 (我 HSK 1 + 的 HSK 1 + 好 HSK 1) not 卧得号.
         let q = query("wodehao");
-        let words: Vec<&str> = q.iter().map(|(w, _)| w.as_str()).collect();
+        let words: Vec<&str> = q.iter().map(|(w, _, _)| w.as_str()).collect();
         assert!(words.contains(&"我的好"),
             "composition picked HSK chars: {words:?}");
         assert!(!words.contains(&"卧得号"),

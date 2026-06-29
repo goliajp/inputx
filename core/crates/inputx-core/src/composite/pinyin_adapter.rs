@@ -555,7 +555,23 @@ impl PinyinAdapter {
             let _ = prev_committed;
             return inputx_pinyin_v2::query(&self.buffer)
                 .into_iter()
-                .map(|(w, s)| (w, s, None))
+                .map(|(w, s, tier)| {
+                    // Construct ScoreComponents so cross-engine merge.rs
+                    // can sort by tier (its primary key) instead of
+                    // bottoming v2 entries at i32::MIN via None.
+                    let mut comp = super::merge::ScoreComponents::three_axis(
+                        // Q4 log-prior: encode tier as -tier*80 so lower
+                        // tier = higher log-prior contribution (matches
+                        // v1 Q4 magnitude band).
+                        -(tier as i32) * 80,
+                        // log_likelihood: small positive constant (Exact
+                        // match weight in v1 IDF).
+                        200,
+                        inputx_scoring::MatchType::Exact,
+                    );
+                    comp.tier = tier;
+                    (w, s, Some(comp))
+                })
                 .collect();
         }
         // Score exact-match entries via the dict; everything else

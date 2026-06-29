@@ -10,6 +10,13 @@ const CHARS_TSV: &str = include_str!("../data/chars.tsv");
 const READINGS_TSV: &str = include_str!("../data/readings.tsv");
 const WORDS_TSV: &str = include_str!("../data/words.tsv");
 
+// Polish overlay files. Same files v1 consumes, so polish edits apply
+// uniformly to v1 and v2 (per [[ranking-orthogonal-table-model]]:
+// per-(buffer, word) overrides are the only sanctioned data surface).
+const TIER_OVERLAY_TSV: &str = include_str!("../../../../tools/scoring/data/polish/tier_overlay.tsv");
+const QUICKFIX_BOOST_TSV: &str = include_str!("../../../../tools/scoring/data/polish/quickfix_boost.tsv");
+const EXCLUSIONS_TSV: &str = include_str!("../../../../tools/scoring/data/polish/exclusions_v1.tsv");
+
 /// One row of `chars.tsv`.
 #[derive(Debug, Clone)]
 pub struct CharEntry {
@@ -178,6 +185,73 @@ fn parse_words_tsv(text: &str) -> Vec<WordEntry> {
 pub fn words() -> &'static [WordEntry] {
     static CACHED: OnceLock<Vec<WordEntry>> = OnceLock::new();
     CACHED.get_or_init(|| parse_words_tsv(WORDS_TSV))
+}
+
+// ─── Polish overlay loaders ────────────────────────────────────
+
+/// `tier_overlay.tsv` row: (buffer, word) → override_tier.
+pub fn tier_overlay() -> &'static std::collections::HashMap<(String, String), u8> {
+    use std::collections::HashMap;
+    static CACHED: OnceLock<HashMap<(String, String), u8>> = OnceLock::new();
+    CACHED.get_or_init(|| {
+        let mut m = HashMap::new();
+        for ln in TIER_OVERLAY_TSV.lines() {
+            if ln.is_empty() || ln.starts_with('#') { continue; }
+            let mut it = ln.split('\t');
+            let buffer = it.next();
+            let word = it.next();
+            let tier_s = it.next();
+            if let (Some(b), Some(w), Some(t)) = (buffer, word, tier_s) {
+                if let Ok(tier) = t.trim().parse::<u8>() {
+                    m.insert((b.to_owned(), w.to_owned()), tier);
+                }
+            }
+        }
+        m
+    })
+}
+
+/// `quickfix_boost.tsv` row: (buffer, word) → boost_freq.
+pub fn quickfix_boost() -> &'static std::collections::HashMap<(String, String), u32> {
+    use std::collections::HashMap;
+    static CACHED: OnceLock<HashMap<(String, String), u32>> = OnceLock::new();
+    CACHED.get_or_init(|| {
+        let mut m = HashMap::new();
+        for ln in QUICKFIX_BOOST_TSV.lines() {
+            if ln.is_empty() || ln.starts_with('#') { continue; }
+            let mut it = ln.split('\t');
+            let buffer = it.next();
+            let word = it.next();
+            let freq_s = it.next();
+            if let (Some(b), Some(w), Some(f)) = (buffer, word, freq_s) {
+                if let Ok(freq) = f.trim().parse::<u32>() {
+                    m.insert((b.to_owned(), w.to_owned()), freq);
+                }
+            }
+        }
+        m
+    })
+}
+
+/// `exclusions_v1.tsv` set of (code, word) — entries hidden from Path-1
+/// top display (still kept for K-best / reverse-lookup in v1; in v2
+/// they're filtered from `query` output).
+pub fn exclusions() -> &'static std::collections::HashSet<(String, String)> {
+    use std::collections::HashSet;
+    static CACHED: OnceLock<HashSet<(String, String)>> = OnceLock::new();
+    CACHED.get_or_init(|| {
+        let mut s = HashSet::new();
+        for ln in EXCLUSIONS_TSV.lines() {
+            if ln.is_empty() || ln.starts_with('#') { continue; }
+            let mut it = ln.split('\t');
+            let code = it.next();
+            let word = it.next();
+            if let (Some(c), Some(w)) = (code, word) {
+                s.insert((c.to_owned(), w.to_owned()));
+            }
+        }
+        s
+    })
 }
 
 #[cfg(test)]
