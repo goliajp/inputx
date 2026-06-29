@@ -91,7 +91,7 @@ Wire 点: `core/crates/inputx-core/src/composite/pinyin_adapter.rs::refresh_cand
 | 7c.19 | cu/ao rare_jianma2 quickfix | **DONE 2026-06-30** (6 → 5) |
 | 7c.20 | 4 polish-A 词 + 4 rare-CJK 降 tier (sai 鳃/嘥/簺/僿) | **DONE 2026-06-30** (5 → 1) |
 | 7c.21 | populate() has_non_speculative 只在 exact 时 true (typing_g auto-commit 修) | **DONE 2026-06-30** (1 → 0) |
-| 7 | v1 → v2 切换为 default — **可以切了** | **READY** |
+| 7 | v1 → v2 切换为 default | **DONE 2026-06-30** (enabled() default=true) |
 | 8 | v1 crate 删除,corpus-digest pipeline 退役 | next |
 | 7d | v2 加 L0 user pin session state | |
 | 7e | v2 加 bigram personal context | |
