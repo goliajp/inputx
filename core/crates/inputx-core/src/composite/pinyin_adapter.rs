@@ -545,6 +545,19 @@ impl PinyinAdapter {
         if self.candidates.is_empty() || self.buffer.is_empty() {
             return Vec::new();
         }
+        // v2 wire (Phase 3, 2026-06-29). When v2 enabled, derive scored
+        // candidates from the char-centric query path. Skip the v1 IDF /
+        // bigram scoring stack entirely — v2's tier-based score is the
+        // sort key. prev_committed bigram bonus is a Phase 5+ feature in
+        // v2 (will read from a runtime personal-context table, not v1
+        // corpus bigrams).
+        if inputx_pinyin_v2::enabled() {
+            let _ = prev_committed;
+            return inputx_pinyin_v2::query(&self.buffer)
+                .into_iter()
+                .map(|(w, s)| (w, s, None))
+                .collect();
+        }
         // Score exact-match entries via the dict; everything else
         // (initials + prefix-completion injected entries) gets a small
         // floor so the cross-engine merge still ranks them.
