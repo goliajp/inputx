@@ -19205,9 +19205,11 @@
       "expected": "谢依特",
       "pinyin": "xieyite",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "谢依特"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1323",
@@ -23427,8 +23429,8 @@
   ],
   "stats": {
     "total": 1620,
-    "pass": 1406,
+    "pass": 1407,
     "soft": 188,
-    "hard": 26
+    "hard": 25
   }
 }
