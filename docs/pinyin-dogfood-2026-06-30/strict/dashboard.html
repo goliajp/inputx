@@ -26,7 +26,10 @@ header .sub { color: #8b949e; font-size: 12px; }
 .article .meta { font-size: 12px; color: #8b949e; margin-bottom: 12px; }
 .article details { margin-top: 12px; }
 .article summary { cursor: pointer; padding: 4px 0; color: #8b949e; font-size: 12px; }
-.article .raw { background: #0d1117; border-radius: 4px; padding: 10px; max-height: 160px; overflow-y: auto; font-size: 11px; color: #8b949e; white-space: pre-wrap; }
+.article .raw { background: #0d1117; border-radius: 4px; padding: 14px; max-height: 600px; overflow-y: auto; font-size: 13px; line-height: 1.7; color: #c9d1d9; white-space: pre-wrap; word-break: break-word; }
+.article .raw .hilite { background: rgba(86, 211, 100, 0.18); color: #56d364; padding: 0 2px; border-radius: 2px; font-weight: 600; }
+.article .raw .hilite-soft { background: rgba(210, 153, 34, 0.18); color: #d29922; padding: 0 2px; border-radius: 2px; font-weight: 600; }
+.article .raw .hilite-hard { background: rgba(248, 81, 73, 0.18); color: #f85149; padding: 0 2px; border-radius: 2px; font-weight: 600; }
 table { width: 100%; border-collapse: collapse; font-size: 12px; }
 th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #30363d; vertical-align: top; }
 th { color: #8b949e; font-weight: 500; background: #0d1117; position: sticky; top: 0; }
@@ -75,14 +78,14 @@ th { color: #8b949e; font-weight: 500; background: #0d1117; position: sticky; to
     <strong style="color: #56d364;">30/30 PASS (100%)</strong> ·
     SOFT 0 · HARD 0
   </div>
-  <details><summary>📖 Show raw article text (preview)</summary>
+  <details open><summary>📖 Full article text(绿/黄/红 = PASS/SOFT/HARD 已选 segment 高亮)</summary>
     <div class="raw">APT
 
-高级打包工具（英语：Advanced Packaging Tools，缩写为APT）是Debian及其派生的Linux软件包管理器。APT可以自动下载，配置，安装二进制或者源代码格式的软件包，因此简化了Unix系统上管理软件的过程。APT最早被设计成dpkg的前端，用来处理deb格式的软件包。现在经过APT-RPM组织修改，APT已经可以安装在支持RPM的系统管理RPM包。
+<span class="hilite">高级</span><span class="hilite">打包</span><span class="hilite">工具</span>（英语：Advanced Packaging Tools，<span class="hilite">缩写</span>为APT）是Debian及其<span class="hilite">派生</span>的Linux<span class="hilite">软件包</span><span class="hilite">管理器</span>。APT可以自动下载，配置，安装<span class="hilite">二进制</span>或者<span class="hilite">源代码</span>格式的<span class="hilite">软件包</span>，因此<span class="hilite">简化</span>了Unix系统上管理软件的<span class="hilite">过程</span>。APT<span class="hilite">最早</span>被设计成dpkg的<span class="hilite">前端</span>，用来处理deb格式的<span class="hilite">软件包</span>。现在<span class="hilite">经过</span>APT-RPM组织<span class="hilite">修改</span>，APT已经可以安装在<span class="hilite">支持</span>RPM的系统管理RPM包。
 
 
-== 构成 ==
-APT由以下的几个主要的命令构成：
+== <span class="hilite">构成</span> ==
+APT由以下的几个主要的命令<span class="hilite">构成</span>：
 
 apt-get
 apt-cache
@@ -90,25 +93,25 @@ apt-file
 在Debian系统中，APT建构于dpkg之上。
 
 
-== 安装源 ==
-APT的软件安装来源在Debian安装的时候即可进行初始设置，除了Debian官方的网络安装来源之外，也可以使用Debian的安装光盘，甚至可以从非官方的安装来源中下载非官方的软件。APT同时也可以从一些安装来源中下载源代码软件，并且自行编译、安装。
+== <span class="hilite">安装源</span> ==
+APT的软件安装来源在Debian安装的时候即可进行<span class="hilite">初始</span>设置，除了Debian<span class="hilite">官方</span>的网络安装来源之外，也可以使用Debian的<span class="hilite">安装光盘</span>，甚至可以从非<span class="hilite">官方</span>的安装来源中下载非<span class="hilite">官方</span>的软件。APT同时也可以从一些安装来源中下载<span class="hilite">源代码</span>软件，并且自行<span class="hilite">编译</span>、安装。
 
 
-== 依赖关系处理 ==
-APT会从每一个安装源下载一个软件包的列表。这个列表中有这个安装源所包含的可用软件包的信息。在可能的情况下，APT会安装最新的软件包，被安装的软件包所依赖的其他软件包也会被安装，建议安装的软件包则会在屏幕中显示但是不会被安装。不过在有一些情况下APT由于依赖关系不能安装软件包，例如：这个软件包和系统中的其他软件包冲突，或者这个软件包依赖的软件包在任何安装源中均不存在或没有要求的版本。在这种情况下，APT会返回错误信息并且中止，用户需要自行解决依赖问题。
+== <span class="hilite">依赖</span>关系处理 ==
+APT会从每一个<span class="hilite">安装源</span>下载一个<span class="hilite">软件包</span>的列表。这个列表中有这个<span class="hilite">安装源</span>所包含的可用<span class="hilite">软件包</span>的信息。在可能的情况下，APT会安装最新的<span class="hilite">软件包</span>，被安装的<span class="hilite">软件包</span>所<span class="hilite">依赖</span>的其他<span class="hilite">软件包</span>也会被安装，建议安装的<span class="hilite">软件包</span>则会在屏幕中显示但是不会被安装。不过在有一些情况下APT由于<span class="hilite">依赖</span>关系不能安装<span class="hilite">软件包</span>，例如：这个<span class="hilite">软件包</span>和系统中的其他<span class="hilite">软件包</span><span class="hilite">冲突</span>，或者这个<span class="hilite">软件包</span><span class="hilite">依赖</span>的<span class="hilite">软件包</span>在任何<span class="hilite">安装源</span>中均不<span class="hilite">存在</span>或没有要求的<span class="hilite">版本</span>。在这种情况下，APT会<span class="hilite">返回</span>错误信息并且中止，用户需要自行<span class="hilite">解决</span><span class="hilite">依赖</span>问题。
 
 
-== 软件包更新方式 ==
-Debian系统的一大特色即为“永不停机”，事实上，APT达到了这一点。在软件被升级的时候，它仍然可以继续服务。APT可以智能地从安装来源下载最新版本的软件并且安装，而无须在安装后重启电脑（除了更新Linux内核之外）。所有的配置都可以得到保留，升级软件不再是一个棘手的问题。
+== <span class="hilite">软件包</span>更新方式 ==
+Debian系统的一大特色即为“永不停机”，事实上，APT达到了这一点。在软件被升级的时候，它仍然可以继续服务。APT可以智能地从安装来源下载最新<span class="hilite">版本</span>的软件并且安装，而无须在安装后重启电脑（除了更新Linux内核之外）。所有的配置都可以得到保留，升级软件不再是一个棘手的问题。
 
 
-== 发行版升级 ==
-APT最使人称道的特点在于可以从一个Debian发行版升级到新的Debian发行版，例如从woody升级到sarge。APT可以升级绝大部分满足依赖关系的软件，但是也可能要删除，或添加新的软件以满足依赖关系。
+== <span class="hilite">发行版</span>升级 ==
+APT最使人称道的特点在于可以从一个Debian<span class="hilite">发行版</span>升级到新的Debian<span class="hilite">发行版</span>，例如从woody升级到sarge。APT可以升级绝大部分满足<span class="hilite">依赖</span>关系的软件，但是也可能要删除，或添加新的软件以满足<span class="hilite">依赖</span>关系。
 
 
-== 前端 ==
+== <span class="hilite">前端</span> ==
 
-APT拥有不少的前端程序：
+APT拥有不少的<span class="hilite">前端</span>程序：
 
 
 == 示例 ==
@@ -117,22 +120,109 @@ APT拥有不少的前端程序：
 === 搜索 ===
 在终端里输入：
 
-apt-cache search <package>
-这样系统会列出与<package>名称相匹配的包。
+apt-cache search &lt;package&gt;
+这样系统会列出与&lt;package&gt;名称相匹配的包。
 
 
 === 安装 ===
 在终端里输入：
 
-apt-get install <package>
-这样系统会自动下载<package>以及所有的依存包，同时进行包的安装。
+apt-get install &lt;package&gt;
+这样系统会自动下载&lt;package&gt;以及所有的依存包，同时进行包的安装。
 
 
 === 移除 ===
 在终端里输入：
 
-apt-get remove [--purge] <package>
-这样系统会自动移除<pack</div>
+apt-get remove [--purge] &lt;package&gt;
+这样系统会自动移除&lt;package&gt;以及任何依此存包的其它包。 --purge指明包应被完全清除。
+
+
+=== 升级 ===
+在终端里输入：
+
+apt-get update
+这样系统会自动由映射点更新包列表，如果想安装最新包，必须先运行一次。每次<span class="hilite">修改</span>了 /etc/apt/sources.list后，也必须执行一次。
+在终端里输入：
+
+apt-get upgrade [-u]
+这样系统会自动将所有已经安装在系统内的包升级为最新<span class="hilite">版本</span>。如果一个包改变了依存关系，而需要安装一个新的包时，它将不会被升级，而是标识成hold。如果某个包被设置hold标号，就不会被升级。
+在终端里输入：
+
+apt-get dist-upgrade [-u]
+和apt-get upgrade类似，dist-upgrade会安装和移除包来满足依存关系，因此具有一定的危险性。
+
+
+== 彩蛋 ==
+在终端输入apt-get -h会在末尾出现“This APT has super cow power”（本 APT 具有<span class="hilite">超级</span>牛力。）。
+在终端输入apt-get moo会在屏幕上显示一头牛，下方显示“Have you mooed today?”（您今天哞哞叫了吗？）。
+
+                 (__) 
+                 (oo) 
+           /------\/ 
+          / |    ||   
+         *  /\---/\ 
+            ~~   ~~   
+..."Have you mooed today?"...
+
+与apt-get相似的一个叫做aptitude的程序在aptitude -h的末尾加上了“This aptitude does not have Super Cow Powers.（这个aptitude没有<span class="hilite">超级</span>牛力）”。
+在后面加上moo（即输入aptitude moo），并且分别加上选项“-v”，“-vv”，“-vvv”，“-vvvv”，“-vvvvv”，“-vvvvvv”（即输入aptitude -v moo;输入aptitude -vv moo;等等），则会有如下输出：
+
+ $ aptitude moo
+ There are no Easter Eggs in this program.（此軟體沒有復活節彩蛋程式。）
+ $ aptitude -v moo
+ There really are no Easter Eggs in this program.（此軟體真的沒有復活節彩蛋程式。）
+ $ aptitude -vv moo
+ Didn't I already tell you that there are no Easter Eggs in this program?（我不是已經告訴你這個軟體真的沒有復活節彩蛋程式了嗎？）
+ $ aptitude -vvv moo
+ Stop it!（停啦！）
+ $ aptitude -vvvv moo
+ Okay, okay, if I give you an Easter Egg, will you go away?（好啦，好啦，如果我給你復活節彩蛋，你是不是就閃人？）
+ $ aptitude -vvvvv moo
+ All right, you win.（好啦，你赢了。）
+                               /----\
+                       -------/      \
+                      /               \
+                     /
+  |-----------------/                  --------\
+   ----------------------------------------------
+ $ aptitude -vvvvvv moo
+ What is it?  It's an elephant being eaten by a snake, of course.（這是什麼? 這當然是一隻大象被一隻蛇吞掉。）
+
+而apt系列的另一个名为"apt-build"的<span class="hilite">软件包</span>也具有相似的功能：
+
+ $ apt-build moo
+          (__)    ~
+          (oo)   /
+      _____\/___/
+     /  /\ / /
+    ~  /  * /
+      / ___/
+ *----/\
+     /  \
+    /   /
+   ~    ~
+ ..."Have you danced today? Discow!"...
+ （意为：今天你跳舞了吗？迪斯可！）
+
+软件编写者特地将Disco（迪斯可）一词改为"Discow"，以体现"Cow"（奶牛）之意。
+
+
+== 参见 ==
+
+Yum
+Debian
+Ubuntu
+
+
+== 参考文献 ==
+
+
+== 外部链接 ==
+apt(8) – Debian维护命令（Maintenance Commands）手册页
+APT HOWTO（页面存档备份，存于互联网档案馆）
+APT-RPM组织（页面存档备份，存于互联网档案馆）
+</div>
   </details>
   <table style="margin-top: 12px;">
     <thead><tr><th>#</th><th>Expected</th><th>Pinyin</th><th>Verdict</th><th>Top-10 (current)</th><th>Reason</th></tr></thead>

@@ -99,7 +99,10 @@ header .sub { color: #8b949e; font-size: 12px; }
 .article .meta { font-size: 12px; color: #8b949e; margin-bottom: 12px; }
 .article details { margin-top: 12px; }
 .article summary { cursor: pointer; padding: 4px 0; color: #8b949e; font-size: 12px; }
-.article .raw { background: #0d1117; border-radius: 4px; padding: 10px; max-height: 160px; overflow-y: auto; font-size: 11px; color: #8b949e; white-space: pre-wrap; }
+.article .raw { background: #0d1117; border-radius: 4px; padding: 14px; max-height: 600px; overflow-y: auto; font-size: 13px; line-height: 1.7; color: #c9d1d9; white-space: pre-wrap; word-break: break-word; }
+.article .raw .hilite { background: rgba(86, 211, 100, 0.18); color: #56d364; padding: 0 2px; border-radius: 2px; font-weight: 600; }
+.article .raw .hilite-soft { background: rgba(210, 153, 34, 0.18); color: #d29922; padding: 0 2px; border-radius: 2px; font-weight: 600; }
+.article .raw .hilite-hard { background: rgba(248, 81, 73, 0.18); color: #f85149; padding: 0 2px; border-radius: 2px; font-weight: 600; }
 table { width: 100%; border-collapse: collapse; font-size: 12px; }
 th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #30363d; vertical-align: top; }
 th { color: #8b949e; font-weight: 500; background: #0d1117; position: sticky; top: 0; }
@@ -194,7 +197,26 @@ def render_article(art: dict) -> str:
             f'</tr>'
         )
 
-    raw_preview = (art.get("raw_text", "") or "")[:1200]
+    # Build highlight map: word → verdict class for inline highlighting
+    raw = art.get("raw_text", "") or ""
+    # Escape HTML first
+    raw_escaped = (raw.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+    # Sort segments by word length desc to highlight longer compounds first (avoid partial matches)
+    seg_for_hilite = sorted(art["segments"], key=lambda s: -len(s["expected"]))
+    for s in seg_for_hilite:
+        w = (s["expected"].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+        cls = "hilite" if s["verdict"] == "PASS" else (
+            "hilite-soft" if s["verdict"] == "SOFT" else "hilite-hard"
+        )
+        # Replace all occurrences with wrapped span (be careful to avoid re-wrapping)
+        marker = f'\x00{cls}\x00{w}\x00END\x00'
+        raw_escaped = raw_escaped.replace(w, marker)
+    raw_escaped = raw_escaped.replace('\x00END\x00', '</span>')
+    raw_escaped = (raw_escaped
+        .replace('\x00hilite\x00', '<span class="hilite">')
+        .replace('\x00hilite-soft\x00', '<span class="hilite-soft">')
+        .replace('\x00hilite-hard\x00', '<span class="hilite-hard">'))
+
     return f"""
 <section class="article" id="art-{aid}">
   <h2>📄 {aid} — {title}</h2>
@@ -203,8 +225,8 @@ def render_article(art: dict) -> str:
     <strong style="color: {pass_color};">{stats["pass"]}/{stats["total"]} PASS ({pass_pct}%)</strong> ·
     SOFT {stats["soft"]} · HARD {stats["hard"]}
   </div>
-  <details><summary>📖 Show raw article text (preview)</summary>
-    <div class="raw">{raw_preview}</div>
+  <details open><summary>📖 Full article text(绿/黄/红 = PASS/SOFT/HARD 已选 segment 高亮)</summary>
+    <div class="raw">{raw_escaped}</div>
   </details>
   <table style="margin-top: 12px;">
     <thead><tr><th>#</th><th>Expected</th><th>Pinyin</th><th>Verdict</th><th>Top-10 (current)</th><th>Reason</th></tr></thead>
