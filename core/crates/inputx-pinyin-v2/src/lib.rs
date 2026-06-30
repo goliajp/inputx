@@ -429,6 +429,20 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
         }
     }
 
+    // Modern-freq tiebreaker — add per-word/char jieba percentile rank
+    // score (0..25000) to each candidate's score. Cap is strictly less
+    // than one tier step (30000), so this CANNOT cross tier boundaries
+    // — only reorders within same tier (sort key tier-first, then score).
+    // Words/chars not in modern corpus get +0 → naturally demoted
+    // within tier (古汉语 / 罕用 signal). See
+    // docs/pinyin-dogfood-2026-06-30/MODERN-FREQ-DESIGN.md.
+    let modern = data::modern_freq();
+    for entry in out.iter_mut() {
+        if let Some(&freq_score) = modern.get(&entry.0) {
+            entry.1 += freq_score as f64;
+        }
+    }
+
     // Sort: tier asc, score desc, len asc, word asc — matches
     // composite/merge.rs sort order so v2's intra-pinyin order stays
     // stable when fed into the cross-engine merge.

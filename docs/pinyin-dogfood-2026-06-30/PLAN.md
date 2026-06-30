@@ -13,6 +13,7 @@
 - 2026-06-30 iter#1 — 1.0 done. MODERN-FREQ-DESIGN.md written(区间 [0,25k]、percentile rank、6 sort sites 列清、anchor 验证 checklist)。Next: 1.1 build-modern-freq.py
 - 2026-06-30 iter#2 — 1.1 + 1.2 done(atomic)。脚本 + TSV 一次出。Anchor 分数:工期 21948 vs 共栖 12948、测试 24754 vs 侧室 20061、研究 24989 vs 烟酒 22142、流程 24142 vs 柳橙 15520。全部正向(高频 > 低频),可作 same-tier tiebreak。74.7% v2 vocab in jieba(其余 score 0,古汉语/罕用)。Next: 1.3 data.rs loader
 - 2026-06-30 iter#3 — 1.3 done。`modern_freq()` lazy HashMap loader 加 + `MODERN_FREQ_TSV` include。cargo build clean。Next: 1.4 wire 6 sort sites
+- 2026-06-30 iter#4 — 1.4 done。**设计简化**:不在 6 个 sort site 改,而在最后 sort 前统一 `entry.1 += modern_freq[w]`。一处 site 全覆盖。**gongqi 概念验证 ✓**:`共栖, 工期` → `工期, 共栖`(无 quickfix 助力,纯 modern_freq 翻转)。6 anchors 全 #0 正确。Next: 1.5 baseline 357
 
 ## Status legend
 - `[ ]` todo
@@ -46,7 +47,7 @@
 - [x] 1.1 Write `tools/v2-ingest/build-modern-freq.py`(read jieba dict + v2 words/chars → modern_freq.tsv)
 - [x] 1.2 Run script → 生成 `core/crates/inputx-pinyin-v2/data/modern_freq.tsv`(95870 行,74.7% in jieba)
 - [x] 1.3 `data.rs` 加 `modern_freq()` lazy loader(HashMap<String, u16>)
-- [WIP] 1.4 `lib.rs` 各 path 排序 key 加 modern_freq DESC 二维(6 个 site:exact / char / initials / prefix / compose / quickfix)
+- [x] 1.4 `lib.rs` 加 modern_freq score 注入(**design 简化**:不在 6 个 sort site 改,而在 prior_corrections loop 后统一 `entry.1 += modern_freq[word]`。所有 path 汇 `out`,一次 site 全覆盖,不漏。Cap 25k < tier 跨度 30k 保证不跨 tier)
 - [ ] 1.5 cargo build + baseline 357/0 ✓
 - [ ] 1.6 验证 anchor 翻转:gongqi→工期 / ceshi→测试 / liucheng→流程 / yanjiu→研究 / huluobo→胡萝卜(无 quickfix 帮助时也能自动正确)
 - [ ] 1.7 mac/reinstall.py + commit + push
