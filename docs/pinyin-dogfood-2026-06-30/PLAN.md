@@ -111,6 +111,7 @@
 
 > _(empty)_
 
+- [WIP] 5.7 Iter G:final batch before Phase 6 wrap
 - [x] 5.6 Iter F done。大 batch:50 modern_vocab(可用/中有/星系/检察长/已有/圣地亚哥/慕尼黑/阿肯色州/首名/英格兰/该次/净胜球/苏联/北京市/上赛季/升降级/宋朝/第三名/每轮/大西洋/该州/北美洲/该地/大碟/决出/第三位/单场/种子队/分组赛/四队/菲律宾/一颗/进球数/两队/维多利亚/是因为/主客场/决选/第二代/中以/最早/一词/之意/联同/四名/第一个/共和党/亿光年/北宋/之子)+ 4 quickfix(dan 但/zu 组/ci 此/ming 名)。1 retired(hao 号 撞 baseline)。**Run-008: PASS 71.7 → 72.0%(+0.3pp,HARD -245)**。Diminishing return 明显(每 batch 稳定 +0.2-0.3pp)。baseline 357/0 ✓ deploy ✓。Next: 5.7 决定 wrap or continue。
 
 ## Notes / 系统观察
