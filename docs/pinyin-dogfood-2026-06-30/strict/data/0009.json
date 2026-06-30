@@ -944,12 +944,40 @@
     },
     {
       "idx": "0071",
-      "expected": "一些",
-      "pinyin": "yixie",
-      "reason": "linear",
+      "expected": "一",
+      "pinyin": "yi",
+      "reason": "linear (split)",
       "top10": [
-        "一些",
-        "译写"
+        "些",
+        "写",
+        "鞋",
+        "斜",
+        "歇",
+        "屑",
+        "谢",
+        "协",
+        "邪",
+        "泄"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0071",
+      "expected": "些",
+      "pinyin": "xie",
+      "reason": "linear (split)",
+      "top10": [
+        "些",
+        "写",
+        "鞋",
+        "斜",
+        "歇",
+        "屑",
+        "谢",
+        "协",
+        "邪",
+        "泄"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -1168,16 +1196,43 @@
     },
     {
       "idx": "0087",
-      "expected": "之路",
-      "pinyin": "zhilu",
-      "reason": "linear",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear (split)",
       "top10": [
-        "指路",
-        "祉禄",
-        "秩禄"
+        "麓",
+        "路",
+        "露",
+        "录",
+        "陆",
+        "鲁",
+        "炉",
+        "鹿",
+        "卢",
+        "虏"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0087",
+      "expected": "路",
+      "pinyin": "lu",
+      "reason": "linear (split)",
+      "top10": [
+        "麓",
+        "路",
+        "露",
+        "录",
+        "陆",
+        "鲁",
+        "炉",
+        "鹿",
+        "卢",
+        "虏"
+      ],
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0088",
@@ -3274,16 +3329,43 @@
     },
     {
       "idx": "0242",
-      "expected": "之路",
-      "pinyin": "zhilu",
-      "reason": "linear",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear (split)",
       "top10": [
-        "指路",
-        "祉禄",
-        "秩禄"
+        "麓",
+        "路",
+        "露",
+        "录",
+        "陆",
+        "鲁",
+        "炉",
+        "鹿",
+        "卢",
+        "虏"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0242",
+      "expected": "路",
+      "pinyin": "lu",
+      "reason": "linear (split)",
+      "top10": [
+        "麓",
+        "路",
+        "露",
+        "录",
+        "陆",
+        "鲁",
+        "炉",
+        "鹿",
+        "卢",
+        "虏"
+      ],
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0243",
@@ -3648,9 +3730,9 @@
     }
   ],
   "stats": {
-    "total": 266,
-    "pass": 240,
-    "soft": 15,
-    "hard": 11
+    "total": 269,
+    "pass": 241,
+    "soft": 19,
+    "hard": 9
   }
 }

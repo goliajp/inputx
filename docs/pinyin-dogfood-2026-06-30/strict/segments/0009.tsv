@@ -71,7 +71,9 @@
 0068	面积	mianji	linear
 0069	多达	duoda	linear
 0070	公顷	gongqing	linear
-0071	一些	yixie	linear
+# SPLIT 0071	一些	yixie	linear
+0071	一	yi	linear (split)
+0071	些	xie	linear (split)
 0072	地区	diqu	linear
 0073	出现	chuxian	linear
 0074	了	le	linear
@@ -87,7 +89,9 @@
 0084	经验	jingyan	linear
 0085	探索	tansuo	linear
 0086	合作	hezuo	linear
-0087	之路	zhilu	linear
+# SPLIT 0087	之路	zhilu	linear
+0087	之	zhi	linear (split)
+0087	路	lu	linear (split)
 0088	中国	zhongguo	linear
 0089	以	yi	linear
 0090	实际	shiji	linear
@@ -242,7 +246,9 @@
 0239	以	yi	linear
 0240	可持续	kechixu	linear
 0241	发展	fazhan	linear
-0242	之路	zhilu	linear
+# SPLIT 0242	之路	zhilu	linear
+0242	之	zhi	linear (split)
+0242	路	lu	linear (split)
 0243	实现	shixian	linear
 0244	建设	jianshe	linear
 0245	绿色	lvse	linear

@@ -10521,15 +10521,29 @@
     },
     {
       "idx": "0760",
-      "expected": "既能",
-      "pinyin": "jineng",
-      "reason": "linear",
+      "expected": "既",
+      "pinyin": "ji",
+      "reason": "linear (split)",
       "top10": [
-        "技能",
-        "机能"
+        "能",
+        "而",
+        "耐"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0760",
+      "expected": "能",
+      "pinyin": "neng",
+      "reason": "linear (split)",
+      "top10": [
+        "能",
+        "而",
+        "耐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0761",
@@ -13839,9 +13853,9 @@
     }
   ],
   "stats": {
-    "total": 991,
-    "pass": 846,
+    "total": 992,
+    "pass": 848,
     "soft": 95,
-    "hard": 50
+    "hard": 49
   }
 }

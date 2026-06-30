@@ -37,7 +37,9 @@
 0034	上	shang	linear
 0035	开展	kaizhan	linear
 0036	的	de	linear
-0037	一项	yixiang	linear
+# SPLIT 0037	一项	yixiang	linear
+0037	一	yi	linear (split)
+0037	项	xiang	linear (split)
 0038	重大	zhongda	linear
 0039	国情	guoqing	linear
 0040	国力	guoli	linear
