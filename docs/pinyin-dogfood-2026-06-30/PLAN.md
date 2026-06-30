@@ -33,6 +33,7 @@
 - 2026-06-30 iter#20 — 5.4 done。Corpus 扩 140 articles → 72,064 segments(+24k)。Run-005 baseline 71.1%(扩大后 niche article 16 个,带新 HARD)。Iter D batch:12 modern_vocab(太平洋/作词/亚足联/奥运/甲级联赛/毛主席/德甲/广东省/射手榜/外围赛/靠前/中英街)+ 1 quickfix(qian 前 30k)。**Run-006: PASS 71.1 → 71.4%(+0.3pp,HARD -197)**。baseline 357/0 ✓ deploy ✓。Next: 5.5 batch 4 + framework gap 检查。
 - 2026-06-30 iter#21 — 5.5 done。Niche analysis:16 articles >100 HARD 占 68% segments。非 niche pure PASS 71.0%。31 modern_vocab cross-article HARD batch(存于/纪录/赛果/一项/四个/...第三/非洲/七月/印尼 等)。**Run-007: PASS 71.4 → 71.7%(+0.3pp,HARD -315)**。每 batch 增益 +0.2-0.3pp,但累计 effective(67.4% → 71.7%)。baseline 357/0 ✓ deploy ✓。Next: 5.6 next batch + diminishing return 检查。
 - 2026-06-30 iter#22 — 5.6 done。大 batch(50 mod_vocab + 4 quickfix,1 retired hao 号)。**Run-008: PASS 71.7 → 72.0%(+0.3pp,HARD -245)**。Diminishing return 验证(各 batch +0.2-0.3pp 稳定)。累计 6 batch 共 ~200 polish 行 → PASS 67.4 → 72.0%(+4.6pp)。baseline 357/0 ✓ deploy ✓。Next: 5.7 final batch + Phase 6 准备。
+- 2026-06-30 iter#23 — 5.7 done。Iter G batch:17 modern_vocab(大韩民国/检察工作/网络攻击/英联邦/清华大学/东南亚 等)。**Run-009: PASS 72.0 → 72.1%(+0.1pp,HARD -92)**。Diminishing return final acknowledge。**Phase 5 全 done 🎉**(7 iter,~220 polish 行)。累计 PASS 67.4 → 72.1%。Next: Phase 6.1 retire obsolete quickfix。
 
 ## Status legend
 - `[ ]` todo
@@ -111,7 +112,7 @@
 
 > _(empty)_
 
-- [WIP] 5.7 Iter G:final batch before Phase 6 wrap
+- [x] 5.7 Iter G done。17 modern_vocab(大韩民国/检察工作/网络攻击/英联邦/清华大学/东南亚/第三轮/一片/文件名/北平市/保障卡/运动型/西区/通联/涅瓦河/浦项/翰林院)。**Run-009: PASS 72.0 → 72.1%(+0.1pp,HARD -92)**。Phase 5 收尾,DR 明显。**Phase 5 全 done 🎉**。Next: 6.1 retire obsolete quickfix。
 - [x] 5.6 Iter F done。大 batch:50 modern_vocab(可用/中有/星系/检察长/已有/圣地亚哥/慕尼黑/阿肯色州/首名/英格兰/该次/净胜球/苏联/北京市/上赛季/升降级/宋朝/第三名/每轮/大西洋/该州/北美洲/该地/大碟/决出/第三位/单场/种子队/分组赛/四队/菲律宾/一颗/进球数/两队/维多利亚/是因为/主客场/决选/第二代/中以/最早/一词/之意/联同/四名/第一个/共和党/亿光年/北宋/之子)+ 4 quickfix(dan 但/zu 组/ci 此/ming 名)。1 retired(hao 号 撞 baseline)。**Run-008: PASS 71.7 → 72.0%(+0.3pp,HARD -245)**。Diminishing return 明显(每 batch 稳定 +0.2-0.3pp)。baseline 357/0 ✓ deploy ✓。Next: 5.7 决定 wrap or continue。
 
 ## Notes / 系统观察
