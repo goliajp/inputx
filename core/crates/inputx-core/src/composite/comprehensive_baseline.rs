@@ -480,6 +480,10 @@ mod tests {
             ("moerben", "墨尔本"),
             // Polish 2026-06-30: user "yanjiu 研究肯定要在烟酒前面".
             ("yanjiu", "研究"),
+            // Polish 2026-06-30: user "胡萝卜应该在日语前" — 55k tier-1
+            // calibration to beat JP exact-prefix kana (same as
+            // shijinsai 世锦赛 / jianma 简码 / fudu 复读 / aijie 娭毑).
+            ("huluobo", "胡萝卜"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
