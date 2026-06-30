@@ -86,10 +86,47 @@ H008	DONE	历史人文	http://www.people.com.cn/rss/history.xml	【见新见绿�
 I004	BLOCKED	旅游地理	http://www.people.com.cn/rss/travel.xml	陈凯歌在《道士下山》新闻发布会上推介仙都景区	1007	0	0	duplicate of I001
 I005	BLOCKED	旅游地理	http://www.people.com.cn/rss/travel.xml	高清：四川14岁女孩钢笔素描展示家乡美 令人惊叹	833	0	0	too short after nav strip (606<800)	
 I006	BLOCKED	旅游地理	http://www.people.com.cn/rss/travel.xml	河北野三坡景区建起287栋别墅 国有资产被转卖	1299	0	0	duplicate of I003
-I007	FETCHED	旅游地理	http://www.people.com.cn/rss/travel.xml	仙游文脉的话头	11003	0	0	
+I007	BLOCKED	旅游地理	http://www.people.com.cn/rss/travel.xml	仙游文脉的话头	11003	0	0	too big for single batch (defer until segmented processing)	
 I008	DONE	旅游地理	http://www.people.com.cn/rss/travel.xml	云上年货妙（云中漫笔）	1020	542	542	
 J004	BLOCKED	社会民生	http://www.people.com.cn/rss/society.xml	公安机关依法严厉打击破坏生态环境犯罪	1604	0	0	duplicate of J001
 J005	BLOCKED	社会民生	http://www.people.com.cn/rss/society.xml	永定河畔，甜蜜升级	4023	0	0	duplicate of J002
 J006	BLOCKED	社会民生	http://www.people.com.cn/rss/society.xml	完善协作机制 推进绿色发展	1009	0	0	duplicate of J003
 J007	DONE	社会民生	http://www.people.com.cn/rss/society.xml	山东宁津：健身器材产业智能化转型	809	415	415	
 J008	DONE	社会民生	http://www.people.com.cn/rss/society.xml	公安机关依法公开通缉台湾"资通电军"重要犯罪嫌疑人	1090	561	561	
+A018	BLOCKED	政治政策	http://www.people.com.cn/rss/politics.xml	镜观·足迹｜呵护千山万水 擘画永续发展	1471	0	0	duplicate of A001
+A019	BLOCKED	政治政策	http://www.people.com.cn/rss/politics.xml	学习手记 | “环境就是民生”	922	0	0	duplicate of A002
+A020	BLOCKED	政治政策	http://www.people.com.cn/rss/politics.xml	中共中央办公厅印发《党组讨论和决定党员处分事项工作程序规定》	1896	0	0	duplicate of A006
+B009	BLOCKED	科技数码	https://www.36kr.com/feed	氪星晚报｜Kimi估值升至315亿美元，ARR突破3亿美元；优艾智合具身智能系列新品全球首发，3年赋能10000个工业现场；国家航天局：我国将建立近地小行星天地协同监测体系	1989	0	0	duplicate of B001
+B010	BLOCKED	科技数码	https://www.36kr.com/feed	科氪 | 小尺寸大满足！全球首款水冷RGB平板发布，185HzOLED屏幕+PC模拟器平板秒变台式主机	3181	0	0	duplicate of B002
+B011	BLOCKED	科技数码	https://www.36kr.com/feed	成立9个月，在手订单4.4亿，「谱星航天」连续完成两轮数亿元融资｜36氪首发	5563	0	0	duplicate of B003
+C008	BLOCKED	财经金融	http://www.people.com.cn/rss/finance.xml	我国认证认可检验检测行业发展质量实现整体提升	1023	0	0	duplicate of C001
+C009	BLOCKED	财经金融	http://www.people.com.cn/rss/finance.xml	防范自动驾驶技术风险 筑牢公共安全防护屏障	2951	0	0	duplicate of C002
+C010	BLOCKED	财经金融	http://www.people.com.cn/rss/finance.xml	处置非法集资部际联席会议发布《关于加强防范非法集资宣传教育工作的意见》	1068	0	0	duplicate of C005
+E009	BLOCKED	医疗健康	http://www.people.com.cn/rss/health.xml	为了患者的一个心愿	853	0	0	duplicate of E001
+E010	BLOCKED	医疗健康	http://www.people.com.cn/rss/health.xml	产后如何管理体重（服务窗）	869	0	0	duplicate of E002
+E011	BLOCKED	医疗健康	http://www.people.com.cn/rss/health.xml	银发旅游，如何适老又悦老？（深阅读·文旅新观察）	2259	0	0	duplicate of E003
+F009	BLOCKED	文化艺术	http://www.people.com.cn/rss/culture.xml	新潮副刊丨读《扬子江文萃》	3811	0	0	duplicate of F001
+F010	BLOCKED	文化艺术	http://www.people.com.cn/rss/culture.xml	从“物质”与“非物质”的辩证关系里看子弹库帛书的回归意义	1556	0	0	duplicate of F002
+F011	BLOCKED	文化艺术	http://www.people.com.cn/rss/culture.xml	世界读书日｜劳罕：读书，样子原本很美	6422	0	0	duplicate of F003
+G009	BLOCKED	体育竞技	http://www.people.com.cn/rss/sports.xml	主教练张晓欢：我们是亲历者 也是幸运者	2332	0	0	duplicate of G001
+G010	BLOCKED	体育竞技	http://www.people.com.cn/rss/sports.xml	郑钦文遗憾结束12连胜	909	0	0	duplicate of G002
+G011	BLOCKED	体育竞技	http://www.people.com.cn/rss/sports.xml	2019中国攀岩联赛（广州增城）开赛	1081	0	0	duplicate of G003
+H009	BLOCKED	历史人文	http://www.people.com.cn/rss/history.xml	2019“穿越海螺沟·飞夺泸定桥”越野赛带你重走红军革命路	1852	0	0	duplicate of H001
+H010	BLOCKED	历史人文	http://www.people.com.cn/rss/history.xml	“一带一路”人文历史摄影展在京启动	2347	0	0	duplicate of H002
+H011	BLOCKED	历史人文	http://www.people.com.cn/rss/history.xml	“盛世风华”：上海市文史研究馆馆员书画艺术作品展今天开幕！	985	0	0	duplicate of H003
+I009	BLOCKED	旅游地理	http://www.people.com.cn/rss/travel.xml	陈凯歌在《道士下山》新闻发布会上推介仙都景区	1007	0	0	duplicate of I001
+I010	BLOCKED	旅游地理	http://www.people.com.cn/rss/travel.xml	高清：四川14岁女孩钢笔素描展示家乡美 令人惊叹	833	0	0	duplicate of I002
+I011	BLOCKED	旅游地理	http://www.people.com.cn/rss/travel.xml	河北野三坡景区建起287栋别墅 国有资产被转卖	1299	0	0	duplicate of I003
+J009	BLOCKED	社会民生	http://www.people.com.cn/rss/society.xml	公安机关依法严厉打击破坏生态环境犯罪	1604	0	0	duplicate of J001
+J010	BLOCKED	社会民生	http://www.people.com.cn/rss/society.xml	永定河畔，甜蜜升级	4023	0	0	duplicate of J002
+J011	BLOCKED	社会民生	http://www.people.com.cn/rss/society.xml	完善协作机制 推进绿色发展	1009	0	0	duplicate of J003
+A021	BLOCKED	政治政策	http://www.people.com.cn/rss/politics.xml	镜观·足迹｜呵护千山万水 擘画永续发展	1471	0	0	duplicate of A001
+A022	BLOCKED	政治政策	http://www.people.com.cn/rss/politics.xml	学习手记 | “环境就是民生”	922	0	0	duplicate of A002
+A023	BLOCKED	政治政策	http://www.people.com.cn/rss/politics.xml	中共中央办公厅印发《党组讨论和决定党员处分事项工作程序规定》	1896	0	0	duplicate of A006
+A024	BLOCKED	政治政策	http://www.people.com.cn/rss/politics.xml	天天学习丨中南海月刊（2025.05）	3090	0	0	duplicate of A008
+A025	BLOCKED	政治政策	http://www.people.com.cn/rss/politics.xml	多地升级信用修复服务 助力经营主体重塑良好信用	1860	0	0	duplicate of A010
+A026	DONE	政治政策	http://www.people.com.cn/rss/politics.xml	聚力为民解难题办实事	1004	513	513	
+A027	FETCHED	政治政策	http://www.people.com.cn/rss/politics.xml	“阿大葱油饼”焕新记（干部状态新观察·走进一线探作风）	2233	0	0	
+A028	BLOCKED	政治政策	http://www.people.com.cn/rss/politics.xml	银发旅游，如何适老又悦老？（深阅读·文旅新观察）	2259	0	0	duplicate of E003
+A029	FETCHED	政治政策	http://www.people.com.cn/rss/politics.xml	习近平总书记关切事｜我们的名字叫“长江”——三个沿江村庄的变迁故事	2619	0	0	
+A030	FETCHED	政治政策	http://www.people.com.cn/rss/politics.xml	【新思想引领新征程】高水平开放提速加力 与世界共享发展机遇	897	0	0	
