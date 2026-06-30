@@ -124,7 +124,7 @@ User wants 全部做完。Reopen Phase 5 — corpus grew to 272 articles (slow f
 ### Phase 5 v2 checklist
 - [x] 5.8 Re-segment 272 articles → 111,204 segments;Run-011 baseline 71.8%
 - [x] 5.9 Iter H batch:**41 modern_vocab** cross-article(这一/奥林匹克/这次/挑战赛/职棒/巡回赛/胜方/第四/病疫情/羽联/西班牙语/男子双打/维基/三个/两天/一款/中华/预选赛/本次/两人/总教练/四川/国会/首个/第一位/飞往/上届/一条/第二位/每场/三种/民主党/爱尔兰/乙级/五人制/第一阶段/系列赛/棒球场/某个/而成/一站/西安)。**Run-012: PASS 71.8 → 72.1%(+0.3pp on 111k segs,HARD -435)**。
-- [ ] 5.10 Iter I batch
+- [WIP] 5.10 Iter I batch
 - [ ] 5.11 Iter J batch
 - [ ] 5.12 Decide: continue or final wrap?
 
