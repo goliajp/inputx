@@ -133,22 +133,22 @@ tuli	图例	30000	# 2026-06-30 user: 图例 > 图利
 tuli	图利	25000
 maizai	埋在	25000
 pianse	偏色	25000
-xingshi	形式	50000	# 2026-06-30 user: "xingshi 形式 > 形势 > 姓氏 > 刑事"
+xingshi	形式	50000	# 2026-06-30 user: "xingshi 形式 > 形势 > 姓氏 > 刑事" (cascade — can't be partial-retired since 姓氏 30k would override)
 xingshi	形势	40000
 xingshi	姓氏	30000
 xingshi	刑事	20000
-lianxu	连续	40000	# 2026-06-30 user: "lianxu 连续 >> 怜恤" — 连续 HSK 4, 怜恤 文言
-shenru	深入	50000	# 2026-06-30 user: "shenru 深入 > 渗入 > 慎入"
-shenru	渗入	40000
-shenru	慎入	30000
+# RETIRED lianxu	连续	40000	# 2026-06-30 user: "lianxu 连续 >> 怜恤" — 连续 HSK 4, 怜恤 文言
+# RETIRED shenru	深入	50000	# 2026-06-30 user: "shenru 深入 > 渗入 > 慎入"
+# RETIRED shenru	渗入	40000
+# RETIRED shenru	慎入	30000
 hanguo	韩国	50000	# 2026-06-30 country batch
 baxi	巴西	50000	# 2026-06-30 country batch
 shijinsai	世锦赛	55000	# 2026-06-30 user: "shijinsai 世锦赛要高于日语" — same 55k tier-1 calibration as jianma 简码 / fudu 复读 / aijie 娭毑 to beat JP exact-prefix kana
-liucheng	流程	50000	# 2026-06-30 user: "liucheng 流程肯定是最高的，柳橙级别应该低多了"
+# RETIRED liucheng	流程	50000	# 2026-06-30 user: "liucheng 流程肯定是最高的，柳橙级别应该低多了"
 beijing	北京	70000	# 2026-06-30 user wants city anchor; over earlier 背景 63k
-yanjiu	研究	50000	# 2026-06-30 user: "研究肯定要在烟酒前面" — HSK 5 学术词
+# RETIRED yanjiu	研究	50000	# 2026-06-30 user: "研究肯定要在烟酒前面" — HSK 5 学术词
 huluobo	胡萝卜	55000	# 2026-06-30 user: "胡萝卜应该在日语前" — 55k tier-1 calibration (jianma/fudu/aijie/shijinsai pattern)
-ceshi	测试	50000	# 2026-06-30 user: "ceshi 测试最高" — 软件测试/HSK 学术词
+# RETIRED ceshi	测试	50000	# 2026-06-30 user: "ceshi 测试最高" — 软件测试/HSK 学术词
 tigan	体感	10000	# 2026-06-30 modern_freq 把 提干 抬过 体感 (jieba 新闻语料偏)
 toulan	偷懒	10000	# 2026-06-30 同上 - 投篮(体育新闻) vs 偷懒(口语)
 
