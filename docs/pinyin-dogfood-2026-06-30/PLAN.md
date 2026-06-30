@@ -89,7 +89,7 @@
 
 ### Phase 5: batch polish iterations
 每 iter:从 failures 选 top N → 自动生成 polish patch → 应用 → 验证 improvement → commit
-- [ ] 5.1 Iter A:HARD failures(缺词)batch — 写脚本扫 modern_vocab,生成 patch 候选,review,apply,re-dogfood 该子集
+- [WIP] 5.1 Iter A:**SOFT-1c 批量 quickfix**(改 plan,先攻 SOFT 大头,HARD batch 排 5.2);13 个明确功能字胜)
 - [ ] 5.2 Iter B:SOFT failures(顺序错)batch 1 — 高 jieba freq 但没胜的词,生成 quickfix patch
 - [ ] 5.3 Iter C:SOFT failures batch 2(剩余)
 - [ ] 5.4 Iter D:系统模式(发现 framework gap)— 列 + escalate user
