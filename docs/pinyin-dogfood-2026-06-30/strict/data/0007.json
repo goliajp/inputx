@@ -868,9 +868,11 @@
       "expected": "浙江省",
       "pinyin": "zhejiangsheng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "浙江省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0065",
@@ -6768,8 +6770,8 @@
   ],
   "stats": {
     "total": 432,
-    "pass": 368,
+    "pass": 369,
     "soft": 60,
-    "hard": 4
+    "hard": 3
   }
 }
