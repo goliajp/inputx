@@ -448,6 +448,9 @@ mod tests {
             ("xinjiapo", "新加坡"),
             ("aiji", "埃及"),
             ("tuerqi", "土耳其"),
+            // Polish 2026-06-30: user "shijiebei 世界杯" — proper-noun event
+            // name CC-CEDICT-rejected; modern_vocab backfill.
+            ("shijiebei", "世界杯"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
