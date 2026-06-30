@@ -84,7 +84,7 @@
 - [x] 4.2 Bug-fix pipeline — pipeline OK from iter#14 smoke (86% PASS)
 - [x] 4.3 Run on full corpus (47,904 segments from 66 articles) → `failures/run-001-full.tsv`。**PASS 67.4% / SOFT 18.2% / HARD 14.4%**
 - [x] 4.4 Aggregate stats:3218 distinct HARD, top: 宣传语(148)/祭(115)/梦之咲(101)/预选赛(88)/存于(83)。SOFT 单字 polysemy 主导:与(448)/为(395)/中(308)/并(240)/以(179)/后(171)/于(153)/将(141)等。
-- [ ] 4.5 Write `reports/run-001-analysis.md`(分类 + Top-N systemic patterns)
+- [WIP] 4.5 Write `reports/run-001-analysis.md`(分类 + Top-N systemic patterns)
 
 ### Phase 5: batch polish iterations
 每 iter:从 failures 选 top N → 自动生成 polish patch → 应用 → 验证 improvement → commit
