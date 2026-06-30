@@ -19,6 +19,7 @@ const EXCLUSIONS_TSV: &str = include_str!("../../../../tools/scoring/data/polish
 const PRIOR_CORRECTIONS_TSV: &str = include_str!("../../../../tools/scoring/data/polish/prior_corrections_v1.tsv");
 const MODERN_VOCAB_TSV: &str = include_str!("../../../../tools/scoring/data/polish/modern_vocab_v1.tsv");
 const CORPUS_GARBAGE_FILTER_TSV: &str = include_str!("../../../../tools/scoring/data/polish/corpus_garbage_filter_v1.tsv");
+const MODERN_FREQ_TSV: &str = include_str!("../data/modern_freq.tsv");
 
 /// One row of `chars.tsv`.
 #[derive(Debug, Clone)]
@@ -290,6 +291,34 @@ pub fn prior_corrections() -> &'static std::collections::HashMap<String, i32> {
             if let (Some(w), Some(b)) = (word, boost_s) {
                 if let Ok(boost) = b.trim().parse::<i32>() {
                     m.insert(w.to_owned(), boost);
+                }
+            }
+        }
+        m
+    })
+}
+
+/// `modern_freq.tsv` word/char → percentile-rank score (0..25000) from
+/// jieba's modern Chinese corpus. Used as **same-tier tiebreaker** in v2
+/// query — corpus frequency cannot cross tier boundaries (cap < one tier
+/// step 30k). v2 dict (words.tsv) remains authority of what exists;
+/// jieba only influences how to rank within tier.
+///
+/// Words not in jieba (古汉语 / 罕用) get score 0 → demoted within tier.
+/// See docs/pinyin-dogfood-2026-06-30/MODERN-FREQ-DESIGN.md.
+pub fn modern_freq() -> &'static std::collections::HashMap<String, u16> {
+    use std::collections::HashMap;
+    static CACHED: OnceLock<HashMap<String, u16>> = OnceLock::new();
+    CACHED.get_or_init(|| {
+        let mut m = HashMap::with_capacity(96_000);
+        for ln in MODERN_FREQ_TSV.lines() {
+            if ln.is_empty() || ln.starts_with('#') { continue; }
+            let mut it = ln.split('\t');
+            let word = it.next();
+            let score_s = it.next();
+            if let (Some(w), Some(s)) = (word, score_s) {
+                if let Ok(score) = s.trim().parse::<u16>() {
+                    m.insert(w.to_owned(), score);
                 }
             }
         }
