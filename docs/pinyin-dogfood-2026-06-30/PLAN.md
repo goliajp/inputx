@@ -17,6 +17,8 @@
 - 2026-06-30 iter#5 — 1.5 done。Baseline 初次 6 fail。两类问题:(a) modern_freq 把 quickfix 显式 cascade 推翻 → 加 **Sovereignty rule**(quickfix 词不吃 modern_freq);(b) ingest 漏 `modern_vocab_v1.tsv`(英国/印度 等 country batch 无 modern_freq 数据,被同音 cedict 词压)→ 修脚本读 modern_vocab。剩 2 case (tigan 体感/toulan 偷懒) jieba 新闻语料偏 → 加 quickfix 10k 各。Final 357/0 ✓。Next: 1.6 retire 候选验证
 - 2026-06-30 iter#6 — 1.6 done。Retire 候选清单写入 PLAN "Notes" 节。**~6 行可撤**(ceshi/yanjiu/liucheng/lianxu/shenru cascade 全 + xingshi top 2),其余 quickfix 仍 essential(muscle memory 单字 / JP cross / cascade 内非首两位)。Phase 6 清理用。Next: 1.7 mac/reinstall + commit
 - 2026-06-30 iter#7 — 1.7 done。**Phase 1 SHIPPED 🎉**。mac/reinstall ✓,live IME 跑 v2 + modern-freq。Phase 1 8/8 全 done(0.x + 1.x = 11 items)。Next: 2.1 pick corpus(THUCNews 默认)
+- 2026-06-30 iter#7.5(out-of-band)— user 反馈 reinstall 又有 stray LS。再跑 mac/reinstall.py 成功,脚本自动 purge 2 stray iOS sim entries,clean ship。Live IME 应已新 binary。
+- 2026-06-30 iter#8 — 2.1 done。Pick THUCNews(http://thuctc.thunlp.org)。HuggingFace/wikipedia 没装。决定文档 CORPUS-CHOICE.md 写清抽样策略。Next: 2.2 download archive(~700MB,会跨多 fire 完成)
 
 ## Status legend
 - `[ ]` todo
@@ -56,7 +58,7 @@
 - [x] 1.7 mac/reinstall.py + commit + push — **Phase 1 SHIPPED 🎉**
 
 ### Phase 2: corpus prep
-- [WIP] 2.1 Pick corpus source(THUCNews 默认,或 HuggingFace 备选)
+- [x] 2.1 Pick corpus source — **THUCNews**(决定文档:`CORPUS-CHOICE.md`)。Mirror alive,~700MB,14 类 sina news 2005-2011
 - [ ] 2.2 Download corpus archive 到 scratchpad
 - [ ] 2.3 Sample 1000 articles balanced(每类 ~70 篇,14 类)
 - [ ] 2.4 Save to `scratchpad/corpus/articles.txt`(每行 1 篇,或多文件)
