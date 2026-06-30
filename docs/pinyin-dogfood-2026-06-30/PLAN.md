@@ -65,7 +65,7 @@
 - [x] 2.2 Download corpus archive 到 scratchpad — **partial 25 articles**(zhwiki API 429 rate-limited);slow fetcher PID 65523 后台 5s/batch 慢慢加到 500;pipeline 用现有 25 起步,后续动态扩。Target 调整 1000 → 500(achievable)
 - [x] 2.3 ~~Sample 1000 articles balanced~~ — SKIP(zhwiki random 已天然 balanced;且 25 不需 sample,全用)
 - [x] 2.4 ~~Save to articles.txt~~ — DONE(fetcher 已直接写 articles/NNNN_*.txt,每文件 1 篇)
-- [ ] 2.5 Write `tools/v2-ingest/segment-corpus.py`:jieba 分词 → IME-realistic 2-4 字 buffer + pypinyin code
+- [WIP] 2.5 Write `tools/v2-ingest/segment-corpus.py`:jieba 分词 → IME-realistic 2-4 字 buffer + pypinyin code
 - [ ] 2.6 Run segment script → `scratchpad/segments/segments.tsv`(`article_id\tseg_idx\tword\tpinyin\t<HSK_level if known>`)
 - [ ] 2.7 Validate segments(spot check 100 行,看分词 / 拼音对不对)
 
