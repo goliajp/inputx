@@ -3542,6 +3542,206 @@
       "verdict": "PASS"
     },
     {
+      "idx": "401",
+      "expected": "幸福",
+      "pinyin": "xingfu",
+      "reason": "common",
+      "top10": [
+        "幸福",
+        "性福",
+        "形符"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "402",
+      "expected": "眺望",
+      "pinyin": "tiaowang",
+      "reason": "verb",
+      "top10": [
+        "眺望"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "403",
+      "expected": "具有",
+      "pinyin": "juyou",
+      "reason": "verb",
+      "top10": [
+        "具有",
+        "焗油",
+        "据有"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "404",
+      "expected": "确保",
+      "pinyin": "quebao",
+      "reason": "verb",
+      "top10": [
+        "确保"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "405",
+      "expected": "来到",
+      "pinyin": "laidao",
+      "reason": "verb",
+      "top10": [
+        "来到"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "406",
+      "expected": "生态环境",
+      "pinyin": "shengtaihuanjing",
+      "reason": "political",
+      "top10": [
+        "生态环境"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "407",
+      "expected": "生态安全",
+      "pinyin": "shengtaianquan",
+      "reason": "political",
+      "top10": [
+        "生态安全"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "408",
+      "expected": "生态保护",
+      "pinyin": "shengtaibaohu",
+      "reason": "political",
+      "top10": [
+        "生态保护"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "409",
+      "expected": "生态屏障",
+      "pinyin": "shengtaipingzhang",
+      "reason": "political",
+      "top10": [
+        "生态屏障"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "410",
+      "expected": "生态治理",
+      "pinyin": "shengtaizhili",
+      "reason": "political",
+      "top10": [
+        "生态智力"
+      ],
+      "rank": 99,
+      "verdict": "HARD"
+    },
+    {
+      "idx": "411",
+      "expected": "生态文明思想",
+      "pinyin": "shengtaiwenmingsixiang",
+      "reason": "political",
+      "top10": [
+        "生态文明思想"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "412",
+      "expected": "黄河流域",
+      "pinyin": "huangheliuyu",
+      "reason": "geographic",
+      "top10": [
+        "黄河流域"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "413",
+      "expected": "高质量发展",
+      "pinyin": "gaozhiliangfazhan",
+      "reason": "political",
+      "top10": [
+        "高质量发展"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "414",
+      "expected": "黄河安澜",
+      "pinyin": "huangheanlan",
+      "reason": "political",
+      "top10": [
+        "黄河安澜"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "415",
+      "expected": "长江禁渔",
+      "pinyin": "changjiangjinyu",
+      "reason": "political",
+      "top10": [
+        "长江禁欲"
+      ],
+      "rank": 99,
+      "verdict": "HARD"
+    },
+    {
+      "idx": "416",
+      "expected": "大好河山",
+      "pinyin": "dahaoheshan",
+      "reason": "idiom",
+      "top10": [
+        "大号合扇"
+      ],
+      "rank": 99,
+      "verdict": "HARD"
+    },
+    {
+      "idx": "417",
+      "expected": "高西沟村",
+      "pinyin": "gaoxigoucun",
+      "reason": "place",
+      "top10": [],
+      "rank": 99,
+      "verdict": "HARD"
+    },
+    {
+      "idx": "418",
+      "expected": "国家文化公园",
+      "pinyin": "guojiawenhuagongyuan",
+      "reason": "political",
+      "top10": [
+        "国家文化公园"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
       "idx": "298",
       "expected": "浪涛",
       "pinyin": "langtao",
@@ -3658,9 +3858,9 @@
     }
   ],
   "stats": {
-    "total": 296,
-    "pass": 293,
+    "total": 314,
+    "pass": 307,
     "soft": 3,
-    "hard": 0
+    "hard": 4
   }
 }
