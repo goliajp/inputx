@@ -4316,9 +4316,11 @@
       "expected": "瘦身操",
       "pinyin": "shoushencao",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "瘦身操"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0303",
@@ -6898,9 +6900,9 @@
   ],
   "stats": {
     "total": 482,
-    "pass": 481,
+    "pass": 482,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }
