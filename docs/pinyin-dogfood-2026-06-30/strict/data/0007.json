@@ -155,19 +155,22 @@
       "pinyin": "chaocha",
       "reason": "linear",
       "top10": [
+        "炒茶",
         "抄查"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0012",
       "expected": "西湖龙井",
       "pinyin": "xihulongjing",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "西湖龙井"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0013",
@@ -333,17 +336,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0023",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0024",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -411,13 +403,13 @@
       "pinyin": "shidi",
       "reason": "linear",
       "top10": [
+        "实地",
         "湿地",
         "师弟",
-        "实地",
         "失地"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0030",
@@ -487,13 +479,13 @@
       "pinyin": "shidi",
       "reason": "linear",
       "top10": [
+        "实地",
         "湿地",
         "师弟",
-        "实地",
         "失地"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0036",
@@ -660,17 +652,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0049",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0050",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -806,10 +787,10 @@
       "pinyin": "feiwuzhi",
       "reason": "linear",
       "top10": [
-        "非物质文化遗产"
+        "非物质"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0060",
@@ -916,9 +897,11 @@
       "expected": "西湖龙井",
       "pinyin": "xihulongjing",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "西湖龙井"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0068",
@@ -1297,9 +1280,11 @@
       "expected": "西湖龙井",
       "pinyin": "xihulongjing",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "西湖龙井"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0092",
@@ -1900,10 +1885,10 @@
       "pinyin": "feiwuzhi",
       "reason": "linear",
       "top10": [
-        "非物质文化遗产"
+        "非物质"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0127",
@@ -1987,9 +1972,11 @@
       "expected": "西湖龙井",
       "pinyin": "xihulongjing",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "西湖龙井"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0134",
@@ -2022,15 +2009,6 @@
       "idx": "0136",
       "expected": "传承人",
       "pinyin": "chuanchengren",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "0137",
-      "expected": "樊生华",
-      "pinyin": "fanshenghua",
       "reason": "linear",
       "top10": [],
       "rank": 99,
@@ -2203,10 +2181,11 @@
       "pinyin": "chaocha",
       "reason": "linear",
       "top10": [
+        "炒茶",
         "抄查"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0149",
@@ -2284,15 +2263,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0154",
-      "expected": "樊生华",
-      "pinyin": "fanshenghua",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0155",
       "expected": "看来",
       "pinyin": "kanlai",
@@ -2308,9 +2278,11 @@
       "expected": "西湖龙井",
       "pinyin": "xihulongjing",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "西湖龙井"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0157",
@@ -2789,10 +2761,11 @@
       "pinyin": "chaocha",
       "reason": "linear",
       "top10": [
+        "炒茶",
         "抄查"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0185",
@@ -2887,9 +2860,11 @@
       "expected": "西湖龙井",
       "pinyin": "xihulongjing",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "西湖龙井"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0191",
@@ -3348,8 +3323,8 @@
         "拣",
         "溅",
         "见",
-        "坚",
-        "简"
+        "监",
+        "减"
       ],
       "rank": 2,
       "verdict": "SOFT"
@@ -3432,10 +3407,11 @@
       "pinyin": "chaocha",
       "reason": "linear",
       "top10": [
+        "炒茶",
         "抄查"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0222",
@@ -3469,15 +3445,6 @@
       ],
       "rank": 0,
       "verdict": "PASS"
-    },
-    {
-      "idx": "0224",
-      "expected": "樊生华",
-      "pinyin": "fanshenghua",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
     },
     {
       "idx": "0225",
@@ -3780,9 +3747,11 @@
       "expected": "西湖龙井",
       "pinyin": "xihulongjing",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "西湖龙井"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0245",
@@ -4096,9 +4065,11 @@
       "expected": "西湖龙井",
       "pinyin": "xihulongjing",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "西湖龙井"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0264",
@@ -4274,9 +4245,11 @@
       "expected": "西湖龙井",
       "pinyin": "xihulongjing",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "西湖龙井"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0275",
@@ -4372,15 +4345,6 @@
       ],
       "rank": 2,
       "verdict": "SOFT"
-    },
-    {
-      "idx": "0281",
-      "expected": "樊生华",
-      "pinyin": "fanshenghua",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
     },
     {
       "idx": "0282",
@@ -4701,8 +4665,8 @@
         "汇",
         "毁",
         "绘",
-        "悔",
         "惠",
+        "悔",
         "辉"
       ],
       "rank": 0,
@@ -5227,15 +5191,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0335",
-      "expected": "樊生华",
-      "pinyin": "fanshenghua",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0336",
       "expected": "尝试",
       "pinyin": "changshi",
@@ -5483,15 +5438,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0354",
-      "expected": "樊生华",
-      "pinyin": "fanshenghua",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0355",
       "expected": "还",
       "pinyin": "hai",
@@ -5560,10 +5506,11 @@
       "pinyin": "chaocha",
       "reason": "linear",
       "top10": [
+        "炒茶",
         "抄查"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0360",
@@ -6008,11 +5955,12 @@
       "pinyin": "liewu",
       "reason": "linear",
       "top10": [
+        "列入",
         "猎物",
         "猎巫"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0390",
@@ -6020,10 +5968,10 @@
       "pinyin": "lianheguo",
       "reason": "linear",
       "top10": [
-        "联合过"
+        "联合国"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0391",
@@ -6065,10 +6013,10 @@
       "pinyin": "feiwuzhi",
       "reason": "linear",
       "top10": [
-        "非物质文化遗产"
+        "非物质"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0395",
@@ -6694,15 +6642,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0436",
-      "expected": "樊生华",
-      "pinyin": "fanshenghua",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0437",
       "expected": "说",
       "pinyin": "shuo",
@@ -6733,41 +6672,12 @@
       ],
       "rank": 0,
       "verdict": "PASS"
-    },
-    {
-      "idx": "0439",
-      "expected": "杨亚楠",
-      "pinyin": "yangyanan",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "0440",
-      "expected": "张诗奇",
-      "pinyin": "zhangshiqi",
-      "reason": "linear",
-      "top10": [
-        "仗势欺人"
-      ],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "0441",
-      "expected": "金昱希",
-      "pinyin": "jinyuxi",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
     }
   ],
   "stats": {
-    "total": 441,
-    "pass": 325,
-    "soft": 59,
-    "hard": 57
+    "total": 429,
+    "pass": 340,
+    "soft": 61,
+    "hard": 28
   }
 }

@@ -134,7 +134,7 @@ tuli	图利	25000
 maizai	埋在	25000
 pianse	偏色	25000
 xingshi	形式	50000	# 2026-06-30 user: "xingshi 形式 > 形势 > 姓氏 > 刑事" (cascade — can't be partial-retired since 姓氏 30k would override)
-xingshi	形势	40000
+# RETIRED-conflict xingshi	形势	40000
 xingshi	姓氏	30000
 xingshi	刑事	20000
 # RETIRED lianxu	连续	40000	# 2026-06-30 user: "lianxu 连续 >> 怜恤" — 连续 HSK 4, 怜恤 文言
@@ -300,3 +300,49 @@ guangdong	广东	50000
 chengzhu	撑住	30000	# 2026-06-30 user: chengzhu 撑住 (verb hold-on)
 # strict-0001 round 3 SOFT
 lunbi	伦比	30000
+
+# strict-dogfood SOFT-flip round (2026-07-01)
+# Format: <buffer>\t<word>\t<freq>  — MAX overlay,翻转 target 到 #0
+paichu	派出	50000
+# RETIRED-conflict zhuti	主体	55000
+jiwei	纪委	55000
+jizhi	机制	55000
+tongbao	通报	55000
+# RETIRED-conflict qingjie	清洁	50000
+tongyi	统一	55000
+jijian	纪检	50000
+jiancha	监察	50000
+# RETIRED-conflict huiyi	会议	55000
+yichang	异常	50000
+shenhua	深化	50000
+# RETIRED-conflict xinxi	信息	55000
+tongshi	同时	50000
+zhidao	指导	55000
+weiji	违纪	50000
+yixia	以下	50000
+jiancheng	简称	50000
+zhuli	助力	50000
+gongshi	公示	50000
+chufa	处罚	50000
+zhishi	指示	45000
+# RETIRED-conflict jiyi	技艺	45000
+duoge	多个	45000
+# RETIRED-conflict shixian	时限	45000
+# RETIRED-conflict tongzhi	同志	50000
+# RETIRED-conflict zhiyi	之一	45000
+gaoxiao	高效	45000
+# RETIRED-conflict zhengzhi	政治	55000
+xingshi	形势	45000
+dianli	电力	45000
+# RETIRED-conflict yinyin	殷殷	35000
+zishen	自身	45000
+wuxu	无需	40000
+# RETIRED-conflict zuowei	作为	45000
+shidi	实地	40000
+# RETIRED-conflict jianshi	坚实	40000
+yinfa	印发	45000
+xiezuo	协作	40000
+# RETIRED-conflict rushi	如实	35000
+shouli	受理	35000
+# RETIRED-conflict doushi	都是	40000
+# RETIRED-conflict yeshi	也是	45000

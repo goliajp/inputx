@@ -488,11 +488,12 @@
       "pinyin": "zhongla",
       "reason": "linear",
       "top10": [
+        "中拉",
         "中辣",
         "重辣"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0036",
@@ -1238,17 +1239,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0089",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0090",
       "expected": "主席",
       "pinyin": "zhuxi",
@@ -1789,10 +1779,10 @@
       "pinyin": "lianheguo",
       "reason": "linear",
       "top10": [
-        "联合过"
+        "联合国"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0127",
@@ -2640,10 +2630,10 @@
       "pinyin": "lianheguo",
       "reason": "linear",
       "top10": [
-        "联合过"
+        "联合国"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0186",
@@ -2773,6 +2763,7 @@
       "pinyin": "gongshi",
       "reason": "linear",
       "top10": [
+        "公示",
         "公式",
         "公使",
         "攻势",
@@ -2781,10 +2772,9 @@
         "公事",
         "贡士",
         "共事",
-        "公示",
         "工时"
       ],
-      "rank": 3,
+      "rank": 4,
       "verdict": "SOFT"
     },
     {
@@ -2822,12 +2812,12 @@
       "pinyin": "shenhua",
       "reason": "linear",
       "top10": [
-        "神话",
         "深化",
+        "神话",
         "神化"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0198",
@@ -3177,17 +3167,6 @@
       "reason": "linear",
       "top10": [
         "合作"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0225",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -3652,17 +3631,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0258",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0259",
       "expected": "主席",
       "pinyin": "zhuxi",
@@ -4103,8 +4071,8 @@
         "汇",
         "毁",
         "绘",
-        "悔",
         "惠",
+        "悔",
         "辉"
       ],
       "rank": 0,
@@ -4136,11 +4104,11 @@
       "pinyin": "zishen",
       "reason": "linear",
       "top10": [
-        "资深",
-        "自身"
+        "自身",
+        "资深"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0294",
@@ -4454,17 +4422,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0317",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0318",
       "expected": "主席",
       "pinyin": "zhuxi",
@@ -4534,11 +4491,11 @@
       "pinyin": "duoge",
       "reason": "linear",
       "top10": [
-        "多哥",
-        "多个"
+        "多个",
+        "多哥"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0323",
@@ -5617,26 +5574,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0400",
-      "expected": "习",
-      "pinyin": "xi",
-      "reason": "linear",
-      "top10": [
-        "西",
-        "洗",
-        "系",
-        "溪",
-        "习",
-        "息",
-        "喜",
-        "细",
-        "希",
-        "吸"
-      ],
-      "rank": 4,
-      "verdict": "SOFT"
-    },
-    {
       "idx": "0401",
       "expected": "主席",
       "pinyin": "zhuxi",
@@ -5667,9 +5604,9 @@
       "pinyin": "zhuli",
       "reason": "linear",
       "top10": [
+        "助力",
         "助理",
         "主力",
-        "助力",
         "伫立",
         "朱鹂"
       ],
@@ -5793,26 +5730,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0410",
-      "expected": "习",
-      "pinyin": "xi",
-      "reason": "linear",
-      "top10": [
-        "西",
-        "洗",
-        "系",
-        "溪",
-        "习",
-        "息",
-        "喜",
-        "细",
-        "希",
-        "吸"
-      ],
-      "rank": 4,
-      "verdict": "SOFT"
-    },
-    {
       "idx": "0411",
       "expected": "主席",
       "pinyin": "zhuxi",
@@ -5904,24 +5821,6 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0417",
-      "expected": "叶夫根尼",
-      "pinyin": "yefugenni",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "0418",
-      "expected": "兹纳缅斯基",
-      "pinyin": "zinamiansiji",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0419",
       "expected": "也",
       "pinyin": "ye",
@@ -5984,26 +5883,6 @@
         "乡"
       ],
       "rank": 1,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "0423",
-      "expected": "习",
-      "pinyin": "xi",
-      "reason": "linear",
-      "top10": [
-        "西",
-        "洗",
-        "系",
-        "溪",
-        "习",
-        "息",
-        "喜",
-        "细",
-        "希",
-        "吸"
-      ],
-      "rank": 4,
       "verdict": "SOFT"
     },
     {
@@ -6267,26 +6146,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0443",
-      "expected": "习",
-      "pinyin": "xi",
-      "reason": "linear",
-      "top10": [
-        "西",
-        "洗",
-        "系",
-        "溪",
-        "习",
-        "息",
-        "喜",
-        "细",
-        "希",
-        "吸"
-      ],
-      "rank": 4,
-      "verdict": "SOFT"
-    },
-    {
       "idx": "0444",
       "expected": "主席",
       "pinyin": "zhuxi",
@@ -6468,8 +6327,8 @@
         "汇",
         "毁",
         "绘",
-        "悔",
         "惠",
+        "悔",
         "辉"
       ],
       "rank": 0,
@@ -6800,9 +6659,11 @@
       "expected": "央视网",
       "pinyin": "yangshiwang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "央视网"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0479",
@@ -6857,26 +6718,6 @@
       ],
       "rank": 0,
       "verdict": "PASS"
-    },
-    {
-      "idx": "0483",
-      "expected": "习",
-      "pinyin": "xi",
-      "reason": "linear",
-      "top10": [
-        "西",
-        "洗",
-        "系",
-        "溪",
-        "习",
-        "息",
-        "喜",
-        "细",
-        "希",
-        "吸"
-      ],
-      "rank": 4,
-      "verdict": "SOFT"
     },
     {
       "idx": "0484",
@@ -7244,26 +7085,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0508",
-      "expected": "习",
-      "pinyin": "xi",
-      "reason": "linear",
-      "top10": [
-        "西",
-        "洗",
-        "系",
-        "溪",
-        "习",
-        "息",
-        "喜",
-        "细",
-        "希",
-        "吸"
-      ],
-      "rank": 4,
-      "verdict": "SOFT"
-    },
-    {
       "idx": "0509",
       "expected": "主席",
       "pinyin": "zhuxi",
@@ -7308,15 +7129,6 @@
       ],
       "rank": 0,
       "verdict": "PASS"
-    },
-    {
-      "idx": "0512",
-      "expected": "普京",
-      "pinyin": "pujing",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
     },
     {
       "idx": "0513",
@@ -7417,26 +7229,6 @@
         "行程"
       ],
       "rank": 1,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "0521",
-      "expected": "习",
-      "pinyin": "xi",
-      "reason": "linear",
-      "top10": [
-        "西",
-        "洗",
-        "系",
-        "溪",
-        "习",
-        "息",
-        "喜",
-        "细",
-        "希",
-        "吸"
-      ],
-      "rank": 4,
       "verdict": "SOFT"
     },
     {
@@ -7695,13 +7487,13 @@
       "pinyin": "paichu",
       "reason": "linear",
       "top10": [
-        "排除",
         "派出",
+        "排除",
         "排出",
         "拍出"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0541",
@@ -8325,17 +8117,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0582",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0583",
       "expected": "主席",
       "pinyin": "zhuxi",
@@ -8689,26 +8470,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0608",
-      "expected": "习",
-      "pinyin": "xi",
-      "reason": "linear",
-      "top10": [
-        "西",
-        "洗",
-        "系",
-        "溪",
-        "习",
-        "息",
-        "喜",
-        "细",
-        "希",
-        "吸"
-      ],
-      "rank": 4,
-      "verdict": "SOFT"
-    },
-    {
       "idx": "0609",
       "expected": "主席",
       "pinyin": "zhuxi",
@@ -8798,11 +8559,12 @@
       "pinyin": "zhongla",
       "reason": "linear",
       "top10": [
+        "中拉",
         "中辣",
         "重辣"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0616",
@@ -8970,11 +8732,12 @@
       "pinyin": "zhongla",
       "reason": "linear",
       "top10": [
+        "中拉",
         "中辣",
         "重辣"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0628",
@@ -9068,12 +8831,12 @@
       "pinyin": "shenhua",
       "reason": "linear",
       "top10": [
-        "神话",
         "深化",
+        "神话",
         "神化"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0634",
@@ -9569,11 +9332,12 @@
       "pinyin": "zhongla",
       "reason": "linear",
       "top10": [
+        "中拉",
         "中辣",
         "重辣"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0669",
@@ -9657,11 +9421,12 @@
       "pinyin": "zhongla",
       "reason": "linear",
       "top10": [
+        "中拉",
         "中辣",
         "重辣"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0675",
@@ -9781,10 +9546,10 @@
       "pinyin": "nannanhezuo",
       "reason": "linear",
       "top10": [
-        "喃喃合作"
+        "南南合作"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0684",
@@ -9811,26 +9576,6 @@
       ],
       "rank": 0,
       "verdict": "PASS"
-    },
-    {
-      "idx": "0686",
-      "expected": "习",
-      "pinyin": "xi",
-      "reason": "linear",
-      "top10": [
-        "西",
-        "洗",
-        "系",
-        "溪",
-        "习",
-        "息",
-        "喜",
-        "细",
-        "希",
-        "吸"
-      ],
-      "rank": 4,
-      "verdict": "SOFT"
     },
     {
       "idx": "0687",
@@ -10006,13 +9751,14 @@
       "pinyin": "xinzhi",
       "reason": "linear",
       "top10": [
+        "新质",
         "心智",
         "心志",
         "信纸",
         "新知"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0700",
@@ -10042,13 +9788,14 @@
       "pinyin": "gongjian",
       "reason": "linear",
       "top10": [
+        "共建",
         "弓箭",
         "攻坚",
         "工件",
         "拱肩"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0703",
@@ -10548,26 +10295,6 @@
       ],
       "rank": 0,
       "verdict": "PASS"
-    },
-    {
-      "idx": "0738",
-      "expected": "习",
-      "pinyin": "xi",
-      "reason": "linear",
-      "top10": [
-        "西",
-        "洗",
-        "系",
-        "溪",
-        "习",
-        "息",
-        "喜",
-        "细",
-        "希",
-        "吸"
-      ],
-      "rank": 4,
-      "verdict": "SOFT"
     },
     {
       "idx": "0739",
@@ -12284,9 +12011,11 @@
       "expected": "十五五",
       "pinyin": "shiwuwu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "十五五"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0859",
@@ -12338,17 +12067,6 @@
       "reason": "linear",
       "top10": [
         "当下"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0863",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -12692,17 +12410,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0887",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0888",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -12749,9 +12456,11 @@
       "expected": "洛阳",
       "pinyin": "luoyang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "洛阳"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0892",
@@ -13085,9 +12794,11 @@
       "expected": "洛阳",
       "pinyin": "luoyang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "洛阳"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0917",
@@ -13141,11 +12852,11 @@
       "pinyin": "yixia",
       "reason": "linear",
       "top10": [
-        "一下",
-        "以下"
+        "以下",
+        "一下"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0922",
@@ -13153,8 +12864,8 @@
       "pinyin": "jiancheng",
       "reason": "linear",
       "top10": [
-        "建成",
         "简称",
+        "建成",
         "兼程",
         "坚称",
         "剪成",
@@ -13162,8 +12873,8 @@
         "贱称",
         "键程"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0923",
@@ -14153,14 +13864,14 @@
       "pinyin": "tongshi",
       "reason": "linear",
       "top10": [
-        "同事",
         "同时",
+        "同事",
         "通史",
         "痛失",
         "通识"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0987",
@@ -14215,10 +13926,10 @@
       "pinyin": "zouhao",
       "reason": "linear",
       "top10": [
-        "走好运"
+        "走好"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0991",
@@ -15578,11 +15289,11 @@
       "pinyin": "zishen",
       "reason": "linear",
       "top10": [
-        "资深",
-        "自身"
+        "自身",
+        "资深"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1088",
@@ -15921,9 +15632,11 @@
       "expected": "党中央",
       "pinyin": "dangzhongyang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "党中央"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1115",
@@ -16621,9 +16334,11 @@
       "expected": "十五五",
       "pinyin": "shiwuwu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "十五五"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1161",
@@ -16663,8 +16378,8 @@
       "pinyin": "jiancheng",
       "reason": "linear",
       "top10": [
-        "建成",
         "简称",
+        "建成",
         "兼程",
         "坚称",
         "剪成",
@@ -16672,8 +16387,8 @@
         "贱称",
         "键程"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "1164",
@@ -16965,9 +16680,11 @@
       "expected": "十五五",
       "pinyin": "shiwuwu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "十五五"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1185",
@@ -17148,14 +16865,14 @@
       "pinyin": "tongyi",
       "reason": "linear",
       "top10": [
-        "同意",
         "统一",
+        "同意",
         "同一",
         "同义",
         "通译"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1198",
@@ -17231,6 +16948,7 @@
       "pinyin": "gongshi",
       "reason": "linear",
       "top10": [
+        "公示",
         "公式",
         "公使",
         "攻势",
@@ -17239,10 +16957,9 @@
         "公事",
         "贡士",
         "共事",
-        "公示",
         "工时"
       ],
-      "rank": 3,
+      "rank": 4,
       "verdict": "SOFT"
     },
     {
@@ -17377,8 +17094,8 @@
         "汇",
         "毁",
         "绘",
-        "悔",
         "惠",
+        "悔",
         "辉"
       ],
       "rank": 0,
@@ -17502,9 +17219,11 @@
       "expected": "党中央",
       "pinyin": "dangzhongyang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "党中央"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1224",
@@ -18281,9 +18000,11 @@
       "expected": "央视网",
       "pinyin": "yangshiwang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "央视网"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1276",
@@ -18718,8 +18439,8 @@
       "pinyin": "jiancheng",
       "reason": "linear",
       "top10": [
-        "建成",
         "简称",
+        "建成",
         "兼程",
         "坚称",
         "剪成",
@@ -18727,8 +18448,8 @@
         "贱称",
         "键程"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "1307",
@@ -19466,12 +19187,12 @@
       "pinyin": "shenhua",
       "reason": "linear",
       "top10": [
-        "神话",
         "深化",
+        "神话",
         "神化"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1365",
@@ -21410,17 +21131,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "1502",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "1503",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -21467,9 +21177,11 @@
       "expected": "洛阳",
       "pinyin": "luoyang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "洛阳"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1507",
@@ -21849,9 +21561,11 @@
       "expected": "洛阳",
       "pinyin": "luoyang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "洛阳"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1535",
@@ -22435,9 +22149,11 @@
       "expected": "十五五",
       "pinyin": "shiwuwu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "十五五"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1577",
@@ -23008,26 +22724,6 @@
       "verdict": "HARD"
     },
     {
-      "idx": "1613",
-      "expected": "李珊珊",
-      "pinyin": "lishanshan",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "1614",
-      "expected": "刘禛",
-      "pinyin": "liuzhen",
-      "reason": "linear",
-      "top10": [
-        "留针"
-      ],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "1615",
       "expected": "校对",
       "pinyin": "jiaodui",
@@ -23054,46 +22750,6 @@
         "辊",
         "磙",
         "琯"
-      ],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "1617",
-      "expected": "刘禛",
-      "pinyin": "liuzhen",
-      "reason": "linear",
-      "top10": [
-        "留针"
-      ],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "1618",
-      "expected": "蔡纯琳",
-      "pinyin": "caichunlin",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "1619",
-      "expected": "梁雅琴",
-      "pinyin": "liangyaqin",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "1620",
-      "expected": "闫田田",
-      "pinyin": "yantiantian",
-      "reason": "linear",
-      "top10": [
-        "盐田提案"
       ],
       "rank": 99,
       "verdict": "HARD"
@@ -23183,15 +22839,17 @@
       "expected": "央视网",
       "pinyin": "yangshiwang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "央视网"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     }
   ],
   "stats": {
-    "total": 1627,
-    "pass": 1283,
-    "soft": 199,
-    "hard": 145
+    "total": 1600,
+    "pass": 1306,
+    "soft": 182,
+    "hard": 112
   }
 }
