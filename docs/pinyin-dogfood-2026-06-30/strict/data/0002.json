@@ -2761,11 +2761,55 @@
       ],
       "rank": 0,
       "verdict": "PASS"
+    },
+    {
+      "idx": "401",
+      "expected": "这个",
+      "pinyin": "zhege",
+      "reason": "pronoun",
+      "top10": [
+        "这个"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "402",
+      "expected": "成为",
+      "pinyin": "chengwei",
+      "reason": "verb",
+      "top10": [
+        "成为",
+        "称为",
+        "称谓"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "403",
+      "expected": "让",
+      "pinyin": "rang",
+      "reason": "verb",
+      "top10": [
+        "让",
+        "嚷",
+        "壤",
+        "瓤",
+        "攘",
+        "禳",
+        "穰",
+        "儴",
+        "瀼",
+        "蘘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     }
   ],
   "stats": {
-    "total": 221,
-    "pass": 196,
+    "total": 224,
+    "pass": 199,
     "soft": 23,
     "hard": 2
   }
