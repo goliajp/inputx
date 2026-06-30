@@ -2,20 +2,27 @@
 
 立 2026-06-30. 项目终点 report(reopened-then-closed v2)。同期 PLAN.md / PROTOCOL.md / MODERN-FREQ-DESIGN.md / CORPUS-CHOICE.md / run-001-analysis.md / final.md(本文)。
 
-**Final tally(closed twice — first 27 iters,reopened for 4 more)**:
-- Initial close iter#27 — PASS 72.1% on 72k segments / 140 articles
-- Reopened iter#28-31 — corpus 272 articles / 111k segments,4 more batches(H/I/J/K)+ 125 modern_vocab rows
-- **Final close iter#32 — PASS 72.4% on 111k segments**
+**Final tally(closed 3 times)**:
+- Close #1 iter#27 — PASS 72.1% on 72k segments / 140 articles
+- Reopen → close #2 iter#28-32 — corpus 272/111k segs,Iter H-K = 125 modern_vocab → **72.4%**
+- Reopen → close #3 iter#33-36 — **structural attack**:lowered modern_vocab tier threshold(1-line code change)+ targeted 2-char SOFT quickfix(11+4)→ **73.2%** PASS
+
+**Key insight from 3rd-close iters**:
+- 1-line code change(tier threshold)yielded +0.4pp — biggest single change since SOFT-1c batch
+- 11 targeted 2-char SOFT quickfix(链接/日志/类似/专辑/紧急/用于/积分/届/赛/因)yielded +0.4pp
+- Structural changes >> incremental data — when stuck on diminishing return, look at the threshold/formula not the data rows
+- Remaining 26.8% non-PASS is dual-use words(同事/同时,作为/座位 等 — both legit)or niche articles — true ceiling
 
 ## TL;DR
 
 | 指标 | Before | After | Δ |
 |---|---:|---:|---:|
 | v2 baseline tests | 357/357 ✓ | 357/357 ✓ | (unchanged) |
-| Dogfood PASS rate(111k modern Chinese segments) | n/a | **72.4%** | (new measure)|
+| Dogfood PASS rate(111k modern Chinese segments) | n/a | **73.2%** | (3rd-close measure)|
 | Dogfood HARD rate | n/a | 13.5% | |
-| Dogfood SOFT rate | n/a | 14.1% | |
-| Polish rows(quickfix + modern_vocab)| ~80 pre-project | ~395 | +~315 |
+| Dogfood SOFT rate | n/a | 13.2% | |
+| Polish rows(quickfix + modern_vocab)| ~80 pre-project | ~410 | +~330 |
+| Code structural changes | n/a | tier_threshold lowered(1 line) | enabled +0.4pp jump |
 | v2 framework code(`lib.rs` + `data.rs`)| 同 v1 design | +~30 行 modern_freq integration | minimal |
 
 **关键成果**:

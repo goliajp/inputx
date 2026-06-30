@@ -46,6 +46,7 @@
 - 2026-06-30 iter#33 — **RE-REOPENED**:user /loop 3m 第 3 次。新 attack vector — 降 modern_vocab tier 阈值(50k/30k/15k 替 60k/40k/20k,顶 tier 3 → tier 2)。1 行 data.rs 改 → 150+ polish 词升 tier。**Run-016: PASS 72.4 → 72.8%(+0.4pp 大跳)** SOFT -395 dramatic。比拼 entries-per-pp 远胜 batch polish。baseline 357/0 ✓ deploy ✓。Cron 7305d416 active。Next: 5.15 单字 SOFT quickfix。
 - 2026-06-30 iter#34 — 5.15 done。Iter L 11 quickfix(链接/日志/类似/专辑/紧急/用于/积分/届/赛/因 — 全是现代真词),1 retired(qu 区 撞 baseline)。**Run-017: PASS 72.8 → 73.2%(+0.4pp 又大跳,SOFT -447)**。tier-bump + targeted SOFT quickfix 组合极有效。新 attack vector path 验证可行。Next: 5.16 next SOFT batch。
 - 2026-06-30 iter#35 — 5.16 done。Iter M 4 quickfix(不是/以上/升级/资讯)。**Run-018: PASS 73.2 → 73.2%(unchanged,marginal +87 SOFT→PASS)**。剩余 2-char SOFT 多是 dual-use 真词(同事/同时,作为/座位,任务/人物 — 都常用),无法 quickfix 强制。Next: 5.17 decide(此 attack vector ceiling 也到了)。
+- 2026-06-30 iter#36 — 5.17 **FINAL FINAL CLOSE 🎉🎉🎉**。3rd-close iters:tier 阈值 1-line code change + 11 targeted SOFT quickfix = **PASS 72.4 → 73.2%(+0.8pp 双跳)**。Cron `7305d416` cancelled。final.md updated to 73.2%。剩 26.8% non-PASS = dual-use real words + niche articles,真 ceiling 到了。**项目 3 度完结**。
 
 ## Status legend
 - `[ ]` todo
@@ -135,6 +136,8 @@ User wants 全部做完。Reopen Phase 5 — corpus grew to 272 articles (slow f
 - [x] 5.11 Iter J done。32 modern_vocab(第六/北约/转换成/赛程表/音源/一所/同为/最具/清朝/排名第/最低/一年/队史/双循环/请参阅/银河系/很少/实时/国共/东京都/两位/本季/该项/第三任/下半区/第十届/现名/各项/两种/这项/台中市/五人)。**Run-014: PASS 72.2 → 72.3%(+0.1pp,HARD -148)**。
 - [x] 5.12 done。35 modern_vocab Iter K(敲出/新泽西州/南区/足总杯/曼谷/投出/新北市/元朝/国军/本站/主场优势/一股/风眼/低压槽/蒙大拿州/湖南/华北/第四位/百老汇/视星等/岩手县/青海/女选手/用球数/投满/号线/此站/签表/红队/印度洋/向东/占多数/马来/机上/查看器)。**Run-015: PASS 72.3 → 72.4%(+0.1pp,HARD -194)**。**Decision: wrap**。每 batch +0.1pp 需 30+ entries,ROI 极低。剩余 HARD 是 names + niche + 文言 + 名字 — 这些 polish 不能产生通用 IME value。
 - [x] 5.13 Final wrap:Phase 5 reopen closed,final.md updated to 72.4% / 111k segs / 395 polish rows,cron 14135fef cancelled。**ALL DONE FINAL 🎉**
+
+- [x] 5.17 FINAL WRAP — 73.2% on 111k segments,2 attack vectors exhausted,cron `7305d416` cancelled
 
 ## Reopened 3rd time(user /loop 3m 第 3 次)
 - [x] 5.14 done。Lower modern_vocab tier mapping(60k/40k/20k → 50k/30k/15k,top bucket tier 3 → tier 2)。1 行代码改,150+ polish 词从 tier 5 升 tier 2-3。**Run-016: PASS 72.4 → 72.8%(+0.4pp 大跳,SOFT -395 dramatic,HARD +52 slight)**。baseline 357/0 ✓。比批量 polish 30+ entries 还有效。
