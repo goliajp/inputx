@@ -19,6 +19,7 @@
 - 2026-06-30 iter#7 — 1.7 done。**Phase 1 SHIPPED 🎉**。mac/reinstall ✓,live IME 跑 v2 + modern-freq。Phase 1 8/8 全 done(0.x + 1.x = 11 items)。Next: 2.1 pick corpus(THUCNews 默认)
 - 2026-06-30 iter#7.5(out-of-band)— user 反馈 reinstall 又有 stray LS。再跑 mac/reinstall.py 成功,脚本自动 purge 2 stray iOS sim entries,clean ship。Live IME 应已新 binary。
 - 2026-06-30 iter#8 — 2.1 done。Pick THUCNews(http://thuctc.thunlp.org)。HuggingFace/wikipedia 没装。决定文档 CORPUS-CHOICE.md 写清抽样策略。Next: 2.2 download archive(~700MB,会跨多 fire 完成)
+- 2026-06-30 iter#9 — 2.2 **PIVOT**。THUCNews 实测 1.5GB / 700KB/s = 25min,/loop interval 难一气下完;且 mirror 单线程慢。Switch to **zhwiki API**(`zh-cn` variant simplified):每篇 5-10KB,API 无 auth,User-Agent OK。写 `fetch_wiki_corpus.py`(resume + idempotent),启动 nohup PID=63421 fetching 1000 articles。状态 [WIP]。下次 fire check 进度。
 
 ## Status legend
 - `[ ]` todo
