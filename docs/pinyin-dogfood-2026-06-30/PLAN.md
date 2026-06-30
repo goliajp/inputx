@@ -93,7 +93,7 @@
 每 iter:从 failures 选 top N → 自动生成 polish patch → 应用 → 验证 improvement → commit
 - [x] 5.1 Iter A:**SOFT-1c 批量 quickfix** done。11 quickfix 应用(yu 与/wei 为/zhong 中/bing 并/hou 后/yu 于/jiang 将/ceng 曾/hua 话/huo 或/deng 等)。3 retired(xiang/yi/you 撞老 baseline)。**PASS 67.4% → 71.5%(+4.1pp,SOFT -1983)**。baseline 357/0 ✓。mac/reinstall ✓。
 - [x] 5.2 Iter B done。25 modern_vocab compounds 加(中队/一名/一架/...微软/英语/英文/法语/德语/汉语/韩语/苏格兰/台湾/浙江/江西/四川省/民国 等)。Re-gen modern_freq.tsv。**PASS 71.5 → 71.8%(+0.3pp,HARD -178)**。baseline 357/0 ✓。Anime article 0058 仍然拖 HARD 总数。
-- [ ] 5.3 Iter C:SOFT failures batch 2(剩余)
+- [WIP] 5.3 Iter C:next compound/SOFT batch — 从 run-003 抓剩余 systemic
 - [ ] 5.4 Iter D:系统模式(发现 framework gap)— 列 + escalate user
 - [ ] 5.5(可选 reps)Iter E-Z:继续直到 diminishing return
 
