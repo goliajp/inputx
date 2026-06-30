@@ -110,6 +110,8 @@
 
 > _(empty)_
 
+- [WIP] 5.6 Iter F: large batch(60-80 entries) + diminishing-return check
+
 ## Notes / 系统观察
 
 ### Retire candidates(iter#6 验证,Phase 6 清理)
