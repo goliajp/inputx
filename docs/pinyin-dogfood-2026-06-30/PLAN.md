@@ -75,7 +75,7 @@
 - [x] 3.1 Write `core/crates/inputx-core/src/bin/inputx_dogfood.rs`(read segments.tsv,for each call v2::query() in-process)
 - [x] 3.2 Failure classification logic(HARD/SOFT/PASS — 三段)
 - [x] 3.3 Cargo wire — `[[bin]] inputx-dogfood`,build clean
-- [ ] 3.4 Smoke run on first 100 segments → 验证 pipeline
+- [WIP] 3.4 Smoke run on first 100 segments → 验证 pipeline
 
 ### Phase 4: full dogfood run
 - [ ] 4.1 Run dogfood on 50 articles → `scratchpad/failures/run-001-smoke.tsv`
