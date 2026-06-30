@@ -21,6 +21,7 @@
 - 2026-06-30 iter#8 — 2.1 done。Pick THUCNews(http://thuctc.thunlp.org)。HuggingFace/wikipedia 没装。决定文档 CORPUS-CHOICE.md 写清抽样策略。Next: 2.2 download archive(~700MB,会跨多 fire 完成)
 - 2026-06-30 iter#9 — 2.2 **PIVOT**。THUCNews 实测 1.5GB / 700KB/s = 25min,/loop interval 难一气下完;且 mirror 单线程慢。Switch to **zhwiki API**(`zh-cn` variant simplified):每篇 5-10KB,API 无 auth,User-Agent OK。写 `fetch_wiki_corpus.py`(resume + idempotent),启动 nohup PID=63421 fetching 1000 articles。状态 [WIP]。下次 fire check 进度。
 - 2026-06-30 iter#10 — 2.2 still [WIP],调速。Iter#9 fetcher 实测 4 articles/min(stub filter 90% reject)。kill 63421,提升参数:batch 20(extracts API max)、MIN_LEN 150、sleep 0.2s。重启 PID=64620。估 ETA <10 min。下次 fire check。
+- 2026-06-30 iter#11 — 2.2 done(部分)。zhwiki API 429 rate-limited IP-level。kill 64620,re-launch slow fetcher(sleep 5s,target 500)PID 65523 后台。**pipeline 用当前 25 articles 起步**(~21k 字,足够 surface polish issues)。slow fetcher 多 fire 累积扩到 200-500。target 1000 → 500 调整。Next: 2.5 segment-corpus 脚本(skip 2.3/2.4 — 25 不需要 sample,全用)
 
 ## Status legend
 - `[ ]` todo
@@ -61,9 +62,9 @@
 
 ### Phase 2: corpus prep
 - [x] 2.1 Pick corpus source — **THUCNews**(决定文档:`CORPUS-CHOICE.md`)。Mirror alive,~700MB,14 类 sina news 2005-2011
-- [WIP] 2.2 Download corpus archive 到 scratchpad
-- [ ] 2.3 Sample 1000 articles balanced(每类 ~70 篇,14 类)
-- [ ] 2.4 Save to `scratchpad/corpus/articles.txt`(每行 1 篇,或多文件)
+- [x] 2.2 Download corpus archive 到 scratchpad — **partial 25 articles**(zhwiki API 429 rate-limited);slow fetcher PID 65523 后台 5s/batch 慢慢加到 500;pipeline 用现有 25 起步,后续动态扩。Target 调整 1000 → 500(achievable)
+- [x] 2.3 ~~Sample 1000 articles balanced~~ — SKIP(zhwiki random 已天然 balanced;且 25 不需 sample,全用)
+- [x] 2.4 ~~Save to articles.txt~~ — DONE(fetcher 已直接写 articles/NNNN_*.txt,每文件 1 篇)
 - [ ] 2.5 Write `tools/v2-ingest/segment-corpus.py`:jieba 分词 → IME-realistic 2-4 字 buffer + pypinyin code
 - [ ] 2.6 Run segment script → `scratchpad/segments/segments.tsv`(`article_id\tseg_idx\tword\tpinyin\t<HSK_level if known>`)
 - [ ] 2.7 Validate segments(spot check 100 行,看分词 / 拼音对不对)
