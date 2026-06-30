@@ -2656,9 +2656,12 @@
       "expected": "方案",
       "pinyin": "fang'an",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "方案",
+        "反感"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0191",
@@ -3743,9 +3746,9 @@
   ],
   "stats": {
     "total": 269,
-    "pass": 268,
+    "pass": 269,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -3999,7 +3999,16 @@
       "pinyin": "li'an",
       "reason": "linear",
       "top10": [
-        "立案"
+        "立案",
+        "脸",
+        "连",
+        "联",
+        "练",
+        "炼",
+        "莲",
+        "链",
+        "恋",
+        "廉"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -4837,7 +4846,16 @@
       "pinyin": "li'an",
       "reason": "linear",
       "top10": [
-        "立案"
+        "立案",
+        "脸",
+        "连",
+        "联",
+        "练",
+        "炼",
+        "莲",
+        "链",
+        "恋",
+        "廉"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -9897,7 +9915,16 @@
       "pinyin": "li'an",
       "reason": "linear",
       "top10": [
-        "立案"
+        "立案",
+        "脸",
+        "连",
+        "联",
+        "练",
+        "炼",
+        "莲",
+        "链",
+        "恋",
+        "廉"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -10219,7 +10246,16 @@
       "pinyin": "li'an",
       "reason": "linear",
       "top10": [
-        "立案"
+        "立案",
+        "脸",
+        "连",
+        "联",
+        "练",
+        "炼",
+        "莲",
+        "链",
+        "恋",
+        "廉"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -11074,7 +11110,16 @@
       "pinyin": "li'an",
       "reason": "linear",
       "top10": [
-        "立案"
+        "立案",
+        "脸",
+        "连",
+        "联",
+        "练",
+        "炼",
+        "莲",
+        "链",
+        "恋",
+        "廉"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -12030,27 +12075,33 @@
       "expected": "以案为鉴",
       "pinyin": "yi'anweijian",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "以案为鉴"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0855",
       "expected": "以案促改",
       "pinyin": "yi'ancugai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "以案促改"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0856",
       "expected": "以案促治",
       "pinyin": "yi'ancuzhi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "以案促治"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0857",
@@ -14324,9 +14375,9 @@
   ],
   "stats": {
     "total": 1010,
-    "pass": 1004,
+    "pass": 1007,
     "soft": 0,
-    "audit": 6,
+    "audit": 3,
     "hard": 0
   }
 }
