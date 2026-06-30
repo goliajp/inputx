@@ -109,7 +109,7 @@
 - [x] 6.1 Retired 7 quickfix rows(ceshi 测试 / yanjiu 研究 / liucheng 流程 / lianxu 连续 / shenru 深入+渗入+慎入 cascade)— modern_freq 接管。Cascade lesson:xingshi 4 行不能部分撤(姓氏 30k 会顶 #0 since 形式 没了快接)→ 还原 形式/形势,只单独 word polish 撤。dogfood PASS 72.1% 不变 ✓ baseline 357/0 ✓ deploy ✓。
 - [x] 6.2 Write final `reports/final.md` — 7 节(TL;DR / phases / 设计 / 数据轨迹 / polish stats / lessons / outstanding / framework gaps / files / conclusion)
 - [x] 6.3 Update memory — `memory/project_dogfood_2026-06-30.md` 写好(项目摘要 + 7 lessons + outstanding + 关联其它 memory),MEMORY.md 加 anchor
-- [ ] 6.4 Tag commit(可选)
+- [WIP] 6.4 ALL DONE — final verify + cancel /loop cron
 
 ## Open questions(任何一项有 update 写这里)
 
