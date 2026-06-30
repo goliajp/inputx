@@ -3542,6 +3542,63 @@
       "verdict": "PASS"
     },
     {
+      "idx": "501",
+      "expected": "这里",
+      "pinyin": "zheli",
+      "reason": "pronoun",
+      "top10": [
+        "这里",
+        "哲理",
+        "啫喱"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "502",
+      "expected": "工作",
+      "pinyin": "gongzuo",
+      "reason": "common",
+      "top10": [
+        "工作"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "503",
+      "expected": "成为",
+      "pinyin": "chengwei",
+      "reason": "verb",
+      "top10": [
+        "成为",
+        "称为",
+        "称谓"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "504",
+      "expected": "让",
+      "pinyin": "rang",
+      "reason": "verb",
+      "top10": [
+        "让",
+        "嚷",
+        "壤",
+        "瓤",
+        "攘",
+        "禳",
+        "穰",
+        "儴",
+        "瀼",
+        "蘘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
       "idx": "401",
       "expected": "幸福",
       "pinyin": "xingfu",
@@ -3836,8 +3893,8 @@
     }
   ],
   "stats": {
-    "total": 312,
-    "pass": 305,
+    "total": 316,
+    "pass": 309,
     "soft": 3,
     "hard": 4
   }
