@@ -59,8 +59,8 @@
         "试",
         "诗",
         "时",
-        "拾",
         "实",
+        "拾",
         "事",
         "师"
       ],
@@ -141,12 +141,13 @@
       "pinyin": "dalao",
       "reason": "linear",
       "top10": [
+        "打牢",
         "打捞",
         "大牢",
         "大佬"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0013",
@@ -3327,10 +3328,11 @@
       "pinyin": "buqi",
       "reason": "linear",
       "top10": [
+        "补齐",
         "不期"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0252",
@@ -3711,10 +3713,10 @@
       "pinyin": "wenchan",
       "reason": "linear",
       "top10": [
-        "文昌鱼"
+        "稳产"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0281",
@@ -3776,8 +3778,8 @@
   ],
   "stats": {
     "total": 280,
-    "pass": 256,
+    "pass": 259,
     "soft": 17,
-    "hard": 7
+    "hard": 4
   }
 }

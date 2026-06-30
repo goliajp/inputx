@@ -9,9 +9,11 @@
       "expected": "文脉",
       "pinyin": "wenmai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "文脉"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0002",
@@ -107,12 +109,13 @@
       "pinyin": "taiji",
       "reason": "linear",
       "top10": [
+        "太极",
         "台基",
         "胎记",
         "肽基"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0009",
@@ -442,10 +445,11 @@
       "pinyin": "lvdi",
       "reason": "linear",
       "top10": [
-        "绿地"
+        "绿地",
+        "绿堤"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0033",
@@ -457,10 +461,11 @@
         "府邸",
         "府第",
         "福地",
-        "伏地"
+        "伏地",
+        "福堤"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 5,
+      "verdict": "SOFT"
     },
     {
       "idx": "0034",
@@ -871,9 +876,11 @@
       "expected": "杭州市",
       "pinyin": "hangzhoushi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "杭州市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0066",
@@ -931,9 +938,11 @@
       "expected": "群体",
       "pinyin": "quntui",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "群体"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0070",
@@ -1677,8 +1686,8 @@
       "top10": [
         "省",
         "剩",
-        "升",
         "生",
+        "升",
         "盛",
         "声",
         "胜",
@@ -1686,7 +1695,7 @@
         "绳",
         "笙"
       ],
-      "rank": 3,
+      "rank": 2,
       "verdict": "SOFT"
     },
     {
@@ -2043,9 +2052,11 @@
       "expected": "传承人",
       "pinyin": "chuanchengren",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "传承人"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0138",
@@ -2389,8 +2400,8 @@
         "试",
         "诗",
         "时",
-        "拾",
         "实",
+        "拾",
         "事",
         "师"
       ],
@@ -2663,8 +2674,8 @@
         "试",
         "诗",
         "时",
-        "拾",
         "实",
+        "拾",
         "事",
         "师"
       ],
@@ -3358,7 +3369,7 @@
         "溅",
         "见",
         "监",
-        "减"
+        "坚"
       ],
       "rank": 2,
       "verdict": "SOFT"
@@ -3375,8 +3386,8 @@
         "试",
         "诗",
         "时",
-        "拾",
         "实",
+        "拾",
         "事",
         "师"
       ],
@@ -3565,11 +3576,12 @@
       "pinyin": "shida",
       "reason": "linear",
       "top10": [
+        "十大",
         "师大",
         "施打"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0229",
@@ -4499,8 +4511,8 @@
         "试",
         "诗",
         "时",
-        "拾",
         "实",
+        "拾",
         "事",
         "师"
       ],
@@ -5478,14 +5490,10 @@
       "pinyin": "xincha",
       "reason": "linear",
       "top10": [
-        "心肠",
-        "新潮",
-        "信差",
-        "心潮澎湃",
-        "新产品推介会"
+        "新茶"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0351",
@@ -5929,8 +5937,8 @@
         "试",
         "诗",
         "时",
-        "拾",
         "实",
+        "拾",
         "事",
         "师"
       ],
@@ -5966,15 +5974,10 @@
       "pinyin": "zhicha",
       "reason": "linear",
       "top10": [
-        "直肠",
-        "支差",
-        "职场",
-        "纸钞",
-        "直肠子",
-        "直插式"
+        "制茶"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0385",
@@ -6758,8 +6761,8 @@
   ],
   "stats": {
     "total": 432,
-    "pass": 358,
-    "soft": 55,
-    "hard": 19
+    "pass": 366,
+    "soft": 57,
+    "hard": 9
   }
 }
