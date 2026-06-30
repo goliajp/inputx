@@ -27,6 +27,7 @@
 - 2026-06-30 iter#14 — 3.4 done。Smoke 100:**86% PASS / 11% SOFT / 3% HARD**。验证 pipeline OK。3 类 polish target pattern 识别清:A.proper-noun reject(英语 Ying1yu3 ingest 拒)、B.cedict 漏(管理器/最早 不在源)、C.单字 polysemy jieba freq 偏(为/中/于 等)。**Phase 3 全 done 🎉**。Next: 4.1 50-article smoke(其实 corpus 已 36 篇,直接跑全 → 4.3 full)
 - 2026-06-30 iter#15 — 4.1+4.2+4.3+4.4 atomic done。Re-gen segments(66 articles → 47,904 segments)。Full dogfood:**PASS 67.4% / SOFT 18.2% / HARD 14.4%**。Aggregate:3218 distinct HARD,top 集中在 polish 真目标。SOFT 由单字 polysemy 主导(与/为/中/并 等 ~50 个常用功能字 quickfix candidate)。Next: 4.5 analysis report → Phase 5 batch polish。
 - 2026-06-30 iter#16 — 4.5 done。`reports/run-001-analysis.md` 写好。关键发现:article 0058(偶像梦幻祭)单文 3989 HARD = 58%,扭曲数据。real-domain HARD ≈ 6.6%。SOFT-1c 66%/SOFT,功能字 muscle memory vs 实词 jieba freq 冲突。Phase 5 plan: 5.1 SOFT-1c top-25 batch、5.2 ordinal/locale compound、5.3 specialty、5.4 lang names。预估 67%→83%。**Phase 4 全 done 🎉**。Next: Phase 5.1 batch quickfix top-25 单字
+- 2026-06-30 iter#17 — 5.1 done。14 quickfix 尝试 → baseline 反对 3(xiang/yi/you),11 落地(yu 与/wei 为/zhong 中/bing 并/hou 后/yu 于/jiang 将/ceng 曾/hua 话/huo 或/deng 等)。Run-002 dogfood:**PASS 67.4 → 71.5%(+4.1pp,SOFT -1983 条)**。baseline 357/0 ✓ mac/reinstall ✓。Next: 5.2 HARD ordinal/locale compound batch。
 
 ## Status legend
 - `[ ]` todo
@@ -89,7 +90,7 @@
 
 ### Phase 5: batch polish iterations
 每 iter:从 failures 选 top N → 自动生成 polish patch → 应用 → 验证 improvement → commit
-- [WIP] 5.1 Iter A:**SOFT-1c 批量 quickfix**(改 plan,先攻 SOFT 大头,HARD batch 排 5.2);13 个明确功能字胜)
+- [x] 5.1 Iter A:**SOFT-1c 批量 quickfix** done。11 quickfix 应用(yu 与/wei 为/zhong 中/bing 并/hou 后/yu 于/jiang 将/ceng 曾/hua 话/huo 或/deng 等)。3 retired(xiang/yi/you 撞老 baseline)。**PASS 67.4% → 71.5%(+4.1pp,SOFT -1983)**。baseline 357/0 ✓。mac/reinstall ✓。
 - [ ] 5.2 Iter B:SOFT failures(顺序错)batch 1 — 高 jieba freq 但没胜的词,生成 quickfix patch
 - [ ] 5.3 Iter C:SOFT failures batch 2(剩余)
 - [ ] 5.4 Iter D:系统模式(发现 framework gap)— 列 + escalate user
