@@ -1286,7 +1286,15 @@ def with_safety_net(install_fn) -> None:
     backup: Path | None = None
 
     if APP_DST.is_dir():
-        backup = APP_DST.parent / f"{APP_NAME}.app.bak-{int(time.time())}"
+        # Snapshot to a directory OUTSIDE ~/Library/Input Methods/, because
+        # macOS scans Input Methods/ for IMEs and would register .bak-*
+        # as additional TIS source rows (user 2026-07-01: 「现在 input
+        # sources 里有十几个 inputx，删了再添加也是一次加出来十几个」 — root cause
+        # was .bak left in Input Methods/ after rollbacks, multiplying the
+        # TIS rows macOS Settings UI exposes).
+        snapshot_dir = HOME / "Library" / "Caches" / "inputx-reinstall-snapshots"
+        snapshot_dir.mkdir(parents=True, exist_ok=True)
+        backup = snapshot_dir / f"{APP_NAME}.app.bak-{int(time.time())}"
         log(f"snapshotting current bundle → {backup}")
         shutil.copytree(APP_DST, backup)
 
