@@ -35,6 +35,7 @@
 - 2026-06-30 iter#22 — 5.6 done。大 batch(50 mod_vocab + 4 quickfix,1 retired hao 号)。**Run-008: PASS 71.7 → 72.0%(+0.3pp,HARD -245)**。Diminishing return 验证(各 batch +0.2-0.3pp 稳定)。累计 6 batch 共 ~200 polish 行 → PASS 67.4 → 72.0%(+4.6pp)。baseline 357/0 ✓ deploy ✓。Next: 5.7 final batch + Phase 6 准备。
 - 2026-06-30 iter#23 — 5.7 done。Iter G batch:17 modern_vocab(大韩民国/检察工作/网络攻击/英联邦/清华大学/东南亚 等)。**Run-009: PASS 72.0 → 72.1%(+0.1pp,HARD -92)**。Diminishing return final acknowledge。**Phase 5 全 done 🎉**(7 iter,~220 polish 行)。累计 PASS 67.4 → 72.1%。Next: Phase 6.1 retire obsolete quickfix。
 - 2026-06-30 iter#24 — 6.1 done。9 retire 候选试,7 落地 retired(ceshi 测试 / yanjiu 研究 / liucheng 流程 / lianxu 连续 / shenru cascade 3 行)。2 还原(xingshi cascade 不能部分撤,姓氏/刑事 30k+20k 仍需 形式/形势 50k+40k 顶上保 cascade)。Lesson:cascade quickfix 整体 — retire 必须全或不。PASS 72.1% 不变(modern_freq 接管成功)baseline 357/0 ✓。Next: 6.2 final report。
+- 2026-06-30 iter#25 — 6.2 done。`reports/final.md` 全 7 节(TL;DR / 25 iter 总览 / design 区间 / 10 runs 数据 trajectory / polish data stats / 7 lessons / outstanding gaps / 0 framework gap / files / conclusion)。Next: 6.3 update memory。
 
 ## Status legend
 - `[ ]` todo
@@ -105,7 +106,7 @@
 
 ### Phase 6: 收尾
 - [x] 6.1 Retired 7 quickfix rows(ceshi 测试 / yanjiu 研究 / liucheng 流程 / lianxu 连续 / shenru 深入+渗入+慎入 cascade)— modern_freq 接管。Cascade lesson:xingshi 4 行不能部分撤(姓氏 30k 会顶 #0 since 形式 没了快接)→ 还原 形式/形势,只单独 word polish 撤。dogfood PASS 72.1% 不变 ✓ baseline 357/0 ✓ deploy ✓。
-- [WIP] 6.2 Write final `reports/final.md`(改进数据 + 仍存在的 framework gaps)
+- [x] 6.2 Write final `reports/final.md` — 7 节(TL;DR / phases / 设计 / 数据轨迹 / polish stats / lessons / outstanding / framework gaps / files / conclusion)
 - [ ] 6.3 Update memory with key findings(`memory/dogfood_2026-06-30_findings.md`)
 - [ ] 6.4 Tag commit(可选)
 
