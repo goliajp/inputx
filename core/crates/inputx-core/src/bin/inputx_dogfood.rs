@@ -127,8 +127,17 @@ fn main() -> ExitCode {
         let top10: Vec<&String> = scored.iter().take(10).map(|(w, _, _)| w).collect();
         let rank = top10.iter().position(|w| w.as_str() == word);
 
+        // Verdict semantics per user 2026-07-01:
+        //   PASS = expected anywhere in top10 (候选列表合理 = expected reachable)
+        //   SOFT = expected in top10 but rank ≥ 3 (typer pages down once)
+        //   HARD = expected NOT in top10 (truly unreachable)
+        // The previous "PASS = rank 0 only" criterion conflated rank-of-expected
+        // with list-reasonableness, which led to over-aggressive polishing that
+        // pushed niche above common (anti-pattern: 贺信 > 核心 for hexin).
+        // Now the OPPORTUNITY for polish is "unreasonable order anywhere in
+        // the list" — assessed separately, not via this binary verdict.
         let level = match rank {
-            Some(0) => {
+            Some(r) if r < 3 => {
                 pass += 1;
                 "PASS"
             }

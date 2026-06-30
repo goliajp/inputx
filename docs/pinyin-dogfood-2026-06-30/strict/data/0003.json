@@ -899,7 +899,7 @@
         "伞下"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0074",
@@ -944,7 +944,7 @@
         "第二"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0077",
@@ -1093,8 +1093,8 @@
       "pinyin": "zhengzhi",
       "reason": "linear",
       "top10": [
-        "整治",
         "政治",
+        "整治",
         "争执",
         "正值",
         "正直",
@@ -1114,7 +1114,7 @@
         "伞下"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0090",
@@ -1245,7 +1245,7 @@
         "蔷"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0099",
@@ -1265,7 +1265,7 @@
         "卿"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0100",
@@ -1640,7 +1640,7 @@
         "诚笃"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0128",
@@ -2065,7 +2065,7 @@
         "集成"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0160",
@@ -2511,7 +2511,7 @@
         "抵"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0191",
@@ -2788,7 +2788,7 @@
         "茛"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0211",
@@ -3048,7 +3048,7 @@
         "牢牢"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0230",
@@ -3090,7 +3090,7 @@
         "垛"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0233",
@@ -3252,14 +3252,14 @@
       "pinyin": "zhengzhi",
       "reason": "linear",
       "top10": [
-        "整治",
         "政治",
+        "整治",
         "争执",
         "正值",
         "正直",
         "正职"
       ],
-      "rank": 0,
+      "rank": 1,
       "verdict": "PASS"
     },
     {
@@ -3304,7 +3304,7 @@
         "老去"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0250",
@@ -3448,7 +3448,7 @@
         "会商"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0261",
@@ -3781,8 +3781,8 @@
   ],
   "stats": {
     "total": 280,
-    "pass": 260,
-    "soft": 18,
+    "pass": 273,
+    "soft": 5,
     "hard": 2
   }
 }

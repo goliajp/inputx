@@ -421,7 +421,7 @@
         "止"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0032",
@@ -441,7 +441,7 @@
         "殡"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0033",
@@ -517,7 +517,7 @@
         "础"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0038",
@@ -602,7 +602,7 @@
         "坚"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0044",
@@ -1154,14 +1154,13 @@
       "pinyin": "xinxi",
       "reason": "linear",
       "top10": [
-        "心系",
         "信息",
         "欣喜",
         "心细",
         "新禧"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 99,
+      "verdict": "HARD"
     },
     {
       "idx": "0083",
@@ -1590,7 +1589,7 @@
         "志士"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0113",
@@ -3736,7 +3735,7 @@
         "耑"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0269",
@@ -3895,7 +3894,7 @@
         "志士"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0280",
@@ -4199,7 +4198,7 @@
         "踶跂"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0302",
@@ -4587,7 +4586,7 @@
         "贺"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0331",
@@ -4780,7 +4779,7 @@
         "耑"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0345",
@@ -5010,7 +5009,7 @@
         "衣"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0358",
@@ -7265,7 +7264,7 @@
         "哈"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0518",
@@ -7626,7 +7625,7 @@
         "著"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0544",
@@ -7931,14 +7930,14 @@
       "pinyin": "zhengzhi",
       "reason": "linear",
       "top10": [
-        "整治",
         "政治",
+        "整治",
         "争执",
         "正值",
         "正直",
         "正职"
       ],
-      "rank": 0,
+      "rank": 1,
       "verdict": "PASS"
     },
     {
@@ -8139,7 +8138,7 @@
         "坝"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0584",
@@ -8271,7 +8270,7 @@
         "坝"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0592",
@@ -8826,13 +8825,13 @@
       "pinyin": "qingjie",
       "reason": "linear",
       "top10": [
-        "情结",
         "情节",
         "清洁",
+        "情结",
         "轻捷",
         "磬竭"
       ],
-      "rank": 0,
+      "rank": 2,
       "verdict": "PASS"
     },
     {
@@ -8979,7 +8978,7 @@
         "邨"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0634",
@@ -8997,7 +8996,7 @@
         "邨"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0635",
@@ -9132,7 +9131,7 @@
         "坝"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0645",
@@ -9400,7 +9399,7 @@
         "余"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0663",
@@ -9725,7 +9724,7 @@
         "适间"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0688",
@@ -9758,7 +9757,7 @@
         "著"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0690",
@@ -10138,7 +10137,7 @@
         "著"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0716",
@@ -10306,8 +10305,8 @@
   ],
   "stats": {
     "total": 718,
-    "pass": 684,
-    "soft": 31,
-    "hard": 3
+    "pass": 705,
+    "soft": 9,
+    "hard": 4
   }
 }
