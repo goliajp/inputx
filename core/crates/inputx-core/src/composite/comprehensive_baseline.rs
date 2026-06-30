@@ -455,6 +455,10 @@ mod tests {
             // tier-1 calibration to beat JP exact-prefix kana (same as
             // jianma 简码 / fudu 复读 / aijie 娭毑 / weixin 微信).
             ("shijinsai", "世锦赛"),
+            // Polish 2026-06-30: user "shanle 删了 要加上" — 删+了 modal
+            // compound, not in CC-CEDICT. Compose path can't synthesize
+            // (≥1-word rule + 删 not in words.tsv as word). Direct entry.
+            ("shanle", "删了"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
