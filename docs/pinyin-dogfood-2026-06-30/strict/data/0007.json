@@ -386,10 +386,11 @@
         "嘻嘻",
         "西西",
         "栖栖",
-        "肸肸"
+        "肸肸",
+        "西溪"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 8,
+      "verdict": "SOFT"
     },
     {
       "idx": "0028",
@@ -974,10 +975,11 @@
         "种植",
         "中指",
         "中止",
-        "众智"
+        "众智",
+        "种质"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 5,
+      "verdict": "SOFT"
     },
     {
       "idx": "0072",
@@ -1329,7 +1331,8 @@
         "意境",
         "遗精",
         "一径",
-        "缢颈"
+        "缢颈",
+        "译经"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -2545,10 +2548,10 @@
       "pinyin": "pingpingdandan",
       "reason": "linear",
       "top10": [
-        "平平单单"
+        "平平淡淡"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0169",
@@ -6066,9 +6069,11 @@
       "expected": "教科文",
       "pinyin": "jiaokewen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "教科文"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0392",
@@ -6185,10 +6190,11 @@
       "pinyin": "liuda",
       "reason": "linear",
       "top10": [
-        "溜达"
+        "溜达",
+        "六大"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0402",
@@ -6282,7 +6288,8 @@
         "种植",
         "中指",
         "中止",
-        "众智"
+        "众智",
+        "种质"
       ],
       "rank": 1,
       "verdict": "SOFT"
@@ -6761,8 +6768,8 @@
   ],
   "stats": {
     "total": 432,
-    "pass": 366,
-    "soft": 57,
-    "hard": 9
+    "pass": 368,
+    "soft": 60,
+    "hard": 4
   }
 }
