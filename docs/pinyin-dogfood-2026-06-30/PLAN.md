@@ -48,7 +48,7 @@
 - [x] 1.2 Run script → 生成 `core/crates/inputx-pinyin-v2/data/modern_freq.tsv`(95870 行,74.7% in jieba)
 - [x] 1.3 `data.rs` 加 `modern_freq()` lazy loader(HashMap<String, u16>)
 - [x] 1.4 `lib.rs` 加 modern_freq score 注入(**design 简化**:不在 6 个 sort site 改,而在 prior_corrections loop 后统一 `entry.1 += modern_freq[word]`。所有 path 汇 `out`,一次 site 全覆盖,不漏。Cap 25k < tier 跨度 30k 保证不跨 tier)
-- [ ] 1.5 cargo build + baseline 357/0 ✓
+- [WIP] 1.5 cargo build + baseline 357/0 ✓
 - [ ] 1.6 验证 anchor 翻转:gongqi→工期 / ceshi→测试 / liucheng→流程 / yanjiu→研究 / huluobo→胡萝卜(无 quickfix 帮助时也能自动正确)
 - [ ] 1.7 mac/reinstall.py + commit + push
 
