@@ -91,7 +91,7 @@
 ### Phase 5: batch polish iterations
 每 iter:从 failures 选 top N → 自动生成 polish patch → 应用 → 验证 improvement → commit
 - [x] 5.1 Iter A:**SOFT-1c 批量 quickfix** done。11 quickfix 应用(yu 与/wei 为/zhong 中/bing 并/hou 后/yu 于/jiang 将/ceng 曾/hua 话/huo 或/deng 等)。3 retired(xiang/yi/you 撞老 baseline)。**PASS 67.4% → 71.5%(+4.1pp,SOFT -1983)**。baseline 357/0 ✓。mac/reinstall ✓。
-- [ ] 5.2 Iter B:SOFT failures(顺序错)batch 1 — 高 jieba freq 但没胜的词,生成 quickfix patch
+- [WIP] 5.2 Iter B:**HARD ordinal/locale/specialty compound batch**(改 plan,从 run-002 抓 systematic 真词)
 - [ ] 5.3 Iter C:SOFT failures batch 2(剩余)
 - [ ] 5.4 Iter D:系统模式(发现 framework gap)— 列 + escalate user
 - [ ] 5.5(可选 reps)Iter E-Z:继续直到 diminishing return
