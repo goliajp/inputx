@@ -279,9 +279,11 @@
       "expected": "源视频",
       "pinyin": "yuanshipin",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "源视频"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0020",
@@ -544,11 +546,12 @@
       "pinyin": "chaozhi",
       "reason": "linear",
       "top10": [
+        "炒制",
         "超支",
         "超值"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0041",
@@ -1774,11 +1777,12 @@
       "pinyin": "doushi",
       "reason": "linear",
       "top10": [
+        "都是",
         "斗士",
         "斗室"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0118",
@@ -2549,8 +2553,8 @@
         "担",
         "丹",
         "胆",
-        "氮",
-        "旦"
+        "旦",
+        "氮"
       ],
       "rank": 1,
       "verdict": "SOFT"
@@ -3215,14 +3219,15 @@
       "pinyin": "yeshi",
       "reason": "linear",
       "top10": [
+        "也是",
         "夜视",
         "野史",
         "夜市",
         "业师",
         "野豕"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0209",
@@ -3816,11 +3821,12 @@
       "pinyin": "chaozhi",
       "reason": "linear",
       "top10": [
+        "炒制",
         "超支",
         "超值"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0246",
@@ -4111,11 +4117,12 @@
       "pinyin": "chaozhi",
       "reason": "linear",
       "top10": [
+        "炒制",
         "超支",
         "超值"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0263",
@@ -5439,10 +5446,11 @@
       "pinyin": "mingcha",
       "reason": "linear",
       "top10": [
+        "名茶",
         "明察"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0349",
@@ -6185,10 +6193,11 @@
       "pinyin": "mingcha",
       "reason": "linear",
       "top10": [
+        "名茶",
         "明察"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0403",
@@ -6196,12 +6205,10 @@
       "pinyin": "geyou",
       "reason": "linear",
       "top10": [
-        "各有千秋",
-        "各有所好",
-        "隔油池"
+        "各有"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0404",
@@ -6220,12 +6227,10 @@
       "pinyin": "geyou",
       "reason": "linear",
       "top10": [
-        "各有千秋",
-        "各有所好",
-        "隔油池"
+        "各有"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0406",
@@ -6753,8 +6758,8 @@
   ],
   "stats": {
     "total": 432,
-    "pass": 343,
+    "pass": 353,
     "soft": 62,
-    "hard": 27
+    "hard": 17
   }
 }

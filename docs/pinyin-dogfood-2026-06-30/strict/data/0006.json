@@ -1613,11 +1613,11 @@
       "pinyin": "zhize",
       "reason": "linear",
       "top10": [
-        "指责",
-        "职责"
+        "职责",
+        "指责"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0120",
@@ -2185,15 +2185,15 @@
       "pinyin": "gongwei",
       "reason": "linear",
       "top10": [
-        "恭维",
         "工委",
+        "恭维",
         "拱卫",
         "工位",
         "公卫",
         "宫位"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0156",
@@ -2390,11 +2390,11 @@
       "pinyin": "zhize",
       "reason": "linear",
       "top10": [
-        "指责",
-        "职责"
+        "职责",
+        "指责"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0171",
@@ -2941,8 +2941,8 @@
         "担",
         "丹",
         "胆",
-        "氮",
-        "旦"
+        "旦",
+        "氮"
       ],
       "rank": 1,
       "verdict": "SOFT"
@@ -9189,15 +9189,15 @@
       "pinyin": "benji",
       "reason": "linear",
       "top10": [
-        "本季",
         "本级",
+        "本季",
         "本纪",
         "苯基",
         "畚箕",
         "笨鸡"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0652",
@@ -9476,15 +9476,15 @@
       "pinyin": "benji",
       "reason": "linear",
       "top10": [
-        "本季",
         "本级",
+        "本季",
         "本纪",
         "苯基",
         "畚箕",
         "笨鸡"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0674",
@@ -11758,10 +11758,11 @@
       "pinyin": "poxi",
       "reason": "linear",
       "top10": [
+        "剖析",
         "婆媳"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0835",
@@ -13169,9 +13170,11 @@
       "expected": "中管",
       "pinyin": "zhongguan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "中管"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0937",
@@ -13376,9 +13379,11 @@
       "expected": "中管",
       "pinyin": "zhongguan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "中管"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0951",
@@ -13695,15 +13700,15 @@
       "pinyin": "gongwei",
       "reason": "linear",
       "top10": [
-        "恭维",
         "工委",
+        "恭维",
         "拱卫",
         "工位",
         "公卫",
         "宫位"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0973",
@@ -14285,8 +14290,8 @@
   ],
   "stats": {
     "total": 1010,
-    "pass": 900,
-    "soft": 76,
-    "hard": 34
+    "pass": 909,
+    "soft": 70,
+    "hard": 31
   }
 }

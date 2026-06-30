@@ -1377,3 +1377,52 @@ zhuanyuan	专员	35000
 zouguo	走过	35000
 zouhao	走好	30000
 # REMOVED weiyi typo (维护=weihu)
+
+# strict-dogfood polish round 2 (2026-07-01) — specialty terms + 政策固定词
+# Class A 加词: safe additions (single-meaning specialty / no cross-article conflict)
+yidaiyilu	一带一路	50000
+shisiwu	十四五	40000
+fudan	复旦	35000
+zhonge	中俄	35000
+erzhan	二战	35000
+zhongfang	中方	35000
+zhongguan	中管	30000
+yuanshipin	源视频	30000
+geyou	各有	35000
+quandang	全党	35000
+wuda	五大	30000
+fuzhoushi	抚州市	35000
+baxiang	八项	30000
+yigui	依规	30000
+yeshi	也是	35000
+doushi	都是	35000
+chaozhi	炒制	30000
+mingcha	名茶	30000
+buwei	不为	30000
+weibian	未变	30000
+suzhoushi	宿州市	30000
+huainanshi	淮南市	30000
+luanshi	六安市	30000
+nongkeyuan	农科院	30000
+xiazhong	夏种	30000
+shouchu	收储	30000
+xinpinzhong	新品种	30000
+wenjia	稳价	30000
+zhuashi	抓实	30000
+zhualao	抓牢	30000
+yacha	压茬	30000
+luoxi	落细	30000
+jingliang	精量	30000
+shiyantian	试验田	30000
+datian	大田	30000
+xiaguan	夏管	30000
+tianguan	田管	30000
+# Fix li'an apostrophe issue: also add lian variant (may collide but engine strips apostrophe anyway)
+lian	立案	35000
+# 工作日 / 经营者 / 监察组 specialty
+jingyingzhe	经营者	35000
+jiancha	监察	45000
+jianchazu	监察组	30000
+# bigval terms in 0008
+weiguozhanzheng	卫国战争	30000
+qingdian	庆典	35000

@@ -80,9 +80,11 @@
       "expected": "源视频",
       "pinyin": "yuanshipin",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "源视频"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0007",
@@ -797,10 +799,11 @@
       "pinyin": "xiaona",
       "reason": "linear",
       "top10": [
+        "消纳",
         "笑纳"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0061",
@@ -1937,10 +1940,10 @@
       "pinyin": "yidaiyilu",
       "reason": "linear",
       "top10": [
-        "一代一路"
+        "一带一路"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0138",
@@ -3731,8 +3734,8 @@
   ],
   "stats": {
     "total": 269,
-    "pass": 241,
+    "pass": 244,
     "soft": 19,
-    "hard": 9
+    "hard": 6
   }
 }
