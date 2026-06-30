@@ -1,0 +1,5 @@
+# strict mode polish action log (append-only)
+# date	article_id	seg_idx	buffer	expected	got	action	polish_file	notes
+2026-06-30	SEED	-	fenci	分词	粉刺	quickfix 30000	quickfix_boost	user message inline example
+2026-06-30	SEED	-	neihe	内核	内河	quickfix 30000	quickfix_boost	user message inline example
+2026-06-30	SEED	-	lunci	轮次	(empty)	quickfix 30000 (un-exclude)	quickfix_boost	un-exclude from corpus_garbage_filter

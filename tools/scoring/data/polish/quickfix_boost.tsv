@@ -197,3 +197,8 @@ bushi	不是	30000
 yishang	以上	30000
 shengji	升级	30000
 zixun	资讯	30000
+
+# 2026-06-30 dogfood-polish-strict seeds (user examples in reopening message)
+fenci	分词	30000
+neihe	内核	30000
+lunci	轮次	30000	# 2026-06-30 user seed: was wrongly in corpus_garbage_filter (freq=0 误删 2026-06-28); quickfix un-excludes
