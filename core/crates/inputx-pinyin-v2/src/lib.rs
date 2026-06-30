@@ -436,8 +436,17 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
     // Words/chars not in modern corpus get +0 → naturally demoted
     // within tier (古汉语 / 罕用 signal). See
     // docs/pinyin-dogfood-2026-06-30/MODERN-FREQ-DESIGN.md.
+    //
+    // ⚠️ SOVEREIGNTY rule: words explicitly listed in quickfix_boost.tsv
+    // for the current buffer get NO modern_freq bonus — user-explicit
+    // polish (cascading order locks, JP-beating boosts) MUST be
+    // sovereign over corpus statistics.
     let modern = data::modern_freq();
+    let quickfix = data::quickfix_boost();
     for entry in out.iter_mut() {
+        if quickfix.contains_key(&(buf_owned.clone(), entry.0.clone())) {
+            continue;
+        }
         if let Some(&freq_score) = modern.get(&entry.0) {
             entry.1 += freq_score as f64;
         }
