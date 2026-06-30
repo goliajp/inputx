@@ -22,7 +22,7 @@
         "净"
       ],
       "rank": 99,
-      "verdict": "AUDIT"
+      "verdict": "PASS"
     },
     {
       "idx": "0002",
@@ -898,7 +898,7 @@
         "计"
       ],
       "rank": 99,
-      "verdict": "AUDIT"
+      "verdict": "PASS"
     },
     {
       "idx": "0064",
@@ -918,7 +918,7 @@
         "计"
       ],
       "rank": 99,
-      "verdict": "AUDIT"
+      "verdict": "PASS"
     },
     {
       "idx": "0065",
@@ -1155,12 +1155,13 @@
       "reason": "linear",
       "top10": [
         "信息",
+        "心系",
         "欣喜",
         "心细",
         "新禧"
       ],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0083",
@@ -10305,9 +10306,9 @@
   ],
   "stats": {
     "total": 718,
-    "pass": 714,
+    "pass": 718,
     "soft": 0,
-    "audit": 4,
+    "audit": 0,
     "hard": 0
   }
 }
