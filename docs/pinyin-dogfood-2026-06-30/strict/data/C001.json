@@ -1698,9 +1698,11 @@
       "expected": "认监委",
       "pinyin": "renjianwei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "认监委"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0123",
@@ -8063,9 +8065,9 @@
   ],
   "stats": {
     "total": 565,
-    "pass": 564,
+    "pass": 565,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }
