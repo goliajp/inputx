@@ -451,6 +451,10 @@ mod tests {
             // Polish 2026-06-30: user "shijiebei 世界杯" — proper-noun event
             // name CC-CEDICT-rejected; modern_vocab backfill.
             ("shijiebei", "世界杯"),
+            // Polish 2026-06-30: user "shijinsai 世锦赛要高于日语" — 55k
+            // tier-1 calibration to beat JP exact-prefix kana (same as
+            // jianma 简码 / fudu 复读 / aijie 娭毑 / weixin 微信).
+            ("shijinsai", "世锦赛"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
