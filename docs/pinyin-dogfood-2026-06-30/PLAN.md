@@ -22,6 +22,7 @@
 - 2026-06-30 iter#9 — 2.2 **PIVOT**。THUCNews 实测 1.5GB / 700KB/s = 25min,/loop interval 难一气下完;且 mirror 单线程慢。Switch to **zhwiki API**(`zh-cn` variant simplified):每篇 5-10KB,API 无 auth,User-Agent OK。写 `fetch_wiki_corpus.py`(resume + idempotent),启动 nohup PID=63421 fetching 1000 articles。状态 [WIP]。下次 fire check 进度。
 - 2026-06-30 iter#10 — 2.2 still [WIP],调速。Iter#9 fetcher 实测 4 articles/min(stub filter 90% reject)。kill 63421,提升参数:batch 20(extracts API max)、MIN_LEN 150、sleep 0.2s。重启 PID=64620。估 ETA <10 min。下次 fire check。
 - 2026-06-30 iter#11 — 2.2 done(部分)。zhwiki API 429 rate-limited IP-level。kill 64620,re-launch slow fetcher(sleep 5s,target 500)PID 65523 后台。**pipeline 用当前 25 articles 起步**(~21k 字,足够 surface polish issues)。slow fetcher 多 fire 累积扩到 200-500。target 1000 → 500 调整。Next: 2.5 segment-corpus 脚本(skip 2.3/2.4 — 25 不需要 sample,全用)
+- 2026-06-30 iter#12 — 2.5+2.6+2.7 done(atomic)。`segment-corpus.py` 写 + 跑 + spot check 通过。Corpus 此时 36 articles(slow fetcher 加了 11)。生成 **10,920 segments**(1c 30%/2c 57%/3c 8%/4c 4% — IME-realistic 分布)。Sample 真实分词正确(高级/打包/工具/软件包/管理器等)。**Phase 2 全 done 🎉**。Next: 3.1 inputx_dogfood Rust binary
 
 ## Status legend
 - `[ ]` todo
@@ -65,9 +66,9 @@
 - [x] 2.2 Download corpus archive 到 scratchpad — **partial 25 articles**(zhwiki API 429 rate-limited);slow fetcher PID 65523 后台 5s/batch 慢慢加到 500;pipeline 用现有 25 起步,后续动态扩。Target 调整 1000 → 500(achievable)
 - [x] 2.3 ~~Sample 1000 articles balanced~~ — SKIP(zhwiki random 已天然 balanced;且 25 不需 sample,全用)
 - [x] 2.4 ~~Save to articles.txt~~ — DONE(fetcher 已直接写 articles/NNNN_*.txt,每文件 1 篇)
-- [WIP] 2.5 Write `tools/v2-ingest/segment-corpus.py`:jieba 分词 → IME-realistic 2-4 字 buffer + pypinyin code
-- [ ] 2.6 Run segment script → `scratchpad/segments/segments.tsv`(`article_id\tseg_idx\tword\tpinyin\t<HSK_level if known>`)
-- [ ] 2.7 Validate segments(spot check 100 行,看分词 / 拼音对不对)
+- [x] 2.5 Write `tools/v2-ingest/segment-corpus.py`:jieba 分词 → IME-realistic 1-4 字 buffer + pypinyin code(7072 非 CJK 自动 drop,31 长 token >4 drop)
+- [x] 2.6 Run segment script → `scratchpad/segments/segments.tsv`(36 articles → **10,920 segments**;1c 30% / 2c 57% / 3c 8% / 4c 4%)
+- [x] 2.7 Validate segments — spot check 通过(gaoji 高级 / dabao 打包 / ruanjianbao 软件包 等真实分词 + 拼音对)
 
 ### Phase 3: dogfood Rust binary
 - [ ] 3.1 Write `core/crates/inputx-core/src/bin/inputx_dogfood.rs`(read segments.tsv,for each call v2::query() in-process)
