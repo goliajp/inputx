@@ -1,0 +1,275 @@
+# article 0002 — LLM hand-segmented (NOT jieba)
+# 「环境就是民生」千万工程 article
+# idx \t word \t pinyin \t reason
+
+# Title
+001	学习	xuexi	common
+002	手记	shouji	noun
+003	环境	huanjing	common
+004	民生	minsheng	political
+
+# P1
+005	世界	shijie	common
+006	环境日	huanjingri	noun
+007	我国	woguo	common
+008	环境保护法	huanjingbaohufa	political
+009	确立	queli	verb
+
+# P2 / P3
+# RETIRED 010	这一天	zheyitian	temporal  ← 2026-06-30 宁缺毋滥/typer 拆字
+011	时任	shiren	political
+012	浙江	zhejiang	province
+013	省委	shengwei	political
+014	书记	shuji	political
+015	习近平	xijinping	person
+016	部署	bushu	verb
+017	推动	tuidong	verb
+018	农村	nongcun	common
+019	人居	renju	noun
+020	整治	zhengzhi	verb
+021	重点	zhongdian	common
+022	千万工程	qianwangongcheng	political
+023	启动	qidong	verb
+024	同志	tongzhi	political
+025	担任	danren	verb
+026	半年	bannian	temporal
+027	工作	gongzuo	common
+028	千头万绪	qiantouwanxu	idiom
+029	何以	heyi	literary
+030	将	jiang	conj
+031	作为	zuowei	verb
+
+# P4
+032	基层	jiceng	political
+033	调研	diaoyan	verb
+034	发现	faxian	verb
+035	经济	jingji	common
+036	快速	kuaisu	adj
+037	发展	fazhan	common
+038	同时	tongshi	conj
+039	广大	guangda	adj
+040	面临	mianlin	verb
+041	成长	chengzhang	noun
+042	烦恼	fannao	noun
+043	村庄	cunzhuang	noun
+044	面貌	mianmao	noun
+045	不如	buru	verb
+046	人意	renyi	noun
+
+# P5
+047	全省	quansheng	noun
+048	较好	jiaohao	adj
+049	形容	xingrong	verb
+050	垃圾	laji	common
+051	农民	nongmin	common
+052	描述	miaoshu	verb
+053	起早贪黑	qizaotanhei	idiom
+054	赚	zhuan	verb
+055	钞票	chaopiao	noun
+# RETIRED 056	堆里	duili	phrase  ← 2026-06-30 宁缺毋滥/typer 拆字
+# RETIRED 057	躺在	tangzai	phrase  ← 2026-06-30 宁缺毋滥/typer 拆字
+058	医院	yiyuan	common
+059	花	hua	verb
+# RETIRED 060	可以说	keyishuo	phrase  ← 2026-06-30 宁缺毋滥/typer 拆字
+061	群众	qunzhong	noun
+062	迫切	poqie	adj
+063	期盼	qipan	noun
+
+# P6
+064	聚焦	jujiao	verb
+065	乡亲	xiangqin	noun
+066	什么	shenme	pronoun
+# RETIRED 067	村道	cundao	noun  ← 2026-06-30 宁缺毋滥/typer 拆字
+068	怎么	zenme	pronoun
+069	处理	chuli	verb
+070	畜禽	chuqin	noun
+071	粪便	fenbian	noun
+072	问题	wenti	common
+073	直接	zhijie	adv
+074	关系	guanxi	common
+075	获得感	huodegan	political
+076	幸福感	xingfugan	noun
+077	实打实	shidashi	adj
+078	大事	dashi	noun
+
+# P7
+079	老百姓	laobaixing	common
+080	生活	shenghuo	common
+081	念兹在兹	nianzizaizi	idiom
+
+# P8
+082	上世纪	shangshiji	temporal
+083	年代	niandai	temporal
+084	陕北	shanbei	region
+085	冯家坪	fengjiaping	place
+086	公社	gongshe	noun
+087	赵家河	zhaojiahe	place
+088	大队	dadui	noun
+089	驻点	zhudian	verb
+# RETIRED 090	撸起	luqi	verb  ← 2026-06-30 宁缺毋滥/typer 拆字
+091	袖管	xiuguan	noun
+092	一石一瓦	yishiyiwa	idiom
+# RETIRED 093	盖起	gaiqi	verb  ← 2026-06-30 宁缺毋滥/typer 拆字
+094	村里	cunli	noun
+095	男女	nannv	common
+096	分开	fenkai	verb
+097	厕所	cesuo	noun
+
+# P9
+098	正定	zhengding	place
+099	不仅	bujin	conj
+100	大力	dali	adv
+101	推进	tuijin	verb
+# RETIRED 102	人拉猪吃	renlazhuchi	political  ← 2026-06-30 宁缺毋滥/typer 拆字
+103	连茅圈	lianmaoquan	noun
+104	改造	gaizao	verb
+# RETIRED 105	拿着	nazhe	verb  ← 2026-06-30 宁缺毋滥/typer 拆字
+# RETIRED 106	大扫帚	dasaozhou	noun  ← 2026-06-30 宁缺毋滥/typer 拆字
+# RETIRED 107	走上	zoushang	verb  ← 2026-06-30 宁缺毋滥/typer 拆字
+108	街头	jietou	noun
+# RETIRED 109	搞卫生	gaoweisheng	phrase  ← 2026-06-30 宁缺毋滥/typer 拆字
+110	成立	chengli	verb
+# RETIRED 111	全县	quanxian	noun  ← 2026-06-30 宁缺毋滥/typer 拆字
+112	专职	zhuanzhi	adj
+113	卫生	weisheng	common
+114	清洁	qingjie	common
+115	队	dui	noun
+
+# P10
+116	福州	fuzhou	city
+117	市委	shiwei	political
+118	亲自	qinzi	adv
+119	建造	jianzao	verb
+# RETIRED 120	处理场	chulichang	noun  ← 2026-06-30 宁缺毋滥/typer 拆字
+121	选址	xuanzhi	verb
+122	破解	pojie	verb
+123	垃圾围城	lajiweicheng	phrase
+124	难题	nanti	noun
+
+# P11
+125	上海	shanghai	city
+126	叮嘱	dingzhu	verb
+127	收集	shouji	verb
+128	乡镇	xiangzhen	political
+129	集中	jizhong	verb
+# RETIRED 130	区县	quxian	political  ← 2026-06-30 宁缺毋滥/typer 拆字
+
+# P12
+# RETIRED 131	党的	dangde	political  ← 2026-06-30 宁缺毋滥/typer 拆字
+132	十八大	shibada	political
+133	改善	gaishan	verb
+134	仍然	rengran	adv
+135	总书记	zongshuji	title
+136	放不下	fangbuxia	phrase
+137	牵挂	qianggua	noun
+# RETIRED 138	改厕	gaice	verb  ← 2026-06-30 宁缺毋滥/typer 拆字
+139	北方	beifang	common
+140	地区	diqu	common
+141	冬季	dongji	temporal
+142	取暖	qunuan	verb
+143	推行	tuixing	verb
+144	分类	fenlei	common
+145	制度	zhidu	common
+146	加快	jiakuai	verb
+147	养殖	yangzhi	noun
+148	废弃物	feiqiwu	noun
+# RETIRED 149	资源化	ziyuanhua	political  ← 2026-06-30 宁缺毋滥/typer 拆字
+
+# P13
+150	深刻	shenke	adv
+151	指出	zhichu	verb
+# RETIRED 152	好了	haole	phrase  ← 2026-06-30 宁缺毋滥/typer 拆字
+153	才能	cainen	conj
+# RETIRED 154	更好	genghao	adj  ← 2026-06-30 宁缺毋滥/typer 拆字
+155	良好	lianghao	adj
+156	人民群众	renminqunzhong	political
+157	追求	zhuiqiu	verb
+158	美好	meihao	adj
+159	重要	zhongyao	common
+160	内容	neirong	common
+161	创造	chuangzao	verb
+162	必需	bixu	adj
+163	空间	kongjian	common
+164	载体	zaiti	noun
+
+# P14
+165	义乌	yiwu	city
+166	李祖村	lizucun	place
+167	曾经	zengjing	adv
+168	脏	zang	adj
+169	乱	luan	adj
+170	差	cha	adj
+171	穷	qiong	adj
+172	当地	dangdi	noun
+173	称为	chengwei	verb
+174	希望	xiwang	common
+# RETIRED 175	水牛角	shuiniujiao	place  ← 2026-06-30 宁缺毋滥/typer 拆字
+# RETIRED 176	整治环境	zhengzhihuanjing	political  ← 2026-06-30 宁缺毋滥/typer 拆字
+177	入手	rushou	verb
+178	产业	chanye	common
+179	吸引	xiyin	verb
+180	人才	rencai	common
+# RETIRED 181	农文旅	nongwenlv	political  ← 2026-06-30 宁缺毋滥/typer 拆字
+182	融合	ronghe	verb
+183	美丽	meili	adj
+184	生态	shengtai	common
+185	经济	jingji	common (dup OK)
+186	美好生活	meihaoshenghuo	political
+187	相得益彰	xiangdeyizhang	idiom
+188	实现	shixian	verb
+189	华丽	huali	adj
+190	转身	zhuanshen	verb
+191	村民	cunmin	noun
+192	人均	renjun	adj
+# RETIRED 193	可支配	kezhipei	political  ← 2026-06-30 宁缺毋滥/typer 拆字
+194	收入	shouru	common
+195	增长	zengzhang	verb
+196	如今	rujin	temporal
+
+# P15
+197	扎实	zhashi	adj
+198	推进	tuijin	verb (dup OK)
+199	共同富裕	gongtongfuyu	political
+200	显著	xianzhu	adj
+201	成效	chengxiao	noun
+202	缩影	suoying	noun
+203	考察	kaocha	verb
+204	称赞	chengzan	verb
+
+# P16
+205	今天	jintian	common
+# RETIRED 206	已成为	yichengwei	verb  ← 2026-06-30 宁缺毋滥/typer 拆字
+207	各地	gedi	pronoun
+208	乡村振兴	xiangcunzhenxing	political
+209	金钥匙	jinyaoshi	noun
+210	越来越	yuelaiyue	adv
+211	万千	wanqian	noun
+212	山乡	shanxiang	noun
+213	巨变	jubian	noun
+214	笑靥	xiaoye	literary noun
+215	读懂	dudong	verb
+216	深意	shenyi	noun
+
+# P17
+217	二十大	ershida	political
+218	报告	baogao	common
+219	城乡	chengxiang	political
+220	明显	mingxian	adj
+221	列为	liewei	verb
+# RETIRED 222	中国式	zhongguoshi	political  ← 2026-06-30 宁缺毋滥/typer 拆字
+223	现代化	xiandaihua	political
+224	主要	zhuyao	adj
+225	目标	mubiao	common
+226	任务	renwu	common
+
+# P18
+227	持续	chixu	adv
+# RETIRED 228	过上	guoshang	verb  ← 2026-06-30 宁缺毋滥/typer 拆字
+229	更加	gengjia	adv
+230	幸福	xingfu	common
+231	蕴含	yunhan	verb
+232	领袖	lingxiu	political
+233	为什么	weishenme	pronoun
+234	为了	weile	prep
+# RETIRED 235	深刻回答	shenkehuida	political  ← 2026-06-30 宁缺毋滥/typer 拆字
+236	回答	huida	common
