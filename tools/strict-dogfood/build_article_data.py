@@ -99,6 +99,7 @@ def main():
         "total": len(segments),
         "pass": sum(1 for s in segments if s["verdict"] == "PASS"),
         "soft": sum(1 for s in segments if s["verdict"] == "SOFT"),
+        "audit": sum(1 for s in segments if s["verdict"] == "AUDIT"),
         "hard": sum(1 for s in segments if s["verdict"] == "HARD"),
     }
 

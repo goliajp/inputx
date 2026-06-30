@@ -66,7 +66,7 @@
         "师"
       ],
       "rank": 5,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0006",
@@ -98,7 +98,7 @@
         "寿"
       ],
       "rank": 5,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0008",
@@ -1262,7 +1262,7 @@
         "寿"
       ],
       "rank": 5,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0093",
@@ -1369,7 +1369,7 @@
         "抵"
       ],
       "rank": 6,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0100",
@@ -1807,7 +1807,7 @@
         "延"
       ],
       "rank": 4,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0131",
@@ -1930,7 +1930,7 @@
         "卷"
       ],
       "rank": 3,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0139",
@@ -2466,7 +2466,7 @@
         "扮"
       ],
       "rank": 3,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0180",
@@ -4355,7 +4355,7 @@
         "计"
       ],
       "rank": 7,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0319",
@@ -5475,8 +5475,9 @@
   ],
   "stats": {
     "total": 398,
-    "pass": 390,
-    "soft": 8,
+    "pass": 398,
+    "soft": 0,
+    "audit": 0,
     "hard": 0
   }
 }
