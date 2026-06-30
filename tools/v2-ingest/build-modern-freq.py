@@ -27,6 +27,7 @@ REPO = Path(__file__).resolve().parents[2]
 V2_DATA = REPO / "core/crates/inputx-pinyin-v2/data"
 WORDS_TSV = V2_DATA / "words.tsv"
 CHARS_TSV = V2_DATA / "chars.tsv"
+MODERN_VOCAB_TSV = REPO / "tools/scoring/data/polish/modern_vocab_v1.tsv"
 OUTPUT_TSV = V2_DATA / "modern_freq.tsv"
 
 SCORE_CAP = 25_000   # less than one tier step (30k) — never crosses tier
@@ -69,6 +70,17 @@ def load_v2_vocab() -> set[str]:
             if len(parts) < 1:
                 continue
             vocab.add(parts[0])  # char column
+    # Also include words added via polish overlay (modern_vocab_v1.tsv) —
+    # e.g. country names, modern tech terms not in CC-CEDICT proper.
+    if MODERN_VOCAB_TSV.exists():
+        with MODERN_VOCAB_TSV.open(encoding="utf-8") as f:
+            for ln in f:
+                if not ln.strip() or ln.startswith("#"):
+                    continue
+                parts = ln.rstrip("\n").split("\t")
+                if len(parts) < 2:
+                    continue
+                vocab.add(parts[1])  # word column
     return vocab
 
 

@@ -14,6 +14,7 @@
 - 2026-06-30 iter#2 — 1.1 + 1.2 done(atomic)。脚本 + TSV 一次出。Anchor 分数:工期 21948 vs 共栖 12948、测试 24754 vs 侧室 20061、研究 24989 vs 烟酒 22142、流程 24142 vs 柳橙 15520。全部正向(高频 > 低频),可作 same-tier tiebreak。74.7% v2 vocab in jieba(其余 score 0,古汉语/罕用)。Next: 1.3 data.rs loader
 - 2026-06-30 iter#3 — 1.3 done。`modern_freq()` lazy HashMap loader 加 + `MODERN_FREQ_TSV` include。cargo build clean。Next: 1.4 wire 6 sort sites
 - 2026-06-30 iter#4 — 1.4 done。**设计简化**:不在 6 个 sort site 改,而在最后 sort 前统一 `entry.1 += modern_freq[w]`。一处 site 全覆盖。**gongqi 概念验证 ✓**:`共栖, 工期` → `工期, 共栖`(无 quickfix 助力,纯 modern_freq 翻转)。6 anchors 全 #0 正确。Next: 1.5 baseline 357
+- 2026-06-30 iter#5 — 1.5 done。Baseline 初次 6 fail。两类问题:(a) modern_freq 把 quickfix 显式 cascade 推翻 → 加 **Sovereignty rule**(quickfix 词不吃 modern_freq);(b) ingest 漏 `modern_vocab_v1.tsv`(英国/印度 等 country batch 无 modern_freq 数据,被同音 cedict 词压)→ 修脚本读 modern_vocab。剩 2 case (tigan 体感/toulan 偷懒) jieba 新闻语料偏 → 加 quickfix 10k 各。Final 357/0 ✓。Next: 1.6 retire 候选验证
 
 ## Status legend
 - `[ ]` todo
@@ -48,7 +49,7 @@
 - [x] 1.2 Run script → 生成 `core/crates/inputx-pinyin-v2/data/modern_freq.tsv`(95870 行,74.7% in jieba)
 - [x] 1.3 `data.rs` 加 `modern_freq()` lazy loader(HashMap<String, u16>)
 - [x] 1.4 `lib.rs` 加 modern_freq score 注入(**design 简化**:不在 6 个 sort site 改,而在 prior_corrections loop 后统一 `entry.1 += modern_freq[word]`。所有 path 汇 `out`,一次 site 全覆盖,不漏。Cap 25k < tier 跨度 30k 保证不跨 tier)
-- [WIP] 1.5 cargo build + baseline 357/0 ✓
+- [x] 1.5 cargo build + baseline 357/0 ✓ (Sovereignty rule + 2 quickfix backfill + ingest bug fix)
 - [ ] 1.6 验证 anchor 翻转:gongqi→工期 / ceshi→测试 / liucheng→流程 / yanjiu→研究 / huluobo→胡萝卜(无 quickfix 帮助时也能自动正确)
 - [ ] 1.7 mac/reinstall.py + commit + push
 
