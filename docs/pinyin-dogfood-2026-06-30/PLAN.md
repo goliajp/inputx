@@ -79,9 +79,9 @@
 - [x] 3.4 Smoke run on first 100 segments → 验证 pipeline ✓。**86% PASS / 11% SOFT / 3% HARD**。3 类 pattern: A.proper-noun reject(英语 Ying1yu3 / etc),B.cedict 漏(管理器/最早),C.单字 polysemy jieba freq 偏(为/中/于 等被同音字压)。
 
 ### Phase 4: full dogfood run
-- [ ] 4.1 Run dogfood on 50 articles → `scratchpad/failures/run-001-smoke.tsv`
-- [ ] 4.2 Bug-fix pipeline if smoke shows issues
-- [ ] 4.3 Run on full 1000 articles → `scratchpad/failures/run-001-full.tsv`
+- [WIP] 4.1 Run dogfood on 50 articles → `scratchpad/failures/run-001-smoke.tsv`
+- [x] 4.2 ~~Bug-fix pipeline if smoke shows issues~~ — pipeline OK from iter#14 smoke (86% PASS)
+- [WIP] 4.3 Run on full 1000 articles → `scratchpad/failures/run-001-full.tsv`
 - [ ] 4.4 Aggregate stats:total / HARD / SOFT / top failure patterns
 - [ ] 4.5 Write `reports/run-001-analysis.md`(分类 + Top-N systemic patterns)
 
