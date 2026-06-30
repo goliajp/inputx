@@ -26,6 +26,7 @@
 - 2026-06-30 iter#13 — 3.1+3.2+3.3 done(atomic)。新 binary `inputx-dogfood`,`[[bin]]` 在 inputx-core/Cargo.toml。每行 in-process `inputx_pinyin_v2::query()` → 找 expected word 排名 → 分 PASS/SOFT/HARD。Build clean。Next: 3.4 smoke 100
 - 2026-06-30 iter#14 — 3.4 done。Smoke 100:**86% PASS / 11% SOFT / 3% HARD**。验证 pipeline OK。3 类 polish target pattern 识别清:A.proper-noun reject(英语 Ying1yu3 ingest 拒)、B.cedict 漏(管理器/最早 不在源)、C.单字 polysemy jieba freq 偏(为/中/于 等)。**Phase 3 全 done 🎉**。Next: 4.1 50-article smoke(其实 corpus 已 36 篇,直接跑全 → 4.3 full)
 - 2026-06-30 iter#15 — 4.1+4.2+4.3+4.4 atomic done。Re-gen segments(66 articles → 47,904 segments)。Full dogfood:**PASS 67.4% / SOFT 18.2% / HARD 14.4%**。Aggregate:3218 distinct HARD,top 集中在 polish 真目标。SOFT 由单字 polysemy 主导(与/为/中/并 等 ~50 个常用功能字 quickfix candidate)。Next: 4.5 analysis report → Phase 5 batch polish。
+- 2026-06-30 iter#16 — 4.5 done。`reports/run-001-analysis.md` 写好。关键发现:article 0058(偶像梦幻祭)单文 3989 HARD = 58%,扭曲数据。real-domain HARD ≈ 6.6%。SOFT-1c 66%/SOFT,功能字 muscle memory vs 实词 jieba freq 冲突。Phase 5 plan: 5.1 SOFT-1c top-25 batch、5.2 ordinal/locale compound、5.3 specialty、5.4 lang names。预估 67%→83%。**Phase 4 全 done 🎉**。Next: Phase 5.1 batch quickfix top-25 单字
 
 ## Status legend
 - `[ ]` todo
@@ -84,7 +85,7 @@
 - [x] 4.2 Bug-fix pipeline — pipeline OK from iter#14 smoke (86% PASS)
 - [x] 4.3 Run on full corpus (47,904 segments from 66 articles) → `failures/run-001-full.tsv`。**PASS 67.4% / SOFT 18.2% / HARD 14.4%**
 - [x] 4.4 Aggregate stats:3218 distinct HARD, top: 宣传语(148)/祭(115)/梦之咲(101)/预选赛(88)/存于(83)。SOFT 单字 polysemy 主导:与(448)/为(395)/中(308)/并(240)/以(179)/后(171)/于(153)/将(141)等。
-- [WIP] 4.5 Write `reports/run-001-analysis.md`(分类 + Top-N systemic patterns)
+- [x] 4.5 Write `reports/run-001-analysis.md` — top-line stats、corpus skew warning(article 0058 anime → 58% HARD)、SOFT-1c top 30 batch candidates、HARD 分类(general vs niche skip)、Phase 5 plan(5.1-5.4 + predicted PASS rate trajectory 67% → 83%)
 
 ### Phase 5: batch polish iterations
 每 iter:从 failures 选 top N → 自动生成 polish patch → 应用 → 验证 improvement → commit
