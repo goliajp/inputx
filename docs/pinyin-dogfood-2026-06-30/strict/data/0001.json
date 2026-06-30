@@ -1,298 +1,97 @@
 {
   "id": "0001",
-  "title": "APT",
-  "raw_text": "APT\n\n高级打包工具（英语：Advanced Packaging Tools，缩写为APT）是Debian及其派生的Linux软件包管理器。APT可以自动下载，配置，安装二进制或者源代码格式的软件包，因此简化了Unix系统上管理软件的过程。APT最早被设计成dpkg的前端，用来处理deb格式的软件包。现在经过APT-RPM组织修改，APT已经可以安装在支持RPM的系统管理RPM包。\n\n\n== 构成 ==\nAPT由以下的几个主要的命令构成：\n\napt-get\napt-cache\napt-file\n在Debian系统中，APT建构于dpkg之上。\n\n\n== 安装源 ==\nAPT的软件安装来源在Debian安装的时候即可进行初始设置，除了Debian官方的网络安装来源之外，也可以使用Debian的安装光盘，甚至可以从非官方的安装来源中下载非官方的软件。APT同时也可以从一些安装来源中下载源代码软件，并且自行编译、安装。\n\n\n== 依赖关系处理 ==\nAPT会从每一个安装源下载一个软件包的列表。这个列表中有这个安装源所包含的可用软件包的信息。在可能的情况下，APT会安装最新的软件包，被安装的软件包所依赖的其他软件包也会被安装，建议安装的软件包则会在屏幕中显示但是不会被安装。不过在有一些情况下APT由于依赖关系不能安装软件包，例如：这个软件包和系统中的其他软件包冲突，或者这个软件包依赖的软件包在任何安装源中均不存在或没有要求的版本。在这种情况下，APT会返回错误信息并且中止，用户需要自行解决依赖问题。\n\n\n== 软件包更新方式 ==\nDebian系统的一大特色即为“永不停机”，事实上，APT达到了这一点。在软件被升级的时候，它仍然可以继续服务。APT可以智能地从安装来源下载最新版本的软件并且安装，而无须在安装后重启电脑（除了更新Linux内核之外）。所有的配置都可以得到保留，升级软件不再是一个棘手的问题。\n\n\n== 发行版升级 ==\nAPT最使人称道的特点在于可以从一个Debian发行版升级到新的Debian发行版，例如从woody升级到sarge。APT可以升级绝大部分满足依赖关系的软件，但是也可能要删除，或添加新的软件以满足依赖关系。\n\n\n== 前端 ==\n\nAPT拥有不少的前端程序：\n\n\n== 示例 ==\n\n\n=== 搜索 ===\n在终端里输入：\n\napt-cache search <package>\n这样系统会列出与<package>名称相匹配的包。\n\n\n=== 安装 ===\n在终端里输入：\n\napt-get install <package>\n这样系统会自动下载<package>以及所有的依存包，同时进行包的安装。\n\n\n=== 移除 ===\n在终端里输入：\n\napt-get remove [--purge] <package>\n这样系统会自动移除<package>以及任何依此存包的其它包。 --purge指明包应被完全清除。\n\n\n=== 升级 ===\n在终端里输入：\n\napt-get update\n这样系统会自动由映射点更新包列表，如果想安装最新包，必须先运行一次。每次修改了 /etc/apt/sources.list后，也必须执行一次。\n在终端里输入：\n\napt-get upgrade [-u]\n这样系统会自动将所有已经安装在系统内的包升级为最新版本。如果一个包改变了依存关系，而需要安装一个新的包时，它将不会被升级，而是标识成hold。如果某个包被设置hold标号，就不会被升级。\n在终端里输入：\n\napt-get dist-upgrade [-u]\n和apt-get upgrade类似，dist-upgrade会安装和移除包来满足依存关系，因此具有一定的危险性。\n\n\n== 彩蛋 ==\n在终端输入apt-get -h会在末尾出现“This APT has super cow power”（本 APT 具有超级牛力。）。\n在终端输入apt-get moo会在屏幕上显示一头牛，下方显示“Have you mooed today?”（您今天哞哞叫了吗？）。\n\n                 (__) \n                 (oo) \n           /------\\/ \n          / |    ||   \n         *  /\\---/\\ \n            ~~   ~~   \n...\"Have you mooed today?\"...\n\n与apt-get相似的一个叫做aptitude的程序在aptitude -h的末尾加上了“This aptitude does not have Super Cow Powers.（这个aptitude没有超级牛力）”。\n在后面加上moo（即输入aptitude moo），并且分别加上选项“-v”，“-vv”，“-vvv”，“-vvvv”，“-vvvvv”，“-vvvvvv”（即输入aptitude -v moo;输入aptitude -vv moo;等等），则会有如下输出：\n\n $ aptitude moo\n There are no Easter Eggs in this program.（此軟體沒有復活節彩蛋程式。）\n $ aptitude -v moo\n There really are no Easter Eggs in this program.（此軟體真的沒有復活節彩蛋程式。）\n $ aptitude -vv moo\n Didn't I already tell you that there are no Easter Eggs in this program?（我不是已經告訴你這個軟體真的沒有復活節彩蛋程式了嗎？）\n $ aptitude -vvv moo\n Stop it!（停啦！）\n $ aptitude -vvvv moo\n Okay, okay, if I give you an Easter Egg, will you go away?（好啦，好啦，如果我給你復活節彩蛋，你是不是就閃人？）\n $ aptitude -vvvvv moo\n All right, you win.（好啦，你赢了。）\n                               /----\\\n                       -------/      \\\n                      /               \\\n                     /\n  |-----------------/                  --------\\\n   ----------------------------------------------\n $ aptitude -vvvvvv moo\n What is it?  It's an elephant being eaten by a snake, of course.（這是什麼? 這當然是一隻大象被一隻蛇吞掉。）\n\n而apt系列的另一个名为\"apt-build\"的软件包也具有相似的功能：\n\n $ apt-build moo\n          (__)    ~\n          (oo)   /\n      _____\\/___/\n     /  /\\ / /\n    ~  /  * /\n      / ___/\n *----/\\\n     /  \\\n    /   /\n   ~    ~\n ...\"Have you danced today? Discow!\"...\n （意为：今天你跳舞了吗？迪斯可！）\n\n软件编写者特地将Disco（迪斯可）一词改为\"Discow\"，以体现\"Cow\"（奶牛）之意。\n\n\n== 参见 ==\n\nYum\nDebian\nUbuntu\n\n\n== 参考文献 ==\n\n\n== 外部链接 ==\napt(8) – Debian维护命令（Maintenance Commands）手册页\nAPT HOWTO（页面存档备份，存于互联网档案馆）\nAPT-RPM组织（页面存档备份，存于互联网档案馆）\n",
-  "cjk_char_count": 1203,
+  "title": "镜观·足迹｜呵护千山万水 擘画永续发展",
+  "raw_text": "镜观·足迹｜呵护千山万水 擘画永续发展\n\n大美中国，江山如画。\n\n党的十八大以来，习近平总书记的考察足迹遍及神州大地。祁连山麓、坝上林海，秦岭深处、黄河之滨，总书记在大江奔涌处谋划千秋大计，在山川锦绣间擘画生态蓝图。一系列重要论述，为新时代生态文明建设提供了根本遵循和行动指南。\n\n世界环境日到来之际，我们跟随习近平总书记的脚步，一起呵护山水、寄情山水，领悟守护绿水青山、建设生态文明之道。\n\n心系长江之变，习近平总书记前往沿江重镇，考察长江经济带发展。从三峡库区到洞庭湖畔，从港口码头到企业车间，总书记深入调研，作出一系列重要指示，为新时代江河保护治理提供了重要遵循。\n\n2018年4月，习近平总书记来到湖南岳阳城陵矶水文站考察。在狭窄的站房外长廊上，习近平总书记举目远眺。“共抓大保护，不搞大开发”的战略定力，在这里化作守护一江碧水的坚定行动。\n\n2023年10月10日下午，习近平总书记在江西九江市考察，冒雨在江边察看，了解当地长江国家文化公园建设、长江岸线生态修复等情况。10月12日，总书记在进一步推动长江经济带高质量发展座谈会上回顾长江经济带发展历程，感慨：“做就要做好，坚定做下去。笃行不怠，一以贯之，久久为功。”\n\n黄河安澜是中华儿女的千年期盼。党的十八大以来，习近平总书记走遍黄河上中下游，望奔流激荡，思保护发展。在总书记的指挥下，一曲生态优先、绿色发展的“黄河大合唱”正在神州大地奏响。\n\n2019年8月，习近平总书记考察甘肃时，亲临兰州考察黄河兰州段治理保护工作，对保护黄河、治理黄河作出重要指示，强调：“保护母亲河是事关中华民族伟大复兴和永续发展的千秋大计。”\n\n2019年9月，习近平总书记在河南郑州黄河国家地质公园岸边驻足凝望。在随后举行的黄河流域生态保护和高质量发展座谈会上，习近平总书记再次强调“让黄河成为造福人民的幸福河”。\n\n2024年9月，习近平总书记时隔五年后再次来到甘肃兰州，在中山桥段，驻足眺望。总书记由衷感慨：黄河很美，将来会更美。\n\n从四次以长江经济带发展为主题的座谈会到三次围绕黄河流域生态保护和高质量发展为主题的座谈会，总书记“海晏河清”的期许，始终未变。\n\n2019年8月，在甘肃山丹马场，习近平总书记步入草场，强调“保护好祁连山的生态环境，对保护国家生态安全、对推动甘肃和河西走廊可持续发展都具有十分重要的战略意义。”\n\n2020年4月，习近平总书记在位于商洛市柞水县的秦岭牛背梁国家级自然保护区，考察秦岭生态保护情况。他语重心长地说，“保护好秦岭生态环境，对确保中华民族长盛不衰、实现‘两个一百年’奋斗目标、实现可持续发展具有十分重大而深远的意义。”\n\n2021年3月，习近平总书记来到福建考察。在武夷山，总书记谆谆告诫：“武夷山有着无与伦比的生态人文资源，是中华民族的骄傲，最重要的还是保护好。”\n\n2021年8月，在塞罕坝林场，习近平总书记登上月亮山，俯瞰荒原变林海的人间奇迹。习近平总书记指出，“我们建这片林，它的生态屏障作用，要永远发挥下去。”\n\n从“绿水青山就是金山银山”到“山水林田湖草沙一体化保护和系统治理”，习近平生态文明思想如同春风化雨，推动着矿坑蝶变、沙地披绿。放眼中华大地，生态屏障持续筑牢，人与自然和谐发展。\n\n2020年8月，习近平总书记来到马鞍山市，察看长江水情水势，了解岸线整治和渔民退捕工作落实情况。总书记特别强调，“长江禁渔也不是把渔民甩上岸就不管了，要把相关工作做细做实，多开发就业渠道和公益性岗位，让渔民们稳得住、能致富。”\n\n2021年4月，在广西漓江的碧波上，习近平总书记回忆自己的深深的“漓江情结”，指出“广西旅游产业大有可为。”\n\n2021年9月，在陕西高西沟村的一处山头上，习近平总书记举目凝望，指出“把生态治理和发展特色产业有机结合起来”。生态治理的宏大战略，最终要落脚于人民群众的获得感。\n\n长江十年禁渔让“江豚逐浪”再现，黄河滩区迁建让百万群众安居，塞罕坝林场造就“绿色银行”，这些生动实践印证着：良好生态环境是最普惠的民生福祉。\n\n从长江黄河的奔涌浪涛，到祁连武夷的峻秀风骨，习近平总书记的足迹丈量着中华大地的脉络，也勾勒出生态文明建设的壮阔图景。\n",
+  "cjk_char_count": 1441,
   "segments": [
     {
       "idx": "01",
-      "expected": "高级",
-      "pinyin": "gaoji",
-      "reason": "common adj",
+      "expected": "大美",
+      "pinyin": "damei",
+      "reason": "adj-noun",
       "top10": [
-        "高级",
-        "告急",
-        "搞基"
+        "大美",
+        "大媒"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "02",
-      "expected": "打包",
-      "pinyin": "dabao",
-      "reason": "tech verb",
+      "expected": "中国",
+      "pinyin": "zhongguo",
+      "reason": "country",
       "top10": [
-        "打包",
-        "大宝",
-        "大鸨",
-        "打爆"
+        "中国"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "03",
-      "expected": "工具",
-      "pinyin": "gongju",
-      "reason": "common noun",
+      "expected": "江山",
+      "pinyin": "jiangshan",
+      "reason": "scenic",
       "top10": [
-        "工具",
-        "公举"
+        "江山"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "04",
-      "expected": "缩写",
-      "pinyin": "suoxie",
-      "reason": "abbreviation",
+      "expected": "如画",
+      "pinyin": "ruhua",
+      "reason": "adj",
       "top10": [
-        "缩写",
-        "琐屑",
-        "索谢"
+        "如画",
+        "乳化",
+        "乳滑",
+        "如花",
+        "蠕滑"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "05",
-      "expected": "派生",
-      "pinyin": "paisheng",
-      "reason": "derive",
+      "expected": "党",
+      "pinyin": "dang",
+      "reason": "short",
       "top10": [
-        "派生",
-        "排笙"
+        "党",
+        "当",
+        "挡",
+        "档",
+        "荡",
+        "铛",
+        "垱",
+        "珰",
+        "宕",
+        "谠"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "06",
-      "expected": "软件包",
-      "pinyin": "ruanjianbao",
-      "reason": "tech compound",
+      "expected": "十八大",
+      "pinyin": "shibada",
+      "reason": "political event",
       "top10": [
-        "软件包"
+        "十八大"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "07",
-      "expected": "管理器",
-      "pinyin": "guanliqi",
-      "reason": "tech compound",
-      "top10": [
-        "管理器"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "08",
-      "expected": "二进制",
-      "pinyin": "erjinzhi",
-      "reason": "tech: binary",
-      "top10": [
-        "二进制"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "09",
-      "expected": "源代码",
-      "pinyin": "yuandaima",
-      "reason": "tech: source code",
-      "top10": [
-        "源代码"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "10",
-      "expected": "简化",
-      "pinyin": "jianhua",
-      "reason": "common verb",
-      "top10": [
-        "简化",
-        "奸猾",
-        "碱化"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "11",
-      "expected": "过程",
-      "pinyin": "guocheng",
-      "reason": "common",
-      "top10": [
-        "过程",
-        "郭城",
-        "过秤"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "12",
-      "expected": "最早",
-      "pinyin": "zuizao",
+      "expected": "以来",
+      "pinyin": "yilai",
       "reason": "temporal",
       "top10": [
-        "最早",
-        "醉枣"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "13",
-      "expected": "前端",
-      "pinyin": "qianduan",
-      "reason": "tech",
-      "top10": [
-        "前端",
-        "前段",
-        "浅短"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "14",
-      "expected": "经过",
-      "pinyin": "jingguo",
-      "reason": "common verb",
-      "top10": [
-        "经过"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "15",
-      "expected": "修改",
-      "pinyin": "xiugai",
-      "reason": "common verb",
-      "top10": [
-        "修改"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "16",
-      "expected": "支持",
-      "pinyin": "zhichi",
-      "reason": "common verb",
-      "top10": [
-        "支持",
-        "指斥",
-        "至迟",
-        "咫尺",
-        "直尺",
-        "智齿",
-        "知耻"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "17",
-      "expected": "构成",
-      "pinyin": "goucheng",
-      "reason": "common verb",
-      "top10": [
-        "构成"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "18",
-      "expected": "安装源",
-      "pinyin": "anzhuangyuan",
-      "reason": "tech compound (apt-specific)",
-      "top10": [
-        "安装源"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "19",
-      "expected": "初始",
-      "pinyin": "chushi",
-      "reason": "tech adj",
-      "top10": [
-        "初始",
-        "出使",
-        "出世",
-        "出事",
-        "出示",
-        "出师",
-        "厨师",
-        "处事",
-        "处世",
-        "初试"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "20",
-      "expected": "官方",
-      "pinyin": "guanfang",
-      "reason": "common adj",
-      "top10": [
-        "官方",
-        "关防"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "21",
-      "expected": "安装光盘",
-      "pinyin": "anzhuangguangpan",
-      "reason": "tech 4-char compound",
-      "top10": [
-        "安装光盘"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "22",
-      "expected": "编译",
-      "pinyin": "bianyi",
-      "reason": "tech verb",
-      "top10": [
-        "编译",
-        "便宜",
-        "贬义",
-        "变异",
-        "便衣",
-        "贬抑",
-        "便意",
-        "边裔"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "23",
-      "expected": "依赖",
-      "pinyin": "yilai",
-      "reason": "tech term",
-      "top10": [
-        "依赖",
         "以来",
+        "依赖",
         "一来",
         "倚赖"
       ],
@@ -300,89 +99,532 @@
       "verdict": "PASS"
     },
     {
-      "idx": "24",
-      "expected": "冲突",
-      "pinyin": "chongtu",
-      "reason": "common noun",
+      "idx": "08",
+      "expected": "习近平",
+      "pinyin": "xijinping",
+      "reason": "person name",
       "top10": [
-        "冲突"
+        "习近平"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "09",
+      "expected": "总书记",
+      "pinyin": "zongshuji",
+      "reason": "title",
+      "top10": [
+        "总书记"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "10",
+      "expected": "考察",
+      "pinyin": "kaocha",
+      "reason": "verb (inspect)",
+      "top10": [
+        "考察",
+        "考查"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "11",
+      "expected": "足迹",
+      "pinyin": "zuji",
+      "reason": "noun",
+      "top10": [
+        "足迹",
+        "祖籍",
+        "阻击"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "12",
+      "expected": "遍及",
+      "pinyin": "bianji",
+      "reason": "verb",
+      "top10": [
+        "遍及",
+        "编辑",
+        "边际",
+        "便急"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "13",
+      "expected": "神州",
+      "pinyin": "shenzhou",
+      "reason": "literary",
+      "top10": [
+        "神州"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "14",
+      "expected": "大地",
+      "pinyin": "dadi",
+      "reason": "noun",
+      "top10": [
+        "大地",
+        "大帝",
+        "大抵",
+        "打底",
+        "打的"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "15",
+      "expected": "祁连山",
+      "pinyin": "qilianshan",
+      "reason": "mountain",
+      "top10": [
+        "祁连山"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "16",
+      "expected": "秦岭",
+      "pinyin": "qinling",
+      "reason": "mountain",
+      "top10": [
+        "秦岭"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "17",
+      "expected": "深处",
+      "pinyin": "shenchu",
+      "reason": "location",
+      "top10": [
+        "深处",
+        "伸出",
+        "身处",
+        "渗出",
+        "审处",
+        "神厨"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "18",
+      "expected": "黄河",
+      "pinyin": "huanghe",
+      "reason": "river",
+      "top10": [
+        "黄河"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "19",
+      "expected": "长江",
+      "pinyin": "changjiang",
+      "reason": "river",
+      "top10": [
+        "长江"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "20",
+      "expected": "谋划",
+      "pinyin": "mouhua",
+      "reason": "political verb",
+      "top10": [
+        "谋划"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "21",
+      "expected": "千秋大计",
+      "pinyin": "qianqiudaji",
+      "reason": "idiom",
+      "top10": [
+        "千秋大计"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "22",
+      "expected": "山川",
+      "pinyin": "shanchuan",
+      "reason": "noun",
+      "top10": [
+        "山川"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "23",
+      "expected": "锦绣",
+      "pinyin": "jinxiu",
+      "reason": "adj",
+      "top10": [
+        "锦绣",
+        "进修"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "24",
+      "expected": "生态",
+      "pinyin": "shengtai",
+      "reason": "common",
+      "top10": [
+        "生态",
+        "圣胎",
+        "生苔"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "25",
-      "expected": "存在",
-      "pinyin": "cunzai",
-      "reason": "common verb",
+      "expected": "蓝图",
+      "pinyin": "lantu",
+      "reason": "noun",
       "top10": [
-        "存在"
+        "蓝图"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "26",
-      "expected": "版本",
-      "pinyin": "banben",
-      "reason": "common noun",
+      "expected": "时代",
+      "pinyin": "shidai",
+      "reason": "common",
       "top10": [
-        "版本"
+        "时代",
+        "世代",
+        "饰带"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "27",
-      "expected": "返回",
-      "pinyin": "fanhui",
-      "reason": "common verb",
+      "expected": "文明",
+      "pinyin": "wenming",
+      "reason": "common",
       "top10": [
-        "返回",
-        "反悔"
+        "文明",
+        "闻名",
+        "问名"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "28",
-      "expected": "解决",
-      "pinyin": "jiejue",
-      "reason": "common verb",
+      "expected": "建设",
+      "pinyin": "jianshe",
+      "reason": "common",
       "top10": [
-        "解决",
-        "孑孓",
-        "戒绝"
+        "建设",
+        "溅射"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "29",
-      "expected": "发行版",
-      "pinyin": "faxingban",
-      "reason": "tech compound",
+      "expected": "提供",
+      "pinyin": "tigong",
+      "reason": "verb",
       "top10": [
-        "发行版"
+        "提供",
+        "替工"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "30",
-      "expected": "超级",
-      "pinyin": "chaoji",
-      "reason": "common adj",
+      "expected": "根本",
+      "pinyin": "genben",
+      "reason": "common",
       "top10": [
-        "超级"
+        "根本"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "31",
+      "expected": "遵循",
+      "pinyin": "zunxun",
+      "reason": "political",
+      "top10": [
+        "遵循"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "32",
+      "expected": "行动",
+      "pinyin": "xingdong",
+      "reason": "common",
+      "top10": [
+        "行动"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "33",
+      "expected": "指南",
+      "pinyin": "zhinan",
+      "reason": "common",
+      "top10": [
+        "指南",
+        "直男",
+        "质难"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "34",
+      "expected": "世界",
+      "pinyin": "shijie",
+      "reason": "common",
+      "top10": [
+        "世界",
+        "使节",
+        "时节",
+        "石阶",
+        "师姐",
+        "视界",
+        "失节",
+        "十戒",
+        "十诫",
+        "诗节"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "35",
+      "expected": "环境",
+      "pinyin": "huanjing",
+      "reason": "common",
+      "top10": [
+        "环境",
+        "幻境",
+        "幻景"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "36",
+      "expected": "跟随",
+      "pinyin": "gensui",
+      "reason": "verb",
+      "top10": [
+        "跟随"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "37",
+      "expected": "守护",
+      "pinyin": "shouhu",
+      "reason": "verb",
+      "top10": [
+        "守护"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "38",
+      "expected": "心系",
+      "pinyin": "xinxi",
+      "reason": "political verb",
+      "top10": [
+        "心系",
+        "信息",
+        "欣喜",
+        "心细",
+        "新禧"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "39",
+      "expected": "前往",
+      "pinyin": "qianwang",
+      "reason": "verb",
+      "top10": [
+        "前往"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "40",
+      "expected": "沿江",
+      "pinyin": "yanjiang",
+      "reason": "location",
+      "top10": [
+        "沿江",
+        "演讲",
+        "岩浆",
+        "岩降"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "41",
+      "expected": "重镇",
+      "pinyin": "zhongzhen",
+      "reason": "noun",
+      "top10": [
+        "重镇",
+        "忠贞"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "42",
+      "expected": "经济带",
+      "pinyin": "jingjidai",
+      "reason": "political compound",
+      "top10": [
+        "经济带"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "43",
+      "expected": "发展",
+      "pinyin": "fazhan",
+      "reason": "common",
+      "top10": [
+        "发展",
+        "罚站"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "44",
+      "expected": "三峡",
+      "pinyin": "sanxia",
+      "reason": "place",
+      "top10": [
+        "三峡",
+        "伞下"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "45",
+      "expected": "库区",
+      "pinyin": "kuqu",
+      "reason": "location",
+      "top10": [
+        "库区",
+        "苦趣"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "46",
+      "expected": "洞庭湖",
+      "pinyin": "dongtinghu",
+      "reason": "lake",
+      "top10": [
+        "洞庭湖"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "47",
+      "expected": "港口",
+      "pinyin": "gangkou",
+      "reason": "common",
+      "top10": [
+        "港口"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "48",
+      "expected": "码头",
+      "pinyin": "matou",
+      "reason": "common",
+      "top10": [
+        "码头"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "49",
+      "expected": "企业",
+      "pinyin": "qiye",
+      "reason": "common",
+      "top10": [
+        "企业",
+        "起夜"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "50",
+      "expected": "车间",
+      "pinyin": "chejian",
+      "reason": "common",
+      "top10": [
+        "车间",
+        "车检"
       ],
       "rank": 0,
       "verdict": "PASS"
     }
   ],
   "stats": {
-    "total": 30,
-    "pass": 30,
+    "total": 50,
+    "pass": 50,
     "soft": 0,
     "hard": 0
   }

@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PROBE = ROOT / "core/target/release/inputx-probe"
-CORPUS = ROOT / "docs/pinyin-dogfood-2026-06-30/scratchpad/corpus/articles"
+CORPUS = ROOT / "docs/pinyin-dogfood-2026-06-30/scratchpad/corpus_news/articles"
 
 
 def probe_v2(buffer: str) -> list[str]:
