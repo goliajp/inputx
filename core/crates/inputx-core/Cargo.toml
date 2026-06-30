@@ -99,6 +99,10 @@ path = "src/bin/inputx_probe.rs"
 name = "inputx-trace"
 path = "src/bin/inputx_trace.rs"
 
+[[bin]]
+name = "inputx-dogfood"
+path = "src/bin/inputx_dogfood.rs"
+
 # v1.4.3 WU-δ snapshot binaries: read existing dict sources (pinyin.dict
 # FST / wubi text tables / nihongo const tables) and write IDFv1 .idf
 # files into data/private-dict/v0.0.1/. NOT engine-cutover — runtime
