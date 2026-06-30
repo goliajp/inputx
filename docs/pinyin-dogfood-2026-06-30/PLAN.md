@@ -103,7 +103,7 @@
 - [x] 5.5 Iter E done。Niche analysis(16 articles 占 68% segments / wider noise)。非 niche PASS 71.0%(close to overall)。31 cross-article HARD batch 加(存于/纪录/赛果/一项/四个/本赛季/一座/三名/一组/亚历山大/示例/每组/第一届/亚洲杯/卫冕冠军/该国/中华民国/第三/决赛圈/非洲/第二名/台北市/优胜者/五个/大事记/一首/一场/七月/印尼/专页 等)。**Run-007: PASS 71.4 → 71.7%(+0.3pp,HARD -315)**。baseline 357/0 ✓ deploy ✓。
 
 ### Phase 6: 收尾
-- [ ] 6.1 Retire obsolete quickfix rows(被 modern-freq 自动覆盖的)
+- [WIP] 6.1 Retire obsolete quickfix rows
 - [ ] 6.2 Write final `reports/final.md`(改进数据 + 仍存在的 framework gaps)
 - [ ] 6.3 Update memory with key findings(`memory/dogfood_2026-06-30_findings.md`)
 - [ ] 6.4 Tag commit(可选)
