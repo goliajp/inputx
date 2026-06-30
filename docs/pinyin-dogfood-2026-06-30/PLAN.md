@@ -126,7 +126,7 @@ User wants 全部做完。Reopen Phase 5 — corpus grew to 272 articles (slow f
 - [x] 5.8 Re-segment 272 articles → 111,204 segments;Run-011 baseline 71.8%
 - [x] 5.9 Iter H batch:**41 modern_vocab** cross-article(这一/奥林匹克/这次/挑战赛/职棒/巡回赛/胜方/第四/病疫情/羽联/西班牙语/男子双打/维基/三个/两天/一款/中华/预选赛/本次/两人/总教练/四川/国会/首个/第一位/飞往/上届/一条/第二位/每场/三种/民主党/爱尔兰/乙级/五人制/第一阶段/系列赛/棒球场/某个/而成/一站/西安)。**Run-012: PASS 71.8 → 72.1%(+0.3pp on 111k segs,HARD -435)**。
 - [x] 5.10 Iter I done。17 modern_vocab(第一场/第二张/取自/国联/该校/首张/亚特兰大/东区/总冠军/奥运会/残奥会/每队/这颗/多出/有机溶剂/致力于/威廉)。**Run-013: PASS 72.1 → 72.2%(+0.1pp,HARD -85)**。Discovery:modern_vocab tier 限制 — 35k → tier 5,无法盖 HSK 4 cedict 词(以为/一向 等)。 单音节同音冲突(yiwei 一位 vs 以为,yixiang 一项 vs 一向)需 quickfix 才能强制 #0 — but skip for now since both legitimate uses。
-- [ ] 5.11 Iter J batch
+- [WIP] 5.11 Iter J larger batch — lower bar to 2+ articles
 - [ ] 5.12 Decide: continue or final wrap?
 
 
