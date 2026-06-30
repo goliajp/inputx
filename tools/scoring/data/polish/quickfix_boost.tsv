@@ -271,7 +271,7 @@ fuzhi	福祉	30000
 tujing	图景	30000
 # strict-0001 round 2 — safe 2c SOFT
 jiqing	寄情	30000
-zhidao	之道	65000
+# RETIRED-r9 zhidao	之道	65000
 # RETIRED-baseline zhishi	指示	55000
 tuibu	退捕	30000
 zuoxi	做细	30000
@@ -348,35 +348,35 @@ shouli	受理	35000
 # RETIRED-conflict yeshi	也是	45000
 
 # strict-dogfood polish round 2 SOFT-flips (2026-07-01) — clear winners only
-yichu	移出	45000
-benji	本级	40000
+# RETIRED-r9-bad-order yichu	移出	45000
+# RETIRED-r9-bad-order benji	本级	40000
 zhize	职责	45000
 gongwei	工委	40000
-bianju	变局	40000
+# RETIRED-r9-bad-order bianju	变局	40000
 
 # strict-dogfood polish round 3 quickfix SOFT-flips (clear winners)
 # RETIRED-baseline ba	把	50000
 # RETIRED-baseline tong	同	50000
 zhidao	指导	50000
 zhishi	指示	50000
-jiyi	技艺	45000
+# RETIRED-r9-bad-order jiyi	技艺	45000
 yinyin	殷殷	35000
 # RETIRED-baseline mei	美	50000
 duan	段	45000
 jianshi	坚实	45000
-hecha	核查	45000
+# RETIRED-r9-bad-order hecha	核查	45000
 jiance	监测	50000
 # RETIRED-baseline han	含	45000
-shenhou	深厚	40000
+# RETIRED-r9-bad-order shenhou	深厚	40000
 bianzhi	编制	40000
 xianshi	现实	45000
 fudan	复旦	50000
 dafu	大幅	40000
 zixun	咨询	50000
 jianpin	减贫	40000
-hexin	贺信	40000
+# RETIRED-r9-bad-order hexin	贺信	40000
 zhixin	致信	40000
-yizhi	一致	45000
+# RETIRED-r9-bad-order yizhi	一致	45000
 fenbian	粪便	40000
 zhuanzhi	专职	40000
 dongji	冬季	40000
@@ -386,3 +386,14 @@ jiaohao	较好	30000
 # round 8 quickfix
 fangan	方案	50000
 zhejiangsheng	浙江省	50000
+
+# round 9 — boost COMMON everyday word to lead (per user 「核心 > 贺信」 principle)
+hexin	核心	55000
+zhidao	知道	55000
+hecha	喝茶	50000
+yizhi	一直	55000
+jiyi	记忆	55000
+xianshi	显示	50000
+yichu	一处	45000
+# zhidao 之道 was at 55k via modern_vocab (literary), need 知道 even higher
+zhidao	知道	70000

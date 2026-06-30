@@ -9025,16 +9025,16 @@
       "pinyin": "yichu",
       "reason": "linear",
       "top10": [
-        "移出",
         "一处",
+        "移出",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0637",
@@ -10306,8 +10306,8 @@
   ],
   "stats": {
     "total": 718,
-    "pass": 683,
-    "soft": 32,
+    "pass": 684,
+    "soft": 31,
     "hard": 3
   }
 }
