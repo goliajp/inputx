@@ -427,6 +427,9 @@ mod tests {
             ("lianxu", "连续"),
             // Polish 2026-06-30: "shenru 深入 > 渗入 > 慎入".
             ("shenru", "深入"),
+            // Polish 2026-06-30: user "helan 荷兰 这个词肯定要有的，国家名".
+            // CC-CEDICT proper-noun reject in v2 ingest; modern_vocab backfill.
+            ("helan", "荷兰"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
