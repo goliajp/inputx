@@ -5,15 +5,6 @@
   "cjk_char_count": 777,
   "segments": [
     {
-      "idx": "0001",
-      "expected": "丁薛祥",
-      "pinyin": "dingxuexiang",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0002",
       "expected": "在",
       "pinyin": "zai",
@@ -228,15 +219,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0017",
-      "expected": "丁薛祥",
-      "pinyin": "dingxuexiang",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0018",
       "expected": "首先",
       "pinyin": "shouxian",
@@ -269,9 +251,11 @@
       "expected": "山西省",
       "pinyin": "shanxisheng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "山西省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0021",
@@ -474,13 +458,13 @@
       "pinyin": "shidi",
       "reason": "linear",
       "top10": [
+        "实地",
         "湿地",
         "师弟",
-        "实地",
         "失地"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0037",
@@ -500,9 +484,11 @@
       "expected": "考务",
       "pinyin": "kaowu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "考务"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0039",
@@ -761,17 +747,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0057",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0058",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -858,9 +833,11 @@
       "expected": "党中央",
       "pinyin": "dangzhongyang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "党中央"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0065",
@@ -1244,8 +1221,8 @@
       "top10": [
         "过",
         "锅",
-        "果",
         "国",
+        "果",
         "郭",
         "裹",
         "活",
@@ -1253,7 +1230,7 @@
         "唬",
         "椁"
       ],
-      "rank": 3,
+      "rank": 2,
       "verdict": "SOFT"
     },
     {
@@ -1544,9 +1521,11 @@
       "expected": "考务",
       "pinyin": "kaowu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "考务"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0111",
@@ -2159,15 +2138,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0156",
-      "expected": "丁薛祥",
-      "pinyin": "dingxuexiang",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0157",
       "expected": "来到",
       "pinyin": "laidao",
@@ -2261,12 +2231,12 @@
       "pinyin": "gaoxiao",
       "reason": "linear",
       "top10": [
+        "高效",
         "高校",
-        "搞笑",
-        "高效"
+        "搞笑"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0165",
@@ -2744,14 +2714,14 @@
       "pinyin": "tongyi",
       "reason": "linear",
       "top10": [
-        "同意",
         "统一",
+        "同意",
         "同一",
         "同义",
         "通译"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0197",
@@ -3069,14 +3039,14 @@
       "pinyin": "tongshi",
       "reason": "linear",
       "top10": [
-        "同事",
         "同时",
+        "同事",
         "通史",
         "痛失",
         "通识"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0219",
@@ -3382,12 +3352,12 @@
       "pinyin": "gaoxiao",
       "reason": "linear",
       "top10": [
+        "高效",
         "高校",
-        "搞笑",
-        "高效"
+        "搞笑"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0242",
@@ -3438,15 +3408,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0246",
-      "expected": "丁薛祥",
-      "pinyin": "dingxuexiang",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0247",
       "expected": "走进",
       "pinyin": "zoujin",
@@ -3485,9 +3446,11 @@
       "expected": "山西省",
       "pinyin": "shanxisheng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "山西省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0251",
@@ -3495,12 +3458,12 @@
       "pinyin": "dianli",
       "reason": "linear",
       "top10": [
-        "典礼",
         "电力",
+        "典礼",
         "电离"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0252",
@@ -3784,12 +3747,12 @@
       "pinyin": "gaoxiao",
       "reason": "linear",
       "top10": [
+        "高效",
         "高校",
-        "搞笑",
-        "高效"
+        "搞笑"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0273",
@@ -3995,14 +3958,14 @@
       "pinyin": "tongyi",
       "reason": "linear",
       "top10": [
-        "同意",
         "统一",
+        "同意",
         "同一",
         "同义",
         "通译"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0290",
@@ -4010,12 +3973,12 @@
       "pinyin": "dianli",
       "reason": "linear",
       "top10": [
-        "典礼",
         "电力",
+        "典礼",
         "电离"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0291",
@@ -4208,13 +4171,14 @@
       "pinyin": "baogong",
       "reason": "linear",
       "top10": [
+        "保供",
         "包工",
         "刨工",
         "报功",
         "胞宫"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0306",
@@ -4306,12 +4270,12 @@
       "pinyin": "dianli",
       "reason": "linear",
       "top10": [
-        "典礼",
         "电力",
+        "典礼",
         "电离"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0314",
@@ -4540,15 +4504,6 @@
       "verdict": "HARD"
     },
     {
-      "idx": "0332",
-      "expected": "丁薛祥",
-      "pinyin": "dingxuexiang",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0333",
       "expected": "了解",
       "pinyin": "liaojie",
@@ -4677,9 +4632,11 @@
       "expected": "保卫战",
       "pinyin": "baoweizhan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "保卫战"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0343",
@@ -5487,15 +5444,17 @@
       "expected": "保卫战",
       "pinyin": "baoweizhan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "保卫战"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     }
   ],
   "stats": {
-    "total": 404,
-    "pass": 335,
-    "soft": 34,
-    "hard": 35
+    "total": 398,
+    "pass": 348,
+    "soft": 28,
+    "hard": 22
   }
 }

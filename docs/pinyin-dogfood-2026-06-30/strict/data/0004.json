@@ -21,12 +21,12 @@
       "pinyin": "yinfa",
       "reason": "linear",
       "top10": [
-        "引发",
         "印发",
+        "引发",
         "银发"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0003",
@@ -668,17 +668,6 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0044",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0045",
       "expected": "新时代",
       "pinyin": "xinshidai",
@@ -1041,9 +1030,11 @@
       "expected": "党中央",
       "pinyin": "dangzhongyang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "党中央"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0069",
@@ -2299,13 +2290,14 @@
       "pinyin": "xinzhi",
       "reason": "linear",
       "top10": [
+        "新质",
         "心智",
         "心志",
         "信纸",
         "新知"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0163",
@@ -2823,14 +2815,14 @@
       "pinyin": "tongyi",
       "reason": "linear",
       "top10": [
-        "同意",
         "统一",
+        "同意",
         "同一",
         "同义",
         "通译"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0199",
@@ -2872,11 +2864,11 @@
       "pinyin": "xiezuo",
       "reason": "linear",
       "top10": [
-        "写作",
-        "协作"
+        "协作",
+        "写作"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0203",
@@ -3310,10 +3302,11 @@
       "pinyin": "baosong",
       "reason": "linear",
       "top10": [
+        "报送",
         "保送"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0235",
@@ -4339,13 +4332,13 @@
       "pinyin": "jiancha",
       "reason": "linear",
       "top10": [
+        "监察",
         "检查",
         "检察",
-        "监察",
         "监查"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0314",
@@ -4983,9 +4976,9 @@
     }
   ],
   "stats": {
-    "total": 362,
-    "pass": 312,
-    "soft": 38,
-    "hard": 12
+    "total": 361,
+    "pass": 316,
+    "soft": 36,
+    "hard": 9
   }
 }

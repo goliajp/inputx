@@ -33,15 +33,15 @@
         "关",
         "官",
         "罐",
+        "管",
         "观",
         "馆",
-        "管",
         "冠",
         "惯",
         "灌",
         "棺"
       ],
-      "rank": 3,
+      "rank": 4,
       "verdict": "SOFT"
     },
     {
@@ -226,17 +226,6 @@
         "依赖",
         "一来",
         "倚赖"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0017",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -609,8 +598,8 @@
         "拣",
         "溅",
         "见",
-        "坚",
-        "简"
+        "监",
+        "减"
       ],
       "rank": 1,
       "verdict": "SOFT"
@@ -923,17 +912,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0067",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0068",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -1158,17 +1136,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0085",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0086",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -1289,6 +1256,7 @@
       "reason": "linear",
       "top10": [
         "三峡",
+        "三夏",
         "伞下"
       ],
       "rank": 0,
@@ -1704,17 +1672,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0124",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0125",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -1899,17 +1856,6 @@
         "汤",
         "绱",
         "熵"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0139",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -2319,17 +2265,6 @@
       "reason": "linear",
       "top10": [
         "下午"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0167",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -3153,17 +3088,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0229",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0230",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -3560,17 +3484,6 @@
         "粤",
         "悦",
         "说"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0258",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -4076,17 +3989,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0294",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0295",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -4416,17 +4318,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0319",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0320",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -4616,17 +4507,6 @@
         "粤",
         "悦",
         "说"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0333",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -4885,8 +4765,8 @@
         "汇",
         "毁",
         "绘",
-        "悔",
         "惠",
+        "悔",
         "辉"
       ],
       "rank": 0,
@@ -5425,17 +5305,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0391",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0392",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -5866,17 +5735,6 @@
         "粤",
         "悦",
         "说"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0422",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -6523,17 +6381,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0468",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0469",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -6967,17 +6814,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0499",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0500",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -7115,17 +6951,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0510",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0511",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -7173,8 +6998,8 @@
         "拣",
         "溅",
         "见",
-        "坚",
-        "简"
+        "监",
+        "减"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -7512,17 +7337,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0537",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0538",
       "expected": "生态文明",
       "pinyin": "shengtaiwenming",
@@ -7791,17 +7605,6 @@
         "粤",
         "悦",
         "说"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0559",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -8641,17 +8444,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0617",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0618",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -8915,6 +8707,7 @@
       "reason": "linear",
       "top10": [
         "一处",
+        "移出",
         "溢出",
         "益处",
         "役畜",
@@ -8951,17 +8744,6 @@
         "汤",
         "绱",
         "熵"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0639",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -9964,17 +9746,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0710",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "0711",
       "expected": "总书记",
       "pinyin": "zongshuji",
@@ -10215,8 +9986,8 @@
     }
   ],
   "stats": {
-    "total": 726,
-    "pass": 695,
+    "total": 705,
+    "pass": 674,
     "soft": 23,
     "hard": 8
   }

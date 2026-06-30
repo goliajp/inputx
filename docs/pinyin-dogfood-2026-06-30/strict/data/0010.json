@@ -10,10 +10,10 @@
       "pinyin": "duodi",
       "reason": "linear",
       "top10": [
-        "多点触控"
+        "多地"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0002",
@@ -70,14 +70,14 @@
       "pinyin": "zhuli",
       "reason": "linear",
       "top10": [
+        "助力",
         "助理",
         "主力",
-        "助力",
         "伫立",
         "朱鹂"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0007",
@@ -112,9 +112,7 @@
       "expected": "重塑",
       "pinyin": "zhongsu",
       "reason": "linear",
-      "top10": [
-        "众所周知"
-      ],
+      "top10": [],
       "rank": 99,
       "verdict": "HARD"
     },
@@ -405,9 +403,7 @@
       "expected": "重塑",
       "pinyin": "zhongsu",
       "reason": "linear",
-      "top10": [
-        "众所周知"
-      ],
+      "top10": [],
       "rank": 99,
       "verdict": "HARD"
     },
@@ -502,10 +498,10 @@
       "pinyin": "duodi",
       "reason": "linear",
       "top10": [
-        "多点触控"
+        "多地"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0039",
@@ -537,9 +533,11 @@
       "expected": "党中央",
       "pinyin": "dangzhongyang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "党中央"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0042",
@@ -581,12 +579,12 @@
       "pinyin": "shenhua",
       "reason": "linear",
       "top10": [
-        "神话",
         "深化",
+        "神话",
         "神化"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0046",
@@ -620,10 +618,11 @@
       "pinyin": "yingshang",
       "reason": "linear",
       "top10": [
+        "营商",
         "硬伤"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0049",
@@ -736,12 +735,12 @@
       "pinyin": "gaoxiao",
       "reason": "linear",
       "top10": [
+        "高效",
         "高校",
-        "搞笑",
-        "高效"
+        "搞笑"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0058",
@@ -830,14 +829,14 @@
       "pinyin": "tongyi",
       "reason": "linear",
       "top10": [
-        "同意",
         "统一",
+        "同意",
         "同一",
         "同义",
         "通译"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0065",
@@ -894,10 +893,10 @@
       "pinyin": "duodi",
       "reason": "linear",
       "top10": [
-        "多点触控"
+        "多地"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0070",
@@ -1161,6 +1160,7 @@
       "pinyin": "gongshi",
       "reason": "linear",
       "top10": [
+        "公示",
         "公式",
         "公使",
         "攻势",
@@ -1169,11 +1169,10 @@
         "公事",
         "贡士",
         "共事",
-        "公示",
         "工时"
       ],
-      "rank": 8,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0090",
@@ -1229,9 +1228,9 @@
       "pinyin": "jizhi",
       "reason": "linear",
       "top10": [
+        "机制",
         "极致",
         "机智",
-        "机制",
         "及至",
         "基质",
         "基址",
@@ -1240,8 +1239,8 @@
         "几至",
         "技职"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0095",
@@ -1371,12 +1370,12 @@
       "pinyin": "shenhua",
       "reason": "linear",
       "top10": [
-        "神话",
         "深化",
+        "神话",
         "神化"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0104",
@@ -1410,10 +1409,11 @@
       "pinyin": "yingshang",
       "reason": "linear",
       "top10": [
+        "营商",
         "硬伤"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0107",
@@ -1662,10 +1662,11 @@
       "pinyin": "yingshang",
       "reason": "linear",
       "top10": [
+        "营商",
         "硬伤"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0124",
@@ -1711,9 +1712,11 @@
       "expected": "监管局",
       "pinyin": "jianguanju",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "监管局"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0128",
@@ -1853,9 +1856,9 @@
       "pinyin": "jizhi",
       "reason": "linear",
       "top10": [
+        "机制",
         "极致",
         "机智",
-        "机制",
         "及至",
         "基质",
         "基址",
@@ -1864,8 +1867,8 @@
         "几至",
         "技职"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0138",
@@ -2038,14 +2041,14 @@
       "pinyin": "zhuli",
       "reason": "linear",
       "top10": [
+        "助力",
         "助理",
         "主力",
-        "助力",
         "伫立",
         "朱鹂"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0151",
@@ -2137,9 +2140,7 @@
       "expected": "重塑",
       "pinyin": "zhongsu",
       "reason": "linear",
-      "top10": [
-        "众所周知"
-      ],
+      "top10": [],
       "rank": 99,
       "verdict": "HARD"
     },
@@ -2197,9 +2198,11 @@
       "expected": "监管局",
       "pinyin": "jianguanju",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "监管局"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0163",
@@ -2214,15 +2217,6 @@
       "idx": "0164",
       "expected": "副处长",
       "pinyin": "fuchuzhang",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "0165",
-      "expected": "丁学雷",
-      "pinyin": "dingxuelei",
       "reason": "linear",
       "top10": [],
       "rank": 99,
@@ -2330,7 +2324,8 @@
         "激发",
         "技法",
         "寄发",
-        "记法"
+        "记法",
+        "纪法"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -2394,9 +2389,11 @@
       "expected": "监管局",
       "pinyin": "jianguanju",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "监管局"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0179",
@@ -2466,9 +2463,9 @@
       "pinyin": "jizhi",
       "reason": "linear",
       "top10": [
+        "机制",
         "极致",
         "机智",
-        "机制",
         "及至",
         "基质",
         "基址",
@@ -2477,8 +2474,8 @@
         "几至",
         "技职"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0185",
@@ -2653,14 +2650,14 @@
       "pinyin": "zhuli",
       "reason": "linear",
       "top10": [
+        "助力",
         "助理",
         "主力",
-        "助力",
         "伫立",
         "朱鹂"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0196",
@@ -2695,9 +2692,7 @@
       "expected": "重塑",
       "pinyin": "zhongsu",
       "reason": "linear",
-      "top10": [
-        "众所周知"
-      ],
+      "top10": [],
       "rank": 99,
       "verdict": "HARD"
     },
@@ -2920,14 +2915,14 @@
       "pinyin": "tongyi",
       "reason": "linear",
       "top10": [
-        "同意",
         "统一",
+        "同意",
         "同一",
         "同义",
         "通译"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0216",
@@ -3115,15 +3110,15 @@
       "pinyin": "shouli",
       "reason": "linear",
       "top10": [
-        "手里",
         "受理",
+        "手里",
         "首例",
         "寿礼",
         "收礼",
         "受礼"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0231",
@@ -3376,9 +3371,11 @@
       "expected": "江西省",
       "pinyin": "jiangxisheng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "江西省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0250",
@@ -3414,9 +3411,11 @@
       "expected": "管理局",
       "pinyin": "guanliju",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "管理局"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0253",
@@ -3448,17 +3447,6 @@
       ],
       "rank": 0,
       "verdict": "PASS"
-    },
-    {
-      "idx": "0256",
-      "expected": "孙浩",
-      "pinyin": "sunhao",
-      "reason": "linear",
-      "top10": [
-        "损耗"
-      ],
-      "rank": 99,
-      "verdict": "HARD"
     },
     {
       "idx": "0257",
@@ -4560,6 +4548,7 @@
       "pinyin": "gongshi",
       "reason": "linear",
       "top10": [
+        "公示",
         "公式",
         "公使",
         "攻势",
@@ -4568,11 +4557,10 @@
         "公事",
         "贡士",
         "共事",
-        "公示",
         "工时"
       ],
-      "rank": 8,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0335",
@@ -4710,9 +4698,11 @@
       "expected": "监管局",
       "pinyin": "jianguanju",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "监管局"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0346",
@@ -4742,15 +4732,6 @@
       "idx": "0348",
       "expected": "副局长",
       "pinyin": "fujuzhang",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "0349",
-      "expected": "杨积军",
-      "pinyin": "yangjijun",
       "reason": "linear",
       "top10": [],
       "rank": 99,
@@ -4865,12 +4846,13 @@
       "pinyin": "huiqi",
       "reason": "linear",
       "top10": [
+        "惠企",
         "晦气",
         "会期",
         "悔棋"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0358",
@@ -5127,6 +5109,7 @@
       "pinyin": "gongshi",
       "reason": "linear",
       "top10": [
+        "公示",
         "公式",
         "公使",
         "攻势",
@@ -5135,11 +5118,10 @@
         "公事",
         "贡士",
         "共事",
-        "公示",
         "工时"
       ],
-      "rank": 8,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0378",
@@ -5171,12 +5153,13 @@
       "pinyin": "huiqi",
       "reason": "linear",
       "top10": [
+        "惠企",
         "晦气",
         "会期",
         "悔棋"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0381",
@@ -5237,12 +5220,13 @@
       "pinyin": "huiqi",
       "reason": "linear",
       "top10": [
+        "惠企",
         "晦气",
         "会期",
         "悔棋"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0386",
@@ -5665,9 +5649,11 @@
       "expected": "江西省",
       "pinyin": "jiangxisheng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "江西省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0413",
@@ -5712,9 +5698,11 @@
       "expected": "管理局",
       "pinyin": "guanliju",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "管理局"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0417",
@@ -5770,14 +5758,14 @@
       "pinyin": "chufa",
       "reason": "linear",
       "top10": [
-        "出发",
         "处罚",
+        "出发",
         "触发",
         "除法",
         "触法"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0422",
@@ -5922,14 +5910,14 @@
       "pinyin": "chufa",
       "reason": "linear",
       "top10": [
-        "出发",
         "处罚",
+        "出发",
         "触发",
         "除法",
         "触法"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0432",
@@ -6398,9 +6386,9 @@
       "pinyin": "jizhi",
       "reason": "linear",
       "top10": [
+        "机制",
         "极致",
         "机智",
-        "机制",
         "及至",
         "基质",
         "基址",
@@ -6409,8 +6397,8 @@
         "几至",
         "技职"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0469",
@@ -6582,9 +6570,11 @@
       "expected": "管理局",
       "pinyin": "guanliju",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "管理局"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0481",
@@ -6596,15 +6586,6 @@
       ],
       "rank": 0,
       "verdict": "PASS"
-    },
-    {
-      "idx": "0482",
-      "expected": "丁武安",
-      "pinyin": "dingwuan",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
     },
     {
       "idx": "0483",
@@ -7276,6 +7257,7 @@
       "pinyin": "gongshi",
       "reason": "linear",
       "top10": [
+        "公示",
         "公式",
         "公使",
         "攻势",
@@ -7284,11 +7266,10 @@
         "公事",
         "贡士",
         "共事",
-        "公示",
         "工时"
       ],
-      "rank": 8,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0531",
@@ -7339,11 +7320,12 @@
       "pinyin": "liewu",
       "reason": "linear",
       "top10": [
+        "列入",
         "猎物",
         "猎巫"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0535",
@@ -7365,11 +7347,11 @@
       "pinyin": "yichang",
       "reason": "linear",
       "top10": [
-        "一场",
-        "异常"
+        "异常",
+        "一场"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0537",
@@ -7530,9 +7512,11 @@
       "expected": "管理局",
       "pinyin": "guanliju",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "管理局"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0549",
@@ -7934,14 +7918,15 @@
       "reason": "linear",
       "top10": [
         "一处",
+        "移出",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0576",
@@ -7963,11 +7948,11 @@
       "pinyin": "yichang",
       "reason": "linear",
       "top10": [
-        "一场",
-        "异常"
+        "异常",
+        "一场"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0578",
@@ -8084,14 +8069,14 @@
       "pinyin": "zhuli",
       "reason": "linear",
       "top10": [
+        "助力",
         "助理",
         "主力",
-        "助力",
         "伫立",
         "朱鹂"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0587",
@@ -8283,9 +8268,11 @@
       "expected": "免申即享",
       "pinyin": "mianshenjixiang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "免申即享"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0602",
@@ -8293,9 +8280,9 @@
       "pinyin": "jizhi",
       "reason": "linear",
       "top10": [
+        "机制",
         "极致",
         "机智",
-        "机制",
         "及至",
         "基质",
         "基址",
@@ -8304,8 +8291,8 @@
         "几至",
         "技职"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0603",
@@ -8618,9 +8605,11 @@
       "expected": "免申即享",
       "pinyin": "mianshenjixiang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "免申即享"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0627",
@@ -8757,14 +8746,14 @@
       "pinyin": "wuxu",
       "reason": "linear",
       "top10": [
-        "无须",
         "无需",
+        "无须",
         "无序",
         "戊戌",
         "务虚"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0638",
@@ -9000,14 +8989,15 @@
       "reason": "linear",
       "top10": [
         "一处",
+        "移出",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0655",
@@ -9029,11 +9019,11 @@
       "pinyin": "yichang",
       "reason": "linear",
       "top10": [
-        "一场",
-        "异常"
+        "异常",
+        "一场"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0657",
@@ -9045,15 +9035,6 @@
       ],
       "rank": 0,
       "verdict": "PASS"
-    },
-    {
-      "idx": "0658",
-      "expected": "丁学雷",
-      "pinyin": "dingxuelei",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
     },
     {
       "idx": "0659",
@@ -9224,6 +9205,7 @@
       "pinyin": "gongshi",
       "reason": "linear",
       "top10": [
+        "公示",
         "公式",
         "公使",
         "攻势",
@@ -9232,11 +9214,10 @@
         "公事",
         "贡士",
         "共事",
-        "公示",
         "工时"
       ],
-      "rank": 8,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0672",
@@ -9256,14 +9237,14 @@
       "pinyin": "chufa",
       "reason": "linear",
       "top10": [
-        "出发",
         "处罚",
+        "出发",
         "触发",
         "除法",
         "触法"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0674",
@@ -9419,14 +9400,15 @@
       "reason": "linear",
       "top10": [
         "一处",
+        "移出",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0684",
@@ -9448,11 +9430,11 @@
       "pinyin": "yichang",
       "reason": "linear",
       "top10": [
-        "一场",
-        "异常"
+        "异常",
+        "一场"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0686",
@@ -9796,9 +9778,9 @@
       "pinyin": "jizhi",
       "reason": "linear",
       "top10": [
+        "机制",
         "极致",
         "机智",
-        "机制",
         "及至",
         "基质",
         "基址",
@@ -9807,8 +9789,8 @@
         "几至",
         "技职"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0709",
@@ -10028,14 +10010,14 @@
       "pinyin": "chufa",
       "reason": "linear",
       "top10": [
-        "出发",
         "处罚",
+        "出发",
         "触发",
         "除法",
         "触法"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0726",
@@ -10189,9 +10171,11 @@
       "expected": "南宁市",
       "pinyin": "nanningshi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "南宁市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0736",
@@ -10312,10 +10296,10 @@
       "pinyin": "sanshutongda",
       "reason": "linear",
       "top10": [
-        "散束痛打"
+        "三书同达"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0745",
@@ -10334,9 +10318,9 @@
       "pinyin": "jizhi",
       "reason": "linear",
       "top10": [
+        "机制",
         "极致",
         "机智",
-        "机制",
         "及至",
         "基质",
         "基址",
@@ -10345,8 +10329,8 @@
         "几至",
         "技职"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0747",
@@ -10417,14 +10401,14 @@
       "pinyin": "chufa",
       "reason": "linear",
       "top10": [
-        "出发",
         "处罚",
+        "出发",
         "触发",
         "除法",
         "触法"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0752",
@@ -10530,10 +10514,10 @@
       "pinyin": "sanshutongda",
       "reason": "linear",
       "top10": [
-        "散束痛打"
+        "三书同达"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0760",
@@ -10856,9 +10840,11 @@
       "expected": "南宁市",
       "pinyin": "nanningshi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "南宁市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0784",
@@ -10880,9 +10866,11 @@
       "expected": "监管局",
       "pinyin": "jianguanju",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "监管局"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0786",
@@ -10924,15 +10912,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0789",
-      "expected": "宋刚",
-      "pinyin": "songgang",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0790",
       "expected": "表示",
       "pinyin": "biaoshi",
@@ -10949,9 +10928,11 @@
       "expected": "南宁市",
       "pinyin": "nanningshi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "南宁市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0792",
@@ -11012,9 +10993,11 @@
       "expected": "免申即享",
       "pinyin": "mianshenjixiang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "免申即享"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0797",
@@ -11120,11 +11103,12 @@
       "pinyin": "liewu",
       "reason": "linear",
       "top10": [
+        "列入",
         "猎物",
         "猎巫"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0804",
@@ -11146,11 +11130,11 @@
       "pinyin": "yichang",
       "reason": "linear",
       "top10": [
-        "一场",
-        "异常"
+        "异常",
+        "一场"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0806",
@@ -11454,10 +11438,10 @@
       "pinyin": "sanshutongda",
       "reason": "linear",
       "top10": [
-        "散束痛打"
+        "三书同达"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0828",
@@ -12048,11 +12032,11 @@
       "pinyin": "zishen",
       "reason": "linear",
       "top10": [
-        "资深",
-        "自身"
+        "自身",
+        "资深"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0869",
@@ -12157,9 +12141,11 @@
       "expected": "江西省",
       "pinyin": "jiangxisheng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "江西省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0877",
@@ -12605,14 +12591,14 @@
       "pinyin": "tongshi",
       "reason": "linear",
       "top10": [
-        "同事",
         "同时",
+        "同事",
         "通史",
         "痛失",
         "通识"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0911",
@@ -12706,9 +12692,11 @@
       "expected": "免申即享",
       "pinyin": "mianshenjixiang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "免申即享"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0918",
@@ -12805,11 +12793,12 @@
       "pinyin": "liewu",
       "reason": "linear",
       "top10": [
+        "列入",
         "猎物",
         "猎巫"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0924",
@@ -12831,11 +12820,11 @@
       "pinyin": "yichang",
       "reason": "linear",
       "top10": [
-        "一场",
-        "异常"
+        "异常",
+        "一场"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0926",
@@ -13023,14 +13012,14 @@
       "pinyin": "wuxu",
       "reason": "linear",
       "top10": [
-        "无须",
         "无需",
+        "无须",
         "无序",
         "戊戌",
         "务虚"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0939",
@@ -13062,14 +13051,14 @@
       "pinyin": "wuxu",
       "reason": "linear",
       "top10": [
-        "无须",
         "无需",
+        "无须",
         "无序",
         "戊戌",
         "务虚"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0942",
@@ -13077,11 +13066,12 @@
       "pinyin": "liewu",
       "reason": "linear",
       "top10": [
+        "列入",
         "猎物",
         "猎巫"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0943",
@@ -13154,14 +13144,15 @@
       "reason": "linear",
       "top10": [
         "一处",
+        "移出",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0949",
@@ -13183,11 +13174,11 @@
       "pinyin": "yichang",
       "reason": "linear",
       "top10": [
-        "一场",
-        "异常"
+        "异常",
+        "一场"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0951",
@@ -13374,15 +13365,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0964",
-      "expected": "丁学雷",
-      "pinyin": "dingxuelei",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0965",
       "expected": "表示",
       "pinyin": "biaoshi",
@@ -13534,10 +13516,11 @@
       "pinyin": "yingshang",
       "reason": "linear",
       "top10": [
+        "营商",
         "硬伤"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0978",
@@ -13853,46 +13836,12 @@
       ],
       "rank": 0,
       "verdict": "PASS"
-    },
-    {
-      "idx": "0999",
-      "expected": "童政",
-      "pinyin": "tongzheng",
-      "reason": "linear",
-      "top10": [
-        "通证"
-      ],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "1000",
-      "expected": "韩秉志",
-      "pinyin": "hanbingzhi",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "1001",
-      "expected": "刘兴",
-      "pinyin": "liuxing",
-      "reason": "linear",
-      "top10": [
-        "流行",
-        "流星",
-        "流形",
-        "流刑"
-      ],
-      "rank": 99,
-      "verdict": "HARD"
     }
   ],
   "stats": {
-    "total": 1001,
-    "pass": 770,
-    "soft": 130,
-    "hard": 101
+    "total": 991,
+    "pass": 846,
+    "soft": 95,
+    "hard": 50
   }
 }

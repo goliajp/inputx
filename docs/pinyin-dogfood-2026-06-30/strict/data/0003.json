@@ -5,15 +5,6 @@
   "cjk_char_count": 552,
   "segments": [
     {
-      "idx": "0001",
-      "expected": "刘国中",
-      "pinyin": "liuguozhong",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0002",
       "expected": "在",
       "pinyin": "zai",
@@ -115,9 +106,11 @@
       "expected": "夏粮",
       "pinyin": "xialiang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "夏粮"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0010",
@@ -194,15 +187,6 @@
       ],
       "rank": 0,
       "verdict": "PASS"
-    },
-    {
-      "idx": "0016",
-      "expected": "刘国中",
-      "pinyin": "liuguozhong",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
     },
     {
       "idx": "0017",
@@ -288,12 +272,13 @@
       "pinyin": "jishou",
       "reason": "linear",
       "top10": [
+        "机收",
         "棘手",
         "寄售",
         "疾首"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0025",
@@ -320,9 +305,11 @@
       "expected": "夏播",
       "pinyin": "xiabo",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "夏播"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0027",
@@ -353,9 +340,11 @@
       "expected": "跨区",
       "pinyin": "kuaqu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "跨区"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0030",
@@ -524,13 +513,13 @@
       "pinyin": "shidi",
       "reason": "linear",
       "top10": [
+        "实地",
         "湿地",
         "师弟",
-        "实地",
         "失地"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0043",
@@ -551,10 +540,11 @@
       "pinyin": "xiashou",
       "reason": "linear",
       "top10": [
+        "夏收",
         "下手"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0045",
@@ -791,13 +781,14 @@
       "pinyin": "baogong",
       "reason": "linear",
       "top10": [
+        "保供",
         "包工",
         "刨工",
         "报功",
         "胞宫"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0065",
@@ -824,9 +815,11 @@
       "expected": "高标准",
       "pinyin": "gaobiaozhun",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "高标准"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0067",
@@ -884,15 +877,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0071",
-      "expected": "刘国中",
-      "pinyin": "liuguozhong",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0072",
       "expected": "强调",
       "pinyin": "qiangdiao",
@@ -911,10 +895,11 @@
       "reason": "linear",
       "top10": [
         "三峡",
+        "三夏",
         "伞下"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0074",
@@ -1125,10 +1110,11 @@
       "reason": "linear",
       "top10": [
         "三峡",
+        "三夏",
         "伞下"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0090",
@@ -1345,9 +1331,11 @@
       "expected": "跨区",
       "pinyin": "kuaqu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "跨区"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0105",
@@ -1462,10 +1450,11 @@
       "pinyin": "xiashou",
       "reason": "linear",
       "top10": [
+        "夏收",
         "下手"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0114",
@@ -1473,12 +1462,12 @@
       "pinyin": "gaoxiao",
       "reason": "linear",
       "top10": [
+        "高效",
         "高校",
-        "搞笑",
-        "高效"
+        "搞笑"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0115",
@@ -1538,12 +1527,13 @@
       "pinyin": "jishou",
       "reason": "linear",
       "top10": [
+        "机收",
         "棘手",
         "寄售",
         "疾首"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0120",
@@ -1733,9 +1723,11 @@
       "expected": "夏粮",
       "pinyin": "xialiang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "夏粮"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0135",
@@ -1943,9 +1935,11 @@
       "expected": "夏播",
       "pinyin": "xiabo",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "夏播"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0151",
@@ -2671,15 +2665,6 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0202",
-      "expected": "刘国中",
-      "pinyin": "liuguozhong",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0203",
       "expected": "强调",
       "pinyin": "qiangdiao",
@@ -2756,10 +2741,10 @@
       "pinyin": "fangzaijianzai",
       "reason": "linear",
       "top10": [
-        "防灾健在"
+        "防灾减灾"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0209",
@@ -2962,9 +2947,9 @@
       "pinyin": "jizhi",
       "reason": "linear",
       "top10": [
+        "机制",
         "极致",
         "机智",
-        "机制",
         "及至",
         "基质",
         "基址",
@@ -2973,8 +2958,8 @@
         "几至",
         "技职"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0223",
@@ -3169,9 +3154,11 @@
       "expected": "高标准",
       "pinyin": "gaobiaozhun",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "高标准"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0239",
@@ -3460,9 +3447,9 @@
       "pinyin": "jizhi",
       "reason": "linear",
       "top10": [
+        "机制",
         "极致",
         "机智",
-        "机制",
         "及至",
         "基质",
         "基址",
@@ -3471,8 +3458,8 @@
         "几至",
         "技职"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0262",
@@ -3650,10 +3637,10 @@
       "pinyin": "fangzaijianzai",
       "reason": "linear",
       "top10": [
-        "防灾健在"
+        "防灾减灾"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0276",
@@ -3784,9 +3771,9 @@
     }
   ],
   "stats": {
-    "total": 284,
-    "pass": 220,
-    "soft": 20,
-    "hard": 44
+    "total": 280,
+    "pass": 239,
+    "soft": 18,
+    "hard": 23
   }
 }
