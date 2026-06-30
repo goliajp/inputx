@@ -116,6 +116,18 @@
 
 shipped 2026-06-30. PASS 67.4 → 72.1% on 72k segments. modern-freq + 7 polish batches + 7 retired quickfix. Phase 6 收尾。Final report:`reports/final.md`。
 
+## Reopened 2026-06-30 (user /loop 3m again)
+
+User wants 全部做完。Reopen Phase 5 — corpus grew to 272 articles (slow fetcher 1h+ running). Continue polish iterations with bigger corpus + tighter focus on residual targets.
+
+### Phase 5 v2 checklist
+- [WIP] 5.8 Re-segment 272 articles + run-011 fresh baseline
+- [ ] 5.9 Iter H batch from run-011 top targets
+- [ ] 5.10 Iter I batch
+- [ ] 5.11 Iter J batch
+- [ ] 5.12 Decide: continue or final wrap?
+
+
 ## Open questions(任何一项有 update 写这里)
 
 > _(empty)_
