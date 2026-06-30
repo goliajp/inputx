@@ -484,6 +484,8 @@ mod tests {
             // calibration to beat JP exact-prefix kana (same as
             // shijinsai 世锦赛 / jianma 简码 / fudu 复读 / aijie 娭毑).
             ("huluobo", "胡萝卜"),
+            // Polish 2026-06-30: user "ceshi 测试最高".
+            ("ceshi", "测试"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
