@@ -6724,8 +6724,8 @@
       "pinyin": "yizhi",
       "reason": "linear",
       "top10": [
-        "一致",
         "一直",
+        "一致",
         "意志",
         "抑制",
         "以致",
@@ -6735,8 +6735,8 @@
         "移植",
         "意旨"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0479",
@@ -7337,8 +7337,8 @@
       "pinyin": "yizhi",
       "reason": "linear",
       "top10": [
-        "一致",
         "一直",
+        "一致",
         "意志",
         "抑制",
         "以致",
@@ -7348,8 +7348,8 @@
         "移植",
         "意旨"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0521",
@@ -9200,15 +9200,15 @@
       "pinyin": "benji",
       "reason": "linear",
       "top10": [
-        "本级",
         "本季",
+        "本级",
         "本纪",
         "苯基",
         "畚箕",
         "笨鸡"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0652",
@@ -9489,15 +9489,15 @@
       "pinyin": "benji",
       "reason": "linear",
       "top10": [
-        "本级",
         "本季",
+        "本级",
         "本纪",
         "苯基",
         "畚箕",
         "笨鸡"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0674",
@@ -13308,9 +13308,9 @@
       "pinyin": "zhidao",
       "reason": "linear",
       "top10": [
-        "之道",
-        "指导",
         "知道",
+        "指导",
+        "之道",
         "直到",
         "制导",
         "执导",
@@ -14324,8 +14324,8 @@
   ],
   "stats": {
     "total": 1010,
-    "pass": 930,
-    "soft": 74,
+    "pass": 926,
+    "soft": 78,
     "hard": 6
   }
 }

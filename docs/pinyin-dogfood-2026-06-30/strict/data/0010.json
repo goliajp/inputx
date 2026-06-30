@@ -5882,13 +5882,13 @@
       "pinyin": "hecha",
       "reason": "linear",
       "top10": [
-        "核查",
         "喝茶",
+        "核查",
         "河叉",
         "河汊"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0426",
@@ -7989,16 +7989,16 @@
       "pinyin": "yichu",
       "reason": "linear",
       "top10": [
-        "移出",
         "一处",
+        "移出",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0576",
@@ -9061,16 +9061,16 @@
       "pinyin": "yichu",
       "reason": "linear",
       "top10": [
-        "移出",
         "一处",
+        "移出",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0655",
@@ -9472,16 +9472,16 @@
       "pinyin": "yichu",
       "reason": "linear",
       "top10": [
-        "移出",
         "一处",
+        "移出",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0684",
@@ -11651,9 +11651,9 @@
       "pinyin": "zhidao",
       "reason": "linear",
       "top10": [
-        "之道",
-        "指导",
         "知道",
+        "指导",
+        "之道",
         "直到",
         "制导",
         "执导",
@@ -13236,16 +13236,16 @@
       "pinyin": "yichu",
       "reason": "linear",
       "top10": [
-        "移出",
         "一处",
+        "移出",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0949",
@@ -13936,8 +13936,8 @@
   ],
   "stats": {
     "total": 993,
-    "pass": 891,
-    "soft": 90,
+    "pass": 886,
+    "soft": 95,
     "hard": 12
   }
 }

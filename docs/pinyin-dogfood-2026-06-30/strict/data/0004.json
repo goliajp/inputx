@@ -772,9 +772,9 @@
       "pinyin": "zhidao",
       "reason": "linear",
       "top10": [
-        "之道",
-        "指导",
         "知道",
+        "指导",
+        "之道",
         "直到",
         "制导",
         "执导",
@@ -4241,9 +4241,9 @@
       "pinyin": "zhidao",
       "reason": "linear",
       "top10": [
-        "之道",
-        "指导",
         "知道",
+        "指导",
+        "之道",
         "直到",
         "制导",
         "执导",
@@ -4365,13 +4365,13 @@
       "pinyin": "hecha",
       "reason": "linear",
       "top10": [
-        "核查",
         "喝茶",
+        "核查",
         "河叉",
         "河汊"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0315",
@@ -4996,8 +4996,8 @@
   ],
   "stats": {
     "total": 362,
-    "pass": 321,
-    "soft": 39,
+    "pass": 320,
+    "soft": 40,
     "hard": 2
   }
 }
