@@ -29,6 +29,7 @@
 - 2026-06-30 iter#16 — 4.5 done。`reports/run-001-analysis.md` 写好。关键发现:article 0058(偶像梦幻祭)单文 3989 HARD = 58%,扭曲数据。real-domain HARD ≈ 6.6%。SOFT-1c 66%/SOFT,功能字 muscle memory vs 实词 jieba freq 冲突。Phase 5 plan: 5.1 SOFT-1c top-25 batch、5.2 ordinal/locale compound、5.3 specialty、5.4 lang names。预估 67%→83%。**Phase 4 全 done 🎉**。Next: Phase 5.1 batch quickfix top-25 单字
 - 2026-06-30 iter#17 — 5.1 done。14 quickfix 尝试 → baseline 反对 3(xiang/yi/you),11 落地(yu 与/wei 为/zhong 中/bing 并/hou 后/yu 于/jiang 将/ceng 曾/hua 话/huo 或/deng 等)。Run-002 dogfood:**PASS 67.4 → 71.5%(+4.1pp,SOFT -1983 条)**。baseline 357/0 ✓ mac/reinstall ✓。Next: 5.2 HARD ordinal/locale compound batch。
 - 2026-06-30 iter#18 — 5.2 done。25 modern_vocab compounds 加(中队 / 一名/一架/一张/一位/两名/两个/一直/这是/三年 / 微软/国际足联 / 民国/台湾/四川省/浙江/江西 / 英语/英文/法语/德语/日语/汉语/韩语/苏格兰)。Re-gen modern_freq。**PASS 71.5 → 71.8%(+0.3pp,真词 178 个 from HARD → PASS)**。bump 小因为 article 0058 anime 拖。baseline 357/0 ✓ deploy ✓。Next: 5.3 next compound batch + 单字函数字补充。
+- 2026-06-30 iter#19 — 5.3 done。14 modern_vocab(环球小姐 / 这场/该届 / 译作 / 单人滑 / 巡回演唱 / 监委 / 联合会杯 / 交大 / 很快/很多/最大/明朝/管理器)+ 1 quickfix(gai 该 30k)。1 retired(zhi 至 撞 baseline zhi→只)。Run-004:**PASS 71.8 → 72.0%(+0.2pp,HARD -136)**。Corpus 136 articles(slow fetcher 跑 28 min)。Next: 5.4 expand corpus + re-run。
 
 ## Status legend
 - `[ ]` todo
@@ -93,7 +94,7 @@
 每 iter:从 failures 选 top N → 自动生成 polish patch → 应用 → 验证 improvement → commit
 - [x] 5.1 Iter A:**SOFT-1c 批量 quickfix** done。11 quickfix 应用(yu 与/wei 为/zhong 中/bing 并/hou 后/yu 于/jiang 将/ceng 曾/hua 话/huo 或/deng 等)。3 retired(xiang/yi/you 撞老 baseline)。**PASS 67.4% → 71.5%(+4.1pp,SOFT -1983)**。baseline 357/0 ✓。mac/reinstall ✓。
 - [x] 5.2 Iter B done。25 modern_vocab compounds 加(中队/一名/一架/...微软/英语/英文/法语/德语/汉语/韩语/苏格兰/台湾/浙江/江西/四川省/民国 等)。Re-gen modern_freq.tsv。**PASS 71.5 → 71.8%(+0.3pp,HARD -178)**。baseline 357/0 ✓。Anime article 0058 仍然拖 HARD 总数。
-- [WIP] 5.3 Iter C:next compound/SOFT batch — 从 run-003 抓剩余 systemic
+- [x] 5.3 Iter C done。14 modern_vocab + 1 quickfix(gai 该)落地。1 retired(zhi 至 撞 baseline)。**PASS 71.8 → 72.0%(+0.2pp,HARD -136)**。baseline 357/0 ✓ deploy ✓。corpus 增至 136 articles(slow fetcher 持续)。
 - [ ] 5.4 Iter D:系统模式(发现 framework gap)— 列 + escalate user
 - [ ] 5.5(可选 reps)Iter E-Z:继续直到 diminishing return
 
