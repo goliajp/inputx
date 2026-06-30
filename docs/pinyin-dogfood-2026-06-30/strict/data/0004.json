@@ -319,8 +319,8 @@
         "试",
         "诗",
         "时",
-        "拾",
         "实",
+        "拾",
         "事",
         "师"
       ],
@@ -390,8 +390,8 @@
         "试",
         "诗",
         "时",
-        "拾",
         "实",
+        "拾",
         "事",
         "师"
       ],
@@ -1156,17 +1156,10 @@
       "pinyin": "weimin",
       "reason": "linear",
       "top10": [
-        "威名",
-        "未名",
-        "微明",
-        "违命",
-        "为民除害",
-        "唯命是从",
-        "未命名",
-        "伪命题"
+        "为民"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0078",
@@ -1208,10 +1201,11 @@
       "pinyin": "shouzheng",
       "reason": "linear",
       "top10": [
+        "守正",
         "授证"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0082",
@@ -1275,10 +1269,10 @@
       "pinyin": "sannong",
       "reason": "linear",
       "top10": [
-        "三农问题"
+        "三农"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0088",
@@ -1707,8 +1701,8 @@
         "试",
         "诗",
         "时",
-        "拾",
         "实",
+        "拾",
         "事",
         "师"
       ],
@@ -1740,9 +1734,11 @@
       "expected": "中华人民共和国",
       "pinyin": "zhonghuarenmingongheguo",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "中华人民共和国"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0120",
@@ -2597,8 +2593,8 @@
         "试",
         "诗",
         "时",
-        "拾",
         "实",
+        "拾",
         "事",
         "师"
       ],
@@ -3674,10 +3670,11 @@
       "pinyin": "chibao",
       "reason": "linear",
       "top10": [
-        "吃饱"
+        "吃饱",
+        "迟报"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0261",
@@ -3688,10 +3685,11 @@
         "举报",
         "具保",
         "拒保",
+        "拒报",
         "据报"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 3,
+      "verdict": "SOFT"
     },
     {
       "idx": "0262",
@@ -3950,10 +3948,11 @@
       "pinyin": "xielou",
       "reason": "linear",
       "top10": [
+        "泄露",
         "泄漏"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0283",
@@ -4997,8 +4996,8 @@
   ],
   "stats": {
     "total": 362,
-    "pass": 316,
-    "soft": 37,
-    "hard": 9
+    "pass": 321,
+    "soft": 39,
+    "hard": 2
   }
 }
