@@ -138,6 +138,7 @@ User wants 全部做完。Reopen Phase 5 — corpus grew to 272 articles (slow f
 ## Reopened 3rd time(user /loop 3m 第 3 次)
 - [x] 5.14 done。Lower modern_vocab tier mapping(60k/40k/20k → 50k/30k/15k,top bucket tier 3 → tier 2)。1 行代码改,150+ polish 词从 tier 5 升 tier 2-3。**Run-016: PASS 72.4 → 72.8%(+0.4pp 大跳,SOFT -395 dramatic,HARD +52 slight)**。baseline 357/0 ✓。比批量 polish 30+ entries 还有效。
 - [x] 5.15 done。Iter L:10 quickfix 落地(链接/日志/类似/专辑/紧急/用于/积分/届/赛/因),1 retired(qu 区 撞 baseline)。**Run-017: PASS 72.8 → 73.2%(+0.4pp 又大跳,SOFT -447)**。baseline 357/0 ✓ deploy ✓。
+- [WIP] 5.16 Iter M next 2-char SOFT batch
 
 
 ## Open questions(任何一项有 update 写这里)
