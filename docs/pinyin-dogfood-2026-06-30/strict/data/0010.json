@@ -112,9 +112,11 @@
       "expected": "重塑",
       "pinyin": "zhongsu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "重塑"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0010",
@@ -403,9 +405,11 @@
       "expected": "重塑",
       "pinyin": "zhongsu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "重塑"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0032",
@@ -2140,9 +2144,11 @@
       "expected": "重塑",
       "pinyin": "zhongsu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "重塑"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0158",
@@ -2496,10 +2502,11 @@
       "pinyin": "yigui",
       "reason": "linear",
       "top10": [
+        "依规",
         "衣柜"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0187",
@@ -2692,9 +2699,11 @@
       "expected": "重塑",
       "pinyin": "zhongsu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "重塑"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0199",
@@ -3599,10 +3608,11 @@
       "pinyin": "yigui",
       "reason": "linear",
       "top10": [
+        "依规",
         "衣柜"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0268",
@@ -5660,9 +5670,11 @@
       "expected": "抚州市",
       "pinyin": "fuzhoushi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "抚州市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0414",
@@ -6532,9 +6544,11 @@
       "expected": "抚州市",
       "pinyin": "fuzhoushi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "抚州市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0478",
@@ -7917,16 +7931,16 @@
       "pinyin": "yichu",
       "reason": "linear",
       "top10": [
-        "一处",
         "移出",
+        "一处",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0576",
@@ -8988,16 +9002,16 @@
       "pinyin": "yichu",
       "reason": "linear",
       "top10": [
-        "一处",
         "移出",
+        "一处",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0655",
@@ -9399,16 +9413,16 @@
       "pinyin": "yichu",
       "reason": "linear",
       "top10": [
-        "一处",
         "移出",
+        "一处",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0684",
@@ -10821,10 +10835,11 @@
       "pinyin": "poxi",
       "reason": "linear",
       "top10": [
+        "剖析",
         "婆媳"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0781",
@@ -13157,16 +13172,16 @@
       "pinyin": "yichu",
       "reason": "linear",
       "top10": [
-        "一处",
         "移出",
+        "一处",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0949",
@@ -13854,8 +13869,8 @@
   ],
   "stats": {
     "total": 992,
-    "pass": 848,
-    "soft": 95,
-    "hard": 49
+    "pass": 861,
+    "soft": 91,
+    "hard": 40
   }
 }

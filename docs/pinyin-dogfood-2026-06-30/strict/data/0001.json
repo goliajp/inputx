@@ -5386,10 +5386,11 @@
       "pinyin": "weibian",
       "reason": "linear",
       "top10": [
+        "未变",
         "未便"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0385",
@@ -8915,16 +8916,16 @@
       "pinyin": "yichu",
       "reason": "linear",
       "top10": [
-        "一处",
         "移出",
+        "一处",
         "溢出",
         "益处",
         "役畜",
         "衣橱",
         "移除"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0637",
@@ -10197,7 +10198,7 @@
   "stats": {
     "total": 714,
     "pass": 678,
-    "soft": 29,
-    "hard": 7
+    "soft": 30,
+    "hard": 6
   }
 }

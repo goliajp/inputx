@@ -424,12 +424,12 @@
       "pinyin": "bianju",
       "reason": "linear",
       "top10": [
-        "编剧",
         "变局",
+        "编剧",
         "贬居"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0030",
@@ -1242,12 +1242,12 @@
       "pinyin": "bianju",
       "reason": "linear",
       "top10": [
-        "编剧",
         "变局",
+        "编剧",
         "贬居"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0086",
@@ -2066,8 +2066,8 @@
       "reason": "linear",
       "top10": [
         "站",
-        "展",
         "战",
+        "展",
         "占",
         "斩",
         "粘",
@@ -2451,14 +2451,15 @@
       "reason": "linear",
       "top10": [
         "部位",
+        "不为",
         "部委",
         "不畏",
         "不惟",
         "不谓",
         "不韪"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0168",
@@ -2547,14 +2548,15 @@
       "reason": "linear",
       "top10": [
         "部位",
+        "不为",
         "部委",
         "不畏",
         "不惟",
         "不谓",
         "不韪"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0173",
@@ -2685,9 +2687,11 @@
       "expected": "二战",
       "pinyin": "erzhan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "二战"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0183",
@@ -3121,10 +3125,11 @@
       "pinyin": "wuda",
       "reason": "linear",
       "top10": [
+        "五大",
         "武打"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0214",
@@ -3767,9 +3772,11 @@
       "expected": "中方",
       "pinyin": "zhongfang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "中方"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0263",
@@ -6064,9 +6071,11 @@
       "expected": "二战",
       "pinyin": "erzhan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "二战"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0429",
@@ -6475,8 +6484,8 @@
       "reason": "linear",
       "top10": [
         "站",
-        "展",
         "战",
+        "展",
         "占",
         "斩",
         "粘",
@@ -6586,8 +6595,8 @@
       "reason": "linear",
       "top10": [
         "站",
-        "展",
         "战",
+        "展",
         "占",
         "斩",
         "粘",
@@ -7154,8 +7163,8 @@
         "吻",
         "文",
         "温",
-        "纹",
         "稳",
+        "纹",
         "蚊",
         "瘟",
         "紊"
@@ -7503,13 +7512,10 @@
       "pinyin": "zhonge",
       "reason": "linear",
       "top10": [
-        "中耳",
-        "中耳炎",
-        "中二病",
-        "终而复始"
+        "中俄"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0525",
@@ -7620,13 +7626,10 @@
       "pinyin": "zhonge",
       "reason": "linear",
       "top10": [
-        "中耳",
-        "中耳炎",
-        "中二病",
-        "终而复始"
+        "中俄"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0534",
@@ -7792,13 +7795,13 @@
         "吻",
         "文",
         "温",
-        "纹",
         "稳",
+        "纹",
         "蚊",
         "瘟",
         "紊"
       ],
-      "rank": 6,
+      "rank": 5,
       "verdict": "SOFT"
     },
     {
@@ -9007,10 +9010,11 @@
       "pinyin": "wuda",
       "reason": "linear",
       "top10": [
+        "五大",
         "武打"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0629",
@@ -10076,10 +10080,10 @@
       "pinyin": "yidaiyilu",
       "reason": "linear",
       "top10": [
-        "一代一路"
+        "一带一路"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0704",
@@ -11511,9 +11515,11 @@
       "expected": "中方",
       "pinyin": "zhongfang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "中方"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0805",
@@ -12187,8 +12193,8 @@
       "reason": "linear",
       "top10": [
         "站",
-        "展",
         "战",
+        "展",
         "占",
         "斩",
         "粘",
@@ -12225,9 +12231,11 @@
       "expected": "十四五",
       "pinyin": "shisiwu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "十四五"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0854",
@@ -12398,10 +12406,11 @@
       "pinyin": "quandang",
       "reason": "linear",
       "top10": [
+        "全党",
         "权当"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0868",
@@ -15817,11 +15826,10 @@
       "pinyin": "baxiang",
       "reason": "linear",
       "top10": [
-        "靶向药",
-        "八相成道"
+        "八项"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1101",
@@ -16048,10 +16056,11 @@
       "pinyin": "quandang",
       "reason": "linear",
       "top10": [
+        "全党",
         "权当"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1118",
@@ -16123,11 +16132,10 @@
       "pinyin": "baxiang",
       "reason": "linear",
       "top10": [
-        "靶向药",
-        "八相成道"
+        "八项"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1124",
@@ -19459,10 +19467,11 @@
       "reason": "linear",
       "top10": [
         "负担",
+        "复旦",
         "孵蛋"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "1357",
@@ -19529,10 +19538,11 @@
       "reason": "linear",
       "top10": [
         "负担",
+        "复旦",
         "孵蛋"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "1363",
@@ -22464,9 +22474,11 @@
       "expected": "十四五",
       "pinyin": "shisiwu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "十四五"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1574",
@@ -23212,8 +23224,8 @@
   ],
   "stats": {
     "total": 1615,
-    "pass": 1312,
-    "soft": 189,
-    "hard": 114
+    "pass": 1329,
+    "soft": 191,
+    "hard": 95
   }
 }

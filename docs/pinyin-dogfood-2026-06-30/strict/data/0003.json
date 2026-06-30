@@ -215,18 +215,22 @@
       "expected": "宿州市",
       "pinyin": "suzhoushi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "宿州市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0020",
       "expected": "淮南市",
       "pinyin": "huainanshi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "淮南市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0021",
@@ -234,13 +238,14 @@
       "pinyin": "luanshi",
       "reason": "linear",
       "top10": [
+        "六安市",
         "乱石",
         "乱世",
         "卵石",
         "乱视"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0022",
@@ -483,9 +488,11 @@
       "expected": "农科院",
       "pinyin": "nongkeyuan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "农科院"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0041",
@@ -552,10 +559,11 @@
       "pinyin": "xiazhong",
       "reason": "linear",
       "top10": [
+        "夏种",
         "遐终"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0046",
@@ -637,12 +645,10 @@
       "pinyin": "shouchu",
       "reason": "linear",
       "top10": [
-        "首创",
-        "手锤",
-        "首创者"
+        "收储"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0053",
@@ -715,9 +721,11 @@
       "expected": "新品种",
       "pinyin": "xinpinzhong",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "新品种"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0059",
@@ -796,19 +804,10 @@
       "pinyin": "wenjia",
       "reason": "linear",
       "top10": [
-        "文件",
-        "文件名",
-        "吻技啊",
-        "文教",
-        "稳健",
-        "闻见",
-        "文件夹",
-        "文件大小",
-        "文件格式",
-        "文件服务器"
+        "稳价"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0066",
@@ -1508,18 +1507,22 @@
       "expected": "抓实",
       "pinyin": "zhuashi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "抓实"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0118",
       "expected": "抓牢",
       "pinyin": "zhualao",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "抓牢"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0119",
@@ -1915,9 +1918,11 @@
       "expected": "压茬",
       "pinyin": "yacha",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "压茬"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0149",
@@ -2123,10 +2128,11 @@
       "pinyin": "luoxi",
       "reason": "linear",
       "top10": [
+        "落细",
         "裸戏"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0165",
@@ -2164,12 +2170,13 @@
       "pinyin": "jingliang",
       "reason": "linear",
       "top10": [
+        "精量",
         "精良",
         "晶亮",
         "精粮"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0168",
@@ -2290,10 +2297,10 @@
       "pinyin": "shiyantian",
       "reason": "linear",
       "top10": [
-        "实验提案"
+        "试验田"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0177",
@@ -2375,11 +2382,10 @@
       "pinyin": "datian",
       "reason": "linear",
       "top10": [
-        "打天下",
-        "大天鹅"
+        "大田"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0183",
@@ -2460,11 +2466,7 @@
       "expected": "夏管",
       "pinyin": "xiaguan",
       "reason": "linear",
-      "top10": [
-        "霞光",
-        "瞎逛",
-        "下馆子"
-      ],
+      "top10": [],
       "rank": 99,
       "verdict": "HARD"
     },
@@ -2645,9 +2647,11 @@
       "expected": "田管",
       "pinyin": "tianguan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "田管"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0201",
@@ -3772,8 +3776,8 @@
   ],
   "stats": {
     "total": 280,
-    "pass": 239,
+    "pass": 255,
     "soft": 18,
-    "hard": 23
+    "hard": 7
   }
 }
