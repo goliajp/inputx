@@ -24,6 +24,7 @@
 - 2026-06-30 iter#11 — 2.2 done(部分)。zhwiki API 429 rate-limited IP-level。kill 64620,re-launch slow fetcher(sleep 5s,target 500)PID 65523 后台。**pipeline 用当前 25 articles 起步**(~21k 字,足够 surface polish issues)。slow fetcher 多 fire 累积扩到 200-500。target 1000 → 500 调整。Next: 2.5 segment-corpus 脚本(skip 2.3/2.4 — 25 不需要 sample,全用)
 - 2026-06-30 iter#12 — 2.5+2.6+2.7 done(atomic)。`segment-corpus.py` 写 + 跑 + spot check 通过。Corpus 此时 36 articles(slow fetcher 加了 11)。生成 **10,920 segments**(1c 30%/2c 57%/3c 8%/4c 4% — IME-realistic 分布)。Sample 真实分词正确(高级/打包/工具/软件包/管理器等)。**Phase 2 全 done 🎉**。Next: 3.1 inputx_dogfood Rust binary
 - 2026-06-30 iter#13 — 3.1+3.2+3.3 done(atomic)。新 binary `inputx-dogfood`,`[[bin]]` 在 inputx-core/Cargo.toml。每行 in-process `inputx_pinyin_v2::query()` → 找 expected word 排名 → 分 PASS/SOFT/HARD。Build clean。Next: 3.4 smoke 100
+- 2026-06-30 iter#14 — 3.4 done。Smoke 100:**86% PASS / 11% SOFT / 3% HARD**。验证 pipeline OK。3 类 polish target pattern 识别清:A.proper-noun reject(英语 Ying1yu3 ingest 拒)、B.cedict 漏(管理器/最早 不在源)、C.单字 polysemy jieba freq 偏(为/中/于 等)。**Phase 3 全 done 🎉**。Next: 4.1 50-article smoke(其实 corpus 已 36 篇,直接跑全 → 4.3 full)
 
 ## Status legend
 - `[ ]` todo
@@ -75,7 +76,7 @@
 - [x] 3.1 Write `core/crates/inputx-core/src/bin/inputx_dogfood.rs`(read segments.tsv,for each call v2::query() in-process)
 - [x] 3.2 Failure classification logic(HARD/SOFT/PASS — 三段)
 - [x] 3.3 Cargo wire — `[[bin]] inputx-dogfood`,build clean
-- [WIP] 3.4 Smoke run on first 100 segments → 验证 pipeline
+- [x] 3.4 Smoke run on first 100 segments → 验证 pipeline ✓。**86% PASS / 11% SOFT / 3% HARD**。3 类 pattern: A.proper-noun reject(英语 Ying1yu3 / etc),B.cedict 漏(管理器/最早),C.单字 polysemy jieba freq 偏(为/中/于 等被同音字压)。
 
 ### Phase 4: full dogfood run
 - [ ] 4.1 Run dogfood on 50 articles → `scratchpad/failures/run-001-smoke.tsv`
