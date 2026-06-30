@@ -2972,6 +2972,12 @@ mod tests {
             // shén+rù, not a real Chinese word. D1 via corpus_garbage_filter
             // (v2 reads garbage_filter as exclusion).
             ("shenru", &["神入"]),
+            // Polish 2026-06-30: user "yidal 义大利面 删了". 义大利面 是
+            // Taiwan variant; mainland 意大利面. D1 via corpus_garbage_filter
+            // + v2 prefix path now honors own-code exclusion (一次堵
+            // yidalimian 真实代码 + yidal 前缀两处).
+            ("yidal", &["义大利面"]),
+            ("yidalimian", &["义大利面"]),
             // User polish-log 2026-06-27: "zhengyu 正宇 正于 证于 都不是
             // 词" — 正宇 is a given name (proper noun), 正于/证于 are
             // 字字直拼 jieba noise (e.g. 正于此时). All three D1 deleted
