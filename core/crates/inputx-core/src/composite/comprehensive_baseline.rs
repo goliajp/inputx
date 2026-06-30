@@ -459,6 +459,9 @@ mod tests {
             // compound, not in CC-CEDICT. Compose path can't synthesize
             // (≥1-word rule + 删 not in words.tsv as word). Direct entry.
             ("shanle", "删了"),
+            // Polish 2026-06-30: user "liucheng 流程肯定是最高的，柳橙
+            // 级别应该低多了". 流程 quickfix 50k + 柳橙 (台湾柑橘) tier 5.
+            ("liucheng", "流程"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
