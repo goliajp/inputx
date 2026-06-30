@@ -97,7 +97,7 @@
 - [x] 5.2 Iter B done。25 modern_vocab compounds 加(中队/一名/一架/...微软/英语/英文/法语/德语/汉语/韩语/苏格兰/台湾/浙江/江西/四川省/民国 等)。Re-gen modern_freq.tsv。**PASS 71.5 → 71.8%(+0.3pp,HARD -178)**。baseline 357/0 ✓。Anime article 0058 仍然拖 HARD 总数。
 - [x] 5.3 Iter C done。14 modern_vocab + 1 quickfix(gai 该)落地。1 retired(zhi 至 撞 baseline)。**PASS 71.8 → 72.0%(+0.2pp,HARD -136)**。baseline 357/0 ✓ deploy ✓。corpus 增至 136 articles(slow fetcher 持续)。
 - [x] 5.4 Iter D done。Corpus 扩 140 articles → 72,064 segments(+24k)。Run-005:71.1% baseline。Iter D batch:12 modern_vocab(太平洋/作词/亚足联/奥运/甲级联赛/毛主席/德甲/广东省/射手榜/外围赛/靠前/中英街)+ 1 quickfix(qian 前 30k)。Run-006:**PASS 71.1 → 71.4%(+0.3pp,HARD -197)**。baseline 357/0 ✓ deploy ✓。
-- [ ] 5.5(可选 reps)Iter E-Z:继续直到 diminishing return
+- [WIP] 5.5 Iter E:cross-article HARD batch(找在 ≥2 articles 出现的 systemic words,优先级高)+ 真实 PASS rate(excl niche)
 
 ### Phase 6: 收尾
 - [ ] 6.1 Retire obsolete quickfix rows(被 modern-freq 自动覆盖的)
