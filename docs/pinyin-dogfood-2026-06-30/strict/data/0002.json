@@ -2730,43 +2730,6 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "311",
-      "expected": "人居环境整治",
-      "pinyin": "renjuhuanjingzhengzhi",
-      "reason": "political",
-      "top10": [
-        "人居环境政治"
-      ],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "312",
-      "expected": "大力推进",
-      "pinyin": "dalituijin",
-      "reason": "political",
-      "top10": [
-        "大力推进"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "313",
-      "expected": "也是",
-      "pinyin": "yeshi",
-      "reason": "conj",
-      "top10": [
-        "夜视",
-        "野史",
-        "夜市",
-        "业师",
-        "野豕"
-      ],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "314",
       "expected": "生活环境",
       "pinyin": "shenghuohuanjing",
@@ -2801,9 +2764,9 @@
     }
   ],
   "stats": {
-    "total": 224,
-    "pass": 197,
+    "total": 221,
+    "pass": 196,
     "soft": 23,
-    "hard": 4
+    "hard": 2
   }
 }

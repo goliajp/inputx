@@ -3656,17 +3656,6 @@
       "verdict": "HARD"
     },
     {
-      "idx": "411",
-      "expected": "生态文明思想",
-      "pinyin": "shengtaiwenmingsixiang",
-      "reason": "political",
-      "top10": [
-        "生态文明思想"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
       "idx": "412",
       "expected": "黄河流域",
       "pinyin": "huangheliuyu",
@@ -3729,17 +3718,6 @@
       "top10": [],
       "rank": 99,
       "verdict": "HARD"
-    },
-    {
-      "idx": "418",
-      "expected": "国家文化公园",
-      "pinyin": "guojiawenhuagongyuan",
-      "reason": "political",
-      "top10": [
-        "国家文化公园"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
     },
     {
       "idx": "298",
@@ -3858,8 +3836,8 @@
     }
   ],
   "stats": {
-    "total": 314,
-    "pass": 307,
+    "total": 312,
+    "pass": 305,
     "soft": 3,
     "hard": 4
   }
