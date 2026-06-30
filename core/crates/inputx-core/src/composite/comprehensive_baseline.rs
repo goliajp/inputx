@@ -478,6 +478,8 @@ mod tests {
             ("kailuo", "开罗"),
             ("lundun", "伦敦"),
             ("moerben", "墨尔本"),
+            // Polish 2026-06-30: user "yanjiu 研究肯定要在烟酒前面".
+            ("yanjiu", "研究"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
