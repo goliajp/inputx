@@ -25,6 +25,7 @@
 - 2026-06-30 iter#12 — 2.5+2.6+2.7 done(atomic)。`segment-corpus.py` 写 + 跑 + spot check 通过。Corpus 此时 36 articles(slow fetcher 加了 11)。生成 **10,920 segments**(1c 30%/2c 57%/3c 8%/4c 4% — IME-realistic 分布)。Sample 真实分词正确(高级/打包/工具/软件包/管理器等)。**Phase 2 全 done 🎉**。Next: 3.1 inputx_dogfood Rust binary
 - 2026-06-30 iter#13 — 3.1+3.2+3.3 done(atomic)。新 binary `inputx-dogfood`,`[[bin]]` 在 inputx-core/Cargo.toml。每行 in-process `inputx_pinyin_v2::query()` → 找 expected word 排名 → 分 PASS/SOFT/HARD。Build clean。Next: 3.4 smoke 100
 - 2026-06-30 iter#14 — 3.4 done。Smoke 100:**86% PASS / 11% SOFT / 3% HARD**。验证 pipeline OK。3 类 polish target pattern 识别清:A.proper-noun reject(英语 Ying1yu3 ingest 拒)、B.cedict 漏(管理器/最早 不在源)、C.单字 polysemy jieba freq 偏(为/中/于 等)。**Phase 3 全 done 🎉**。Next: 4.1 50-article smoke(其实 corpus 已 36 篇,直接跑全 → 4.3 full)
+- 2026-06-30 iter#15 — 4.1+4.2+4.3+4.4 atomic done。Re-gen segments(66 articles → 47,904 segments)。Full dogfood:**PASS 67.4% / SOFT 18.2% / HARD 14.4%**。Aggregate:3218 distinct HARD,top 集中在 polish 真目标。SOFT 由单字 polysemy 主导(与/为/中/并 等 ~50 个常用功能字 quickfix candidate)。Next: 4.5 analysis report → Phase 5 batch polish。
 
 ## Status legend
 - `[ ]` todo
@@ -79,10 +80,10 @@
 - [x] 3.4 Smoke run on first 100 segments → 验证 pipeline ✓。**86% PASS / 11% SOFT / 3% HARD**。3 类 pattern: A.proper-noun reject(英语 Ying1yu3 / etc),B.cedict 漏(管理器/最早),C.单字 polysemy jieba freq 偏(为/中/于 等被同音字压)。
 
 ### Phase 4: full dogfood run
-- [WIP] 4.1 Run dogfood on 50 articles → `scratchpad/failures/run-001-smoke.tsv`
-- [x] 4.2 ~~Bug-fix pipeline if smoke shows issues~~ — pipeline OK from iter#14 smoke (86% PASS)
-- [WIP] 4.3 Run on full 1000 articles → `scratchpad/failures/run-001-full.tsv`
-- [ ] 4.4 Aggregate stats:total / HARD / SOFT / top failure patterns
+- [x] 4.1 Run dogfood on 50 articles ~~smoke~~ — skipped, full corpus only 66 articles, run all
+- [x] 4.2 Bug-fix pipeline — pipeline OK from iter#14 smoke (86% PASS)
+- [x] 4.3 Run on full corpus (47,904 segments from 66 articles) → `failures/run-001-full.tsv`。**PASS 67.4% / SOFT 18.2% / HARD 14.4%**
+- [x] 4.4 Aggregate stats:3218 distinct HARD, top: 宣传语(148)/祭(115)/梦之咲(101)/预选赛(88)/存于(83)。SOFT 单字 polysemy 主导:与(448)/为(395)/中(308)/并(240)/以(179)/后(171)/于(153)/将(141)等。
 - [ ] 4.5 Write `reports/run-001-analysis.md`(分类 + Top-N systemic patterns)
 
 ### Phase 5: batch polish iterations
