@@ -331,14 +331,14 @@
       "top10": [
         "前",
         "钱",
-        "千",
         "牵",
         "浅",
         "欠",
         "签",
         "迁",
         "潜",
-        "铅"
+        "铅",
+        "遣"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -445,16 +445,40 @@
     },
     {
       "idx": "0028",
-      "expected": "时任",
-      "pinyin": "shiren",
-      "reason": "linear",
+      "expected": "时",
+      "pinyin": "shi",
+      "reason": "linear-r3",
       "top10": [
-        "诗人",
-        "世人",
-        "时任",
-        "士人",
-        "食人",
-        "适人"
+        "人",
+        "认",
+        "任",
+        "忍",
+        "仁",
+        "刃",
+        "韧",
+        "壬",
+        "纫",
+        "儿"
+      ],
+      "rank": 2,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0028",
+      "expected": "任",
+      "pinyin": "ren",
+      "reason": "linear-r3",
+      "top10": [
+        "人",
+        "认",
+        "任",
+        "忍",
+        "仁",
+        "刃",
+        "韧",
+        "壬",
+        "纫",
+        "儿"
       ],
       "rank": 2,
       "verdict": "SOFT"
@@ -1341,16 +1365,42 @@
     },
     {
       "idx": "0092",
-      "expected": "人意",
-      "pinyin": "renyi",
-      "reason": "linear",
+      "expected": "人",
+      "pinyin": "ren",
+      "reason": "linear-r3",
       "top10": [
-        "任意",
-        "仁义",
-        "任一",
-        "人意"
+        "一",
+        "以",
+        "亿",
+        "乙",
+        "意",
+        "亦",
+        "翼",
+        "宜",
+        "医",
+        "衣"
       ],
-      "rank": 3,
+      "rank": 4,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0092",
+      "expected": "意",
+      "pinyin": "yi",
+      "reason": "linear-r3",
+      "top10": [
+        "一",
+        "以",
+        "亿",
+        "乙",
+        "意",
+        "亦",
+        "翼",
+        "宜",
+        "医",
+        "衣"
+      ],
+      "rank": 4,
       "verdict": "SOFT"
     },
     {
@@ -1464,17 +1514,43 @@
     },
     {
       "idx": "0100",
-      "expected": "较好",
-      "pinyin": "jiaohao",
-      "reason": "linear",
+      "expected": "较",
+      "pinyin": "jiao",
+      "reason": "linear-r3",
       "top10": [
-        "叫好",
-        "交好",
-        "姣好",
-        "较好"
+        "好",
+        "号",
+        "豪",
+        "浩",
+        "耗",
+        "毫",
+        "皓",
+        "嚎",
+        "灏",
+        "唬"
       ],
-      "rank": 3,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0100",
+      "expected": "好",
+      "pinyin": "hao",
+      "reason": "linear-r3",
+      "top10": [
+        "好",
+        "号",
+        "豪",
+        "浩",
+        "耗",
+        "毫",
+        "皓",
+        "嚎",
+        "灏",
+        "唬"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0101",
@@ -1671,12 +1747,39 @@
     },
     {
       "idx": "0112",
-      "expected": "村村",
-      "pinyin": "cuncun",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "expected": "村",
+      "pinyin": "cun",
+      "reason": "linear-r3",
+      "top10": [
+        "存",
+        "村",
+        "寸",
+        "蹲",
+        "忖",
+        "皴",
+        "浚",
+        "邨"
+      ],
+      "rank": 1,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0112",
+      "expected": "村",
+      "pinyin": "cun",
+      "reason": "linear-r3",
+      "top10": [
+        "存",
+        "村",
+        "寸",
+        "蹲",
+        "忖",
+        "皴",
+        "浚",
+        "邨"
+      ],
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0113",
@@ -2268,12 +2371,43 @@
     },
     {
       "idx": "0153",
-      "expected": "村道",
-      "pinyin": "cundao",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "expected": "村",
+      "pinyin": "cun",
+      "reason": "linear-r3",
+      "top10": [
+        "到",
+        "刀",
+        "倒",
+        "岛",
+        "道",
+        "导",
+        "盗",
+        "捣",
+        "稻",
+        "叨"
+      ],
+      "rank": 4,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0153",
+      "expected": "道",
+      "pinyin": "dao",
+      "reason": "linear-r3",
+      "top10": [
+        "到",
+        "刀",
+        "倒",
+        "岛",
+        "道",
+        "导",
+        "盗",
+        "捣",
+        "稻",
+        "叨"
+      ],
+      "rank": 4,
+      "verdict": "SOFT"
     },
     {
       "idx": "0154",
@@ -2319,12 +2453,12 @@
       "pinyin": "fenbian",
       "reason": "linear",
       "top10": [
-        "分辨",
         "粪便",
+        "分辨",
         "分辩"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0158",
@@ -3506,15 +3640,15 @@
       "pinyin": "zhuanzhi",
       "reason": "linear",
       "top10": [
-        "专制",
         "专职",
+        "专制",
         "转制",
         "专治",
         "转置",
         "转职"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0236",
@@ -4309,12 +4443,12 @@
       "pinyin": "dongji",
       "reason": "linear",
       "top10": [
-        "动机",
         "冬季",
+        "动机",
         "董鸡"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0291",
@@ -6598,17 +6732,17 @@
       "top10": [
         "前",
         "钱",
-        "千",
         "牵",
         "浅",
         "欠",
         "签",
         "迁",
         "潜",
-        "铅"
+        "铅",
+        "遣"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 99,
+      "verdict": "HARD"
     },
     {
       "idx": "0444",
@@ -6618,17 +6752,17 @@
       "top10": [
         "前",
         "钱",
-        "千",
         "牵",
         "浅",
         "欠",
         "签",
         "迁",
         "潜",
-        "铅"
+        "铅",
+        "遣"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 99,
+      "verdict": "HARD"
     },
     {
       "idx": "0445",
@@ -6723,17 +6857,17 @@
       "top10": [
         "前",
         "钱",
-        "千",
         "牵",
         "浅",
         "欠",
         "签",
         "迁",
         "潜",
-        "铅"
+        "铅",
+        "遣"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 99,
+      "verdict": "HARD"
     },
     {
       "idx": "0450",
@@ -6743,17 +6877,17 @@
       "top10": [
         "前",
         "钱",
-        "千",
         "牵",
         "浅",
         "欠",
         "签",
         "迁",
         "潜",
-        "铅"
+        "铅",
+        "遣"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 99,
+      "verdict": "HARD"
     },
     {
       "idx": "0451",
@@ -7661,9 +7795,9 @@
     }
   ],
   "stats": {
-    "total": 507,
-    "pass": 431,
-    "soft": 71,
-    "hard": 5
+    "total": 512,
+    "pass": 436,
+    "soft": 69,
+    "hard": 7
   }
 }

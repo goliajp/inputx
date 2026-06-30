@@ -1353,17 +1353,17 @@
       "top10": [
         "前",
         "钱",
-        "千",
         "牵",
         "浅",
         "欠",
         "签",
         "迁",
         "潜",
-        "铅"
+        "铅",
+        "遣"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 99,
+      "verdict": "HARD"
     },
     {
       "idx": "0095",
@@ -1373,17 +1373,17 @@
       "top10": [
         "前",
         "钱",
-        "千",
         "牵",
         "浅",
         "欠",
         "签",
         "迁",
         "潜",
-        "铅"
+        "铅",
+        "遣"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 99,
+      "verdict": "HARD"
     },
     {
       "idx": "0096",
@@ -1989,16 +1989,16 @@
       "pinyin": "jiyi",
       "reason": "linear",
       "top10": [
-        "记忆",
         "技艺",
+        "记忆",
         "机翼",
         "计议",
         "机宜",
         "祭仪",
         "既已"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0133",
@@ -2226,16 +2226,16 @@
       "pinyin": "jiyi",
       "reason": "linear",
       "top10": [
-        "记忆",
         "技艺",
+        "记忆",
         "机翼",
         "计议",
         "机宜",
         "祭仪",
         "既已"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0150",
@@ -2846,16 +2846,16 @@
       "pinyin": "jiyi",
       "reason": "linear",
       "top10": [
-        "记忆",
         "技艺",
+        "记忆",
         "机翼",
         "计议",
         "机宜",
         "祭仪",
         "既已"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0188",
@@ -5021,13 +5021,13 @@
       "pinyin": "shenhou",
       "reason": "linear",
       "top10": [
-        "身后",
         "深厚",
+        "身后",
         "申猴",
         "深喉"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0320",
@@ -5982,16 +5982,16 @@
       "pinyin": "jiyi",
       "reason": "linear",
       "top10": [
-        "记忆",
         "技艺",
+        "记忆",
         "机翼",
         "计议",
         "机宜",
         "祭仪",
         "既已"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0386",
@@ -6758,8 +6758,8 @@
   ],
   "stats": {
     "total": 432,
-    "pass": 353,
-    "soft": 62,
-    "hard": 17
+    "pass": 358,
+    "soft": 55,
+    "hard": 19
   }
 }

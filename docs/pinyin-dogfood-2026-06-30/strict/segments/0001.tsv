@@ -511,7 +511,9 @@
 0490	重要	zhongyao	linear
 0491	的	de	linear
 0492	还是	haishi	linear
-0493	保护好	baohuhao	linear
+# SPLIT-r3 0493	保护好	baohuhao	linear
+0493	保护	baohu	linear-r3
+0493	好	hao	linear-r3
 0494	年	nian	linear
 0495	月	yue	linear
 0496	在	zai	linear
@@ -624,7 +626,10 @@
 0603	让	rang	linear
 0604	渔民	yumin	linear
 0605	们	men	linear
-0606	稳得住	wendezhu	linear
+# SPLIT-r3 0606	稳得住	wendezhu	linear
+0606	稳	wen	linear-r3
+0606	得	de	linear-r3
+0606	住	zhu	linear-r3
 0607	能	neng	linear
 0608	致富	zhifu	linear
 0609	年	nian	linear
@@ -654,7 +659,9 @@
 0631	月	yue	linear
 0632	在	zai	linear
 0633	陕西	shaanxi	linear
-0634	高西沟村	gaoxigoucun	linear
+# SPLIT-r3 0634	高西沟村	gaoxigoucun	linear
+0634	高西沟	gaoxigou	linear-r3
+0634	村	cun	linear-r3
 0635	的	de	linear
 0636	一处	yichu	linear
 0637	山头	shantou	linear

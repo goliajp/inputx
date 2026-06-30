@@ -1194,12 +1194,40 @@
     },
     {
       "idx": "0091",
-      "expected": "较长",
-      "pinyin": "jiaochang",
-      "reason": "linear",
+      "expected": "较",
+      "pinyin": "jiao",
+      "reason": "linear-r3",
       "top10": [
-        "校场",
-        "较场"
+        "场",
+        "尝",
+        "常",
+        "唱",
+        "厂",
+        "畅",
+        "肠",
+        "偿",
+        "昌",
+        "倡"
+      ],
+      "rank": 99,
+      "verdict": "HARD"
+    },
+    {
+      "idx": "0091",
+      "expected": "长",
+      "pinyin": "chang",
+      "reason": "linear-r3",
+      "top10": [
+        "场",
+        "尝",
+        "常",
+        "唱",
+        "厂",
+        "畅",
+        "肠",
+        "偿",
+        "昌",
+        "倡"
       ],
       "rank": 99,
       "verdict": "HARD"
@@ -3497,14 +3525,14 @@
       "top10": [
         "前",
         "钱",
-        "千",
         "牵",
         "浅",
         "欠",
         "签",
         "迁",
         "潜",
-        "铅"
+        "铅",
+        "遣"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -5498,15 +5526,15 @@
       "pinyin": "dafu",
       "reason": "linear",
       "top10": [
+        "大幅",
         "大夫",
         "答复",
-        "大幅",
         "大福",
         "大副",
         "大釜"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0402",
@@ -5722,11 +5750,11 @@
       "pinyin": "zixun",
       "reason": "linear",
       "top10": [
-        "资讯",
-        "咨询"
+        "咨询",
+        "资讯"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0418",
@@ -5831,13 +5859,13 @@
       "pinyin": "hecha",
       "reason": "linear",
       "top10": [
-        "喝茶",
         "核查",
+        "喝茶",
         "河叉",
         "河汊"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0426",
@@ -7102,15 +7130,15 @@
       "pinyin": "dafu",
       "reason": "linear",
       "top10": [
+        "大幅",
         "大夫",
         "答复",
-        "大幅",
         "大福",
         "大副",
         "大釜"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0520",
@@ -11721,12 +11749,12 @@
       "pinyin": "jiance",
       "reason": "linear",
       "top10": [
-        "检测",
         "监测",
+        "检测",
         "简册"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0847",
@@ -12307,11 +12335,11 @@
       "pinyin": "zixun",
       "reason": "linear",
       "top10": [
-        "资讯",
-        "咨询"
+        "咨询",
+        "资讯"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0887",
@@ -13868,9 +13896,9 @@
     }
   ],
   "stats": {
-    "total": 992,
-    "pass": 861,
-    "soft": 91,
-    "hard": 40
+    "total": 993,
+    "pass": 867,
+    "soft": 85,
+    "hard": 41
   }
 }

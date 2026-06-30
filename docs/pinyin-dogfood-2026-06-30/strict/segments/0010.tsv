@@ -91,7 +91,9 @@
 0088	信息	xinxi	linear
 0089	公示	gongshi	linear
 0090	期限	qixian	linear
-0091	较长	jiaochang	linear
+# SPLIT-r3 0091	较长	jiaochang	linear
+0091	较	jiao	linear-r3
+0091	长	chang	linear-r3
 0092	信用	xinyong	linear
 0093	修复	xiufu	linear
 0094	机制	jizhi	linear

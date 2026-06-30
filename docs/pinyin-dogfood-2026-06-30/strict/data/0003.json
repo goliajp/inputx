@@ -3744,8 +3744,8 @@
       "pinyin": "jianshi",
       "reason": "linear",
       "top10": [
-        "监视",
         "坚实",
+        "监视",
         "见识",
         "简史",
         "检视",
@@ -3755,8 +3755,8 @@
         "箭矢",
         "鉴识"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0284",
@@ -3776,8 +3776,8 @@
   ],
   "stats": {
     "total": 280,
-    "pass": 255,
-    "soft": 18,
+    "pass": 256,
+    "soft": 17,
     "hard": 7
   }
 }

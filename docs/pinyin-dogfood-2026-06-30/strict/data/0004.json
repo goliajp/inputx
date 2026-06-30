@@ -4366,13 +4366,13 @@
       "pinyin": "hecha",
       "reason": "linear",
       "top10": [
-        "喝茶",
         "核查",
+        "喝茶",
         "河叉",
         "河汊"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0315",
@@ -4997,8 +4997,8 @@
   ],
   "stats": {
     "total": 362,
-    "pass": 315,
-    "soft": 38,
+    "pass": 316,
+    "soft": 37,
     "hard": 9
   }
 }

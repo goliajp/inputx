@@ -6904,12 +6904,43 @@
     },
     {
       "idx": "0493",
-      "expected": "保护好",
-      "pinyin": "baohuhao",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "expected": "保护",
+      "pinyin": "baohu",
+      "reason": "linear-r3",
+      "top10": [
+        "好",
+        "号",
+        "豪",
+        "浩",
+        "耗",
+        "毫",
+        "皓",
+        "嚎",
+        "灏",
+        "唬"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0493",
+      "expected": "好",
+      "pinyin": "hao",
+      "reason": "linear-r3",
+      "top10": [
+        "好",
+        "号",
+        "豪",
+        "浩",
+        "耗",
+        "毫",
+        "皓",
+        "嚎",
+        "灏",
+        "唬"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0494",
@@ -8451,12 +8482,63 @@
     },
     {
       "idx": "0606",
-      "expected": "稳得住",
-      "pinyin": "wendezhu",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "expected": "稳",
+      "pinyin": "wen",
+      "reason": "linear-r3",
+      "top10": [
+        "住",
+        "祝",
+        "猪",
+        "煮",
+        "株",
+        "拄",
+        "主",
+        "助",
+        "注",
+        "著"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0606",
+      "expected": "得",
+      "pinyin": "de",
+      "reason": "linear-r3",
+      "top10": [
+        "住",
+        "祝",
+        "猪",
+        "煮",
+        "株",
+        "拄",
+        "主",
+        "助",
+        "注",
+        "著"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0606",
+      "expected": "住",
+      "pinyin": "zhu",
+      "reason": "linear-r3",
+      "top10": [
+        "住",
+        "祝",
+        "猪",
+        "煮",
+        "株",
+        "拄",
+        "主",
+        "助",
+        "注",
+        "著"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0607",
@@ -8883,12 +8965,39 @@
     },
     {
       "idx": "0634",
-      "expected": "高西沟村",
-      "pinyin": "gaoxigoucun",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "expected": "高西沟",
+      "pinyin": "gaoxigou",
+      "reason": "linear-r3",
+      "top10": [
+        "存",
+        "村",
+        "寸",
+        "蹲",
+        "忖",
+        "皴",
+        "浚",
+        "邨"
+      ],
+      "rank": 1,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0634",
+      "expected": "村",
+      "pinyin": "cun",
+      "reason": "linear-r3",
+      "top10": [
+        "存",
+        "村",
+        "寸",
+        "蹲",
+        "忖",
+        "皴",
+        "浚",
+        "邨"
+      ],
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0635",
@@ -10196,9 +10305,9 @@
     }
   ],
   "stats": {
-    "total": 714,
-    "pass": 678,
-    "soft": 30,
-    "hard": 6
+    "total": 718,
+    "pass": 683,
+    "soft": 32,
+    "hard": 3
   }
 }
