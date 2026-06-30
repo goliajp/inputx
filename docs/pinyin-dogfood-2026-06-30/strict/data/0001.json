@@ -5,10 +5,82 @@
   "cjk_char_count": 1441,
   "segments": [
     {
-      "idx": "001",
+      "idx": "002",
+      "expected": "足迹",
+      "pinyin": "zuji",
+      "reason": "title",
+      "top10": [
+        "足迹",
+        "祖籍",
+        "阻击"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "003",
+      "expected": "呵护",
+      "pinyin": "hehu",
+      "reason": "title",
+      "top10": [
+        "呵护",
+        "合乎"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "004",
+      "expected": "千山万水",
+      "pinyin": "qianshanwanshui",
+      "reason": "idiom",
+      "top10": [
+        "千山万水"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "005",
+      "expected": "擘画",
+      "pinyin": "bohua",
+      "reason": "political",
+      "top10": [
+        "擘画",
+        "帛画",
+        "擘划"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "006",
+      "expected": "永续",
+      "pinyin": "yongxu",
+      "reason": "political",
+      "top10": [
+        "永续"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "007",
+      "expected": "发展",
+      "pinyin": "fazhan",
+      "reason": "common",
+      "top10": [
+        "发展",
+        "罚站"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "008",
       "expected": "大美",
       "pinyin": "damei",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "大美",
         "大媒"
@@ -17,10 +89,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "002",
+      "idx": "009",
       "expected": "中国",
       "pinyin": "zhongguo",
-      "reason": "auto-jieba",
+      "reason": "country",
       "top10": [
         "中国"
       ],
@@ -28,72 +100,47 @@
       "verdict": "PASS"
     },
     {
-      "idx": "003",
-      "expected": "江山如画",
-      "pinyin": "jiangshanruhua",
-      "reason": "auto-jieba",
+      "idx": "010",
+      "expected": "江山",
+      "pinyin": "jiangshan",
+      "reason": "noun",
       "top10": [
-        "江山如画"
+        "江山"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "004",
-      "expected": "党",
-      "pinyin": "dang",
-      "reason": "auto-jieba",
+      "idx": "011",
+      "expected": "如画",
+      "pinyin": "ruhua",
+      "reason": "adj",
       "top10": [
-        "党",
-        "当",
-        "挡",
-        "档",
-        "荡",
-        "铛",
-        "垱",
-        "珰",
-        "宕",
-        "谠"
+        "如画",
+        "乳化",
+        "乳滑",
+        "如花",
+        "蠕滑"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "005",
-      "expected": "十八",
-      "pinyin": "shiba",
-      "reason": "auto-jieba",
+      "idx": "013",
+      "expected": "十八大",
+      "pinyin": "shibada",
+      "reason": "political",
       "top10": [
-        "十八"
+        "十八大"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "006",
-      "expected": "大",
-      "pinyin": "da",
-      "reason": "auto-jieba",
-      "top10": [
-        "大",
-        "打",
-        "搭",
-        "达",
-        "答",
-        "瘩",
-        "塔",
-        "胆",
-        "鞑",
-        "塌"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "007",
+      "idx": "014",
       "expected": "以来",
       "pinyin": "yilai",
-      "reason": "auto-jieba",
+      "reason": "temporal",
       "top10": [
         "以来",
         "依赖",
@@ -104,10 +151,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "008",
+      "idx": "015",
       "expected": "习近平",
       "pinyin": "xijinping",
-      "reason": "auto-jieba",
+      "reason": "person",
       "top10": [
         "习近平"
       ],
@@ -115,10 +162,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "009",
+      "idx": "016",
       "expected": "总书记",
       "pinyin": "zongshuji",
-      "reason": "auto-jieba",
+      "reason": "title",
       "top10": [
         "总书记"
       ],
@@ -126,10 +173,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "010",
+      "idx": "017",
       "expected": "考察",
       "pinyin": "kaocha",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "考察",
         "考查"
@@ -138,23 +185,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "011",
-      "expected": "足迹",
-      "pinyin": "zuji",
-      "reason": "auto-jieba",
-      "top10": [
-        "足迹",
-        "祖籍",
-        "阻击"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "012",
+      "idx": "018",
       "expected": "遍及",
       "pinyin": "bianji",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "遍及",
         "编辑",
@@ -165,10 +199,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "013",
+      "idx": "019",
       "expected": "神州大地",
       "pinyin": "shenzhoudadi",
-      "reason": "auto-jieba",
+      "reason": "literary",
       "top10": [
         "神州大地"
       ],
@@ -176,10 +210,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "014",
+      "idx": "020",
       "expected": "祁连山",
       "pinyin": "qilianshan",
-      "reason": "auto-jieba",
+      "reason": "mountain",
       "top10": [
         "祁连山"
       ],
@@ -187,30 +221,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "015",
-      "expected": "麓",
-      "pinyin": "lu",
-      "reason": "auto-jieba",
-      "top10": [
-        "麓",
-        "路",
-        "露",
-        "录",
-        "陆",
-        "鲁",
-        "炉",
-        "鹿",
-        "卢",
-        "虏"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "016",
+      "idx": "021",
       "expected": "坝上",
       "pinyin": "bashang",
-      "reason": "auto-jieba",
+      "reason": "place",
       "top10": [
         "坝上"
       ],
@@ -218,10 +232,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "017",
+      "idx": "022",
       "expected": "林海",
       "pinyin": "linhai",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "林海",
         "临海"
@@ -230,10 +244,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "018",
+      "idx": "023",
       "expected": "秦岭",
       "pinyin": "qinling",
-      "reason": "auto-jieba",
+      "reason": "mountain",
       "top10": [
         "秦岭"
       ],
@@ -241,10 +255,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "019",
+      "idx": "024",
       "expected": "深处",
       "pinyin": "shenchu",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "深处",
         "伸出",
@@ -257,41 +271,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "020",
-      "expected": "黄",
-      "pinyin": "huang",
-      "reason": "auto-jieba",
+      "idx": "025",
+      "expected": "黄河",
+      "pinyin": "huanghe",
+      "reason": "river",
       "top10": [
-        "黄",
-        "皇",
-        "慌",
-        "荒",
-        "晃",
-        "煌",
-        "幌",
-        "谎",
-        "恍",
-        "惶"
+        "黄河"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "021",
-      "expected": "河之滨",
-      "pinyin": "hezhibin",
-      "reason": "auto-jieba",
-      "top10": [
-        "河之滨"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "022",
+      "idx": "027",
       "expected": "大江",
       "pinyin": "dajiang",
-      "reason": "auto-jieba",
+      "reason": "literary",
       "top10": [
         "大江",
         "大将",
@@ -302,10 +296,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "023",
+      "idx": "028",
       "expected": "奔涌",
       "pinyin": "benyong",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "奔涌"
       ],
@@ -313,30 +307,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "024",
-      "expected": "处",
-      "pinyin": "chu",
-      "reason": "auto-jieba",
-      "top10": [
-        "出",
-        "除",
-        "处",
-        "初",
-        "楚",
-        "触",
-        "畜",
-        "储",
-        "厨",
-        "础"
-      ],
-      "rank": 2,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "025",
+      "idx": "029",
       "expected": "谋划",
       "pinyin": "mouhua",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "谋划"
       ],
@@ -344,35 +318,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "026",
-      "expected": "千秋",
-      "pinyin": "qianqiu",
-      "reason": "auto-jieba",
+      "idx": "030",
+      "expected": "千秋大计",
+      "pinyin": "qianqiudaji",
+      "reason": "idiom",
       "top10": [
-        "千秋",
-        "铅球"
+        "千秋大计"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "027",
-      "expected": "大计",
-      "pinyin": "daji",
-      "reason": "auto-jieba",
-      "top10": [
-        "大计",
-        "打击",
-        "大吉"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "028",
+      "idx": "031",
       "expected": "山川",
       "pinyin": "shanchuan",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "山川"
       ],
@@ -380,10 +340,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "029",
+      "idx": "032",
       "expected": "锦绣",
       "pinyin": "jinxiu",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "锦绣",
         "进修"
@@ -392,43 +352,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "030",
-      "expected": "间",
-      "pinyin": "jian",
-      "reason": "auto-jieba",
-      "top10": [
-        "建",
-        "间",
-        "件",
-        "煎",
-        "捡",
-        "拣",
-        "溅",
-        "见",
-        "坚",
-        "简"
-      ],
-      "rank": 1,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "031",
-      "expected": "擘画",
-      "pinyin": "bohua",
-      "reason": "auto-jieba",
-      "top10": [
-        "擘画",
-        "帛画",
-        "擘划"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "032",
+      "idx": "033",
       "expected": "生态",
       "pinyin": "shengtai",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "生态",
         "圣胎",
@@ -438,10 +365,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "033",
+      "idx": "034",
       "expected": "蓝图",
       "pinyin": "lantu",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "蓝图"
       ],
@@ -449,10 +376,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "034",
+      "idx": "035",
       "expected": "一系列",
       "pinyin": "yixilie",
-      "reason": "auto-jieba",
+      "reason": "phrase",
       "top10": [
         "一系列"
       ],
@@ -460,10 +387,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "035",
+      "idx": "036",
       "expected": "重要",
       "pinyin": "zhongyao",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "重要",
         "中药"
@@ -472,10 +399,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "036",
+      "idx": "037",
       "expected": "论述",
       "pinyin": "lunshu",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "论述"
       ],
@@ -483,76 +410,32 @@
       "verdict": "PASS"
     },
     {
-      "idx": "037",
-      "expected": "为",
-      "pinyin": "wei",
-      "reason": "auto-jieba",
+      "idx": "038",
+      "expected": "新时代",
+      "pinyin": "xinshidai",
+      "reason": "political",
       "top10": [
-        "为",
-        "未",
-        "喂",
-        "位",
-        "胃",
-        "微",
-        "味",
-        "围",
-        "威",
-        "维"
+        "新时代"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "038",
-      "expected": "新",
-      "pinyin": "xin",
-      "reason": "auto-jieba",
-      "top10": [
-        "心",
-        "新",
-        "信",
-        "辛",
-        "锌",
-        "薪",
-        "芯",
-        "欣",
-        "衅",
-        "馨"
-      ],
-      "rank": 1,
-      "verdict": "SOFT"
-    },
-    {
       "idx": "039",
-      "expected": "时代",
-      "pinyin": "shidai",
-      "reason": "auto-jieba",
+      "expected": "生态文明",
+      "pinyin": "shengtaiwenming",
+      "reason": "political",
       "top10": [
-        "时代",
-        "世代",
-        "饰带"
+        "生态文明"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "040",
-      "expected": "文明",
-      "pinyin": "wenming",
-      "reason": "auto-jieba",
-      "top10": [
-        "文明",
-        "闻名",
-        "问名"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "041",
       "expected": "建设",
       "pinyin": "jianshe",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "建设",
         "溅射"
@@ -561,10 +444,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "042",
+      "idx": "041",
       "expected": "提供",
       "pinyin": "tigong",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "提供",
         "替工"
@@ -573,10 +456,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "043",
+      "idx": "042",
       "expected": "根本",
       "pinyin": "genben",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "根本"
       ],
@@ -584,10 +467,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "044",
+      "idx": "043",
       "expected": "遵循",
       "pinyin": "zunxun",
-      "reason": "auto-jieba",
+      "reason": "political",
       "top10": [
         "遵循"
       ],
@@ -595,12 +478,25 @@
       "verdict": "PASS"
     },
     {
-      "idx": "045",
-      "expected": "行动指南",
-      "pinyin": "xingdongzhinan",
-      "reason": "auto-jieba",
+      "idx": "044",
+      "expected": "行动",
+      "pinyin": "xingdong",
+      "reason": "common",
       "top10": [
-        "行动指南"
+        "行动"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "045",
+      "expected": "指南",
+      "pinyin": "zhinan",
+      "reason": "common",
+      "top10": [
+        "指南",
+        "直男",
+        "质难"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -609,7 +505,7 @@
       "idx": "046",
       "expected": "世界",
       "pinyin": "shijie",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "世界",
         "使节",
@@ -629,7 +525,7 @@
       "idx": "047",
       "expected": "环境",
       "pinyin": "huanjing",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "环境",
         "幻境",
@@ -640,23 +536,31 @@
     },
     {
       "idx": "048",
-      "expected": "日",
-      "pinyin": "ri",
-      "reason": "auto-jieba",
+      "expected": "到来",
+      "pinyin": "daolai",
+      "reason": "verb",
       "top10": [
-        "日",
-        "驲"
+        "到来"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "049",
-      "expected": "到来之际",
-      "pinyin": "daolaizhiji",
-      "reason": "auto-jieba",
+      "expected": "之际",
+      "pinyin": "zhiji",
+      "reason": "literary",
       "top10": [
-        "到来之际"
+        "之际",
+        "制剂",
+        "知己",
+        "至极",
+        "织机",
+        "致畸",
+        "职级",
+        "雉鸡",
+        "值机",
+        "直积"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -665,7 +569,7 @@
       "idx": "050",
       "expected": "我们",
       "pinyin": "women",
-      "reason": "auto-jieba",
+      "reason": "pronoun",
       "top10": [
         "我们"
       ],
@@ -676,7 +580,7 @@
       "idx": "051",
       "expected": "跟随",
       "pinyin": "gensui",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "跟随"
       ],
@@ -687,7 +591,7 @@
       "idx": "052",
       "expected": "脚步",
       "pinyin": "jiaobu",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "脚步",
         "胶布"
@@ -699,7 +603,7 @@
       "idx": "053",
       "expected": "一起",
       "pinyin": "yiqi",
-      "reason": "auto-jieba",
+      "reason": "adv",
       "top10": [
         "一起",
         "仪器",
@@ -716,21 +620,9 @@
     },
     {
       "idx": "054",
-      "expected": "呵护",
-      "pinyin": "hehu",
-      "reason": "auto-jieba",
-      "top10": [
-        "呵护",
-        "合乎"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "055",
       "expected": "山水",
       "pinyin": "shanshui",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "山水"
       ],
@@ -738,10 +630,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "056",
+      "idx": "055",
       "expected": "寄情",
       "pinyin": "jiqing",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "寄情",
         "激情",
@@ -752,10 +644,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "057",
+      "idx": "056",
       "expected": "领悟",
       "pinyin": "lingwu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "领悟"
       ],
@@ -763,10 +655,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "058",
+      "idx": "057",
       "expected": "守护",
       "pinyin": "shouhu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "守护"
       ],
@@ -774,10 +666,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "059",
+      "idx": "058",
       "expected": "绿水青山",
       "pinyin": "lvshuiqingshan",
-      "reason": "auto-jieba",
+      "reason": "idiom",
       "top10": [
         "绿水青山"
       ],
@@ -785,10 +677,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "060",
+      "idx": "059",
       "expected": "之道",
       "pinyin": "zhidao",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "之道",
         "指导",
@@ -803,10 +695,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "061",
+      "idx": "060",
       "expected": "心系",
       "pinyin": "xinxi",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "心系",
         "信息",
@@ -818,10 +710,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "062",
+      "idx": "061",
       "expected": "长江",
       "pinyin": "changjiang",
-      "reason": "auto-jieba",
+      "reason": "river",
       "top10": [
         "长江"
       ],
@@ -829,24 +721,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "063",
-      "expected": "之变",
-      "pinyin": "zhibian",
-      "reason": "auto-jieba",
-      "top10": [
-        "之变",
-        "质变",
-        "支边",
-        "置辩"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "064",
+      "idx": "062",
       "expected": "前往",
       "pinyin": "qianwang",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "前往"
       ],
@@ -854,10 +732,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "065",
+      "idx": "063",
       "expected": "沿江",
       "pinyin": "yanjiang",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "沿江",
         "演讲",
@@ -868,10 +746,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "066",
+      "idx": "064",
       "expected": "重镇",
       "pinyin": "zhongzhen",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "重镇",
         "忠贞"
@@ -880,10 +758,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "067",
+      "idx": "065",
       "expected": "经济带",
       "pinyin": "jingjidai",
-      "reason": "auto-jieba",
+      "reason": "political",
       "top10": [
         "经济带"
       ],
@@ -891,64 +769,45 @@
       "verdict": "PASS"
     },
     {
-      "idx": "068",
-      "expected": "发展",
-      "pinyin": "fazhan",
-      "reason": "auto-jieba",
+      "idx": "066",
+      "expected": "三峡",
+      "pinyin": "sanxia",
+      "reason": "place",
       "top10": [
-        "发展",
-        "罚站"
+        "三峡",
+        "伞下"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "067",
+      "expected": "库区",
+      "pinyin": "kuqu",
+      "reason": "noun",
+      "top10": [
+        "库区",
+        "苦趣"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "068",
+      "expected": "洞庭湖",
+      "pinyin": "dongtinghu",
+      "reason": "lake",
+      "top10": [
+        "洞庭湖"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "069",
-      "expected": "三峡库区",
-      "pinyin": "sanxiakuqu",
-      "reason": "auto-jieba",
-      "top10": [
-        "三峡库区"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "070",
-      "expected": "到",
-      "pinyin": "dao",
-      "reason": "auto-jieba",
-      "top10": [
-        "到",
-        "刀",
-        "倒",
-        "岛",
-        "道",
-        "导",
-        "盗",
-        "捣",
-        "稻",
-        "叨"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "071",
-      "expected": "洞庭湖畔",
-      "pinyin": "dongtinghupan",
-      "reason": "auto-jieba",
-      "top10": [
-        "洞庭湖畔"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "072",
       "expected": "港口",
       "pinyin": "gangkou",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "港口"
       ],
@@ -956,10 +815,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "073",
+      "idx": "070",
       "expected": "码头",
       "pinyin": "matou",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "码头"
       ],
@@ -967,10 +826,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "074",
+      "idx": "071",
       "expected": "企业",
       "pinyin": "qiye",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "企业",
         "起夜"
@@ -979,10 +838,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "075",
+      "idx": "072",
       "expected": "车间",
       "pinyin": "chejian",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "车间",
         "车检"
@@ -991,10 +850,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "076",
+      "idx": "073",
       "expected": "深入",
       "pinyin": "shenru",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "深入",
         "渗入",
@@ -1004,10 +863,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "077",
+      "idx": "074",
       "expected": "调研",
       "pinyin": "diaoyan",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "调研",
         "吊唁"
@@ -1016,10 +875,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "078",
+      "idx": "075",
       "expected": "作出",
       "pinyin": "zuochu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "作出",
         "做出"
@@ -1028,10 +887,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "079",
+      "idx": "076",
       "expected": "指示",
       "pinyin": "zhishi",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "知识",
         "指示",
@@ -1048,10 +907,10 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "080",
+      "idx": "077",
       "expected": "江河",
       "pinyin": "jianghe",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "江河",
         "讲和"
@@ -1060,10 +919,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "081",
+      "idx": "078",
       "expected": "保护",
       "pinyin": "baohu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "保护",
         "保户"
@@ -1072,10 +931,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "082",
+      "idx": "079",
       "expected": "治理",
       "pinyin": "zhili",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "治理",
         "智力",
@@ -1091,112 +950,33 @@
       "verdict": "PASS"
     },
     {
-      "idx": "083",
-      "expected": "年",
-      "pinyin": "nian",
-      "reason": "auto-jieba",
+      "idx": "080",
+      "expected": "湖南",
+      "pinyin": "hunan",
+      "reason": "province",
       "top10": [
-        "年",
-        "念",
-        "捻",
-        "碾",
-        "撵",
-        "辗",
-        "粘",
-        "趁",
-        "辇",
-        "拈"
+        "湖南",
+        "昏暗"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "084",
-      "expected": "月",
-      "pinyin": "yue",
-      "reason": "auto-jieba",
+      "idx": "081",
+      "expected": "岳阳",
+      "pinyin": "yueyang",
+      "reason": "city",
       "top10": [
-        "月",
-        "越",
-        "约",
-        "跃",
-        "曰",
-        "岳",
-        "阅",
-        "粤",
-        "悦",
-        "说"
+        "岳阳"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "085",
-      "expected": "来到",
-      "pinyin": "laidao",
-      "reason": "auto-jieba",
-      "top10": [
-        "来到"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "086",
-      "expected": "湖",
-      "pinyin": "hu",
-      "reason": "auto-jieba",
-      "top10": [
-        "护",
-        "湖",
-        "壶",
-        "户",
-        "虎",
-        "忽",
-        "呼",
-        "胡",
-        "乎",
-        "互"
-      ],
-      "rank": 1,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "087",
-      "expected": "南岳",
-      "pinyin": "nanyue",
-      "reason": "auto-jieba",
-      "top10": [
-        "南岳"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "088",
-      "expected": "阳",
-      "pinyin": "yang",
-      "reason": "auto-jieba",
-      "top10": [
-        "阳",
-        "痒",
-        "样",
-        "养",
-        "羊",
-        "洋",
-        "扬",
-        "杨",
-        "仰",
-        "氧"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "089",
+      "idx": "082",
       "expected": "城陵矶",
       "pinyin": "chenglingji",
-      "reason": "auto-jieba",
+      "reason": "place",
       "top10": [
         "城陵矶"
       ],
@@ -1204,10 +984,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "090",
+      "idx": "083",
       "expected": "水文站",
       "pinyin": "shuiwenzhan",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "水文站"
       ],
@@ -1215,10 +995,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "091",
+      "idx": "084",
       "expected": "狭窄",
       "pinyin": "xiazhai",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "狭窄"
       ],
@@ -1226,10 +1006,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "092",
+      "idx": "085",
       "expected": "站房",
       "pinyin": "zhanfang",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "站房",
         "绽放",
@@ -1240,24 +1020,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "093",
-      "expected": "外",
-      "pinyin": "wai",
-      "reason": "auto-jieba",
-      "top10": [
-        "外",
-        "歪",
-        "夭",
-        "崴"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "094",
+      "idx": "086",
       "expected": "长廊",
       "pinyin": "changlang",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "长廊"
       ],
@@ -1265,126 +1031,34 @@
       "verdict": "PASS"
     },
     {
-      "idx": "095",
-      "expected": "上",
-      "pinyin": "shang",
-      "reason": "auto-jieba",
+      "idx": "087",
+      "expected": "举目",
+      "pinyin": "jumu",
+      "reason": "verb",
       "top10": [
-        "上",
-        "商",
-        "伤",
-        "尚",
-        "赏",
-        "晌",
-        "裳",
-        "汤",
-        "绱",
-        "熵"
+        "举目",
+        "剧目",
+        "榉木"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "096",
-      "expected": "举目远眺",
-      "pinyin": "jumuyuantiao",
-      "reason": "auto-jieba",
+      "idx": "088",
+      "expected": "远眺",
+      "pinyin": "yuantiao",
+      "reason": "verb",
       "top10": [
-        "举目远眺"
+        "远眺"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "097",
-      "expected": "共",
-      "pinyin": "gong",
-      "reason": "auto-jieba",
-      "top10": [
-        "共",
-        "公",
-        "工",
-        "功",
-        "供",
-        "攻",
-        "宫",
-        "拱",
-        "恭",
-        "弓"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "098",
-      "expected": "抓",
-      "pinyin": "zhua",
-      "reason": "auto-jieba",
-      "top10": [
-        "抓",
-        "爪",
-        "挝",
-        "髽"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "099",
-      "expected": "不",
-      "pinyin": "bu",
-      "reason": "auto-jieba",
-      "top10": [
-        "不",
-        "布",
-        "步",
-        "部",
-        "补",
-        "捕",
-        "簿",
-        "哺",
-        "埠",
-        "怖"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "100",
-      "expected": "搞",
-      "pinyin": "gao",
-      "reason": "auto-jieba",
-      "top10": [
-        "搞",
-        "高",
-        "告",
-        "糕",
-        "稿",
-        "膏",
-        "镐",
-        "羔",
-        "诰",
-        "浩"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "101",
-      "expected": "开发",
-      "pinyin": "kaifa",
-      "reason": "auto-jieba",
-      "top10": [
-        "开发"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "102",
+      "idx": "092",
       "expected": "战略",
       "pinyin": "zhanlve",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "战略"
       ],
@@ -1392,10 +1066,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "103",
+      "idx": "093",
       "expected": "定力",
       "pinyin": "dingli",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "定力",
         "订立",
@@ -1409,23 +1083,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "104",
-      "expected": "这里",
-      "pinyin": "zheli",
-      "reason": "auto-jieba",
-      "top10": [
-        "这里",
-        "哲理",
-        "啫喱"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "105",
+      "idx": "094",
       "expected": "化作",
       "pinyin": "huazuo",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "化作",
         "画作"
@@ -1434,10 +1095,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "106",
+      "idx": "095",
       "expected": "一江",
       "pinyin": "yijiang",
-      "reason": "auto-jieba",
+      "reason": "literary",
       "top10": [
         "一江",
         "以降"
@@ -1446,10 +1107,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "107",
+      "idx": "096",
       "expected": "碧水",
       "pinyin": "bishui",
-      "reason": "auto-jieba",
+      "reason": "literary",
       "top10": [
         "碧水",
         "避税",
@@ -1459,10 +1120,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "108",
+      "idx": "097",
       "expected": "坚定",
       "pinyin": "jianding",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "坚定",
         "鉴定",
@@ -1473,32 +1134,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "109",
-      "expected": "行动",
-      "pinyin": "xingdong",
-      "reason": "auto-jieba",
-      "top10": [
-        "行动"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "110",
-      "expected": "下午",
-      "pinyin": "xiawu",
-      "reason": "auto-jieba",
-      "top10": [
-        "下午"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "111",
+      "idx": "098",
       "expected": "江西",
       "pinyin": "jiangxi",
-      "reason": "auto-jieba",
+      "reason": "province",
       "top10": [
         "江西",
         "讲习",
@@ -1510,21 +1149,22 @@
       "verdict": "PASS"
     },
     {
-      "idx": "112",
-      "expected": "九江市",
-      "pinyin": "jiujiangshi",
-      "reason": "auto-jieba",
+      "idx": "099",
+      "expected": "九江",
+      "pinyin": "jiujiang",
+      "reason": "city",
       "top10": [
-        "九江市"
+        "九江",
+        "酒浆"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "113",
+      "idx": "100",
       "expected": "冒雨",
       "pinyin": "maoyu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "冒雨"
       ],
@@ -1532,10 +1172,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "114",
+      "idx": "101",
       "expected": "江边",
       "pinyin": "jiangbian",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "江边"
       ],
@@ -1543,10 +1183,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "115",
+      "idx": "102",
       "expected": "察看",
       "pinyin": "chakan",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "察看",
         "查看",
@@ -1556,10 +1196,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "116",
+      "idx": "103",
       "expected": "了解",
       "pinyin": "liaojie",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "了解",
         "了结"
@@ -1568,10 +1208,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "117",
+      "idx": "104",
       "expected": "当地",
       "pinyin": "dangdi",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "当地",
         "荡涤"
@@ -1580,10 +1220,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "118",
+      "idx": "105",
       "expected": "国家",
       "pinyin": "guojia",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "国家"
       ],
@@ -1591,21 +1231,34 @@
       "verdict": "PASS"
     },
     {
-      "idx": "119",
-      "expected": "文化公园",
-      "pinyin": "wenhuagongyuan",
-      "reason": "auto-jieba",
+      "idx": "106",
+      "expected": "文化",
+      "pinyin": "wenhua",
+      "reason": "common",
       "top10": [
-        "文化公园"
+        "文化",
+        "问话"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "120",
+      "idx": "107",
+      "expected": "公园",
+      "pinyin": "gongyuan",
+      "reason": "noun",
+      "top10": [
+        "公园",
+        "公元"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "108",
       "expected": "岸线",
       "pinyin": "anxian",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "岸线",
         "安闲"
@@ -1614,10 +1267,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "121",
+      "idx": "109",
       "expected": "修复",
       "pinyin": "xiufu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "修复"
       ],
@@ -1625,30 +1278,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "122",
-      "expected": "等",
-      "pinyin": "deng",
-      "reason": "auto-jieba",
-      "top10": [
-        "等",
-        "灯",
-        "瞪",
-        "蹬",
-        "登",
-        "邓",
-        "凳",
-        "澄",
-        "橙",
-        "磴"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "123",
+      "idx": "110",
       "expected": "情况",
       "pinyin": "qingkuang",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "情况",
         "轻狂"
@@ -1657,10 +1290,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "124",
+      "idx": "111",
       "expected": "进一步",
       "pinyin": "jinyibu",
-      "reason": "auto-jieba",
+      "reason": "adv",
       "top10": [
         "进一步"
       ],
@@ -1668,10 +1301,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "125",
+      "idx": "112",
       "expected": "推动",
       "pinyin": "tuidong",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "推动"
       ],
@@ -1679,10 +1312,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "126",
+      "idx": "113",
       "expected": "高质量",
       "pinyin": "gaozhiliang",
-      "reason": "auto-jieba",
+      "reason": "political",
       "top10": [
         "高质量"
       ],
@@ -1690,10 +1323,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "127",
+      "idx": "114",
       "expected": "座谈会",
       "pinyin": "zuotanhui",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "座谈会"
       ],
@@ -1701,10 +1334,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "128",
+      "idx": "115",
       "expected": "回顾",
       "pinyin": "huigu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "回顾",
         "惠顾",
@@ -1714,10 +1347,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "129",
+      "idx": "116",
       "expected": "历程",
       "pinyin": "licheng",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "历程",
         "里程"
@@ -1726,10 +1359,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "130",
+      "idx": "117",
       "expected": "感慨",
       "pinyin": "gankai",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "感慨"
       ],
@@ -1737,43 +1370,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "131",
-      "expected": "做",
-      "pinyin": "zuo",
-      "reason": "auto-jieba",
-      "top10": [
-        "做",
-        "坐",
-        "座",
-        "作",
-        "左",
-        "佐",
-        "昨",
-        "琢",
-        "凿",
-        "撮"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "132",
-      "expected": "就要",
-      "pinyin": "jiuyao",
-      "reason": "auto-jieba",
-      "top10": [
-        "就要",
-        "酒肴",
-        "酒药"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "133",
+      "idx": "118",
       "expected": "做好",
       "pinyin": "zuohao",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "做好",
         "座号",
@@ -1783,10 +1383,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "134",
+      "idx": "119",
       "expected": "下去",
       "pinyin": "xiaqu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "下去",
         "辖区"
@@ -1795,37 +1395,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "135",
-      "expected": "笃行",
-      "pinyin": "duxing",
-      "reason": "auto-jieba",
+      "idx": "120",
+      "expected": "笃行不怠",
+      "pinyin": "duxingbudai",
+      "reason": "idiom",
       "top10": [
-        "笃行",
-        "毒性",
-        "独行",
-        "毒刑"
+        "笃行不怠"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "136",
-      "expected": "不怠",
-      "pinyin": "budai",
-      "reason": "auto-jieba",
-      "top10": [
-        "不怠",
-        "布袋",
-        "不带"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "137",
+      "idx": "121",
       "expected": "一以贯之",
       "pinyin": "yiyiguanzhi",
-      "reason": "auto-jieba",
+      "reason": "idiom",
       "top10": [
         "一以贯之"
       ],
@@ -1833,46 +1417,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "138",
-      "expected": "久久",
-      "pinyin": "jiujiu",
-      "reason": "auto-jieba",
+      "idx": "122",
+      "expected": "久久为功",
+      "pinyin": "jiujiuweigong",
+      "reason": "idiom",
       "top10": [
-        "久久",
-        "舅舅",
-        "赳赳"
+        "久久为功"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "139",
-      "expected": "为功",
-      "pinyin": "weigong",
-      "reason": "auto-jieba",
-      "top10": [
-        "为功",
-        "围攻"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "140",
-      "expected": "黄河",
-      "pinyin": "huanghe",
-      "reason": "auto-jieba",
-      "top10": [
-        "黄河"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "141",
+      "idx": "123",
       "expected": "安澜",
       "pinyin": "anlan",
-      "reason": "auto-jieba",
+      "reason": "literary",
       "top10": [
         "安澜"
       ],
@@ -1880,21 +1439,34 @@
       "verdict": "PASS"
     },
     {
-      "idx": "142",
-      "expected": "中华儿女",
-      "pinyin": "zhonghuaernv",
-      "reason": "auto-jieba",
+      "idx": "124",
+      "expected": "中华",
+      "pinyin": "zhonghua",
+      "reason": "political",
       "top10": [
-        "中华儿女"
+        "中华",
+        "种花",
+        "重话"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "143",
+      "idx": "125",
+      "expected": "儿女",
+      "pinyin": "ernv",
+      "reason": "noun",
+      "top10": [
+        "儿女"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "126",
       "expected": "千年",
       "pinyin": "qiannian",
-      "reason": "auto-jieba",
+      "reason": "temporal",
       "top10": [
         "千年",
         "前年"
@@ -1903,10 +1475,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "144",
+      "idx": "127",
       "expected": "期盼",
       "pinyin": "qipan",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "期盼",
         "棋盘",
@@ -1917,10 +1489,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "145",
+      "idx": "128",
       "expected": "走遍",
       "pinyin": "zoubian",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "走遍",
         "揍扁"
@@ -1929,10 +1501,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "146",
+      "idx": "129",
       "expected": "上中下游",
       "pinyin": "shangzhongxiayou",
-      "reason": "auto-jieba",
+      "reason": "geographic",
       "top10": [
         "上中下游"
       ],
@@ -1940,30 +1512,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "147",
-      "expected": "望",
-      "pinyin": "wang",
-      "reason": "auto-jieba",
-      "top10": [
-        "望",
-        "王",
-        "往",
-        "网",
-        "忘",
-        "亡",
-        "旺",
-        "汪",
-        "枉",
-        "妄"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "148",
+      "idx": "130",
       "expected": "奔流",
       "pinyin": "benliu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "奔流"
       ],
@@ -1971,10 +1523,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "149",
+      "idx": "131",
       "expected": "激荡",
       "pinyin": "jidang",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "激荡"
       ],
@@ -1982,30 +1534,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "150",
-      "expected": "思",
-      "pinyin": "si",
-      "reason": "auto-jieba",
-      "top10": [
-        "思",
-        "四",
-        "死",
-        "撕",
-        "斯",
-        "司",
-        "丝",
-        "私",
-        "寺",
-        "祀"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "151",
+      "idx": "132",
       "expected": "指挥",
       "pinyin": "zhihui",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "指挥",
         "智慧",
@@ -2017,30 +1549,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "152",
-      "expected": "下",
-      "pinyin": "xia",
-      "reason": "auto-jieba",
-      "top10": [
-        "下",
-        "夏",
-        "吓",
-        "瞎",
-        "霞",
-        "峡",
-        "辖",
-        "虾",
-        "侠",
-        "狭"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "153",
+      "idx": "133",
       "expected": "一曲",
       "pinyin": "yiqu",
-      "reason": "auto-jieba",
+      "reason": "literary",
       "top10": [
         "一曲",
         "意趣",
@@ -2053,10 +1565,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "154",
+      "idx": "134",
       "expected": "优先",
       "pinyin": "youxian",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "优先",
         "有限",
@@ -2068,10 +1580,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "155",
+      "idx": "135",
       "expected": "绿色",
       "pinyin": "lvse",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "绿色"
       ],
@@ -2079,10 +1591,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "156",
+      "idx": "136",
       "expected": "大合唱",
       "pinyin": "dahechang",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "大合唱"
       ],
@@ -2090,10 +1602,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "157",
+      "idx": "137",
       "expected": "正在",
       "pinyin": "zhengzai",
-      "reason": "auto-jieba",
+      "reason": "adv",
       "top10": [
         "正在"
       ],
@@ -2101,10 +1613,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "158",
+      "idx": "138",
       "expected": "奏响",
       "pinyin": "zouxiang",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "奏响",
         "走向",
@@ -2114,10 +1626,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "159",
+      "idx": "139",
       "expected": "甘肃",
       "pinyin": "gansu",
-      "reason": "auto-jieba",
+      "reason": "province",
       "top10": [
         "甘肃"
       ],
@@ -2125,30 +1637,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "160",
-      "expected": "时",
-      "pinyin": "shi",
-      "reason": "auto-jieba",
-      "top10": [
-        "是",
-        "十",
-        "使",
-        "试",
-        "诗",
-        "时",
-        "拾",
-        "实",
-        "事",
-        "师"
-      ],
-      "rank": 5,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "161",
+      "idx": "140",
       "expected": "亲临",
       "pinyin": "qinlin",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "亲临"
       ],
@@ -2156,10 +1648,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "162",
+      "idx": "141",
       "expected": "兰州",
       "pinyin": "lanzhou",
-      "reason": "auto-jieba",
+      "reason": "city",
       "top10": [
         "兰州",
         "兰舟"
@@ -2168,41 +1660,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "163",
-      "expected": "段",
-      "pinyin": "duan",
-      "reason": "auto-jieba",
-      "top10": [
-        "短",
-        "段",
-        "断",
-        "端",
-        "缎",
-        "锻",
-        "椴",
-        "煅",
-        "踹",
-        "耑"
-      ],
-      "rank": 1,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "164",
-      "expected": "工作",
-      "pinyin": "gongzuo",
-      "reason": "auto-jieba",
-      "top10": [
-        "工作"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "165",
+      "idx": "142",
       "expected": "强调",
       "pinyin": "qiangdiao",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "强调",
         "腔调"
@@ -2211,10 +1672,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "166",
+      "idx": "143",
       "expected": "母亲河",
       "pinyin": "muqinhe",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "母亲河"
       ],
@@ -2222,10 +1683,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "167",
+      "idx": "144",
       "expected": "事关",
       "pinyin": "shiguan",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "事关",
         "使馆",
@@ -2240,10 +1701,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "168",
+      "idx": "145",
       "expected": "中华民族",
       "pinyin": "zhonghuaminzu",
-      "reason": "auto-jieba",
+      "reason": "political",
       "top10": [
         "中华民族"
       ],
@@ -2251,21 +1712,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "169",
-      "expected": "伟大",
-      "pinyin": "weida",
-      "reason": "auto-jieba",
+      "idx": "146",
+      "expected": "伟大复兴",
+      "pinyin": "weidafuxing",
+      "reason": "political",
       "top10": [
-        "伟大"
+        "伟大复兴"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "170",
+      "idx": "147",
       "expected": "复兴",
       "pinyin": "fuxing",
-      "reason": "auto-jieba",
+      "reason": "political",
       "top10": [
         "复兴",
         "福星",
@@ -2278,21 +1739,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "171",
-      "expected": "永续",
-      "pinyin": "yongxu",
-      "reason": "auto-jieba",
-      "top10": [
-        "永续"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "172",
+      "idx": "148",
       "expected": "河南",
       "pinyin": "henan",
-      "reason": "auto-jieba",
+      "reason": "province",
       "top10": [
         "河南"
       ],
@@ -2300,10 +1750,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "173",
+      "idx": "149",
       "expected": "郑州",
       "pinyin": "zhengzhou",
-      "reason": "auto-jieba",
+      "reason": "city",
       "top10": [
         "郑州"
       ],
@@ -2311,21 +1761,30 @@
       "verdict": "PASS"
     },
     {
-      "idx": "174",
-      "expected": "地质公园",
-      "pinyin": "dizhigongyuan",
-      "reason": "auto-jieba",
+      "idx": "150",
+      "expected": "地质",
+      "pinyin": "dizhi",
+      "reason": "common",
       "top10": [
-        "地质公园"
+        "地址",
+        "地质",
+        "抵制",
+        "帝制",
+        "地支",
+        "底止",
+        "递质",
+        "低脂",
+        "底汁",
+        "踶跂"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
-      "idx": "175",
+      "idx": "151",
       "expected": "岸边",
       "pinyin": "anbian",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "岸边"
       ],
@@ -2333,10 +1792,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "176",
+      "idx": "152",
       "expected": "驻足",
       "pinyin": "zhuzu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "驻足",
         "主族"
@@ -2345,10 +1804,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "177",
+      "idx": "153",
       "expected": "凝望",
       "pinyin": "ningwang",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "凝望"
       ],
@@ -2356,10 +1815,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "178",
+      "idx": "154",
       "expected": "随后",
       "pinyin": "suihou",
-      "reason": "auto-jieba",
+      "reason": "adv",
       "top10": [
         "随后"
       ],
@@ -2367,10 +1826,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "179",
+      "idx": "155",
       "expected": "举行",
       "pinyin": "juxing",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "举行",
         "巨型",
@@ -2382,21 +1841,22 @@
       "verdict": "PASS"
     },
     {
-      "idx": "180",
-      "expected": "黄河流域",
-      "pinyin": "huangheliuyu",
-      "reason": "auto-jieba",
+      "idx": "156",
+      "expected": "流域",
+      "pinyin": "liuyu",
+      "reason": "noun",
       "top10": [
-        "黄河流域"
+        "流域",
+        "流于"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "181",
+      "idx": "157",
       "expected": "再次",
       "pinyin": "zaici",
-      "reason": "auto-jieba",
+      "reason": "adv",
       "top10": [
         "再次",
         "在此"
@@ -2405,23 +1865,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "182",
-      "expected": "成为",
-      "pinyin": "chengwei",
-      "reason": "auto-jieba",
-      "top10": [
-        "成为",
-        "称为",
-        "称谓"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "183",
+      "idx": "158",
       "expected": "造福",
       "pinyin": "zaofu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "造福"
       ],
@@ -2429,10 +1876,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "184",
+      "idx": "159",
       "expected": "人民",
       "pinyin": "renmin",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "人民"
       ],
@@ -2440,43 +1887,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "185",
-      "expected": "幸福",
-      "pinyin": "xingfu",
-      "reason": "auto-jieba",
-      "top10": [
-        "幸福",
-        "性福",
-        "形符"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "186",
-      "expected": "河",
-      "pinyin": "he",
-      "reason": "auto-jieba",
-      "top10": [
-        "和",
-        "喝",
-        "河",
-        "呵",
-        "合",
-        "何",
-        "核",
-        "盒",
-        "荷",
-        "贺"
-      ],
-      "rank": 2,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "187",
+      "idx": "161",
       "expected": "时隔",
       "pinyin": "shige",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "时隔",
         "诗歌",
@@ -2487,10 +1901,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "188",
+      "idx": "162",
       "expected": "五年",
       "pinyin": "wunian",
-      "reason": "auto-jieba",
+      "reason": "temporal",
       "top10": [
         "五年"
       ],
@@ -2498,74 +1912,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "189",
-      "expected": "后",
-      "pinyin": "hou",
-      "reason": "auto-jieba",
+      "idx": "163",
+      "expected": "中山桥",
+      "pinyin": "zhongshanqiao",
+      "reason": "place",
       "top10": [
-        "后",
-        "厚",
-        "吼",
-        "候",
-        "猴",
-        "侯",
-        "喉",
-        "鲎",
-        "骺",
-        "逅"
+        "中山桥"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "190",
-      "expected": "甘肃兰州",
-      "pinyin": "gansulanzhou",
-      "reason": "auto-jieba",
-      "top10": [
-        "甘肃兰州"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "191",
-      "expected": "中山",
-      "pinyin": "zhongshan",
-      "reason": "auto-jieba",
-      "top10": [
-        "中山"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "192",
-      "expected": "桥段",
-      "pinyin": "qiaoduan",
-      "reason": "auto-jieba",
-      "top10": [
-        "桥段"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "193",
-      "expected": "眺望",
-      "pinyin": "tiaowang",
-      "reason": "auto-jieba",
-      "top10": [
-        "眺望"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "194",
+      "idx": "164",
       "expected": "由衷",
       "pinyin": "youzhong",
-      "reason": "auto-jieba",
+      "reason": "adv",
       "top10": [
         "由衷",
         "有种"
@@ -2574,30 +1935,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "195",
-      "expected": "美",
-      "pinyin": "mei",
-      "reason": "auto-jieba",
-      "top10": [
-        "没",
-        "每",
-        "枚",
-        "美",
-        "妹",
-        "煤",
-        "眉",
-        "梅",
-        "媒",
-        "昧"
-      ],
-      "rank": 3,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "196",
+      "idx": "166",
       "expected": "将来",
       "pinyin": "jianglai",
-      "reason": "auto-jieba",
+      "reason": "temporal",
       "top10": [
         "将来"
       ],
@@ -2605,10 +1946,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "197",
+      "idx": "167",
       "expected": "四次",
       "pinyin": "sici",
-      "reason": "auto-jieba",
+      "reason": "count",
       "top10": [
         "四次"
       ],
@@ -2616,30 +1957,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "198",
-      "expected": "以",
-      "pinyin": "yi",
-      "reason": "auto-jieba",
-      "top10": [
-        "一",
-        "以",
-        "亿",
-        "乙",
-        "意",
-        "亦",
-        "翼",
-        "宜",
-        "医",
-        "衣"
-      ],
-      "rank": 1,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "199",
+      "idx": "168",
       "expected": "主题",
       "pinyin": "zhuti",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "主题",
         "主体",
@@ -2650,10 +1971,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "200",
+      "idx": "169",
       "expected": "三次",
       "pinyin": "sanci",
-      "reason": "auto-jieba",
+      "reason": "count",
       "top10": [
         "三次"
       ],
@@ -2661,10 +1982,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "201",
+      "idx": "170",
       "expected": "围绕",
       "pinyin": "weirao",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "围绕",
         "微扰"
@@ -2673,10 +1994,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "202",
+      "idx": "171",
       "expected": "海晏河清",
       "pinyin": "haiyanheqing",
-      "reason": "auto-jieba",
+      "reason": "idiom",
       "top10": [
         "海晏河清"
       ],
@@ -2684,10 +2005,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "203",
+      "idx": "172",
       "expected": "期许",
       "pinyin": "qixu",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "期许",
         "气虚"
@@ -2696,10 +2017,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "204",
+      "idx": "173",
       "expected": "始终",
       "pinyin": "shizhong",
-      "reason": "auto-jieba",
+      "reason": "adv",
       "top10": [
         "始终",
         "适中",
@@ -2712,50 +2033,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "205",
-      "expected": "未",
-      "pinyin": "wei",
-      "reason": "auto-jieba",
-      "top10": [
-        "为",
-        "未",
-        "喂",
-        "位",
-        "胃",
-        "微",
-        "味",
-        "围",
-        "威",
-        "维"
-      ],
-      "rank": 1,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "206",
-      "expected": "变",
-      "pinyin": "bian",
-      "reason": "auto-jieba",
-      "top10": [
-        "变",
-        "遍",
-        "便",
-        "扁",
-        "边",
-        "编",
-        "辩",
-        "鞭",
-        "辨",
-        "匾"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "207",
+      "idx": "174",
       "expected": "山丹",
       "pinyin": "shandan",
-      "reason": "auto-jieba",
+      "reason": "place",
       "top10": [
         "山丹"
       ],
@@ -2763,10 +2044,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "208",
+      "idx": "175",
       "expected": "马场",
       "pinyin": "machang",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "马场"
       ],
@@ -2774,10 +2055,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "209",
+      "idx": "176",
       "expected": "步入",
       "pinyin": "buru",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "步入",
         "不如",
@@ -2787,10 +2068,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "210",
+      "idx": "177",
       "expected": "草场",
       "pinyin": "caochang",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "草场",
         "操场"
@@ -2799,41 +2080,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "211",
-      "expected": "好",
-      "pinyin": "hao",
-      "reason": "auto-jieba",
-      "top10": [
-        "好",
-        "号",
-        "豪",
-        "浩",
-        "耗",
-        "毫",
-        "皓",
-        "嚎",
-        "灏",
-        "唬"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "212",
-      "expected": "生态环境",
-      "pinyin": "shengtaihuanjing",
-      "reason": "auto-jieba",
-      "top10": [
-        "生态环境"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "213",
+      "idx": "178",
       "expected": "安全",
       "pinyin": "anquan",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "安全"
       ],
@@ -2841,10 +2091,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "214",
+      "idx": "179",
       "expected": "河西走廊",
       "pinyin": "hexizoulang",
-      "reason": "auto-jieba",
+      "reason": "region",
       "top10": [
         "河西走廊"
       ],
@@ -2852,34 +2102,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "215",
-      "expected": "持续",
-      "pinyin": "chixu",
-      "reason": "auto-jieba",
+      "idx": "180",
+      "expected": "可持续",
+      "pinyin": "kechixu",
+      "reason": "political",
       "top10": [
-        "持续"
+        "可持续"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "216",
-      "expected": "具有",
-      "pinyin": "juyou",
-      "reason": "auto-jieba",
-      "top10": [
-        "具有",
-        "焗油",
-        "据有"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "217",
+      "idx": "181",
       "expected": "十分",
       "pinyin": "shifen",
-      "reason": "auto-jieba",
+      "reason": "adv",
       "top10": [
         "十分",
         "时分",
@@ -2890,36 +2127,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "218",
-      "expected": "战略意义",
-      "pinyin": "zhanlveyiyi",
-      "reason": "auto-jieba",
-      "top10": [
-        "战略意义"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "219",
-      "expected": "位于",
-      "pinyin": "weiyu",
-      "reason": "auto-jieba",
-      "top10": [
-        "位于",
-        "尾羽",
-        "谓语",
-        "卫浴",
-        "鲔鱼"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "220",
+      "idx": "182",
       "expected": "商洛市",
       "pinyin": "shangluoshi",
-      "reason": "auto-jieba",
+      "reason": "city",
       "top10": [
         "商洛市"
       ],
@@ -2927,10 +2138,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "221",
+      "idx": "183",
       "expected": "柞水县",
       "pinyin": "zhashuixian",
-      "reason": "auto-jieba",
+      "reason": "county",
       "top10": [
         "柞水县"
       ],
@@ -2938,10 +2149,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "222",
+      "idx": "184",
       "expected": "牛背梁",
       "pinyin": "niubeiliang",
-      "reason": "auto-jieba",
+      "reason": "mountain",
       "top10": [
         "牛背梁"
       ],
@@ -2949,10 +2160,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "223",
+      "idx": "185",
       "expected": "国家级",
       "pinyin": "guojiaji",
-      "reason": "auto-jieba",
+      "reason": "political",
       "top10": [
         "国家级"
       ],
@@ -2960,10 +2171,34 @@
       "verdict": "PASS"
     },
     {
-      "idx": "224",
+      "idx": "186",
+      "expected": "自然",
+      "pinyin": "ziran",
+      "reason": "common",
+      "top10": [
+        "自然",
+        "自燃",
+        "孜然"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "187",
+      "expected": "保护区",
+      "pinyin": "baohuqu",
+      "reason": "noun",
+      "top10": [
+        "保护区"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "188",
       "expected": "语重心长",
       "pinyin": "yuzhongxinchang",
-      "reason": "auto-jieba",
+      "reason": "idiom",
       "top10": [
         "语重心长"
       ],
@@ -2971,32 +2206,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "225",
-      "expected": "地说",
-      "pinyin": "dishuo",
-      "reason": "auto-jieba",
-      "top10": [
-        "地说"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "226",
-      "expected": "确保",
-      "pinyin": "quebao",
-      "reason": "auto-jieba",
-      "top10": [
-        "确保"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "227",
+      "idx": "189",
       "expected": "长盛不衰",
       "pinyin": "zhangshengbushuai",
-      "reason": "auto-jieba",
+      "reason": "idiom",
       "top10": [
         "长盛不衰"
       ],
@@ -3004,10 +2217,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "228",
+      "idx": "190",
       "expected": "实现",
       "pinyin": "shixian",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "实现",
         "事先",
@@ -3023,43 +2236,32 @@
       "verdict": "PASS"
     },
     {
-      "idx": "229",
-      "expected": "两个",
-      "pinyin": "liangge",
-      "reason": "auto-jieba",
+      "idx": "192",
+      "expected": "奋斗",
+      "pinyin": "fendou",
+      "reason": "verb",
       "top10": [
-        "两个"
+        "奋斗"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "230",
-      "expected": "一百年",
-      "pinyin": "yibainian",
-      "reason": "auto-jieba",
+      "idx": "193",
+      "expected": "目标",
+      "pinyin": "mubiao",
+      "reason": "common",
       "top10": [
-        "一百年"
+        "目标"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "231",
-      "expected": "奋斗目标",
-      "pinyin": "fendoumubiao",
-      "reason": "auto-jieba",
-      "top10": [
-        "奋斗目标"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "232",
+      "idx": "194",
       "expected": "重大",
       "pinyin": "zhongda",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "重大",
         "肿大"
@@ -3068,10 +2270,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "233",
+      "idx": "195",
       "expected": "深远",
       "pinyin": "shenyuan",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "深远",
         "深渊",
@@ -3082,10 +2284,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "234",
+      "idx": "196",
       "expected": "意义",
       "pinyin": "yiyi",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "意义",
         "一一",
@@ -3102,10 +2304,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "235",
+      "idx": "197",
       "expected": "福建",
       "pinyin": "fujian",
-      "reason": "auto-jieba",
+      "reason": "province",
       "top10": [
         "福建",
         "附件",
@@ -3116,10 +2318,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "236",
+      "idx": "198",
       "expected": "武夷山",
       "pinyin": "wuyishan",
-      "reason": "auto-jieba",
+      "reason": "mountain",
       "top10": [
         "武夷山"
       ],
@@ -3127,35 +2329,37 @@
       "verdict": "PASS"
     },
     {
-      "idx": "237",
-      "expected": "谆谆告诫",
-      "pinyin": "zhunzhungaojie",
-      "reason": "auto-jieba",
+      "idx": "199",
+      "expected": "谆谆",
+      "pinyin": "zhunzhun",
+      "reason": "adj",
       "top10": [
-        "谆谆告诫"
+        "谆谆"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "238",
-      "expected": "有着",
-      "pinyin": "youzhe",
-      "reason": "auto-jieba",
+      "idx": "200",
+      "expected": "告诫",
+      "pinyin": "gaojie",
+      "reason": "verb",
       "top10": [
-        "有着",
-        "悠着",
-        "由着",
-        "邮折"
+        "告诫",
+        "告捷",
+        "高阶",
+        "高洁",
+        "告解",
+        "高街"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "239",
+      "idx": "201",
       "expected": "无与伦比",
       "pinyin": "wuyulunbi",
-      "reason": "auto-jieba",
+      "reason": "idiom",
       "top10": [
         "无与伦比"
       ],
@@ -3163,10 +2367,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "240",
+      "idx": "202",
       "expected": "人文",
       "pinyin": "renwen",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "人文"
       ],
@@ -3174,10 +2378,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "241",
+      "idx": "203",
       "expected": "资源",
       "pinyin": "ziyuan",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "资源",
         "自愿",
@@ -3188,10 +2392,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "242",
+      "idx": "204",
+      "expected": "民族",
+      "pinyin": "minzu",
+      "reason": "political",
+      "top10": [
+        "民族"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "205",
       "expected": "骄傲",
       "pinyin": "jiaoao",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "骄傲"
       ],
@@ -3199,46 +2414,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "243",
-      "expected": "最",
-      "pinyin": "zui",
-      "reason": "auto-jieba",
-      "top10": [
-        "最",
-        "嘴",
-        "醉",
-        "罪",
-        "堆",
-        "撮",
-        "摧",
-        "蕞",
-        "咀",
-        "羧"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "244",
-      "expected": "还是",
-      "pinyin": "haishi",
-      "reason": "auto-jieba",
-      "top10": [
-        "还是",
-        "海事",
-        "海蚀",
-        "海狮",
-        "海市",
-        "亥时"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "245",
+      "idx": "206",
       "expected": "塞罕坝",
       "pinyin": "saihanba",
-      "reason": "auto-jieba",
+      "reason": "place",
       "top10": [
         "塞罕坝"
       ],
@@ -3246,10 +2425,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "246",
+      "idx": "207",
       "expected": "林场",
       "pinyin": "linchang",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "林场",
         "临场"
@@ -3258,10 +2437,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "247",
+      "idx": "208",
       "expected": "登上",
       "pinyin": "dengshang",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "登上"
       ],
@@ -3269,10 +2448,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "248",
+      "idx": "209",
       "expected": "月亮山",
       "pinyin": "yueliangshan",
-      "reason": "auto-jieba",
+      "reason": "mountain",
       "top10": [
         "月亮山"
       ],
@@ -3280,10 +2459,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "249",
+      "idx": "210",
       "expected": "俯瞰",
       "pinyin": "fukan",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "俯瞰",
         "副刊",
@@ -3293,10 +2472,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "250",
+      "idx": "211",
       "expected": "荒原",
       "pinyin": "huangyuan",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "荒原"
       ],
@@ -3304,10 +2483,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "251",
+      "idx": "212",
       "expected": "人间",
       "pinyin": "renjian",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "人间"
       ],
@@ -3315,10 +2494,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "252",
+      "idx": "213",
       "expected": "奇迹",
       "pinyin": "qiji",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "奇迹",
         "契机",
@@ -3332,10 +2511,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "253",
+      "idx": "214",
       "expected": "指出",
       "pinyin": "zhichu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "指出",
         "支出"
@@ -3344,30 +2523,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "254",
-      "expected": "建",
-      "pinyin": "jian",
-      "reason": "auto-jieba",
-      "top10": [
-        "建",
-        "间",
-        "件",
-        "煎",
-        "捡",
-        "拣",
-        "溅",
-        "见",
-        "坚",
-        "简"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "255",
+      "idx": "215",
       "expected": "这片",
       "pinyin": "zhepian",
-      "reason": "auto-jieba",
+      "reason": "pronoun",
       "top10": [
         "这片"
       ],
@@ -3375,50 +2534,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "256",
-      "expected": "林",
-      "pinyin": "lin",
-      "reason": "auto-jieba",
-      "top10": [
-        "林",
-        "淋",
-        "临",
-        "邻",
-        "鳞",
-        "磷",
-        "琳",
-        "拎",
-        "凛",
-        "赁"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "257",
-      "expected": "它",
-      "pinyin": "ta",
-      "reason": "auto-jieba",
-      "top10": [
-        "他",
-        "她",
-        "它",
-        "塔",
-        "塌",
-        "踏",
-        "蹋",
-        "达",
-        "太",
-        "哈"
-      ],
-      "rank": 2,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "258",
+      "idx": "216",
       "expected": "屏障",
       "pinyin": "pingzhang",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "屏障",
         "凭仗",
@@ -3429,10 +2548,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "259",
+      "idx": "217",
       "expected": "作用",
       "pinyin": "zuoyong",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "作用"
       ],
@@ -3440,10 +2559,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "260",
+      "idx": "218",
       "expected": "永远",
       "pinyin": "yongyuan",
-      "reason": "auto-jieba",
+      "reason": "adv",
       "top10": [
         "永远",
         "墉垣"
@@ -3452,10 +2571,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "261",
+      "idx": "219",
       "expected": "发挥",
       "pinyin": "fahui",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "发挥",
         "发回",
@@ -3465,74 +2584,32 @@
       "verdict": "PASS"
     },
     {
-      "idx": "262",
-      "expected": "就是",
-      "pinyin": "jiushi",
-      "reason": "auto-jieba",
+      "idx": "220",
+      "expected": "金山银山",
+      "pinyin": "jinshanyinshan",
+      "reason": "idiom",
       "top10": [
-        "就是",
-        "九十",
-        "酒食",
-        "旧时",
-        "旧事",
-        "旧式",
-        "救世",
-        "旧诗",
-        "旧识",
-        "救市"
+        "金山银山"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "263",
-      "expected": "金山",
-      "pinyin": "jinshan",
-      "reason": "auto-jieba",
+      "idx": "221",
+      "expected": "山水林田湖草沙",
+      "pinyin": "shanshuilintianhucaosha",
+      "reason": "political",
       "top10": [
-        "金山"
+        "山水林田湖草沙"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "264",
-      "expected": "银山",
-      "pinyin": "yinshan",
-      "reason": "auto-jieba",
-      "top10": [
-        "银山"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "265",
-      "expected": "林田湖",
-      "pinyin": "lintianhu",
-      "reason": "auto-jieba",
-      "top10": [
-        "林田湖"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "266",
-      "expected": "草沙",
-      "pinyin": "caosha",
-      "reason": "auto-jieba",
-      "top10": [
-        "草沙"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "267",
+      "idx": "222",
       "expected": "一体化",
       "pinyin": "yitihua",
-      "reason": "auto-jieba",
+      "reason": "political",
       "top10": [
         "一体化"
       ],
@@ -3540,10 +2617,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "268",
+      "idx": "223",
       "expected": "系统",
       "pinyin": "xitong",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "系统"
       ],
@@ -3551,10 +2628,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "269",
+      "idx": "224",
       "expected": "思想",
       "pinyin": "sixiang",
-      "reason": "auto-jieba",
+      "reason": "political",
       "top10": [
         "思想",
         "思乡",
@@ -3566,10 +2643,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "270",
+      "idx": "225",
       "expected": "如同",
       "pinyin": "rutong",
-      "reason": "auto-jieba",
+      "reason": "conj",
       "top10": [
         "如同",
         "茹痛"
@@ -3578,10 +2655,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "271",
+      "idx": "226",
       "expected": "春风化雨",
       "pinyin": "chunfenghuayu",
-      "reason": "auto-jieba",
+      "reason": "idiom",
       "top10": [
         "春风化雨"
       ],
@@ -3589,30 +2666,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "272",
-      "expected": "着",
-      "pinyin": "zhe",
-      "reason": "auto-jieba",
-      "top10": [
-        "这",
-        "着",
-        "折",
-        "者",
-        "浙",
-        "遮",
-        "哲",
-        "蔗",
-        "辙",
-        "著"
-      ],
-      "rank": 1,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "273",
+      "idx": "227",
       "expected": "矿坑",
       "pinyin": "kuangkeng",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "矿坑"
       ],
@@ -3620,10 +2677,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "274",
+      "idx": "228",
       "expected": "蝶变",
       "pinyin": "diebian",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "蝶变"
       ],
@@ -3631,10 +2688,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "275",
+      "idx": "229",
       "expected": "沙地",
       "pinyin": "shadi",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "沙地",
         "杀敌"
@@ -3643,10 +2700,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "276",
+      "idx": "230",
       "expected": "披绿",
       "pinyin": "pilv",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "披绿"
       ],
@@ -3654,10 +2711,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "277",
+      "idx": "231",
       "expected": "放眼",
       "pinyin": "fangyan",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "放眼",
         "方言",
@@ -3667,38 +2724,32 @@
       "verdict": "PASS"
     },
     {
-      "idx": "278",
-      "expected": "中华",
-      "pinyin": "zhonghua",
-      "reason": "auto-jieba",
+      "idx": "232",
+      "expected": "中华大地",
+      "pinyin": "zhonghuadadi",
+      "reason": "political",
       "top10": [
-        "中华",
-        "种花",
-        "重话"
+        "中华大地"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "279",
-      "expected": "大地",
-      "pinyin": "dadi",
-      "reason": "auto-jieba",
+      "idx": "233",
+      "expected": "持续",
+      "pinyin": "chixu",
+      "reason": "adv",
       "top10": [
-        "大地",
-        "大帝",
-        "大抵",
-        "打底",
-        "打的"
+        "持续"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "280",
+      "idx": "234",
       "expected": "筑牢",
       "pinyin": "zhulao",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "筑牢"
       ],
@@ -3706,10 +2757,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "281",
+      "idx": "235",
       "expected": "人与自然",
       "pinyin": "renyuziran",
-      "reason": "auto-jieba",
+      "reason": "political",
       "top10": [
         "人与自然"
       ],
@@ -3717,10 +2768,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "282",
+      "idx": "236",
       "expected": "和谐",
       "pinyin": "hexie",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "和谐",
         "河蟹"
@@ -3729,10 +2780,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "283",
+      "idx": "237",
+      "expected": "和谐发展",
+      "pinyin": "hexiefazhan",
+      "reason": "political",
+      "top10": [
+        "和谐发展"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "238",
       "expected": "马鞍山市",
       "pinyin": "maanshanshi",
-      "reason": "auto-jieba",
+      "reason": "city",
       "top10": [
         "马鞍山市"
       ],
@@ -3740,10 +2802,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "284",
+      "idx": "239",
       "expected": "水情",
       "pinyin": "shuiqing",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "水情"
       ],
@@ -3751,10 +2813,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "285",
+      "idx": "240",
       "expected": "水势",
       "pinyin": "shuishi",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "水势",
         "水师"
@@ -3763,10 +2825,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "286",
+      "idx": "241",
       "expected": "整治",
       "pinyin": "zhengzhi",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "整治",
         "政治",
@@ -3779,10 +2841,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "287",
+      "idx": "242",
       "expected": "渔民",
       "pinyin": "yumin",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "渔民",
         "愚民",
@@ -3792,10 +2854,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "288",
+      "idx": "243",
       "expected": "退捕",
       "pinyin": "tuibu",
-      "reason": "auto-jieba",
+      "reason": "political",
       "top10": [
         "退捕",
         "退步",
@@ -3805,10 +2867,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "289",
+      "idx": "244",
       "expected": "落实",
       "pinyin": "luoshi",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "落实",
         "落石"
@@ -3817,21 +2879,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "290",
-      "expected": "特别强调",
-      "pinyin": "tebieqiangdiao",
-      "reason": "auto-jieba",
+      "idx": "245",
+      "expected": "特别",
+      "pinyin": "tebie",
+      "reason": "adv",
       "top10": [
-        "特别强调"
+        "特别"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "291",
+      "idx": "246",
       "expected": "禁渔",
       "pinyin": "jinyu",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "禁渔",
         "金鱼",
@@ -3843,68 +2905,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "292",
-      "expected": "不是",
-      "pinyin": "bushi",
-      "reason": "auto-jieba",
-      "top10": [
-        "不是",
-        "不时",
-        "捕食",
-        "不适",
-        "不失",
-        "布施",
-        "卜筮",
-        "补时",
-        "不实"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "293",
-      "expected": "甩",
-      "pinyin": "shuai",
-      "reason": "auto-jieba",
-      "top10": [
-        "甩",
-        "帅",
-        "摔",
-        "衰",
-        "蟀",
-        "率"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "294",
-      "expected": "上岸",
-      "pinyin": "shangan",
-      "reason": "auto-jieba",
-      "top10": [
-        "上岸",
-        "善感"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "295",
-      "expected": "不管",
-      "pinyin": "buguan",
-      "reason": "auto-jieba",
-      "top10": [
-        "不管"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "296",
+      "idx": "247",
       "expected": "相关",
       "pinyin": "xiangguan",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "相关",
         "乡贯"
@@ -3913,10 +2917,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "297",
+      "idx": "248",
       "expected": "做细",
       "pinyin": "zuoxi",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "做细",
         "作息",
@@ -3928,10 +2932,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "298",
+      "idx": "249",
       "expected": "做实",
       "pinyin": "zuoshi",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "做实",
         "做事",
@@ -3945,30 +2949,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "299",
-      "expected": "多",
-      "pinyin": "duo",
-      "reason": "auto-jieba",
+      "idx": "250",
+      "expected": "开发",
+      "pinyin": "kaifa",
+      "reason": "verb",
       "top10": [
-        "多",
-        "朵",
-        "夺",
-        "躲",
-        "舵",
-        "跺",
-        "堕",
-        "踱",
-        "惰",
-        "垛"
+        "开发"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "300",
+      "idx": "251",
       "expected": "就业",
       "pinyin": "jiuye",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "就业",
         "舅爷",
@@ -3979,10 +2974,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "301",
+      "idx": "252",
       "expected": "渠道",
       "pinyin": "qudao",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "渠道",
         "取道"
@@ -3991,10 +2986,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "302",
+      "idx": "253",
       "expected": "公益性",
       "pinyin": "gongyixing",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "公益性"
       ],
@@ -4002,10 +2997,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "303",
+      "idx": "254",
       "expected": "岗位",
       "pinyin": "gangwei",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "岗位"
       ],
@@ -4013,61 +3008,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "304",
-      "expected": "们",
-      "pinyin": "men",
-      "reason": "auto-jieba",
-      "top10": [
-        "们",
-        "门",
-        "闷",
-        "焖",
-        "扪",
-        "懑",
-        "汶",
-        "钔",
-        "亹",
-        "鞔"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "305",
-      "expected": "稳得",
-      "pinyin": "wende",
-      "reason": "auto-jieba",
-      "top10": [
-        "稳得"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "306",
-      "expected": "住",
-      "pinyin": "zhu",
-      "reason": "auto-jieba",
-      "top10": [
-        "住",
-        "祝",
-        "猪",
-        "煮",
-        "株",
-        "拄",
-        "主",
-        "助",
-        "注",
-        "著"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "307",
+      "idx": "256",
       "expected": "致富",
       "pinyin": "zhifu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "致富",
         "制服",
@@ -4082,10 +3026,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "308",
+      "idx": "257",
       "expected": "广西",
       "pinyin": "guangxi",
-      "reason": "auto-jieba",
+      "reason": "province",
       "top10": [
         "广西"
       ],
@@ -4093,10 +3037,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "309",
+      "idx": "258",
       "expected": "漓江",
       "pinyin": "lijiang",
-      "reason": "auto-jieba",
+      "reason": "river",
       "top10": [
         "漓江"
       ],
@@ -4104,10 +3048,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "310",
+      "idx": "259",
       "expected": "碧波",
       "pinyin": "bibo",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "碧波",
         "鄙薄",
@@ -4117,10 +3061,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "311",
+      "idx": "260",
       "expected": "回忆",
       "pinyin": "huiyi",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "回忆",
         "会议",
@@ -4132,10 +3076,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "312",
+      "idx": "261",
       "expected": "自己",
       "pinyin": "ziji",
-      "reason": "auto-jieba",
+      "reason": "pronoun",
       "top10": [
         "自己",
         "自给",
@@ -4149,24 +3093,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "313",
-      "expected": "深深",
-      "pinyin": "shenshen",
-      "reason": "auto-jieba",
-      "top10": [
-        "深深",
-        "审慎",
-        "婶婶",
-        "莘莘"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "314",
+      "idx": "262",
       "expected": "情结",
       "pinyin": "qingjie",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "情结",
         "情节",
@@ -4178,10 +3108,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "315",
+      "idx": "263",
       "expected": "旅游",
       "pinyin": "lvyou",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "旅游",
         "驴友"
@@ -4190,10 +3120,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "316",
+      "idx": "264",
       "expected": "产业",
       "pinyin": "chanye",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "产业"
       ],
@@ -4201,10 +3131,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "317",
+      "idx": "265",
       "expected": "大有可为",
       "pinyin": "dayoukewei",
-      "reason": "auto-jieba",
+      "reason": "idiom",
       "top10": [
         "大有可为"
       ],
@@ -4212,10 +3142,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "318",
+      "idx": "266",
       "expected": "陕西",
-      "pinyin": "shanxi",
-      "reason": "auto-jieba",
+      "pinyin": "shaanxi",
+      "reason": "province",
       "top10": [
         "陕西"
       ],
@@ -4223,41 +3153,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "319",
-      "expected": "高",
-      "pinyin": "gao",
-      "reason": "auto-jieba",
+      "idx": "267",
+      "expected": "高西沟",
+      "pinyin": "gaoxigou",
+      "reason": "place",
       "top10": [
-        "搞",
-        "高",
-        "告",
-        "糕",
-        "稿",
-        "膏",
-        "镐",
-        "羔",
-        "诰",
-        "浩"
-      ],
-      "rank": 1,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "320",
-      "expected": "西沟村",
-      "pinyin": "xigoucun",
-      "reason": "auto-jieba",
-      "top10": [
-        "西沟村"
+        "高西沟"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "321",
+      "idx": "268",
       "expected": "一处",
       "pinyin": "yichu",
-      "reason": "auto-jieba",
+      "reason": "count",
       "top10": [
         "一处",
         "溢出",
@@ -4270,10 +3180,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "322",
+      "idx": "269",
       "expected": "山头",
       "pinyin": "shantou",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "山头"
       ],
@@ -4281,34 +3191,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "323",
-      "expected": "举目",
-      "pinyin": "jumu",
-      "reason": "auto-jieba",
+      "idx": "270",
+      "expected": "特色",
+      "pinyin": "tese",
+      "reason": "common",
       "top10": [
-        "举目",
-        "剧目",
-        "榉木"
+        "特色"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "324",
-      "expected": "特色产业",
-      "pinyin": "tesechanye",
-      "reason": "auto-jieba",
-      "top10": [
-        "特色产业"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "325",
+      "idx": "271",
       "expected": "有机",
       "pinyin": "youji",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "有机",
         "游击",
@@ -4323,10 +3220,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "326",
+      "idx": "272",
       "expected": "结合",
       "pinyin": "jiehe",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "结合",
         "结核",
@@ -4338,10 +3235,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "327",
+      "idx": "273",
       "expected": "起来",
       "pinyin": "qilai",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "起来"
       ],
@@ -4349,10 +3246,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "328",
+      "idx": "274",
       "expected": "宏大",
       "pinyin": "hongda",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "宏大"
       ],
@@ -4360,10 +3257,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "329",
+      "idx": "275",
       "expected": "最终",
       "pinyin": "zuizhong",
-      "reason": "auto-jieba",
+      "reason": "adv",
       "top10": [
         "最终"
       ],
@@ -4371,10 +3268,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "330",
+      "idx": "276",
       "expected": "落脚",
       "pinyin": "luojiao",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "落脚",
         "裸绞",
@@ -4384,52 +3281,32 @@
       "verdict": "PASS"
     },
     {
-      "idx": "331",
-      "expected": "群众",
-      "pinyin": "qunzhong",
-      "reason": "auto-jieba",
+      "idx": "277",
+      "expected": "人民群众",
+      "pinyin": "renminqunzhong",
+      "reason": "political",
       "top10": [
-        "群众"
+        "人民群众"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "332",
-      "expected": "获得",
-      "pinyin": "huode",
-      "reason": "auto-jieba",
+      "idx": "278",
+      "expected": "获得感",
+      "pinyin": "huodegan",
+      "reason": "political",
       "top10": [
-        "获得"
+        "获得感"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "333",
-      "expected": "感",
-      "pinyin": "gan",
-      "reason": "auto-jieba",
-      "top10": [
-        "感",
-        "敢",
-        "干",
-        "杆",
-        "赶",
-        "甘",
-        "肝",
-        "赣",
-        "柑",
-        "竿"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "334",
+      "idx": "279",
       "expected": "十年",
       "pinyin": "shinian",
-      "reason": "auto-jieba",
+      "reason": "temporal",
       "top10": [
         "十年",
         "湿黏",
@@ -4439,10 +3316,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "335",
+      "idx": "280",
       "expected": "江豚",
       "pinyin": "jiangtun",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "江豚"
       ],
@@ -4450,10 +3327,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "336",
+      "idx": "281",
       "expected": "逐浪",
       "pinyin": "zhulang",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "逐浪"
       ],
@@ -4461,10 +3338,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "337",
+      "idx": "282",
       "expected": "再现",
       "pinyin": "zaixian",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "再现",
         "在线",
@@ -4474,10 +3351,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "338",
+      "idx": "283",
       "expected": "滩区",
       "pinyin": "tanqu",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "滩区"
       ],
@@ -4485,10 +3362,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "339",
+      "idx": "284",
       "expected": "迁建",
       "pinyin": "qianjian",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "迁建",
         "浅见",
@@ -4500,10 +3377,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "340",
+      "idx": "285",
       "expected": "百万",
       "pinyin": "baiwan",
-      "reason": "auto-jieba",
+      "reason": "count",
       "top10": [
         "百万",
         "掰弯"
@@ -4512,10 +3389,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "341",
+      "idx": "286",
+      "expected": "群众",
+      "pinyin": "qunzhong",
+      "reason": "noun",
+      "top10": [
+        "群众"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "287",
       "expected": "安居",
       "pinyin": "anju",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "安居"
       ],
@@ -4523,10 +3411,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "342",
+      "idx": "288",
       "expected": "造就",
       "pinyin": "zaojiu",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "造就",
         "早就"
@@ -4535,21 +3423,21 @@
       "verdict": "PASS"
     },
     {
-      "idx": "343",
-      "expected": "银行",
-      "pinyin": "yinhang",
-      "reason": "auto-jieba",
+      "idx": "289",
+      "expected": "绿色银行",
+      "pinyin": "lvseyinhang",
+      "reason": "political",
       "top10": [
-        "银行"
+        "绿色银行"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "344",
+      "idx": "290",
       "expected": "这些",
       "pinyin": "zhexie",
-      "reason": "auto-jieba",
+      "reason": "pronoun",
       "top10": [
         "这些"
       ],
@@ -4557,10 +3445,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "345",
+      "idx": "291",
       "expected": "生动",
       "pinyin": "shengdong",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "生动"
       ],
@@ -4568,10 +3456,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "346",
+      "idx": "292",
       "expected": "实践",
       "pinyin": "shijian",
-      "reason": "auto-jieba",
+      "reason": "common",
       "top10": [
         "时间",
         "事件",
@@ -4587,10 +3475,10 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "347",
+      "idx": "293",
       "expected": "印证",
       "pinyin": "yinzheng",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "印证",
         "引证",
@@ -4600,10 +3488,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "348",
+      "idx": "294",
       "expected": "良好",
       "pinyin": "lianghao",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "良好",
         "靓号"
@@ -4612,10 +3500,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "349",
+      "idx": "295",
       "expected": "普惠",
       "pinyin": "puhui",
-      "reason": "auto-jieba",
+      "reason": "political",
       "top10": [
         "普惠"
       ],
@@ -4623,10 +3511,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "350",
+      "idx": "296",
       "expected": "民生",
       "pinyin": "minsheng",
-      "reason": "auto-jieba",
+      "reason": "political",
       "top10": [
         "民生"
       ],
@@ -4634,10 +3522,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "351",
+      "idx": "297",
       "expected": "福祉",
       "pinyin": "fuzhi",
-      "reason": "auto-jieba",
+      "reason": "political",
       "top10": [
         "福祉",
         "复制",
@@ -4654,21 +3542,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "352",
-      "expected": "长江黄河",
-      "pinyin": "changjianghuanghe",
-      "reason": "auto-jieba",
-      "top10": [
-        "长江黄河"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "353",
+      "idx": "298",
       "expected": "浪涛",
       "pinyin": "langtao",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "浪涛"
       ],
@@ -4676,22 +3553,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "354",
-      "expected": "祁连",
-      "pinyin": "qilian",
-      "reason": "auto-jieba",
-      "top10": [
-        "祁连",
-        "乞怜"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "355",
+      "idx": "299",
       "expected": "武夷",
       "pinyin": "wuyi",
-      "reason": "auto-jieba",
+      "reason": "mountain",
       "top10": [
         "武夷",
         "五一",
@@ -4708,10 +3573,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "356",
+      "idx": "300",
       "expected": "峻秀",
       "pinyin": "junxiu",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "峻秀",
         "俊秀"
@@ -4720,10 +3585,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "357",
+      "idx": "301",
       "expected": "风骨",
       "pinyin": "fenggu",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "风骨"
       ],
@@ -4731,10 +3596,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "358",
+      "idx": "302",
       "expected": "丈量",
       "pinyin": "zhangliang",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "丈量",
         "张量"
@@ -4743,10 +3608,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "359",
+      "idx": "303",
       "expected": "脉络",
       "pinyin": "mailuo",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "脉络"
       ],
@@ -4754,10 +3619,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "360",
+      "idx": "304",
       "expected": "勾勒",
       "pinyin": "goule",
-      "reason": "auto-jieba",
+      "reason": "verb",
       "top10": [
         "勾勒"
       ],
@@ -4765,30 +3630,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "361",
-      "expected": "出",
-      "pinyin": "chu",
-      "reason": "auto-jieba",
-      "top10": [
-        "出",
-        "除",
-        "处",
-        "初",
-        "楚",
-        "触",
-        "畜",
-        "储",
-        "厨",
-        "础"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "362",
+      "idx": "305",
       "expected": "壮阔",
       "pinyin": "zhuangkuo",
-      "reason": "auto-jieba",
+      "reason": "adj",
       "top10": [
         "壮阔"
       ],
@@ -4796,10 +3641,10 @@
       "verdict": "PASS"
     },
     {
-      "idx": "363",
+      "idx": "306",
       "expected": "图景",
       "pinyin": "tujing",
-      "reason": "auto-jieba",
+      "reason": "noun",
       "top10": [
         "图景",
         "途径",
@@ -4813,9 +3658,9 @@
     }
   ],
   "stats": {
-    "total": 363,
-    "pass": 348,
-    "soft": 15,
+    "total": 296,
+    "pass": 293,
+    "soft": 3,
     "hard": 0
   }
 }

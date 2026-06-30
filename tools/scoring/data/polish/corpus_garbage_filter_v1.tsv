@@ -58264,7 +58264,7 @@ gaoxiazaikou	高下在口	2026-06-28	# freq=0
 gaoxiazaishou	高下在手	2026-06-28	# freq=0
 gaoxiazaixin	高下在心	2026-06-28	# freq=0
 gaoxibingchun	高烯丙醇	2026-06-28	# freq=0
-gaoxigou	高西沟	2026-06-28	# freq=0
+# UNREGISTERED (2026-06-30 strict-0001 user article needs 高西沟): gaoxigou	高西沟	2026-06-28	# freq=0
 gaoxiguang	高西广	2026-06-28	# freq=0
 gaoxinchanpin	高新产品	2026-06-28	# freq=0
 gaoxinghuixin	槁形灰心	2026-06-28	# freq=0
@@ -169248,3 +169248,12 @@ zuzuyouyu	足足有余	2026-06-28	# freq=0
 tuidao	推到	2026-06-28	# jieba_subword_noise (字字直拼 tuī+dào, e.g. 把车推到那边)
 shenru	神入	2026-06-30	# jieba sub-word noise (字字直拼 shén+rù, not a real word per user)
 yidalimian	义大利面	2026-06-30	# Taiwan variant; mainland uses 意大利面
+lianshan	连山	2026-06-30	# user strict-0001: not a real word (jieba over-frag from 祁连山+麓)
+jingguan	镜观	2026-06-30	# strict-0001: 标题词,无独立 IME buffer 价值
+zhibin	之滨	2026-06-30	# 文学后缀,typer 拆字
+gongzhua	共抓	2026-06-30	# 政治口号「共抓大保护」切片
+dabaohu	大保护	2026-06-30	# 口号切片
+dakaifa	大开发	2026-06-30	# 口号切片
+xingfuhe	幸福河	2026-06-30	# 引语临时短语
+wendezhu	稳得住	2026-06-30	# 口语短语,typer 拆字
+lianggeyibainian	两个一百年	2026-06-30	# 用户 flag「明显不是词」

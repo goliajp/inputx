@@ -43,10 +43,39 @@ def main():
     article = Path(sys.argv[1]).read_text(encoding="utf-8")
     body = "\n".join(article.split("\n")[1:])  # skip title
 
+    # Load v2 dict for "is real word" filter — cut_for_search produces
+    # over-fragmentation (e.g. 祁连山麓 → 连山 / 麓). Only accept subwords
+    # that are real v2 vocab.
+    v2_words = set()
+    v2_words_path = Path(__file__).resolve().parents[2] / "core/crates/inputx-pinyin-v2/data/words.tsv"
+    if v2_words_path.exists():
+        for ln in v2_words_path.read_text(encoding="utf-8").splitlines():
+            if ln.startswith("#") or not ln.strip():
+                continue
+            parts = ln.split("\t")
+            if len(parts) >= 2:
+                v2_words.add(parts[1])
+    # Also include modern_vocab polish-added words
+    mv_path = Path(__file__).resolve().parents[2] / "tools/scoring/data/polish/modern_vocab_v1.tsv"
+    if mv_path.exists():
+        for ln in mv_path.read_text(encoding="utf-8").splitlines():
+            if ln.startswith("#") or not ln.strip():
+                continue
+            parts = ln.split("\t")
+            if len(parts) >= 2:
+                v2_words.add(parts[1])
+
     seen = set()
     rows = []
     idx = 0
-    for tok in jieba.cut(body):
+    # Primary: default jieba.cut — natural word boundaries
+    primary_tokens = set(jieba.cut(body))
+    # Secondary: cut_for_search subwords, but ONLY if they're real v2 words
+    # (filters jieba over-fragmentation noise like 连山 / 上中 / 中下)
+    search_tokens = set(jieba.cut_for_search(body))
+    secondary_tokens = {t for t in search_tokens if t in v2_words and t not in primary_tokens}
+    tokens = list(primary_tokens) + list(secondary_tokens)
+    for tok in tokens:
         tok = tok.strip()
         if not tok or not is_cjk(tok):
             continue
