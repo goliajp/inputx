@@ -39,7 +39,7 @@
 ### Phase 1: modern-freq scaling(评分 tiebreaker,不入库)
 设计文档:`docs/pinyin-dogfood-2026-06-30/MODERN-FREQ-DESIGN.md`(待 1.0 写)
 
-- [ ] 1.0 Write MODERN-FREQ-DESIGN.md(refresh 之前讨论的 scaling 设计)
+- [WIP] 1.0 Write MODERN-FREQ-DESIGN.md(refresh 之前讨论的 scaling 设计)
 - [ ] 1.1 Write `tools/v2-ingest/build-modern-freq.py`(read jieba dict + v2 words/chars → modern_freq.tsv)
 - [ ] 1.2 Run script → 生成 `core/crates/inputx-pinyin-v2/data/modern_freq.tsv`
 - [ ] 1.3 `data.rs` 加 `modern_freq()` lazy loader(HashMap<String, u16>)
