@@ -15,6 +15,7 @@
 - 2026-06-30 iter#3 — 1.3 done。`modern_freq()` lazy HashMap loader 加 + `MODERN_FREQ_TSV` include。cargo build clean。Next: 1.4 wire 6 sort sites
 - 2026-06-30 iter#4 — 1.4 done。**设计简化**:不在 6 个 sort site 改,而在最后 sort 前统一 `entry.1 += modern_freq[w]`。一处 site 全覆盖。**gongqi 概念验证 ✓**:`共栖, 工期` → `工期, 共栖`(无 quickfix 助力,纯 modern_freq 翻转)。6 anchors 全 #0 正确。Next: 1.5 baseline 357
 - 2026-06-30 iter#5 — 1.5 done。Baseline 初次 6 fail。两类问题:(a) modern_freq 把 quickfix 显式 cascade 推翻 → 加 **Sovereignty rule**(quickfix 词不吃 modern_freq);(b) ingest 漏 `modern_vocab_v1.tsv`(英国/印度 等 country batch 无 modern_freq 数据,被同音 cedict 词压)→ 修脚本读 modern_vocab。剩 2 case (tigan 体感/toulan 偷懒) jieba 新闻语料偏 → 加 quickfix 10k 各。Final 357/0 ✓。Next: 1.6 retire 候选验证
+- 2026-06-30 iter#6 — 1.6 done。Retire 候选清单写入 PLAN "Notes" 节。**~6 行可撤**(ceshi/yanjiu/liucheng/lianxu/shenru cascade 全 + xingshi top 2),其余 quickfix 仍 essential(muscle memory 单字 / JP cross / cascade 内非首两位)。Phase 6 清理用。Next: 1.7 mac/reinstall + commit
 
 ## Status legend
 - `[ ]` todo
@@ -50,7 +51,7 @@
 - [x] 1.3 `data.rs` 加 `modern_freq()` lazy loader(HashMap<String, u16>)
 - [x] 1.4 `lib.rs` 加 modern_freq score 注入(**design 简化**:不在 6 个 sort site 改,而在 prior_corrections loop 后统一 `entry.1 += modern_freq[word]`。所有 path 汇 `out`,一次 site 全覆盖,不漏。Cap 25k < tier 跨度 30k 保证不跨 tier)
 - [x] 1.5 cargo build + baseline 357/0 ✓ (Sovereignty rule + 2 quickfix backfill + ingest bug fix)
-- [WIP] 1.6 验证 anchor 翻转:gongqi→工期 / ceshi→测试 / liucheng→流程 / yanjiu→研究 / huluobo→胡萝卜(无 quickfix 帮助时也能自动正确)
+- [x] 1.6 验证 anchor 翻转:gongqi→工期 / ceshi→测试 / liucheng→流程 / yanjiu→研究 / huluobo→胡萝卜(无 quickfix 帮助时也能自动正确)。Retire 候选清单见 "Notes" 节。
 - [ ] 1.7 mac/reinstall.py + commit + push
 
 ### Phase 2: corpus prep
@@ -95,4 +96,29 @@
 
 ## Notes / 系统观察
 
-> _(empty,5.x 阶段把发现写这)_
+### Retire candidates(iter#6 验证,Phase 6 清理)
+
+Quickfix 行经 modern_freq 验证后可以撤的(modern_freq 已自动达到 user-expected #0):
+
+| buffer | 撤行 | 原因 |
+|---|---|---|
+| ceshi  | `ceshi  测试 50000` | modern_freq 测试 24754 > 侧室 20061,同 tier 自然 |
+| yanjiu | `yanjiu 研究 50000` | 研究 HSK 5 tier 3 vs 烟酒 tier 4,跨 tier 已胜 |
+| liucheng | `liucheng 流程 50000` | modern_freq 流程 24142 > 柳橙 15520 + tier_overlay 柳橙 5 双管 |
+| lianxu | `lianxu 连续 40000` | 连续 HSK 4 tier 2 vs 怜恤 tier 4,跨 tier 已胜 |
+| shenru | `shenru 深入 50k / 渗入 40k / 慎入 30k`(全 3 行)| modern_freq alone 出 `深入 > 渗入 > 慎入` ✓ |
+
+**部分 retire**(top 2 ok,top 3+ 需保留):
+- xingshi cascade:modern_freq 出 `形式 > 形势 > 刑事 > 行使 ...`,但 user 要 `形式 > 形势 > 姓氏 > 刑事`。`形式 50k / 形势 40k` 可撤,但 `姓氏 30k` 仍需(否则 姓氏 位置不到 #2)。
+
+**仍需保留**(不能撤):
+- 所有单字 muscle-memory quickfix(ba 吧 / xie 些 / ji 给 / qi 起 / 等 ~24 行):modern_freq 自然出的 #0 是「频率最高的字」,但 user 要的是「日常输入习惯」(吧/些/给 等助词或常用字)。这是 muscle memory,jieba 给不出 — 必须 quickfix。
+- 跨引擎 JP-beating(huluobo 55k / shijinsai 55k / jianma 55k 等):modern_freq 上限 25k,跨不到 tier 1 区段。
+- Cascade 内非首两位的(如 xingshi 姓氏)。
+- Polish-A backfill(中国 / 美国 / 日本 等):部分被 modern_vocab + modern_freq 自然 #0 自动,但部分还需 disambiguation(韩国/汗国, 巴西/把戏 等)— 需逐条 verify。
+
+Phase 6 清理总额估计:~5 个 single quickfix + 1 cascade 顶 2 行 = **6 行可 retire**(谨慎)。
+
+### v2 sovereignty rule(iter#5 加)
+
+Quickfix 显式 user-polish 不吃 modern_freq bonus。文档于 `MODERN-FREQ-DESIGN.md`,代码于 `lib.rs:444-453`。
