@@ -32,6 +32,7 @@
 - 2026-06-30 iter#19 — 5.3 done。14 modern_vocab(环球小姐 / 这场/该届 / 译作 / 单人滑 / 巡回演唱 / 监委 / 联合会杯 / 交大 / 很快/很多/最大/明朝/管理器)+ 1 quickfix(gai 该 30k)。1 retired(zhi 至 撞 baseline zhi→只)。Run-004:**PASS 71.8 → 72.0%(+0.2pp,HARD -136)**。Corpus 136 articles(slow fetcher 跑 28 min)。Next: 5.4 expand corpus + re-run。
 - 2026-06-30 iter#20 — 5.4 done。Corpus 扩 140 articles → 72,064 segments(+24k)。Run-005 baseline 71.1%(扩大后 niche article 16 个,带新 HARD)。Iter D batch:12 modern_vocab(太平洋/作词/亚足联/奥运/甲级联赛/毛主席/德甲/广东省/射手榜/外围赛/靠前/中英街)+ 1 quickfix(qian 前 30k)。**Run-006: PASS 71.1 → 71.4%(+0.3pp,HARD -197)**。baseline 357/0 ✓ deploy ✓。Next: 5.5 batch 4 + framework gap 检查。
 - 2026-06-30 iter#21 — 5.5 done。Niche analysis:16 articles >100 HARD 占 68% segments。非 niche pure PASS 71.0%。31 modern_vocab cross-article HARD batch(存于/纪录/赛果/一项/四个/...第三/非洲/七月/印尼 等)。**Run-007: PASS 71.4 → 71.7%(+0.3pp,HARD -315)**。每 batch 增益 +0.2-0.3pp,但累计 effective(67.4% → 71.7%)。baseline 357/0 ✓ deploy ✓。Next: 5.6 next batch + diminishing return 检查。
+- 2026-06-30 iter#22 — 5.6 done。大 batch(50 mod_vocab + 4 quickfix,1 retired hao 号)。**Run-008: PASS 71.7 → 72.0%(+0.3pp,HARD -245)**。Diminishing return 验证(各 batch +0.2-0.3pp 稳定)。累计 6 batch 共 ~200 polish 行 → PASS 67.4 → 72.0%(+4.6pp)。baseline 357/0 ✓ deploy ✓。Next: 5.7 final batch + Phase 6 准备。
 
 ## Status legend
 - `[ ]` todo
@@ -110,7 +111,7 @@
 
 > _(empty)_
 
-- [WIP] 5.6 Iter F: large batch(60-80 entries) + diminishing-return check
+- [x] 5.6 Iter F done。大 batch:50 modern_vocab(可用/中有/星系/检察长/已有/圣地亚哥/慕尼黑/阿肯色州/首名/英格兰/该次/净胜球/苏联/北京市/上赛季/升降级/宋朝/第三名/每轮/大西洋/该州/北美洲/该地/大碟/决出/第三位/单场/种子队/分组赛/四队/菲律宾/一颗/进球数/两队/维多利亚/是因为/主客场/决选/第二代/中以/最早/一词/之意/联同/四名/第一个/共和党/亿光年/北宋/之子)+ 4 quickfix(dan 但/zu 组/ci 此/ming 名)。1 retired(hao 号 撞 baseline)。**Run-008: PASS 71.7 → 72.0%(+0.3pp,HARD -245)**。Diminishing return 明显(每 batch 稳定 +0.2-0.3pp)。baseline 357/0 ✓ deploy ✓。Next: 5.7 决定 wrap or continue。
 
 ## Notes / 系统观察
 

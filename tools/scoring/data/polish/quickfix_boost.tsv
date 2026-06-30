@@ -174,3 +174,9 @@ deng	等	30000
 gai	该	30000
 # zhi	至	30000  ← retired: breaks prior baseline zhi→只
 qian	前	30000	# 2026-06-30 dogfood Iter D: 前 (before/ago) over 钱; clear function-word win
+# 2026-06-30 dogfood Iter F: extra single-char SOFT picks
+dan	但	30000
+# hao	号	30000  ← retired: breaks prior baseline hao→好
+zu	组	30000
+ci	此	30000
+ming	名	30000
