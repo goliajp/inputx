@@ -4658,11 +4658,26 @@
     },
     {
       "idx": "0317",
-      "expected": "才能",
-      "pinyin": "caineng",
-      "reason": "linear",
+      "expected": "才",
+      "pinyin": "cai",
+      "reason": "linear (split)",
       "top10": [
-        "才能"
+        "能",
+        "而",
+        "耐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0317",
+      "expected": "能",
+      "pinyin": "neng",
+      "reason": "linear (split)",
+      "top10": [
+        "能",
+        "而",
+        "耐"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -6575,14 +6590,43 @@
     },
     {
       "idx": "0444",
-      "expected": "万千",
-      "pinyin": "wanqian",
-      "reason": "linear",
+      "expected": "万",
+      "pinyin": "wan",
+      "reason": "linear (split)",
       "top10": [
-        "万千"
+        "前",
+        "钱",
+        "千",
+        "牵",
+        "浅",
+        "欠",
+        "签",
+        "迁",
+        "潜",
+        "铅"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 2,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0444",
+      "expected": "千",
+      "pinyin": "qian",
+      "reason": "linear (split)",
+      "top10": [
+        "前",
+        "钱",
+        "千",
+        "牵",
+        "浅",
+        "欠",
+        "签",
+        "迁",
+        "潜",
+        "铅"
+      ],
+      "rank": 2,
+      "verdict": "SOFT"
     },
     {
       "idx": "0445",
@@ -6671,14 +6715,43 @@
     },
     {
       "idx": "0450",
-      "expected": "万千",
-      "pinyin": "wanqian",
-      "reason": "linear",
+      "expected": "万",
+      "pinyin": "wan",
+      "reason": "linear (split)",
       "top10": [
-        "万千"
+        "前",
+        "钱",
+        "千",
+        "牵",
+        "浅",
+        "欠",
+        "签",
+        "迁",
+        "潜",
+        "铅"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 2,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0450",
+      "expected": "千",
+      "pinyin": "qian",
+      "reason": "linear (split)",
+      "top10": [
+        "前",
+        "钱",
+        "千",
+        "牵",
+        "浅",
+        "欠",
+        "签",
+        "迁",
+        "潜",
+        "铅"
+      ],
+      "rank": 2,
+      "verdict": "SOFT"
     },
     {
       "idx": "0451",
@@ -7103,23 +7176,43 @@
     },
     {
       "idx": "0480",
-      "expected": "之一",
-      "pinyin": "zhiyi",
-      "reason": "linear",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear (split)",
       "top10": [
-        "之意",
-        "之一",
-        "质疑",
-        "旨意",
-        "执意",
-        "直译",
-        "致以",
-        "致意",
-        "置疑",
-        "制衣"
+        "一",
+        "以",
+        "亿",
+        "乙",
+        "意",
+        "亦",
+        "翼",
+        "宜",
+        "医",
+        "衣"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0480",
+      "expected": "一",
+      "pinyin": "yi",
+      "reason": "linear (split)",
+      "top10": [
+        "一",
+        "以",
+        "亿",
+        "乙",
+        "意",
+        "亦",
+        "翼",
+        "宜",
+        "医",
+        "衣"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0481",
@@ -7566,9 +7659,9 @@
     }
   ],
   "stats": {
-    "total": 503,
-    "pass": 428,
-    "soft": 68,
+    "total": 507,
+    "pass": 429,
+    "soft": 71,
     "hard": 7
   }
 }

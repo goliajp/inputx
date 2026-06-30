@@ -49,7 +49,9 @@
 0044	擘画	bohua	linear
 0045	生态	shengtai	linear
 0046	蓝图	lantu	linear
-0047	一系列	yixilie	linear
+# SPLIT 0047	一系列	yixilie	linear
+0047	一	yi	linear (split)
+0047	系列	xilie	linear (split)
 0048	重要	zhongyao	linear
 0049	论述	lunshu	linear
 0050	为	wei	linear
@@ -66,7 +68,9 @@
 0061	世界	shijie	linear
 0062	环境日	huanjingri	linear
 0063	到来	daolai	linear
-0064	之际	zhiji	linear
+# SPLIT 0064	之际	zhiji	linear
+0064	之	zhi	linear (split)
+0064	际	ji	linear (split)
 0065	我们	women	linear
 0066	跟随	gensui	linear
 # SKIP-PERSON 0067	习近平	xijinping	linear
@@ -83,10 +87,14 @@
 0078	绿水青山	lvshuiqingshan	linear
 0079	建设	jianshe	linear
 0080	生态文明	shengtaiwenming	linear
-0081	之道	zhidao	linear
+# SPLIT 0081	之道	zhidao	linear
+0081	之	zhi	linear (split)
+0081	道	dao	linear (split)
 0082	心系	xinxi	linear
 0083	长江	changjiang	linear
-0084	之变	zhibian	linear
+# SPLIT 0084	之变	zhibian	linear
+0084	之	zhi	linear (split)
+0084	变	bian	linear (split)
 # SKIP-PERSON 0085	习近平	xijinping	linear
 0086	总书记	zongshuji	linear
 0087	前往	qianwang	linear
@@ -112,7 +120,9 @@
 0107	深入	shenru	linear
 0108	调研	diaoyan	linear
 0109	作出	zuochu	linear
-0110	一系列	yixilie	linear
+# SPLIT 0110	一系列	yixilie	linear
+0110	一	yi	linear (split)
+0110	系列	xilie	linear (split)
 0111	重要	zhongyao	linear
 0112	指示	zhishi	linear
 0113	为	wei	linear
@@ -225,7 +235,9 @@
 0220	中华	zhonghua	linear
 0221	儿女	ernv	linear
 0222	的	de	linear
-0223	千年	qiannian	linear
+# SPLIT 0223	千年	qiannian	linear
+0223	千	qian	linear (split)
+0223	年	nian	linear (split)
 0224	期盼	qipan	linear
 0225	党	dang	linear
 0226	的	de	linear
@@ -353,10 +365,14 @@
 0348	由衷	youzhong	linear
 0349	感慨	gankai	linear
 0350	黄河	huanghe	linear
-0351	很美	henmei	linear
+# SPLIT 0351	很美	henmei	linear
+0351	很	hen	linear (split)
+0351	美	mei	linear (split)
 0352	将来	jianglai	linear
 0353	会	hui	linear
-0354	更美	gengmei	linear
+# SPLIT 0354	更美	gengmei	linear
+0354	更	geng	linear (split)
+0354	美	mei	linear (split)
 0355	从	cong	linear
 0356	四次	sici	linear
 0357	以	yi	linear
@@ -624,7 +640,9 @@
 0619	回忆	huiyi	linear
 0620	自己	ziji	linear
 0621	的	de	linear
-0622	深深的	shenshende	linear
+# SPLIT 0622	深深的	shenshende	linear
+0622	深深	shenshen	linear (split)
+0622	的	de	linear (split)
 0623	漓江	lijiang	linear
 0624	情结	qingjie	linear
 0625	指出	zhichu	linear

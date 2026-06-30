@@ -561,23 +561,43 @@
     },
     {
       "idx": "0037",
-      "expected": "一项",
-      "pinyin": "yixiang",
-      "reason": "linear",
+      "expected": "一",
+      "pinyin": "yi",
+      "reason": "linear (split)",
       "top10": [
-        "一项",
-        "一向",
-        "意向",
-        "意象",
-        "异乡",
-        "遗像",
-        "异香",
-        "臆想",
-        "义项",
-        "异像"
+        "想",
+        "向",
+        "像",
+        "香",
+        "响",
+        "项",
+        "巷",
+        "相",
+        "象",
+        "乡"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 5,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0037",
+      "expected": "项",
+      "pinyin": "xiang",
+      "reason": "linear (split)",
+      "top10": [
+        "想",
+        "向",
+        "像",
+        "香",
+        "响",
+        "项",
+        "巷",
+        "相",
+        "象",
+        "乡"
+      ],
+      "rank": 5,
+      "verdict": "SOFT"
     },
     {
       "idx": "0038",
@@ -4976,9 +4996,9 @@
     }
   ],
   "stats": {
-    "total": 361,
-    "pass": 316,
-    "soft": 36,
+    "total": 362,
+    "pass": 315,
+    "soft": 38,
     "hard": 9
   }
 }

@@ -28,7 +28,9 @@
 0025	用	yong	linear
 0026	行动	xingdong	linear
 0027	展现	zhanxian	linear
-0028	百年	bainian	linear
+# SPLIT 0028	百年	bainian	linear
+0028	百	bai	linear (split)
+0028	年	nian	linear (split)
 0029	变局	bianju	linear
 0030	下	xia	linear
 0031	的	de	linear
@@ -84,11 +86,15 @@
 0081	的	de	linear
 0082	伟力	weili	linear
 0083	世界	shijie	linear
-0084	百年	bainian	linear
+# SPLIT 0084	百年	bainian	linear
+0084	百	bai	linear (split)
+0084	年	nian	linear (split)
 0085	变局	bianju	linear
 0086	加速	jiasu	linear
 0087	演进	yanjin	linear
-0088	之际	zhiji	linear
+# SPLIT 0088	之际	zhiji	linear
+0088	之	zhi	linear (split)
+0088	际	ji	linear (split)
 # SKIP-PERSON 0089	习近平	xijinping	linear
 0090	主席	zhuxi	linear
 0091	以	yi	linear
@@ -148,7 +154,9 @@
 0145	十字路口	shizilukou	linear
 0146	变乱	bianluan	linear
 0147	交织	jiaozhi	linear
-0148	之际	zhiji	linear
+# SPLIT 0148	之际	zhiji	linear
+0148	之	zhi	linear (split)
+0148	际	ji	linear (split)
 0149	大国	daguo	linear
 0150	的	de	linear
 0151	挺膺	tingying	linear
@@ -267,7 +275,9 @@
 0264	同	tong	linear
 0265	世界	shijie	linear
 0266	各国	geguo	linear
-0267	一道	yidao	linear
+# SPLIT 0267	一道	yidao	linear
+0267	一	yi	linear (split)
+0267	道	dao	linear (split)
 0268	维护	weihu	linear
 0269	经济	jingji	linear
 0270	全球化	quanqiuhua	linear
@@ -462,12 +472,16 @@
 0459	在	zai	linear
 0460	历史	lishi	linear
 0461	正确	zhengque	linear
-0462	一边	yibian	linear
+# SPLIT 0462	一边	yibian	linear
+0462	一	yi	linear (split)
+0462	边	bian	linear (split)
 0463	站	zhan	linear
 0464	在	zai	linear
 0465	公平	gongping	linear
 0466	正义	zhengyi	linear
-0467	一边	yibian	linear
+# SPLIT 0467	一边	yibian	linear
+0467	一	yi	linear (split)
+0467	边	bian	linear (split)
 0468	乱云飞渡	luanyunfeidu	linear
 0469	不辍	buchuo	linear
 0470	和平	heping	linear
@@ -516,8 +530,12 @@
 0513	总统	zongtong	linear
 0514	面对面	mianduimian	linear
 0515	会晤	huiwu	linear
-0516	四天	sitian	linear
-0517	三晚	sanwan	linear
+# SPLIT 0516	四天	sitian	linear
+0516	四	si	linear (split)
+0516	天	tian	linear (split)
+# SPLIT 0517	三晚	sanwan	linear
+0517	三	san	linear (split)
+0517	晚	wan	linear (split)
 0518	的	de	linear
 0519	访问	fangwen	linear
 0520	行程	xingcheng	linear
@@ -621,7 +639,9 @@
 0618	未来	weilai	linear
 0619	一	yi	linear
 0620	份	fen	linear
-0621	长长	changchang	linear
+# SPLIT 0621	长长	changchang	linear
+0621	长	chang	linear (split)
+0621	长	chang	linear (split)
 0622	的	de	linear
 0623	合作	hezuo	linear
 0624	清单	qingdan	linear
@@ -663,7 +683,9 @@
 0660	反恐	fankong	linear
 0661	等	deng	linear
 0662	合作	hezuo	linear
-0663	一系列	yixilie	linear
+# SPLIT 0663	一系列	yixilie	linear
+0663	一	yi	linear (split)
+0663	系列	xilie	linear (split)
 0664	务实	wushi	linear
 0665	举措	jucuo	linear
 0666	充分	chongfen	linear
@@ -806,7 +828,9 @@
 0803	传递	chuandi	linear
 0804	中方	zhongfang	linear
 0805	团结	tuanjie	linear
-0806	才能	caineng	linear
+# SPLIT 0806	才能	caineng	linear
+0806	才	cai	linear (split)
+0806	能	neng	linear (split)
 0807	共赢	gongying	linear
 0808	携手	xieshou	linear
 0809	方可	fangke	linear
@@ -935,7 +959,9 @@
 0932	重点	zhongdian	linear
 0933	建设	jianshe	linear
 0934	项目	xiangmu	linear
-0935	之一	zhiyi	linear
+# SPLIT 0935	之一	zhiyi	linear
+0935	之	zhi	linear (split)
+0935	一	yi	linear (split)
 0936	洛轴	luozhou	linear
 0937	智能	zhineng	linear
 0938	工厂	gongchang	linear
@@ -1011,7 +1037,9 @@
 1008	中原	zhongyuan	linear
 1009	大地	dadi	linear
 1010	穿越	chuanyue	linear
-1011	千年	qiannian	linear
+# SPLIT 1011	千年	qiannian	linear
+1011	千	qian	linear (split)
+1011	年	nian	linear (split)
 1012	风霜	fengshuang	linear
 1013	的	de	linear
 1014	白马寺	baimasi	linear
@@ -1044,7 +1072,9 @@
 1041	石刻	shike	linear
 1042	艺术	yishu	linear
 1043	穿越	chuanyue	linear
-1044	千百	qianbai	linear
+# SPLIT 1044	千百	qianbai	linear
+1044	千	qian	linear (split)
+1044	百	bai	linear (split)
 1045	年	nian	linear
 1046	时光	shiguang	linear
 1047	总书记	zongshuji	linear

@@ -95,7 +95,9 @@
 0092	茶	cha	linear
 0093	已经	yijing	linear
 0094	有	you	linear
-0095	一千	yiqian	linear
+# SPLIT 0095	一千	yiqian	linear
+0095	一	yi	linear (split)
+0095	千	qian	linear (split)
 0096	多	duo	linear
 0097	年	nian	linear
 0098	的	de	linear
@@ -219,7 +221,9 @@
 0216	件	jian	linear
 0217	事	shi	linear
 0218	在	zai	linear
-0219	多年	duonian	linear
+# SPLIT 0219	多年	duonian	linear
+0219	多	duo	linear (split)
+0219	年	nian	linear (split)
 0220	的	de	linear
 0221	炒茶	chaocha	linear
 0222	过程	guocheng	linear
@@ -267,7 +271,9 @@
 0264	的	de	linear
 0265	主流	zhuliu	linear
 0266	方式	fangshi	linear
-0267	之一	zhiyi	linear
+# SPLIT 0267	之一	zhiyi	linear
+0267	之	zhi	linear (split)
+0267	一	yi	linear (split)
 0268	要	yao	linear
 0269	制作	zhizuo	linear
 0270	出	chu	linear

@@ -318,7 +318,9 @@
 0314	好	hao	linear
 0315	了	le	linear
 0316	生活	shenghuo	linear
-0317	才能	caineng	linear
+# SPLIT 0317	才能	caineng	linear
+0317	才	cai	linear (split)
+0317	能	neng	linear (split)
 0318	更	geng	linear
 0319	好	hao	linear
 0320	良好	lianghao	linear
@@ -445,13 +447,17 @@
 0441	多	duo	linear
 0442	人	ren	linear
 0443	从	cong	linear
-0444	万千	wanqian	linear
+# SPLIT 0444	万千	wanqian	linear
+0444	万	wan	linear (split)
+0444	千	qian	linear (split)
 0445	山乡	shanxiang	linear
 0446	的	de	linear
 0447	巨变	jubian	linear
 0448	中	zhong	linear
 0449	从	cong	linear
-0450	万千	wanqian	linear
+# SPLIT 0450	万千	wanqian	linear
+0450	万	wan	linear (split)
+0450	千	qian	linear (split)
 0451	村民	cunmin	linear
 0452	的	de	linear
 0453	笑靥	xiaoye	linear
@@ -481,7 +487,9 @@
 0477	主要	zhuyao	linear
 0478	目标	mubiao	linear
 0479	任务	renwu	linear
-0480	之一	zhiyi	linear
+# SPLIT 0480	之一	zhiyi	linear
+0480	之	zhi	linear (split)
+0480	一	yi	linear (split)
 0481	持续	chixu	linear
 0482	改善	gaishan	linear
 0483	城乡	chengxiang	linear

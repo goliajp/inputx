@@ -643,11 +643,22 @@
     },
     {
       "idx": "0047",
-      "expected": "一系列",
-      "pinyin": "yixilie",
-      "reason": "linear",
+      "expected": "一",
+      "pinyin": "yi",
+      "reason": "linear (split)",
       "top10": [
-        "一系列"
+        "系列"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0047",
+      "expected": "系列",
+      "pinyin": "xilie",
+      "reason": "linear (split)",
+      "top10": [
+        "系列"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -871,23 +882,43 @@
     },
     {
       "idx": "0064",
-      "expected": "之际",
-      "pinyin": "zhiji",
-      "reason": "linear",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear (split)",
       "top10": [
-        "之际",
-        "制剂",
-        "知己",
-        "至极",
-        "织机",
-        "致畸",
-        "职级",
-        "雉鸡",
-        "值机",
-        "直积"
+        "给",
+        "几",
+        "极",
+        "寄",
+        "机",
+        "记",
+        "急",
+        "及",
+        "级",
+        "计"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 99,
+      "verdict": "HARD"
+    },
+    {
+      "idx": "0064",
+      "expected": "际",
+      "pinyin": "ji",
+      "reason": "linear (split)",
+      "top10": [
+        "给",
+        "几",
+        "极",
+        "寄",
+        "机",
+        "记",
+        "急",
+        "及",
+        "级",
+        "计"
+      ],
+      "rank": 99,
+      "verdict": "HARD"
     },
     {
       "idx": "0065",
@@ -1079,21 +1110,43 @@
     },
     {
       "idx": "0081",
-      "expected": "之道",
-      "pinyin": "zhidao",
-      "reason": "linear",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear (split)",
       "top10": [
-        "之道",
-        "指导",
-        "知道",
-        "直到",
-        "制导",
-        "执导",
-        "直捣",
-        "指到"
+        "到",
+        "刀",
+        "倒",
+        "岛",
+        "道",
+        "导",
+        "盗",
+        "捣",
+        "稻",
+        "叨"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 4,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0081",
+      "expected": "道",
+      "pinyin": "dao",
+      "reason": "linear (split)",
+      "top10": [
+        "到",
+        "刀",
+        "倒",
+        "岛",
+        "道",
+        "导",
+        "盗",
+        "捣",
+        "稻",
+        "叨"
+      ],
+      "rank": 4,
+      "verdict": "SOFT"
     },
     {
       "idx": "0082",
@@ -1123,14 +1176,40 @@
     },
     {
       "idx": "0084",
-      "expected": "之变",
-      "pinyin": "zhibian",
-      "reason": "linear",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear (split)",
       "top10": [
-        "之变",
-        "质变",
-        "支边",
-        "置辩"
+        "变",
+        "遍",
+        "便",
+        "扁",
+        "边",
+        "编",
+        "辩",
+        "鞭",
+        "辨",
+        "匾"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0084",
+      "expected": "变",
+      "pinyin": "bian",
+      "reason": "linear (split)",
+      "top10": [
+        "变",
+        "遍",
+        "便",
+        "扁",
+        "边",
+        "编",
+        "辩",
+        "鞭",
+        "辨",
+        "匾"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -1461,11 +1540,22 @@
     },
     {
       "idx": "0110",
-      "expected": "一系列",
-      "pinyin": "yixilie",
-      "reason": "linear",
+      "expected": "一",
+      "pinyin": "yi",
+      "reason": "linear (split)",
       "top10": [
-        "一系列"
+        "系列"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0110",
+      "expected": "系列",
+      "pinyin": "xilie",
+      "reason": "linear (split)",
+      "top10": [
+        "系列"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -2998,12 +3088,40 @@
     },
     {
       "idx": "0223",
-      "expected": "千年",
-      "pinyin": "qiannian",
-      "reason": "linear",
+      "expected": "千",
+      "pinyin": "qian",
+      "reason": "linear (split)",
       "top10": [
-        "千年",
-        "前年"
+        "年",
+        "念",
+        "捻",
+        "碾",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0223",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear (split)",
+      "top10": [
+        "年",
+        "念",
+        "捻",
+        "碾",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -4734,12 +4852,43 @@
     },
     {
       "idx": "0351",
-      "expected": "很美",
-      "pinyin": "henmei",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "expected": "很",
+      "pinyin": "hen",
+      "reason": "linear (split)",
+      "top10": [
+        "没",
+        "每",
+        "枚",
+        "美",
+        "妹",
+        "煤",
+        "眉",
+        "梅",
+        "媒",
+        "昧"
+      ],
+      "rank": 3,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0351",
+      "expected": "美",
+      "pinyin": "mei",
+      "reason": "linear (split)",
+      "top10": [
+        "没",
+        "每",
+        "枚",
+        "美",
+        "妹",
+        "煤",
+        "眉",
+        "梅",
+        "媒",
+        "昧"
+      ],
+      "rank": 3,
+      "verdict": "SOFT"
     },
     {
       "idx": "0352",
@@ -4774,12 +4923,43 @@
     },
     {
       "idx": "0354",
-      "expected": "更美",
-      "pinyin": "gengmei",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "expected": "更",
+      "pinyin": "geng",
+      "reason": "linear (split)",
+      "top10": [
+        "没",
+        "每",
+        "枚",
+        "美",
+        "妹",
+        "煤",
+        "眉",
+        "梅",
+        "媒",
+        "昧"
+      ],
+      "rank": 3,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0354",
+      "expected": "美",
+      "pinyin": "mei",
+      "reason": "linear (split)",
+      "top10": [
+        "没",
+        "每",
+        "枚",
+        "美",
+        "妹",
+        "煤",
+        "眉",
+        "梅",
+        "媒",
+        "昧"
+      ],
+      "rank": 3,
+      "verdict": "SOFT"
     },
     {
       "idx": "0355",
@@ -8508,14 +8688,43 @@
     },
     {
       "idx": "0622",
-      "expected": "深深的",
-      "pinyin": "shenshende",
-      "reason": "linear",
+      "expected": "深深",
+      "pinyin": "shenshen",
+      "reason": "linear (split)",
       "top10": [
-        "婶婶的"
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0622",
+      "expected": "的",
+      "pinyin": "de",
+      "reason": "linear (split)",
+      "top10": [
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0623",
@@ -9986,9 +10195,9 @@
     }
   ],
   "stats": {
-    "total": 705,
-    "pass": 674,
-    "soft": 23,
-    "hard": 8
+    "total": 714,
+    "pass": 678,
+    "soft": 29,
+    "hard": 7
   }
 }

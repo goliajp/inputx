@@ -760,7 +760,9 @@
 0757	闭环	bihuan	linear
 0758	监管	jianguan	linear
 0759	三书同达	sanshutongda	linear
-0760	既能	jineng	linear
+# SPLIT 0760	既能	jineng	linear
+0760	既	ji	linear (split)
+0760	能	neng	linear (split)
 0761	让	rang	linear
 0762	企业	qiye	linear
 0763	了解	liaojie	linear
