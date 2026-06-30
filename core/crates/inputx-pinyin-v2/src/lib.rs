@@ -329,6 +329,10 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
             .filter(|w| w.code.starts_with(buffer) && w.code.as_str() != buffer)
             .filter(|w| !seen.contains(&w.word))
             .filter(|w| !data::exclusions().contains(&(buf_owned.clone(), w.word.clone())))
+            // Also honor exclusion against the word's OWN code — so a
+            // D1 like (yidalimian, 义大利面) blocks the prefix-completion
+            // surfacing too (yidal → ... → 义大利面 from yidalimian).
+            .filter(|w| !data::exclusions().contains(&(w.code.clone(), w.word.clone())))
             .collect();
         // Tier asc, then code asc for determinism; pick top N.
         prefix_words.sort_by(|a, b| {
