@@ -56,7 +56,7 @@
 - [x] 1.7 mac/reinstall.py + commit + push — **Phase 1 SHIPPED 🎉**
 
 ### Phase 2: corpus prep
-- [ ] 2.1 Pick corpus source(THUCNews 默认,或 HuggingFace 备选)
+- [WIP] 2.1 Pick corpus source(THUCNews 默认,或 HuggingFace 备选)
 - [ ] 2.2 Download corpus archive 到 scratchpad
 - [ ] 2.3 Sample 1000 articles balanced(每类 ~70 篇,14 类)
 - [ ] 2.4 Save to `scratchpad/corpus/articles.txt`(每行 1 篇,或多文件)
