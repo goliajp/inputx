@@ -11,6 +11,7 @@
 - jieba dict location:`/Users/doracawl/Library/Python/3.9/lib/python/site-packages/jieba/dict.txt`(已 installed)
 - gongqi baseline anchor confirmed:current `共栖, 工期, 汞齐`(应翻成 工期 #0,Phase 1 验证点)
 - 2026-06-30 iter#1 — 1.0 done. MODERN-FREQ-DESIGN.md written(区间 [0,25k]、percentile rank、6 sort sites 列清、anchor 验证 checklist)。Next: 1.1 build-modern-freq.py
+- 2026-06-30 iter#2 — 1.1 + 1.2 done(atomic)。脚本 + TSV 一次出。Anchor 分数:工期 21948 vs 共栖 12948、测试 24754 vs 侧室 20061、研究 24989 vs 烟酒 22142、流程 24142 vs 柳橙 15520。全部正向(高频 > 低频),可作 same-tier tiebreak。74.7% v2 vocab in jieba(其余 score 0,古汉语/罕用)。Next: 1.3 data.rs loader
 
 ## Status legend
 - `[ ]` todo
@@ -41,8 +42,8 @@
 设计文档:`docs/pinyin-dogfood-2026-06-30/MODERN-FREQ-DESIGN.md`(待 1.0 写)
 
 - [x] 1.0 Write MODERN-FREQ-DESIGN.md(refresh 之前讨论的 scaling 设计)
-- [WIP] 1.1 Write `tools/v2-ingest/build-modern-freq.py`(read jieba dict + v2 words/chars → modern_freq.tsv)
-- [ ] 1.2 Run script → 生成 `core/crates/inputx-pinyin-v2/data/modern_freq.tsv`
+- [x] 1.1 Write `tools/v2-ingest/build-modern-freq.py`(read jieba dict + v2 words/chars → modern_freq.tsv)
+- [x] 1.2 Run script → 生成 `core/crates/inputx-pinyin-v2/data/modern_freq.tsv`(95870 行,74.7% in jieba)
 - [ ] 1.3 `data.rs` 加 `modern_freq()` lazy loader(HashMap<String, u16>)
 - [ ] 1.4 `lib.rs` 各 path 排序 key 加 modern_freq DESC 二维(6 个 site:exact / char / initials / prefix / compose / quickfix)
 - [ ] 1.5 cargo build + baseline 357/0 ✓
