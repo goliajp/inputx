@@ -3599,6 +3599,141 @@
       "verdict": "PASS"
     },
     {
+      "idx": "601",
+      "expected": "位于",
+      "pinyin": "weiyu",
+      "reason": "verb",
+      "top10": [
+        "位于",
+        "尾羽",
+        "谓语",
+        "卫浴",
+        "鲔鱼"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "602",
+      "expected": "还是",
+      "pinyin": "haishi",
+      "reason": "conj",
+      "top10": [
+        "还是",
+        "海事",
+        "海蚀",
+        "海狮",
+        "海市",
+        "亥时"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "603",
+      "expected": "不是",
+      "pinyin": "bushi",
+      "reason": "conj",
+      "top10": [
+        "不是",
+        "不时",
+        "捕食",
+        "不适",
+        "不失",
+        "布施",
+        "卜筮",
+        "补时",
+        "不实"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "604",
+      "expected": "上岸",
+      "pinyin": "shangan",
+      "reason": "verb",
+      "top10": [
+        "上岸",
+        "善感"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "605",
+      "expected": "不管",
+      "pinyin": "buguan",
+      "reason": "conj",
+      "top10": [
+        "不管"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "606",
+      "expected": "深深的",
+      "pinyin": "shenshende",
+      "reason": "phrase",
+      "top10": [
+        "婶婶的"
+      ],
+      "rank": 99,
+      "verdict": "HARD"
+    },
+    {
+      "idx": "607",
+      "expected": "就要",
+      "pinyin": "jiuyao",
+      "reason": "verb",
+      "top10": [
+        "就要",
+        "酒肴",
+        "酒药"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "608",
+      "expected": "保护好",
+      "pinyin": "baohuhao",
+      "reason": "verb",
+      "top10": [],
+      "rank": 99,
+      "verdict": "HARD"
+    },
+    {
+      "idx": "609",
+      "expected": "就是",
+      "pinyin": "jiushi",
+      "reason": "conj",
+      "top10": [
+        "就是",
+        "九十",
+        "酒食",
+        "旧时",
+        "旧事",
+        "旧式",
+        "救世",
+        "旧诗",
+        "旧识",
+        "救市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "610",
+      "expected": "五年后",
+      "pinyin": "wunianhou",
+      "reason": "temporal",
+      "top10": [],
+      "rank": 99,
+      "verdict": "HARD"
+    },
+    {
       "idx": "401",
       "expected": "幸福",
       "pinyin": "xingfu",
@@ -3893,9 +4028,9 @@
     }
   ],
   "stats": {
-    "total": 316,
-    "pass": 309,
+    "total": 326,
+    "pass": 316,
     "soft": 3,
-    "hard": 4
+    "hard": 7
   }
 }

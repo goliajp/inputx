@@ -2805,12 +2805,61 @@
       ],
       "rank": 0,
       "verdict": "PASS"
+    },
+    {
+      "idx": "501",
+      "expected": "就是",
+      "pinyin": "jiushi",
+      "reason": "conj",
+      "top10": [
+        "就是",
+        "九十",
+        "酒食",
+        "旧时",
+        "旧事",
+        "旧式",
+        "救世",
+        "旧诗",
+        "旧识",
+        "救市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "502",
+      "expected": "也是",
+      "pinyin": "yeshi",
+      "reason": "conj",
+      "top10": [
+        "夜视",
+        "野史",
+        "夜市",
+        "业师",
+        "野豕"
+      ],
+      "rank": 99,
+      "verdict": "HARD"
+    },
+    {
+      "idx": "503",
+      "expected": "可以",
+      "pinyin": "keyi",
+      "reason": "verb",
+      "top10": [
+        "可以",
+        "可疑",
+        "刻意",
+        "科仪"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     }
   ],
   "stats": {
-    "total": 224,
-    "pass": 199,
+    "total": 227,
+    "pass": 201,
     "soft": 23,
-    "hard": 2
+    "hard": 3
   }
 }
