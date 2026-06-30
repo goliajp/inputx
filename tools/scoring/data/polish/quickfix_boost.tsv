@@ -43,7 +43,7 @@ tuo	托	49610	# n=2 base=39610 peer=40566
 chai	拆	46627	# n=2 base=35440 peer=41627
 duan	短	51005	# n=2 base=41005 peer=44464
 shiji	实际	47404	# n=2 base=37404 peer=38582
-shoushu	收束	44073	# n=2 base=8129 peer=39073
+# RETIRED-r10-bad-order shoushu	收束	44073	# n=2 base=8129 peer=39073
 mo	默	59857	# n=2 base=36029 peer=54857
 buzhou	步骤	22674	# user pick | top=不周 base=19628
 cipin	词频	10000	# user pick over 疵品 | base=6824 peer=疵品 7836 — push above 疵品 but keep 次品 #0
@@ -182,7 +182,7 @@ ci	此	30000
 ming	名	30000
 # 2026-06-30 dogfood Iter L: 2-char modern SOFT + single-char残余
 lianjie	链接	30000
-rizhi	日志	30000
+# RETIRED-r10-bad-order rizhi	日志	30000
 leisi	类似	30000
 zhuanji	专辑	30000
 jinji	紧急	30000
@@ -203,7 +203,7 @@ fenci	分词	30000
 neihe	内核	30000
 lunci	轮次	30000	# 2026-06-30 user seed: was wrongly in corpus_garbage_filter (freq=0 误删 2026-06-28); quickfix un-excludes
 chushi	初始	30000	# strict-0001-19 (was 出使 #0)
-bianyi	编译	30000	# strict-0001-22 (was 便宜 #0)
+# RETIRED-r10-bad-order bianyi	编译	30000	# strict-0001-22 (was 便宜 #0)
 # strict-0001 (人民网 ecology)
 ruhua	如画	30000
 dang	党	30000
@@ -211,7 +211,7 @@ yilai	以来	50000
 shenchu	深处	30000
 jinxiu	锦绣	30000
 yanjiang	沿江	30000
-xinxi	心系	30000
+# RETIRED-r10-bad-order xinxi	心系	30000
 bianji	遍及	30000
 
 # strict-0001 auto-polish (54 quickfix from SOFT+single-HARD)
@@ -255,13 +255,13 @@ lin	林	30000
 # RETIRED-baseline zhe	着	30000
 shadi	沙地	30000
 fangyan	放眼	30000
-zhengzhi	整治	30000
+# RETIRED-r10-bad-order zhengzhi	整治	30000
 jinyu	禁渔	30000
 shuai	甩	30000
 men	们	30000
 zhifu	致富	30000
 huiyi	回忆	30000
-qingjie	情结	30000
+# RETIRED-r10-bad-order qingjie	情结	30000
 jumu	举目	30000
 gan	感	30000
 zaixian	再现	30000
@@ -303,26 +303,26 @@ lunbi	伦比	30000
 
 # strict-dogfood SOFT-flip round (2026-07-01)
 # Format: <buffer>\t<word>\t<freq>  — MAX overlay,翻转 target 到 #0
-paichu	派出	50000
+# RETIRED-r10-bad-order paichu	派出	50000
 # RETIRED-conflict zhuti	主体	55000
 jiwei	纪委	55000
 jizhi	机制	55000
-tongbao	通报	55000
+# RETIRED-r10-bad-order tongbao	通报	55000
 # RETIRED-conflict qingjie	清洁	50000
 tongyi	统一	55000
 jijian	纪检	50000
-jiancha	监察	50000
+# RETIRED-r10-bad-order jiancha	监察	50000
 # RETIRED-conflict huiyi	会议	55000
 yichang	异常	50000
-shenhua	深化	50000
+# RETIRED-r10-bad-order shenhua	深化	50000
 # RETIRED-conflict xinxi	信息	55000
 tongshi	同时	50000
 zhidao	指导	55000
-weiji	违纪	50000
+# RETIRED-r10-bad-order weiji	违纪	50000
 yixia	以下	50000
 jiancheng	简称	50000
 zhuli	助力	50000
-gongshi	公示	50000
+# RETIRED-r10-bad-order gongshi	公示	50000
 chufa	处罚	50000
 zhishi	指示	45000
 # RETIRED-conflict jiyi	技艺	45000
@@ -397,3 +397,16 @@ xianshi	显示	50000
 yichu	一处	45000
 # zhidao 之道 was at 55k via modern_vocab (literary), need 知道 even higher
 zhidao	知道	70000
+
+# round 10 — boost everyday-common to lead (per 'hexin 核心 > 贺信' principle)
+xinxi	信息	55000
+jiancha	检查	55000
+bianyi	便宜	50000
+zhengzhi	政治	55000
+shoushu	手术	55000
+qingjie	情节	50000
+paichu	排除	50000
+gongshi	公式	45000
+weiji	危机	55000
+tongbao	同胞	45000
+shenhua	深化	50000

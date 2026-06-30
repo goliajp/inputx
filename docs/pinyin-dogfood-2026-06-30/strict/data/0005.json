@@ -522,7 +522,7 @@
         "阁"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0041",
@@ -787,7 +787,7 @@
         "志士"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0061",
@@ -1191,7 +1191,7 @@
         "雨人"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0089",
@@ -1231,7 +1231,7 @@
         "椁"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0091",
@@ -1982,7 +1982,7 @@
         "大吉"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0143",
@@ -2008,7 +2008,7 @@
         "坞壁"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0145",
@@ -2080,7 +2080,7 @@
         "全力"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0151",
@@ -2238,7 +2238,7 @@
         "搞笑"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0165",
@@ -2537,7 +2537,7 @@
         "坝"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0184",
@@ -2689,15 +2689,15 @@
       "pinyin": "zhengzhi",
       "reason": "linear",
       "top10": [
-        "整治",
         "政治",
+        "整治",
         "争执",
         "正值",
         "正直",
         "正职"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0195",
@@ -2796,7 +2796,7 @@
         "坝"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0202",
@@ -2921,7 +2921,7 @@
         "馨"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0211",
@@ -2941,7 +2941,7 @@
         "幸事"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0212",
@@ -2992,7 +2992,7 @@
         "浩"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0215",
@@ -3214,7 +3214,7 @@
         "指到"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0231",
@@ -3361,7 +3361,7 @@
         "搞笑"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0242",
@@ -3737,14 +3737,14 @@
       "pinyin": "qingjie",
       "reason": "linear",
       "top10": [
-        "情结",
         "情节",
         "清洁",
+        "情结",
         "轻捷",
         "磬竭"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0272",
@@ -4471,7 +4471,7 @@
         "国控"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0328",
@@ -4701,7 +4701,7 @@
         "防制"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0346",
@@ -5021,7 +5021,7 @@
         "支吾"
       ],
       "rank": 2,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0370",
@@ -5081,7 +5081,7 @@
         "超低"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0375",
@@ -5125,14 +5125,14 @@
       "pinyin": "zhengzhi",
       "reason": "linear",
       "top10": [
-        "整治",
         "政治",
+        "整治",
         "争执",
         "正值",
         "正直",
         "正职"
       ],
-      "rank": 0,
+      "rank": 1,
       "verdict": "PASS"
     },
     {
@@ -5424,7 +5424,7 @@
         "打赢"
       ],
       "rank": 1,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0401",
@@ -5475,8 +5475,8 @@
   ],
   "stats": {
     "total": 398,
-    "pass": 368,
-    "soft": 30,
+    "pass": 390,
+    "soft": 8,
     "hard": 0
   }
 }
