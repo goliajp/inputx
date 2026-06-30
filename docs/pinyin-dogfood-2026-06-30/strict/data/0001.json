@@ -1,0 +1,389 @@
+{
+  "id": "0001",
+  "title": "APT",
+  "raw_text": "APT\n\n高级打包工具（英语：Advanced Packaging Tools，缩写为APT）是Debian及其派生的Linux软件包管理器。APT可以自动下载，配置，安装二进制或者源代码格式的软件包，因此简化了Unix系统上管理软件的过程。APT最早被设计成dpkg的前端，用来处理deb格式的软件包。现在经过APT-RPM组织修改，APT已经可以安装在支持RPM的系统管理RPM包。\n\n\n== 构成 ==\nAPT由以下的几个主要的命令构成：\n\napt-get\napt-cache\napt-file\n在Debian系统中，APT建构于dpkg之上。\n\n\n== 安装源 ==\nAPT的软件安装来源在Debian安装的时候即可进行初始设置，除了Debian官方的网络安装来源之外，也可以使用Debian的安装光盘，甚至可以从非官方的安装来源中下载非官方的软件。APT同时也可以从一些安装来源中下载源代码软件，并且自行编译、安装。\n\n\n== 依赖关系处理 ==\nAPT会从每一个安装源下载一个软件包的列表。这个列表中有这个安装源所包含的可用软件包的信息。在可能的情况下，APT会安装最新的软件包，被安装的软件包所依赖的其他软件包也会被安装，建议安装的软件包则会在屏幕中显示但是不会被安装。不过在有一些情况下APT由于依赖关系不能安装软件包，例如：这个软件包和系统中的其他软件包冲突，或者这个软件包依赖的软件包在任何安装源中均不存在或没有要求的版本。在这种情况下，APT会返回错误信息并且中止，用户需要自行解决依赖问题。\n\n\n== 软件包更新方式 ==\nDebian系统的一大特色即为“永不停机”，事实上，APT达到了这一点。在软件被升级的时候，它仍然可以继续服务。APT可以智能地从安装来源下载最新版本的软件并且安装，而无须在安装后重启电脑（除了更新Linux内核之外）。所有的配置都可以得到保留，升级软件不再是一个棘手的问题。\n\n\n== 发行版升级 ==\nAPT最使人称道的特点在于可以从一个Debian发行版升级到新的Debian发行版，例如从woody升级到sarge。APT可以升级绝大部分满足依赖关系的软件，但是也可能要删除，或添加新的软件以满足依赖关系。\n\n\n== 前端 ==\n\nAPT拥有不少的前端程序：\n\n\n== 示例 ==\n\n\n=== 搜索 ===\n在终端里输入：\n\napt-cache search <package>\n这样系统会列出与<package>名称相匹配的包。\n\n\n=== 安装 ===\n在终端里输入：\n\napt-get install <package>\n这样系统会自动下载<package>以及所有的依存包，同时进行包的安装。\n\n\n=== 移除 ===\n在终端里输入：\n\napt-get remove [--purge] <package>\n这样系统会自动移除<package>以及任何依此存包的其它包。 --purge指明包应被完全清除。\n\n\n=== 升级 ===\n在终端里输入：\n\napt-get update\n这样系统会自动由映射点更新包列表，如果想安装最新包，必须先运行一次。每次修改了 /etc/apt/sources.list后，也必须执行一次。\n在终端里输入：\n\napt-get upgrade [-u]\n这样系统会自动将所有已经安装在系统内的包升级为最新版本。如果一个包改变了依存关系，而需要安装一个新的包时，它将不会被升级，而是标识成hold。如果某个包被设置hold标号，就不会被升级。\n在终端里输入：\n\napt-get dist-upgrade [-u]\n和apt-get upgrade类似，dist-upgrade会安装和移除包来满足依存关系，因此具有一定的危险性。\n\n\n== 彩蛋 ==\n在终端输入apt-get -h会在末尾出现“This APT has super cow power”（本 APT 具有超级牛力。）。\n在终端输入apt-get moo会在屏幕上显示一头牛，下方显示“Have you mooed today?”（您今天哞哞叫了吗？）。\n\n                 (__) \n                 (oo) \n           /------\\/ \n          / |    ||   \n         *  /\\---/\\ \n            ~~   ~~   \n...\"Have you mooed today?\"...\n\n与apt-get相似的一个叫做aptitude的程序在aptitude -h的末尾加上了“This aptitude does not have Super Cow Powers.（这个aptitude没有超级牛力）”。\n在后面加上moo（即输入aptitude moo），并且分别加上选项“-v”，“-vv”，“-vvv”，“-vvvv”，“-vvvvv”，“-vvvvvv”（即输入aptitude -v moo;输入aptitude -vv moo;等等），则会有如下输出：\n\n $ aptitude moo\n There are no Easter Eggs in this program.（此軟體沒有復活節彩蛋程式。）\n $ aptitude -v moo\n There really are no Easter Eggs in this program.（此軟體真的沒有復活節彩蛋程式。）\n $ aptitude -vv moo\n Didn't I already tell you that there are no Easter Eggs in this program?（我不是已經告訴你這個軟體真的沒有復活節彩蛋程式了嗎？）\n $ aptitude -vvv moo\n Stop it!（停啦！）\n $ aptitude -vvvv moo\n Okay, okay, if I give you an Easter Egg, will you go away?（好啦，好啦，如果我給你復活節彩蛋，你是不是就閃人？）\n $ aptitude -vvvvv moo\n All right, you win.（好啦，你赢了。）\n                               /----\\\n                       -------/      \\\n                      /               \\\n                     /\n  |-----------------/                  --------\\\n   ----------------------------------------------\n $ aptitude -vvvvvv moo\n What is it?  It's an elephant being eaten by a snake, of course.（這是什麼? 這當然是一隻大象被一隻蛇吞掉。）\n\n而apt系列的另一个名为\"apt-build\"的软件包也具有相似的功能：\n\n $ apt-build moo\n          (__)    ~\n          (oo)   /\n      _____\\/___/\n     /  /\\ / /\n    ~  /  * /\n      / ___/\n *----/\\\n     /  \\\n    /   /\n   ~    ~\n ...\"Have you danced today? Discow!\"...\n （意为：今天你跳舞了吗？迪斯可！）\n\n软件编写者特地将Disco（迪斯可）一词改为\"Discow\"，以体现\"Cow\"（奶牛）之意。\n\n\n== 参见 ==\n\nYum\nDebian\nUbuntu\n\n\n== 参考文献 ==\n\n\n== 外部链接 ==\napt(8) – Debian维护命令（Maintenance Commands）手册页\nAPT HOWTO（页面存档备份，存于互联网档案馆）\nAPT-RPM组织（页面存档备份，存于互联网档案馆）\n",
+  "cjk_char_count": 1203,
+  "segments": [
+    {
+      "idx": "01",
+      "expected": "高级",
+      "pinyin": "gaoji",
+      "reason": "common adj",
+      "top10": [
+        "高级",
+        "告急",
+        "搞基"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "02",
+      "expected": "打包",
+      "pinyin": "dabao",
+      "reason": "tech verb",
+      "top10": [
+        "打包",
+        "大宝",
+        "大鸨",
+        "打爆"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "03",
+      "expected": "工具",
+      "pinyin": "gongju",
+      "reason": "common noun",
+      "top10": [
+        "工具",
+        "公举"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "04",
+      "expected": "缩写",
+      "pinyin": "suoxie",
+      "reason": "abbreviation",
+      "top10": [
+        "缩写",
+        "琐屑",
+        "索谢"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "05",
+      "expected": "派生",
+      "pinyin": "paisheng",
+      "reason": "derive",
+      "top10": [
+        "派生",
+        "排笙"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "06",
+      "expected": "软件包",
+      "pinyin": "ruanjianbao",
+      "reason": "tech compound",
+      "top10": [
+        "软件包"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "07",
+      "expected": "管理器",
+      "pinyin": "guanliqi",
+      "reason": "tech compound",
+      "top10": [
+        "管理器"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "08",
+      "expected": "二进制",
+      "pinyin": "erjinzhi",
+      "reason": "tech: binary",
+      "top10": [
+        "二进制"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "09",
+      "expected": "源代码",
+      "pinyin": "yuandaima",
+      "reason": "tech: source code",
+      "top10": [
+        "源代码"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "10",
+      "expected": "简化",
+      "pinyin": "jianhua",
+      "reason": "common verb",
+      "top10": [
+        "简化",
+        "奸猾",
+        "碱化"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "11",
+      "expected": "过程",
+      "pinyin": "guocheng",
+      "reason": "common",
+      "top10": [
+        "过程",
+        "郭城",
+        "过秤"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "12",
+      "expected": "最早",
+      "pinyin": "zuizao",
+      "reason": "temporal",
+      "top10": [
+        "最早",
+        "醉枣"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "13",
+      "expected": "前端",
+      "pinyin": "qianduan",
+      "reason": "tech",
+      "top10": [
+        "前端",
+        "前段",
+        "浅短"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "14",
+      "expected": "经过",
+      "pinyin": "jingguo",
+      "reason": "common verb",
+      "top10": [
+        "经过"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "15",
+      "expected": "修改",
+      "pinyin": "xiugai",
+      "reason": "common verb",
+      "top10": [
+        "修改"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "16",
+      "expected": "支持",
+      "pinyin": "zhichi",
+      "reason": "common verb",
+      "top10": [
+        "支持",
+        "指斥",
+        "至迟",
+        "咫尺",
+        "直尺",
+        "智齿",
+        "知耻"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "17",
+      "expected": "构成",
+      "pinyin": "goucheng",
+      "reason": "common verb",
+      "top10": [
+        "构成"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "18",
+      "expected": "安装源",
+      "pinyin": "anzhuangyuan",
+      "reason": "tech compound (apt-specific)",
+      "top10": [
+        "安装源"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "19",
+      "expected": "初始",
+      "pinyin": "chushi",
+      "reason": "tech adj",
+      "top10": [
+        "初始",
+        "出使",
+        "出世",
+        "出事",
+        "出示",
+        "出师",
+        "厨师",
+        "处事",
+        "处世",
+        "初试"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "20",
+      "expected": "官方",
+      "pinyin": "guanfang",
+      "reason": "common adj",
+      "top10": [
+        "官方",
+        "关防"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "21",
+      "expected": "安装光盘",
+      "pinyin": "anzhuangguangpan",
+      "reason": "tech 4-char compound",
+      "top10": [
+        "安装光盘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "22",
+      "expected": "编译",
+      "pinyin": "bianyi",
+      "reason": "tech verb",
+      "top10": [
+        "编译",
+        "便宜",
+        "贬义",
+        "变异",
+        "便衣",
+        "贬抑",
+        "便意",
+        "边裔"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "23",
+      "expected": "依赖",
+      "pinyin": "yilai",
+      "reason": "tech term",
+      "top10": [
+        "依赖",
+        "以来",
+        "一来",
+        "倚赖"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "24",
+      "expected": "冲突",
+      "pinyin": "chongtu",
+      "reason": "common noun",
+      "top10": [
+        "冲突"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "25",
+      "expected": "存在",
+      "pinyin": "cunzai",
+      "reason": "common verb",
+      "top10": [
+        "存在"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "26",
+      "expected": "版本",
+      "pinyin": "banben",
+      "reason": "common noun",
+      "top10": [
+        "版本"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "27",
+      "expected": "返回",
+      "pinyin": "fanhui",
+      "reason": "common verb",
+      "top10": [
+        "返回",
+        "反悔"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "28",
+      "expected": "解决",
+      "pinyin": "jiejue",
+      "reason": "common verb",
+      "top10": [
+        "解决",
+        "孑孓",
+        "戒绝"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "29",
+      "expected": "发行版",
+      "pinyin": "faxingban",
+      "reason": "tech compound",
+      "top10": [
+        "发行版"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "30",
+      "expected": "超级",
+      "pinyin": "chaoji",
+      "reason": "common adj",
+      "top10": [
+        "超级"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    }
+  ],
+  "stats": {
+    "total": 30,
+    "pass": 30,
+    "soft": 0,
+    "hard": 0
+  }
+}
