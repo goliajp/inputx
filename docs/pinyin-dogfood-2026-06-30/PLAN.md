@@ -71,7 +71,7 @@
 - [x] 2.7 Validate segments — spot check 通过(gaoji 高级 / dabao 打包 / ruanjianbao 软件包 等真实分词 + 拼音对)
 
 ### Phase 3: dogfood Rust binary
-- [ ] 3.1 Write `core/crates/inputx-core/src/bin/inputx_dogfood.rs`(read segments.tsv,for each call v2::query() in-process)
+- [WIP] 3.1 Write `core/crates/inputx-core/src/bin/inputx_dogfood.rs`(read segments.tsv,for each call v2::query() in-process)
 - [ ] 3.2 Failure classification logic(HARD = not top10, SOFT = not #0)
 - [ ] 3.3 Cargo wire(确保 binary 编译)
 - [ ] 3.4 Smoke run on first 100 segments → 验证 pipeline
