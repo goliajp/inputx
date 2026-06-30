@@ -133,6 +133,10 @@ User wants 全部做完。Reopen Phase 5 — corpus grew to 272 articles (slow f
 - [x] 5.12 done。35 modern_vocab Iter K(敲出/新泽西州/南区/足总杯/曼谷/投出/新北市/元朝/国军/本站/主场优势/一股/风眼/低压槽/蒙大拿州/湖南/华北/第四位/百老汇/视星等/岩手县/青海/女选手/用球数/投满/号线/此站/签表/红队/印度洋/向东/占多数/马来/机上/查看器)。**Run-015: PASS 72.3 → 72.4%(+0.1pp,HARD -194)**。**Decision: wrap**。每 batch +0.1pp 需 30+ entries,ROI 极低。剩余 HARD 是 names + niche + 文言 + 名字 — 这些 polish 不能产生通用 IME value。
 - [x] 5.13 Final wrap:Phase 5 reopen closed,final.md updated to 72.4% / 111k segs / 395 polish rows,cron 14135fef cancelled。**ALL DONE FINAL 🎉**
 
+## Reopened 3rd time(user /loop 3m 第 3 次)
+- [WIP] 5.14 **New attack vector**:降低 modern_vocab `freq → tier` 阈值,让 polish 词真能竞争 HSK 词(tier 2)。
+- [ ] 5.15 单字 SOFT 残余 quickfix(一位/一项 等同音真词)
+
 
 ## Open questions(任何一项有 update 写这里)
 
