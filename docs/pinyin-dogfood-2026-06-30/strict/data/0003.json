@@ -2467,9 +2467,11 @@
       "expected": "夏管",
       "pinyin": "xiaguan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "夏管"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0189",
@@ -3779,8 +3781,8 @@
   ],
   "stats": {
     "total": 280,
-    "pass": 259,
+    "pass": 260,
     "soft": 18,
-    "hard": 3
+    "hard": 2
   }
 }
