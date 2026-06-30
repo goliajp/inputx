@@ -16,6 +16,7 @@
 - 2026-06-30 iter#4 — 1.4 done。**设计简化**:不在 6 个 sort site 改,而在最后 sort 前统一 `entry.1 += modern_freq[w]`。一处 site 全覆盖。**gongqi 概念验证 ✓**:`共栖, 工期` → `工期, 共栖`(无 quickfix 助力,纯 modern_freq 翻转)。6 anchors 全 #0 正确。Next: 1.5 baseline 357
 - 2026-06-30 iter#5 — 1.5 done。Baseline 初次 6 fail。两类问题:(a) modern_freq 把 quickfix 显式 cascade 推翻 → 加 **Sovereignty rule**(quickfix 词不吃 modern_freq);(b) ingest 漏 `modern_vocab_v1.tsv`(英国/印度 等 country batch 无 modern_freq 数据,被同音 cedict 词压)→ 修脚本读 modern_vocab。剩 2 case (tigan 体感/toulan 偷懒) jieba 新闻语料偏 → 加 quickfix 10k 各。Final 357/0 ✓。Next: 1.6 retire 候选验证
 - 2026-06-30 iter#6 — 1.6 done。Retire 候选清单写入 PLAN "Notes" 节。**~6 行可撤**(ceshi/yanjiu/liucheng/lianxu/shenru cascade 全 + xingshi top 2),其余 quickfix 仍 essential(muscle memory 单字 / JP cross / cascade 内非首两位)。Phase 6 清理用。Next: 1.7 mac/reinstall + commit
+- 2026-06-30 iter#7 — 1.7 done。**Phase 1 SHIPPED 🎉**。mac/reinstall ✓,live IME 跑 v2 + modern-freq。Phase 1 8/8 全 done(0.x + 1.x = 11 items)。Next: 2.1 pick corpus(THUCNews 默认)
 
 ## Status legend
 - `[ ]` todo
@@ -52,7 +53,7 @@
 - [x] 1.4 `lib.rs` 加 modern_freq score 注入(**design 简化**:不在 6 个 sort site 改,而在 prior_corrections loop 后统一 `entry.1 += modern_freq[word]`。所有 path 汇 `out`,一次 site 全覆盖,不漏。Cap 25k < tier 跨度 30k 保证不跨 tier)
 - [x] 1.5 cargo build + baseline 357/0 ✓ (Sovereignty rule + 2 quickfix backfill + ingest bug fix)
 - [x] 1.6 验证 anchor 翻转:gongqi→工期 / ceshi→测试 / liucheng→流程 / yanjiu→研究 / huluobo→胡萝卜(无 quickfix 帮助时也能自动正确)。Retire 候选清单见 "Notes" 节。
-- [WIP] 1.7 mac/reinstall.py + commit + push
+- [x] 1.7 mac/reinstall.py + commit + push — **Phase 1 SHIPPED 🎉**
 
 ### Phase 2: corpus prep
 - [ ] 2.1 Pick corpus source(THUCNews 默认,或 HuggingFace 备选)
