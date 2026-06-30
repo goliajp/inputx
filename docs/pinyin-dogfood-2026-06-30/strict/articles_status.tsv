@@ -1,5 +1,50 @@
-# strict mode per-article status
-# article_id	status	segments_done	segments_total	last_seg_idx	note
-# status: TODO / IN_PROGRESS / DONE / BLOCKED
-# Initial entry empty — populated as articles are picked up by /loop iters
-0001	DONE	50	50	50	人民网 ecology 50/50 PASS, 20 polish
+# 1000-article dogfood polish status — re-architected 2026-07-01 per user
+# Schema: article_id	status	domain	source	title	cjk_chars	pass	total	note
+# Status: TODO / FETCHED / SEGMENTED / IN_PROGRESS / DONE / BLOCKED
+# Article ID: {domain_letter}{seq3} — A=政治政策 B=科技数码 C=财经金融
+#                                     D=教育学术 E=医疗健康 F=文化艺术
+#                                     G=体育竞技 H=历史人文 I=旅游地理
+#                                     J=社会民生
+# 100 articles per domain × 10 domains = 1000 total.
+# Original 0001-0010 mapped here as DONE.
+A001	DONE	政治政策	人民网	镜观·足迹｜呵护千山万水 擘画永续发展	1441	718	718	0001 alias
+A002	DONE	政治政策	人民网	学习手记 ｜"环境就是民生"	902	512	512	0002 alias
+A003	DONE	政治政策	人民网	刘国中在安徽调研时强调 全力以赴夺取夏粮丰收	552	280	280	0003 alias
+A004	DONE	政治政策	人民网	国务院印发《关于开展第四次全国农业普查的通知》	676	362	362	0004 alias
+A005	DONE	政治政策	人民网	丁薛祥在山西调研时强调 守好公平公正"生命线"	777	398	398	0005 alias
+A006	DONE	政治政策	人民网	中共中央办公厅印发《党组讨论和决定党员处分事项工作程序规定》	1867	1010	1010	0006 alias
+A007	DONE	文化艺术	人民网	【文脉华章】非遗焕新 生生不息丨用太极招式来炒茶	770	432	432	0007 alias (重分类)
+A008	DONE	政治政策	人民网	天天学习丨中南海月刊（2025.05）	3068	1620	1620	0008 alias
+A009	DONE	政治政策	人民网	微视频｜共建清洁美丽世界	545	269	269	0009 alias
+A010	DONE	社会民生	人民网	多地升级信用修复服务 助力经营主体重塑良好信用	1882	993	993	0010 alias (重分类)
+# === Pending (TODO) — populated by fetcher per domain rotation ===
+# Domain quotas (current done / target):
+#   A 政治政策: 8/100   B 科技数码: 0/100   C 财经金融: 0/100
+#   D 教育学术: 0/100   E 医疗健康: 0/100   F 文化艺术: 1/100
+#   G 体育竞技: 0/100   H 历史人文: 0/100   I 旅游地理: 0/100
+#   J 社会民生: 1/100
+# Total: 10/1000 DONE.
+B001	FETCHED	科技数码	https://www.36kr.com/feed	氪星晚报｜Kimi估值升至315亿美元，ARR突破3亿美元；优艾智合具身智能系列新品全球首发，3年赋能10000个工业现场；国家航天局：我国将建立近地小行星天地协同监测体系	1989	0	0	
+B002	FETCHED	科技数码	https://www.36kr.com/feed	科氪 | 小尺寸大满足！全球首款水冷RGB平板发布，185HzOLED屏幕+PC模拟器平板秒变台式主机	3181	0	0	
+B003	FETCHED	科技数码	https://www.36kr.com/feed	成立9个月，在手订单4.4亿，「谱星航天」连续完成两轮数亿元融资｜36氪首发	5563	0	0	
+C001	FETCHED	财经金融	http://www.people.com.cn/rss/finance.xml	我国认证认可检验检测行业发展质量实现整体提升	1023	0	0	
+C002	FETCHED	财经金融	http://www.people.com.cn/rss/finance.xml	防范自动驾驶技术风险 筑牢公共安全防护屏障	2951	0	0	
+E001	FETCHED	医疗健康	http://www.people.com.cn/rss/health.xml	为了患者的一个心愿	853	0	0	
+E002	FETCHED	医疗健康	http://www.people.com.cn/rss/health.xml	产后如何管理体重（服务窗）	869	0	0	
+E003	FETCHED	医疗健康	http://www.people.com.cn/rss/health.xml	银发旅游，如何适老又悦老？（深阅读·文旅新观察）	2259	0	0	
+F001	FETCHED	文化艺术	http://www.people.com.cn/rss/culture.xml	新潮副刊丨读《扬子江文萃》	3811	0	0	
+F002	FETCHED	文化艺术	http://www.people.com.cn/rss/culture.xml	从“物质”与“非物质”的辩证关系里看子弹库帛书的回归意义	1556	0	0	
+F003	FETCHED	文化艺术	http://www.people.com.cn/rss/culture.xml	世界读书日｜劳罕：读书，样子原本很美	6422	0	0	
+G001	FETCHED	体育竞技	http://www.people.com.cn/rss/sports.xml	主教练张晓欢：我们是亲历者 也是幸运者	2332	0	0	
+G002	FETCHED	体育竞技	http://www.people.com.cn/rss/sports.xml	郑钦文遗憾结束12连胜	909	0	0	
+G003	FETCHED	体育竞技	http://www.people.com.cn/rss/sports.xml	2019中国攀岩联赛（广州增城）开赛	1081	0	0	
+H001	FETCHED	历史人文	http://www.people.com.cn/rss/history.xml	2019“穿越海螺沟·飞夺泸定桥”越野赛带你重走红军革命路	1852	0	0	
+H002	FETCHED	历史人文	http://www.people.com.cn/rss/history.xml	“一带一路”人文历史摄影展在京启动	2347	0	0	
+H003	FETCHED	历史人文	http://www.people.com.cn/rss/history.xml	“盛世风华”：上海市文史研究馆馆员书画艺术作品展今天开幕！	985	0	0	
+I001	FETCHED	旅游地理	http://www.people.com.cn/rss/travel.xml	陈凯歌在《道士下山》新闻发布会上推介仙都景区	1007	0	0	
+I002	FETCHED	旅游地理	http://www.people.com.cn/rss/travel.xml	高清：四川14岁女孩钢笔素描展示家乡美 令人惊叹	833	0	0	
+I003	FETCHED	旅游地理	http://www.people.com.cn/rss/travel.xml	河北野三坡景区建起287栋别墅 国有资产被转卖	1299	0	0	
+J001	FETCHED	社会民生	http://www.people.com.cn/rss/society.xml	公安机关依法严厉打击破坏生态环境犯罪	1604	0	0	
+J002	FETCHED	社会民生	http://www.people.com.cn/rss/society.xml	永定河畔，甜蜜升级	4023	0	0	
+J003	FETCHED	社会民生	http://www.people.com.cn/rss/society.xml	完善协作机制 推进绿色发展	1009	0	0	
+A012	FETCHED	政治政策	http://www.people.com.cn/rss/politics.xml	学习手记 | “环境就是民生”	922	0	0	
