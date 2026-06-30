@@ -430,6 +430,24 @@ mod tests {
             // Polish 2026-06-30: user "helan 荷兰 这个词肯定要有的，国家名".
             // CC-CEDICT proper-noun reject in v2 ingest; modern_vocab backfill.
             ("helan", "荷兰"),
+            // Polish 2026-06-30: user "deguo 德国 也没有，其他国家名全都要补上".
+            // Batch backfill 68 country names + 2 disambiguation quickfix
+            // (韩国 vs 汗国, 巴西 vs 把戏).
+            ("deguo", "德国"),
+            ("meiguo", "美国"),
+            ("faguo", "法国"),
+            ("yingguo", "英国"),
+            ("riben", "日本"),
+            ("hanguo", "韩国"),
+            ("eluosi", "俄罗斯"),
+            ("yindu", "印度"),
+            ("xibanya", "西班牙"),
+            ("jianada", "加拿大"),
+            ("aodaliya", "澳大利亚"),
+            ("baxi", "巴西"),
+            ("xinjiapo", "新加坡"),
+            ("aiji", "埃及"),
+            ("tuerqi", "土耳其"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
