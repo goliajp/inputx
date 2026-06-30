@@ -673,6 +673,100 @@ def restart_text_input_menu_agent() -> None:
     )
 
 
+def ensure_third_party_enabled() -> None:
+    """Re-assert our TIS rows in the macOS-26 third-party-IME plist.
+
+    Why this exists (user 2026-07-01: "cannot input chinese ... 总出问题"):
+    every reinstall replaces the bundle on disk → cdhash changes →
+    macOS sometimes drops our entry from
+    `com.apple.inputsources.AppleEnabledThirdPartyInputSources`,
+    leaving the bundle valid + signed + LS-registered but NOT enabled
+    in any host-app's IMK picker. The pre-2026-07-01 script reported
+    success and left the user with a silently-broken IME, recoverable
+    only by manually removing+re-adding via System Settings — which
+    also triggered .bak duplication accumulation (now fixed: backups
+    go to ~/Library/Caches/).
+
+    macOS 26 splits IME state across two plists:
+      - `com.apple.HIToolbox.AppleEnabledInputSources` — built-in IMEs
+      - `com.apple.inputsources.AppleEnabledThirdPartyInputSources` —
+        third-party IMEs (us). This is the canonical source-of-truth
+        for our enabled state.
+
+    Write the two rows our bundle expects (one for the bundle keyboard-
+    input-method row, one for the input mode), and the matching row
+    in HIToolbox.AppleEnabledInputSources. SIP doesn't block `defaults
+    import` for these plists — Settings UI just owns the picker UX,
+    not the underlying writeability. (Earlier confusion: I assumed
+    SIP blocked writes; experimentally it doesn't. Settings UI does
+    re-read on next launch, but our writes survive the read.)
+
+    Pairs with `restart_text_input_menu_agent` immediately after, so
+    the menu-bar picker re-enumerates and surfaces us without the
+    user having to click anything.
+    """
+    import plistlib
+    import tempfile
+
+    def _ensure(domain: str, key: str, want_entries: list[dict]) -> tuple[int, int]:
+        r = subprocess.run(
+            ["defaults", "export", domain, "-"],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False,
+        )
+        try:
+            plist = plistlib.loads(r.stdout) if r.stdout else {}
+        except Exception:
+            plist = {}
+        existing = plist.get(key, []) or []
+        before = len(existing)
+
+        # Skip rows that already cover our wants.
+        def _has_row(want: dict) -> bool:
+            return any(
+                all(e.get(k) == v for k, v in want.items())
+                for e in existing
+            )
+
+        added = 0
+        for want in want_entries:
+            if not _has_row(want):
+                existing.append(want)
+                added += 1
+        if added == 0:
+            return before, 0
+
+        plist[key] = existing
+        with tempfile.NamedTemporaryFile("wb", suffix=".plist", delete=False) as f:
+            plistlib.dump(plist, f)
+            tmp = f.name
+        subprocess.run(["defaults", "import", domain, tmp], check=True)
+        return before, added
+
+    # 1) Canonical third-party enabled plist (macOS 26).
+    tp_wants = [
+        {"Bundle ID": BUNDLE_ID, "InputSourceKind": "Keyboard Input Method"},
+        {"Bundle ID": BUNDLE_ID, "Input Mode": MODE_ID,
+         "InputSourceKind": "Input Mode"},
+    ]
+    _, tp_added = _ensure(
+        "com.apple.inputsources",
+        "AppleEnabledThirdPartyInputSources",
+        tp_wants,
+    )
+
+    # DON'T write to com.apple.HIToolbox.AppleEnabledInputSources for
+    # third-party IMEs. macOS 26 returns the UNION of both plists from
+    # the TIS API, so writing the same mode row to both creates a
+    # `len(state.mode_rows) > 1` corruption flag in `query_tis_rows()`.
+    # com.apple.inputsources is the canonical plist; HIToolbox is for
+    # built-in IMEs only.
+    if tp_added:
+        log(f"✓ re-asserted {tp_added} TIS enabled row(s) "
+            f"in com.apple.inputsources")
+    else:
+        log("✓ TIS enabled rows already present")
+
+
 def bounce_imklaunchagent() -> None:
     """Restart `com.apple.imklaunchagent` so its in-process bundle /
     connection-name cache is rebuilt from disk.
@@ -1310,6 +1404,13 @@ def with_safety_net(install_fn) -> None:
     if not ok:
         _rollback(backup, f"binary probe failed: {detail}")
     log("✓ binary probe returned 你好")
+
+    # Re-assert our enabled TIS rows + bounce menu agent so the macOS-26
+    # picker shows us without the user needing to re-add via Settings.
+    # (Most reinstalls preserve the enabled state; some don't. Idempotent
+    # write covers both cases without surprising the working ones.)
+    ensure_third_party_enabled()
+    restart_text_input_menu_agent()
 
     if backup is not None:
         shutil.rmtree(backup)
