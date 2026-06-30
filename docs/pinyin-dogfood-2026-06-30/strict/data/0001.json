@@ -6,19 +6,46 @@
   "segments": [
     {
       "idx": "0001",
-      "expected": "镜观",
-      "pinyin": "jingguan",
+      "expected": "镜",
+      "pinyin": "jing",
       "reason": "linear",
       "top10": [
-        "景观",
-        "警官",
-        "经管"
+        "经",
+        "井",
+        "茎",
+        "精",
+        "京",
+        "境",
+        "静",
+        "惊",
+        "竟",
+        "景"
       ],
       "rank": 99,
       "verdict": "HARD"
     },
     {
       "idx": "0002",
+      "expected": "观",
+      "pinyin": "guan",
+      "reason": "linear",
+      "top10": [
+        "关",
+        "官",
+        "罐",
+        "观",
+        "馆",
+        "管",
+        "冠",
+        "惯",
+        "灌",
+        "棺"
+      ],
+      "rank": 3,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0003",
       "expected": "足迹",
       "pinyin": "zuji",
       "reason": "linear",
@@ -31,7 +58,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0003",
+      "idx": "0004",
       "expected": "呵护",
       "pinyin": "hehu",
       "reason": "linear",
@@ -43,7 +70,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0004",
+      "idx": "0005",
       "expected": "千山万水",
       "pinyin": "qianshanwanshui",
       "reason": "linear",
@@ -54,7 +81,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0005",
+      "idx": "0006",
       "expected": "擘画",
       "pinyin": "bohua",
       "reason": "linear",
@@ -67,7 +94,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0006",
+      "idx": "0007",
       "expected": "永续",
       "pinyin": "yongxu",
       "reason": "linear",
@@ -78,7 +105,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0007",
+      "idx": "0008",
       "expected": "发展",
       "pinyin": "fazhan",
       "reason": "linear",
@@ -90,7 +117,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0008",
+      "idx": "0009",
       "expected": "大美",
       "pinyin": "damei",
       "reason": "linear",
@@ -102,7 +129,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0009",
+      "idx": "0010",
       "expected": "中国",
       "pinyin": "zhongguo",
       "reason": "linear",
@@ -113,7 +140,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0010",
+      "idx": "0011",
       "expected": "江山",
       "pinyin": "jiangshan",
       "reason": "linear",
@@ -124,7 +151,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0011",
+      "idx": "0012",
       "expected": "如画",
       "pinyin": "ruhua",
       "reason": "linear",
@@ -139,63 +166,27 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0012",
-      "expected": "党的",
-      "pinyin": "dangde",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
       "idx": "0013",
-      "expected": "十八大",
-      "pinyin": "shibada",
+      "expected": "党",
+      "pinyin": "dang",
       "reason": "linear",
       "top10": [
-        "十八大"
+        "党",
+        "当",
+        "挡",
+        "档",
+        "荡",
+        "铛",
+        "垱",
+        "珰",
+        "宕",
+        "谠"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "0014",
-      "expected": "以来",
-      "pinyin": "yilai",
-      "reason": "linear",
-      "top10": [
-        "以来",
-        "依赖",
-        "一来",
-        "倚赖"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0015",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0016",
-      "expected": "总书记",
-      "pinyin": "zongshuji",
-      "reason": "linear",
-      "top10": [
-        "总书记"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0017",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -215,7 +206,74 @@
       "verdict": "PASS"
     },
     {
+      "idx": "0015",
+      "expected": "十八大",
+      "pinyin": "shibada",
+      "reason": "linear",
+      "top10": [
+        "十八大"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0016",
+      "expected": "以来",
+      "pinyin": "yilai",
+      "reason": "linear",
+      "top10": [
+        "以来",
+        "依赖",
+        "一来",
+        "倚赖"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0017",
+      "expected": "习近平",
+      "pinyin": "xijinping",
+      "reason": "linear",
+      "top10": [
+        "习近平"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
       "idx": "0018",
+      "expected": "总书记",
+      "pinyin": "zongshuji",
+      "reason": "linear",
+      "top10": [
+        "总书记"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0019",
+      "expected": "的",
+      "pinyin": "de",
+      "reason": "linear",
+      "top10": [
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0020",
       "expected": "考察",
       "pinyin": "kaocha",
       "reason": "linear",
@@ -227,7 +285,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0019",
+      "idx": "0021",
       "expected": "足迹",
       "pinyin": "zuji",
       "reason": "linear",
@@ -240,7 +298,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0020",
+      "idx": "0022",
       "expected": "遍及",
       "pinyin": "bianji",
       "reason": "linear",
@@ -254,7 +312,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0021",
+      "idx": "0023",
       "expected": "神州大地",
       "pinyin": "shenzhoudadi",
       "reason": "linear",
@@ -265,7 +323,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0022",
+      "idx": "0024",
       "expected": "祁连山",
       "pinyin": "qilianshan",
       "reason": "linear",
@@ -276,7 +334,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0023",
+      "idx": "0025",
       "expected": "麓",
       "pinyin": "lu",
       "reason": "linear",
@@ -296,7 +354,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0024",
+      "idx": "0026",
       "expected": "坝上",
       "pinyin": "bashang",
       "reason": "linear",
@@ -307,7 +365,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0025",
+      "idx": "0027",
       "expected": "林海",
       "pinyin": "linhai",
       "reason": "linear",
@@ -319,7 +377,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0026",
+      "idx": "0028",
       "expected": "秦岭",
       "pinyin": "qinling",
       "reason": "linear",
@@ -330,7 +388,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0027",
+      "idx": "0029",
       "expected": "深处",
       "pinyin": "shenchu",
       "reason": "linear",
@@ -346,7 +404,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0028",
+      "idx": "0030",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -357,23 +415,47 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0029",
-      "expected": "之滨",
-      "pinyin": "zhibin",
+      "idx": "0031",
+      "expected": "之",
+      "pinyin": "zhi",
       "reason": "linear",
       "top10": [
-        "治病",
-        "致病",
-        "致病菌",
-        "治病救人",
-        "致病性",
-        "制冰机"
+        "只",
+        "之",
+        "指",
+        "支",
+        "直",
+        "枝",
+        "制",
+        "知",
+        "质",
+        "止"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
-      "idx": "0030",
+      "idx": "0032",
+      "expected": "滨",
+      "pinyin": "bin",
+      "reason": "linear",
+      "top10": [
+        "宾",
+        "滨",
+        "彬",
+        "斌",
+        "濒",
+        "鬓",
+        "缤",
+        "份",
+        "摈",
+        "殡"
+      ],
+      "rank": 1,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0033",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -384,7 +466,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0031",
+      "idx": "0034",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -404,7 +486,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0032",
+      "idx": "0035",
       "expected": "大江",
       "pinyin": "dajiang",
       "reason": "linear",
@@ -418,7 +500,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0033",
+      "idx": "0036",
       "expected": "奔涌",
       "pinyin": "benyong",
       "reason": "linear",
@@ -429,7 +511,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0034",
+      "idx": "0037",
       "expected": "处",
       "pinyin": "chu",
       "reason": "linear",
@@ -449,7 +531,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0035",
+      "idx": "0038",
       "expected": "谋划",
       "pinyin": "mouhua",
       "reason": "linear",
@@ -460,7 +542,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0036",
+      "idx": "0039",
       "expected": "千秋大计",
       "pinyin": "qianqiudaji",
       "reason": "linear",
@@ -471,7 +553,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0037",
+      "idx": "0040",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -491,7 +573,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0038",
+      "idx": "0041",
       "expected": "山川",
       "pinyin": "shanchuan",
       "reason": "linear",
@@ -502,7 +584,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0039",
+      "idx": "0042",
       "expected": "锦绣",
       "pinyin": "jinxiu",
       "reason": "linear",
@@ -514,7 +596,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0040",
+      "idx": "0043",
       "expected": "间",
       "pinyin": "jian",
       "reason": "linear",
@@ -534,7 +616,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0041",
+      "idx": "0044",
       "expected": "擘画",
       "pinyin": "bohua",
       "reason": "linear",
@@ -547,7 +629,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0042",
+      "idx": "0045",
       "expected": "生态",
       "pinyin": "shengtai",
       "reason": "linear",
@@ -560,7 +642,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0043",
+      "idx": "0046",
       "expected": "蓝图",
       "pinyin": "lantu",
       "reason": "linear",
@@ -571,7 +653,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0044",
+      "idx": "0047",
       "expected": "一系列",
       "pinyin": "yixilie",
       "reason": "linear",
@@ -582,7 +664,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0045",
+      "idx": "0048",
       "expected": "重要",
       "pinyin": "zhongyao",
       "reason": "linear",
@@ -594,7 +676,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0046",
+      "idx": "0049",
       "expected": "论述",
       "pinyin": "lunshu",
       "reason": "linear",
@@ -605,7 +687,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0047",
+      "idx": "0050",
       "expected": "为",
       "pinyin": "wei",
       "reason": "linear",
@@ -625,7 +707,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0048",
+      "idx": "0051",
       "expected": "新时代",
       "pinyin": "xinshidai",
       "reason": "linear",
@@ -636,7 +718,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0049",
+      "idx": "0052",
       "expected": "生态文明",
       "pinyin": "shengtaiwenming",
       "reason": "linear",
@@ -647,7 +729,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0050",
+      "idx": "0053",
       "expected": "建设",
       "pinyin": "jianshe",
       "reason": "linear",
@@ -659,7 +741,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0051",
+      "idx": "0054",
       "expected": "提供",
       "pinyin": "tigong",
       "reason": "linear",
@@ -671,7 +753,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0052",
+      "idx": "0055",
       "expected": "了",
       "pinyin": "le",
       "reason": "linear",
@@ -691,7 +773,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0053",
+      "idx": "0056",
       "expected": "根本",
       "pinyin": "genben",
       "reason": "linear",
@@ -702,7 +784,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0054",
+      "idx": "0057",
       "expected": "遵循",
       "pinyin": "zunxun",
       "reason": "linear",
@@ -713,7 +795,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0055",
+      "idx": "0058",
       "expected": "和",
       "pinyin": "he",
       "reason": "linear",
@@ -733,7 +815,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0056",
+      "idx": "0059",
       "expected": "行动",
       "pinyin": "xingdong",
       "reason": "linear",
@@ -744,7 +826,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0057",
+      "idx": "0060",
       "expected": "指南",
       "pinyin": "zhinan",
       "reason": "linear",
@@ -757,7 +839,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0058",
+      "idx": "0061",
       "expected": "世界",
       "pinyin": "shijie",
       "reason": "linear",
@@ -777,7 +859,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0059",
+      "idx": "0062",
       "expected": "环境日",
       "pinyin": "huanjingri",
       "reason": "linear",
@@ -788,7 +870,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0060",
+      "idx": "0063",
       "expected": "到来",
       "pinyin": "daolai",
       "reason": "linear",
@@ -799,7 +881,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0061",
+      "idx": "0064",
       "expected": "之际",
       "pinyin": "zhiji",
       "reason": "linear",
@@ -819,7 +901,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0062",
+      "idx": "0065",
       "expected": "我们",
       "pinyin": "women",
       "reason": "linear",
@@ -830,7 +912,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0063",
+      "idx": "0066",
       "expected": "跟随",
       "pinyin": "gensui",
       "reason": "linear",
@@ -841,7 +923,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0064",
+      "idx": "0067",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -852,7 +934,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0065",
+      "idx": "0068",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -863,7 +945,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0066",
+      "idx": "0069",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -883,7 +965,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0067",
+      "idx": "0070",
       "expected": "脚步",
       "pinyin": "jiaobu",
       "reason": "linear",
@@ -895,7 +977,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0068",
+      "idx": "0071",
       "expected": "一起",
       "pinyin": "yiqi",
       "reason": "linear",
@@ -914,7 +996,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0069",
+      "idx": "0072",
       "expected": "呵护",
       "pinyin": "hehu",
       "reason": "linear",
@@ -926,7 +1008,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0070",
+      "idx": "0073",
       "expected": "山水",
       "pinyin": "shanshui",
       "reason": "linear",
@@ -937,7 +1019,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0071",
+      "idx": "0074",
       "expected": "寄情",
       "pinyin": "jiqing",
       "reason": "linear",
@@ -951,7 +1033,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0072",
+      "idx": "0075",
       "expected": "山水",
       "pinyin": "shanshui",
       "reason": "linear",
@@ -962,7 +1044,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0073",
+      "idx": "0076",
       "expected": "领悟",
       "pinyin": "lingwu",
       "reason": "linear",
@@ -973,7 +1055,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0074",
+      "idx": "0077",
       "expected": "守护",
       "pinyin": "shouhu",
       "reason": "linear",
@@ -984,7 +1066,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0075",
+      "idx": "0078",
       "expected": "绿水青山",
       "pinyin": "lvshuiqingshan",
       "reason": "linear",
@@ -995,7 +1077,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0076",
+      "idx": "0079",
       "expected": "建设",
       "pinyin": "jianshe",
       "reason": "linear",
@@ -1007,7 +1089,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0077",
+      "idx": "0080",
       "expected": "生态文明",
       "pinyin": "shengtaiwenming",
       "reason": "linear",
@@ -1018,7 +1100,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0078",
+      "idx": "0081",
       "expected": "之道",
       "pinyin": "zhidao",
       "reason": "linear",
@@ -1036,7 +1118,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0079",
+      "idx": "0082",
       "expected": "心系",
       "pinyin": "xinxi",
       "reason": "linear",
@@ -1051,7 +1133,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0080",
+      "idx": "0083",
       "expected": "长江",
       "pinyin": "changjiang",
       "reason": "linear",
@@ -1062,7 +1144,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0081",
+      "idx": "0084",
       "expected": "之变",
       "pinyin": "zhibian",
       "reason": "linear",
@@ -1076,7 +1158,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0082",
+      "idx": "0085",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -1087,7 +1169,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0083",
+      "idx": "0086",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -1098,7 +1180,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0084",
+      "idx": "0087",
       "expected": "前往",
       "pinyin": "qianwang",
       "reason": "linear",
@@ -1109,7 +1191,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0085",
+      "idx": "0088",
       "expected": "沿江",
       "pinyin": "yanjiang",
       "reason": "linear",
@@ -1123,7 +1205,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0086",
+      "idx": "0089",
       "expected": "重镇",
       "pinyin": "zhongzhen",
       "reason": "linear",
@@ -1135,7 +1217,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0087",
+      "idx": "0090",
       "expected": "考察",
       "pinyin": "kaocha",
       "reason": "linear",
@@ -1147,7 +1229,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0088",
+      "idx": "0091",
       "expected": "长江",
       "pinyin": "changjiang",
       "reason": "linear",
@@ -1158,7 +1240,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0089",
+      "idx": "0092",
       "expected": "经济带",
       "pinyin": "jingjidai",
       "reason": "linear",
@@ -1169,7 +1251,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0090",
+      "idx": "0093",
       "expected": "发展",
       "pinyin": "fazhan",
       "reason": "linear",
@@ -1181,7 +1263,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0091",
+      "idx": "0094",
       "expected": "从",
       "pinyin": "cong",
       "reason": "linear",
@@ -1201,7 +1283,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0092",
+      "idx": "0095",
       "expected": "三峡",
       "pinyin": "sanxia",
       "reason": "linear",
@@ -1213,7 +1295,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0093",
+      "idx": "0096",
       "expected": "库区",
       "pinyin": "kuqu",
       "reason": "linear",
@@ -1225,7 +1307,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0094",
+      "idx": "0097",
       "expected": "到",
       "pinyin": "dao",
       "reason": "linear",
@@ -1245,7 +1327,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0095",
+      "idx": "0098",
       "expected": "洞庭湖",
       "pinyin": "dongtinghu",
       "reason": "linear",
@@ -1256,7 +1338,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0096",
+      "idx": "0099",
       "expected": "畔",
       "pinyin": "pan",
       "reason": "linear",
@@ -1276,7 +1358,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0097",
+      "idx": "0100",
       "expected": "从",
       "pinyin": "cong",
       "reason": "linear",
@@ -1296,7 +1378,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0098",
+      "idx": "0101",
       "expected": "港口",
       "pinyin": "gangkou",
       "reason": "linear",
@@ -1307,7 +1389,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0099",
+      "idx": "0102",
       "expected": "码头",
       "pinyin": "matou",
       "reason": "linear",
@@ -1318,7 +1400,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0100",
+      "idx": "0103",
       "expected": "到",
       "pinyin": "dao",
       "reason": "linear",
@@ -1338,7 +1420,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0101",
+      "idx": "0104",
       "expected": "企业",
       "pinyin": "qiye",
       "reason": "linear",
@@ -1350,7 +1432,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0102",
+      "idx": "0105",
       "expected": "车间",
       "pinyin": "chejian",
       "reason": "linear",
@@ -1362,7 +1444,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0103",
+      "idx": "0106",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -1373,7 +1455,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0104",
+      "idx": "0107",
       "expected": "深入",
       "pinyin": "shenru",
       "reason": "linear",
@@ -1386,7 +1468,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0105",
+      "idx": "0108",
       "expected": "调研",
       "pinyin": "diaoyan",
       "reason": "linear",
@@ -1398,7 +1480,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0106",
+      "idx": "0109",
       "expected": "作出",
       "pinyin": "zuochu",
       "reason": "linear",
@@ -1410,7 +1492,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0107",
+      "idx": "0110",
       "expected": "一系列",
       "pinyin": "yixilie",
       "reason": "linear",
@@ -1421,7 +1503,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0108",
+      "idx": "0111",
       "expected": "重要",
       "pinyin": "zhongyao",
       "reason": "linear",
@@ -1433,7 +1515,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0109",
+      "idx": "0112",
       "expected": "指示",
       "pinyin": "zhishi",
       "reason": "linear",
@@ -1453,7 +1535,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0110",
+      "idx": "0113",
       "expected": "为",
       "pinyin": "wei",
       "reason": "linear",
@@ -1473,7 +1555,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0111",
+      "idx": "0114",
       "expected": "新时代",
       "pinyin": "xinshidai",
       "reason": "linear",
@@ -1484,7 +1566,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0112",
+      "idx": "0115",
       "expected": "江河",
       "pinyin": "jianghe",
       "reason": "linear",
@@ -1496,7 +1578,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0113",
+      "idx": "0116",
       "expected": "保护",
       "pinyin": "baohu",
       "reason": "linear",
@@ -1508,7 +1590,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0114",
+      "idx": "0117",
       "expected": "治理",
       "pinyin": "zhili",
       "reason": "linear",
@@ -1527,7 +1609,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0115",
+      "idx": "0118",
       "expected": "提供",
       "pinyin": "tigong",
       "reason": "linear",
@@ -1539,7 +1621,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0116",
+      "idx": "0119",
       "expected": "了",
       "pinyin": "le",
       "reason": "linear",
@@ -1559,7 +1641,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0117",
+      "idx": "0120",
       "expected": "重要",
       "pinyin": "zhongyao",
       "reason": "linear",
@@ -1571,7 +1653,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0118",
+      "idx": "0121",
       "expected": "遵循",
       "pinyin": "zunxun",
       "reason": "linear",
@@ -1582,7 +1664,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0119",
+      "idx": "0122",
       "expected": "年",
       "pinyin": "nian",
       "reason": "linear",
@@ -1602,7 +1684,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0120",
+      "idx": "0123",
       "expected": "月",
       "pinyin": "yue",
       "reason": "linear",
@@ -1622,7 +1704,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0121",
+      "idx": "0124",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -1633,7 +1715,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0122",
+      "idx": "0125",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -1644,7 +1726,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0123",
+      "idx": "0126",
       "expected": "来到",
       "pinyin": "laidao",
       "reason": "linear",
@@ -1655,7 +1737,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0124",
+      "idx": "0127",
       "expected": "湖南",
       "pinyin": "hunan",
       "reason": "linear",
@@ -1667,7 +1749,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0125",
+      "idx": "0128",
       "expected": "岳阳",
       "pinyin": "yueyang",
       "reason": "linear",
@@ -1678,7 +1760,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0126",
+      "idx": "0129",
       "expected": "城陵矶",
       "pinyin": "chenglingji",
       "reason": "linear",
@@ -1689,7 +1771,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0127",
+      "idx": "0130",
       "expected": "水文站",
       "pinyin": "shuiwenzhan",
       "reason": "linear",
@@ -1700,7 +1782,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0128",
+      "idx": "0131",
       "expected": "考察",
       "pinyin": "kaocha",
       "reason": "linear",
@@ -1712,7 +1794,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0129",
+      "idx": "0132",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -1732,7 +1814,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0130",
+      "idx": "0133",
       "expected": "狭窄",
       "pinyin": "xiazhai",
       "reason": "linear",
@@ -1743,7 +1825,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0131",
+      "idx": "0134",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -1763,7 +1845,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0132",
+      "idx": "0135",
       "expected": "站房",
       "pinyin": "zhanfang",
       "reason": "linear",
@@ -1777,7 +1859,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0133",
+      "idx": "0136",
       "expected": "外",
       "pinyin": "wai",
       "reason": "linear",
@@ -1791,7 +1873,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0134",
+      "idx": "0137",
       "expected": "长廊",
       "pinyin": "changlang",
       "reason": "linear",
@@ -1802,7 +1884,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0135",
+      "idx": "0138",
       "expected": "上",
       "pinyin": "shang",
       "reason": "linear",
@@ -1822,7 +1904,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0136",
+      "idx": "0139",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -1833,7 +1915,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0137",
+      "idx": "0140",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -1844,7 +1926,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0138",
+      "idx": "0141",
       "expected": "举目",
       "pinyin": "jumu",
       "reason": "linear",
@@ -1857,7 +1939,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0139",
+      "idx": "0142",
       "expected": "远眺",
       "pinyin": "yuantiao",
       "reason": "linear",
@@ -1868,7 +1950,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0140",
+      "idx": "0143",
       "expected": "共",
       "pinyin": "gong",
       "reason": "linear",
@@ -1888,7 +1970,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0141",
+      "idx": "0144",
       "expected": "抓",
       "pinyin": "zhua",
       "reason": "linear",
@@ -1902,7 +1984,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0142",
+      "idx": "0145",
       "expected": "大",
       "pinyin": "da",
       "reason": "linear",
@@ -1922,7 +2004,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0143",
+      "idx": "0146",
       "expected": "保护",
       "pinyin": "baohu",
       "reason": "linear",
@@ -1934,7 +2016,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0144",
+      "idx": "0147",
       "expected": "不",
       "pinyin": "bu",
       "reason": "linear",
@@ -1954,7 +2036,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0145",
+      "idx": "0148",
       "expected": "搞",
       "pinyin": "gao",
       "reason": "linear",
@@ -1974,7 +2056,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0146",
+      "idx": "0149",
       "expected": "大",
       "pinyin": "da",
       "reason": "linear",
@@ -1994,7 +2076,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0147",
+      "idx": "0150",
       "expected": "开发",
       "pinyin": "kaifa",
       "reason": "linear",
@@ -2005,7 +2087,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0148",
+      "idx": "0151",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -2025,7 +2107,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0149",
+      "idx": "0152",
       "expected": "战略",
       "pinyin": "zhanlve",
       "reason": "linear",
@@ -2036,7 +2118,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0150",
+      "idx": "0153",
       "expected": "定力",
       "pinyin": "dingli",
       "reason": "linear",
@@ -2053,7 +2135,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0151",
+      "idx": "0154",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -2073,7 +2155,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0152",
+      "idx": "0155",
       "expected": "这里",
       "pinyin": "zheli",
       "reason": "linear",
@@ -2086,7 +2168,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0153",
+      "idx": "0156",
       "expected": "化作",
       "pinyin": "huazuo",
       "reason": "linear",
@@ -2098,7 +2180,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0154",
+      "idx": "0157",
       "expected": "守护",
       "pinyin": "shouhu",
       "reason": "linear",
@@ -2109,7 +2191,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0155",
+      "idx": "0158",
       "expected": "一江",
       "pinyin": "yijiang",
       "reason": "linear",
@@ -2121,7 +2203,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0156",
+      "idx": "0159",
       "expected": "碧水",
       "pinyin": "bishui",
       "reason": "linear",
@@ -2134,7 +2216,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0157",
+      "idx": "0160",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -2154,7 +2236,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0158",
+      "idx": "0161",
       "expected": "坚定",
       "pinyin": "jianding",
       "reason": "linear",
@@ -2168,7 +2250,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0159",
+      "idx": "0162",
       "expected": "行动",
       "pinyin": "xingdong",
       "reason": "linear",
@@ -2179,7 +2261,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0160",
+      "idx": "0163",
       "expected": "年",
       "pinyin": "nian",
       "reason": "linear",
@@ -2199,7 +2281,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0161",
+      "idx": "0164",
       "expected": "月",
       "pinyin": "yue",
       "reason": "linear",
@@ -2219,7 +2301,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0162",
+      "idx": "0165",
       "expected": "日",
       "pinyin": "ri",
       "reason": "linear",
@@ -2231,7 +2313,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0163",
+      "idx": "0166",
       "expected": "下午",
       "pinyin": "xiawu",
       "reason": "linear",
@@ -2242,7 +2324,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0164",
+      "idx": "0167",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -2253,7 +2335,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0165",
+      "idx": "0168",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -2264,7 +2346,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0166",
+      "idx": "0169",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -2284,7 +2366,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0167",
+      "idx": "0170",
       "expected": "江西",
       "pinyin": "jiangxi",
       "reason": "linear",
@@ -2299,7 +2381,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0168",
+      "idx": "0171",
       "expected": "九江市",
       "pinyin": "jiujiangshi",
       "reason": "linear",
@@ -2310,7 +2392,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0169",
+      "idx": "0172",
       "expected": "考察",
       "pinyin": "kaocha",
       "reason": "linear",
@@ -2322,7 +2404,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0170",
+      "idx": "0173",
       "expected": "冒雨",
       "pinyin": "maoyu",
       "reason": "linear",
@@ -2333,7 +2415,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0171",
+      "idx": "0174",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -2353,7 +2435,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0172",
+      "idx": "0175",
       "expected": "江边",
       "pinyin": "jiangbian",
       "reason": "linear",
@@ -2364,7 +2446,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0173",
+      "idx": "0176",
       "expected": "察看",
       "pinyin": "chakan",
       "reason": "linear",
@@ -2377,7 +2459,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0174",
+      "idx": "0177",
       "expected": "了解",
       "pinyin": "liaojie",
       "reason": "linear",
@@ -2389,7 +2471,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0175",
+      "idx": "0178",
       "expected": "当地",
       "pinyin": "dangdi",
       "reason": "linear",
@@ -2401,7 +2483,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0176",
+      "idx": "0179",
       "expected": "长江",
       "pinyin": "changjiang",
       "reason": "linear",
@@ -2412,7 +2494,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0177",
+      "idx": "0180",
       "expected": "国家",
       "pinyin": "guojia",
       "reason": "linear",
@@ -2423,7 +2505,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0178",
+      "idx": "0181",
       "expected": "文化",
       "pinyin": "wenhua",
       "reason": "linear",
@@ -2435,7 +2517,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0179",
+      "idx": "0182",
       "expected": "公园",
       "pinyin": "gongyuan",
       "reason": "linear",
@@ -2447,7 +2529,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0180",
+      "idx": "0183",
       "expected": "建设",
       "pinyin": "jianshe",
       "reason": "linear",
@@ -2459,7 +2541,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0181",
+      "idx": "0184",
       "expected": "长江",
       "pinyin": "changjiang",
       "reason": "linear",
@@ -2470,7 +2552,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0182",
+      "idx": "0185",
       "expected": "岸线",
       "pinyin": "anxian",
       "reason": "linear",
@@ -2482,7 +2564,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0183",
+      "idx": "0186",
       "expected": "生态",
       "pinyin": "shengtai",
       "reason": "linear",
@@ -2495,7 +2577,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0184",
+      "idx": "0187",
       "expected": "修复",
       "pinyin": "xiufu",
       "reason": "linear",
@@ -2506,7 +2588,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0185",
+      "idx": "0188",
       "expected": "等",
       "pinyin": "deng",
       "reason": "linear",
@@ -2526,7 +2608,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0186",
+      "idx": "0189",
       "expected": "情况",
       "pinyin": "qingkuang",
       "reason": "linear",
@@ -2538,7 +2620,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0187",
+      "idx": "0190",
       "expected": "月",
       "pinyin": "yue",
       "reason": "linear",
@@ -2558,7 +2640,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0188",
+      "idx": "0191",
       "expected": "日",
       "pinyin": "ri",
       "reason": "linear",
@@ -2570,7 +2652,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0189",
+      "idx": "0192",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -2581,7 +2663,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0190",
+      "idx": "0193",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -2601,7 +2683,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0191",
+      "idx": "0194",
       "expected": "进一步",
       "pinyin": "jinyibu",
       "reason": "linear",
@@ -2612,7 +2694,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0192",
+      "idx": "0195",
       "expected": "推动",
       "pinyin": "tuidong",
       "reason": "linear",
@@ -2623,7 +2705,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0193",
+      "idx": "0196",
       "expected": "长江",
       "pinyin": "changjiang",
       "reason": "linear",
@@ -2634,7 +2716,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0194",
+      "idx": "0197",
       "expected": "经济带",
       "pinyin": "jingjidai",
       "reason": "linear",
@@ -2645,7 +2727,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0195",
+      "idx": "0198",
       "expected": "高质量",
       "pinyin": "gaozhiliang",
       "reason": "linear",
@@ -2656,7 +2738,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0196",
+      "idx": "0199",
       "expected": "发展",
       "pinyin": "fazhan",
       "reason": "linear",
@@ -2668,7 +2750,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0197",
+      "idx": "0200",
       "expected": "座谈会",
       "pinyin": "zuotanhui",
       "reason": "linear",
@@ -2679,7 +2761,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0198",
+      "idx": "0201",
       "expected": "上",
       "pinyin": "shang",
       "reason": "linear",
@@ -2699,7 +2781,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0199",
+      "idx": "0202",
       "expected": "回顾",
       "pinyin": "huigu",
       "reason": "linear",
@@ -2712,7 +2794,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0200",
+      "idx": "0203",
       "expected": "长江",
       "pinyin": "changjiang",
       "reason": "linear",
@@ -2723,7 +2805,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0201",
+      "idx": "0204",
       "expected": "经济带",
       "pinyin": "jingjidai",
       "reason": "linear",
@@ -2734,7 +2816,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0202",
+      "idx": "0205",
       "expected": "发展",
       "pinyin": "fazhan",
       "reason": "linear",
@@ -2746,7 +2828,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0203",
+      "idx": "0206",
       "expected": "历程",
       "pinyin": "licheng",
       "reason": "linear",
@@ -2758,7 +2840,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0204",
+      "idx": "0207",
       "expected": "感慨",
       "pinyin": "gankai",
       "reason": "linear",
@@ -2769,7 +2851,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0205",
+      "idx": "0208",
       "expected": "做",
       "pinyin": "zuo",
       "reason": "linear",
@@ -2789,7 +2871,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0206",
+      "idx": "0209",
       "expected": "就要",
       "pinyin": "jiuyao",
       "reason": "linear",
@@ -2802,7 +2884,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0207",
+      "idx": "0210",
       "expected": "做好",
       "pinyin": "zuohao",
       "reason": "linear",
@@ -2815,7 +2897,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0208",
+      "idx": "0211",
       "expected": "坚定",
       "pinyin": "jianding",
       "reason": "linear",
@@ -2829,7 +2911,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0209",
+      "idx": "0212",
       "expected": "做",
       "pinyin": "zuo",
       "reason": "linear",
@@ -2849,7 +2931,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0210",
+      "idx": "0213",
       "expected": "下去",
       "pinyin": "xiaqu",
       "reason": "linear",
@@ -2861,7 +2943,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0211",
+      "idx": "0214",
       "expected": "笃行不怠",
       "pinyin": "duxingbudai",
       "reason": "linear",
@@ -2872,7 +2954,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0212",
+      "idx": "0215",
       "expected": "一以贯之",
       "pinyin": "yiyiguanzhi",
       "reason": "linear",
@@ -2883,7 +2965,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0213",
+      "idx": "0216",
       "expected": "久久为功",
       "pinyin": "jiujiuweigong",
       "reason": "linear",
@@ -2894,7 +2976,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0214",
+      "idx": "0217",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -2905,7 +2987,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0215",
+      "idx": "0218",
       "expected": "安澜",
       "pinyin": "anlan",
       "reason": "linear",
@@ -2916,7 +2998,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0216",
+      "idx": "0219",
       "expected": "是",
       "pinyin": "shi",
       "reason": "linear",
@@ -2936,7 +3018,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0217",
+      "idx": "0220",
       "expected": "中华",
       "pinyin": "zhonghua",
       "reason": "linear",
@@ -2949,7 +3031,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0218",
+      "idx": "0221",
       "expected": "儿女",
       "pinyin": "ernv",
       "reason": "linear",
@@ -2960,7 +3042,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0219",
+      "idx": "0222",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -2980,7 +3062,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0220",
+      "idx": "0223",
       "expected": "千年",
       "pinyin": "qiannian",
       "reason": "linear",
@@ -2992,7 +3074,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0221",
+      "idx": "0224",
       "expected": "期盼",
       "pinyin": "qipan",
       "reason": "linear",
@@ -3006,16 +3088,47 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0222",
-      "expected": "党的",
-      "pinyin": "dangde",
+      "idx": "0225",
+      "expected": "党",
+      "pinyin": "dang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "党",
+        "当",
+        "挡",
+        "档",
+        "荡",
+        "铛",
+        "垱",
+        "珰",
+        "宕",
+        "谠"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
-      "idx": "0223",
+      "idx": "0226",
+      "expected": "的",
+      "pinyin": "de",
+      "reason": "linear",
+      "top10": [
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0227",
       "expected": "十八大",
       "pinyin": "shibada",
       "reason": "linear",
@@ -3026,7 +3139,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0224",
+      "idx": "0228",
       "expected": "以来",
       "pinyin": "yilai",
       "reason": "linear",
@@ -3040,7 +3153,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0225",
+      "idx": "0229",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -3051,7 +3164,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0226",
+      "idx": "0230",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -3062,7 +3175,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0227",
+      "idx": "0231",
       "expected": "走遍",
       "pinyin": "zoubian",
       "reason": "linear",
@@ -3074,7 +3187,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0228",
+      "idx": "0232",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -3085,7 +3198,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0229",
+      "idx": "0233",
       "expected": "上中下游",
       "pinyin": "shangzhongxiayou",
       "reason": "linear",
@@ -3096,7 +3209,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0230",
+      "idx": "0234",
       "expected": "望",
       "pinyin": "wang",
       "reason": "linear",
@@ -3116,7 +3229,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0231",
+      "idx": "0235",
       "expected": "奔流",
       "pinyin": "benliu",
       "reason": "linear",
@@ -3127,7 +3240,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0232",
+      "idx": "0236",
       "expected": "激荡",
       "pinyin": "jidang",
       "reason": "linear",
@@ -3138,7 +3251,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0233",
+      "idx": "0237",
       "expected": "思",
       "pinyin": "si",
       "reason": "linear",
@@ -3158,7 +3271,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0234",
+      "idx": "0238",
       "expected": "保护",
       "pinyin": "baohu",
       "reason": "linear",
@@ -3170,7 +3283,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0235",
+      "idx": "0239",
       "expected": "发展",
       "pinyin": "fazhan",
       "reason": "linear",
@@ -3182,7 +3295,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0236",
+      "idx": "0240",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -3202,7 +3315,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0237",
+      "idx": "0241",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -3213,7 +3326,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0238",
+      "idx": "0242",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -3233,7 +3346,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0239",
+      "idx": "0243",
       "expected": "指挥",
       "pinyin": "zhihui",
       "reason": "linear",
@@ -3248,7 +3361,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0240",
+      "idx": "0244",
       "expected": "下",
       "pinyin": "xia",
       "reason": "linear",
@@ -3268,7 +3381,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0241",
+      "idx": "0245",
       "expected": "一曲",
       "pinyin": "yiqu",
       "reason": "linear",
@@ -3284,7 +3397,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0242",
+      "idx": "0246",
       "expected": "生态",
       "pinyin": "shengtai",
       "reason": "linear",
@@ -3297,7 +3410,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0243",
+      "idx": "0247",
       "expected": "优先",
       "pinyin": "youxian",
       "reason": "linear",
@@ -3312,7 +3425,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0244",
+      "idx": "0248",
       "expected": "绿色",
       "pinyin": "lvse",
       "reason": "linear",
@@ -3323,7 +3436,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0245",
+      "idx": "0249",
       "expected": "发展",
       "pinyin": "fazhan",
       "reason": "linear",
@@ -3335,7 +3448,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0246",
+      "idx": "0250",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -3355,7 +3468,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0247",
+      "idx": "0251",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -3366,7 +3479,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0248",
+      "idx": "0252",
       "expected": "大合唱",
       "pinyin": "dahechang",
       "reason": "linear",
@@ -3377,7 +3490,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0249",
+      "idx": "0253",
       "expected": "正在",
       "pinyin": "zhengzai",
       "reason": "linear",
@@ -3388,7 +3501,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0250",
+      "idx": "0254",
       "expected": "神州大地",
       "pinyin": "shenzhoudadi",
       "reason": "linear",
@@ -3399,7 +3512,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0251",
+      "idx": "0255",
       "expected": "奏响",
       "pinyin": "zouxiang",
       "reason": "linear",
@@ -3412,7 +3525,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0252",
+      "idx": "0256",
       "expected": "年",
       "pinyin": "nian",
       "reason": "linear",
@@ -3432,7 +3545,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0253",
+      "idx": "0257",
       "expected": "月",
       "pinyin": "yue",
       "reason": "linear",
@@ -3452,7 +3565,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0254",
+      "idx": "0258",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -3463,7 +3576,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0255",
+      "idx": "0259",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -3474,7 +3587,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0256",
+      "idx": "0260",
       "expected": "考察",
       "pinyin": "kaocha",
       "reason": "linear",
@@ -3486,7 +3599,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0257",
+      "idx": "0261",
       "expected": "甘肃",
       "pinyin": "gansu",
       "reason": "linear",
@@ -3497,7 +3610,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0258",
+      "idx": "0262",
       "expected": "时",
       "pinyin": "shi",
       "reason": "linear",
@@ -3517,7 +3630,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0259",
+      "idx": "0263",
       "expected": "亲临",
       "pinyin": "qinlin",
       "reason": "linear",
@@ -3528,7 +3641,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0260",
+      "idx": "0264",
       "expected": "兰州",
       "pinyin": "lanzhou",
       "reason": "linear",
@@ -3540,7 +3653,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0261",
+      "idx": "0265",
       "expected": "考察",
       "pinyin": "kaocha",
       "reason": "linear",
@@ -3552,7 +3665,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0262",
+      "idx": "0266",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -3563,7 +3676,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0263",
+      "idx": "0267",
       "expected": "兰州",
       "pinyin": "lanzhou",
       "reason": "linear",
@@ -3575,7 +3688,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0264",
+      "idx": "0268",
       "expected": "段",
       "pinyin": "duan",
       "reason": "linear",
@@ -3595,7 +3708,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0265",
+      "idx": "0269",
       "expected": "治理",
       "pinyin": "zhili",
       "reason": "linear",
@@ -3614,7 +3727,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0266",
+      "idx": "0270",
       "expected": "保护",
       "pinyin": "baohu",
       "reason": "linear",
@@ -3626,7 +3739,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0267",
+      "idx": "0271",
       "expected": "工作",
       "pinyin": "gongzuo",
       "reason": "linear",
@@ -3637,7 +3750,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0268",
+      "idx": "0272",
       "expected": "对",
       "pinyin": "dui",
       "reason": "linear",
@@ -3657,7 +3770,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0269",
+      "idx": "0273",
       "expected": "保护",
       "pinyin": "baohu",
       "reason": "linear",
@@ -3669,7 +3782,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0270",
+      "idx": "0274",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -3680,7 +3793,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0271",
+      "idx": "0275",
       "expected": "治理",
       "pinyin": "zhili",
       "reason": "linear",
@@ -3699,7 +3812,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0272",
+      "idx": "0276",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -3710,7 +3823,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0273",
+      "idx": "0277",
       "expected": "作出",
       "pinyin": "zuochu",
       "reason": "linear",
@@ -3722,7 +3835,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0274",
+      "idx": "0278",
       "expected": "重要",
       "pinyin": "zhongyao",
       "reason": "linear",
@@ -3734,7 +3847,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0275",
+      "idx": "0279",
       "expected": "指示",
       "pinyin": "zhishi",
       "reason": "linear",
@@ -3754,7 +3867,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0276",
+      "idx": "0280",
       "expected": "强调",
       "pinyin": "qiangdiao",
       "reason": "linear",
@@ -3766,7 +3879,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0277",
+      "idx": "0281",
       "expected": "保护",
       "pinyin": "baohu",
       "reason": "linear",
@@ -3778,7 +3891,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0278",
+      "idx": "0282",
       "expected": "母亲河",
       "pinyin": "muqinhe",
       "reason": "linear",
@@ -3789,7 +3902,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0279",
+      "idx": "0283",
       "expected": "是",
       "pinyin": "shi",
       "reason": "linear",
@@ -3809,7 +3922,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0280",
+      "idx": "0284",
       "expected": "事关",
       "pinyin": "shiguan",
       "reason": "linear",
@@ -3827,7 +3940,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0281",
+      "idx": "0285",
       "expected": "中华民族",
       "pinyin": "zhonghuaminzu",
       "reason": "linear",
@@ -3838,7 +3951,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0282",
+      "idx": "0286",
       "expected": "伟大复兴",
       "pinyin": "weidafuxing",
       "reason": "linear",
@@ -3849,7 +3962,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0283",
+      "idx": "0287",
       "expected": "和",
       "pinyin": "he",
       "reason": "linear",
@@ -3869,7 +3982,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0284",
+      "idx": "0288",
       "expected": "永续",
       "pinyin": "yongxu",
       "reason": "linear",
@@ -3880,7 +3993,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0285",
+      "idx": "0289",
       "expected": "发展",
       "pinyin": "fazhan",
       "reason": "linear",
@@ -3892,7 +4005,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0286",
+      "idx": "0290",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -3912,7 +4025,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0287",
+      "idx": "0291",
       "expected": "千秋大计",
       "pinyin": "qianqiudaji",
       "reason": "linear",
@@ -3923,7 +4036,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0288",
+      "idx": "0292",
       "expected": "年",
       "pinyin": "nian",
       "reason": "linear",
@@ -3943,7 +4056,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0289",
+      "idx": "0293",
       "expected": "月",
       "pinyin": "yue",
       "reason": "linear",
@@ -3963,7 +4076,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0290",
+      "idx": "0294",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -3974,7 +4087,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0291",
+      "idx": "0295",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -3985,7 +4098,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0292",
+      "idx": "0296",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -4005,7 +4118,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0293",
+      "idx": "0297",
       "expected": "河南",
       "pinyin": "henan",
       "reason": "linear",
@@ -4016,7 +4129,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0294",
+      "idx": "0298",
       "expected": "郑州",
       "pinyin": "zhengzhou",
       "reason": "linear",
@@ -4027,7 +4140,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0295",
+      "idx": "0299",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -4038,7 +4151,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0296",
+      "idx": "0300",
       "expected": "国家",
       "pinyin": "guojia",
       "reason": "linear",
@@ -4049,7 +4162,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0297",
+      "idx": "0301",
       "expected": "地质",
       "pinyin": "dizhi",
       "reason": "linear",
@@ -4069,7 +4182,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0298",
+      "idx": "0302",
       "expected": "公园",
       "pinyin": "gongyuan",
       "reason": "linear",
@@ -4081,7 +4194,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0299",
+      "idx": "0303",
       "expected": "岸边",
       "pinyin": "anbian",
       "reason": "linear",
@@ -4092,7 +4205,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0300",
+      "idx": "0304",
       "expected": "驻足",
       "pinyin": "zhuzu",
       "reason": "linear",
@@ -4104,7 +4217,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0301",
+      "idx": "0305",
       "expected": "凝望",
       "pinyin": "ningwang",
       "reason": "linear",
@@ -4115,7 +4228,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0302",
+      "idx": "0306",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -4135,7 +4248,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0303",
+      "idx": "0307",
       "expected": "随后",
       "pinyin": "suihou",
       "reason": "linear",
@@ -4146,7 +4259,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0304",
+      "idx": "0308",
       "expected": "举行",
       "pinyin": "juxing",
       "reason": "linear",
@@ -4161,7 +4274,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0305",
+      "idx": "0309",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -4181,7 +4294,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0306",
+      "idx": "0310",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -4192,7 +4305,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0307",
+      "idx": "0311",
       "expected": "流域",
       "pinyin": "liuyu",
       "reason": "linear",
@@ -4204,7 +4317,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0308",
+      "idx": "0312",
       "expected": "生态",
       "pinyin": "shengtai",
       "reason": "linear",
@@ -4217,7 +4330,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0309",
+      "idx": "0313",
       "expected": "保护",
       "pinyin": "baohu",
       "reason": "linear",
@@ -4229,7 +4342,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0310",
+      "idx": "0314",
       "expected": "和",
       "pinyin": "he",
       "reason": "linear",
@@ -4249,7 +4362,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0311",
+      "idx": "0315",
       "expected": "高质量",
       "pinyin": "gaozhiliang",
       "reason": "linear",
@@ -4260,7 +4373,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0312",
+      "idx": "0316",
       "expected": "发展",
       "pinyin": "fazhan",
       "reason": "linear",
@@ -4272,7 +4385,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0313",
+      "idx": "0317",
       "expected": "座谈会",
       "pinyin": "zuotanhui",
       "reason": "linear",
@@ -4283,7 +4396,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0314",
+      "idx": "0318",
       "expected": "上",
       "pinyin": "shang",
       "reason": "linear",
@@ -4303,7 +4416,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0315",
+      "idx": "0319",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -4314,7 +4427,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0316",
+      "idx": "0320",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -4325,7 +4438,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0317",
+      "idx": "0321",
       "expected": "再次",
       "pinyin": "zaici",
       "reason": "linear",
@@ -4337,7 +4450,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0318",
+      "idx": "0322",
       "expected": "强调",
       "pinyin": "qiangdiao",
       "reason": "linear",
@@ -4349,7 +4462,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0319",
+      "idx": "0323",
       "expected": "让",
       "pinyin": "rang",
       "reason": "linear",
@@ -4369,7 +4482,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0320",
+      "idx": "0324",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -4380,7 +4493,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0321",
+      "idx": "0325",
       "expected": "成为",
       "pinyin": "chengwei",
       "reason": "linear",
@@ -4393,7 +4506,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0322",
+      "idx": "0326",
       "expected": "造福",
       "pinyin": "zaofu",
       "reason": "linear",
@@ -4404,7 +4517,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0323",
+      "idx": "0327",
       "expected": "人民",
       "pinyin": "renmin",
       "reason": "linear",
@@ -4415,7 +4528,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0324",
+      "idx": "0328",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -4435,16 +4548,40 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0325",
-      "expected": "幸福河",
-      "pinyin": "xingfuhe",
+      "idx": "0329",
+      "expected": "幸福",
+      "pinyin": "xingfu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "幸福",
+        "性福",
+        "形符"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
-      "idx": "0326",
+      "idx": "0330",
+      "expected": "河",
+      "pinyin": "he",
+      "reason": "linear",
+      "top10": [
+        "和",
+        "喝",
+        "河",
+        "呵",
+        "合",
+        "何",
+        "核",
+        "盒",
+        "荷",
+        "贺"
+      ],
+      "rank": 2,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0331",
       "expected": "年",
       "pinyin": "nian",
       "reason": "linear",
@@ -4464,7 +4601,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0327",
+      "idx": "0332",
       "expected": "月",
       "pinyin": "yue",
       "reason": "linear",
@@ -4484,7 +4621,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0328",
+      "idx": "0333",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -4495,7 +4632,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0329",
+      "idx": "0334",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -4506,7 +4643,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0330",
+      "idx": "0335",
       "expected": "时隔",
       "pinyin": "shige",
       "reason": "linear",
@@ -4520,7 +4657,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0331",
+      "idx": "0336",
       "expected": "五年",
       "pinyin": "wunian",
       "reason": "linear",
@@ -4531,7 +4668,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0332",
+      "idx": "0337",
       "expected": "后",
       "pinyin": "hou",
       "reason": "linear",
@@ -4551,7 +4688,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0333",
+      "idx": "0338",
       "expected": "再次",
       "pinyin": "zaici",
       "reason": "linear",
@@ -4563,7 +4700,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0334",
+      "idx": "0339",
       "expected": "来到",
       "pinyin": "laidao",
       "reason": "linear",
@@ -4574,7 +4711,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0335",
+      "idx": "0340",
       "expected": "甘肃",
       "pinyin": "gansu",
       "reason": "linear",
@@ -4585,7 +4722,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0336",
+      "idx": "0341",
       "expected": "兰州",
       "pinyin": "lanzhou",
       "reason": "linear",
@@ -4597,7 +4734,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0337",
+      "idx": "0342",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -4617,7 +4754,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0338",
+      "idx": "0343",
       "expected": "中山桥",
       "pinyin": "zhongshanqiao",
       "reason": "linear",
@@ -4628,7 +4765,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0339",
+      "idx": "0344",
       "expected": "段",
       "pinyin": "duan",
       "reason": "linear",
@@ -4648,7 +4785,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0340",
+      "idx": "0345",
       "expected": "驻足",
       "pinyin": "zhuzu",
       "reason": "linear",
@@ -4660,7 +4797,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0341",
+      "idx": "0346",
       "expected": "眺望",
       "pinyin": "tiaowang",
       "reason": "linear",
@@ -4671,7 +4808,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0342",
+      "idx": "0347",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -4682,7 +4819,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0343",
+      "idx": "0348",
       "expected": "由衷",
       "pinyin": "youzhong",
       "reason": "linear",
@@ -4694,7 +4831,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0344",
+      "idx": "0349",
       "expected": "感慨",
       "pinyin": "gankai",
       "reason": "linear",
@@ -4705,7 +4842,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0345",
+      "idx": "0350",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -4716,7 +4853,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0346",
+      "idx": "0351",
       "expected": "很美",
       "pinyin": "henmei",
       "reason": "linear",
@@ -4725,7 +4862,7 @@
       "verdict": "HARD"
     },
     {
-      "idx": "0347",
+      "idx": "0352",
       "expected": "将来",
       "pinyin": "jianglai",
       "reason": "linear",
@@ -4736,7 +4873,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0348",
+      "idx": "0353",
       "expected": "会",
       "pinyin": "hui",
       "reason": "linear",
@@ -4756,7 +4893,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0349",
+      "idx": "0354",
       "expected": "更美",
       "pinyin": "gengmei",
       "reason": "linear",
@@ -4765,7 +4902,7 @@
       "verdict": "HARD"
     },
     {
-      "idx": "0350",
+      "idx": "0355",
       "expected": "从",
       "pinyin": "cong",
       "reason": "linear",
@@ -4785,7 +4922,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0351",
+      "idx": "0356",
       "expected": "四次",
       "pinyin": "sici",
       "reason": "linear",
@@ -4796,7 +4933,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0352",
+      "idx": "0357",
       "expected": "以",
       "pinyin": "yi",
       "reason": "linear",
@@ -4816,7 +4953,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0353",
+      "idx": "0358",
       "expected": "长江",
       "pinyin": "changjiang",
       "reason": "linear",
@@ -4827,7 +4964,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0354",
+      "idx": "0359",
       "expected": "经济带",
       "pinyin": "jingjidai",
       "reason": "linear",
@@ -4838,7 +4975,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0355",
+      "idx": "0360",
       "expected": "发展",
       "pinyin": "fazhan",
       "reason": "linear",
@@ -4850,7 +4987,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0356",
+      "idx": "0361",
       "expected": "为",
       "pinyin": "wei",
       "reason": "linear",
@@ -4870,7 +5007,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0357",
+      "idx": "0362",
       "expected": "主题",
       "pinyin": "zhuti",
       "reason": "linear",
@@ -4884,7 +5021,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0358",
+      "idx": "0363",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -4904,7 +5041,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0359",
+      "idx": "0364",
       "expected": "座谈会",
       "pinyin": "zuotanhui",
       "reason": "linear",
@@ -4915,7 +5052,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0360",
+      "idx": "0365",
       "expected": "到",
       "pinyin": "dao",
       "reason": "linear",
@@ -4935,7 +5072,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0361",
+      "idx": "0366",
       "expected": "三次",
       "pinyin": "sanci",
       "reason": "linear",
@@ -4946,7 +5083,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0362",
+      "idx": "0367",
       "expected": "围绕",
       "pinyin": "weirao",
       "reason": "linear",
@@ -4958,7 +5095,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0363",
+      "idx": "0368",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -4969,7 +5106,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0364",
+      "idx": "0369",
       "expected": "流域",
       "pinyin": "liuyu",
       "reason": "linear",
@@ -4981,7 +5118,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0365",
+      "idx": "0370",
       "expected": "生态",
       "pinyin": "shengtai",
       "reason": "linear",
@@ -4994,7 +5131,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0366",
+      "idx": "0371",
       "expected": "保护",
       "pinyin": "baohu",
       "reason": "linear",
@@ -5006,7 +5143,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0367",
+      "idx": "0372",
       "expected": "和",
       "pinyin": "he",
       "reason": "linear",
@@ -5026,7 +5163,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0368",
+      "idx": "0373",
       "expected": "高质量",
       "pinyin": "gaozhiliang",
       "reason": "linear",
@@ -5037,7 +5174,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0369",
+      "idx": "0374",
       "expected": "发展",
       "pinyin": "fazhan",
       "reason": "linear",
@@ -5049,7 +5186,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0370",
+      "idx": "0375",
       "expected": "为",
       "pinyin": "wei",
       "reason": "linear",
@@ -5069,7 +5206,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0371",
+      "idx": "0376",
       "expected": "主题",
       "pinyin": "zhuti",
       "reason": "linear",
@@ -5083,7 +5220,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0372",
+      "idx": "0377",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -5103,7 +5240,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0373",
+      "idx": "0378",
       "expected": "座谈会",
       "pinyin": "zuotanhui",
       "reason": "linear",
@@ -5114,7 +5251,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0374",
+      "idx": "0379",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -5125,7 +5262,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0375",
+      "idx": "0380",
       "expected": "海晏河清",
       "pinyin": "haiyanheqing",
       "reason": "linear",
@@ -5136,7 +5273,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0376",
+      "idx": "0381",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -5156,7 +5293,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0377",
+      "idx": "0382",
       "expected": "期许",
       "pinyin": "qixu",
       "reason": "linear",
@@ -5168,7 +5305,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0378",
+      "idx": "0383",
       "expected": "始终",
       "pinyin": "shizhong",
       "reason": "linear",
@@ -5184,7 +5321,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0379",
+      "idx": "0384",
       "expected": "未变",
       "pinyin": "weibian",
       "reason": "linear",
@@ -5195,7 +5332,7 @@
       "verdict": "HARD"
     },
     {
-      "idx": "0380",
+      "idx": "0385",
       "expected": "年",
       "pinyin": "nian",
       "reason": "linear",
@@ -5215,7 +5352,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0381",
+      "idx": "0386",
       "expected": "月",
       "pinyin": "yue",
       "reason": "linear",
@@ -5235,7 +5372,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0382",
+      "idx": "0387",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -5255,7 +5392,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0383",
+      "idx": "0388",
       "expected": "甘肃",
       "pinyin": "gansu",
       "reason": "linear",
@@ -5266,7 +5403,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0384",
+      "idx": "0389",
       "expected": "山丹",
       "pinyin": "shandan",
       "reason": "linear",
@@ -5277,7 +5414,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0385",
+      "idx": "0390",
       "expected": "马场",
       "pinyin": "machang",
       "reason": "linear",
@@ -5288,7 +5425,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0386",
+      "idx": "0391",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -5299,7 +5436,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0387",
+      "idx": "0392",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -5310,7 +5447,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0388",
+      "idx": "0393",
       "expected": "步入",
       "pinyin": "buru",
       "reason": "linear",
@@ -5323,7 +5460,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0389",
+      "idx": "0394",
       "expected": "草场",
       "pinyin": "caochang",
       "reason": "linear",
@@ -5335,7 +5472,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0390",
+      "idx": "0395",
       "expected": "强调",
       "pinyin": "qiangdiao",
       "reason": "linear",
@@ -5347,7 +5484,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0391",
+      "idx": "0396",
       "expected": "保护好",
       "pinyin": "baohuhao",
       "reason": "linear",
@@ -5356,7 +5493,7 @@
       "verdict": "HARD"
     },
     {
-      "idx": "0392",
+      "idx": "0397",
       "expected": "祁连山",
       "pinyin": "qilianshan",
       "reason": "linear",
@@ -5367,7 +5504,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0393",
+      "idx": "0398",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -5387,79 +5524,12 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0394",
+      "idx": "0399",
       "expected": "生态环境",
       "pinyin": "shengtaihuanjing",
       "reason": "linear",
       "top10": [
         "生态环境"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0395",
-      "expected": "对",
-      "pinyin": "dui",
-      "reason": "linear",
-      "top10": [
-        "对",
-        "堆",
-        "队",
-        "兑",
-        "追",
-        "敦",
-        "怼",
-        "镦",
-        "碓",
-        "槌"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0396",
-      "expected": "保护",
-      "pinyin": "baohu",
-      "reason": "linear",
-      "top10": [
-        "保护",
-        "保户"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0397",
-      "expected": "国家",
-      "pinyin": "guojia",
-      "reason": "linear",
-      "top10": [
-        "国家"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0398",
-      "expected": "生态",
-      "pinyin": "shengtai",
-      "reason": "linear",
-      "top10": [
-        "生态",
-        "圣胎",
-        "生苔"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0399",
-      "expected": "安全",
-      "pinyin": "anquan",
-      "reason": "linear",
-      "top10": [
-        "安全"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -5486,411 +5556,29 @@
     },
     {
       "idx": "0401",
-      "expected": "推动",
-      "pinyin": "tuidong",
+      "expected": "保护",
+      "pinyin": "baohu",
       "reason": "linear",
       "top10": [
-        "推动"
+        "保护",
+        "保户"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "0402",
-      "expected": "甘肃",
-      "pinyin": "gansu",
+      "expected": "国家",
+      "pinyin": "guojia",
       "reason": "linear",
       "top10": [
-        "甘肃"
+        "国家"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "0403",
-      "expected": "和",
-      "pinyin": "he",
-      "reason": "linear",
-      "top10": [
-        "和",
-        "喝",
-        "河",
-        "呵",
-        "合",
-        "何",
-        "核",
-        "盒",
-        "荷",
-        "贺"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0404",
-      "expected": "河西走廊",
-      "pinyin": "hexizoulang",
-      "reason": "linear",
-      "top10": [
-        "河西走廊"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0405",
-      "expected": "可持续",
-      "pinyin": "kechixu",
-      "reason": "linear",
-      "top10": [
-        "可持续"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0406",
-      "expected": "发展",
-      "pinyin": "fazhan",
-      "reason": "linear",
-      "top10": [
-        "发展",
-        "罚站"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0407",
-      "expected": "都",
-      "pinyin": "dou",
-      "reason": "linear",
-      "top10": [
-        "都",
-        "逗",
-        "兜",
-        "斗",
-        "豆",
-        "抖",
-        "陡",
-        "痘",
-        "蚪",
-        "投"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0408",
-      "expected": "具有",
-      "pinyin": "juyou",
-      "reason": "linear",
-      "top10": [
-        "具有",
-        "焗油",
-        "据有"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0409",
-      "expected": "十分",
-      "pinyin": "shifen",
-      "reason": "linear",
-      "top10": [
-        "十分",
-        "时分",
-        "石粉",
-        "市分"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0410",
-      "expected": "重要",
-      "pinyin": "zhongyao",
-      "reason": "linear",
-      "top10": [
-        "重要",
-        "中药"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0411",
-      "expected": "的",
-      "pinyin": "de",
-      "reason": "linear",
-      "top10": [
-        "的",
-        "得",
-        "德",
-        "地",
-        "登",
-        "底",
-        "锝",
-        "嘚",
-        "陟",
-        "第二"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0412",
-      "expected": "战略",
-      "pinyin": "zhanlve",
-      "reason": "linear",
-      "top10": [
-        "战略"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0413",
-      "expected": "意义",
-      "pinyin": "yiyi",
-      "reason": "linear",
-      "top10": [
-        "意义",
-        "一一",
-        "异议",
-        "熠熠",
-        "依依",
-        "意译",
-        "疑义",
-        "薏苡",
-        "一意",
-        "异义"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0414",
-      "expected": "年",
-      "pinyin": "nian",
-      "reason": "linear",
-      "top10": [
-        "年",
-        "念",
-        "捻",
-        "碾",
-        "撵",
-        "辗",
-        "粘",
-        "趁",
-        "辇",
-        "拈"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0415",
-      "expected": "月",
-      "pinyin": "yue",
-      "reason": "linear",
-      "top10": [
-        "月",
-        "越",
-        "约",
-        "跃",
-        "曰",
-        "岳",
-        "阅",
-        "粤",
-        "悦",
-        "说"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0416",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0417",
-      "expected": "总书记",
-      "pinyin": "zongshuji",
-      "reason": "linear",
-      "top10": [
-        "总书记"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0418",
-      "expected": "在",
-      "pinyin": "zai",
-      "reason": "linear",
-      "top10": [
-        "在",
-        "再",
-        "宰",
-        "载",
-        "灾",
-        "仔",
-        "栽",
-        "哉",
-        "才",
-        "崽"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0419",
-      "expected": "位于",
-      "pinyin": "weiyu",
-      "reason": "linear",
-      "top10": [
-        "位于",
-        "尾羽",
-        "谓语",
-        "卫浴",
-        "鲔鱼"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0420",
-      "expected": "商洛市",
-      "pinyin": "shangluoshi",
-      "reason": "linear",
-      "top10": [
-        "商洛市"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0421",
-      "expected": "柞水县",
-      "pinyin": "zhashuixian",
-      "reason": "linear",
-      "top10": [
-        "柞水县"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0422",
-      "expected": "的",
-      "pinyin": "de",
-      "reason": "linear",
-      "top10": [
-        "的",
-        "得",
-        "德",
-        "地",
-        "登",
-        "底",
-        "锝",
-        "嘚",
-        "陟",
-        "第二"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0423",
-      "expected": "秦岭",
-      "pinyin": "qinling",
-      "reason": "linear",
-      "top10": [
-        "秦岭"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0424",
-      "expected": "牛背梁",
-      "pinyin": "niubeiliang",
-      "reason": "linear",
-      "top10": [
-        "牛背梁"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0425",
-      "expected": "国家级",
-      "pinyin": "guojiaji",
-      "reason": "linear",
-      "top10": [
-        "国家级"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0426",
-      "expected": "自然",
-      "pinyin": "ziran",
-      "reason": "linear",
-      "top10": [
-        "自然",
-        "自燃",
-        "孜然"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0427",
-      "expected": "保护区",
-      "pinyin": "baohuqu",
-      "reason": "linear",
-      "top10": [
-        "保护区"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0428",
-      "expected": "考察",
-      "pinyin": "kaocha",
-      "reason": "linear",
-      "top10": [
-        "考察",
-        "考查"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0429",
-      "expected": "秦岭",
-      "pinyin": "qinling",
-      "reason": "linear",
-      "top10": [
-        "秦岭"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0430",
       "expected": "生态",
       "pinyin": "shengtai",
       "reason": "linear",
@@ -5903,133 +5591,18 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0431",
-      "expected": "保护",
-      "pinyin": "baohu",
+      "idx": "0404",
+      "expected": "安全",
+      "pinyin": "anquan",
       "reason": "linear",
       "top10": [
-        "保护",
-        "保户"
+        "安全"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
-      "idx": "0432",
-      "expected": "情况",
-      "pinyin": "qingkuang",
-      "reason": "linear",
-      "top10": [
-        "情况",
-        "轻狂"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0433",
-      "expected": "他",
-      "pinyin": "ta",
-      "reason": "linear",
-      "top10": [
-        "他",
-        "她",
-        "它",
-        "塔",
-        "塌",
-        "踏",
-        "蹋",
-        "达",
-        "太",
-        "哈"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0434",
-      "expected": "语重心长",
-      "pinyin": "yuzhongxinchang",
-      "reason": "linear",
-      "top10": [
-        "语重心长"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0435",
-      "expected": "地",
-      "pinyin": "de",
-      "reason": "linear",
-      "top10": [
-        "的",
-        "得",
-        "德",
-        "地",
-        "登",
-        "底",
-        "锝",
-        "嘚",
-        "陟",
-        "第二"
-      ],
-      "rank": 3,
-      "verdict": "SOFT"
-    },
-    {
-      "idx": "0436",
-      "expected": "说",
-      "pinyin": "shuo",
-      "reason": "linear",
-      "top10": [
-        "说",
-        "硕",
-        "烁",
-        "数",
-        "朔",
-        "勺",
-        "嗽",
-        "溯",
-        "搠",
-        "槊"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0437",
-      "expected": "保护好",
-      "pinyin": "baohuhao",
-      "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
-    },
-    {
-      "idx": "0438",
-      "expected": "秦岭",
-      "pinyin": "qinling",
-      "reason": "linear",
-      "top10": [
-        "秦岭"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0439",
-      "expected": "生态环境",
-      "pinyin": "shengtaihuanjing",
-      "reason": "linear",
-      "top10": [
-        "生态环境"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0440",
+      "idx": "0405",
       "expected": "对",
       "pinyin": "dui",
       "reason": "linear",
@@ -6049,7 +5622,571 @@
       "verdict": "PASS"
     },
     {
+      "idx": "0406",
+      "expected": "推动",
+      "pinyin": "tuidong",
+      "reason": "linear",
+      "top10": [
+        "推动"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0407",
+      "expected": "甘肃",
+      "pinyin": "gansu",
+      "reason": "linear",
+      "top10": [
+        "甘肃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0408",
+      "expected": "和",
+      "pinyin": "he",
+      "reason": "linear",
+      "top10": [
+        "和",
+        "喝",
+        "河",
+        "呵",
+        "合",
+        "何",
+        "核",
+        "盒",
+        "荷",
+        "贺"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0409",
+      "expected": "河西走廊",
+      "pinyin": "hexizoulang",
+      "reason": "linear",
+      "top10": [
+        "河西走廊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0410",
+      "expected": "可持续",
+      "pinyin": "kechixu",
+      "reason": "linear",
+      "top10": [
+        "可持续"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0411",
+      "expected": "发展",
+      "pinyin": "fazhan",
+      "reason": "linear",
+      "top10": [
+        "发展",
+        "罚站"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0412",
+      "expected": "都",
+      "pinyin": "dou",
+      "reason": "linear",
+      "top10": [
+        "都",
+        "逗",
+        "兜",
+        "斗",
+        "豆",
+        "抖",
+        "陡",
+        "痘",
+        "蚪",
+        "投"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0413",
+      "expected": "具有",
+      "pinyin": "juyou",
+      "reason": "linear",
+      "top10": [
+        "具有",
+        "焗油",
+        "据有"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0414",
+      "expected": "十分",
+      "pinyin": "shifen",
+      "reason": "linear",
+      "top10": [
+        "十分",
+        "时分",
+        "石粉",
+        "市分"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0415",
+      "expected": "重要",
+      "pinyin": "zhongyao",
+      "reason": "linear",
+      "top10": [
+        "重要",
+        "中药"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0416",
+      "expected": "的",
+      "pinyin": "de",
+      "reason": "linear",
+      "top10": [
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0417",
+      "expected": "战略",
+      "pinyin": "zhanlve",
+      "reason": "linear",
+      "top10": [
+        "战略"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0418",
+      "expected": "意义",
+      "pinyin": "yiyi",
+      "reason": "linear",
+      "top10": [
+        "意义",
+        "一一",
+        "异议",
+        "熠熠",
+        "依依",
+        "意译",
+        "疑义",
+        "薏苡",
+        "一意",
+        "异义"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0419",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "捻",
+        "碾",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0420",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "曰",
+        "岳",
+        "阅",
+        "粤",
+        "悦",
+        "说"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0421",
+      "expected": "习近平",
+      "pinyin": "xijinping",
+      "reason": "linear",
+      "top10": [
+        "习近平"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0422",
+      "expected": "总书记",
+      "pinyin": "zongshuji",
+      "reason": "linear",
+      "top10": [
+        "总书记"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0423",
+      "expected": "在",
+      "pinyin": "zai",
+      "reason": "linear",
+      "top10": [
+        "在",
+        "再",
+        "宰",
+        "载",
+        "灾",
+        "仔",
+        "栽",
+        "哉",
+        "才",
+        "崽"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0424",
+      "expected": "位于",
+      "pinyin": "weiyu",
+      "reason": "linear",
+      "top10": [
+        "位于",
+        "尾羽",
+        "谓语",
+        "卫浴",
+        "鲔鱼"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0425",
+      "expected": "商洛市",
+      "pinyin": "shangluoshi",
+      "reason": "linear",
+      "top10": [
+        "商洛市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0426",
+      "expected": "柞水县",
+      "pinyin": "zhashuixian",
+      "reason": "linear",
+      "top10": [
+        "柞水县"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0427",
+      "expected": "的",
+      "pinyin": "de",
+      "reason": "linear",
+      "top10": [
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0428",
+      "expected": "秦岭",
+      "pinyin": "qinling",
+      "reason": "linear",
+      "top10": [
+        "秦岭"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0429",
+      "expected": "牛背梁",
+      "pinyin": "niubeiliang",
+      "reason": "linear",
+      "top10": [
+        "牛背梁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0430",
+      "expected": "国家级",
+      "pinyin": "guojiaji",
+      "reason": "linear",
+      "top10": [
+        "国家级"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0431",
+      "expected": "自然",
+      "pinyin": "ziran",
+      "reason": "linear",
+      "top10": [
+        "自然",
+        "自燃",
+        "孜然"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0432",
+      "expected": "保护区",
+      "pinyin": "baohuqu",
+      "reason": "linear",
+      "top10": [
+        "保护区"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0433",
+      "expected": "考察",
+      "pinyin": "kaocha",
+      "reason": "linear",
+      "top10": [
+        "考察",
+        "考查"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0434",
+      "expected": "秦岭",
+      "pinyin": "qinling",
+      "reason": "linear",
+      "top10": [
+        "秦岭"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0435",
+      "expected": "生态",
+      "pinyin": "shengtai",
+      "reason": "linear",
+      "top10": [
+        "生态",
+        "圣胎",
+        "生苔"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0436",
+      "expected": "保护",
+      "pinyin": "baohu",
+      "reason": "linear",
+      "top10": [
+        "保护",
+        "保户"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0437",
+      "expected": "情况",
+      "pinyin": "qingkuang",
+      "reason": "linear",
+      "top10": [
+        "情况",
+        "轻狂"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0438",
+      "expected": "他",
+      "pinyin": "ta",
+      "reason": "linear",
+      "top10": [
+        "他",
+        "她",
+        "它",
+        "塔",
+        "塌",
+        "踏",
+        "蹋",
+        "达",
+        "太",
+        "哈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0439",
+      "expected": "语重心长",
+      "pinyin": "yuzhongxinchang",
+      "reason": "linear",
+      "top10": [
+        "语重心长"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0440",
+      "expected": "地",
+      "pinyin": "de",
+      "reason": "linear",
+      "top10": [
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
+      ],
+      "rank": 3,
+      "verdict": "SOFT"
+    },
+    {
       "idx": "0441",
+      "expected": "说",
+      "pinyin": "shuo",
+      "reason": "linear",
+      "top10": [
+        "说",
+        "硕",
+        "烁",
+        "数",
+        "朔",
+        "勺",
+        "嗽",
+        "溯",
+        "搠",
+        "槊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0442",
+      "expected": "保护好",
+      "pinyin": "baohuhao",
+      "reason": "linear",
+      "top10": [],
+      "rank": 99,
+      "verdict": "HARD"
+    },
+    {
+      "idx": "0443",
+      "expected": "秦岭",
+      "pinyin": "qinling",
+      "reason": "linear",
+      "top10": [
+        "秦岭"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0444",
+      "expected": "生态环境",
+      "pinyin": "shengtaihuanjing",
+      "reason": "linear",
+      "top10": [
+        "生态环境"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0445",
+      "expected": "对",
+      "pinyin": "dui",
+      "reason": "linear",
+      "top10": [
+        "对",
+        "堆",
+        "队",
+        "兑",
+        "追",
+        "敦",
+        "怼",
+        "镦",
+        "碓",
+        "槌"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0446",
       "expected": "确保",
       "pinyin": "quebao",
       "reason": "linear",
@@ -6060,7 +6197,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0442",
+      "idx": "0447",
       "expected": "中华民族",
       "pinyin": "zhonghuaminzu",
       "reason": "linear",
@@ -6071,75 +6208,12 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0443",
+      "idx": "0448",
       "expected": "长盛不衰",
       "pinyin": "zhangshengbushuai",
       "reason": "linear",
       "top10": [
         "长盛不衰"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0444",
-      "expected": "实现",
-      "pinyin": "shixian",
-      "reason": "linear",
-      "top10": [
-        "实现",
-        "事先",
-        "视线",
-        "市县",
-        "时限",
-        "实线",
-        "诗仙",
-        "示现",
-        "释嫌"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0445",
-      "expected": "两个",
-      "pinyin": "liangge",
-      "reason": "linear",
-      "top10": [
-        "两个"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0446",
-      "expected": "一百年",
-      "pinyin": "yibainian",
-      "reason": "linear",
-      "top10": [
-        "一百年"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0447",
-      "expected": "奋斗",
-      "pinyin": "fendou",
-      "reason": "linear",
-      "top10": [
-        "奋斗"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0448",
-      "expected": "目标",
-      "pinyin": "mubiao",
-      "reason": "linear",
-      "top10": [
-        "目标"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -6165,6 +6239,69 @@
     },
     {
       "idx": "0450",
+      "expected": "两个",
+      "pinyin": "liangge",
+      "reason": "linear",
+      "top10": [
+        "两个"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0451",
+      "expected": "一百年",
+      "pinyin": "yibainian",
+      "reason": "linear",
+      "top10": [
+        "一百年"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0452",
+      "expected": "奋斗",
+      "pinyin": "fendou",
+      "reason": "linear",
+      "top10": [
+        "奋斗"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0453",
+      "expected": "目标",
+      "pinyin": "mubiao",
+      "reason": "linear",
+      "top10": [
+        "目标"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0454",
+      "expected": "实现",
+      "pinyin": "shixian",
+      "reason": "linear",
+      "top10": [
+        "实现",
+        "事先",
+        "视线",
+        "市县",
+        "时限",
+        "实线",
+        "诗仙",
+        "示现",
+        "释嫌"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0455",
       "expected": "可持续",
       "pinyin": "kechixu",
       "reason": "linear",
@@ -6175,7 +6312,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0451",
+      "idx": "0456",
       "expected": "发展",
       "pinyin": "fazhan",
       "reason": "linear",
@@ -6187,7 +6324,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0452",
+      "idx": "0457",
       "expected": "具有",
       "pinyin": "juyou",
       "reason": "linear",
@@ -6200,7 +6337,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0453",
+      "idx": "0458",
       "expected": "十分",
       "pinyin": "shifen",
       "reason": "linear",
@@ -6214,7 +6351,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0454",
+      "idx": "0459",
       "expected": "重大",
       "pinyin": "zhongda",
       "reason": "linear",
@@ -6226,7 +6363,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0455",
+      "idx": "0460",
       "expected": "而",
       "pinyin": "er",
       "reason": "linear",
@@ -6246,7 +6383,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0456",
+      "idx": "0461",
       "expected": "深远",
       "pinyin": "shenyuan",
       "reason": "linear",
@@ -6260,7 +6397,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0457",
+      "idx": "0462",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -6280,7 +6417,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0458",
+      "idx": "0463",
       "expected": "意义",
       "pinyin": "yiyi",
       "reason": "linear",
@@ -6300,7 +6437,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0459",
+      "idx": "0464",
       "expected": "年",
       "pinyin": "nian",
       "reason": "linear",
@@ -6320,7 +6457,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0460",
+      "idx": "0465",
       "expected": "月",
       "pinyin": "yue",
       "reason": "linear",
@@ -6340,7 +6477,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0461",
+      "idx": "0466",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -6351,7 +6488,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0462",
+      "idx": "0467",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -6362,7 +6499,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0463",
+      "idx": "0468",
       "expected": "来到",
       "pinyin": "laidao",
       "reason": "linear",
@@ -6373,7 +6510,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0464",
+      "idx": "0469",
       "expected": "福建",
       "pinyin": "fujian",
       "reason": "linear",
@@ -6387,7 +6524,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0465",
+      "idx": "0470",
       "expected": "考察",
       "pinyin": "kaocha",
       "reason": "linear",
@@ -6399,7 +6536,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0466",
+      "idx": "0471",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -6419,7 +6556,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0467",
+      "idx": "0472",
       "expected": "武夷山",
       "pinyin": "wuyishan",
       "reason": "linear",
@@ -6430,7 +6567,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0468",
+      "idx": "0473",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -6441,7 +6578,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0469",
+      "idx": "0474",
       "expected": "谆谆",
       "pinyin": "zhunzhun",
       "reason": "linear",
@@ -6452,7 +6589,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0470",
+      "idx": "0475",
       "expected": "告诫",
       "pinyin": "gaojie",
       "reason": "linear",
@@ -6468,7 +6605,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0471",
+      "idx": "0476",
       "expected": "武夷山",
       "pinyin": "wuyishan",
       "reason": "linear",
@@ -6479,7 +6616,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0472",
+      "idx": "0477",
       "expected": "有着",
       "pinyin": "youzhe",
       "reason": "linear",
@@ -6493,7 +6630,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0473",
+      "idx": "0478",
       "expected": "无与伦比",
       "pinyin": "wuyulunbi",
       "reason": "linear",
@@ -6504,7 +6641,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0474",
+      "idx": "0479",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -6524,7 +6661,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0475",
+      "idx": "0480",
       "expected": "生态",
       "pinyin": "shengtai",
       "reason": "linear",
@@ -6537,7 +6674,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0476",
+      "idx": "0481",
       "expected": "人文",
       "pinyin": "renwen",
       "reason": "linear",
@@ -6548,7 +6685,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0477",
+      "idx": "0482",
       "expected": "资源",
       "pinyin": "ziyuan",
       "reason": "linear",
@@ -6562,7 +6699,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0478",
+      "idx": "0483",
       "expected": "是",
       "pinyin": "shi",
       "reason": "linear",
@@ -6582,7 +6719,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0479",
+      "idx": "0484",
       "expected": "中华民族",
       "pinyin": "zhonghuaminzu",
       "reason": "linear",
@@ -6593,7 +6730,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0480",
+      "idx": "0485",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -6613,7 +6750,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0481",
+      "idx": "0486",
       "expected": "骄傲",
       "pinyin": "jiaoao",
       "reason": "linear",
@@ -6624,7 +6761,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0482",
+      "idx": "0487",
       "expected": "最",
       "pinyin": "zui",
       "reason": "linear",
@@ -6644,7 +6781,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0483",
+      "idx": "0488",
       "expected": "重要",
       "pinyin": "zhongyao",
       "reason": "linear",
@@ -6656,7 +6793,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0484",
+      "idx": "0489",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -6676,7 +6813,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0485",
+      "idx": "0490",
       "expected": "还是",
       "pinyin": "haishi",
       "reason": "linear",
@@ -6692,7 +6829,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0486",
+      "idx": "0491",
       "expected": "保护好",
       "pinyin": "baohuhao",
       "reason": "linear",
@@ -6701,7 +6838,7 @@
       "verdict": "HARD"
     },
     {
-      "idx": "0487",
+      "idx": "0492",
       "expected": "年",
       "pinyin": "nian",
       "reason": "linear",
@@ -6721,7 +6858,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0488",
+      "idx": "0493",
       "expected": "月",
       "pinyin": "yue",
       "reason": "linear",
@@ -6741,7 +6878,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0489",
+      "idx": "0494",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -6761,7 +6898,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0490",
+      "idx": "0495",
       "expected": "塞罕坝",
       "pinyin": "saihanba",
       "reason": "linear",
@@ -6772,7 +6909,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0491",
+      "idx": "0496",
       "expected": "林场",
       "pinyin": "linchang",
       "reason": "linear",
@@ -6784,7 +6921,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0492",
+      "idx": "0497",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -6795,7 +6932,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0493",
+      "idx": "0498",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -6806,7 +6943,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0494",
+      "idx": "0499",
       "expected": "登上",
       "pinyin": "dengshang",
       "reason": "linear",
@@ -6817,7 +6954,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0495",
+      "idx": "0500",
       "expected": "月亮山",
       "pinyin": "yueliangshan",
       "reason": "linear",
@@ -6828,7 +6965,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0496",
+      "idx": "0501",
       "expected": "俯瞰",
       "pinyin": "fukan",
       "reason": "linear",
@@ -6841,7 +6978,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0497",
+      "idx": "0502",
       "expected": "荒原",
       "pinyin": "huangyuan",
       "reason": "linear",
@@ -6852,7 +6989,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0498",
+      "idx": "0503",
       "expected": "变",
       "pinyin": "bian",
       "reason": "linear",
@@ -6872,7 +7009,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0499",
+      "idx": "0504",
       "expected": "林海",
       "pinyin": "linhai",
       "reason": "linear",
@@ -6884,7 +7021,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0500",
+      "idx": "0505",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -6904,7 +7041,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0501",
+      "idx": "0506",
       "expected": "人间",
       "pinyin": "renjian",
       "reason": "linear",
@@ -6915,7 +7052,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0502",
+      "idx": "0507",
       "expected": "奇迹",
       "pinyin": "qiji",
       "reason": "linear",
@@ -6932,7 +7069,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0503",
+      "idx": "0508",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -6943,7 +7080,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0504",
+      "idx": "0509",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -6954,7 +7091,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0505",
+      "idx": "0510",
       "expected": "指出",
       "pinyin": "zhichu",
       "reason": "linear",
@@ -6966,7 +7103,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0506",
+      "idx": "0511",
       "expected": "我们",
       "pinyin": "women",
       "reason": "linear",
@@ -6977,7 +7114,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0507",
+      "idx": "0512",
       "expected": "建",
       "pinyin": "jian",
       "reason": "linear",
@@ -6997,7 +7134,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0508",
+      "idx": "0513",
       "expected": "这片",
       "pinyin": "zhepian",
       "reason": "linear",
@@ -7008,7 +7145,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0509",
+      "idx": "0514",
       "expected": "林",
       "pinyin": "lin",
       "reason": "linear",
@@ -7028,7 +7165,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0510",
+      "idx": "0515",
       "expected": "它",
       "pinyin": "ta",
       "reason": "linear",
@@ -7048,7 +7185,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0511",
+      "idx": "0516",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -7068,7 +7205,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0512",
+      "idx": "0517",
       "expected": "生态",
       "pinyin": "shengtai",
       "reason": "linear",
@@ -7081,7 +7218,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0513",
+      "idx": "0518",
       "expected": "屏障",
       "pinyin": "pingzhang",
       "reason": "linear",
@@ -7095,7 +7232,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0514",
+      "idx": "0519",
       "expected": "作用",
       "pinyin": "zuoyong",
       "reason": "linear",
@@ -7106,7 +7243,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0515",
+      "idx": "0520",
       "expected": "要",
       "pinyin": "yao",
       "reason": "linear",
@@ -7126,7 +7263,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0516",
+      "idx": "0521",
       "expected": "永远",
       "pinyin": "yongyuan",
       "reason": "linear",
@@ -7138,7 +7275,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0517",
+      "idx": "0522",
       "expected": "发挥",
       "pinyin": "fahui",
       "reason": "linear",
@@ -7151,7 +7288,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0518",
+      "idx": "0523",
       "expected": "下去",
       "pinyin": "xiaqu",
       "reason": "linear",
@@ -7163,7 +7300,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0519",
+      "idx": "0524",
       "expected": "从",
       "pinyin": "cong",
       "reason": "linear",
@@ -7183,7 +7320,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0520",
+      "idx": "0525",
       "expected": "绿水青山",
       "pinyin": "lvshuiqingshan",
       "reason": "linear",
@@ -7194,7 +7331,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0521",
+      "idx": "0526",
       "expected": "就是",
       "pinyin": "jiushi",
       "reason": "linear",
@@ -7214,7 +7351,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0522",
+      "idx": "0527",
       "expected": "金山银山",
       "pinyin": "jinshanyinshan",
       "reason": "linear",
@@ -7225,7 +7362,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0523",
+      "idx": "0528",
       "expected": "到",
       "pinyin": "dao",
       "reason": "linear",
@@ -7245,7 +7382,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0524",
+      "idx": "0529",
       "expected": "山水林田湖草沙",
       "pinyin": "shanshuilintianhucaosha",
       "reason": "linear",
@@ -7256,7 +7393,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0525",
+      "idx": "0530",
       "expected": "一体化",
       "pinyin": "yitihua",
       "reason": "linear",
@@ -7267,7 +7404,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0526",
+      "idx": "0531",
       "expected": "保护",
       "pinyin": "baohu",
       "reason": "linear",
@@ -7279,7 +7416,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0527",
+      "idx": "0532",
       "expected": "和",
       "pinyin": "he",
       "reason": "linear",
@@ -7299,7 +7436,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0528",
+      "idx": "0533",
       "expected": "系统",
       "pinyin": "xitong",
       "reason": "linear",
@@ -7310,7 +7447,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0529",
+      "idx": "0534",
       "expected": "治理",
       "pinyin": "zhili",
       "reason": "linear",
@@ -7329,7 +7466,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0530",
+      "idx": "0535",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -7340,7 +7477,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0531",
+      "idx": "0536",
       "expected": "生态文明",
       "pinyin": "shengtaiwenming",
       "reason": "linear",
@@ -7351,7 +7488,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0532",
+      "idx": "0537",
       "expected": "思想",
       "pinyin": "sixiang",
       "reason": "linear",
@@ -7366,7 +7503,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0533",
+      "idx": "0538",
       "expected": "如同",
       "pinyin": "rutong",
       "reason": "linear",
@@ -7378,7 +7515,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0534",
+      "idx": "0539",
       "expected": "春风化雨",
       "pinyin": "chunfenghuayu",
       "reason": "linear",
@@ -7389,7 +7526,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0535",
+      "idx": "0540",
       "expected": "推动",
       "pinyin": "tuidong",
       "reason": "linear",
@@ -7400,7 +7537,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0536",
+      "idx": "0541",
       "expected": "着",
       "pinyin": "zhe",
       "reason": "linear",
@@ -7420,7 +7557,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0537",
+      "idx": "0542",
       "expected": "矿坑",
       "pinyin": "kuangkeng",
       "reason": "linear",
@@ -7431,7 +7568,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0538",
+      "idx": "0543",
       "expected": "蝶变",
       "pinyin": "diebian",
       "reason": "linear",
@@ -7442,7 +7579,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0539",
+      "idx": "0544",
       "expected": "沙地",
       "pinyin": "shadi",
       "reason": "linear",
@@ -7454,7 +7591,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0540",
+      "idx": "0545",
       "expected": "披绿",
       "pinyin": "pilv",
       "reason": "linear",
@@ -7465,7 +7602,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0541",
+      "idx": "0546",
       "expected": "放眼",
       "pinyin": "fangyan",
       "reason": "linear",
@@ -7478,7 +7615,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0542",
+      "idx": "0547",
       "expected": "中华大地",
       "pinyin": "zhonghuadadi",
       "reason": "linear",
@@ -7489,7 +7626,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0543",
+      "idx": "0548",
       "expected": "生态",
       "pinyin": "shengtai",
       "reason": "linear",
@@ -7502,7 +7639,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0544",
+      "idx": "0549",
       "expected": "屏障",
       "pinyin": "pingzhang",
       "reason": "linear",
@@ -7516,7 +7653,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0545",
+      "idx": "0550",
       "expected": "持续",
       "pinyin": "chixu",
       "reason": "linear",
@@ -7527,7 +7664,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0546",
+      "idx": "0551",
       "expected": "筑牢",
       "pinyin": "zhulao",
       "reason": "linear",
@@ -7538,7 +7675,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0547",
+      "idx": "0552",
       "expected": "人与自然",
       "pinyin": "renyuziran",
       "reason": "linear",
@@ -7549,7 +7686,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0548",
+      "idx": "0553",
       "expected": "和谐",
       "pinyin": "hexie",
       "reason": "linear",
@@ -7561,7 +7698,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0549",
+      "idx": "0554",
       "expected": "发展",
       "pinyin": "fazhan",
       "reason": "linear",
@@ -7573,7 +7710,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0550",
+      "idx": "0555",
       "expected": "年",
       "pinyin": "nian",
       "reason": "linear",
@@ -7593,7 +7730,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0551",
+      "idx": "0556",
       "expected": "月",
       "pinyin": "yue",
       "reason": "linear",
@@ -7613,7 +7750,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0552",
+      "idx": "0557",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -7624,7 +7761,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0553",
+      "idx": "0558",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -7635,7 +7772,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0554",
+      "idx": "0559",
       "expected": "来到",
       "pinyin": "laidao",
       "reason": "linear",
@@ -7646,7 +7783,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0555",
+      "idx": "0560",
       "expected": "马鞍山市",
       "pinyin": "maanshanshi",
       "reason": "linear",
@@ -7657,7 +7794,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0556",
+      "idx": "0561",
       "expected": "察看",
       "pinyin": "chakan",
       "reason": "linear",
@@ -7670,7 +7807,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0557",
+      "idx": "0562",
       "expected": "长江",
       "pinyin": "changjiang",
       "reason": "linear",
@@ -7681,7 +7818,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0558",
+      "idx": "0563",
       "expected": "水情",
       "pinyin": "shuiqing",
       "reason": "linear",
@@ -7692,7 +7829,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0559",
+      "idx": "0564",
       "expected": "水势",
       "pinyin": "shuishi",
       "reason": "linear",
@@ -7704,7 +7841,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0560",
+      "idx": "0565",
       "expected": "了解",
       "pinyin": "liaojie",
       "reason": "linear",
@@ -7716,7 +7853,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0561",
+      "idx": "0566",
       "expected": "岸线",
       "pinyin": "anxian",
       "reason": "linear",
@@ -7728,7 +7865,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0562",
+      "idx": "0567",
       "expected": "整治",
       "pinyin": "zhengzhi",
       "reason": "linear",
@@ -7744,7 +7881,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0563",
+      "idx": "0568",
       "expected": "和",
       "pinyin": "he",
       "reason": "linear",
@@ -7764,7 +7901,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0564",
+      "idx": "0569",
       "expected": "渔民",
       "pinyin": "yumin",
       "reason": "linear",
@@ -7777,7 +7914,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0565",
+      "idx": "0570",
       "expected": "退捕",
       "pinyin": "tuibu",
       "reason": "linear",
@@ -7790,7 +7927,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0566",
+      "idx": "0571",
       "expected": "工作",
       "pinyin": "gongzuo",
       "reason": "linear",
@@ -7801,7 +7938,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0567",
+      "idx": "0572",
       "expected": "落实",
       "pinyin": "luoshi",
       "reason": "linear",
@@ -7813,7 +7950,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0568",
+      "idx": "0573",
       "expected": "情况",
       "pinyin": "qingkuang",
       "reason": "linear",
@@ -7825,7 +7962,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0569",
+      "idx": "0574",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -7836,7 +7973,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0570",
+      "idx": "0575",
       "expected": "特别",
       "pinyin": "tebie",
       "reason": "linear",
@@ -7847,7 +7984,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0571",
+      "idx": "0576",
       "expected": "强调",
       "pinyin": "qiangdiao",
       "reason": "linear",
@@ -7859,7 +7996,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0572",
+      "idx": "0577",
       "expected": "长江",
       "pinyin": "changjiang",
       "reason": "linear",
@@ -7870,7 +8007,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0573",
+      "idx": "0578",
       "expected": "禁渔",
       "pinyin": "jinyu",
       "reason": "linear",
@@ -7885,7 +8022,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0574",
+      "idx": "0579",
       "expected": "也",
       "pinyin": "ye",
       "reason": "linear",
@@ -7905,7 +8042,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0575",
+      "idx": "0580",
       "expected": "不是",
       "pinyin": "bushi",
       "reason": "linear",
@@ -7924,7 +8061,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0576",
+      "idx": "0581",
       "expected": "把",
       "pinyin": "ba",
       "reason": "linear",
@@ -7944,7 +8081,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0577",
+      "idx": "0582",
       "expected": "渔民",
       "pinyin": "yumin",
       "reason": "linear",
@@ -7957,7 +8094,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0578",
+      "idx": "0583",
       "expected": "甩",
       "pinyin": "shuai",
       "reason": "linear",
@@ -7973,7 +8110,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0579",
+      "idx": "0584",
       "expected": "上岸",
       "pinyin": "shangan",
       "reason": "linear",
@@ -7985,7 +8122,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0580",
+      "idx": "0585",
       "expected": "就",
       "pinyin": "jiu",
       "reason": "linear",
@@ -8005,7 +8142,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0581",
+      "idx": "0586",
       "expected": "不管",
       "pinyin": "buguan",
       "reason": "linear",
@@ -8016,7 +8153,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0582",
+      "idx": "0587",
       "expected": "了",
       "pinyin": "le",
       "reason": "linear",
@@ -8036,7 +8173,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0583",
+      "idx": "0588",
       "expected": "要",
       "pinyin": "yao",
       "reason": "linear",
@@ -8056,7 +8193,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0584",
+      "idx": "0589",
       "expected": "把",
       "pinyin": "ba",
       "reason": "linear",
@@ -8076,7 +8213,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0585",
+      "idx": "0590",
       "expected": "相关",
       "pinyin": "xiangguan",
       "reason": "linear",
@@ -8088,7 +8225,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0586",
+      "idx": "0591",
       "expected": "工作",
       "pinyin": "gongzuo",
       "reason": "linear",
@@ -8099,7 +8236,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0587",
+      "idx": "0592",
       "expected": "做细",
       "pinyin": "zuoxi",
       "reason": "linear",
@@ -8114,7 +8251,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0588",
+      "idx": "0593",
       "expected": "做实",
       "pinyin": "zuoshi",
       "reason": "linear",
@@ -8131,7 +8268,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0589",
+      "idx": "0594",
       "expected": "多",
       "pinyin": "duo",
       "reason": "linear",
@@ -8151,7 +8288,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0590",
+      "idx": "0595",
       "expected": "开发",
       "pinyin": "kaifa",
       "reason": "linear",
@@ -8162,7 +8299,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0591",
+      "idx": "0596",
       "expected": "就业",
       "pinyin": "jiuye",
       "reason": "linear",
@@ -8176,7 +8313,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0592",
+      "idx": "0597",
       "expected": "渠道",
       "pinyin": "qudao",
       "reason": "linear",
@@ -8188,7 +8325,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0593",
+      "idx": "0598",
       "expected": "和",
       "pinyin": "he",
       "reason": "linear",
@@ -8208,7 +8345,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0594",
+      "idx": "0599",
       "expected": "公益性",
       "pinyin": "gongyixing",
       "reason": "linear",
@@ -8219,7 +8356,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0595",
+      "idx": "0600",
       "expected": "岗位",
       "pinyin": "gangwei",
       "reason": "linear",
@@ -8230,7 +8367,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0596",
+      "idx": "0601",
       "expected": "让",
       "pinyin": "rang",
       "reason": "linear",
@@ -8250,7 +8387,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0597",
+      "idx": "0602",
       "expected": "渔民",
       "pinyin": "yumin",
       "reason": "linear",
@@ -8263,7 +8400,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0598",
+      "idx": "0603",
       "expected": "们",
       "pinyin": "men",
       "reason": "linear",
@@ -8283,7 +8420,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0599",
+      "idx": "0604",
       "expected": "稳得住",
       "pinyin": "wendezhu",
       "reason": "linear",
@@ -8292,7 +8429,7 @@
       "verdict": "HARD"
     },
     {
-      "idx": "0600",
+      "idx": "0605",
       "expected": "能",
       "pinyin": "neng",
       "reason": "linear",
@@ -8305,7 +8442,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0601",
+      "idx": "0606",
       "expected": "致富",
       "pinyin": "zhifu",
       "reason": "linear",
@@ -8323,7 +8460,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0602",
+      "idx": "0607",
       "expected": "年",
       "pinyin": "nian",
       "reason": "linear",
@@ -8343,7 +8480,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0603",
+      "idx": "0608",
       "expected": "月",
       "pinyin": "yue",
       "reason": "linear",
@@ -8363,7 +8500,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0604",
+      "idx": "0609",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -8383,7 +8520,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0605",
+      "idx": "0610",
       "expected": "广西",
       "pinyin": "guangxi",
       "reason": "linear",
@@ -8394,7 +8531,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0606",
+      "idx": "0611",
       "expected": "漓江",
       "pinyin": "lijiang",
       "reason": "linear",
@@ -8405,7 +8542,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0607",
+      "idx": "0612",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -8425,7 +8562,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0608",
+      "idx": "0613",
       "expected": "碧波",
       "pinyin": "bibo",
       "reason": "linear",
@@ -8438,7 +8575,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0609",
+      "idx": "0614",
       "expected": "上",
       "pinyin": "shang",
       "reason": "linear",
@@ -8458,7 +8595,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0610",
+      "idx": "0615",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -8469,7 +8606,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0611",
+      "idx": "0616",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -8480,7 +8617,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0612",
+      "idx": "0617",
       "expected": "回忆",
       "pinyin": "huiyi",
       "reason": "linear",
@@ -8495,7 +8632,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0613",
+      "idx": "0618",
       "expected": "自己",
       "pinyin": "ziji",
       "reason": "linear",
@@ -8512,7 +8649,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0614",
+      "idx": "0619",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -8532,7 +8669,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0615",
+      "idx": "0620",
       "expected": "深深的",
       "pinyin": "shenshende",
       "reason": "linear",
@@ -8543,7 +8680,7 @@
       "verdict": "HARD"
     },
     {
-      "idx": "0616",
+      "idx": "0621",
       "expected": "漓江",
       "pinyin": "lijiang",
       "reason": "linear",
@@ -8554,7 +8691,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0617",
+      "idx": "0622",
       "expected": "情结",
       "pinyin": "qingjie",
       "reason": "linear",
@@ -8569,7 +8706,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0618",
+      "idx": "0623",
       "expected": "指出",
       "pinyin": "zhichu",
       "reason": "linear",
@@ -8581,7 +8718,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0619",
+      "idx": "0624",
       "expected": "广西",
       "pinyin": "guangxi",
       "reason": "linear",
@@ -8592,7 +8729,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0620",
+      "idx": "0625",
       "expected": "旅游",
       "pinyin": "lvyou",
       "reason": "linear",
@@ -8604,7 +8741,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0621",
+      "idx": "0626",
       "expected": "产业",
       "pinyin": "chanye",
       "reason": "linear",
@@ -8615,7 +8752,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0622",
+      "idx": "0627",
       "expected": "大有可为",
       "pinyin": "dayoukewei",
       "reason": "linear",
@@ -8626,7 +8763,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0623",
+      "idx": "0628",
       "expected": "年",
       "pinyin": "nian",
       "reason": "linear",
@@ -8646,7 +8783,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0624",
+      "idx": "0629",
       "expected": "月",
       "pinyin": "yue",
       "reason": "linear",
@@ -8666,7 +8803,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0625",
+      "idx": "0630",
       "expected": "在",
       "pinyin": "zai",
       "reason": "linear",
@@ -8686,7 +8823,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0626",
+      "idx": "0631",
       "expected": "陕西",
       "pinyin": "shaanxi",
       "reason": "linear",
@@ -8697,7 +8834,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0627",
+      "idx": "0632",
       "expected": "高西沟村",
       "pinyin": "gaoxigoucun",
       "reason": "linear",
@@ -8706,7 +8843,7 @@
       "verdict": "HARD"
     },
     {
-      "idx": "0628",
+      "idx": "0633",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -8726,7 +8863,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0629",
+      "idx": "0634",
       "expected": "一处",
       "pinyin": "yichu",
       "reason": "linear",
@@ -8742,7 +8879,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0630",
+      "idx": "0635",
       "expected": "山头",
       "pinyin": "shantou",
       "reason": "linear",
@@ -8753,7 +8890,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0631",
+      "idx": "0636",
       "expected": "上",
       "pinyin": "shang",
       "reason": "linear",
@@ -8773,7 +8910,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0632",
+      "idx": "0637",
       "expected": "习近平",
       "pinyin": "xijinping",
       "reason": "linear",
@@ -8784,7 +8921,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0633",
+      "idx": "0638",
       "expected": "总书记",
       "pinyin": "zongshuji",
       "reason": "linear",
@@ -8795,7 +8932,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0634",
+      "idx": "0639",
       "expected": "举目",
       "pinyin": "jumu",
       "reason": "linear",
@@ -8808,7 +8945,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0635",
+      "idx": "0640",
       "expected": "凝望",
       "pinyin": "ningwang",
       "reason": "linear",
@@ -8819,7 +8956,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0636",
+      "idx": "0641",
       "expected": "指出",
       "pinyin": "zhichu",
       "reason": "linear",
@@ -8831,7 +8968,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0637",
+      "idx": "0642",
       "expected": "把",
       "pinyin": "ba",
       "reason": "linear",
@@ -8851,7 +8988,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0638",
+      "idx": "0643",
       "expected": "生态",
       "pinyin": "shengtai",
       "reason": "linear",
@@ -8864,7 +9001,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0639",
+      "idx": "0644",
       "expected": "治理",
       "pinyin": "zhili",
       "reason": "linear",
@@ -8883,7 +9020,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0640",
+      "idx": "0645",
       "expected": "和",
       "pinyin": "he",
       "reason": "linear",
@@ -8903,7 +9040,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0641",
+      "idx": "0646",
       "expected": "发展",
       "pinyin": "fazhan",
       "reason": "linear",
@@ -8915,7 +9052,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0642",
+      "idx": "0647",
       "expected": "特色",
       "pinyin": "tese",
       "reason": "linear",
@@ -8926,7 +9063,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0643",
+      "idx": "0648",
       "expected": "产业",
       "pinyin": "chanye",
       "reason": "linear",
@@ -8937,7 +9074,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0644",
+      "idx": "0649",
       "expected": "有机",
       "pinyin": "youji",
       "reason": "linear",
@@ -8955,7 +9092,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0645",
+      "idx": "0650",
       "expected": "结合",
       "pinyin": "jiehe",
       "reason": "linear",
@@ -8970,7 +9107,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0646",
+      "idx": "0651",
       "expected": "起来",
       "pinyin": "qilai",
       "reason": "linear",
@@ -8981,7 +9118,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0647",
+      "idx": "0652",
       "expected": "生态",
       "pinyin": "shengtai",
       "reason": "linear",
@@ -8994,7 +9131,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0648",
+      "idx": "0653",
       "expected": "治理",
       "pinyin": "zhili",
       "reason": "linear",
@@ -9013,7 +9150,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0649",
+      "idx": "0654",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -9033,7 +9170,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0650",
+      "idx": "0655",
       "expected": "宏大",
       "pinyin": "hongda",
       "reason": "linear",
@@ -9044,7 +9181,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0651",
+      "idx": "0656",
       "expected": "战略",
       "pinyin": "zhanlve",
       "reason": "linear",
@@ -9055,7 +9192,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0652",
+      "idx": "0657",
       "expected": "最终",
       "pinyin": "zuizhong",
       "reason": "linear",
@@ -9066,7 +9203,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0653",
+      "idx": "0658",
       "expected": "要",
       "pinyin": "yao",
       "reason": "linear",
@@ -9086,7 +9223,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0654",
+      "idx": "0659",
       "expected": "落脚",
       "pinyin": "luojiao",
       "reason": "linear",
@@ -9099,7 +9236,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0655",
+      "idx": "0660",
       "expected": "于",
       "pinyin": "yu",
       "reason": "linear",
@@ -9119,7 +9256,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0656",
+      "idx": "0661",
       "expected": "人民群众",
       "pinyin": "renminqunzhong",
       "reason": "linear",
@@ -9130,7 +9267,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0657",
+      "idx": "0662",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -9150,7 +9287,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0658",
+      "idx": "0663",
       "expected": "获得感",
       "pinyin": "huodegan",
       "reason": "linear",
@@ -9161,7 +9298,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0659",
+      "idx": "0664",
       "expected": "长江",
       "pinyin": "changjiang",
       "reason": "linear",
@@ -9172,7 +9309,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0660",
+      "idx": "0665",
       "expected": "十年",
       "pinyin": "shinian",
       "reason": "linear",
@@ -9185,7 +9322,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0661",
+      "idx": "0666",
       "expected": "禁渔",
       "pinyin": "jinyu",
       "reason": "linear",
@@ -9200,7 +9337,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0662",
+      "idx": "0667",
       "expected": "让",
       "pinyin": "rang",
       "reason": "linear",
@@ -9220,7 +9357,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0663",
+      "idx": "0668",
       "expected": "江豚",
       "pinyin": "jiangtun",
       "reason": "linear",
@@ -9231,7 +9368,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0664",
+      "idx": "0669",
       "expected": "逐浪",
       "pinyin": "zhulang",
       "reason": "linear",
@@ -9242,7 +9379,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0665",
+      "idx": "0670",
       "expected": "再现",
       "pinyin": "zaixian",
       "reason": "linear",
@@ -9255,7 +9392,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0666",
+      "idx": "0671",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -9266,7 +9403,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0667",
+      "idx": "0672",
       "expected": "滩区",
       "pinyin": "tanqu",
       "reason": "linear",
@@ -9277,7 +9414,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0668",
+      "idx": "0673",
       "expected": "迁建",
       "pinyin": "qianjian",
       "reason": "linear",
@@ -9292,7 +9429,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0669",
+      "idx": "0674",
       "expected": "让",
       "pinyin": "rang",
       "reason": "linear",
@@ -9312,7 +9449,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0670",
+      "idx": "0675",
       "expected": "百万",
       "pinyin": "baiwan",
       "reason": "linear",
@@ -9324,7 +9461,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0671",
+      "idx": "0676",
       "expected": "群众",
       "pinyin": "qunzhong",
       "reason": "linear",
@@ -9335,7 +9472,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0672",
+      "idx": "0677",
       "expected": "安居",
       "pinyin": "anju",
       "reason": "linear",
@@ -9346,7 +9483,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0673",
+      "idx": "0678",
       "expected": "塞罕坝",
       "pinyin": "saihanba",
       "reason": "linear",
@@ -9357,7 +9494,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0674",
+      "idx": "0679",
       "expected": "林场",
       "pinyin": "linchang",
       "reason": "linear",
@@ -9369,7 +9506,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0675",
+      "idx": "0680",
       "expected": "造就",
       "pinyin": "zaojiu",
       "reason": "linear",
@@ -9381,7 +9518,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0676",
+      "idx": "0681",
       "expected": "绿色",
       "pinyin": "lvse",
       "reason": "linear",
@@ -9392,7 +9529,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0677",
+      "idx": "0682",
       "expected": "银行",
       "pinyin": "yinhang",
       "reason": "linear",
@@ -9403,7 +9540,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0678",
+      "idx": "0683",
       "expected": "这些",
       "pinyin": "zhexie",
       "reason": "linear",
@@ -9414,7 +9551,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0679",
+      "idx": "0684",
       "expected": "生动",
       "pinyin": "shengdong",
       "reason": "linear",
@@ -9425,7 +9562,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0680",
+      "idx": "0685",
       "expected": "实践",
       "pinyin": "shijian",
       "reason": "linear",
@@ -9444,7 +9581,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0681",
+      "idx": "0686",
       "expected": "印证",
       "pinyin": "yinzheng",
       "reason": "linear",
@@ -9457,7 +9594,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0682",
+      "idx": "0687",
       "expected": "着",
       "pinyin": "zhe",
       "reason": "linear",
@@ -9477,7 +9614,7 @@
       "verdict": "SOFT"
     },
     {
-      "idx": "0683",
+      "idx": "0688",
       "expected": "良好",
       "pinyin": "lianghao",
       "reason": "linear",
@@ -9489,7 +9626,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0684",
+      "idx": "0689",
       "expected": "生态环境",
       "pinyin": "shengtaihuanjing",
       "reason": "linear",
@@ -9500,7 +9637,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0685",
+      "idx": "0690",
       "expected": "是",
       "pinyin": "shi",
       "reason": "linear",
@@ -9520,7 +9657,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0686",
+      "idx": "0691",
       "expected": "最",
       "pinyin": "zui",
       "reason": "linear",
@@ -9540,7 +9677,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0687",
+      "idx": "0692",
       "expected": "普惠",
       "pinyin": "puhui",
       "reason": "linear",
@@ -9551,7 +9688,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0688",
+      "idx": "0693",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -9571,7 +9708,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0689",
+      "idx": "0694",
       "expected": "民生",
       "pinyin": "minsheng",
       "reason": "linear",
@@ -9582,7 +9719,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0690",
+      "idx": "0695",
       "expected": "福祉",
       "pinyin": "fuzhi",
       "reason": "linear",
@@ -9602,7 +9739,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0691",
+      "idx": "0696",
       "expected": "从",
       "pinyin": "cong",
       "reason": "linear",
@@ -9622,7 +9759,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0692",
+      "idx": "0697",
       "expected": "长江",
       "pinyin": "changjiang",
       "reason": "linear",
@@ -9633,7 +9770,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0693",
+      "idx": "0698",
       "expected": "黄河",
       "pinyin": "huanghe",
       "reason": "linear",
@@ -9644,7 +9781,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0694",
+      "idx": "0699",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -9664,7 +9801,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0695",
+      "idx": "0700",
       "expected": "奔涌",
       "pinyin": "benyong",
       "reason": "linear",
@@ -9675,7 +9812,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0696",
+      "idx": "0701",
       "expected": "浪涛",
       "pinyin": "langtao",
       "reason": "linear",
@@ -9686,7 +9823,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0697",
+      "idx": "0702",
       "expected": "到",
       "pinyin": "dao",
       "reason": "linear",
@@ -9706,7 +9843,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0698",
+      "idx": "0703",
       "expected": "祁连",
       "pinyin": "qilian",
       "reason": "linear",
@@ -9718,7 +9855,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0699",
+      "idx": "0704",
       "expected": "武夷",
       "pinyin": "wuyi",
       "reason": "linear",
@@ -9733,71 +9870,6 @@
         "无遗",
         "巫医",
         "无已"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0700",
-      "expected": "的",
-      "pinyin": "de",
-      "reason": "linear",
-      "top10": [
-        "的",
-        "得",
-        "德",
-        "地",
-        "登",
-        "底",
-        "锝",
-        "嘚",
-        "陟",
-        "第二"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0701",
-      "expected": "峻秀",
-      "pinyin": "junxiu",
-      "reason": "linear",
-      "top10": [
-        "峻秀",
-        "俊秀"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0702",
-      "expected": "风骨",
-      "pinyin": "fenggu",
-      "reason": "linear",
-      "top10": [
-        "风骨"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0703",
-      "expected": "习近平",
-      "pinyin": "xijinping",
-      "reason": "linear",
-      "top10": [
-        "习近平"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0704",
-      "expected": "总书记",
-      "pinyin": "zongshuji",
-      "reason": "linear",
-      "top10": [
-        "总书记"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -9824,56 +9896,45 @@
     },
     {
       "idx": "0706",
-      "expected": "足迹",
-      "pinyin": "zuji",
+      "expected": "峻秀",
+      "pinyin": "junxiu",
       "reason": "linear",
       "top10": [
-        "足迹",
-        "祖籍",
-        "阻击"
+        "峻秀",
+        "俊秀"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "0707",
-      "expected": "丈量",
-      "pinyin": "zhangliang",
+      "expected": "风骨",
+      "pinyin": "fenggu",
       "reason": "linear",
       "top10": [
-        "丈量",
-        "张量"
+        "风骨"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "0708",
-      "expected": "着",
-      "pinyin": "zhe",
+      "expected": "习近平",
+      "pinyin": "xijinping",
       "reason": "linear",
       "top10": [
-        "这",
-        "着",
-        "折",
-        "者",
-        "浙",
-        "遮",
-        "哲",
-        "蔗",
-        "辙",
-        "著"
+        "习近平"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0709",
-      "expected": "中华大地",
-      "pinyin": "zhonghuadadi",
+      "expected": "总书记",
+      "pinyin": "zongshuji",
       "reason": "linear",
       "top10": [
-        "中华大地"
+        "总书记"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -9900,91 +9961,62 @@
     },
     {
       "idx": "0711",
-      "expected": "脉络",
-      "pinyin": "mailuo",
+      "expected": "足迹",
+      "pinyin": "zuji",
       "reason": "linear",
       "top10": [
-        "脉络"
+        "足迹",
+        "祖籍",
+        "阻击"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "0712",
-      "expected": "也",
-      "pinyin": "ye",
+      "expected": "丈量",
+      "pinyin": "zhangliang",
       "reason": "linear",
       "top10": [
-        "也",
-        "页",
-        "夜",
-        "业",
-        "爷",
-        "叶",
-        "野",
-        "液",
-        "冶",
-        "腋"
+        "丈量",
+        "张量"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "0713",
-      "expected": "勾勒",
-      "pinyin": "goule",
+      "expected": "着",
+      "pinyin": "zhe",
       "reason": "linear",
       "top10": [
-        "勾勒"
+        "这",
+        "着",
+        "折",
+        "者",
+        "浙",
+        "遮",
+        "哲",
+        "蔗",
+        "辙",
+        "著"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0714",
-      "expected": "出",
-      "pinyin": "chu",
+      "expected": "中华大地",
+      "pinyin": "zhonghuadadi",
       "reason": "linear",
       "top10": [
-        "出",
-        "除",
-        "处",
-        "初",
-        "楚",
-        "触",
-        "畜",
-        "储",
-        "厨",
-        "础"
+        "中华大地"
       ],
       "rank": 0,
       "verdict": "PASS"
     },
     {
       "idx": "0715",
-      "expected": "生态文明",
-      "pinyin": "shengtaiwenming",
-      "reason": "linear",
-      "top10": [
-        "生态文明"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0716",
-      "expected": "建设",
-      "pinyin": "jianshe",
-      "reason": "linear",
-      "top10": [
-        "建设",
-        "溅射"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
-    },
-    {
-      "idx": "0717",
       "expected": "的",
       "pinyin": "de",
       "reason": "linear",
@@ -10004,7 +10036,112 @@
       "verdict": "PASS"
     },
     {
+      "idx": "0716",
+      "expected": "脉络",
+      "pinyin": "mailuo",
+      "reason": "linear",
+      "top10": [
+        "脉络"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0717",
+      "expected": "也",
+      "pinyin": "ye",
+      "reason": "linear",
+      "top10": [
+        "也",
+        "页",
+        "夜",
+        "业",
+        "爷",
+        "叶",
+        "野",
+        "液",
+        "冶",
+        "腋"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
       "idx": "0718",
+      "expected": "勾勒",
+      "pinyin": "goule",
+      "reason": "linear",
+      "top10": [
+        "勾勒"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0719",
+      "expected": "出",
+      "pinyin": "chu",
+      "reason": "linear",
+      "top10": [
+        "出",
+        "除",
+        "处",
+        "初",
+        "楚",
+        "触",
+        "畜",
+        "储",
+        "厨",
+        "础"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0720",
+      "expected": "生态文明",
+      "pinyin": "shengtaiwenming",
+      "reason": "linear",
+      "top10": [
+        "生态文明"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0721",
+      "expected": "建设",
+      "pinyin": "jianshe",
+      "reason": "linear",
+      "top10": [
+        "建设",
+        "溅射"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0722",
+      "expected": "的",
+      "pinyin": "de",
+      "reason": "linear",
+      "top10": [
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0723",
       "expected": "壮阔",
       "pinyin": "zhuangkuo",
       "reason": "linear",
@@ -10015,7 +10152,7 @@
       "verdict": "PASS"
     },
     {
-      "idx": "0719",
+      "idx": "0724",
       "expected": "图景",
       "pinyin": "tujing",
       "reason": "linear",
@@ -10032,9 +10169,9 @@
     }
   ],
   "stats": {
-    "total": 719,
-    "pass": 686,
-    "soft": 19,
-    "hard": 14
+    "total": 724,
+    "pass": 691,
+    "soft": 23,
+    "hard": 10
   }
 }
