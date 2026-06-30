@@ -9,9 +9,11 @@
       "expected": "微视频",
       "pinyin": "weishipin",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "微视频"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0002",
@@ -557,9 +559,11 @@
       "expected": "亚马孙",
       "pinyin": "yamasun",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "亚马孙"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0042",
@@ -632,18 +636,22 @@
       "expected": "美丽山",
       "pinyin": "meilishan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "美丽山"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0048",
       "expected": "特高压",
       "pinyin": "tegaoya",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "特高压"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0049",
@@ -2521,10 +2529,11 @@
       "pinyin": "bianhui",
       "reason": "linear",
       "top10": [
-        "变回"
+        "变回",
+        "边会"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0181",
@@ -3734,8 +3743,8 @@
   ],
   "stats": {
     "total": 269,
-    "pass": 244,
-    "soft": 19,
-    "hard": 6
+    "pass": 248,
+    "soft": 20,
+    "hard": 1
   }
 }
