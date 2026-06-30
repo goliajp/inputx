@@ -43,6 +43,7 @@
 - 2026-06-30 iter#30 — 5.11 done。32 modern_vocab Iter J(第六/北约/转换成/赛程表/音源/一所/同为/最具/清朝/排名第/最低/一年/队史/双循环/请参阅/银河系/很少/实时/国共/东京都/两位/本季/该项/第三任/下半区/第十届/现名/各项/两种/这项/台中市/五人)。**Run-014: PASS 72.2 → 72.3%(+0.1pp,HARD -148)**。Diminishing return 极尖锐 — 接下来要么 wrap 要么换 attack vector。Next: 5.12 decide。
 - 2026-06-30 iter#31 — 5.12 done。Iter K 35 modern_vocab(敲出/新泽西州/南区/足总杯/曼谷/投出/新北市/元朝/国军/本站/主场优势/一股/风眼/低压槽/蒙大拿州/湖南/华北/第四位/百老汇/视星等/岩手县/青海/女选手/用球数/投满/号线/此站/签表/红队/印度洋/向东/占多数/马来/机上/查看器)。**Run-015: PASS 72.3 → 72.4%(+0.1pp,HARD -194)**。**Decision: WRAP**。剩余 HARD 集中在 names / niche / 文言 — polish 不产生通用 IME 价值。Reopened phase 累计 4 batch:67.4 → 72.4%(+5.0pp)。Next: 5.13 final wrap commit。
 - 2026-06-30 iter#32 — 5.13 done。**ALL DONE FINAL 🎉**。Final sanity:baseline 357/0 ✓,live IME mtime 19:20,reports/final.md updated to reopened numbers(72.4% / 111k segs / 395 polish rows)。Cron 14135fef cancelled(/loop 3m 停止 again)。 PushNotification 通知 done(final)。**项目真完结**。
+- 2026-06-30 iter#33 — **RE-REOPENED**:user /loop 3m 第 3 次。新 attack vector — 降 modern_vocab tier 阈值(50k/30k/15k 替 60k/40k/20k,顶 tier 3 → tier 2)。1 行 data.rs 改 → 150+ polish 词升 tier。**Run-016: PASS 72.4 → 72.8%(+0.4pp 大跳)** SOFT -395 dramatic。比拼 entries-per-pp 远胜 batch polish。baseline 357/0 ✓ deploy ✓。Cron 7305d416 active。Next: 5.15 单字 SOFT quickfix。
 
 ## Status legend
 - `[ ]` todo
@@ -134,7 +135,7 @@ User wants 全部做完。Reopen Phase 5 — corpus grew to 272 articles (slow f
 - [x] 5.13 Final wrap:Phase 5 reopen closed,final.md updated to 72.4% / 111k segs / 395 polish rows,cron 14135fef cancelled。**ALL DONE FINAL 🎉**
 
 ## Reopened 3rd time(user /loop 3m 第 3 次)
-- [WIP] 5.14 **New attack vector**:降低 modern_vocab `freq → tier` 阈值,让 polish 词真能竞争 HSK 词(tier 2)。
+- [x] 5.14 done。Lower modern_vocab tier mapping(60k/40k/20k → 50k/30k/15k,top bucket tier 3 → tier 2)。1 行代码改,150+ polish 词从 tier 5 升 tier 2-3。**Run-016: PASS 72.4 → 72.8%(+0.4pp 大跳,SOFT -395 dramatic,HARD +52 slight)**。baseline 357/0 ✓。比批量 polish 30+ entries 还有效。
 - [ ] 5.15 单字 SOFT 残余 quickfix(一位/一项 等同音真词)
 
 
