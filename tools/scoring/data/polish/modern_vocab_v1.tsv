@@ -1255,3 +1255,45 @@ wuyi	武夷	35000
 junxiu	峻秀	35000
 
 # strict-0001 round 2 — HARD missing
+
+# strict-0001 round 3 (cut_for_search 暴露子词)
+# RETIRED lianshan	连山	30000  ← 2026-06-30 user feedback "连山 不是词" — jieba over-frag from 祁连山+麓
+dongting	洞庭	35000
+jiujiang	九江	35000
+yibu	一步	40000
+gaozhi	高质	30000
+hechang	合唱	35000
+dizhi	地质	35000
+haiyan	海晏	30000
+heqing	河清	30000
+hexi	河西	35000
+shangluo	商洛	30000
+zhashui	柞水	30000
+zhangsheng	长盛	30000
+yibai	一百	40000
+bainian	百年	35000
+zhungao	谆告	25000
+huayu	化雨	30000
+anshan	鞍山	35000
+maanshan	马鞍山	35000
+anshanshi	鞍山市	30000
+gongyi	公益	35000
+xigou	西沟	30000
+
+# strict-0001 round 4 (LLM hand-segment 实测 fails)
+# 2026-06-30 用户 flag「两个一百年 明显不是词」+ 宁缺毋滥扫一遍:slogan 切片 / 文学后缀 / 标题词不算 IME buffer,全数 RETIRE
+# RETIRED jingguan	镜观	30000  ← 标题词,标题以外没人单独键入
+qianshanwanshui	千山万水	40000
+# RETIRED zhibin	之滨	30000  ← 文学后缀「黄河之滨」,typer 键「之/滨」单字
+yueyang	岳阳	40000
+# RETIRED gongzhua	共抓	30000  ← 政治口号「共抓大保护」切片,非独立 buffer
+# RETIRED dabaohu	大保护	30000  ← 口号切片
+# RETIRED dakaifa	大开发	30000  ← 口号切片
+duxingbudai	笃行不怠	30000
+jiujiuweigong	久久为功	35000
+# RETIRED xingfuhe	幸福河	30000  ← 引语生成的临时短语,不是固化词
+zhongshanqiao	中山桥	30000
+jiaoao	骄傲	40000
+# RETIRED wendezhu	稳得住	30000  ← 口语短语,typer 拆字键入
+gaoxigou	高西沟	35000
+# RETIRED lianggeyibainian	两个一百年	35000  ← 用户 2026-06-30 「明显也不是词」
