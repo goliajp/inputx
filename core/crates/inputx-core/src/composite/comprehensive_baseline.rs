@@ -462,6 +462,22 @@ mod tests {
             // Polish 2026-06-30: user "liucheng 流程肯定是最高的，柳橙
             // 级别应该低多了". 流程 quickfix 50k + 柳橙 (台湾柑橘) tier 5.
             ("liucheng", "流程"),
+            // Polish 2026-06-30: user "balagui 巴拉圭, 国家名/城市名补全".
+            // Batch 2: +90 countries (gap fill) + 80 world cities.
+            ("balagui", "巴拉圭"),
+            ("wulagui", "乌拉圭"),
+            ("yemen", "也门"),
+            ("aisaiebiya", "埃塞俄比亚"),
+            ("jinbabuwei", "津巴布韦"),
+            // Cities (anchors)
+            ("beijing", "北京"),
+            ("shanghai", "上海"),
+            ("xianggang", "香港"),
+            ("niuyue", "纽约"),
+            ("dehelan", "德黑兰"),
+            ("kailuo", "开罗"),
+            ("lundun", "伦敦"),
+            ("moerben", "墨尔本"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
