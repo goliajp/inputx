@@ -11652,13 +11652,14 @@
       "pinyin": "tizhi",
       "reason": "linear",
       "top10": [
+        "提质",
         "体制",
         "体质",
         "提制",
         "体脂"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0826",
@@ -14321,8 +14322,8 @@
   ],
   "stats": {
     "total": 1010,
-    "pass": 931,
-    "soft": 72,
+    "pass": 930,
+    "soft": 73,
     "hard": 7
   }
 }

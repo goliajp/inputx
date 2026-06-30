@@ -53,9 +53,11 @@
       "expected": "中南海",
       "pinyin": "zhongnanhai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "中南海"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0005",
@@ -79,10 +81,11 @@
         "侍卫",
         "视为",
         "十位",
-        "式微"
+        "式微",
+        "时维"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 6,
+      "verdict": "SOFT"
     },
     {
       "idx": "0007",
@@ -90,10 +93,10 @@
       "pinyin": "wuyue",
       "reason": "linear",
       "top10": [
-        "五月份"
+        "五月"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0008",
@@ -101,13 +104,10 @@
       "pinyin": "chunxia",
       "reason": "linear",
       "top10": [
-        "春宵",
-        "椿象",
-        "春夏秋冬",
-        "唇线笔"
+        "春夏"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0009",
@@ -1367,10 +1367,11 @@
       "reason": "linear",
       "top10": [
         "搭档",
+        "大党",
         "打档"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0094",
@@ -1760,9 +1761,11 @@
       "expected": "抗日战争",
       "pinyin": "kangrizhanzheng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "抗日战争"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0120",
@@ -1809,9 +1812,11 @@
       "expected": "反法西斯",
       "pinyin": "fanfaxisi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "反法西斯"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0123",
@@ -2255,9 +2260,11 @@
       "expected": "挺膺",
       "pinyin": "tingying",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "挺膺"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0152",
@@ -2470,15 +2477,15 @@
         "意识",
         "仪式",
         "遗失",
+        "一事",
         "一时",
         "议事",
         "一世",
         "医师",
         "衣食",
-        "义士",
-        "伊始"
+        "义士"
       ],
-      "rank": 3,
+      "rank": 4,
       "verdict": "SOFT"
     },
     {
@@ -2490,16 +2497,16 @@
         "意识",
         "仪式",
         "遗失",
+        "一事",
         "一时",
         "议事",
         "一世",
         "医师",
         "衣食",
-        "义士",
-        "伊始"
+        "义士"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 3,
+      "verdict": "SOFT"
     },
     {
       "idx": "0170",
@@ -2564,10 +2571,10 @@
       "pinyin": "fenggaolangji",
       "reason": "linear",
       "top10": [
-        "奉告浪迹"
+        "风高浪急"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0174",
@@ -2630,9 +2637,11 @@
       "expected": "俄方",
       "pinyin": "efang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "俄方"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0178",
@@ -2902,9 +2911,11 @@
       "expected": "欧盟",
       "pinyin": "oumeng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "欧盟"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0197",
@@ -3046,9 +3057,11 @@
       "expected": "拉方",
       "pinyin": "lafang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "拉方"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0208",
@@ -3990,9 +4003,11 @@
       "expected": "中美",
       "pinyin": "zhongmei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "中美"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0274",
@@ -4135,9 +4150,11 @@
       "expected": "关税战",
       "pinyin": "guanshuizhan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "关税战"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0285",
@@ -4795,10 +4812,11 @@
       "pinyin": "hongchang",
       "reason": "linear",
       "top10": [
+        "红场",
         "红肠"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0334",
@@ -5160,9 +5178,11 @@
       "expected": "解放军",
       "pinyin": "jiefangjun",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "解放军"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0361",
@@ -5192,9 +5212,11 @@
       "expected": "方队",
       "pinyin": "fangdui",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "方队"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0364",
@@ -5212,9 +5234,11 @@
       "expected": "观礼台",
       "pinyin": "guanlitai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "观礼台"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0366",
@@ -5906,10 +5930,10 @@
       "pinyin": "shenpang",
       "reason": "linear",
       "top10": [
-        "审判官"
+        "身旁"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0413",
@@ -6153,10 +6177,10 @@
       "pinyin": "yinjianbuyuan",
       "reason": "linear",
       "top10": [
-        "印鉴不愿"
+        "殷鉴不远"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0433",
@@ -6726,9 +6750,11 @@
       "expected": "乱云飞渡",
       "pinyin": "luanyunfeidu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "乱云飞渡"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0469",
@@ -7578,19 +7604,21 @@
       "pinyin": "fengyutongdu",
       "reason": "linear",
       "top10": [
-        "丰腴统独"
+        "风雨同渡"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0526",
       "expected": "关山共越",
       "pinyin": "guanshangongyue",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "关山共越"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0527",
@@ -8525,11 +8553,12 @@
       "pinyin": "lamei",
       "reason": "linear",
       "top10": [
+        "拉美",
         "腊梅",
         "辣妹"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0592",
@@ -8556,9 +8585,11 @@
       "expected": "加勒比",
       "pinyin": "jialebi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "加勒比"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0594",
@@ -9889,13 +9920,14 @@
       "pinyin": "dashu",
       "reason": "linear",
       "top10": [
+        "大树",
         "大叔",
         "大数",
         "大鼠",
         "答数"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0685",
@@ -10651,7 +10683,7 @@
         "褥",
         "蠕",
         "女",
-        "肉"
+        "月"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -11418,9 +11450,11 @@
       "expected": "第二十",
       "pinyin": "diershi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "第二十"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0792",
@@ -11674,12 +11708,13 @@
       "pinyin": "fangke",
       "reason": "linear",
       "top10": [
+        "方可",
         "房客",
         "访客",
         "放克"
       ],
-      "rank": 99,
-      "verdict": "HARD"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0810",
@@ -23354,8 +23389,8 @@
   ],
   "stats": {
     "total": 1620,
-    "pass": 1352,
-    "soft": 176,
-    "hard": 92
+    "pass": 1378,
+    "soft": 179,
+    "hard": 63
   }
 }
