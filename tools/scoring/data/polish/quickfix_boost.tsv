@@ -151,3 +151,22 @@ huluobo	胡萝卜	55000	# 2026-06-30 user: "胡萝卜应该在日语前" — 55k
 ceshi	测试	50000	# 2026-06-30 user: "ceshi 测试最高" — 软件测试/HSK 学术词
 tigan	体感	10000	# 2026-06-30 modern_freq 把 提干 抬过 体感 (jieba 新闻语料偏)
 toulan	偷懒	10000	# 2026-06-30 同上 - 投篮(体育新闻) vs 偷懒(口语)
+
+# 2026-06-30 dogfood Iter A: SOFT-1c batch — top single-char polysemy
+# where modern_freq (jieba-derived) puts 实词 at #0 but expected (in news
+# corpus) is the grammatical 功能字. Each ~30k to dominate over modern_freq's
+# 25k cap. 13 entries chosen where 功能字 is clearly the default IME #0.
+yu	与	30000
+yu	于	25000
+wei	为	30000
+zhong	中	30000
+bing	并	30000
+# yi	以	30000  ← retired: breaks prior baseline yi→一
+hou	后	30000
+jiang	将	30000
+# you	由	30000  ← retired: breaks prior baseline you→有
+ceng	曾	30000
+hua	话	30000
+huo	或	30000
+deng	等	30000
+# xiang	向	30000  ← retired: breaks prior baseline xiang→想 muscle memory
