@@ -191,10 +191,10 @@ fn parse_words_tsv(text: &str) -> Vec<WordEntry> {
 /// modern_vocab entries are polish-A additions (user-curated modern /
 /// network / colloquial words missing from CC-CEDICT). Format
 /// `<code>\t<word>\t<freq>`. Tier mapping from freq:
-///   freq >= 60000 → tier 3 (HSK 5-6 level)
-///   freq >= 40000 → tier 4 (cedict 2c level)
-///   freq >= 20000 → tier 5
-///   freq <  20000 → tier 6
+///   freq >= 50000 → tier 2 (lifted 2026-06-30 — let polish compete with HSK 3-4 words)
+///   freq >= 30000 → tier 3
+///   freq >= 15000 → tier 4
+///   freq <  15000 → tier 5
 pub fn words() -> &'static [WordEntry] {
     static CACHED: OnceLock<Vec<WordEntry>> = OnceLock::new();
     CACHED.get_or_init(|| {
@@ -210,10 +210,10 @@ pub fn words() -> &'static [WordEntry] {
             if let (Some(c), Some(w), Some(f)) = (code, word, freq_s) {
                 if let Ok(freq) = f.trim().parse::<u32>() {
                     if existing.contains(&(c.to_owned(), w.to_owned())) { continue; }
-                    let tier: u8 = if freq >= 60_000 { 3 }
-                        else if freq >= 40_000 { 4 }
-                        else if freq >= 20_000 { 5 }
-                        else { 6 };
+                    let tier: u8 = if freq >= 50_000 { 2 }
+                        else if freq >= 30_000 { 3 }
+                        else if freq >= 15_000 { 4 }
+                        else { 5 };
                     out.push(WordEntry {
                         code: c.to_owned(),
                         word: w.to_owned(),
