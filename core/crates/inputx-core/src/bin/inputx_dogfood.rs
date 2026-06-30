@@ -123,7 +123,11 @@ fn main() -> ExitCode {
             continue;
         }
 
-        let scored = inputx_pinyin_v2::query(pinyin);
+        // Strip apostrophe before v2 query — v2 doesn't normalize
+        // syllable separators; composite layer does. Without this,
+        // segments like `fang'an` / `yi'anweijian` query empty.
+        let pinyin_normalized = pinyin.replace('\'', "");
+        let scored = inputx_pinyin_v2::query(&pinyin_normalized);
         let top10: Vec<&String> = scored.iter().take(10).map(|(w, _, _)| w).collect();
         let rank = top10.iter().position(|w| w.as_str() == word);
 
