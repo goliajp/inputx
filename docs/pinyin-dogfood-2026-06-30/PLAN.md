@@ -10,6 +10,7 @@
 - 2026-06-30 setup — Phase 0 complete(0.1 / 0.2 / 0.3 done). Next: 1.0 MODERN-FREQ-DESIGN.md
 - jieba dict location:`/Users/doracawl/Library/Python/3.9/lib/python/site-packages/jieba/dict.txt`(已 installed)
 - gongqi baseline anchor confirmed:current `共栖, 工期, 汞齐`(应翻成 工期 #0,Phase 1 验证点)
+- 2026-06-30 iter#1 — 1.0 done. MODERN-FREQ-DESIGN.md written(区间 [0,25k]、percentile rank、6 sort sites 列清、anchor 验证 checklist)。Next: 1.1 build-modern-freq.py
 
 ## Status legend
 - `[ ]` todo
@@ -39,7 +40,7 @@
 ### Phase 1: modern-freq scaling(评分 tiebreaker,不入库)
 设计文档:`docs/pinyin-dogfood-2026-06-30/MODERN-FREQ-DESIGN.md`(待 1.0 写)
 
-- [WIP] 1.0 Write MODERN-FREQ-DESIGN.md(refresh 之前讨论的 scaling 设计)
+- [x] 1.0 Write MODERN-FREQ-DESIGN.md(refresh 之前讨论的 scaling 设计)
 - [ ] 1.1 Write `tools/v2-ingest/build-modern-freq.py`(read jieba dict + v2 words/chars → modern_freq.tsv)
 - [ ] 1.2 Run script → 生成 `core/crates/inputx-pinyin-v2/data/modern_freq.tsv`
 - [ ] 1.3 `data.rs` 加 `modern_freq()` lazy loader(HashMap<String, u16>)
