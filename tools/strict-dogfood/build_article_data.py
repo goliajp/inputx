@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
-"""build_article_data.py — for one article, probe v2 for each segment and
-emit a structured JSON capturing current state.
+"""build_article_data.py — for one article, batch-probe v2 via inputx-dogfood
+(one process load) and emit structured JSON.
 
 Usage:
-    build_article_data.py <article_id> <segments.tsv> [--before-snap path] [--out path]
+    build_article_data.py <article_id> <segments.tsv>
 
 segments.tsv format:
-    seg_idx\\texpected\\tpinyin\\treason
-
-If --before-snap is given, that path is read and the script labels current
-output as "after" while keeping the snapshot as "before". Otherwise this
-is a "before" snapshot.
+    idx\\tword\\tpinyin\\treason
 """
 
 from __future__ import annotations
@@ -18,31 +14,16 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import tempfile
 import argparse
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-PROBE = ROOT / "core/target/release/inputx-probe"
+DOGFOOD = ROOT / "core/target/release/inputx-dogfood"
 CORPUS = ROOT / "docs/pinyin-dogfood-2026-06-30/scratchpad/corpus_news/articles"
 
 
-def probe_v2(buffer: str) -> list[str]:
-    """Call inputx-probe in pinyin mode, return top-10 words."""
-    res = subprocess.run(
-        [str(PROBE), buffer, "--mode", "pinyin", "--pinyin", "v2"],
-        capture_output=True, text=True, timeout=10,
-    )
-    if res.returncode != 0:
-        return []
-    try:
-        data = json.loads(res.stdout)
-        return [c["word"] for c in data.get("candidates", [])[:10]]
-    except Exception:
-        return []
-
-
 def find_article(article_id: str) -> tuple[str, str]:
-    """Return (title, raw_text) for article."""
     candidates = list(CORPUS.glob(f"{article_id}_*.txt"))
     if not candidates:
         return article_id, ""
@@ -68,7 +49,9 @@ def main():
     title, raw_text = find_article(article_id)
     cjk_count = sum(1 for c in raw_text if '一' <= c <= '鿿')
 
-    segments = []
+    # Build TSV input for inputx-dogfood: article_id\tseg_idx\tword\tpinyin\tnotes
+    in_rows = []
+    seg_meta = []  # parallel list for reason
     with seg_path.open(encoding="utf-8") as f:
         for ln in f:
             ln = ln.rstrip("\n")
@@ -77,20 +60,40 @@ def main():
             parts = ln.split("\t")
             if len(parts) < 3:
                 continue
-            idx, expected, pinyin = parts[0], parts[1], parts[2]
+            idx, word, pinyin = parts[0], parts[1], parts[2]
             reason = parts[3] if len(parts) > 3 else ""
-            top10 = probe_v2(pinyin)
-            rank = top10.index(expected) if expected in top10 else 99
-            verdict = "PASS" if rank == 0 else ("SOFT" if rank < 99 else "HARD")
-            segments.append({
-                "idx": idx,
-                "expected": expected,
-                "pinyin": pinyin,
-                "reason": reason,
-                "top10": top10,
-                "rank": rank,
-                "verdict": verdict,
-            })
+            in_rows.append(f"{article_id}\t{idx}\t{word}\t{pinyin}\t")
+            seg_meta.append({"idx": idx, "expected": word, "pinyin": pinyin, "reason": reason})
+
+    # Write input TSV + call inputx-dogfood with --all
+    with tempfile.NamedTemporaryFile("w", suffix=".tsv", delete=False, encoding="utf-8") as tf:
+        tf.write("\n".join(in_rows) + "\n")
+        input_path = tf.name
+    with tempfile.NamedTemporaryFile("w", suffix=".tsv", delete=False, encoding="utf-8") as tf:
+        output_path = tf.name
+
+    res = subprocess.run(
+        [str(DOGFOOD), "--input", input_path, "--output", output_path, "--all"],
+        capture_output=True, text=True
+    )
+    # Parse output
+    by_idx: dict[str, dict] = {}
+    for ln in Path(output_path).read_text(encoding="utf-8").splitlines():
+        if not ln.strip() or ln.startswith("#"):
+            continue
+        cols = ln.split("\t")
+        if len(cols) < 7:
+            continue
+        idx = cols[1]
+        top10 = cols[6].split(",") if cols[6] else []
+        rank = int(cols[5])
+        by_idx[idx] = {"top10": top10, "rank": rank, "verdict": cols[4]}
+
+    # Stitch
+    segments = []
+    for m in seg_meta:
+        info = by_idx.get(m["idx"], {"top10": [], "rank": 99, "verdict": "HARD"})
+        segments.append({**m, **info})
 
     stats = {
         "total": len(segments),
