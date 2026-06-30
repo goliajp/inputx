@@ -197,25 +197,36 @@ def render_article(art: dict) -> str:
             f'</tr>'
         )
 
-    # Build highlight map: word → verdict class for inline highlighting
+    # Build highlight by walking segments in typing order + cursor-advance through raw text.
+    # Each segment = one IME buffer commit; emit its expected word wrapped in its verdict class
+    # at the next-matching position in raw, then advance cursor past it. This correctly handles:
+    #   - Duplicates (习近平 出现 N 次 → wrap N spans, each at its own position)
+    #   - Single chars (在/的/了 不会撞全文所有 occurrence)
+    #   - Overlap (按 idx 顺序顺次推进,no nesting)
+    def _esc(s: str) -> str:
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
     raw = art.get("raw_text", "") or ""
-    # Escape HTML first
-    raw_escaped = (raw.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
-    # Sort segments by word length desc to highlight longer compounds first (avoid partial matches)
-    seg_for_hilite = sorted(art["segments"], key=lambda s: -len(s["expected"]))
-    for s in seg_for_hilite:
-        w = (s["expected"].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
-        cls = "hilite" if s["verdict"] == "PASS" else (
-            "hilite-soft" if s["verdict"] == "SOFT" else "hilite-hard"
-        )
-        # Replace all occurrences with wrapped span (be careful to avoid re-wrapping)
-        marker = f'\x00{cls}\x00{w}\x00END\x00'
-        raw_escaped = raw_escaped.replace(w, marker)
-    raw_escaped = raw_escaped.replace('\x00END\x00', '</span>')
-    raw_escaped = (raw_escaped
-        .replace('\x00hilite\x00', '<span class="hilite">')
-        .replace('\x00hilite-soft\x00', '<span class="hilite-soft">')
-        .replace('\x00hilite-hard\x00', '<span class="hilite-hard">'))
+    cls_map = {"PASS": "hilite", "SOFT": "hilite-soft", "HARD": "hilite-hard"}
+    cursor = 0
+    parts: list[str] = []
+    for s in sorted(art["segments"], key=lambda s: int(s["idx"])):
+        w = s["expected"]
+        pos = raw.find(w, cursor)
+        if pos < 0:
+            # Segment word not findable starting here — skip wrap (segment still
+            # shown in table below; text fragment will be flushed at end).
+            continue
+        # Emit any text between previous cursor and this segment's start (un-highlighted).
+        if pos > cursor:
+            parts.append(_esc(raw[cursor:pos]))
+        cls = cls_map.get(s["verdict"], "hilite-hard")
+        parts.append(f'<span class="{cls}">{_esc(w)}</span>')
+        cursor = pos + len(w)
+    # Flush trailing text after last segment.
+    if cursor < len(raw):
+        parts.append(_esc(raw[cursor:]))
+    raw_escaped = "".join(parts)
 
     return f"""
 <section class="article" id="art-{aid}">
