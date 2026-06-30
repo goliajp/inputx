@@ -37,6 +37,7 @@
 - 2026-06-30 iter#24 — 6.1 done。9 retire 候选试,7 落地 retired(ceshi 测试 / yanjiu 研究 / liucheng 流程 / lianxu 连续 / shenru cascade 3 行)。2 还原(xingshi cascade 不能部分撤,姓氏/刑事 30k+20k 仍需 形式/形势 50k+40k 顶上保 cascade)。Lesson:cascade quickfix 整体 — retire 必须全或不。PASS 72.1% 不变(modern_freq 接管成功)baseline 357/0 ✓。Next: 6.2 final report。
 - 2026-06-30 iter#25 — 6.2 done。`reports/final.md` 全 7 节(TL;DR / 25 iter 总览 / design 区间 / 10 runs 数据 trajectory / polish data stats / 7 lessons / outstanding gaps / 0 framework gap / files / conclusion)。Next: 6.3 update memory。
 - 2026-06-30 iter#26 — 6.3 done。`memory/project_dogfood_2026-06-30.md` 写。MEMORY.md 加 anchor(放在 Project state 顶,标 "新 anchor")。涵盖 modern_freq 设计 / dogfood pipeline / 7 lessons / outstanding。**Phase 6 3/4**。Next: 6.4 tag(可选)/ ALL DONE。
+- 2026-06-30 iter#27 — 6.4 done。**ALL DONE 🎉**。Final sanity:baseline 357/0 ✓,live IME mtime 18:52(modern_freq + 全 polish 部署),全 commits push。Cron `f4ea17d8` cancelled(/loop 3m 停止)。 PushNotification 通知用户 done。
 
 ## Status legend
 - `[ ]` todo
@@ -109,7 +110,11 @@
 - [x] 6.1 Retired 7 quickfix rows(ceshi 测试 / yanjiu 研究 / liucheng 流程 / lianxu 连续 / shenru 深入+渗入+慎入 cascade)— modern_freq 接管。Cascade lesson:xingshi 4 行不能部分撤(姓氏 30k 会顶 #0 since 形式 没了快接)→ 还原 形式/形势,只单独 word polish 撤。dogfood PASS 72.1% 不变 ✓ baseline 357/0 ✓ deploy ✓。
 - [x] 6.2 Write final `reports/final.md` — 7 节(TL;DR / phases / 设计 / 数据轨迹 / polish stats / lessons / outstanding / framework gaps / files / conclusion)
 - [x] 6.3 Update memory — `memory/project_dogfood_2026-06-30.md` 写好(项目摘要 + 7 lessons + outstanding + 关联其它 memory),MEMORY.md 加 anchor
-- [WIP] 6.4 ALL DONE — final verify + cancel /loop cron
+- [x] 6.4 ALL DONE — final verify(baseline 357/0 ✓ + live IME deployed ✓ + 全 commits push)+ cron `f4ea17d8` cancelled。
+
+## ALL DONE — dogfood concluded 🎉
+
+shipped 2026-06-30. PASS 67.4 → 72.1% on 72k segments. modern-freq + 7 polish batches + 7 retired quickfix. Phase 6 收尾。Final report:`reports/final.md`。
 
 ## Open questions(任何一项有 update 写这里)
 
