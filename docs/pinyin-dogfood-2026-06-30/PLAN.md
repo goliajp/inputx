@@ -46,7 +46,7 @@
 - [x] 1.1 Write `tools/v2-ingest/build-modern-freq.py`(read jieba dict + v2 words/chars → modern_freq.tsv)
 - [x] 1.2 Run script → 生成 `core/crates/inputx-pinyin-v2/data/modern_freq.tsv`(95870 行,74.7% in jieba)
 - [x] 1.3 `data.rs` 加 `modern_freq()` lazy loader(HashMap<String, u16>)
-- [ ] 1.4 `lib.rs` 各 path 排序 key 加 modern_freq DESC 二维(6 个 site:exact / char / initials / prefix / compose / quickfix)
+- [WIP] 1.4 `lib.rs` 各 path 排序 key 加 modern_freq DESC 二维(6 个 site:exact / char / initials / prefix / compose / quickfix)
 - [ ] 1.5 cargo build + baseline 357/0 ✓
 - [ ] 1.6 验证 anchor 翻转:gongqi→工期 / ceshi→测试 / liucheng→流程 / yanjiu→研究 / huluobo→胡萝卜(无 quickfix 帮助时也能自动正确)
 - [ ] 1.7 mac/reinstall.py + commit + push
