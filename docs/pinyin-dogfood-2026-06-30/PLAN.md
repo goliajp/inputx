@@ -42,6 +42,7 @@
 - 2026-06-30 iter#29 — 5.10 done。17 modern_vocab Iter I(第一场/第二张/取自/国联/该校/首张/亚特兰大/东区/总冠军/奥运会/残奥会/每队/这颗/多出/有机溶剂/致力于/威廉)。**Run-013: PASS 72.1 → 72.2%(+0.1pp,HARD -85)**。Discovery:modern_vocab 上限 tier 3(freq≥60k),无法盖 HSK 2 cedict tier 2(以为/一向 等)。Next: 5.11 Iter J batch。
 - 2026-06-30 iter#30 — 5.11 done。32 modern_vocab Iter J(第六/北约/转换成/赛程表/音源/一所/同为/最具/清朝/排名第/最低/一年/队史/双循环/请参阅/银河系/很少/实时/国共/东京都/两位/本季/该项/第三任/下半区/第十届/现名/各项/两种/这项/台中市/五人)。**Run-014: PASS 72.2 → 72.3%(+0.1pp,HARD -148)**。Diminishing return 极尖锐 — 接下来要么 wrap 要么换 attack vector。Next: 5.12 decide。
 - 2026-06-30 iter#31 — 5.12 done。Iter K 35 modern_vocab(敲出/新泽西州/南区/足总杯/曼谷/投出/新北市/元朝/国军/本站/主场优势/一股/风眼/低压槽/蒙大拿州/湖南/华北/第四位/百老汇/视星等/岩手县/青海/女选手/用球数/投满/号线/此站/签表/红队/印度洋/向东/占多数/马来/机上/查看器)。**Run-015: PASS 72.3 → 72.4%(+0.1pp,HARD -194)**。**Decision: WRAP**。剩余 HARD 集中在 names / niche / 文言 — polish 不产生通用 IME 价值。Reopened phase 累计 4 batch:67.4 → 72.4%(+5.0pp)。Next: 5.13 final wrap commit。
+- 2026-06-30 iter#32 — 5.13 done。**ALL DONE FINAL 🎉**。Final sanity:baseline 357/0 ✓,live IME mtime 19:20,reports/final.md updated to reopened numbers(72.4% / 111k segs / 395 polish rows)。Cron 14135fef cancelled(/loop 3m 停止 again)。 PushNotification 通知 done(final)。**项目真完结**。
 
 ## Status legend
 - `[ ]` todo
@@ -130,7 +131,7 @@ User wants 全部做完。Reopen Phase 5 — corpus grew to 272 articles (slow f
 - [x] 5.10 Iter I done。17 modern_vocab(第一场/第二张/取自/国联/该校/首张/亚特兰大/东区/总冠军/奥运会/残奥会/每队/这颗/多出/有机溶剂/致力于/威廉)。**Run-013: PASS 72.1 → 72.2%(+0.1pp,HARD -85)**。Discovery:modern_vocab tier 限制 — 35k → tier 5,无法盖 HSK 4 cedict 词(以为/一向 等)。 单音节同音冲突(yiwei 一位 vs 以为,yixiang 一项 vs 一向)需 quickfix 才能强制 #0 — but skip for now since both legitimate uses。
 - [x] 5.11 Iter J done。32 modern_vocab(第六/北约/转换成/赛程表/音源/一所/同为/最具/清朝/排名第/最低/一年/队史/双循环/请参阅/银河系/很少/实时/国共/东京都/两位/本季/该项/第三任/下半区/第十届/现名/各项/两种/这项/台中市/五人)。**Run-014: PASS 72.2 → 72.3%(+0.1pp,HARD -148)**。
 - [x] 5.12 done。35 modern_vocab Iter K(敲出/新泽西州/南区/足总杯/曼谷/投出/新北市/元朝/国军/本站/主场优势/一股/风眼/低压槽/蒙大拿州/湖南/华北/第四位/百老汇/视星等/岩手县/青海/女选手/用球数/投满/号线/此站/签表/红队/印度洋/向东/占多数/马来/机上/查看器)。**Run-015: PASS 72.3 → 72.4%(+0.1pp,HARD -194)**。**Decision: wrap**。每 batch +0.1pp 需 30+ entries,ROI 极低。剩余 HARD 是 names + niche + 文言 + 名字 — 这些 polish 不能产生通用 IME value。
-- [WIP] 5.13 Final wrap commit:Phase 5 close + final run update
+- [x] 5.13 Final wrap:Phase 5 reopen closed,final.md updated to 72.4% / 111k segs / 395 polish rows,cron 14135fef cancelled。**ALL DONE FINAL 🎉**
 
 
 ## Open questions(任何一项有 update 写这里)
