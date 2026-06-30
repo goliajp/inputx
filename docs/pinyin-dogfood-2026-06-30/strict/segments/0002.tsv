@@ -29,7 +29,9 @@
 0025	一	yi	linear
 0026	天	tian	linear
 0027	在	zai	linear
-0028	时任	shiren	linear
+# SPLIT-r3 0028	时任	shiren	linear
+0028	时	shi	linear-r3
+0028	任	ren	linear-r3
 0029	浙江	zhejiang	linear
 0030	省委	shengwei	linear
 0031	书记	shuji	linear
@@ -93,7 +95,9 @@
 0089	村庄	cunzhuang	linear
 0090	面貌	mianmao	linear
 0091	不如	buru	linear
-0092	人意	renyi	linear
+# SPLIT-r3 0092	人意	renyi	linear
+0092	人	ren	linear-r3
+0092	意	yi	linear-r3
 0093	全省	quansheng	linear
 0094	万	wan	linear
 0095	个	ge	linear
@@ -101,7 +105,9 @@
 0097	中	zhong	linear
 0098	人居	renju	linear
 0099	环境	huanjing	linear
-0100	较好	jiaohao	linear
+# SPLIT-r3 0100	较好	jiaohao	linear
+0100	较	jiao	linear-r3
+0100	好	hao	linear-r3
 0101	的	de	linear
 0102	仅	jin	linear
 0103	个	ge	linear
@@ -113,7 +119,9 @@
 0109	又	you	linear
 0110	一	yi	linear
 0111	村	cun	linear
-0112	村村	cuncun	linear
+# SPLIT-r3 0112	村村	cuncun	linear
+0112	村	cun	linear-r3
+0112	村	cun	linear-r3
 0113	都是	doushi	linear
 0114	垃圾	laji	linear
 0115	村	cun	linear
@@ -154,7 +162,9 @@
 0150	们	men	linear
 0151	走	zou	linear
 0152	什么	shenme	linear
-0153	村道	cundao	linear
+# SPLIT-r3 0153	村道	cundao	linear
+0153	村	cun	linear-r3
+0153	道	dao	linear-r3
 0154	怎么	zenme	linear
 0155	处理	chuli	linear
 0156	畜禽	chuqin	linear

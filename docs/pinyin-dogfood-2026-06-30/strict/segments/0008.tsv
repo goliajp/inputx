@@ -282,7 +282,9 @@
 0269	经济	jingji	linear
 0270	全球化	quanqiuhua	linear
 0271	成果	chengguo	linear
-0272	本月	benyue	linear
+# SPLIT-r3 0272	本月	benyue	linear
+0272	本	ben	linear-r3
+0272	月	yue	linear-r3
 0273	中美	zhongmei	linear
 0274	日内瓦	rineiwa	linear
 0275	经贸	jingmao	linear
@@ -524,7 +526,9 @@
 0507	今年	jinnian	linear
 # SKIP-PERSON 0508	习	xi	linear
 0509	主席	zhuxi	linear
-0510	首次	shouci	linear
+# SPLIT-r3 0510	首次	shouci	linear
+0510	首	shou	linear-r3
+0510	次	ci	linear-r3
 0511	与	yu	linear
 # SKIP-PERSON 0512	普京	pujing	linear
 0513	总统	zongtong	linear
@@ -707,7 +711,9 @@
 0682	的	de	linear
 0683	南南合作	nannanhezuo	linear
 0684	大树	dashu	linear
-0685	本月	benyue	linear
+# SPLIT-r3 0685	本月	benyue	linear
+0685	本	ben	linear-r3
+0685	月	yue	linear-r3
 # SKIP-PERSON 0686	习	xi	linear
 0687	主席	zhuxi	linear
 0688	与	yu	linear
@@ -1119,7 +1125,9 @@
 1086	必须	bixu	linear
 1087	自身	zishen	linear
 1088	硬	ying	linear
-1089	本月	benyue	linear
+# SPLIT-r3 1089	本月	benyue	linear
+1089	本	ben	linear-r3
+1089	月	yue	linear-r3
 1090	中旬	zhongxun	linear
 1091	求是	qiushi	linear
 1092	杂志	zazhi	linear
@@ -1236,7 +1244,9 @@
 1203	凝聚	ningju	linear
 1204	共识	gongshi	linear
 1205	在	zai	linear
-1206	次日	ciri	linear
+# SPLIT-r3 1206	次日	ciri	linear
+1206	次	ci	linear-r3
+1206	日	ri	linear-r3
 1207	听取	tingqu	linear
 1208	河南	henan	linear
 1209	省委	shengwei	linear

@@ -5213,12 +5213,12 @@
       "pinyin": "jiance",
       "reason": "linear",
       "top10": [
-        "检测",
         "监测",
+        "检测",
         "简册"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0388",
@@ -5454,8 +5454,8 @@
   ],
   "stats": {
     "total": 398,
-    "pass": 349,
-    "soft": 28,
+    "pass": 350,
+    "soft": 27,
     "hard": 21
   }
 }

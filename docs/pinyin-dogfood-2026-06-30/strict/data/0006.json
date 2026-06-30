@@ -6720,8 +6720,8 @@
       "pinyin": "yizhi",
       "reason": "linear",
       "top10": [
-        "一直",
         "一致",
+        "一直",
         "意志",
         "抑制",
         "以致",
@@ -6731,8 +6731,8 @@
         "移植",
         "意旨"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0479",
@@ -7333,8 +7333,8 @@
       "pinyin": "yizhi",
       "reason": "linear",
       "top10": [
-        "一直",
         "一致",
+        "一直",
         "意志",
         "抑制",
         "以致",
@@ -7344,8 +7344,8 @@
         "移植",
         "意旨"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0521",
@@ -14290,8 +14290,8 @@
   ],
   "stats": {
     "total": 1010,
-    "pass": 909,
-    "soft": 70,
+    "pass": 911,
+    "soft": 68,
     "hard": 31
   }
 }

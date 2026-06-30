@@ -1021,12 +1021,12 @@
       "pinyin": "yinyin",
       "reason": "linear",
       "top10": [
-        "隐隐",
         "殷殷",
+        "隐隐",
         "龈音"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0072",
@@ -3947,12 +3947,40 @@
     },
     {
       "idx": "0272",
-      "expected": "本月",
-      "pinyin": "benyue",
-      "reason": "linear",
+      "expected": "本",
+      "pinyin": "ben",
+      "reason": "linear-r3",
       "top10": [
-        "本月",
-        "奔月"
+        "月",
+        "越",
+        "约",
+        "跃",
+        "曰",
+        "岳",
+        "阅",
+        "粤",
+        "悦",
+        "说"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0272",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear-r3",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "曰",
+        "岳",
+        "阅",
+        "粤",
+        "悦",
+        "说"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -6237,8 +6265,8 @@
       "pinyin": "xianshi",
       "reason": "linear",
       "top10": [
-        "显示",
         "现实",
+        "显示",
         "先师",
         "现时",
         "现世",
@@ -6248,8 +6276,8 @@
         "贤士",
         "仙逝"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0441",
@@ -7283,16 +7311,43 @@
     },
     {
       "idx": "0510",
-      "expected": "首次",
-      "pinyin": "shouci",
-      "reason": "linear",
+      "expected": "首",
+      "pinyin": "shou",
+      "reason": "linear-r3",
       "top10": [
-        "首次",
-        "受词",
-        "收词"
+        "此",
+        "次",
+        "刺",
+        "词",
+        "辞",
+        "磁",
+        "赐",
+        "雌",
+        "慈",
+        "瓷"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 1,
+      "verdict": "SOFT"
+    },
+    {
+      "idx": "0510",
+      "expected": "次",
+      "pinyin": "ci",
+      "reason": "linear-r3",
+      "top10": [
+        "此",
+        "次",
+        "刺",
+        "词",
+        "辞",
+        "磁",
+        "赐",
+        "雌",
+        "慈",
+        "瓷"
+      ],
+      "rank": 1,
+      "verdict": "SOFT"
     },
     {
       "idx": "0511",
@@ -7865,8 +7920,8 @@
       "pinyin": "jianshi",
       "reason": "linear",
       "top10": [
-        "监视",
         "坚实",
+        "监视",
         "见识",
         "简史",
         "检视",
@@ -7876,8 +7931,8 @@
         "箭矢",
         "鉴识"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0550",
@@ -9844,12 +9899,40 @@
     },
     {
       "idx": "0685",
-      "expected": "本月",
-      "pinyin": "benyue",
-      "reason": "linear",
+      "expected": "本",
+      "pinyin": "ben",
+      "reason": "linear-r3",
       "top10": [
-        "本月",
-        "奔月"
+        "月",
+        "越",
+        "约",
+        "跃",
+        "曰",
+        "岳",
+        "阅",
+        "粤",
+        "悦",
+        "说"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0685",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear-r3",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "曰",
+        "岳",
+        "阅",
+        "粤",
+        "悦",
+        "说"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -11110,11 +11193,11 @@
       "pinyin": "jianpin",
       "reason": "linear",
       "top10": [
-        "简拼",
-        "减贫"
+        "减贫",
+        "简拼"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0777",
@@ -11196,13 +11279,13 @@
       "pinyin": "hexin",
       "reason": "linear",
       "top10": [
-        "核心",
         "贺信",
+        "核心",
         "合心",
         "河心"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0783",
@@ -11287,11 +11370,11 @@
       "pinyin": "jianpin",
       "reason": "linear",
       "top10": [
-        "简拼",
-        "减贫"
+        "减贫",
+        "简拼"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0789",
@@ -11435,13 +11518,13 @@
       "pinyin": "hexin",
       "reason": "linear",
       "top10": [
-        "核心",
         "贺信",
+        "核心",
         "合心",
         "河心"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0799",
@@ -13178,9 +13261,11 @@
       "expected": "洛轴",
       "pinyin": "luozhou",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "洛轴"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0924",
@@ -13399,9 +13484,11 @@
       "expected": "洛轴",
       "pinyin": "luozhou",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "洛轴"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0937",
@@ -15690,12 +15777,40 @@
     },
     {
       "idx": "1089",
-      "expected": "本月",
-      "pinyin": "benyue",
-      "reason": "linear",
+      "expected": "本",
+      "pinyin": "ben",
+      "reason": "linear-r3",
       "top10": [
-        "本月",
-        "奔月"
+        "月",
+        "越",
+        "约",
+        "跃",
+        "曰",
+        "岳",
+        "阅",
+        "粤",
+        "悦",
+        "说"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "1089",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear-r3",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "曰",
+        "岳",
+        "阅",
+        "粤",
+        "悦",
+        "说"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -17078,14 +17193,14 @@
       "pinyin": "bianzhi",
       "reason": "linear",
       "top10": [
+        "编制",
         "变质",
         "编织",
-        "编制",
         "贬值",
         "贬职"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1187",
@@ -17356,11 +17471,24 @@
     },
     {
       "idx": "1206",
-      "expected": "次日",
-      "pinyin": "ciri",
-      "reason": "linear",
+      "expected": "次",
+      "pinyin": "ci",
+      "reason": "linear-r3",
       "top10": [
-        "次日"
+        "日",
+        "驲"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "1206",
+      "expected": "日",
+      "pinyin": "ri",
+      "reason": "linear-r3",
+      "top10": [
+        "日",
+        "驲"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -17546,14 +17674,14 @@
       "pinyin": "bianzhi",
       "reason": "linear",
       "top10": [
+        "编制",
         "变质",
         "编织",
-        "编制",
         "贬值",
         "贬职"
       ],
-      "rank": 2,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1221",
@@ -18331,8 +18459,8 @@
       "pinyin": "xianshi",
       "reason": "linear",
       "top10": [
-        "显示",
         "现实",
+        "显示",
         "先师",
         "现时",
         "现世",
@@ -18342,8 +18470,8 @@
         "贤士",
         "仙逝"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1273",
@@ -18774,13 +18902,13 @@
       "pinyin": "shenhou",
       "reason": "linear",
       "top10": [
-        "身后",
         "深厚",
+        "身后",
         "申猴",
         "深喉"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1304",
@@ -19440,14 +19568,14 @@
       "pinyin": "zhixin",
       "reason": "linear",
       "top10": [
-        "知心",
         "致信",
+        "知心",
         "质心",
         "置信",
         "芝心"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1355",
@@ -19466,12 +19594,12 @@
       "pinyin": "fudan",
       "reason": "linear",
       "top10": [
-        "负担",
         "复旦",
+        "负担",
         "孵蛋"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1357",
@@ -19537,12 +19665,12 @@
       "pinyin": "fudan",
       "reason": "linear",
       "top10": [
-        "负担",
         "复旦",
+        "负担",
         "孵蛋"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1363",
@@ -20063,9 +20191,11 @@
       "expected": "洛轴",
       "pinyin": "luozhou",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "HARD"
+      "top10": [
+        "洛轴"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1402",
@@ -21165,12 +21295,12 @@
       "pinyin": "yinyin",
       "reason": "linear",
       "top10": [
-        "隐隐",
         "殷殷",
+        "隐隐",
         "龈音"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1477",
@@ -21891,12 +22021,12 @@
       "pinyin": "yinyin",
       "reason": "linear",
       "top10": [
-        "隐隐",
         "殷殷",
+        "隐隐",
         "龈音"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1532",
@@ -22116,14 +22246,14 @@
       "pinyin": "zhixin",
       "reason": "linear",
       "top10": [
-        "知心",
         "致信",
+        "知心",
         "质心",
         "置信",
         "芝心"
       ],
-      "rank": 1,
-      "verdict": "SOFT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1547",
@@ -23223,9 +23353,9 @@
     }
   ],
   "stats": {
-    "total": 1615,
-    "pass": 1329,
-    "soft": 191,
-    "hard": 95
+    "total": 1620,
+    "pass": 1352,
+    "soft": 176,
+    "hard": 92
   }
 }
