@@ -59,7 +59,7 @@
 
 ### Phase 2: corpus prep
 - [x] 2.1 Pick corpus source — **THUCNews**(决定文档:`CORPUS-CHOICE.md`)。Mirror alive,~700MB,14 类 sina news 2005-2011
-- [ ] 2.2 Download corpus archive 到 scratchpad
+- [WIP] 2.2 Download corpus archive 到 scratchpad
 - [ ] 2.3 Sample 1000 articles balanced(每类 ~70 篇,14 类)
 - [ ] 2.4 Save to `scratchpad/corpus/articles.txt`(每行 1 篇,或多文件)
 - [ ] 2.5 Write `tools/v2-ingest/segment-corpus.py`:jieba 分词 → IME-realistic 2-4 字 buffer + pypinyin code
