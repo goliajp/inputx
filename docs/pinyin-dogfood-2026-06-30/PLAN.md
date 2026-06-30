@@ -45,6 +45,7 @@
 - 2026-06-30 iter#32 — 5.13 done。**ALL DONE FINAL 🎉**。Final sanity:baseline 357/0 ✓,live IME mtime 19:20,reports/final.md updated to reopened numbers(72.4% / 111k segs / 395 polish rows)。Cron 14135fef cancelled(/loop 3m 停止 again)。 PushNotification 通知 done(final)。**项目真完结**。
 - 2026-06-30 iter#33 — **RE-REOPENED**:user /loop 3m 第 3 次。新 attack vector — 降 modern_vocab tier 阈值(50k/30k/15k 替 60k/40k/20k,顶 tier 3 → tier 2)。1 行 data.rs 改 → 150+ polish 词升 tier。**Run-016: PASS 72.4 → 72.8%(+0.4pp 大跳)** SOFT -395 dramatic。比拼 entries-per-pp 远胜 batch polish。baseline 357/0 ✓ deploy ✓。Cron 7305d416 active。Next: 5.15 单字 SOFT quickfix。
 - 2026-06-30 iter#34 — 5.15 done。Iter L 11 quickfix(链接/日志/类似/专辑/紧急/用于/积分/届/赛/因 — 全是现代真词),1 retired(qu 区 撞 baseline)。**Run-017: PASS 72.8 → 73.2%(+0.4pp 又大跳,SOFT -447)**。tier-bump + targeted SOFT quickfix 组合极有效。新 attack vector path 验证可行。Next: 5.16 next SOFT batch。
+- 2026-06-30 iter#35 — 5.16 done。Iter M 4 quickfix(不是/以上/升级/资讯)。**Run-018: PASS 73.2 → 73.2%(unchanged,marginal +87 SOFT→PASS)**。剩余 2-char SOFT 多是 dual-use 真词(同事/同时,作为/座位,任务/人物 — 都常用),无法 quickfix 强制。Next: 5.17 decide(此 attack vector ceiling 也到了)。
 
 ## Status legend
 - `[ ]` todo
@@ -138,7 +139,7 @@ User wants 全部做完。Reopen Phase 5 — corpus grew to 272 articles (slow f
 ## Reopened 3rd time(user /loop 3m 第 3 次)
 - [x] 5.14 done。Lower modern_vocab tier mapping(60k/40k/20k → 50k/30k/15k,top bucket tier 3 → tier 2)。1 行代码改,150+ polish 词从 tier 5 升 tier 2-3。**Run-016: PASS 72.4 → 72.8%(+0.4pp 大跳,SOFT -395 dramatic,HARD +52 slight)**。baseline 357/0 ✓。比批量 polish 30+ entries 还有效。
 - [x] 5.15 done。Iter L:10 quickfix 落地(链接/日志/类似/专辑/紧急/用于/积分/届/赛/因),1 retired(qu 区 撞 baseline)。**Run-017: PASS 72.8 → 73.2%(+0.4pp 又大跳,SOFT -447)**。baseline 357/0 ✓ deploy ✓。
-- [WIP] 5.16 Iter M next 2-char SOFT batch
+- [x] 5.16 Iter M done。4 quickfix(不是/以上/升级/资讯)。**Run-018: PASS 73.2% (unchanged,marginal +87 SOFT→PASS)**。已选最 obvious modern winners,剩余 2-char SOFT 多是 dual-use 真词(同事/作为/任务/同时 等),不能强制 #0。
 
 
 ## Open questions(任何一项有 update 写这里)
