@@ -110,6 +110,7 @@ th { color: #8b949e; font-weight: 500; background: #0d1117; position: sticky; to
 .v-PASS { background: rgba(86, 211, 100, 0.15); color: #56d364; }
 .v-SOFT { background: rgba(210, 153, 34, 0.15); color: #d29922; }
 .v-HARD { background: rgba(248, 81, 73, 0.15); color: #f85149; }
+.v-AUDIT { background: rgba(210, 153, 34, 0.15); color: #d29922; }
 .top10 { font-family: -apple-system, "PingFang SC", sans-serif; font-size: 11px; color: #8b949e; }
 .top10 .winner { color: #58a6ff; font-weight: 600; }
 .top10 .target { color: #56d364; font-weight: 600; }
@@ -207,7 +208,7 @@ def render_article(art: dict) -> str:
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
     raw = art.get("raw_text", "") or ""
-    cls_map = {"PASS": "hilite", "SOFT": "hilite-soft", "HARD": "hilite-hard"}
+    cls_map = {"PASS": "hilite", "SOFT": "hilite-soft", "HARD": "hilite-hard", "AUDIT": "hilite-soft"}
     cursor = 0
     parts: list[str] = []
     for s in sorted(art["segments"], key=lambda s: int(s["idx"])):

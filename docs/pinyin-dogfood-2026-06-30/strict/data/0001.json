@@ -22,7 +22,7 @@
         "净"
       ],
       "rank": 99,
-      "verdict": "HARD"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0002",
@@ -42,7 +42,7 @@
         "棺"
       ],
       "rank": 4,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0003",
@@ -898,7 +898,7 @@
         "计"
       ],
       "rank": 99,
-      "verdict": "HARD"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0064",
@@ -918,7 +918,7 @@
         "计"
       ],
       "rank": 99,
-      "verdict": "HARD"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0065",
@@ -1126,7 +1126,7 @@
         "叨"
       ],
       "rank": 4,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0081",
@@ -1146,7 +1146,7 @@
         "叨"
       ],
       "rank": 4,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0082",
@@ -1160,7 +1160,7 @@
         "新禧"
       ],
       "rank": 99,
-      "verdict": "HARD"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0083",
@@ -3657,7 +3657,7 @@
         "师"
       ],
       "rank": 5,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0263",
@@ -4867,7 +4867,7 @@
         "昧"
       ],
       "rank": 3,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0351",
@@ -4887,7 +4887,7 @@
         "昧"
       ],
       "rank": 3,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0352",
@@ -4938,7 +4938,7 @@
         "昧"
       ],
       "rank": 3,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0354",
@@ -4958,7 +4958,7 @@
         "昧"
       ],
       "rank": 3,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0355",
@@ -6173,7 +6173,7 @@
         "第二"
       ],
       "rank": 3,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0442",
@@ -10305,8 +10305,9 @@
   ],
   "stats": {
     "total": 718,
-    "pass": 705,
-    "soft": 9,
-    "hard": 4
+    "pass": 714,
+    "soft": 0,
+    "audit": 4,
+    "hard": 0
   }
 }

@@ -65,7 +65,7 @@
         "师"
       ],
       "rank": 5,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0006",
@@ -1101,7 +1101,7 @@
         "正职"
       ],
       "rank": 3,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0089",
@@ -1825,7 +1825,7 @@
         "入时"
       ],
       "rank": 99,
-      "verdict": "HARD"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0142",
@@ -2085,7 +2085,7 @@
         "计"
       ],
       "rank": 7,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0161",
@@ -2551,7 +2551,7 @@
         "吵"
       ],
       "rank": 3,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0193",
@@ -2808,7 +2808,7 @@
         "显"
       ],
       "rank": 4,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0212",
@@ -3003,7 +3003,7 @@
       "reason": "linear",
       "top10": [],
       "rank": 99,
-      "verdict": "HARD"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0226",
@@ -3781,8 +3781,9 @@
   ],
   "stats": {
     "total": 280,
-    "pass": 273,
-    "soft": 5,
-    "hard": 2
+    "pass": 278,
+    "soft": 0,
+    "audit": 2,
+    "hard": 0
   }
 }

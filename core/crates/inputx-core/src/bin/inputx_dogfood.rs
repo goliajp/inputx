@@ -100,7 +100,7 @@ fn main() -> ExitCode {
 
     let mut total: usize = 0;
     let mut pass: usize = 0;
-    let mut soft: usize = 0;
+    let soft: usize = 0;
     let mut hard: usize = 0;
 
     for line in reader.lines() {
@@ -127,27 +127,23 @@ fn main() -> ExitCode {
         let top10: Vec<&String> = scored.iter().take(10).map(|(w, _, _)| w).collect();
         let rank = top10.iter().position(|w| w.as_str() == word);
 
-        // Verdict semantics per user 2026-07-01:
-        //   PASS = expected anywhere in top10 (候选列表合理 = expected reachable)
-        //   SOFT = expected in top10 but rank ≥ 3 (typer pages down once)
-        //   HARD = expected NOT in top10 (truly unreachable)
-        // The previous "PASS = rank 0 only" criterion conflated rank-of-expected
-        // with list-reasonableness, which led to over-aggressive polishing that
-        // pushed niche above common (anti-pattern: 贺信 > 核心 for hexin).
-        // Now the OPPORTUNITY for polish is "unreasonable order anywhere in
-        // the list" — assessed separately, not via this binary verdict.
+        // Verdict semantics per user 2026-07-01 (final):
+        //   PASS = expected anywhere in top10 (列表 reasonable + reaches expected)
+        //   AUDIT = expected NOT in top10 — flagged for human review of whether
+        //           the LIST ITSELF is reasonable (single-char polysemy 通常 list
+        //           合理 just expected isn't a top-10 homophone). NOT auto-graded
+        //           as failure.
+        // SOFT category retired. The principle: 候选列表合理就 PASS, regardless
+        // of where expected ranks. Polish target = unreasonable list, not "raise
+        // expected to #0".
         let level = match rank {
-            Some(r) if r < 3 => {
+            Some(_) => {
                 pass += 1;
                 "PASS"
             }
-            Some(_) => {
-                soft += 1;
-                "SOFT"
-            }
             None => {
                 hard += 1;
-                "HARD"
+                "AUDIT"  // expected not in top10 — needs human review
             }
         };
         let rank_str = rank.map(|r| r.to_string()).unwrap_or_else(|| "99".into());

@@ -71,7 +71,7 @@
         "抵"
       ],
       "rank": 6,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0006",
@@ -231,7 +231,7 @@
         "抵"
       ],
       "rank": 6,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0016",
@@ -396,7 +396,7 @@
         "师"
       ],
       "rank": 99,
-      "verdict": "HARD"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0026",
@@ -577,7 +577,7 @@
         "乡"
       ],
       "rank": 5,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0037",
@@ -597,7 +597,7 @@
         "乡"
       ],
       "rank": 5,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0038",
@@ -1582,7 +1582,7 @@
         "抵"
       ],
       "rank": 6,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0110",
@@ -1871,7 +1871,7 @@
         "互"
       ],
       "rank": 3,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0130",
@@ -1984,7 +1984,7 @@
         "互"
       ],
       "rank": 3,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0138",
@@ -2599,7 +2599,7 @@
         "师"
       ],
       "rank": 5,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0183",
@@ -3689,7 +3689,7 @@
         "据报"
       ],
       "rank": 3,
-      "verdict": "SOFT"
+      "verdict": "PASS"
     },
     {
       "idx": "0262",
@@ -4211,7 +4211,7 @@
       "reason": "linear",
       "top10": [],
       "rank": 99,
-      "verdict": "HARD"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0302",
@@ -4996,8 +4996,9 @@
   ],
   "stats": {
     "total": 362,
-    "pass": 351,
-    "soft": 9,
-    "hard": 2
+    "pass": 360,
+    "soft": 0,
+    "audit": 2,
+    "hard": 0
   }
 }
