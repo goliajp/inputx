@@ -1,16 +1,21 @@
 # Pinyin v2 Modern-Freq Scaling + Dogfood Polish — Final Report
 
-立 2026-06-30. 项目终点 report. 同期 PLAN.md / PROTOCOL.md / MODERN-FREQ-DESIGN.md / CORPUS-CHOICE.md / run-001-analysis.md / final.md(本文)。
+立 2026-06-30. 项目终点 report(reopened-then-closed v2)。同期 PLAN.md / PROTOCOL.md / MODERN-FREQ-DESIGN.md / CORPUS-CHOICE.md / run-001-analysis.md / final.md(本文)。
+
+**Final tally(closed twice — first 27 iters,reopened for 4 more)**:
+- Initial close iter#27 — PASS 72.1% on 72k segments / 140 articles
+- Reopened iter#28-31 — corpus 272 articles / 111k segments,4 more batches(H/I/J/K)+ 125 modern_vocab rows
+- **Final close iter#32 — PASS 72.4% on 111k segments**
 
 ## TL;DR
 
 | 指标 | Before | After | Δ |
 |---|---:|---:|---:|
 | v2 baseline tests | 357/357 ✓ | 357/357 ✓ | (unchanged) |
-| Dogfood PASS rate(72k modern Chinese segments) | n/a | **72.1%** | (new measure) |
-| Dogfood HARD rate | n/a | 13.2% | |
-| Dogfood SOFT rate | n/a | 14.7% | |
-| Polish rows(quickfix + modern_vocab)| ~80 pre-project | ~270 | +~190 |
+| Dogfood PASS rate(111k modern Chinese segments) | n/a | **72.4%** | (new measure)|
+| Dogfood HARD rate | n/a | 13.5% | |
+| Dogfood SOFT rate | n/a | 14.1% | |
+| Polish rows(quickfix + modern_vocab)| ~80 pre-project | ~395 | +~315 |
 | v2 framework code(`lib.rs` + `data.rs`)| 同 v1 design | +~30 行 modern_freq integration | minimal |
 
 **关键成果**:
