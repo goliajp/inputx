@@ -862,3 +862,35 @@ xini	悉尼	48000
 moerben	墨尔本	45000
 aokelan	奥克兰	42000
 huilingdun	惠灵顿	40000
+
+# 2026-06-30 dogfood Iter B: HARD compound batch (general-domain modern words)
+# Pulled from run-002 failures >= 5× across non-anime articles
+# Quantity compounds
+zhongdui	中队	35000
+yiming	一名	35000
+yijia	一架	30000
+yizhang	一张	35000
+yiwei	一位	35000
+liangming	两名	35000
+liangge	两个	50000
+sannian	三年	30000
+yizhi	一直	50000
+zheshi	这是	50000
+# Modern brand / org
+weiruan	微软	50000
+guojizulian	国际足联	30000
+# Place / region names
+minguo	民国	40000
+sichuansheng	四川省	30000
+zhejiang	浙江	50000
+jiangxi	江西	45000
+taiwan	台湾	55000
+# Proper-noun reject — language names
+yingyu	英语	55000
+yingwen	英文	50000
+fayu	法语	45000
+deyu	德语	40000
+riyu	日语	40000
+hanyu	汉语	45000
+hanyu	韩语	40000
+sugelan	苏格兰	40000
