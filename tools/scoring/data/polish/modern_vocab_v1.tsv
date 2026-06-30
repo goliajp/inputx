@@ -590,13 +590,10 @@ jianpuzhai	柬埔寨	45000
 yindu	印度	55000
 bajisitan	巴基斯坦	48000
 mengjiaguo	孟加拉国	45000
-niboer	尼泊尔	45000
 silanka	斯里兰卡	45000
-yidali	意大利	55000
 xibanya	西班牙	55000
 putaoya	葡萄牙	50000
 xila	希腊	50000
-helan	荷兰	55000
 bilishi	比利时	48000
 ruishi	瑞士	50000
 aodili	奥地利	48000
@@ -643,8 +640,6 @@ shanle	删了	30000	# 2026-06-30 user "shanle 删了 要加上" — 删 + 了 mo
 # 2026-06-30 batch 2: country supplementary + 80 world cities (user: balagui 巴拉圭 + 城市名补全)
 balagui	巴拉圭	40000
 wulagui	乌拉圭	40000
-yuenan	越南	50000
-laowo	老挝	45000
 butan	不丹	40000
 maerdaifu	马尔代夫	40000
 jierjisisitan	吉尔吉斯斯坦	40000
@@ -735,7 +730,6 @@ guiyana	圭亚那	38000
 suriname	苏里南	38000
 ezhaduoer	厄瓜多尔	42000
 boliweiya	玻利维亚	42000
-xinxilan	新西兰	50000
 babuyaxinjineiya	巴布亚新几内亚	38000
 feiji	斐济	40000
 samoya	萨摩亚	35000
@@ -756,7 +750,6 @@ zhengzhou	郑州	48000
 qingdao	青岛	50000
 dalian	大连	48000
 xiamen	厦门	48000
-chongqing	重庆	55000
 ningbo	宁波	45000
 fuzhou	福州	45000
 jinan	济南	45000
@@ -1071,7 +1064,6 @@ bangqiuchang	棒球场	30000
 mouge	某个	35000
 ercheng	而成	30000
 yizhan	一站	30000
-xian	西安	50000
 
 # 2026-06-30 dogfood Iter I: more cross-article (run-012)
 diyichang	第一场	35000
@@ -1183,3 +1175,83 @@ jingjidai	经济带	50000
 sanxia	三峡	60000
 kuqu	库区	30000
 dongtinghu	洞庭湖	50000
+
+# strict-0001 auto-polish (76 modern_vocab from HARD)
+jiangshanruhua	江山如画	30000
+bashang	坝上	35000
+linhai	林海	35000
+hezhibin	河之滨	30000
+dajiang	大江	35000
+benyong	奔涌	35000
+bohua	擘画	35000
+xingdongzhinan	行动指南	30000
+jiqing	寄情	35000
+zhidao	之道	35000
+zhibian	之变	35000
+dongtinghupan	洞庭湖畔	30000
+nanyue	南岳	35000
+chenglingji	城陵矶	30000
+shuiwenzhan	水文站	30000
+zhanfang	站房	35000
+jumuyuantiao	举目远眺	60000
+yijiang	一江	35000
+bishui	碧水	35000
+jiujiangshi	九江市	30000
+wenhuagongyuan	文化公园	30000
+anxian	岸线	35000
+zuohao	做好	35000
+weigong	为功	35000
+anlan	安澜	35000
+zoubian	走遍	35000
+shangzhongxiayou	上中下游	30000
+yiqu	一曲	35000
+zouxiang	奏响	35000
+gansu	甘肃	50000
+henan	河南	50000
+dizhigongyuan	地质公园	30000
+huangheliuyu	黄河流域	30000
+wunian	五年	35000
+gansulanzhou	甘肃兰州	30000
+zhongshan	中山	35000
+machang	马场	35000
+hexizoulang	河西走廊	30000
+shangluoshi	商洛市	30000
+zhashuixian	柞水县	30000
+niubeiliang	牛背梁	30000
+dishuo	地说	35000
+zhangshengbushuai	长盛不衰	30000
+yibainian	一百年	30000
+fujian	福建	50000
+wuyishan	武夷山	30000
+saihanba	塞罕坝	30000
+yueliangshan	月亮山	30000
+zhepian	这片	35000
+jinshan	金山	35000
+yinshan	银山	35000
+lintianhu	林田湖	30000
+caosha	草沙	35000
+pilv	披绿	35000
+renyuziran	人与自然	30000
+maanshanshi	马鞍山市	30000
+shuiqing	水情	35000
+shuishi	水势	35000
+tuibu	退捕	35000
+zuoxi	做细	35000
+zuoshi	做实	35000
+gongyixing	公益性	30000
+wende	稳得	35000
+guangxi	广西	50000
+lijiang	漓江	35000
+bibo	碧波	35000
+shanxi	陕西	50000
+xigoucun	西沟村	60000
+yichu	一处	60000
+shinian	十年	35000
+zhulang	逐浪	35000
+tanqu	滩区	35000
+qianjian	迁建	35000
+qilian	祁连	35000
+wuyi	武夷	35000
+junxiu	峻秀	35000
+
+# strict-0001 round 2 — HARD missing

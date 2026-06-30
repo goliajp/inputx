@@ -30,6 +30,7 @@ fn main() -> ExitCode {
     let mut input: Option<String> = None;
     let mut output: Option<String> = None;
     let mut limit: Option<usize> = None;
+    let mut all_rows = false;  // emit all rows incl PASS
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -44,6 +45,10 @@ fn main() -> ExitCode {
             "--limit" => {
                 limit = args.get(i + 1).and_then(|s| s.parse().ok());
                 i += 2;
+            }
+            "--all" => {
+                all_rows = true;
+                i += 1;
             }
             "-h" | "--help" => {
                 print_usage();
@@ -143,8 +148,8 @@ fn main() -> ExitCode {
             .collect::<Vec<_>>()
             .join(",");
 
-        // Only log non-PASS to keep failure file focused.
-        if level != "PASS" {
+        // Log non-PASS by default; with --all, log every row.
+        if all_rows || level != "PASS" {
             writeln!(
                 writer,
                 "{article_id}\t{seg_idx}\t{word}\t{pinyin}\t{level}\t{rank_str}\t{top10_str}"

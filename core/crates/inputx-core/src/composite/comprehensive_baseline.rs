@@ -2950,7 +2950,8 @@ mod tests {
             // 高频字让所有邻接 bigram > 25k floor — 真词 一团/一夜
             // 跟 noise 一出/一处/一触 区分不开).  Per §5.5 acceptable
             // per-case D2: exclusions_v1.tsv hide Path-1.
-            ("yichu", &["一出", "一处", "一触"]),
+            // ("yichu", &["一出", "一处", "一触"]) — 一处 retired from noise 2026-06-30 strict (user typed in article 0001)
+            ("yichu", &["一出", "一触"]),
             // User polish-log 2026-06-03: "剑持 这不是个词" — 字字直拼
             // jiàn+chí, jieba/corpus noise.  D1 deleted from library.tsv
             // + logged to corpus_garbage_filter_v1.tsv.
