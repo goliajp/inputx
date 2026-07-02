@@ -106,8 +106,8 @@
       "top10": [
         "苏",
         "素",
-        "诉",
         "速",
+        "诉",
         "俗",
         "宿",
         "塑",
@@ -1040,8 +1040,8 @@
       "top10": [
         "字",
         "子",
-        "自",
         "紫",
+        "自",
         "资",
         "兹",
         "姊",
@@ -1049,7 +1049,7 @@
         "姿",
         "咨"
       ],
-      "rank": 2,
+      "rank": 3,
       "verdict": "PASS"
     },
     {
@@ -1800,11 +1800,9 @@
       "expected": "经在",
       "pinyin": "jingzai",
       "reason": "linear",
-      "top10": [
-        "经在"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0132",
@@ -3605,8 +3603,8 @@
         "机",
         "级",
         "技",
-        "集",
         "记",
+        "集",
         "基"
       ],
       "rank": 99,
@@ -5245,11 +5243,9 @@
       "expected": "该刊",
       "pinyin": "gaikan",
       "reason": "linear",
-      "top10": [
-        "该刊"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0372",
@@ -7822,8 +7818,8 @@
         "机",
         "级",
         "技",
-        "集",
         "记",
+        "集",
         "基"
       ],
       "rank": 99,
@@ -8034,11 +8030,9 @@
       "expected": "年春",
       "pinyin": "nianchun",
       "reason": "linear",
-      "top10": [
-        "年春"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0561",
@@ -9070,11 +9064,9 @@
       "expected": "年秋",
       "pinyin": "nianqiu",
       "reason": "linear",
-      "top10": [
-        "年秋"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0628",
@@ -15054,11 +15046,9 @@
       "expected": "任该",
       "pinyin": "rengai",
       "reason": "linear",
-      "top10": [
-        "任该"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1036",
@@ -16362,8 +16352,8 @@
         "样",
         "养",
         "洋",
-        "扬",
         "羊",
+        "扬",
         "杨",
         "仰",
         "氧"
@@ -17111,8 +17101,8 @@
         "县",
         "咸",
         "弦",
-        "线",
         "嫌",
+        "线",
         "限",
         "鲜",
         "险"
@@ -17813,11 +17803,11 @@
         "机",
         "级",
         "技",
-        "集",
         "记",
+        "集",
         "基"
       ],
-      "rank": 7,
+      "rank": 8,
       "verdict": "PASS"
     },
     {
@@ -18008,9 +17998,9 @@
   ],
   "stats": {
     "total": 1240,
-    "pass": 1240,
+    "pass": 1235,
     "soft": 0,
-    "audit": 0,
+    "audit": 5,
     "hard": 0
   }
 }
