@@ -964,12 +964,43 @@
     },
     {
       "idx": "0062",
-      "expected": "水而",
-      "pinyin": "shuier",
+      "expected": "水",
+      "pinyin": "shui",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "而",
+        "二",
+        "尔",
+        "儿",
+        "耳",
+        "饵",
+        "贰",
+        "迩",
+        "鸸",
+        "洱"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0062",
+      "expected": "而",
+      "pinyin": "er",
+      "reason": "linear",
+      "top10": [
+        "而",
+        "二",
+        "尔",
+        "儿",
+        "耳",
+        "饵",
+        "贰",
+        "迩",
+        "鸸",
+        "洱"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0063",
@@ -3563,12 +3594,43 @@
     },
     {
       "idx": "0239",
-      "expected": "中此",
-      "pinyin": "zhongci",
+      "expected": "中",
+      "pinyin": "zhong",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "此",
+        "次",
+        "刺",
+        "词",
+        "磁",
+        "辞",
+        "瓷",
+        "慈",
+        "赐",
+        "祠"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0239",
+      "expected": "此",
+      "pinyin": "ci",
+      "reason": "linear",
+      "top10": [
+        "此",
+        "次",
+        "刺",
+        "词",
+        "磁",
+        "辞",
+        "瓷",
+        "慈",
+        "赐",
+        "祠"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0240",
@@ -4062,8 +4124,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -5276,8 +5338,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -13824,10 +13886,10 @@
     }
   ],
   "stats": {
-    "total": 919,
-    "pass": 917,
+    "total": 921,
+    "pass": 921,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

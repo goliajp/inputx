@@ -4551,8 +4551,8 @@
       "top10": [
         "字",
         "子",
-        "紫",
         "自",
+        "紫",
         "资",
         "兹",
         "姊",
@@ -4560,7 +4560,7 @@
         "姿",
         "咨"
       ],
-      "rank": 3,
+      "rank": 2,
       "verdict": "PASS"
     },
     {
@@ -4718,12 +4718,123 @@
     },
     {
       "idx": "0346",
-      "expected": "猫的天空之城",
-      "pinyin": "maodetiankongzhicheng",
+      "expected": "猫",
+      "pinyin": "mao",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "成",
+        "乘",
+        "城",
+        "程",
+        "橙",
+        "秤",
+        "承",
+        "称",
+        "诚",
+        "呈"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0346",
+      "expected": "的",
+      "pinyin": "de",
+      "reason": "linear",
+      "top10": [
+        "成",
+        "乘",
+        "城",
+        "程",
+        "橙",
+        "秤",
+        "承",
+        "称",
+        "诚",
+        "呈"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0346",
+      "expected": "天",
+      "pinyin": "tian",
+      "reason": "linear",
+      "top10": [
+        "成",
+        "乘",
+        "城",
+        "程",
+        "橙",
+        "秤",
+        "承",
+        "称",
+        "诚",
+        "呈"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0346",
+      "expected": "空",
+      "pinyin": "kong",
+      "reason": "linear",
+      "top10": [
+        "成",
+        "乘",
+        "城",
+        "程",
+        "橙",
+        "秤",
+        "承",
+        "称",
+        "诚",
+        "呈"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0346",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "成",
+        "乘",
+        "城",
+        "程",
+        "橙",
+        "秤",
+        "承",
+        "称",
+        "诚",
+        "呈"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0346",
+      "expected": "城",
+      "pinyin": "cheng",
+      "reason": "linear",
+      "top10": [
+        "成",
+        "乘",
+        "城",
+        "程",
+        "橙",
+        "秤",
+        "承",
+        "称",
+        "诚",
+        "呈"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0347",
@@ -6433,12 +6544,63 @@
     },
     {
       "idx": "0473",
-      "expected": "更难忘",
-      "pinyin": "gengnanwang",
+      "expected": "更",
+      "pinyin": "geng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "望",
+        "王",
+        "往",
+        "网",
+        "亡",
+        "忘",
+        "旺",
+        "汪",
+        "枉",
+        "妄"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0473",
+      "expected": "难",
+      "pinyin": "nan",
+      "reason": "linear",
+      "top10": [
+        "望",
+        "王",
+        "往",
+        "网",
+        "亡",
+        "忘",
+        "旺",
+        "汪",
+        "枉",
+        "妄"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0473",
+      "expected": "忘",
+      "pinyin": "wang",
+      "reason": "linear",
+      "top10": [
+        "望",
+        "王",
+        "往",
+        "网",
+        "亡",
+        "忘",
+        "旺",
+        "汪",
+        "枉",
+        "妄"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
     },
     {
       "idx": "0474",
@@ -7565,12 +7727,83 @@
     },
     {
       "idx": "0552",
-      "expected": "东南方向",
-      "pinyin": "dongnanfangxiang",
+      "expected": "东",
+      "pinyin": "dong",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "想",
+        "向",
+        "像",
+        "香",
+        "响",
+        "项",
+        "相",
+        "享",
+        "巷",
+        "乡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0552",
+      "expected": "南",
+      "pinyin": "nan",
+      "reason": "linear",
+      "top10": [
+        "想",
+        "向",
+        "像",
+        "香",
+        "响",
+        "项",
+        "相",
+        "享",
+        "巷",
+        "乡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0552",
+      "expected": "方",
+      "pinyin": "fang",
+      "reason": "linear",
+      "top10": [
+        "想",
+        "向",
+        "像",
+        "香",
+        "响",
+        "项",
+        "相",
+        "享",
+        "巷",
+        "乡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0552",
+      "expected": "向",
+      "pinyin": "xiang",
+      "reason": "linear",
+      "top10": [
+        "想",
+        "向",
+        "像",
+        "香",
+        "响",
+        "项",
+        "相",
+        "享",
+        "巷",
+        "乡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0553",
@@ -7927,12 +8160,63 @@
     },
     {
       "idx": "0577",
-      "expected": "诉说着",
-      "pinyin": "sushuozhe",
+      "expected": "诉",
+      "pinyin": "su",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0577",
+      "expected": "说",
+      "pinyin": "shuo",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0577",
+      "expected": "着",
+      "pinyin": "zhe",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0578",
@@ -9603,8 +9887,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -9808,10 +10092,10 @@
     }
   ],
   "stats": {
-    "total": 719,
-    "pass": 715,
+    "total": 731,
+    "pass": 731,
     "soft": 0,
-    "audit": 4,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -2903,12 +2903,43 @@
     },
     {
       "idx": "0198",
-      "expected": "或往",
-      "pinyin": "huowang",
+      "expected": "或",
+      "pinyin": "huo",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "望",
+        "王",
+        "往",
+        "网",
+        "亡",
+        "忘",
+        "旺",
+        "汪",
+        "枉",
+        "妄"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0198",
+      "expected": "往",
+      "pinyin": "wang",
+      "reason": "linear",
+      "top10": [
+        "望",
+        "王",
+        "往",
+        "网",
+        "亡",
+        "忘",
+        "旺",
+        "汪",
+        "枉",
+        "妄"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0199",
@@ -5017,8 +5048,8 @@
       "top10": [
         "字",
         "子",
-        "紫",
         "自",
+        "紫",
         "资",
         "兹",
         "姊",
@@ -5153,8 +5184,8 @@
       "top10": [
         "字",
         "子",
-        "紫",
         "自",
+        "紫",
         "资",
         "兹",
         "姊",
@@ -7534,12 +7565,63 @@
     },
     {
       "idx": "0510",
-      "expected": "雪狐情",
-      "pinyin": "xuehuqing",
+      "expected": "雪",
+      "pinyin": "xue",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0510",
+      "expected": "狐",
+      "pinyin": "hu",
+      "reason": "linear",
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0510",
+      "expected": "情",
+      "pinyin": "qing",
+      "reason": "linear",
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
     },
     {
       "idx": "0511",
@@ -9211,12 +9293,63 @@
     },
     {
       "idx": "0633",
-      "expected": "雪狐情",
-      "pinyin": "xuehuqing",
+      "expected": "雪",
+      "pinyin": "xue",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0633",
+      "expected": "狐",
+      "pinyin": "hu",
+      "reason": "linear",
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0633",
+      "expected": "情",
+      "pinyin": "qing",
+      "reason": "linear",
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
     },
     {
       "idx": "0634",
@@ -10512,8 +10645,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -20569,10 +20702,10 @@
     }
   ],
   "stats": {
-    "total": 1453,
-    "pass": 1450,
+    "total": 1458,
+    "pass": 1458,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

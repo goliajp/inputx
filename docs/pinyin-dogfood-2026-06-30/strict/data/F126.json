@@ -5579,12 +5579,83 @@
     },
     {
       "idx": "0395",
-      "expected": "推广企业",
-      "pinyin": "tuiguangqiye",
+      "expected": "推",
+      "pinyin": "tui",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "也",
+        "业",
+        "页",
+        "夜",
+        "叶",
+        "野",
+        "爷",
+        "液",
+        "冶",
+        "腋"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0395",
+      "expected": "广",
+      "pinyin": "guang",
+      "reason": "linear",
+      "top10": [
+        "也",
+        "业",
+        "页",
+        "夜",
+        "叶",
+        "野",
+        "爷",
+        "液",
+        "冶",
+        "腋"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0395",
+      "expected": "企",
+      "pinyin": "qi",
+      "reason": "linear",
+      "top10": [
+        "也",
+        "业",
+        "页",
+        "夜",
+        "叶",
+        "野",
+        "爷",
+        "液",
+        "冶",
+        "腋"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0395",
+      "expected": "业",
+      "pinyin": "ye",
+      "reason": "linear",
+      "top10": [
+        "也",
+        "业",
+        "页",
+        "夜",
+        "叶",
+        "野",
+        "爷",
+        "液",
+        "冶",
+        "腋"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0396",
@@ -6400,10 +6471,10 @@
     }
   ],
   "stats": {
-    "total": 454,
-    "pass": 453,
+    "total": 457,
+    "pass": 457,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

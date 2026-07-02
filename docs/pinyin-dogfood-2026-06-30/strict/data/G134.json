@@ -3903,12 +3903,63 @@
     },
     {
       "idx": "0273",
-      "expected": "对他们",
-      "pinyin": "duitamen",
+      "expected": "对",
+      "pinyin": "dui",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "们",
+        "门",
+        "闷",
+        "焖",
+        "扪",
+        "懑",
+        "汶",
+        "钔",
+        "亹",
+        "鞔"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0273",
+      "expected": "他",
+      "pinyin": "ta",
+      "reason": "linear",
+      "top10": [
+        "们",
+        "门",
+        "闷",
+        "焖",
+        "扪",
+        "懑",
+        "汶",
+        "钔",
+        "亹",
+        "鞔"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0273",
+      "expected": "们",
+      "pinyin": "men",
+      "reason": "linear",
+      "top10": [
+        "们",
+        "门",
+        "闷",
+        "焖",
+        "扪",
+        "懑",
+        "汶",
+        "钔",
+        "亹",
+        "鞔"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0274",
@@ -4036,9 +4087,9 @@
       "pinyin": "gehuanjie",
       "reason": "linear",
       "top10": [
-        "个护按揭"
+        "各环节"
       ],
-      "rank": 99,
+      "rank": 0,
       "verdict": "PASS"
     },
     {
@@ -9210,12 +9261,63 @@
     },
     {
       "idx": "0650",
-      "expected": "把握好",
-      "pinyin": "bawohao",
+      "expected": "把",
+      "pinyin": "ba",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "好",
+        "号",
+        "豪",
+        "浩",
+        "毫",
+        "耗",
+        "皓",
+        "嚎",
+        "灏",
+        "唬"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0650",
+      "expected": "握",
+      "pinyin": "wo",
+      "reason": "linear",
+      "top10": [
+        "好",
+        "号",
+        "豪",
+        "浩",
+        "毫",
+        "耗",
+        "皓",
+        "嚎",
+        "灏",
+        "唬"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0650",
+      "expected": "好",
+      "pinyin": "hao",
+      "reason": "linear",
+      "top10": [
+        "好",
+        "号",
+        "豪",
+        "浩",
+        "毫",
+        "耗",
+        "皓",
+        "嚎",
+        "灏",
+        "唬"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0651",
@@ -9472,10 +9574,10 @@
     }
   ],
   "stats": {
-    "total": 668,
-    "pass": 666,
+    "total": 672,
+    "pass": 672,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

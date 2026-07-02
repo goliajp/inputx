@@ -2151,12 +2151,83 @@
     },
     {
       "idx": "0169",
-      "expected": "服务矩阵",
-      "pinyin": "fuwujuzhen",
+      "expected": "服",
+      "pinyin": "fu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "真",
+        "阵",
+        "镇",
+        "针",
+        "珍",
+        "振",
+        "震",
+        "诊",
+        "枕",
+        "斟"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0169",
+      "expected": "务",
+      "pinyin": "wu",
+      "reason": "linear",
+      "top10": [
+        "真",
+        "阵",
+        "镇",
+        "针",
+        "珍",
+        "振",
+        "震",
+        "诊",
+        "枕",
+        "斟"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0169",
+      "expected": "矩",
+      "pinyin": "ju",
+      "reason": "linear",
+      "top10": [
+        "真",
+        "阵",
+        "镇",
+        "针",
+        "珍",
+        "振",
+        "震",
+        "诊",
+        "枕",
+        "斟"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0169",
+      "expected": "阵",
+      "pinyin": "zhen",
+      "reason": "linear",
+      "top10": [
+        "真",
+        "阵",
+        "镇",
+        "针",
+        "珍",
+        "振",
+        "震",
+        "诊",
+        "枕",
+        "斟"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0170",
@@ -4649,10 +4720,10 @@
     }
   ],
   "stats": {
-    "total": 353,
-    "pass": 352,
+    "total": 356,
+    "pass": 356,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

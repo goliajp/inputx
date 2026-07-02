@@ -3173,12 +3173,43 @@
     },
     {
       "idx": "0238",
-      "expected": "都被",
-      "pinyin": "doubei",
+      "expected": "都",
+      "pinyin": "dou",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "被",
+        "倍",
+        "北",
+        "背",
+        "杯",
+        "备",
+        "贝",
+        "碑",
+        "辈",
+        "悲"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0238",
+      "expected": "被",
+      "pinyin": "bei",
+      "reason": "linear",
+      "top10": [
+        "被",
+        "倍",
+        "北",
+        "背",
+        "杯",
+        "备",
+        "贝",
+        "碑",
+        "辈",
+        "悲"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0239",
@@ -5866,8 +5897,8 @@
       "top10": [
         "字",
         "子",
-        "紫",
         "自",
+        "紫",
         "资",
         "兹",
         "姊",
@@ -5875,7 +5906,7 @@
         "姿",
         "咨"
       ],
-      "rank": 3,
+      "rank": 2,
       "verdict": "PASS"
     },
     {
@@ -6068,12 +6099,25 @@
     },
     {
       "idx": "0451",
-      "expected": "赠给",
-      "pinyin": "zenggei",
+      "expected": "赠",
+      "pinyin": "zeng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "给"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0451",
+      "expected": "给",
+      "pinyin": "gei",
+      "reason": "linear",
+      "top10": [
+        "给"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0452",
@@ -8244,12 +8288,43 @@
     },
     {
       "idx": "0609",
-      "expected": "能让",
-      "pinyin": "nengrang",
+      "expected": "能",
+      "pinyin": "neng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "让",
+        "嚷",
+        "壤",
+        "瓤",
+        "攘",
+        "禳",
+        "穰",
+        "儴",
+        "瀼",
+        "蘘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0609",
+      "expected": "让",
+      "pinyin": "rang",
+      "reason": "linear",
+      "top10": [
+        "让",
+        "嚷",
+        "壤",
+        "瓤",
+        "攘",
+        "禳",
+        "穰",
+        "儴",
+        "瀼",
+        "蘘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0610",
@@ -8454,10 +8529,10 @@
     }
   ],
   "stats": {
-    "total": 623,
-    "pass": 620,
+    "total": 626,
+    "pass": 626,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

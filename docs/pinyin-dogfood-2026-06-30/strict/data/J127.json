@@ -1183,12 +1183,143 @@
     },
     {
       "idx": "0089",
-      "expected": "文化广电旅游局",
-      "pinyin": "wenhuaguangdianlvyouju",
+      "expected": "文",
+      "pinyin": "wen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "举",
+        "据",
+        "局",
+        "剧",
+        "具",
+        "居",
+        "聚",
+        "距",
+        "句",
+        "巨"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0089",
+      "expected": "化",
+      "pinyin": "hua",
+      "reason": "linear",
+      "top10": [
+        "举",
+        "据",
+        "局",
+        "剧",
+        "具",
+        "居",
+        "聚",
+        "距",
+        "句",
+        "巨"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0089",
+      "expected": "广",
+      "pinyin": "guang",
+      "reason": "linear",
+      "top10": [
+        "举",
+        "据",
+        "局",
+        "剧",
+        "具",
+        "居",
+        "聚",
+        "距",
+        "句",
+        "巨"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0089",
+      "expected": "电",
+      "pinyin": "dian",
+      "reason": "linear",
+      "top10": [
+        "举",
+        "据",
+        "局",
+        "剧",
+        "具",
+        "居",
+        "聚",
+        "距",
+        "句",
+        "巨"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0089",
+      "expected": "旅",
+      "pinyin": "lv",
+      "reason": "linear",
+      "top10": [
+        "举",
+        "据",
+        "局",
+        "剧",
+        "具",
+        "居",
+        "聚",
+        "距",
+        "句",
+        "巨"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0089",
+      "expected": "游",
+      "pinyin": "you",
+      "reason": "linear",
+      "top10": [
+        "举",
+        "据",
+        "局",
+        "剧",
+        "具",
+        "居",
+        "聚",
+        "距",
+        "句",
+        "巨"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0089",
+      "expected": "局",
+      "pinyin": "ju",
+      "reason": "linear",
+      "top10": [
+        "举",
+        "据",
+        "局",
+        "剧",
+        "具",
+        "居",
+        "聚",
+        "距",
+        "句",
+        "巨"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0090",
@@ -3755,21 +3886,123 @@
     },
     {
       "idx": "0281",
-      "expected": "更要看",
-      "pinyin": "gengyaokan",
+      "expected": "更",
+      "pinyin": "geng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "看",
+        "砍",
+        "刊",
+        "堪",
+        "坎",
+        "勘",
+        "槛",
+        "喊",
+        "嵌",
+        "龛"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0281",
+      "expected": "要",
+      "pinyin": "yao",
+      "reason": "linear",
+      "top10": [
+        "看",
+        "砍",
+        "刊",
+        "堪",
+        "坎",
+        "勘",
+        "槛",
+        "喊",
+        "嵌",
+        "龛"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0281",
+      "expected": "看",
+      "pinyin": "kan",
+      "reason": "linear",
+      "top10": [
+        "看",
+        "砍",
+        "刊",
+        "堪",
+        "坎",
+        "勘",
+        "槛",
+        "喊",
+        "嵌",
+        "龛"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0282",
-      "expected": "过夜率",
-      "pinyin": "guoyelv",
+      "expected": "过",
+      "pinyin": "guo",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "绿",
+        "率",
+        "旅",
+        "律",
+        "吕",
+        "虑",
+        "屡",
+        "履",
+        "驴",
+        "铝"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0282",
+      "expected": "夜",
+      "pinyin": "ye",
+      "reason": "linear",
+      "top10": [
+        "绿",
+        "率",
+        "旅",
+        "律",
+        "吕",
+        "虑",
+        "屡",
+        "履",
+        "驴",
+        "铝"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0282",
+      "expected": "率",
+      "pinyin": "lv",
+      "reason": "linear",
+      "top10": [
+        "绿",
+        "率",
+        "旅",
+        "律",
+        "吕",
+        "虑",
+        "屡",
+        "履",
+        "驴",
+        "铝"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0283",
@@ -4076,12 +4309,83 @@
     },
     {
       "idx": "0304",
-      "expected": "呈现出来",
-      "pinyin": "chengxianchulai",
+      "expected": "呈",
+      "pinyin": "cheng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "来",
+        "莱",
+        "赖",
+        "睐",
+        "涞",
+        "崃",
+        "癞",
+        "籁",
+        "赉",
+        "铼"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0304",
+      "expected": "现",
+      "pinyin": "xian",
+      "reason": "linear",
+      "top10": [
+        "来",
+        "莱",
+        "赖",
+        "睐",
+        "涞",
+        "崃",
+        "癞",
+        "籁",
+        "赉",
+        "铼"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0304",
+      "expected": "出",
+      "pinyin": "chu",
+      "reason": "linear",
+      "top10": [
+        "来",
+        "莱",
+        "赖",
+        "睐",
+        "涞",
+        "崃",
+        "癞",
+        "籁",
+        "赉",
+        "铼"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0304",
+      "expected": "来",
+      "pinyin": "lai",
+      "reason": "linear",
+      "top10": [
+        "来",
+        "莱",
+        "赖",
+        "睐",
+        "涞",
+        "崃",
+        "癞",
+        "籁",
+        "赉",
+        "铼"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0305",
@@ -6943,12 +7247,63 @@
     },
     {
       "idx": "0510",
-      "expected": "为目标",
-      "pinyin": "weimubiao",
+      "expected": "为",
+      "pinyin": "wei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "表",
+        "标",
+        "彪",
+        "漂",
+        "镖",
+        "鳔",
+        "苞",
+        "婊",
+        "杓",
+        "裱"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0510",
+      "expected": "目",
+      "pinyin": "mu",
+      "reason": "linear",
+      "top10": [
+        "表",
+        "标",
+        "彪",
+        "漂",
+        "镖",
+        "鳔",
+        "苞",
+        "婊",
+        "杓",
+        "裱"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0510",
+      "expected": "标",
+      "pinyin": "biao",
+      "reason": "linear",
+      "top10": [
+        "表",
+        "标",
+        "彪",
+        "漂",
+        "镖",
+        "鳔",
+        "苞",
+        "婊",
+        "杓",
+        "裱"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0511",
@@ -7988,10 +8343,10 @@
     }
   ],
   "stats": {
-    "total": 587,
-    "pass": 582,
+    "total": 602,
+    "pass": 602,
     "soft": 0,
-    "audit": 5,
+    "audit": 0,
     "hard": 0
   }
 }

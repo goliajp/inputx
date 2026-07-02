@@ -2842,12 +2842,83 @@
     },
     {
       "idx": "0212",
-      "expected": "三口之家",
-      "pinyin": "sankouzhijia",
+      "expected": "三",
+      "pinyin": "san",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "家",
+        "假",
+        "甲",
+        "嫁",
+        "加",
+        "价",
+        "架",
+        "佳",
+        "嘉",
+        "驾"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0212",
+      "expected": "口",
+      "pinyin": "kou",
+      "reason": "linear",
+      "top10": [
+        "家",
+        "假",
+        "甲",
+        "嫁",
+        "加",
+        "价",
+        "架",
+        "佳",
+        "嘉",
+        "驾"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0212",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "家",
+        "假",
+        "甲",
+        "嫁",
+        "加",
+        "价",
+        "架",
+        "佳",
+        "嘉",
+        "驾"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0212",
+      "expected": "家",
+      "pinyin": "jia",
+      "reason": "linear",
+      "top10": [
+        "家",
+        "假",
+        "甲",
+        "嫁",
+        "加",
+        "价",
+        "架",
+        "佳",
+        "嘉",
+        "驾"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0213",
@@ -6041,12 +6112,75 @@
     },
     {
       "idx": "0446",
-      "expected": "四分之三",
-      "pinyin": "sifenzhisan",
+      "expected": "四",
+      "pinyin": "si",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "三",
+        "伞",
+        "散",
+        "叁",
+        "糁",
+        "馓",
+        "霰",
+        "潵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0446",
+      "expected": "分",
+      "pinyin": "fen",
+      "reason": "linear",
+      "top10": [
+        "三",
+        "伞",
+        "散",
+        "叁",
+        "糁",
+        "馓",
+        "霰",
+        "潵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0446",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "三",
+        "伞",
+        "散",
+        "叁",
+        "糁",
+        "馓",
+        "霰",
+        "潵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0446",
+      "expected": "三",
+      "pinyin": "san",
+      "reason": "linear",
+      "top10": [
+        "三",
+        "伞",
+        "散",
+        "叁",
+        "糁",
+        "馓",
+        "霰",
+        "潵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0447",
@@ -6829,8 +6963,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -19642,10 +19776,10 @@
     }
   ],
   "stats": {
-    "total": 1415,
-    "pass": 1413,
+    "total": 1421,
+    "pass": 1421,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

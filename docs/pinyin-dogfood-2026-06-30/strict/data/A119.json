@@ -7027,8 +7027,8 @@
         "画",
         "化",
         "华",
-        "划",
         "滑",
+        "划",
         "哗",
         "桦",
         "猾"
@@ -7500,12 +7500,83 @@
     },
     {
       "idx": "0543",
-      "expected": "补助费用",
-      "pinyin": "buzhufeiyong",
+      "expected": "补",
+      "pinyin": "bu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "用",
+        "永",
+        "勇",
+        "涌",
+        "拥",
+        "庸",
+        "佣",
+        "咏",
+        "泳",
+        "踊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0543",
+      "expected": "助",
+      "pinyin": "zhu",
+      "reason": "linear",
+      "top10": [
+        "用",
+        "永",
+        "勇",
+        "涌",
+        "拥",
+        "庸",
+        "佣",
+        "咏",
+        "泳",
+        "踊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0543",
+      "expected": "费",
+      "pinyin": "fei",
+      "reason": "linear",
+      "top10": [
+        "用",
+        "永",
+        "勇",
+        "涌",
+        "拥",
+        "庸",
+        "佣",
+        "咏",
+        "泳",
+        "踊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0543",
+      "expected": "用",
+      "pinyin": "yong",
+      "reason": "linear",
+      "top10": [
+        "用",
+        "永",
+        "勇",
+        "涌",
+        "拥",
+        "庸",
+        "佣",
+        "咏",
+        "泳",
+        "踊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0544",
@@ -7935,8 +8006,8 @@
         "画",
         "化",
         "华",
-        "划",
         "滑",
+        "划",
         "哗",
         "桦",
         "猾"
@@ -8970,12 +9041,83 @@
     },
     {
       "idx": "0642",
-      "expected": "补助费用",
-      "pinyin": "buzhufeiyong",
+      "expected": "补",
+      "pinyin": "bu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "用",
+        "永",
+        "勇",
+        "涌",
+        "拥",
+        "庸",
+        "佣",
+        "咏",
+        "泳",
+        "踊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0642",
+      "expected": "助",
+      "pinyin": "zhu",
+      "reason": "linear",
+      "top10": [
+        "用",
+        "永",
+        "勇",
+        "涌",
+        "拥",
+        "庸",
+        "佣",
+        "咏",
+        "泳",
+        "踊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0642",
+      "expected": "费",
+      "pinyin": "fei",
+      "reason": "linear",
+      "top10": [
+        "用",
+        "永",
+        "勇",
+        "涌",
+        "拥",
+        "庸",
+        "佣",
+        "咏",
+        "泳",
+        "踊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0642",
+      "expected": "用",
+      "pinyin": "yong",
+      "reason": "linear",
+      "top10": [
+        "用",
+        "永",
+        "勇",
+        "涌",
+        "拥",
+        "庸",
+        "佣",
+        "咏",
+        "泳",
+        "踊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0643",
@@ -13241,10 +13383,10 @@
     }
   ],
   "stats": {
-    "total": 931,
-    "pass": 929,
+    "total": 937,
+    "pass": 937,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

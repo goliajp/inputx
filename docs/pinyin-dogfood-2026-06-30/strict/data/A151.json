@@ -2940,12 +2940,83 @@
     },
     {
       "idx": "0213",
-      "expected": "复合应力",
-      "pinyin": "fuheyingli",
+      "expected": "复",
+      "pinyin": "fu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "里",
+        "离",
+        "理",
+        "力",
+        "利",
+        "粒",
+        "梨",
+        "立",
+        "李",
+        "历"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0213",
+      "expected": "合",
+      "pinyin": "he",
+      "reason": "linear",
+      "top10": [
+        "里",
+        "离",
+        "理",
+        "力",
+        "利",
+        "粒",
+        "梨",
+        "立",
+        "李",
+        "历"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0213",
+      "expected": "应",
+      "pinyin": "ying",
+      "reason": "linear",
+      "top10": [
+        "里",
+        "离",
+        "理",
+        "力",
+        "利",
+        "粒",
+        "梨",
+        "立",
+        "李",
+        "历"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0213",
+      "expected": "力",
+      "pinyin": "li",
+      "reason": "linear",
+      "top10": [
+        "里",
+        "离",
+        "理",
+        "力",
+        "利",
+        "粒",
+        "梨",
+        "立",
+        "李",
+        "历"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
     },
     {
       "idx": "0214",
@@ -3787,12 +3858,103 @@
     },
     {
       "idx": "0277",
-      "expected": "非一时之功",
-      "pinyin": "feiyishizhigong",
+      "expected": "非",
+      "pinyin": "fei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "共",
+        "工",
+        "公",
+        "功",
+        "供",
+        "宫",
+        "攻",
+        "恭",
+        "拱",
+        "弓"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0277",
+      "expected": "一",
+      "pinyin": "yi",
+      "reason": "linear",
+      "top10": [
+        "共",
+        "工",
+        "公",
+        "功",
+        "供",
+        "宫",
+        "攻",
+        "恭",
+        "拱",
+        "弓"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0277",
+      "expected": "时",
+      "pinyin": "shi",
+      "reason": "linear",
+      "top10": [
+        "共",
+        "工",
+        "公",
+        "功",
+        "供",
+        "宫",
+        "攻",
+        "恭",
+        "拱",
+        "弓"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0277",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "共",
+        "工",
+        "公",
+        "功",
+        "供",
+        "宫",
+        "攻",
+        "恭",
+        "拱",
+        "弓"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0277",
+      "expected": "功",
+      "pinyin": "gong",
+      "reason": "linear",
+      "top10": [
+        "共",
+        "工",
+        "公",
+        "功",
+        "供",
+        "宫",
+        "攻",
+        "恭",
+        "拱",
+        "弓"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
     },
     {
       "idx": "0278",
@@ -5417,10 +5579,10 @@
     }
   ],
   "stats": {
-    "total": 397,
-    "pass": 395,
+    "total": 404,
+    "pass": 404,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

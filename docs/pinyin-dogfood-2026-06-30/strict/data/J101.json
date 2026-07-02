@@ -2020,12 +2020,83 @@
     },
     {
       "idx": "0143",
-      "expected": "团团围住",
-      "pinyin": "tuantuanweizhu",
+      "expected": "团",
+      "pinyin": "tuan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "住",
+        "祝",
+        "猪",
+        "主",
+        "煮",
+        "株",
+        "拄",
+        "助",
+        "竹",
+        "珠"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0143",
+      "expected": "团",
+      "pinyin": "tuan",
+      "reason": "linear",
+      "top10": [
+        "住",
+        "祝",
+        "猪",
+        "主",
+        "煮",
+        "株",
+        "拄",
+        "助",
+        "竹",
+        "珠"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0143",
+      "expected": "围",
+      "pinyin": "wei",
+      "reason": "linear",
+      "top10": [
+        "住",
+        "祝",
+        "猪",
+        "主",
+        "煮",
+        "株",
+        "拄",
+        "助",
+        "竹",
+        "珠"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0143",
+      "expected": "住",
+      "pinyin": "zhu",
+      "reason": "linear",
+      "top10": [
+        "住",
+        "祝",
+        "猪",
+        "主",
+        "煮",
+        "株",
+        "拄",
+        "助",
+        "竹",
+        "珠"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0144",
@@ -14256,10 +14327,10 @@
     }
   ],
   "stats": {
-    "total": 1038,
-    "pass": 1037,
+    "total": 1041,
+    "pass": 1041,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

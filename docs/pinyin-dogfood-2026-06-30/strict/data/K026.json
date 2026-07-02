@@ -1784,12 +1784,63 @@
     },
     {
       "idx": "0127",
-      "expected": "人之路",
-      "pinyin": "renzhilu",
+      "expected": "人",
+      "pinyin": "ren",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "麓",
+        "路",
+        "露",
+        "录",
+        "鲁",
+        "陆",
+        "鹿",
+        "卢",
+        "炉",
+        "虏"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0127",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "麓",
+        "路",
+        "露",
+        "录",
+        "鲁",
+        "陆",
+        "鹿",
+        "卢",
+        "炉",
+        "虏"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0127",
+      "expected": "路",
+      "pinyin": "lu",
+      "reason": "linear",
+      "top10": [
+        "麓",
+        "路",
+        "露",
+        "录",
+        "鲁",
+        "陆",
+        "鹿",
+        "卢",
+        "炉",
+        "虏"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0128",
@@ -4596,8 +4647,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -6214,10 +6265,10 @@
     }
   ],
   "stats": {
-    "total": 428,
-    "pass": 427,
+    "total": 430,
+    "pass": 430,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -105,12 +105,143 @@
     },
     {
       "idx": "0009",
-      "expected": "哪吒之魔童闹海",
-      "pinyin": "nezhazhimotongnaohai",
+      "expected": "哪",
+      "pinyin": "na",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "还",
+        "海",
+        "害",
+        "孩",
+        "骇",
+        "亥",
+        "嗨",
+        "咳",
+        "嗐",
+        "氦"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0009",
+      "expected": "吒",
+      "pinyin": "zha",
+      "reason": "linear",
+      "top10": [
+        "还",
+        "海",
+        "害",
+        "孩",
+        "骇",
+        "亥",
+        "嗨",
+        "咳",
+        "嗐",
+        "氦"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0009",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "还",
+        "海",
+        "害",
+        "孩",
+        "骇",
+        "亥",
+        "嗨",
+        "咳",
+        "嗐",
+        "氦"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0009",
+      "expected": "魔",
+      "pinyin": "mo",
+      "reason": "linear",
+      "top10": [
+        "还",
+        "海",
+        "害",
+        "孩",
+        "骇",
+        "亥",
+        "嗨",
+        "咳",
+        "嗐",
+        "氦"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0009",
+      "expected": "童",
+      "pinyin": "tong",
+      "reason": "linear",
+      "top10": [
+        "还",
+        "海",
+        "害",
+        "孩",
+        "骇",
+        "亥",
+        "嗨",
+        "咳",
+        "嗐",
+        "氦"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0009",
+      "expected": "闹",
+      "pinyin": "nao",
+      "reason": "linear",
+      "top10": [
+        "还",
+        "海",
+        "害",
+        "孩",
+        "骇",
+        "亥",
+        "嗨",
+        "咳",
+        "嗐",
+        "氦"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0009",
+      "expected": "海",
+      "pinyin": "hai",
+      "reason": "linear",
+      "top10": [
+        "还",
+        "海",
+        "害",
+        "孩",
+        "骇",
+        "亥",
+        "嗨",
+        "咳",
+        "嗐",
+        "氦"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0010",
@@ -1672,12 +1803,83 @@
     },
     {
       "idx": "0124",
-      "expected": "文化广场",
-      "pinyin": "wenhuaguangchang",
+      "expected": "文",
+      "pinyin": "wen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "场",
+        "尝",
+        "常",
+        "厂",
+        "唱",
+        "昌",
+        "畅",
+        "肠",
+        "偿",
+        "倡"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0124",
+      "expected": "化",
+      "pinyin": "hua",
+      "reason": "linear",
+      "top10": [
+        "场",
+        "尝",
+        "常",
+        "厂",
+        "唱",
+        "昌",
+        "畅",
+        "肠",
+        "偿",
+        "倡"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0124",
+      "expected": "广",
+      "pinyin": "guang",
+      "reason": "linear",
+      "top10": [
+        "场",
+        "尝",
+        "常",
+        "厂",
+        "唱",
+        "昌",
+        "畅",
+        "肠",
+        "偿",
+        "倡"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0124",
+      "expected": "场",
+      "pinyin": "chang",
+      "reason": "linear",
+      "top10": [
+        "场",
+        "尝",
+        "常",
+        "厂",
+        "唱",
+        "昌",
+        "畅",
+        "肠",
+        "偿",
+        "倡"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0125",
@@ -1692,12 +1894,83 @@
     },
     {
       "idx": "0126",
-      "expected": "青石板路",
-      "pinyin": "qingshibanlu",
+      "expected": "青",
+      "pinyin": "qing",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "麓",
+        "路",
+        "露",
+        "录",
+        "鲁",
+        "陆",
+        "鹿",
+        "卢",
+        "炉",
+        "虏"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0126",
+      "expected": "石",
+      "pinyin": "shi",
+      "reason": "linear",
+      "top10": [
+        "麓",
+        "路",
+        "露",
+        "录",
+        "鲁",
+        "陆",
+        "鹿",
+        "卢",
+        "炉",
+        "虏"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0126",
+      "expected": "板",
+      "pinyin": "ban",
+      "reason": "linear",
+      "top10": [
+        "麓",
+        "路",
+        "露",
+        "录",
+        "鲁",
+        "陆",
+        "鹿",
+        "卢",
+        "炉",
+        "虏"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0126",
+      "expected": "路",
+      "pinyin": "lu",
+      "reason": "linear",
+      "top10": [
+        "麓",
+        "路",
+        "露",
+        "录",
+        "鲁",
+        "陆",
+        "鹿",
+        "卢",
+        "炉",
+        "虏"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0127",
@@ -5121,10 +5394,10 @@
     }
   ],
   "stats": {
-    "total": 386,
-    "pass": 383,
+    "total": 398,
+    "pass": 398,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

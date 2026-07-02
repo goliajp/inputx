@@ -2348,12 +2348,143 @@
     },
     {
       "idx": "0173",
-      "expected": "江西人民出版社",
-      "pinyin": "jiangxirenminchubanshe",
+      "expected": "江",
+      "pinyin": "jiang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "蛇",
+        "设",
+        "社",
+        "射",
+        "摄",
+        "舍",
+        "涉",
+        "舌",
+        "赦",
+        "奢"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0173",
+      "expected": "西",
+      "pinyin": "xi",
+      "reason": "linear",
+      "top10": [
+        "蛇",
+        "设",
+        "社",
+        "射",
+        "摄",
+        "舍",
+        "涉",
+        "舌",
+        "赦",
+        "奢"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0173",
+      "expected": "人",
+      "pinyin": "ren",
+      "reason": "linear",
+      "top10": [
+        "蛇",
+        "设",
+        "社",
+        "射",
+        "摄",
+        "舍",
+        "涉",
+        "舌",
+        "赦",
+        "奢"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0173",
+      "expected": "民",
+      "pinyin": "min",
+      "reason": "linear",
+      "top10": [
+        "蛇",
+        "设",
+        "社",
+        "射",
+        "摄",
+        "舍",
+        "涉",
+        "舌",
+        "赦",
+        "奢"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0173",
+      "expected": "出",
+      "pinyin": "chu",
+      "reason": "linear",
+      "top10": [
+        "蛇",
+        "设",
+        "社",
+        "射",
+        "摄",
+        "舍",
+        "涉",
+        "舌",
+        "赦",
+        "奢"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0173",
+      "expected": "版",
+      "pinyin": "ban",
+      "reason": "linear",
+      "top10": [
+        "蛇",
+        "设",
+        "社",
+        "射",
+        "摄",
+        "舍",
+        "涉",
+        "舌",
+        "赦",
+        "奢"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0173",
+      "expected": "社",
+      "pinyin": "she",
+      "reason": "linear",
+      "top10": [
+        "蛇",
+        "设",
+        "社",
+        "射",
+        "摄",
+        "舍",
+        "涉",
+        "舌",
+        "赦",
+        "奢"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0174",
@@ -5271,10 +5402,10 @@
     }
   ],
   "stats": {
-    "total": 378,
-    "pass": 377,
+    "total": 384,
+    "pass": 384,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -1237,12 +1237,63 @@
     },
     {
       "idx": "0098",
-      "expected": "可调用",
-      "pinyin": "kediaoyong",
+      "expected": "可",
+      "pinyin": "ke",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "用",
+        "永",
+        "勇",
+        "涌",
+        "拥",
+        "庸",
+        "佣",
+        "咏",
+        "泳",
+        "踊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0098",
+      "expected": "调",
+      "pinyin": "diao",
+      "reason": "linear",
+      "top10": [
+        "用",
+        "永",
+        "勇",
+        "涌",
+        "拥",
+        "庸",
+        "佣",
+        "咏",
+        "泳",
+        "踊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0098",
+      "expected": "用",
+      "pinyin": "yong",
+      "reason": "linear",
+      "top10": [
+        "用",
+        "永",
+        "勇",
+        "涌",
+        "拥",
+        "庸",
+        "佣",
+        "咏",
+        "泳",
+        "踊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0099",
@@ -2347,12 +2398,83 @@
     },
     {
       "idx": "0179",
-      "expected": "供需调度",
-      "pinyin": "gongxudiaodu",
+      "expected": "供",
+      "pinyin": "gong",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "都",
+        "读",
+        "度",
+        "独",
+        "督",
+        "杜",
+        "毒",
+        "渡",
+        "堵",
+        "肚"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0179",
+      "expected": "需",
+      "pinyin": "xu",
+      "reason": "linear",
+      "top10": [
+        "都",
+        "读",
+        "度",
+        "独",
+        "督",
+        "杜",
+        "毒",
+        "渡",
+        "堵",
+        "肚"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0179",
+      "expected": "调",
+      "pinyin": "diao",
+      "reason": "linear",
+      "top10": [
+        "都",
+        "读",
+        "度",
+        "独",
+        "督",
+        "杜",
+        "毒",
+        "渡",
+        "堵",
+        "肚"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0179",
+      "expected": "度",
+      "pinyin": "du",
+      "reason": "linear",
+      "top10": [
+        "都",
+        "读",
+        "度",
+        "独",
+        "督",
+        "杜",
+        "毒",
+        "渡",
+        "堵",
+        "肚"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0180",
@@ -4179,10 +4301,10 @@
     }
   ],
   "stats": {
-    "total": 319,
-    "pass": 317,
+    "total": 324,
+    "pass": 324,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -50,8 +50,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -324,12 +324,43 @@
     },
     {
       "idx": "0025",
-      "expected": "卡由",
-      "pinyin": "kayou",
+      "expected": "卡",
+      "pinyin": "ka",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "有",
+        "又",
+        "由",
+        "游",
+        "优",
+        "油",
+        "友",
+        "右",
+        "尤",
+        "忧"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0025",
+      "expected": "由",
+      "pinyin": "you",
+      "reason": "linear",
+      "top10": [
+        "有",
+        "又",
+        "由",
+        "游",
+        "优",
+        "油",
+        "友",
+        "右",
+        "尤",
+        "忧"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0026",
@@ -8151,12 +8182,43 @@
     },
     {
       "idx": "0572",
-      "expected": "卡在",
-      "pinyin": "kazai",
+      "expected": "卡",
+      "pinyin": "ka",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "在",
+        "再",
+        "宰",
+        "载",
+        "仔",
+        "灾",
+        "栽",
+        "哉",
+        "才",
+        "崽"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0572",
+      "expected": "在",
+      "pinyin": "zai",
+      "reason": "linear",
+      "top10": [
+        "在",
+        "再",
+        "宰",
+        "载",
+        "仔",
+        "灾",
+        "栽",
+        "哉",
+        "才",
+        "崽"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0573",
@@ -8594,12 +8656,43 @@
     },
     {
       "idx": "0604",
-      "expected": "本卡",
-      "pinyin": "benka",
+      "expected": "本",
+      "pinyin": "ben",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "卡",
+        "咖",
+        "喀",
+        "咔",
+        "咯",
+        "胩",
+        "可爱",
+        "口岸",
+        "抗癌",
+        "酷爱"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0604",
+      "expected": "卡",
+      "pinyin": "ka",
+      "reason": "linear",
+      "top10": [
+        "卡",
+        "咖",
+        "喀",
+        "咔",
+        "咯",
+        "胩",
+        "可爱",
+        "口岸",
+        "抗癌",
+        "酷爱"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0605",
@@ -10124,10 +10217,10 @@
     }
   ],
   "stats": {
-    "total": 715,
-    "pass": 712,
+    "total": 718,
+    "pass": 718,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -229,10 +229,10 @@
       "pinyin": "bainianweiyouzhidabianju",
       "reason": "linear",
       "top10": [
-        "拜年唯有直达变局"
+        "百年未有之大变局"
       ],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0017",
@@ -392,8 +392,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -1064,11 +1064,10 @@
       "pinyin": "quanmianjiancheng",
       "reason": "linear",
       "top10": [
-        "全面僭称",
-        "全面建成小康社会"
+        "全面建成"
       ],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0076",
@@ -4694,12 +4693,63 @@
     },
     {
       "idx": "0341",
-      "expected": "更切身",
-      "pinyin": "gengqieshen",
+      "expected": "更",
+      "pinyin": "geng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "深",
+        "伸",
+        "神",
+        "身",
+        "审",
+        "申",
+        "甚",
+        "沈",
+        "肾",
+        "婶"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0341",
+      "expected": "切",
+      "pinyin": "qie",
+      "reason": "linear",
+      "top10": [
+        "深",
+        "伸",
+        "神",
+        "身",
+        "审",
+        "申",
+        "甚",
+        "沈",
+        "肾",
+        "婶"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0341",
+      "expected": "身",
+      "pinyin": "shen",
+      "reason": "linear",
+      "top10": [
+        "深",
+        "伸",
+        "神",
+        "身",
+        "审",
+        "申",
+        "甚",
+        "沈",
+        "肾",
+        "婶"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
     },
     {
       "idx": "0342",
@@ -8884,10 +8934,10 @@
     }
   ],
   "stats": {
-    "total": 635,
-    "pass": 632,
+    "total": 637,
+    "pass": 637,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

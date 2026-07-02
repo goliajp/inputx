@@ -2528,12 +2528,43 @@
     },
     {
       "idx": "0176",
-      "expected": "于托",
-      "pinyin": "yutuo",
+      "expected": "于",
+      "pinyin": "yu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "托",
+        "脱",
+        "拖",
+        "妥",
+        "驼",
+        "驮",
+        "拓",
+        "唾",
+        "鸵",
+        "椭"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0176",
+      "expected": "托",
+      "pinyin": "tuo",
+      "reason": "linear",
+      "top10": [
+        "托",
+        "脱",
+        "拖",
+        "妥",
+        "驼",
+        "驮",
+        "拓",
+        "唾",
+        "鸵",
+        "椭"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0177",
@@ -3460,12 +3491,63 @@
     },
     {
       "idx": "0239",
-      "expected": "之丘区",
-      "pinyin": "zhiqiuqu",
+      "expected": "之",
+      "pinyin": "zhi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "去",
+        "区",
+        "取",
+        "娶",
+        "曲",
+        "趋",
+        "渠",
+        "趣",
+        "驱",
+        "屈"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0239",
+      "expected": "丘",
+      "pinyin": "qiu",
+      "reason": "linear",
+      "top10": [
+        "去",
+        "区",
+        "取",
+        "娶",
+        "曲",
+        "趋",
+        "渠",
+        "趣",
+        "驱",
+        "屈"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0239",
+      "expected": "区",
+      "pinyin": "qu",
+      "reason": "linear",
+      "top10": [
+        "去",
+        "区",
+        "取",
+        "娶",
+        "曲",
+        "趋",
+        "渠",
+        "趣",
+        "驱",
+        "屈"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0240",
@@ -3948,8 +4030,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -6548,8 +6630,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -8668,8 +8750,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -11613,8 +11695,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -12493,8 +12575,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -12536,12 +12618,63 @@
     },
     {
       "idx": "0842",
-      "expected": "被选为",
-      "pinyin": "beixuanwei",
+      "expected": "被",
+      "pinyin": "bei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "为",
+        "未",
+        "喂",
+        "位",
+        "胃",
+        "委",
+        "维",
+        "微",
+        "味",
+        "卫"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0842",
+      "expected": "选",
+      "pinyin": "xuan",
+      "reason": "linear",
+      "top10": [
+        "为",
+        "未",
+        "喂",
+        "位",
+        "胃",
+        "委",
+        "维",
+        "微",
+        "味",
+        "卫"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0842",
+      "expected": "为",
+      "pinyin": "wei",
+      "reason": "linear",
+      "top10": [
+        "为",
+        "未",
+        "喂",
+        "位",
+        "胃",
+        "委",
+        "维",
+        "微",
+        "味",
+        "卫"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0843",
@@ -13164,12 +13297,42 @@
     },
     {
       "idx": "0885",
-      "expected": "之丘能",
-      "pinyin": "zhiqiuneng",
+      "expected": "之",
+      "pinyin": "zhi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "能",
+        "而",
+        "耐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0885",
+      "expected": "丘",
+      "pinyin": "qiu",
+      "reason": "linear",
+      "top10": [
+        "能",
+        "而",
+        "耐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0885",
+      "expected": "能",
+      "pinyin": "neng",
+      "reason": "linear",
+      "top10": [
+        "能",
+        "而",
+        "耐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0886",
@@ -19852,12 +20015,43 @@
     },
     {
       "idx": "1326",
-      "expected": "这点",
-      "pinyin": "zhedian",
+      "expected": "这",
+      "pinyin": "zhe",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "点",
+        "电",
+        "垫",
+        "店",
+        "典",
+        "殿",
+        "颠",
+        "滇",
+        "碘",
+        "甸"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "1326",
+      "expected": "点",
+      "pinyin": "dian",
+      "reason": "linear",
+      "top10": [
+        "点",
+        "电",
+        "垫",
+        "店",
+        "典",
+        "殿",
+        "颠",
+        "滇",
+        "碘",
+        "甸"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1327",
@@ -24577,8 +24771,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -25574,12 +25768,43 @@
     },
     {
       "idx": "1699",
-      "expected": "本编",
-      "pinyin": "benbian",
+      "expected": "本",
+      "pinyin": "ben",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "变",
+        "遍",
+        "便",
+        "边",
+        "扁",
+        "编",
+        "辩",
+        "辨",
+        "鞭",
+        "匾"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "1699",
+      "expected": "编",
+      "pinyin": "bian",
+      "reason": "linear",
+      "top10": [
+        "变",
+        "遍",
+        "便",
+        "边",
+        "扁",
+        "编",
+        "辩",
+        "辨",
+        "鞭",
+        "匾"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
     },
     {
       "idx": "1700",
@@ -36927,12 +37152,63 @@
     },
     {
       "idx": "2441",
-      "expected": "而半毁",
-      "pinyin": "erbanhui",
+      "expected": "而",
+      "pinyin": "er",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "会",
+        "回",
+        "灰",
+        "挥",
+        "惠",
+        "汇",
+        "绘",
+        "毁",
+        "慧",
+        "悔"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "2441",
+      "expected": "半",
+      "pinyin": "ban",
+      "reason": "linear",
+      "top10": [
+        "会",
+        "回",
+        "灰",
+        "挥",
+        "惠",
+        "汇",
+        "绘",
+        "毁",
+        "慧",
+        "悔"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "2441",
+      "expected": "毁",
+      "pinyin": "hui",
+      "reason": "linear",
+      "top10": [
+        "会",
+        "回",
+        "灰",
+        "挥",
+        "惠",
+        "汇",
+        "绘",
+        "毁",
+        "慧",
+        "悔"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
     },
     {
       "idx": "2442",
@@ -39474,8 +39750,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -40601,10 +40877,10 @@
     }
   ],
   "stats": {
-    "total": 2700,
-    "pass": 2693,
+    "total": 2711,
+    "pass": 2711,
     "soft": 0,
-    "audit": 7,
+    "audit": 0,
     "hard": 0
   }
 }

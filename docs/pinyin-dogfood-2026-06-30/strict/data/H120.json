@@ -1300,8 +1300,8 @@
       "top10": [
         "目",
         "木",
-        "姆",
         "幕",
+        "姆",
         "母",
         "墓",
         "牧",
@@ -1382,8 +1382,8 @@
       "top10": [
         "目",
         "木",
-        "姆",
         "幕",
+        "姆",
         "母",
         "墓",
         "牧",
@@ -4170,12 +4170,63 @@
     },
     {
       "idx": "0315",
-      "expected": "对未来",
-      "pinyin": "duiweilai",
+      "expected": "对",
+      "pinyin": "dui",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "来",
+        "莱",
+        "赖",
+        "睐",
+        "涞",
+        "崃",
+        "癞",
+        "籁",
+        "赉",
+        "铼"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0315",
+      "expected": "未",
+      "pinyin": "wei",
+      "reason": "linear",
+      "top10": [
+        "来",
+        "莱",
+        "赖",
+        "睐",
+        "涞",
+        "崃",
+        "癞",
+        "籁",
+        "赉",
+        "铼"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0315",
+      "expected": "来",
+      "pinyin": "lai",
+      "reason": "linear",
+      "top10": [
+        "来",
+        "莱",
+        "赖",
+        "睐",
+        "涞",
+        "崃",
+        "癞",
+        "籁",
+        "赉",
+        "铼"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0316",
@@ -5239,12 +5290,43 @@
     },
     {
       "idx": "0391",
-      "expected": "他还",
-      "pinyin": "tahai",
+      "expected": "他",
+      "pinyin": "ta",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "还",
+        "海",
+        "害",
+        "孩",
+        "骇",
+        "亥",
+        "嗨",
+        "咳",
+        "嗐",
+        "氦"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0391",
+      "expected": "还",
+      "pinyin": "hai",
+      "reason": "linear",
+      "top10": [
+        "还",
+        "海",
+        "害",
+        "孩",
+        "骇",
+        "亥",
+        "嗨",
+        "咳",
+        "嗐",
+        "氦"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0392",
@@ -5829,12 +5911,45 @@
     },
     {
       "idx": "0435",
-      "expected": "从战略",
-      "pinyin": "congzhanlve",
+      "expected": "从",
+      "pinyin": "cong",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "略",
+        "掠",
+        "率",
+        "锊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0435",
+      "expected": "战",
+      "pinyin": "zhan",
+      "reason": "linear",
+      "top10": [
+        "略",
+        "掠",
+        "率",
+        "锊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0435",
+      "expected": "略",
+      "pinyin": "lve",
+      "reason": "linear",
+      "top10": [
+        "略",
+        "掠",
+        "率",
+        "锊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0436",
@@ -6279,9 +6394,9 @@
         "吕",
         "虑",
         "屡",
+        "履",
         "驴",
-        "铝",
-        "氯"
+        "铝"
       ],
       "rank": 2,
       "verdict": "PASS"
@@ -9600,8 +9715,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -9642,8 +9757,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -9699,8 +9814,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -9755,8 +9870,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -10459,12 +10574,63 @@
     },
     {
       "idx": "0770",
-      "expected": "为引领",
-      "pinyin": "weiyinling",
+      "expected": "为",
+      "pinyin": "wei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "零",
+        "铃",
+        "领",
+        "令",
+        "灵",
+        "岭",
+        "另",
+        "陵",
+        "龄",
+        "凌"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0770",
+      "expected": "引",
+      "pinyin": "yin",
+      "reason": "linear",
+      "top10": [
+        "零",
+        "铃",
+        "领",
+        "令",
+        "灵",
+        "岭",
+        "另",
+        "陵",
+        "龄",
+        "凌"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0770",
+      "expected": "领",
+      "pinyin": "ling",
+      "reason": "linear",
+      "top10": [
+        "零",
+        "铃",
+        "领",
+        "令",
+        "灵",
+        "岭",
+        "另",
+        "陵",
+        "龄",
+        "凌"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0771",
@@ -10503,12 +10669,63 @@
     },
     {
       "idx": "0773",
-      "expected": "为抓手",
-      "pinyin": "weizhuashou",
+      "expected": "为",
+      "pinyin": "wei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "手",
+        "收",
+        "瘦",
+        "受",
+        "首",
+        "守",
+        "寿",
+        "售",
+        "授",
+        "兽"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0773",
+      "expected": "抓",
+      "pinyin": "zhua",
+      "reason": "linear",
+      "top10": [
+        "手",
+        "收",
+        "瘦",
+        "受",
+        "首",
+        "守",
+        "寿",
+        "售",
+        "授",
+        "兽"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0773",
+      "expected": "手",
+      "pinyin": "shou",
+      "reason": "linear",
+      "top10": [
+        "手",
+        "收",
+        "瘦",
+        "受",
+        "首",
+        "守",
+        "寿",
+        "售",
+        "授",
+        "兽"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0774",
@@ -10543,12 +10760,63 @@
     },
     {
       "idx": "0776",
-      "expected": "为突破",
-      "pinyin": "weitupo",
+      "expected": "为",
+      "pinyin": "wei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "破",
+        "坡",
+        "颇",
+        "泼",
+        "迫",
+        "泊",
+        "婆",
+        "魄",
+        "繁",
+        "番"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0776",
+      "expected": "突",
+      "pinyin": "tu",
+      "reason": "linear",
+      "top10": [
+        "破",
+        "坡",
+        "颇",
+        "泼",
+        "迫",
+        "泊",
+        "婆",
+        "魄",
+        "繁",
+        "番"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0776",
+      "expected": "破",
+      "pinyin": "po",
+      "reason": "linear",
+      "top10": [
+        "破",
+        "坡",
+        "颇",
+        "泼",
+        "迫",
+        "泊",
+        "婆",
+        "魄",
+        "繁",
+        "番"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0777",
@@ -10987,10 +11255,10 @@
     }
   ],
   "stats": {
-    "total": 812,
-    "pass": 806,
+    "total": 823,
+    "pass": 823,
     "soft": 0,
-    "audit": 6,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -192,8 +192,8 @@
       "top10": [
         "字",
         "子",
-        "紫",
         "自",
+        "紫",
         "资",
         "兹",
         "姊",
@@ -201,7 +201,7 @@
         "姿",
         "咨"
       ],
-      "rank": 3,
+      "rank": 2,
       "verdict": "PASS"
     },
     {
@@ -1795,10 +1795,10 @@
       "pinyin": "shengtaixiufuzhilizhilu",
       "reason": "linear",
       "top10": [
-        "生态修复智力指路"
+        "生态修复治理之路"
       ],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0137",
@@ -5270,9 +5270,9 @@
         "吕",
         "虑",
         "屡",
+        "履",
         "驴",
-        "铝",
-        "氯"
+        "铝"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -5446,9 +5446,9 @@
   ],
   "stats": {
     "total": 403,
-    "pass": 402,
+    "pass": 403,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

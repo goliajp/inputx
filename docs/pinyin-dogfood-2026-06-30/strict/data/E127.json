@@ -2302,12 +2302,63 @@
     },
     {
       "idx": "0168",
-      "expected": "自限性",
-      "pinyin": "zixianxing",
+      "expected": "自",
+      "pinyin": "zi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "行",
+        "姓",
+        "性",
+        "醒",
+        "星",
+        "型",
+        "兴",
+        "腥",
+        "形",
+        "幸"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0168",
+      "expected": "限",
+      "pinyin": "xian",
+      "reason": "linear",
+      "top10": [
+        "行",
+        "姓",
+        "性",
+        "醒",
+        "星",
+        "型",
+        "兴",
+        "腥",
+        "形",
+        "幸"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0168",
+      "expected": "性",
+      "pinyin": "xing",
+      "reason": "linear",
+      "top10": [
+        "行",
+        "姓",
+        "性",
+        "醒",
+        "星",
+        "型",
+        "兴",
+        "腥",
+        "形",
+        "幸"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0169",
@@ -4848,12 +4899,71 @@
     },
     {
       "idx": "0353",
-      "expected": "任何人群",
-      "pinyin": "renherenqun",
+      "expected": "任",
+      "pinyin": "ren",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "群",
+        "裙",
+        "蹲",
+        "逡",
+        "遁",
+        "囷",
+        "麇"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0353",
+      "expected": "何",
+      "pinyin": "he",
+      "reason": "linear",
+      "top10": [
+        "群",
+        "裙",
+        "蹲",
+        "逡",
+        "遁",
+        "囷",
+        "麇"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0353",
+      "expected": "人",
+      "pinyin": "ren",
+      "reason": "linear",
+      "top10": [
+        "群",
+        "裙",
+        "蹲",
+        "逡",
+        "遁",
+        "囷",
+        "麇"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0353",
+      "expected": "群",
+      "pinyin": "qun",
+      "reason": "linear",
+      "top10": [
+        "群",
+        "裙",
+        "蹲",
+        "逡",
+        "遁",
+        "囷",
+        "麇"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0354",
@@ -9102,10 +9212,10 @@
     }
   ],
   "stats": {
-    "total": 663,
-    "pass": 661,
+    "total": 668,
+    "pass": 668,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

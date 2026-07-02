@@ -1077,8 +1077,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -8239,12 +8239,63 @@
     },
     {
       "idx": "0547",
-      "expected": "以余命",
-      "pinyin": "yiyuming",
+      "expected": "以",
+      "pinyin": "yi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "名",
+        "明",
+        "命",
+        "鸣",
+        "铭",
+        "冥",
+        "盟",
+        "茗",
+        "萌",
+        "螟"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0547",
+      "expected": "余",
+      "pinyin": "yu",
+      "reason": "linear",
+      "top10": [
+        "名",
+        "明",
+        "命",
+        "鸣",
+        "铭",
+        "冥",
+        "盟",
+        "茗",
+        "萌",
+        "螟"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0547",
+      "expected": "命",
+      "pinyin": "ming",
+      "reason": "linear",
+      "top10": [
+        "名",
+        "明",
+        "命",
+        "鸣",
+        "铭",
+        "冥",
+        "盟",
+        "茗",
+        "萌",
+        "螟"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0548",
@@ -8602,12 +8653,43 @@
     },
     {
       "idx": "0571",
-      "expected": "日守",
-      "pinyin": "rishou",
+      "expected": "日",
+      "pinyin": "ri",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "手",
+        "收",
+        "瘦",
+        "受",
+        "首",
+        "守",
+        "寿",
+        "售",
+        "授",
+        "兽"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0571",
+      "expected": "守",
+      "pinyin": "shou",
+      "reason": "linear",
+      "top10": [
+        "手",
+        "收",
+        "瘦",
+        "受",
+        "首",
+        "守",
+        "寿",
+        "售",
+        "授",
+        "兽"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
     },
     {
       "idx": "0572",
@@ -9680,8 +9762,8 @@
       "top10": [
         "字",
         "子",
-        "紫",
         "自",
+        "紫",
         "资",
         "兹",
         "姊",
@@ -9958,8 +10040,8 @@
       "top10": [
         "字",
         "子",
-        "紫",
         "自",
+        "紫",
         "资",
         "兹",
         "姊",
@@ -10546,12 +10628,63 @@
     },
     {
       "idx": "0706",
-      "expected": "虎之助",
-      "pinyin": "huzhizhu",
+      "expected": "虎",
+      "pinyin": "hu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "住",
+        "祝",
+        "猪",
+        "主",
+        "煮",
+        "株",
+        "拄",
+        "助",
+        "竹",
+        "珠"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0706",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "住",
+        "祝",
+        "猪",
+        "主",
+        "煮",
+        "株",
+        "拄",
+        "助",
+        "竹",
+        "珠"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0706",
+      "expected": "助",
+      "pinyin": "zhu",
+      "reason": "linear",
+      "top10": [
+        "住",
+        "祝",
+        "猪",
+        "主",
+        "煮",
+        "株",
+        "拄",
+        "助",
+        "竹",
+        "珠"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
     },
     {
       "idx": "0707",
@@ -12155,10 +12288,10 @@
     }
   ],
   "stats": {
-    "total": 828,
-    "pass": 825,
+    "total": 833,
+    "pass": 833,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

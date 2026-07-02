@@ -6003,12 +6003,123 @@
     },
     {
       "idx": "0428",
-      "expected": "世界民族之林",
-      "pinyin": "shijieminzuzhilin",
+      "expected": "世",
+      "pinyin": "shi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "林",
+        "淋",
+        "临",
+        "邻",
+        "磷",
+        "鳞",
+        "琳",
+        "凛",
+        "拎",
+        "赁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0428",
+      "expected": "界",
+      "pinyin": "jie",
+      "reason": "linear",
+      "top10": [
+        "林",
+        "淋",
+        "临",
+        "邻",
+        "磷",
+        "鳞",
+        "琳",
+        "凛",
+        "拎",
+        "赁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0428",
+      "expected": "民",
+      "pinyin": "min",
+      "reason": "linear",
+      "top10": [
+        "林",
+        "淋",
+        "临",
+        "邻",
+        "磷",
+        "鳞",
+        "琳",
+        "凛",
+        "拎",
+        "赁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0428",
+      "expected": "族",
+      "pinyin": "zu",
+      "reason": "linear",
+      "top10": [
+        "林",
+        "淋",
+        "临",
+        "邻",
+        "磷",
+        "鳞",
+        "琳",
+        "凛",
+        "拎",
+        "赁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0428",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "林",
+        "淋",
+        "临",
+        "邻",
+        "磷",
+        "鳞",
+        "琳",
+        "凛",
+        "拎",
+        "赁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0428",
+      "expected": "林",
+      "pinyin": "lin",
+      "reason": "linear",
+      "top10": [
+        "林",
+        "淋",
+        "临",
+        "邻",
+        "磷",
+        "鳞",
+        "琳",
+        "凛",
+        "拎",
+        "赁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0429",
@@ -6234,10 +6345,10 @@
     }
   ],
   "stats": {
-    "total": 442,
-    "pass": 441,
+    "total": 447,
+    "pass": 447,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -483,12 +483,43 @@
     },
     {
       "idx": "0040",
-      "expected": "再对",
-      "pinyin": "zaidui",
+      "expected": "再",
+      "pinyin": "zai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "对",
+        "堆",
+        "队",
+        "兑",
+        "追",
+        "敦",
+        "怼",
+        "镦",
+        "碓",
+        "槌"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0040",
+      "expected": "对",
+      "pinyin": "dui",
+      "reason": "linear",
+      "top10": [
+        "对",
+        "堆",
+        "队",
+        "兑",
+        "追",
+        "敦",
+        "怼",
+        "镦",
+        "碓",
+        "槌"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0041",
@@ -2627,12 +2658,63 @@
     },
     {
       "idx": "0197",
-      "expected": "保留着",
-      "pinyin": "baoliuzhe",
+      "expected": "保",
+      "pinyin": "bao",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0197",
+      "expected": "留",
+      "pinyin": "liu",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0197",
+      "expected": "着",
+      "pinyin": "zhe",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0198",
@@ -3610,12 +3692,83 @@
     },
     {
       "idx": "0266",
-      "expected": "探测之路",
-      "pinyin": "tancezhilu",
+      "expected": "探",
+      "pinyin": "tan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "麓",
+        "路",
+        "露",
+        "录",
+        "鲁",
+        "陆",
+        "鹿",
+        "卢",
+        "炉",
+        "虏"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0266",
+      "expected": "测",
+      "pinyin": "ce",
+      "reason": "linear",
+      "top10": [
+        "麓",
+        "路",
+        "露",
+        "录",
+        "鲁",
+        "陆",
+        "鹿",
+        "卢",
+        "炉",
+        "虏"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0266",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "麓",
+        "路",
+        "露",
+        "录",
+        "鲁",
+        "陆",
+        "鹿",
+        "卢",
+        "炉",
+        "虏"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0266",
+      "expected": "路",
+      "pinyin": "lu",
+      "reason": "linear",
+      "top10": [
+        "麓",
+        "路",
+        "露",
+        "录",
+        "鲁",
+        "陆",
+        "鹿",
+        "卢",
+        "炉",
+        "虏"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0267",
@@ -7702,8 +7855,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -7795,8 +7948,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -9310,12 +9463,63 @@
     },
     {
       "idx": "0685",
-      "expected": "从月球",
-      "pinyin": "congyueqiu",
+      "expected": "从",
+      "pinyin": "cong",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "秋",
+        "球",
+        "求",
+        "丘",
+        "囚",
+        "蚯",
+        "团",
+        "仇",
+        "龟",
+        "裘"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0685",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "秋",
+        "球",
+        "求",
+        "丘",
+        "囚",
+        "蚯",
+        "团",
+        "仇",
+        "龟",
+        "裘"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0685",
+      "expected": "球",
+      "pinyin": "qiu",
+      "reason": "linear",
+      "top10": [
+        "秋",
+        "球",
+        "求",
+        "丘",
+        "囚",
+        "蚯",
+        "团",
+        "仇",
+        "龟",
+        "裘"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0686",
@@ -10631,10 +10835,10 @@
     }
   ],
   "stats": {
-    "total": 781,
-    "pass": 777,
+    "total": 789,
+    "pass": 789,
     "soft": 0,
-    "audit": 4,
+    "audit": 0,
     "hard": 0
   }
 }

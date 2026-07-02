@@ -738,8 +738,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -2359,12 +2359,48 @@
     },
     {
       "idx": "0154",
-      "expected": "由加桑",
-      "pinyin": "youjiasang",
+      "expected": "由",
+      "pinyin": "you",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "桑",
+        "丧",
+        "嗓",
+        "搡",
+        "颡"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0154",
+      "expected": "加",
+      "pinyin": "jia",
+      "reason": "linear",
+      "top10": [
+        "桑",
+        "丧",
+        "嗓",
+        "搡",
+        "颡"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0154",
+      "expected": "桑",
+      "pinyin": "sang",
+      "reason": "linear",
+      "top10": [
+        "桑",
+        "丧",
+        "嗓",
+        "搡",
+        "颡"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0155",
@@ -3669,12 +3705,43 @@
     },
     {
       "idx": "0244",
-      "expected": "税额",
-      "pinyin": "shuie",
+      "expected": "税",
+      "pinyin": "shui",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "饿",
+        "额",
+        "俄",
+        "恶",
+        "鄂",
+        "娥",
+        "鹅",
+        "鳄",
+        "蛾",
+        "峨"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0244",
+      "expected": "额",
+      "pinyin": "e",
+      "reason": "linear",
+      "top10": [
+        "饿",
+        "额",
+        "俄",
+        "恶",
+        "鄂",
+        "娥",
+        "鹅",
+        "鳄",
+        "蛾",
+        "峨"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0245",
@@ -7516,10 +7583,10 @@
     }
   ],
   "stats": {
-    "total": 502,
-    "pass": 500,
+    "total": 505,
+    "pass": 505,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

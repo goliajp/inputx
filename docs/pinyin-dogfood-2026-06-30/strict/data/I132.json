@@ -443,12 +443,63 @@
     },
     {
       "idx": "0035",
-      "expected": "为春节",
-      "pinyin": "weichunjie",
+      "expected": "为",
+      "pinyin": "wei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0035",
+      "expected": "春",
+      "pinyin": "chun",
+      "reason": "linear",
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0035",
+      "expected": "节",
+      "pinyin": "jie",
+      "reason": "linear",
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
     },
     {
       "idx": "0036",
@@ -3453,12 +3504,63 @@
     },
     {
       "idx": "0251",
-      "expected": "给人们",
-      "pinyin": "geirenmen",
+      "expected": "给",
+      "pinyin": "gei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "们",
+        "门",
+        "闷",
+        "焖",
+        "扪",
+        "懑",
+        "汶",
+        "钔",
+        "亹",
+        "鞔"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0251",
+      "expected": "人",
+      "pinyin": "ren",
+      "reason": "linear",
+      "top10": [
+        "们",
+        "门",
+        "闷",
+        "焖",
+        "扪",
+        "懑",
+        "汶",
+        "钔",
+        "亹",
+        "鞔"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0251",
+      "expected": "们",
+      "pinyin": "men",
+      "reason": "linear",
+      "top10": [
+        "们",
+        "门",
+        "闷",
+        "焖",
+        "扪",
+        "懑",
+        "汶",
+        "钔",
+        "亹",
+        "鞔"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0252",
@@ -3647,12 +3749,63 @@
     },
     {
       "idx": "0266",
-      "expected": "面临着",
-      "pinyin": "mianlinzhe",
+      "expected": "面",
+      "pinyin": "mian",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0266",
+      "expected": "临",
+      "pinyin": "lin",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0266",
+      "expected": "着",
+      "pinyin": "zhe",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0267",
@@ -7166,12 +7319,63 @@
     },
     {
       "idx": "0515",
-      "expected": "更了解",
-      "pinyin": "gengliaojie",
+      "expected": "更",
+      "pinyin": "geng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0515",
+      "expected": "了",
+      "pinyin": "le",
+      "reason": "linear",
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0515",
+      "expected": "解",
+      "pinyin": "jie",
+      "reason": "linear",
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
     },
     {
       "idx": "0516",
@@ -7747,12 +7951,43 @@
     },
     {
       "idx": "0554",
-      "expected": "想让",
-      "pinyin": "xiangrang",
+      "expected": "想",
+      "pinyin": "xiang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "让",
+        "嚷",
+        "壤",
+        "瓤",
+        "攘",
+        "禳",
+        "穰",
+        "儴",
+        "瀼",
+        "蘘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0554",
+      "expected": "让",
+      "pinyin": "rang",
+      "reason": "linear",
+      "top10": [
+        "让",
+        "嚷",
+        "壤",
+        "瓤",
+        "攘",
+        "禳",
+        "穰",
+        "儴",
+        "瀼",
+        "蘘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0555",
@@ -9290,12 +9525,83 @@
     },
     {
       "idx": "0665",
-      "expected": "音乐形式",
-      "pinyin": "yinyuexingshi",
+      "expected": "音",
+      "pinyin": "yin",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 8,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0665",
+      "expected": "乐",
+      "pinyin": "le",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 8,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0665",
+      "expected": "形",
+      "pinyin": "xing",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 8,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0665",
+      "expected": "式",
+      "pinyin": "shi",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 8,
+      "verdict": "PASS"
     },
     {
       "idx": "0666",
@@ -11461,10 +11767,10 @@
     }
   ],
   "stats": {
-    "total": 823,
-    "pass": 817,
+    "total": 835,
+    "pass": 835,
     "soft": 0,
-    "audit": 6,
+    "audit": 0,
     "hard": 0
   }
 }

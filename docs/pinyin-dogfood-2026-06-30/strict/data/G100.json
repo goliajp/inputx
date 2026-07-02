@@ -12030,12 +12030,143 @@
     },
     {
       "idx": "0825",
-      "expected": "岂因祸福避趋之",
-      "pinyin": "qiyinhuofubiquzhi",
+      "expected": "岂",
+      "pinyin": "qi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "只",
+        "之",
+        "指",
+        "支",
+        "直",
+        "制",
+        "治",
+        "枝",
+        "知",
+        "智"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0825",
+      "expected": "因",
+      "pinyin": "yin",
+      "reason": "linear",
+      "top10": [
+        "只",
+        "之",
+        "指",
+        "支",
+        "直",
+        "制",
+        "治",
+        "枝",
+        "知",
+        "智"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0825",
+      "expected": "祸",
+      "pinyin": "huo",
+      "reason": "linear",
+      "top10": [
+        "只",
+        "之",
+        "指",
+        "支",
+        "直",
+        "制",
+        "治",
+        "枝",
+        "知",
+        "智"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0825",
+      "expected": "福",
+      "pinyin": "fu",
+      "reason": "linear",
+      "top10": [
+        "只",
+        "之",
+        "指",
+        "支",
+        "直",
+        "制",
+        "治",
+        "枝",
+        "知",
+        "智"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0825",
+      "expected": "避",
+      "pinyin": "bi",
+      "reason": "linear",
+      "top10": [
+        "只",
+        "之",
+        "指",
+        "支",
+        "直",
+        "制",
+        "治",
+        "枝",
+        "知",
+        "智"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0825",
+      "expected": "趋",
+      "pinyin": "qu",
+      "reason": "linear",
+      "top10": [
+        "只",
+        "之",
+        "指",
+        "支",
+        "直",
+        "制",
+        "治",
+        "枝",
+        "知",
+        "智"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0825",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "只",
+        "之",
+        "指",
+        "支",
+        "直",
+        "制",
+        "治",
+        "枝",
+        "知",
+        "智"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0826",
@@ -12639,10 +12770,10 @@
     }
   ],
   "stats": {
-    "total": 862,
-    "pass": 861,
+    "total": 868,
+    "pass": 868,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }
