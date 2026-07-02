@@ -135,6 +135,7 @@
       "pinyin": "sitan",
       "reason": "linear",
       "top10": [
+        "斯坦福",
         "斯塔诺",
         "四碳糖"
       ],
@@ -435,6 +436,7 @@
       "pinyin": "sitan",
       "reason": "linear",
       "top10": [
+        "斯坦福",
         "斯塔诺",
         "四碳糖"
       ],
@@ -2358,11 +2360,9 @@
       "expected": "由加桑",
       "pinyin": "youjiasang",
       "reason": "linear",
-      "top10": [
-        "由加桑"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0155",
@@ -3670,11 +3670,9 @@
       "expected": "税额",
       "pinyin": "shuie",
       "reason": "linear",
-      "top10": [
-        "水而"
-      ],
+      "top10": [],
       "rank": 99,
-      "verdict": "PASS"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0245",
@@ -5930,14 +5928,14 @@
         "铃",
         "领",
         "灵",
-        "另",
         "令",
+        "另",
         "岭",
         "陵",
         "龄",
         "凌"
       ],
-      "rank": 5,
+      "rank": 4,
       "verdict": "PASS"
     },
     {
@@ -6565,11 +6563,9 @@
       "expected": "六日",
       "pinyin": "liuri",
       "reason": "linear",
-      "top10": [
-        "六日"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0440",
@@ -7136,14 +7132,14 @@
         "铃",
         "领",
         "灵",
-        "另",
         "令",
+        "另",
         "岭",
         "陵",
         "龄",
         "凌"
       ],
-      "rank": 5,
+      "rank": 4,
       "verdict": "PASS"
     },
     {
@@ -7356,6 +7352,7 @@
       "pinyin": "sitan",
       "reason": "linear",
       "top10": [
+        "斯坦福",
         "斯塔诺",
         "四碳糖"
       ],
@@ -7503,9 +7500,9 @@
   ],
   "stats": {
     "total": 501,
-    "pass": 501,
+    "pass": 498,
     "soft": 0,
-    "audit": 0,
+    "audit": 3,
     "hard": 0
   }
 }
