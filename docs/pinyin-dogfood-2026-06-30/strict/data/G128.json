@@ -1293,12 +1293,83 @@
     },
     {
       "idx": "0097",
-      "expected": "支持项目",
-      "pinyin": "zhichixiangmu",
+      "expected": "支",
+      "pinyin": "zhi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "目",
+        "木",
+        "幕",
+        "姆",
+        "母",
+        "墓",
+        "牧",
+        "亩",
+        "穆",
+        "慕"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0097",
+      "expected": "持",
+      "pinyin": "chi",
+      "reason": "linear",
+      "top10": [
+        "目",
+        "木",
+        "幕",
+        "姆",
+        "母",
+        "墓",
+        "牧",
+        "亩",
+        "穆",
+        "慕"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0097",
+      "expected": "项",
+      "pinyin": "xiang",
+      "reason": "linear",
+      "top10": [
+        "目",
+        "木",
+        "幕",
+        "姆",
+        "母",
+        "墓",
+        "牧",
+        "亩",
+        "穆",
+        "慕"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0097",
+      "expected": "目",
+      "pinyin": "mu",
+      "reason": "linear",
+      "top10": [
+        "目",
+        "木",
+        "幕",
+        "姆",
+        "母",
+        "墓",
+        "牧",
+        "亩",
+        "穆",
+        "慕"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0098",
@@ -2094,12 +2165,83 @@
     },
     {
       "idx": "0153",
-      "expected": "举办方式",
-      "pinyin": "jubanfangshi",
+      "expected": "举",
+      "pinyin": "ju",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 8,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0153",
+      "expected": "办",
+      "pinyin": "ban",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 8,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0153",
+      "expected": "方",
+      "pinyin": "fang",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 8,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0153",
+      "expected": "式",
+      "pinyin": "shi",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 8,
+      "verdict": "PASS"
     },
     {
       "idx": "0154",
@@ -4063,10 +4205,10 @@
     }
   ],
   "stats": {
-    "total": 292,
-    "pass": 290,
+    "total": 298,
+    "pass": 298,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -438,12 +438,63 @@
     },
     {
       "idx": "0033",
-      "expected": "为响应",
-      "pinyin": "weixiangying",
+      "expected": "为",
+      "pinyin": "wei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "硬",
+        "赢",
+        "应",
+        "英",
+        "影",
+        "营",
+        "迎",
+        "映",
+        "鹰",
+        "盈"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0033",
+      "expected": "响",
+      "pinyin": "xiang",
+      "reason": "linear",
+      "top10": [
+        "硬",
+        "赢",
+        "应",
+        "英",
+        "影",
+        "营",
+        "迎",
+        "映",
+        "鹰",
+        "盈"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0033",
+      "expected": "应",
+      "pinyin": "ying",
+      "reason": "linear",
+      "top10": [
+        "硬",
+        "赢",
+        "应",
+        "英",
+        "影",
+        "营",
+        "迎",
+        "映",
+        "鹰",
+        "盈"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0034",
@@ -4299,12 +4350,83 @@
     },
     {
       "idx": "0324",
-      "expected": "新春惊喜",
-      "pinyin": "xinchunjingxi",
+      "expected": "新",
+      "pinyin": "xin",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "西",
+        "洗",
+        "系",
+        "溪",
+        "息",
+        "习",
+        "戏",
+        "喜",
+        "希",
+        "细"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0324",
+      "expected": "春",
+      "pinyin": "chun",
+      "reason": "linear",
+      "top10": [
+        "西",
+        "洗",
+        "系",
+        "溪",
+        "息",
+        "习",
+        "戏",
+        "喜",
+        "希",
+        "细"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0324",
+      "expected": "惊",
+      "pinyin": "jing",
+      "reason": "linear",
+      "top10": [
+        "西",
+        "洗",
+        "系",
+        "溪",
+        "息",
+        "习",
+        "戏",
+        "喜",
+        "希",
+        "细"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0324",
+      "expected": "喜",
+      "pinyin": "xi",
+      "reason": "linear",
+      "top10": [
+        "西",
+        "洗",
+        "系",
+        "溪",
+        "息",
+        "习",
+        "戏",
+        "喜",
+        "希",
+        "细"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
     },
     {
       "idx": "0325",
@@ -6437,12 +6559,43 @@
     },
     {
       "idx": "0472",
-      "expected": "好年",
-      "pinyin": "haonian",
+      "expected": "好",
+      "pinyin": "hao",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0472",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0473",
@@ -7416,10 +7569,10 @@
     }
   ],
   "stats": {
-    "total": 540,
-    "pass": 537,
+    "total": 546,
+    "pass": 546,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

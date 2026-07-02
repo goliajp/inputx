@@ -2336,12 +2336,63 @@
     },
     {
       "idx": "0161",
-      "expected": "把目光",
-      "pinyin": "bamuguang",
+      "expected": "把",
+      "pinyin": "ba",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "光",
+        "逛",
+        "广",
+        "横",
+        "恍",
+        "咣",
+        "胱",
+        "犷",
+        "潢",
+        "洸"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0161",
+      "expected": "目",
+      "pinyin": "mu",
+      "reason": "linear",
+      "top10": [
+        "光",
+        "逛",
+        "广",
+        "横",
+        "恍",
+        "咣",
+        "胱",
+        "犷",
+        "潢",
+        "洸"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0161",
+      "expected": "光",
+      "pinyin": "guang",
+      "reason": "linear",
+      "top10": [
+        "光",
+        "逛",
+        "广",
+        "横",
+        "恍",
+        "咣",
+        "胱",
+        "犷",
+        "潢",
+        "洸"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0162",
@@ -4540,12 +4591,103 @@
     },
     {
       "idx": "0311",
-      "expected": "无后顾之忧",
-      "pinyin": "wuhouguzhiyou",
+      "expected": "无",
+      "pinyin": "wu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "有",
+        "又",
+        "由",
+        "游",
+        "优",
+        "油",
+        "友",
+        "右",
+        "尤",
+        "忧"
+      ],
+      "rank": 9,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0311",
+      "expected": "后",
+      "pinyin": "hou",
+      "reason": "linear",
+      "top10": [
+        "有",
+        "又",
+        "由",
+        "游",
+        "优",
+        "油",
+        "友",
+        "右",
+        "尤",
+        "忧"
+      ],
+      "rank": 9,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0311",
+      "expected": "顾",
+      "pinyin": "gu",
+      "reason": "linear",
+      "top10": [
+        "有",
+        "又",
+        "由",
+        "游",
+        "优",
+        "油",
+        "友",
+        "右",
+        "尤",
+        "忧"
+      ],
+      "rank": 9,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0311",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "有",
+        "又",
+        "由",
+        "游",
+        "优",
+        "油",
+        "友",
+        "右",
+        "尤",
+        "忧"
+      ],
+      "rank": 9,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0311",
+      "expected": "忧",
+      "pinyin": "you",
+      "reason": "linear",
+      "top10": [
+        "有",
+        "又",
+        "由",
+        "游",
+        "优",
+        "油",
+        "友",
+        "右",
+        "尤",
+        "忧"
+      ],
+      "rank": 9,
+      "verdict": "PASS"
     },
     {
       "idx": "0312",
@@ -5524,12 +5666,63 @@
     },
     {
       "idx": "0378",
-      "expected": "在附近",
-      "pinyin": "zaifujin",
+      "expected": "在",
+      "pinyin": "zai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "金",
+        "进",
+        "近",
+        "紧",
+        "今",
+        "尽",
+        "津",
+        "仅",
+        "晋",
+        "斤"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0378",
+      "expected": "附",
+      "pinyin": "fu",
+      "reason": "linear",
+      "top10": [
+        "金",
+        "进",
+        "近",
+        "紧",
+        "今",
+        "尽",
+        "津",
+        "仅",
+        "晋",
+        "斤"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0378",
+      "expected": "近",
+      "pinyin": "jin",
+      "reason": "linear",
+      "top10": [
+        "金",
+        "进",
+        "近",
+        "紧",
+        "今",
+        "尽",
+        "津",
+        "仅",
+        "晋",
+        "斤"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0379",
@@ -8165,10 +8358,10 @@
     }
   ],
   "stats": {
-    "total": 560,
-    "pass": 557,
+    "total": 568,
+    "pass": 568,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

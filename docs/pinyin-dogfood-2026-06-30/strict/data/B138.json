@@ -202,12 +202,63 @@
     },
     {
       "idx": "0015",
-      "expected": "为韶音",
-      "pinyin": "weishaoyin",
+      "expected": "为",
+      "pinyin": "wei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "因",
+        "阴",
+        "银",
+        "音",
+        "引",
+        "印",
+        "饮",
+        "隐",
+        "荫",
+        "吟"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0015",
+      "expected": "韶",
+      "pinyin": "shao",
+      "reason": "linear",
+      "top10": [
+        "因",
+        "阴",
+        "银",
+        "音",
+        "引",
+        "印",
+        "饮",
+        "隐",
+        "荫",
+        "吟"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0015",
+      "expected": "音",
+      "pinyin": "yin",
+      "reason": "linear",
+      "top10": [
+        "因",
+        "阴",
+        "银",
+        "音",
+        "引",
+        "印",
+        "饮",
+        "隐",
+        "荫",
+        "吟"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
     },
     {
       "idx": "0016",
@@ -11932,8 +11983,8 @@
         "画",
         "化",
         "华",
-        "划",
         "滑",
+        "划",
         "哗",
         "桦",
         "猾"
@@ -14017,10 +14068,10 @@
     }
   ],
   "stats": {
-    "total": 937,
-    "pass": 936,
+    "total": 939,
+    "pass": 939,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

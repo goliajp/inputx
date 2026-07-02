@@ -3332,12 +3332,83 @@
     },
     {
       "idx": "0230",
-      "expected": "不敢相信",
-      "pinyin": "buganxiangxin",
+      "expected": "不",
+      "pinyin": "bu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "心",
+        "新",
+        "信",
+        "辛",
+        "欣",
+        "芯",
+        "薪",
+        "锌",
+        "衅",
+        "馨"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0230",
+      "expected": "敢",
+      "pinyin": "gan",
+      "reason": "linear",
+      "top10": [
+        "心",
+        "新",
+        "信",
+        "辛",
+        "欣",
+        "芯",
+        "薪",
+        "锌",
+        "衅",
+        "馨"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0230",
+      "expected": "相",
+      "pinyin": "xiang",
+      "reason": "linear",
+      "top10": [
+        "心",
+        "新",
+        "信",
+        "辛",
+        "欣",
+        "芯",
+        "薪",
+        "锌",
+        "衅",
+        "馨"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0230",
+      "expected": "信",
+      "pinyin": "xin",
+      "reason": "linear",
+      "top10": [
+        "心",
+        "新",
+        "信",
+        "辛",
+        "欣",
+        "芯",
+        "薪",
+        "锌",
+        "衅",
+        "馨"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0231",
@@ -5806,10 +5877,10 @@
     }
   ],
   "stats": {
-    "total": 395,
-    "pass": 394,
+    "total": 398,
+    "pass": 398,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

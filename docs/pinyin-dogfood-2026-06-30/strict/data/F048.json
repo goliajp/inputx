@@ -361,12 +361,123 @@
     },
     {
       "idx": "0025",
-      "expected": "西直门外大街",
-      "pinyin": "xizhimenwaidajie",
+      "expected": "西",
+      "pinyin": "xi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0025",
+      "expected": "直",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0025",
+      "expected": "门",
+      "pinyin": "men",
+      "reason": "linear",
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0025",
+      "expected": "外",
+      "pinyin": "wai",
+      "reason": "linear",
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0025",
+      "expected": "大",
+      "pinyin": "da",
+      "reason": "linear",
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0025",
+      "expected": "街",
+      "pinyin": "jie",
+      "reason": "linear",
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
     },
     {
       "idx": "0026",
@@ -636,12 +747,83 @@
     },
     {
       "idx": "0045",
-      "expected": "一河之隔",
-      "pinyin": "yihezhige",
+      "expected": "一",
+      "pinyin": "yi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "个",
+        "各",
+        "格",
+        "割",
+        "搁",
+        "歌",
+        "哥",
+        "隔",
+        "革",
+        "阁"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0045",
+      "expected": "河",
+      "pinyin": "he",
+      "reason": "linear",
+      "top10": [
+        "个",
+        "各",
+        "格",
+        "割",
+        "搁",
+        "歌",
+        "哥",
+        "隔",
+        "革",
+        "阁"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0045",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "个",
+        "各",
+        "格",
+        "割",
+        "搁",
+        "歌",
+        "哥",
+        "隔",
+        "革",
+        "阁"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0045",
+      "expected": "隔",
+      "pinyin": "ge",
+      "reason": "linear",
+      "top10": [
+        "个",
+        "各",
+        "格",
+        "割",
+        "搁",
+        "歌",
+        "哥",
+        "隔",
+        "革",
+        "阁"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
     },
     {
       "idx": "0046",
@@ -5030,8 +5212,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -21368,12 +21550,83 @@
     },
     {
       "idx": "1453",
-      "expected": "四五十岁",
-      "pinyin": "siwushisui",
+      "expected": "四",
+      "pinyin": "si",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "岁",
+        "碎",
+        "随",
+        "虽",
+        "隋",
+        "遂",
+        "穗",
+        "髓",
+        "隧",
+        "祟"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "1453",
+      "expected": "五",
+      "pinyin": "wu",
+      "reason": "linear",
+      "top10": [
+        "岁",
+        "碎",
+        "随",
+        "虽",
+        "隋",
+        "遂",
+        "穗",
+        "髓",
+        "隧",
+        "祟"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "1453",
+      "expected": "十",
+      "pinyin": "shi",
+      "reason": "linear",
+      "top10": [
+        "岁",
+        "碎",
+        "随",
+        "虽",
+        "隋",
+        "遂",
+        "穗",
+        "髓",
+        "隧",
+        "祟"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "1453",
+      "expected": "岁",
+      "pinyin": "sui",
+      "reason": "linear",
+      "top10": [
+        "岁",
+        "碎",
+        "随",
+        "虽",
+        "隋",
+        "遂",
+        "穗",
+        "髓",
+        "隧",
+        "祟"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1454",
@@ -22854,8 +23107,8 @@
       "top10": [
         "字",
         "子",
-        "紫",
         "自",
+        "紫",
         "资",
         "兹",
         "姊",
@@ -44656,8 +44909,8 @@
       "top10": [
         "字",
         "子",
-        "紫",
         "自",
+        "紫",
         "资",
         "兹",
         "姊",
@@ -44665,7 +44918,7 @@
         "姿",
         "咨"
       ],
-      "rank": 3,
+      "rank": 2,
       "verdict": "PASS"
     },
     {
@@ -44798,10 +45051,10 @@
     }
   ],
   "stats": {
-    "total": 3039,
-    "pass": 3036,
+    "total": 3050,
+    "pass": 3050,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -2840,11 +2840,10 @@
       "pinyin": "waichuwugongrenyuan",
       "reason": "linear",
       "top10": [
-        "外出务工人员管理",
-        "外出仵工人员"
+        "外出务工人员"
       ],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0218",
@@ -5098,9 +5097,9 @@
   ],
   "stats": {
     "total": 387,
-    "pass": 386,
+    "pass": 387,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

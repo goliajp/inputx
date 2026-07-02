@@ -1523,12 +1523,83 @@
     },
     {
       "idx": "0115",
-      "expected": "南海之滨",
-      "pinyin": "nanhaizhibin",
+      "expected": "南",
+      "pinyin": "nan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "宾",
+        "滨",
+        "彬",
+        "斌",
+        "濒",
+        "鬓",
+        "缤",
+        "份",
+        "摈",
+        "殡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0115",
+      "expected": "海",
+      "pinyin": "hai",
+      "reason": "linear",
+      "top10": [
+        "宾",
+        "滨",
+        "彬",
+        "斌",
+        "濒",
+        "鬓",
+        "缤",
+        "份",
+        "摈",
+        "殡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0115",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "宾",
+        "滨",
+        "彬",
+        "斌",
+        "濒",
+        "鬓",
+        "缤",
+        "份",
+        "摈",
+        "殡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0115",
+      "expected": "滨",
+      "pinyin": "bin",
+      "reason": "linear",
+      "top10": [
+        "宾",
+        "滨",
+        "彬",
+        "斌",
+        "濒",
+        "鬓",
+        "缤",
+        "份",
+        "摈",
+        "殡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0116",
@@ -2641,12 +2712,83 @@
     },
     {
       "idx": "0196",
-      "expected": "千湖之省",
-      "pinyin": "qianhuzhisheng",
+      "expected": "千",
+      "pinyin": "qian",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "省",
+        "生",
+        "剩",
+        "升",
+        "盛",
+        "声",
+        "胜",
+        "圣",
+        "绳",
+        "笙"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0196",
+      "expected": "湖",
+      "pinyin": "hu",
+      "reason": "linear",
+      "top10": [
+        "省",
+        "生",
+        "剩",
+        "升",
+        "盛",
+        "声",
+        "胜",
+        "圣",
+        "绳",
+        "笙"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0196",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "省",
+        "生",
+        "剩",
+        "升",
+        "盛",
+        "声",
+        "胜",
+        "圣",
+        "绳",
+        "笙"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0196",
+      "expected": "省",
+      "pinyin": "sheng",
+      "reason": "linear",
+      "top10": [
+        "省",
+        "生",
+        "剩",
+        "升",
+        "盛",
+        "声",
+        "胜",
+        "圣",
+        "绳",
+        "笙"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0197",
@@ -5239,10 +5381,10 @@
     }
   ],
   "stats": {
-    "total": 388,
-    "pass": 386,
+    "total": 394,
+    "pass": 394,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

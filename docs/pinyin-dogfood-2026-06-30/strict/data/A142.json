@@ -3780,12 +3780,83 @@
     },
     {
       "idx": "0276",
-      "expected": "来回跑腿",
-      "pinyin": "laihuipaotui",
+      "expected": "来",
+      "pinyin": "lai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "腿",
+        "推",
+        "退",
+        "褪",
+        "蜕",
+        "颓",
+        "弟",
+        "追",
+        "脱",
+        "税"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0276",
+      "expected": "回",
+      "pinyin": "hui",
+      "reason": "linear",
+      "top10": [
+        "腿",
+        "推",
+        "退",
+        "褪",
+        "蜕",
+        "颓",
+        "弟",
+        "追",
+        "脱",
+        "税"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0276",
+      "expected": "跑",
+      "pinyin": "pao",
+      "reason": "linear",
+      "top10": [
+        "腿",
+        "推",
+        "退",
+        "褪",
+        "蜕",
+        "颓",
+        "弟",
+        "追",
+        "脱",
+        "税"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0276",
+      "expected": "腿",
+      "pinyin": "tui",
+      "reason": "linear",
+      "top10": [
+        "腿",
+        "推",
+        "退",
+        "褪",
+        "蜕",
+        "颓",
+        "弟",
+        "追",
+        "脱",
+        "税"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0277",
@@ -4824,10 +4895,10 @@
     }
   ],
   "stats": {
-    "total": 351,
-    "pass": 350,
+    "total": 354,
+    "pass": 354,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -139,8 +139,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -1290,12 +1290,43 @@
     },
     {
       "idx": "0088",
-      "expected": "度分",
-      "pinyin": "dufen",
+      "expected": "度",
+      "pinyin": "du",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "分",
+        "份",
+        "粉",
+        "奋",
+        "坟",
+        "芬",
+        "粪",
+        "纷",
+        "愤",
+        "焚"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0088",
+      "expected": "分",
+      "pinyin": "fen",
+      "reason": "linear",
+      "top10": [
+        "分",
+        "份",
+        "粉",
+        "奋",
+        "坟",
+        "芬",
+        "粪",
+        "纷",
+        "愤",
+        "焚"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0089",
@@ -3036,8 +3067,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -3046,12 +3077,43 @@
     },
     {
       "idx": "0203",
-      "expected": "需年",
-      "pinyin": "xunian",
+      "expected": "需",
+      "pinyin": "xu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0203",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0204",
@@ -5269,12 +5331,63 @@
     },
     {
       "idx": "0344",
-      "expected": "万分之",
-      "pinyin": "wanfenzhi",
+      "expected": "万",
+      "pinyin": "wan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "只",
+        "之",
+        "指",
+        "支",
+        "直",
+        "制",
+        "治",
+        "枝",
+        "知",
+        "智"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0344",
+      "expected": "分",
+      "pinyin": "fen",
+      "reason": "linear",
+      "top10": [
+        "只",
+        "之",
+        "指",
+        "支",
+        "直",
+        "制",
+        "治",
+        "枝",
+        "知",
+        "智"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0344",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "只",
+        "之",
+        "指",
+        "支",
+        "直",
+        "制",
+        "治",
+        "枝",
+        "知",
+        "智"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0345",
@@ -7508,10 +7621,10 @@
     }
   ],
   "stats": {
-    "total": 493,
-    "pass": 490,
+    "total": 497,
+    "pass": 497,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

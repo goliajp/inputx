@@ -612,8 +612,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -2120,12 +2120,63 @@
     },
     {
       "idx": "0152",
-      "expected": "为自己",
-      "pinyin": "weiziji",
+      "expected": "为",
+      "pinyin": "wei",
       "reason": "linear",
-      "top10": [],
+      "top10": [
+        "给",
+        "几",
+        "极",
+        "机",
+        "寄",
+        "级",
+        "技",
+        "集",
+        "记",
+        "及"
+      ],
       "rank": 99,
-      "verdict": "AUDIT"
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0152",
+      "expected": "自",
+      "pinyin": "zi",
+      "reason": "linear",
+      "top10": [
+        "给",
+        "几",
+        "极",
+        "机",
+        "寄",
+        "级",
+        "技",
+        "集",
+        "记",
+        "及"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0152",
+      "expected": "己",
+      "pinyin": "ji",
+      "reason": "linear",
+      "top10": [
+        "给",
+        "几",
+        "极",
+        "机",
+        "寄",
+        "级",
+        "技",
+        "集",
+        "记",
+        "及"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
     },
     {
       "idx": "0153",
@@ -3473,12 +3524,63 @@
     },
     {
       "idx": "0250",
-      "expected": "更紧要",
-      "pinyin": "gengjinyao",
+      "expected": "更",
+      "pinyin": "geng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "要",
+        "药",
+        "摇",
+        "咬",
+        "腰",
+        "邀",
+        "窑",
+        "妖",
+        "遥",
+        "耀"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0250",
+      "expected": "紧",
+      "pinyin": "jin",
+      "reason": "linear",
+      "top10": [
+        "要",
+        "药",
+        "摇",
+        "咬",
+        "腰",
+        "邀",
+        "窑",
+        "妖",
+        "遥",
+        "耀"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0250",
+      "expected": "要",
+      "pinyin": "yao",
+      "reason": "linear",
+      "top10": [
+        "要",
+        "药",
+        "摇",
+        "咬",
+        "腰",
+        "邀",
+        "窑",
+        "妖",
+        "遥",
+        "耀"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0251",
@@ -4480,12 +4582,63 @@
     },
     {
       "idx": "0322",
-      "expected": "被熬没",
-      "pinyin": "beiaomei",
+      "expected": "被",
+      "pinyin": "bei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "没",
+        "每",
+        "美",
+        "枚",
+        "妹",
+        "梅",
+        "媒",
+        "眉",
+        "煤",
+        "昧"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0322",
+      "expected": "熬",
+      "pinyin": "ao",
+      "reason": "linear",
+      "top10": [
+        "没",
+        "每",
+        "美",
+        "枚",
+        "妹",
+        "梅",
+        "媒",
+        "眉",
+        "煤",
+        "昧"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0322",
+      "expected": "没",
+      "pinyin": "mei",
+      "reason": "linear",
+      "top10": [
+        "没",
+        "每",
+        "美",
+        "枚",
+        "妹",
+        "梅",
+        "媒",
+        "眉",
+        "煤",
+        "昧"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0323",
@@ -7262,12 +7415,83 @@
     },
     {
       "idx": "0524",
-      "expected": "只能加强",
-      "pinyin": "zhinengjiaqiang",
+      "expected": "只",
+      "pinyin": "zhi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "墙",
+        "抢",
+        "枪",
+        "强",
+        "腔",
+        "呛",
+        "控",
+        "将",
+        "羌",
+        "蔷"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0524",
+      "expected": "能",
+      "pinyin": "neng",
+      "reason": "linear",
+      "top10": [
+        "墙",
+        "抢",
+        "枪",
+        "强",
+        "腔",
+        "呛",
+        "控",
+        "将",
+        "羌",
+        "蔷"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0524",
+      "expected": "加",
+      "pinyin": "jia",
+      "reason": "linear",
+      "top10": [
+        "墙",
+        "抢",
+        "枪",
+        "强",
+        "腔",
+        "呛",
+        "控",
+        "将",
+        "羌",
+        "蔷"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0524",
+      "expected": "强",
+      "pinyin": "qiang",
+      "reason": "linear",
+      "top10": [
+        "墙",
+        "抢",
+        "枪",
+        "强",
+        "腔",
+        "呛",
+        "控",
+        "将",
+        "羌",
+        "蔷"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
     },
     {
       "idx": "0525",
@@ -7702,10 +7926,10 @@
     }
   ],
   "stats": {
-    "total": 557,
-    "pass": 553,
+    "total": 566,
+    "pass": 566,
     "soft": 0,
-    "audit": 4,
+    "audit": 0,
     "hard": 0
   }
 }

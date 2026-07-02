@@ -8967,12 +8967,83 @@
     },
     {
       "idx": "0647",
-      "expected": "受制于人",
-      "pinyin": "shouzhiyuren",
+      "expected": "受",
+      "pinyin": "shou",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "人",
+        "任",
+        "认",
+        "仁",
+        "忍",
+        "刃",
+        "韧",
+        "壬",
+        "纫",
+        "儿"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0647",
+      "expected": "制",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "人",
+        "任",
+        "认",
+        "仁",
+        "忍",
+        "刃",
+        "韧",
+        "壬",
+        "纫",
+        "儿"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0647",
+      "expected": "于",
+      "pinyin": "yu",
+      "reason": "linear",
+      "top10": [
+        "人",
+        "任",
+        "认",
+        "仁",
+        "忍",
+        "刃",
+        "韧",
+        "壬",
+        "纫",
+        "儿"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0647",
+      "expected": "人",
+      "pinyin": "ren",
+      "reason": "linear",
+      "top10": [
+        "人",
+        "任",
+        "认",
+        "仁",
+        "忍",
+        "刃",
+        "韧",
+        "壬",
+        "纫",
+        "儿"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0648",
@@ -21876,12 +21947,10 @@
       "pinyin": "shuzizhongguo",
       "reason": "linear",
       "top10": [
-        "数字中国建设",
-        "数字中国发展报告",
-        "数字钟过"
+        "数字中国"
       ],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "1585",
@@ -22142,10 +22211,10 @@
     }
   ],
   "stats": {
-    "total": 1603,
-    "pass": 1601,
+    "total": 1606,
+    "pass": 1606,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -6745,9 +6745,9 @@
         "吕",
         "虑",
         "屡",
+        "履",
         "驴",
-        "铝",
-        "氯"
+        "铝"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -8248,9 +8248,9 @@
         "吕",
         "虑",
         "屡",
+        "履",
         "驴",
-        "铝",
-        "氯"
+        "铝"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -10037,12 +10037,63 @@
     },
     {
       "idx": "0715",
-      "expected": "分之差",
-      "pinyin": "fenzhicha",
+      "expected": "分",
+      "pinyin": "fen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "茶",
+        "差",
+        "插",
+        "岔",
+        "查",
+        "察",
+        "叉",
+        "茬",
+        "接",
+        "土"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0715",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "茶",
+        "差",
+        "插",
+        "岔",
+        "查",
+        "察",
+        "叉",
+        "茬",
+        "接",
+        "土"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0715",
+      "expected": "差",
+      "pinyin": "cha",
+      "reason": "linear",
+      "top10": [
+        "茶",
+        "差",
+        "插",
+        "岔",
+        "查",
+        "察",
+        "叉",
+        "茬",
+        "接",
+        "土"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0716",
@@ -13296,10 +13347,10 @@
     }
   ],
   "stats": {
-    "total": 939,
-    "pass": 938,
+    "total": 941,
+    "pass": 941,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

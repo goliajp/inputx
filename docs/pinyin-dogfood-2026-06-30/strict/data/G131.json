@@ -17,12 +17,43 @@
     },
     {
       "idx": "0002",
-      "expected": "那就",
-      "pinyin": "najiu",
+      "expected": "那",
+      "pinyin": "na",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "就",
+        "九",
+        "旧",
+        "久",
+        "救",
+        "酒",
+        "究",
+        "揪",
+        "舅",
+        "纠"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0002",
+      "expected": "就",
+      "pinyin": "jiu",
+      "reason": "linear",
+      "top10": [
+        "就",
+        "九",
+        "旧",
+        "久",
+        "救",
+        "酒",
+        "究",
+        "揪",
+        "舅",
+        "纠"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0003",
@@ -803,12 +834,63 @@
     },
     {
       "idx": "0057",
-      "expected": "忙碌着",
-      "pinyin": "mangluzhe",
+      "expected": "忙",
+      "pinyin": "mang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0057",
+      "expected": "碌",
+      "pinyin": "lu",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0057",
+      "expected": "着",
+      "pinyin": "zhe",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0058",
@@ -1860,12 +1942,83 @@
     },
     {
       "idx": "0133",
-      "expected": "培训市场",
-      "pinyin": "peixunshichang",
+      "expected": "培",
+      "pinyin": "pei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "场",
+        "尝",
+        "常",
+        "厂",
+        "唱",
+        "昌",
+        "畅",
+        "肠",
+        "偿",
+        "倡"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0133",
+      "expected": "训",
+      "pinyin": "xun",
+      "reason": "linear",
+      "top10": [
+        "场",
+        "尝",
+        "常",
+        "厂",
+        "唱",
+        "昌",
+        "畅",
+        "肠",
+        "偿",
+        "倡"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0133",
+      "expected": "市",
+      "pinyin": "shi",
+      "reason": "linear",
+      "top10": [
+        "场",
+        "尝",
+        "常",
+        "厂",
+        "唱",
+        "昌",
+        "畅",
+        "肠",
+        "偿",
+        "倡"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0133",
+      "expected": "场",
+      "pinyin": "chang",
+      "reason": "linear",
+      "top10": [
+        "场",
+        "尝",
+        "常",
+        "厂",
+        "唱",
+        "昌",
+        "畅",
+        "肠",
+        "偿",
+        "倡"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0134",
@@ -9653,10 +9806,10 @@
     }
   ],
   "stats": {
-    "total": 682,
-    "pass": 679,
+    "total": 688,
+    "pass": 688,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

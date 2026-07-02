@@ -2228,12 +2228,63 @@
     },
     {
       "idx": "0164",
-      "expected": "更容易",
-      "pinyin": "gengrongyi",
+      "expected": "更",
+      "pinyin": "geng",
       "reason": "linear",
-      "top10": [],
+      "top10": [
+        "一",
+        "以",
+        "亿",
+        "意",
+        "乙",
+        "翼",
+        "亦",
+        "艺",
+        "医",
+        "义"
+      ],
       "rank": 99,
-      "verdict": "AUDIT"
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0164",
+      "expected": "容",
+      "pinyin": "rong",
+      "reason": "linear",
+      "top10": [
+        "一",
+        "以",
+        "亿",
+        "意",
+        "乙",
+        "翼",
+        "亦",
+        "艺",
+        "医",
+        "义"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0164",
+      "expected": "易",
+      "pinyin": "yi",
+      "reason": "linear",
+      "top10": [
+        "一",
+        "以",
+        "亿",
+        "意",
+        "乙",
+        "翼",
+        "亦",
+        "艺",
+        "医",
+        "义"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
     },
     {
       "idx": "0165",
@@ -4478,8 +4529,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -5538,12 +5589,63 @@
     },
     {
       "idx": "0408",
-      "expected": "没吃过",
-      "pinyin": "meichiguo",
+      "expected": "没",
+      "pinyin": "mei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "过",
+        "国",
+        "锅",
+        "果",
+        "郭",
+        "裹",
+        "活",
+        "划",
+        "唬",
+        "椁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0408",
+      "expected": "吃",
+      "pinyin": "chi",
+      "reason": "linear",
+      "top10": [
+        "过",
+        "国",
+        "锅",
+        "果",
+        "郭",
+        "裹",
+        "活",
+        "划",
+        "唬",
+        "椁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0408",
+      "expected": "过",
+      "pinyin": "guo",
+      "reason": "linear",
+      "top10": [
+        "过",
+        "国",
+        "锅",
+        "果",
+        "郭",
+        "裹",
+        "活",
+        "划",
+        "唬",
+        "椁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0409",
@@ -8719,12 +8821,83 @@
     },
     {
       "idx": "0638",
-      "expected": "过度强调",
-      "pinyin": "guoduqiangdiao",
+      "expected": "过",
+      "pinyin": "guo",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "掉",
+        "钓",
+        "调",
+        "吊",
+        "叼",
+        "雕",
+        "刁",
+        "跳",
+        "鸟",
+        "挑"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0638",
+      "expected": "度",
+      "pinyin": "du",
+      "reason": "linear",
+      "top10": [
+        "掉",
+        "钓",
+        "调",
+        "吊",
+        "叼",
+        "雕",
+        "刁",
+        "跳",
+        "鸟",
+        "挑"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0638",
+      "expected": "强",
+      "pinyin": "qiang",
+      "reason": "linear",
+      "top10": [
+        "掉",
+        "钓",
+        "调",
+        "吊",
+        "叼",
+        "雕",
+        "刁",
+        "跳",
+        "鸟",
+        "挑"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0638",
+      "expected": "调",
+      "pinyin": "diao",
+      "reason": "linear",
+      "top10": [
+        "掉",
+        "钓",
+        "调",
+        "吊",
+        "叼",
+        "雕",
+        "刁",
+        "跳",
+        "鸟",
+        "挑"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0639",
@@ -9880,10 +10053,10 @@
     }
   ],
   "stats": {
-    "total": 725,
-    "pass": 722,
+    "total": 732,
+    "pass": 732,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

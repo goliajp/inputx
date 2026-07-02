@@ -3105,12 +3105,63 @@
     },
     {
       "idx": "0228",
-      "expected": "为他们",
-      "pinyin": "weitamen",
+      "expected": "为",
+      "pinyin": "wei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "们",
+        "门",
+        "闷",
+        "焖",
+        "扪",
+        "懑",
+        "汶",
+        "钔",
+        "亹",
+        "鞔"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0228",
+      "expected": "他",
+      "pinyin": "ta",
+      "reason": "linear",
+      "top10": [
+        "们",
+        "门",
+        "闷",
+        "焖",
+        "扪",
+        "懑",
+        "汶",
+        "钔",
+        "亹",
+        "鞔"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0228",
+      "expected": "们",
+      "pinyin": "men",
+      "reason": "linear",
+      "top10": [
+        "们",
+        "门",
+        "闷",
+        "焖",
+        "扪",
+        "懑",
+        "汶",
+        "钔",
+        "亹",
+        "鞔"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0229",
@@ -5965,12 +6016,63 @@
     },
     {
       "idx": "0438",
-      "expected": "更致密",
-      "pinyin": "gengzhimi",
+      "expected": "更",
+      "pinyin": "geng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "米",
+        "眯",
+        "密",
+        "迷",
+        "秘",
+        "弥",
+        "觅",
+        "谜",
+        "蜜",
+        "咪"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0438",
+      "expected": "致",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "米",
+        "眯",
+        "密",
+        "迷",
+        "秘",
+        "弥",
+        "觅",
+        "谜",
+        "蜜",
+        "咪"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0438",
+      "expected": "密",
+      "pinyin": "mi",
+      "reason": "linear",
+      "top10": [
+        "米",
+        "眯",
+        "密",
+        "迷",
+        "秘",
+        "弥",
+        "觅",
+        "谜",
+        "蜜",
+        "咪"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0439",
@@ -8864,10 +8966,10 @@
     }
   ],
   "stats": {
-    "total": 648,
-    "pass": 646,
+    "total": 652,
+    "pass": 652,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -1280,12 +1280,83 @@
     },
     {
       "idx": "0097",
-      "expected": "发展契机",
-      "pinyin": "fazhanqiji",
+      "expected": "发",
+      "pinyin": "fa",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "给",
+        "几",
+        "极",
+        "机",
+        "寄",
+        "级",
+        "技",
+        "集",
+        "记",
+        "及"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0097",
+      "expected": "展",
+      "pinyin": "zhan",
+      "reason": "linear",
+      "top10": [
+        "给",
+        "几",
+        "极",
+        "机",
+        "寄",
+        "级",
+        "技",
+        "集",
+        "记",
+        "及"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0097",
+      "expected": "契",
+      "pinyin": "qi",
+      "reason": "linear",
+      "top10": [
+        "给",
+        "几",
+        "极",
+        "机",
+        "寄",
+        "级",
+        "技",
+        "集",
+        "记",
+        "及"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0097",
+      "expected": "机",
+      "pinyin": "ji",
+      "reason": "linear",
+      "top10": [
+        "给",
+        "几",
+        "极",
+        "机",
+        "寄",
+        "级",
+        "技",
+        "集",
+        "记",
+        "及"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
     },
     {
       "idx": "0098",
@@ -1533,12 +1604,43 @@
     },
     {
       "idx": "0117",
-      "expected": "能在",
-      "pinyin": "nengzai",
+      "expected": "能",
+      "pinyin": "neng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "在",
+        "再",
+        "宰",
+        "载",
+        "仔",
+        "灾",
+        "栽",
+        "哉",
+        "才",
+        "崽"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0117",
+      "expected": "在",
+      "pinyin": "zai",
+      "reason": "linear",
+      "top10": [
+        "在",
+        "再",
+        "宰",
+        "载",
+        "仔",
+        "灾",
+        "栽",
+        "哉",
+        "才",
+        "崽"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0118",
@@ -2928,12 +3030,45 @@
     },
     {
       "idx": "0218",
-      "expected": "在国内",
-      "pinyin": "zaiguonei",
+      "expected": "在",
+      "pinyin": "zai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "内",
+        "馁",
+        "那",
+        "哪"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0218",
+      "expected": "国",
+      "pinyin": "guo",
+      "reason": "linear",
+      "top10": [
+        "内",
+        "馁",
+        "那",
+        "哪"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0218",
+      "expected": "内",
+      "pinyin": "nei",
+      "reason": "linear",
+      "top10": [
+        "内",
+        "馁",
+        "那",
+        "哪"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0219",
@@ -3031,12 +3166,63 @@
     },
     {
       "idx": "0226",
-      "expected": "为备战",
-      "pinyin": "weibeizhan",
+      "expected": "为",
+      "pinyin": "wei",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0226",
+      "expected": "备",
+      "pinyin": "bei",
+      "reason": "linear",
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0226",
+      "expected": "战",
+      "pinyin": "zhan",
+      "reason": "linear",
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0227",
@@ -5992,12 +6178,63 @@
     },
     {
       "idx": "0441",
-      "expected": "在平时",
-      "pinyin": "zaipingshi",
+      "expected": "在",
+      "pinyin": "zai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0441",
+      "expected": "平",
+      "pinyin": "ping",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0441",
+      "expected": "时",
+      "pinyin": "shi",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
     },
     {
       "idx": "0442",
@@ -7844,12 +8081,83 @@
     },
     {
       "idx": "0573",
-      "expected": "表现出色",
-      "pinyin": "biaoxianchuse",
+      "expected": "表",
+      "pinyin": "biao",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "色",
+        "瑟",
+        "涩",
+        "塞",
+        "寨",
+        "泣",
+        "穑",
+        "铯",
+        "啬",
+        "洓"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0573",
+      "expected": "现",
+      "pinyin": "xian",
+      "reason": "linear",
+      "top10": [
+        "色",
+        "瑟",
+        "涩",
+        "塞",
+        "寨",
+        "泣",
+        "穑",
+        "铯",
+        "啬",
+        "洓"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0573",
+      "expected": "出",
+      "pinyin": "chu",
+      "reason": "linear",
+      "top10": [
+        "色",
+        "瑟",
+        "涩",
+        "塞",
+        "寨",
+        "泣",
+        "穑",
+        "铯",
+        "啬",
+        "洓"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0573",
+      "expected": "色",
+      "pinyin": "se",
+      "reason": "linear",
+      "top10": [
+        "色",
+        "瑟",
+        "涩",
+        "塞",
+        "寨",
+        "泣",
+        "穑",
+        "铯",
+        "啬",
+        "洓"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0574",
@@ -8795,10 +9103,10 @@
     }
   ],
   "stats": {
-    "total": 641,
-    "pass": 635,
+    "total": 654,
+    "pass": 654,
     "soft": 0,
-    "audit": 6,
+    "audit": 0,
     "hard": 0
   }
 }

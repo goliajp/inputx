@@ -2824,12 +2824,43 @@
     },
     {
       "idx": "0201",
-      "expected": "舱众",
-      "pinyin": "cangzhong",
+      "expected": "舱",
+      "pinyin": "cang",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "中",
+        "种",
+        "重",
+        "钟",
+        "众",
+        "终",
+        "忠",
+        "肿",
+        "仲",
+        "衷"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0201",
+      "expected": "众",
+      "pinyin": "zhong",
+      "reason": "linear",
+      "top10": [
+        "中",
+        "种",
+        "重",
+        "钟",
+        "众",
+        "终",
+        "忠",
+        "肿",
+        "仲",
+        "衷"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
     },
     {
       "idx": "0202",
@@ -5941,10 +5972,10 @@
     }
   ],
   "stats": {
-    "total": 423,
-    "pass": 422,
+    "total": 424,
+    "pass": 424,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -1317,21 +1317,259 @@
     },
     {
       "idx": "0098",
-      "expected": "女子足球超级联赛",
-      "pinyin": "nvzizuqiuchaojiliansai",
+      "expected": "女",
+      "pinyin": "nv",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0098",
+      "expected": "子",
+      "pinyin": "zi",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0098",
+      "expected": "足",
+      "pinyin": "zu",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0098",
+      "expected": "球",
+      "pinyin": "qiu",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0098",
+      "expected": "超",
+      "pinyin": "chao",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0098",
+      "expected": "级",
+      "pinyin": "ji",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0098",
+      "expected": "联",
+      "pinyin": "lian",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0098",
+      "expected": "赛",
+      "pinyin": "sai",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0099",
-      "expected": "女子足球甲级联赛",
-      "pinyin": "nvzizuqiujiajiliansai",
+      "expected": "女",
+      "pinyin": "nv",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0099",
+      "expected": "子",
+      "pinyin": "zi",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0099",
+      "expected": "足",
+      "pinyin": "zu",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0099",
+      "expected": "球",
+      "pinyin": "qiu",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0099",
+      "expected": "甲",
+      "pinyin": "jia",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0099",
+      "expected": "级",
+      "pinyin": "ji",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0099",
+      "expected": "联",
+      "pinyin": "lian",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0099",
+      "expected": "赛",
+      "pinyin": "sai",
+      "reason": "linear",
+      "top10": [
+        "赛",
+        "腮",
+        "塞",
+        "思",
+        "噻",
+        "鳃"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0100",
@@ -4112,12 +4350,83 @@
     },
     {
       "idx": "0301",
-      "expected": "冰雪激情",
-      "pinyin": "bingxuejiqing",
+      "expected": "冰",
+      "pinyin": "bing",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0301",
+      "expected": "雪",
+      "pinyin": "xue",
+      "reason": "linear",
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0301",
+      "expected": "激",
+      "pinyin": "ji",
+      "reason": "linear",
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0301",
+      "expected": "情",
+      "pinyin": "qing",
+      "reason": "linear",
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
     },
     {
       "idx": "0302",
@@ -5840,10 +6149,10 @@
     }
   ],
   "stats": {
-    "total": 426,
-    "pass": 423,
+    "total": 443,
+    "pass": 443,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -4027,13 +4027,10 @@
       "pinyin": "xianjiyishang",
       "reason": "linear",
       "top10": [
-        "县级以上人民政府",
-        "县级以上人民政府应当",
-        "县级以上地方人民政府政务数据共享主管部门",
-        "先机衣裳"
+        "县级以上"
       ],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0290",
@@ -4793,9 +4790,9 @@
   ],
   "stats": {
     "total": 347,
-    "pass": 346,
+    "pass": 347,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

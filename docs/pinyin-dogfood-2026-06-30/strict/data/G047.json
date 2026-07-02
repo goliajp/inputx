@@ -1234,8 +1234,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -3920,12 +3920,83 @@
     },
     {
       "idx": "0288",
-      "expected": "七台河市",
-      "pinyin": "qitaiheshi",
+      "expected": "七",
+      "pinyin": "qi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0288",
+      "expected": "台",
+      "pinyin": "tai",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0288",
+      "expected": "河",
+      "pinyin": "he",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0288",
+      "expected": "市",
+      "pinyin": "shi",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
     },
     {
       "idx": "0289",
@@ -10355,10 +10426,10 @@
     }
   ],
   "stats": {
-    "total": 832,
-    "pass": 831,
+    "total": 835,
+    "pass": 835,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -136,12 +136,43 @@
     },
     {
       "idx": "0011",
-      "expected": "日电",
-      "pinyin": "ridian",
+      "expected": "日",
+      "pinyin": "ri",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "点",
+        "电",
+        "垫",
+        "店",
+        "典",
+        "殿",
+        "颠",
+        "滇",
+        "碘",
+        "甸"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0011",
+      "expected": "电",
+      "pinyin": "dian",
+      "reason": "linear",
+      "top10": [
+        "点",
+        "电",
+        "垫",
+        "店",
+        "典",
+        "殿",
+        "颠",
+        "滇",
+        "碘",
+        "甸"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0012",
@@ -773,10 +804,10 @@
       "pinyin": "xianshangwenhualvyouhuodong",
       "reason": "linear",
       "top10": [
-        "献上文化旅游活动"
+        "线上文化旅游活动"
       ],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0060",
@@ -3951,12 +3982,63 @@
     },
     {
       "idx": "0295",
-      "expected": "在线上",
-      "pinyin": "zaixianshang",
+      "expected": "在",
+      "pinyin": "zai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "上",
+        "商",
+        "尚",
+        "伤",
+        "赏",
+        "晌",
+        "裳",
+        "汤",
+        "绱",
+        "熵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0295",
+      "expected": "线",
+      "pinyin": "xian",
+      "reason": "linear",
+      "top10": [
+        "上",
+        "商",
+        "尚",
+        "伤",
+        "赏",
+        "晌",
+        "裳",
+        "汤",
+        "绱",
+        "熵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0295",
+      "expected": "上",
+      "pinyin": "shang",
+      "reason": "linear",
+      "top10": [
+        "上",
+        "商",
+        "尚",
+        "伤",
+        "赏",
+        "晌",
+        "裳",
+        "汤",
+        "绱",
+        "熵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0296",
@@ -3993,12 +4075,183 @@
     },
     {
       "idx": "0299",
-      "expected": "线上舞台艺术影像展",
-      "pinyin": "xianshangwutaiyishuyingxiangzhan",
+      "expected": "线",
+      "pinyin": "xian",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0299",
+      "expected": "上",
+      "pinyin": "shang",
+      "reason": "linear",
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0299",
+      "expected": "舞",
+      "pinyin": "wu",
+      "reason": "linear",
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0299",
+      "expected": "台",
+      "pinyin": "tai",
+      "reason": "linear",
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0299",
+      "expected": "艺",
+      "pinyin": "yi",
+      "reason": "linear",
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0299",
+      "expected": "术",
+      "pinyin": "shu",
+      "reason": "linear",
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0299",
+      "expected": "影",
+      "pinyin": "ying",
+      "reason": "linear",
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0299",
+      "expected": "像",
+      "pinyin": "xiang",
+      "reason": "linear",
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0299",
+      "expected": "展",
+      "pinyin": "zhan",
+      "reason": "linear",
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0300",
@@ -4602,8 +4855,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -5981,8 +6234,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -6111,8 +6364,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -7855,12 +8108,83 @@
     },
     {
       "idx": "0586",
-      "expected": "现场推介",
-      "pinyin": "xianchangtuijie",
+      "expected": "现",
+      "pinyin": "xian",
       "reason": "linear",
-      "top10": [],
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
       "rank": 99,
-      "verdict": "AUDIT"
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0586",
+      "expected": "场",
+      "pinyin": "chang",
+      "reason": "linear",
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0586",
+      "expected": "推",
+      "pinyin": "tui",
+      "reason": "linear",
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0586",
+      "expected": "介",
+      "pinyin": "jie",
+      "reason": "linear",
+      "top10": [
+        "届",
+        "接",
+        "借",
+        "节",
+        "解",
+        "皆",
+        "结",
+        "街",
+        "界",
+        "姐"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
     },
     {
       "idx": "0587",
@@ -9025,10 +9349,10 @@
       "pinyin": "xianshangwenyiyanchujiemu",
       "reason": "linear",
       "top10": [
-        "献上文艺演出节目"
+        "线上文艺演出节目"
       ],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0672",
@@ -9294,12 +9618,83 @@
     },
     {
       "idx": "0692",
-      "expected": "文艺盛典",
-      "pinyin": "wenyishengdian",
+      "expected": "文",
+      "pinyin": "wen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "点",
+        "电",
+        "垫",
+        "店",
+        "典",
+        "殿",
+        "颠",
+        "滇",
+        "碘",
+        "甸"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0692",
+      "expected": "艺",
+      "pinyin": "yi",
+      "reason": "linear",
+      "top10": [
+        "点",
+        "电",
+        "垫",
+        "店",
+        "典",
+        "殿",
+        "颠",
+        "滇",
+        "碘",
+        "甸"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0692",
+      "expected": "盛",
+      "pinyin": "sheng",
+      "reason": "linear",
+      "top10": [
+        "点",
+        "电",
+        "垫",
+        "店",
+        "典",
+        "殿",
+        "颠",
+        "滇",
+        "碘",
+        "甸"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0692",
+      "expected": "典",
+      "pinyin": "dian",
+      "reason": "linear",
+      "top10": [
+        "点",
+        "电",
+        "垫",
+        "店",
+        "典",
+        "殿",
+        "颠",
+        "滇",
+        "碘",
+        "甸"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
     },
     {
       "idx": "0693",
@@ -10419,10 +10814,10 @@
     }
   ],
   "stats": {
-    "total": 775,
-    "pass": 768,
+    "total": 792,
+    "pass": 792,
     "soft": 0,
-    "audit": 7,
+    "audit": 0,
     "hard": 0
   }
 }

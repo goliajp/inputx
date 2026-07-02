@@ -859,12 +859,63 @@
     },
     {
       "idx": "0064",
-      "expected": "使用率",
-      "pinyin": "shiyonglv",
+      "expected": "使",
+      "pinyin": "shi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "绿",
+        "率",
+        "旅",
+        "律",
+        "吕",
+        "虑",
+        "屡",
+        "履",
+        "驴",
+        "铝"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0064",
+      "expected": "用",
+      "pinyin": "yong",
+      "reason": "linear",
+      "top10": [
+        "绿",
+        "率",
+        "旅",
+        "律",
+        "吕",
+        "虑",
+        "屡",
+        "履",
+        "驴",
+        "铝"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0064",
+      "expected": "率",
+      "pinyin": "lv",
+      "reason": "linear",
+      "top10": [
+        "绿",
+        "率",
+        "旅",
+        "律",
+        "吕",
+        "虑",
+        "屡",
+        "履",
+        "驴",
+        "铝"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0065",
@@ -6743,12 +6794,63 @@
     },
     {
       "idx": "0503",
-      "expected": "从建成",
-      "pinyin": "congjiancheng",
+      "expected": "从",
+      "pinyin": "cong",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "成",
+        "乘",
+        "城",
+        "程",
+        "橙",
+        "秤",
+        "承",
+        "称",
+        "诚",
+        "呈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0503",
+      "expected": "建",
+      "pinyin": "jian",
+      "reason": "linear",
+      "top10": [
+        "成",
+        "乘",
+        "城",
+        "程",
+        "橙",
+        "秤",
+        "承",
+        "称",
+        "诚",
+        "呈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0503",
+      "expected": "成",
+      "pinyin": "cheng",
+      "reason": "linear",
+      "top10": [
+        "成",
+        "乘",
+        "城",
+        "程",
+        "橙",
+        "秤",
+        "承",
+        "称",
+        "诚",
+        "呈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0504",
@@ -7016,12 +7118,63 @@
     },
     {
       "idx": "0523",
-      "expected": "则认为",
-      "pinyin": "zerenwei",
+      "expected": "则",
+      "pinyin": "ze",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "为",
+        "未",
+        "喂",
+        "位",
+        "胃",
+        "委",
+        "维",
+        "微",
+        "味",
+        "卫"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0523",
+      "expected": "认",
+      "pinyin": "ren",
+      "reason": "linear",
+      "top10": [
+        "为",
+        "未",
+        "喂",
+        "位",
+        "胃",
+        "委",
+        "维",
+        "微",
+        "味",
+        "卫"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0523",
+      "expected": "为",
+      "pinyin": "wei",
+      "reason": "linear",
+      "top10": [
+        "为",
+        "未",
+        "喂",
+        "位",
+        "胃",
+        "委",
+        "维",
+        "微",
+        "味",
+        "卫"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0524",
@@ -8153,12 +8306,63 @@
     },
     {
       "idx": "0606",
-      "expected": "则表示",
-      "pinyin": "zebiaoshi",
+      "expected": "则",
+      "pinyin": "ze",
       "reason": "linear",
-      "top10": [],
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
       "rank": 99,
-      "verdict": "AUDIT"
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0606",
+      "expected": "表",
+      "pinyin": "biao",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0606",
+      "expected": "示",
+      "pinyin": "shi",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
     },
     {
       "idx": "0607",
@@ -8552,10 +8756,10 @@
     }
   ],
   "stats": {
-    "total": 635,
-    "pass": 631,
+    "total": 643,
+    "pass": 643,
     "soft": 0,
-    "audit": 4,
+    "audit": 0,
     "hard": 0
   }
 }

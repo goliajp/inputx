@@ -1161,12 +1161,63 @@
     },
     {
       "idx": "0089",
-      "expected": "在船上",
-      "pinyin": "zaichuanshang",
+      "expected": "在",
+      "pinyin": "zai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "上",
+        "商",
+        "尚",
+        "伤",
+        "赏",
+        "晌",
+        "裳",
+        "汤",
+        "绱",
+        "熵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0089",
+      "expected": "船",
+      "pinyin": "chuan",
+      "reason": "linear",
+      "top10": [
+        "上",
+        "商",
+        "尚",
+        "伤",
+        "赏",
+        "晌",
+        "裳",
+        "汤",
+        "绱",
+        "熵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0089",
+      "expected": "上",
+      "pinyin": "shang",
+      "reason": "linear",
+      "top10": [
+        "上",
+        "商",
+        "尚",
+        "伤",
+        "赏",
+        "晌",
+        "裳",
+        "汤",
+        "绱",
+        "熵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0090",
@@ -2043,12 +2094,63 @@
     },
     {
       "idx": "0147",
-      "expected": "存放着",
-      "pinyin": "cunfangzhe",
+      "expected": "存",
+      "pinyin": "cun",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0147",
+      "expected": "放",
+      "pinyin": "fang",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0147",
+      "expected": "着",
+      "pinyin": "zhe",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0148",
@@ -2372,12 +2474,63 @@
     },
     {
       "idx": "0170",
-      "expected": "从岸上",
-      "pinyin": "conganshang",
+      "expected": "从",
+      "pinyin": "cong",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "上",
+        "商",
+        "尚",
+        "伤",
+        "赏",
+        "晌",
+        "裳",
+        "汤",
+        "绱",
+        "熵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0170",
+      "expected": "岸",
+      "pinyin": "an",
+      "reason": "linear",
+      "top10": [
+        "上",
+        "商",
+        "尚",
+        "伤",
+        "赏",
+        "晌",
+        "裳",
+        "汤",
+        "绱",
+        "熵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0170",
+      "expected": "上",
+      "pinyin": "shang",
+      "reason": "linear",
+      "top10": [
+        "上",
+        "商",
+        "尚",
+        "伤",
+        "赏",
+        "晌",
+        "裳",
+        "汤",
+        "绱",
+        "熵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0171",
@@ -4045,12 +4198,63 @@
     },
     {
       "idx": "0284",
-      "expected": "对现实",
-      "pinyin": "duixianshi",
+      "expected": "对",
+      "pinyin": "dui",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 9,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0284",
+      "expected": "现",
+      "pinyin": "xian",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 9,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0284",
+      "expected": "实",
+      "pinyin": "shi",
+      "reason": "linear",
+      "top10": [
+        "十",
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实"
+      ],
+      "rank": 9,
+      "verdict": "PASS"
     },
     {
       "idx": "0285",
@@ -4798,12 +5002,63 @@
     },
     {
       "idx": "0335",
-      "expected": "寄托着",
-      "pinyin": "jituozhe",
+      "expected": "寄",
+      "pinyin": "ji",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0335",
+      "expected": "托",
+      "pinyin": "tuo",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0335",
+      "expected": "着",
+      "pinyin": "zhe",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0336",
@@ -5927,8 +6182,8 @@
         "画",
         "化",
         "华",
-        "划",
         "滑",
+        "划",
         "哗",
         "桦",
         "猾"
@@ -7852,12 +8107,83 @@
     },
     {
       "idx": "0548",
-      "expected": "这一意象",
-      "pinyin": "zheyiyixiang",
+      "expected": "这",
+      "pinyin": "zhe",
       "reason": "linear",
-      "top10": [],
+      "top10": [
+        "想",
+        "向",
+        "像",
+        "香",
+        "响",
+        "项",
+        "相",
+        "享",
+        "巷",
+        "乡"
+      ],
       "rank": 99,
-      "verdict": "AUDIT"
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0548",
+      "expected": "一",
+      "pinyin": "yi",
+      "reason": "linear",
+      "top10": [
+        "想",
+        "向",
+        "像",
+        "香",
+        "响",
+        "项",
+        "相",
+        "享",
+        "巷",
+        "乡"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0548",
+      "expected": "意",
+      "pinyin": "yi",
+      "reason": "linear",
+      "top10": [
+        "想",
+        "向",
+        "像",
+        "香",
+        "响",
+        "项",
+        "相",
+        "享",
+        "巷",
+        "乡"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0548",
+      "expected": "象",
+      "pinyin": "xiang",
+      "reason": "linear",
+      "top10": [
+        "想",
+        "向",
+        "像",
+        "香",
+        "响",
+        "项",
+        "相",
+        "享",
+        "巷",
+        "乡"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
     },
     {
       "idx": "0549",
@@ -8073,8 +8399,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -8597,12 +8923,63 @@
     },
     {
       "idx": "0601",
-      "expected": "在内心",
-      "pinyin": "zaineixin",
+      "expected": "在",
+      "pinyin": "zai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "心",
+        "新",
+        "信",
+        "辛",
+        "欣",
+        "芯",
+        "薪",
+        "锌",
+        "衅",
+        "馨"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0601",
+      "expected": "内",
+      "pinyin": "nei",
+      "reason": "linear",
+      "top10": [
+        "心",
+        "新",
+        "信",
+        "辛",
+        "欣",
+        "芯",
+        "薪",
+        "锌",
+        "衅",
+        "馨"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0601",
+      "expected": "心",
+      "pinyin": "xin",
+      "reason": "linear",
+      "top10": [
+        "心",
+        "新",
+        "信",
+        "辛",
+        "欣",
+        "芯",
+        "薪",
+        "锌",
+        "衅",
+        "馨"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0602",
@@ -9791,12 +10168,83 @@
     },
     {
       "idx": "0687",
-      "expected": "无需再说",
-      "pinyin": "wuxuzaishuo",
+      "expected": "无",
+      "pinyin": "wu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "说",
+        "硕",
+        "烁",
+        "数",
+        "朔",
+        "溯",
+        "勺",
+        "嗽",
+        "搠",
+        "槊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0687",
+      "expected": "需",
+      "pinyin": "xu",
+      "reason": "linear",
+      "top10": [
+        "说",
+        "硕",
+        "烁",
+        "数",
+        "朔",
+        "溯",
+        "勺",
+        "嗽",
+        "搠",
+        "槊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0687",
+      "expected": "再",
+      "pinyin": "zai",
+      "reason": "linear",
+      "top10": [
+        "说",
+        "硕",
+        "烁",
+        "数",
+        "朔",
+        "溯",
+        "勺",
+        "嗽",
+        "搠",
+        "槊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0687",
+      "expected": "说",
+      "pinyin": "shuo",
+      "reason": "linear",
+      "top10": [
+        "说",
+        "硕",
+        "烁",
+        "数",
+        "朔",
+        "溯",
+        "勺",
+        "嗽",
+        "搠",
+        "槊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0688",
@@ -10985,10 +11433,10 @@
     }
   ],
   "stats": {
-    "total": 776,
-    "pass": 768,
+    "total": 794,
+    "pass": 794,
     "soft": 0,
-    "audit": 8,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -372,12 +372,63 @@
     },
     {
       "idx": "0030",
-      "expected": "更适合",
-      "pinyin": "gengshihe",
+      "expected": "更",
+      "pinyin": "geng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "和",
+        "喝",
+        "河",
+        "合",
+        "呵",
+        "何",
+        "核",
+        "贺",
+        "荷",
+        "盒"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0030",
+      "expected": "适",
+      "pinyin": "shi",
+      "reason": "linear",
+      "top10": [
+        "和",
+        "喝",
+        "河",
+        "合",
+        "呵",
+        "何",
+        "核",
+        "贺",
+        "荷",
+        "盒"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0030",
+      "expected": "合",
+      "pinyin": "he",
+      "reason": "linear",
+      "top10": [
+        "和",
+        "喝",
+        "河",
+        "合",
+        "呵",
+        "何",
+        "核",
+        "贺",
+        "荷",
+        "盒"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
     },
     {
       "idx": "0031",
@@ -6812,10 +6863,10 @@
     }
   ],
   "stats": {
-    "total": 501,
-    "pass": 500,
+    "total": 503,
+    "pass": 503,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

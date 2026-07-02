@@ -3352,10 +3352,10 @@
       "pinyin": "kaimushizhuhuojushouzhiyi",
       "reason": "linear",
       "top10": [
-        "开幕式烛火举手之意"
+        "开幕式主火炬手之一"
       ],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0243",
@@ -4059,12 +4059,43 @@
     },
     {
       "idx": "0287",
-      "expected": "排在",
-      "pinyin": "paizai",
+      "expected": "排",
+      "pinyin": "pai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "在",
+        "再",
+        "宰",
+        "载",
+        "仔",
+        "灾",
+        "栽",
+        "哉",
+        "才",
+        "崽"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0287",
+      "expected": "在",
+      "pinyin": "zai",
+      "reason": "linear",
+      "top10": [
+        "在",
+        "再",
+        "宰",
+        "载",
+        "仔",
+        "灾",
+        "栽",
+        "哉",
+        "才",
+        "崽"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0288",
@@ -7294,10 +7325,10 @@
     }
   ],
   "stats": {
-    "total": 500,
-    "pass": 498,
+    "total": 501,
+    "pass": 501,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

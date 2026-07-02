@@ -2901,12 +2901,63 @@
     },
     {
       "idx": "0214",
-      "expected": "拓展着",
-      "pinyin": "tuozhanzhe",
+      "expected": "拓",
+      "pinyin": "tuo",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0214",
+      "expected": "展",
+      "pinyin": "zhan",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0214",
+      "expected": "着",
+      "pinyin": "zhe",
+      "reason": "linear",
+      "top10": [
+        "这",
+        "着",
+        "者",
+        "折",
+        "哲",
+        "浙",
+        "遮",
+        "蔗",
+        "辙",
+        "著"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0215",
@@ -8709,10 +8760,10 @@
     }
   ],
   "stats": {
-    "total": 635,
-    "pass": 634,
+    "total": 637,
+    "pass": 637,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -345,12 +345,123 @@
     },
     {
       "idx": "0027",
-      "expected": "同期利率水平",
-      "pinyin": "tongqililvshuiping",
+      "expected": "同",
+      "pinyin": "tong",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "平",
+        "凭",
+        "评",
+        "屏",
+        "瓶",
+        "坪",
+        "苹",
+        "萍",
+        "乒",
+        "聘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0027",
+      "expected": "期",
+      "pinyin": "qi",
+      "reason": "linear",
+      "top10": [
+        "平",
+        "凭",
+        "评",
+        "屏",
+        "瓶",
+        "坪",
+        "苹",
+        "萍",
+        "乒",
+        "聘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0027",
+      "expected": "利",
+      "pinyin": "li",
+      "reason": "linear",
+      "top10": [
+        "平",
+        "凭",
+        "评",
+        "屏",
+        "瓶",
+        "坪",
+        "苹",
+        "萍",
+        "乒",
+        "聘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0027",
+      "expected": "率",
+      "pinyin": "lv",
+      "reason": "linear",
+      "top10": [
+        "平",
+        "凭",
+        "评",
+        "屏",
+        "瓶",
+        "坪",
+        "苹",
+        "萍",
+        "乒",
+        "聘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0027",
+      "expected": "水",
+      "pinyin": "shui",
+      "reason": "linear",
+      "top10": [
+        "平",
+        "凭",
+        "评",
+        "屏",
+        "瓶",
+        "坪",
+        "苹",
+        "萍",
+        "乒",
+        "聘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0027",
+      "expected": "平",
+      "pinyin": "ping",
+      "reason": "linear",
+      "top10": [
+        "平",
+        "凭",
+        "评",
+        "屏",
+        "瓶",
+        "坪",
+        "苹",
+        "萍",
+        "乒",
+        "聘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0028",
@@ -1241,8 +1352,8 @@
       "top10": [
         "字",
         "子",
-        "紫",
         "自",
+        "紫",
         "资",
         "兹",
         "姊",
@@ -1250,7 +1361,7 @@
         "姿",
         "咨"
       ],
-      "rank": 3,
+      "rank": 2,
       "verdict": "PASS"
     },
     {
@@ -1734,12 +1845,39 @@
     },
     {
       "idx": "0127",
-      "expected": "这轮",
-      "pinyin": "zhelun",
+      "expected": "这",
+      "pinyin": "zhe",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "论",
+        "轮",
+        "伦",
+        "抡",
+        "沦",
+        "仑",
+        "纶",
+        "囵"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0127",
+      "expected": "轮",
+      "pinyin": "lun",
+      "reason": "linear",
+      "top10": [
+        "论",
+        "轮",
+        "伦",
+        "抡",
+        "沦",
+        "仑",
+        "纶",
+        "囵"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0128",
@@ -1956,8 +2094,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -1998,8 +2136,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -6103,10 +6241,10 @@
     }
   ],
   "stats": {
-    "total": 461,
-    "pass": 459,
+    "total": 467,
+    "pass": 467,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

@@ -159,12 +159,55 @@
     },
     {
       "idx": "0013",
-      "expected": "与之俱黑",
-      "pinyin": "yuzhijuhei",
+      "expected": "与",
+      "pinyin": "yu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "黑",
+        "嘿",
+        "嗨"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0013",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "黑",
+        "嘿",
+        "嗨"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0013",
+      "expected": "俱",
+      "pinyin": "ju",
+      "reason": "linear",
+      "top10": [
+        "黑",
+        "嘿",
+        "嗨"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0013",
+      "expected": "黑",
+      "pinyin": "hei",
+      "reason": "linear",
+      "top10": [
+        "黑",
+        "嘿",
+        "嗨"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0014",
@@ -1799,12 +1842,83 @@
     },
     {
       "idx": "0133",
-      "expected": "动之以情",
-      "pinyin": "dongzhiyiqing",
+      "expected": "动",
+      "pinyin": "dong",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0133",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0133",
+      "expected": "以",
+      "pinyin": "yi",
+      "reason": "linear",
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0133",
+      "expected": "情",
+      "pinyin": "qing",
+      "reason": "linear",
+      "top10": [
+        "请",
+        "晴",
+        "轻",
+        "青",
+        "情",
+        "清",
+        "氢",
+        "庆",
+        "倾",
+        "卿"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
     },
     {
       "idx": "0134",
@@ -4978,10 +5092,10 @@
     }
   ],
   "stats": {
-    "total": 365,
-    "pass": 363,
+    "total": 371,
+    "pass": 371,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

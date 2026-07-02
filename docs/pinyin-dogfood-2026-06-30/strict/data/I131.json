@@ -504,12 +504,83 @@
     },
     {
       "idx": "0041",
-      "expected": "交通部门",
-      "pinyin": "jiaotongbumen",
+      "expected": "交",
+      "pinyin": "jiao",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "们",
+        "门",
+        "闷",
+        "焖",
+        "扪",
+        "懑",
+        "汶",
+        "钔",
+        "亹",
+        "鞔"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0041",
+      "expected": "通",
+      "pinyin": "tong",
+      "reason": "linear",
+      "top10": [
+        "们",
+        "门",
+        "闷",
+        "焖",
+        "扪",
+        "懑",
+        "汶",
+        "钔",
+        "亹",
+        "鞔"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0041",
+      "expected": "部",
+      "pinyin": "bu",
+      "reason": "linear",
+      "top10": [
+        "们",
+        "门",
+        "闷",
+        "焖",
+        "扪",
+        "懑",
+        "汶",
+        "钔",
+        "亹",
+        "鞔"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0041",
+      "expected": "门",
+      "pinyin": "men",
+      "reason": "linear",
+      "top10": [
+        "们",
+        "门",
+        "闷",
+        "焖",
+        "扪",
+        "懑",
+        "汶",
+        "钔",
+        "亹",
+        "鞔"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0042",
@@ -551,12 +622,63 @@
     },
     {
       "idx": "0045",
-      "expected": "但仍有",
-      "pinyin": "danrengyou",
+      "expected": "但",
+      "pinyin": "dan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "有",
+        "又",
+        "由",
+        "游",
+        "优",
+        "油",
+        "友",
+        "右",
+        "尤",
+        "忧"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0045",
+      "expected": "仍",
+      "pinyin": "reng",
+      "reason": "linear",
+      "top10": [
+        "有",
+        "又",
+        "由",
+        "游",
+        "优",
+        "油",
+        "友",
+        "右",
+        "尤",
+        "忧"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0045",
+      "expected": "有",
+      "pinyin": "you",
+      "reason": "linear",
+      "top10": [
+        "有",
+        "又",
+        "由",
+        "游",
+        "优",
+        "油",
+        "友",
+        "右",
+        "尤",
+        "忧"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0046",
@@ -2194,12 +2316,45 @@
     },
     {
       "idx": "0168",
-      "expected": "从国外",
-      "pinyin": "congguowai",
+      "expected": "从",
+      "pinyin": "cong",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "外",
+        "歪",
+        "夭",
+        "崴"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0168",
+      "expected": "国",
+      "pinyin": "guo",
+      "reason": "linear",
+      "top10": [
+        "外",
+        "歪",
+        "夭",
+        "崴"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0168",
+      "expected": "外",
+      "pinyin": "wai",
+      "reason": "linear",
+      "top10": [
+        "外",
+        "歪",
+        "夭",
+        "崴"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0169",
@@ -8734,10 +8889,10 @@
     }
   ],
   "stats": {
-    "total": 666,
-    "pass": 663,
+    "total": 673,
+    "pass": 673,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }

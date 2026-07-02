@@ -2129,8 +2129,8 @@
         "支",
         "直",
         "制",
-        "枝",
         "治",
+        "枝",
         "知",
         "智"
       ],
@@ -3676,12 +3676,83 @@
     },
     {
       "idx": "0266",
-      "expected": "这一方法",
-      "pinyin": "zheyifangfa",
+      "expected": "这",
+      "pinyin": "zhe",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "发",
+        "法",
+        "罚",
+        "伐",
+        "乏",
+        "阀",
+        "筏",
+        "拔",
+        "泛",
+        "珐"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0266",
+      "expected": "一",
+      "pinyin": "yi",
+      "reason": "linear",
+      "top10": [
+        "发",
+        "法",
+        "罚",
+        "伐",
+        "乏",
+        "阀",
+        "筏",
+        "拔",
+        "泛",
+        "珐"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0266",
+      "expected": "方",
+      "pinyin": "fang",
+      "reason": "linear",
+      "top10": [
+        "发",
+        "法",
+        "罚",
+        "伐",
+        "乏",
+        "阀",
+        "筏",
+        "拔",
+        "泛",
+        "珐"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0266",
+      "expected": "法",
+      "pinyin": "fa",
+      "reason": "linear",
+      "top10": [
+        "发",
+        "法",
+        "罚",
+        "伐",
+        "乏",
+        "阀",
+        "筏",
+        "拔",
+        "泛",
+        "珐"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0267",
@@ -5778,12 +5849,42 @@
     },
     {
       "idx": "0416",
-      "expected": "则可能",
-      "pinyin": "zekeneng",
+      "expected": "则",
+      "pinyin": "ze",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "能",
+        "而",
+        "耐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0416",
+      "expected": "可",
+      "pinyin": "ke",
+      "reason": "linear",
+      "top10": [
+        "能",
+        "而",
+        "耐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0416",
+      "expected": "能",
+      "pinyin": "neng",
+      "reason": "linear",
+      "top10": [
+        "能",
+        "而",
+        "耐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0417",
@@ -10273,10 +10374,10 @@
     }
   ],
   "stats": {
-    "total": 751,
-    "pass": 749,
+    "total": 756,
+    "pass": 756,
     "soft": 0,
-    "audit": 2,
+    "audit": 0,
     "hard": 0
   }
 }

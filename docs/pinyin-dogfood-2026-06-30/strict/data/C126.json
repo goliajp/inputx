@@ -469,12 +469,63 @@
     },
     {
       "idx": "0038",
-      "expected": "更准确",
-      "pinyin": "gengzhunque",
+      "expected": "更",
+      "pinyin": "geng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "却",
+        "确",
+        "瘸",
+        "缺",
+        "雀",
+        "鹊",
+        "猎",
+        "屈",
+        "阙",
+        "榷"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0038",
+      "expected": "准",
+      "pinyin": "zhun",
+      "reason": "linear",
+      "top10": [
+        "却",
+        "确",
+        "瘸",
+        "缺",
+        "雀",
+        "鹊",
+        "猎",
+        "屈",
+        "阙",
+        "榷"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0038",
+      "expected": "确",
+      "pinyin": "que",
+      "reason": "linear",
+      "top10": [
+        "却",
+        "确",
+        "瘸",
+        "缺",
+        "雀",
+        "鹊",
+        "猎",
+        "屈",
+        "阙",
+        "榷"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0039",
@@ -1942,12 +1993,31 @@
     },
     {
       "idx": "0146",
-      "expected": "秒内",
-      "pinyin": "miaonei",
+      "expected": "秒",
+      "pinyin": "miao",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "内",
+        "馁",
+        "那",
+        "哪"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0146",
+      "expected": "内",
+      "pinyin": "nei",
+      "reason": "linear",
+      "top10": [
+        "内",
+        "馁",
+        "那",
+        "哪"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0147",
@@ -3083,12 +3153,63 @@
     },
     {
       "idx": "0228",
-      "expected": "更高效",
-      "pinyin": "genggaoxiao",
+      "expected": "更",
+      "pinyin": "geng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "小",
+        "笑",
+        "校",
+        "消",
+        "效",
+        "销",
+        "孝",
+        "晓",
+        "萧",
+        "肖"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0228",
+      "expected": "高",
+      "pinyin": "gao",
+      "reason": "linear",
+      "top10": [
+        "小",
+        "笑",
+        "校",
+        "消",
+        "效",
+        "销",
+        "孝",
+        "晓",
+        "萧",
+        "肖"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0228",
+      "expected": "效",
+      "pinyin": "xiao",
+      "reason": "linear",
+      "top10": [
+        "小",
+        "笑",
+        "校",
+        "消",
+        "效",
+        "销",
+        "孝",
+        "晓",
+        "萧",
+        "肖"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
     },
     {
       "idx": "0229",
@@ -3887,8 +4008,8 @@
         "画",
         "化",
         "华",
-        "划",
         "滑",
+        "划",
         "哗",
         "桦",
         "猾"
@@ -5897,12 +6018,63 @@
     },
     {
       "idx": "0434",
-      "expected": "更开放",
-      "pinyin": "gengkaifang",
+      "expected": "更",
+      "pinyin": "geng",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "放",
+        "方",
+        "房",
+        "防",
+        "访",
+        "坊",
+        "仿",
+        "芳",
+        "纺",
+        "肪"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0434",
+      "expected": "开",
+      "pinyin": "kai",
+      "reason": "linear",
+      "top10": [
+        "放",
+        "方",
+        "房",
+        "防",
+        "访",
+        "坊",
+        "仿",
+        "芳",
+        "纺",
+        "肪"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0434",
+      "expected": "放",
+      "pinyin": "fang",
+      "reason": "linear",
+      "top10": [
+        "放",
+        "方",
+        "房",
+        "防",
+        "访",
+        "坊",
+        "仿",
+        "芳",
+        "纺",
+        "肪"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0435",
@@ -6021,10 +6193,10 @@
     }
   ],
   "stats": {
-    "total": 441,
-    "pass": 437,
+    "total": 448,
+    "pass": 448,
     "soft": 0,
-    "audit": 4,
+    "audit": 0,
     "hard": 0
   }
 }

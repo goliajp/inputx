@@ -3996,12 +3996,83 @@
     },
     {
       "idx": "0287",
-      "expected": "东海之滨",
-      "pinyin": "donghaizhibin",
+      "expected": "东",
+      "pinyin": "dong",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "宾",
+        "滨",
+        "彬",
+        "斌",
+        "濒",
+        "鬓",
+        "缤",
+        "份",
+        "摈",
+        "殡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0287",
+      "expected": "海",
+      "pinyin": "hai",
+      "reason": "linear",
+      "top10": [
+        "宾",
+        "滨",
+        "彬",
+        "斌",
+        "濒",
+        "鬓",
+        "缤",
+        "份",
+        "摈",
+        "殡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0287",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "宾",
+        "滨",
+        "彬",
+        "斌",
+        "濒",
+        "鬓",
+        "缤",
+        "份",
+        "摈",
+        "殡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0287",
+      "expected": "滨",
+      "pinyin": "bin",
+      "reason": "linear",
+      "top10": [
+        "宾",
+        "滨",
+        "彬",
+        "斌",
+        "濒",
+        "鬓",
+        "缤",
+        "份",
+        "摈",
+        "殡"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0288",
@@ -4399,10 +4470,10 @@
     }
   ],
   "stats": {
-    "total": 315,
-    "pass": 314,
+    "total": 318,
+    "pass": 318,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

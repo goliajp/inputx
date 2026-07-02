@@ -956,12 +956,83 @@
     },
     {
       "idx": "0067",
-      "expected": "冠军之战",
-      "pinyin": "guanjunzhizhan",
+      "expected": "冠",
+      "pinyin": "guan",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0067",
+      "expected": "军",
+      "pinyin": "jun",
+      "reason": "linear",
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0067",
+      "expected": "之",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0067",
+      "expected": "战",
+      "pinyin": "zhan",
+      "reason": "linear",
+      "top10": [
+        "站",
+        "展",
+        "战",
+        "占",
+        "斩",
+        "沾",
+        "粘",
+        "盏",
+        "瞻",
+        "毡"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
     },
     {
       "idx": "0068",
@@ -6034,8 +6105,8 @@
       "top10": [
         "字",
         "子",
-        "紫",
         "自",
+        "紫",
         "资",
         "兹",
         "姊",
@@ -6043,7 +6114,7 @@
         "姿",
         "咨"
       ],
-      "rank": 3,
+      "rank": 2,
       "verdict": "PASS"
     },
     {
@@ -7051,10 +7122,10 @@
     }
   ],
   "stats": {
-    "total": 487,
-    "pass": 486,
+    "total": 490,
+    "pass": 490,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

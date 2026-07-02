@@ -2991,12 +2991,83 @@
     },
     {
       "idx": "0217",
-      "expected": "专业队伍",
-      "pinyin": "zhuanyeduiwu",
+      "expected": "专",
+      "pinyin": "zhuan",
       "reason": "linear",
-      "top10": [],
+      "top10": [
+        "五",
+        "无",
+        "务",
+        "物",
+        "雾",
+        "武",
+        "勿",
+        "舞",
+        "午",
+        "吴"
+      ],
       "rank": 99,
-      "verdict": "AUDIT"
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0217",
+      "expected": "业",
+      "pinyin": "ye",
+      "reason": "linear",
+      "top10": [
+        "五",
+        "无",
+        "务",
+        "物",
+        "雾",
+        "武",
+        "勿",
+        "舞",
+        "午",
+        "吴"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0217",
+      "expected": "队",
+      "pinyin": "dui",
+      "reason": "linear",
+      "top10": [
+        "五",
+        "无",
+        "务",
+        "物",
+        "雾",
+        "武",
+        "勿",
+        "舞",
+        "午",
+        "吴"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0217",
+      "expected": "伍",
+      "pinyin": "wu",
+      "reason": "linear",
+      "top10": [
+        "五",
+        "无",
+        "务",
+        "物",
+        "雾",
+        "武",
+        "勿",
+        "舞",
+        "午",
+        "吴"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
     },
     {
       "idx": "0218",
@@ -5562,10 +5633,10 @@
     }
   ],
   "stats": {
-    "total": 396,
-    "pass": 395,
+    "total": 399,
+    "pass": 399,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }

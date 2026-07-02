@@ -416,12 +416,83 @@
     },
     {
       "idx": "0030",
-      "expected": "阿拉伯文",
-      "pinyin": "alabowen",
+      "expected": "阿",
+      "pinyin": "a",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "问",
+        "文",
+        "闻",
+        "吻",
+        "温",
+        "稳",
+        "纹",
+        "蚊",
+        "瘟",
+        "紊"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0030",
+      "expected": "拉",
+      "pinyin": "la",
+      "reason": "linear",
+      "top10": [
+        "问",
+        "文",
+        "闻",
+        "吻",
+        "温",
+        "稳",
+        "纹",
+        "蚊",
+        "瘟",
+        "紊"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0030",
+      "expected": "伯",
+      "pinyin": "bo",
+      "reason": "linear",
+      "top10": [
+        "问",
+        "文",
+        "闻",
+        "吻",
+        "温",
+        "稳",
+        "纹",
+        "蚊",
+        "瘟",
+        "紊"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0030",
+      "expected": "文",
+      "pinyin": "wen",
+      "reason": "linear",
+      "top10": [
+        "问",
+        "文",
+        "闻",
+        "吻",
+        "温",
+        "稳",
+        "纹",
+        "蚊",
+        "瘟",
+        "紊"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0031",
@@ -579,12 +650,43 @@
     },
     {
       "idx": "0042",
-      "expected": "定在",
-      "pinyin": "dingzai",
+      "expected": "定",
+      "pinyin": "ding",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "在",
+        "再",
+        "宰",
+        "载",
+        "仔",
+        "灾",
+        "栽",
+        "哉",
+        "才",
+        "崽"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0042",
+      "expected": "在",
+      "pinyin": "zai",
+      "reason": "linear",
+      "top10": [
+        "在",
+        "再",
+        "宰",
+        "载",
+        "仔",
+        "灾",
+        "栽",
+        "哉",
+        "才",
+        "崽"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0043",
@@ -641,12 +743,63 @@
     },
     {
       "idx": "0047",
-      "expected": "以纪念",
-      "pinyin": "yijinian",
+      "expected": "以",
+      "pinyin": "yi",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0047",
+      "expected": "纪",
+      "pinyin": "ji",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0047",
+      "expected": "念",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
     },
     {
       "idx": "0048",
@@ -7247,10 +7400,10 @@
     }
   ],
   "stats": {
-    "total": 521,
-    "pass": 518,
+    "total": 527,
+    "pass": 527,
     "soft": 0,
-    "audit": 3,
+    "audit": 0,
     "hard": 0
   }
 }
