@@ -202,8 +202,8 @@
         "粒",
         "梨",
         "立",
-        "历",
-        "李"
+        "李",
+        "历"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -863,8 +863,8 @@
         "时",
         "事",
         "诗",
-        "实",
-        "式"
+        "式",
+        "实"
       ],
       "rank": 1,
       "verdict": "PASS"
@@ -1205,8 +1205,8 @@
         "雀",
         "鹊",
         "猎",
-        "阙",
         "屈",
+        "阙",
         "榷"
       ],
       "rank": 0,
@@ -1214,12 +1214,27 @@
     },
     {
       "idx": "0093",
-      "expected": "在岸上",
-      "pinyin": "zaianshang",
+      "expected": "在",
+      "pinyin": "zai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "岸上",
+        "暗伤"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0093",
+      "expected": "岸上",
+      "pinyin": "anshang",
+      "reason": "linear",
+      "top10": [
+        "岸上",
+        "暗伤"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0094",
@@ -1628,8 +1643,8 @@
         "雀",
         "鹊",
         "猎",
-        "阙",
         "屈",
+        "阙",
         "榷"
       ],
       "rank": 0,
@@ -1656,8 +1671,8 @@
         "着",
         "者",
         "折",
-        "浙",
         "哲",
+        "浙",
         "遮",
         "蔗",
         "辙",
@@ -1773,9 +1788,11 @@
       "expected": "这对",
       "pinyin": "zheidui",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "这对"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0131",
@@ -2216,8 +2233,8 @@
         "时",
         "事",
         "诗",
-        "实",
-        "式"
+        "式",
+        "实"
       ],
       "rank": 1,
       "verdict": "PASS"
@@ -2346,8 +2363,8 @@
         "塌",
         "踏",
         "蹋",
-        "太",
         "达",
+        "太",
         "哈"
       ],
       "rank": 0,
@@ -2495,12 +2512,27 @@
     },
     {
       "idx": "0181",
-      "expected": "在岸上",
-      "pinyin": "zaianshang",
+      "expected": "在",
+      "pinyin": "zai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "岸上",
+        "暗伤"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0181",
+      "expected": "岸上",
+      "pinyin": "anshang",
+      "reason": "linear",
+      "top10": [
+        "岸上",
+        "暗伤"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0182",
@@ -2674,8 +2706,8 @@
         "粒",
         "梨",
         "立",
-        "历",
-        "李"
+        "李",
+        "历"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -3092,8 +3124,8 @@
         "时",
         "事",
         "诗",
-        "实",
-        "式"
+        "式",
+        "实"
       ],
       "rank": 1,
       "verdict": "PASS"
@@ -3968,8 +4000,8 @@
         "位",
         "胃",
         "委",
-        "微",
         "维",
+        "微",
         "味",
         "卫"
       ],
@@ -4169,8 +4201,8 @@
         "时",
         "事",
         "诗",
-        "实",
-        "式"
+        "式",
+        "实"
       ],
       "rank": 1,
       "verdict": "PASS"
@@ -4251,8 +4283,8 @@
         "着",
         "者",
         "折",
-        "浙",
         "哲",
+        "浙",
         "遮",
         "蔗",
         "辙",
@@ -4331,8 +4363,8 @@
         "着",
         "者",
         "折",
-        "浙",
         "哲",
+        "浙",
         "遮",
         "蔗",
         "辙",
@@ -4672,8 +4704,8 @@
         "其",
         "器",
         "齐",
-        "妻",
-        "奇"
+        "奇",
+        "妻"
       ],
       "rank": 99,
       "verdict": "PASS"
@@ -4959,8 +4991,8 @@
         "但",
         "弹",
         "淡",
-        "蛋",
         "丹",
+        "蛋",
         "担",
         "胆",
         "旦",
@@ -5238,8 +5270,8 @@
         "终",
         "忠",
         "肿",
-        "衷",
-        "仲"
+        "仲",
+        "衷"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -5312,8 +5344,8 @@
         "时",
         "事",
         "诗",
-        "实",
-        "式"
+        "式",
+        "实"
       ],
       "rank": 1,
       "verdict": "PASS"
@@ -5343,9 +5375,11 @@
       "expected": "这对",
       "pinyin": "zheidui",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "这对"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0372",
@@ -5420,9 +5454,11 @@
       "expected": "让他们",
       "pinyin": "rangtamen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "让他们"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0378",
@@ -5485,9 +5521,11 @@
       "expected": "让他们",
       "pinyin": "rangtamen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "让他们"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0383",
@@ -5534,8 +5572,8 @@
         "位",
         "胃",
         "委",
-        "微",
         "维",
+        "微",
         "味",
         "卫"
       ],
@@ -6008,8 +6046,8 @@
         "时",
         "事",
         "诗",
-        "实",
-        "式"
+        "式",
+        "实"
       ],
       "rank": 1,
       "verdict": "PASS"
@@ -6062,8 +6100,8 @@
         "时",
         "事",
         "诗",
-        "实",
-        "式"
+        "式",
+        "实"
       ],
       "rank": 1,
       "verdict": "PASS"
@@ -6233,9 +6271,11 @@
       "expected": "使他们",
       "pinyin": "shitamen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "使他们"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0436",
@@ -6253,9 +6293,11 @@
       "expected": "使他们",
       "pinyin": "shitamen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "使他们"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0438",
@@ -6276,9 +6318,11 @@
       "expected": "使他们",
       "pinyin": "shitamen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "使他们"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0440",
@@ -6297,9 +6341,11 @@
       "expected": "使他们",
       "pinyin": "shitamen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "使他们"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0442",
@@ -6916,8 +6962,8 @@
       "top10": [
         "到",
         "刀",
-        "道",
         "岛",
+        "道",
         "倒",
         "导",
         "盗",
@@ -7378,9 +7424,11 @@
       "expected": "两代人",
       "pinyin": "liangdairen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "两代人"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0520",
@@ -7825,8 +7873,8 @@
         "终",
         "忠",
         "肿",
-        "衷",
-        "仲"
+        "仲",
+        "衷"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -8027,8 +8075,8 @@
         "制",
         "枝",
         "治",
-        "智",
-        "知"
+        "知",
+        "智"
       ],
       "rank": 0,
       "verdict": "PASS"
@@ -8771,9 +8819,11 @@
       "expected": "这对",
       "pinyin": "zheidui",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "这对"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0618",
@@ -9118,8 +9168,8 @@
         "时",
         "事",
         "诗",
-        "实",
-        "式"
+        "式",
+        "实"
       ],
       "rank": 1,
       "verdict": "PASS"
@@ -9204,9 +9254,11 @@
       "expected": "使他们",
       "pinyin": "shitamen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "使他们"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0651",
@@ -9573,8 +9625,8 @@
         "着",
         "者",
         "折",
-        "浙",
         "哲",
+        "浙",
         "遮",
         "蔗",
         "辙",
@@ -9924,8 +9976,8 @@
         "解",
         "皆",
         "结",
-        "界",
         "街",
+        "界",
         "姐"
       ],
       "rank": 1,
@@ -10071,9 +10123,11 @@
       "expected": "两代人",
       "pinyin": "liangdairen",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "两代人"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0712",
@@ -10584,8 +10638,8 @@
         "时",
         "事",
         "诗",
-        "实",
-        "式"
+        "式",
+        "实"
       ],
       "rank": 1,
       "verdict": "PASS"
@@ -10781,9 +10835,11 @@
       "expected": "承载着",
       "pinyin": "chengzaizhe",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "承载着"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0764",
@@ -10929,10 +10985,10 @@
     }
   ],
   "stats": {
-    "total": 774,
-    "pass": 751,
+    "total": 776,
+    "pass": 768,
     "soft": 0,
-    "audit": 23,
+    "audit": 8,
     "hard": 0
   }
 }

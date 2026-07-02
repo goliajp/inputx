@@ -1,0 +1,35 @@
+{
+  "id": "TEST",
+  "title": "TEST",
+  "raw_text": "",
+  "cjk_char_count": 0,
+  "segments": [
+    {
+      "idx": "0001",
+      "expected": "看似",
+      "pinyin": "kanshi",
+      "reason": "test",
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
+    },
+    {
+      "idx": "0002",
+      "expected": "辅助驾驶",
+      "pinyin": "fuzhujiashi",
+      "reason": "test",
+      "top10": [
+        "辅助驾驶"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    }
+  ],
+  "stats": {
+    "total": 2,
+    "pass": 1,
+    "soft": 0,
+    "audit": 1,
+    "hard": 0
+  }
+}
