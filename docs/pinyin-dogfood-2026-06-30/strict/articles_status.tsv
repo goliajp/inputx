@@ -1261,9 +1261,9 @@ J136	FETCHED	社会民生	http://www.people.com.cn/rss/society.xml	山东宁津�
 J137	FETCHED	社会民生	http://www.people.com.cn/rss/society.xml	公安机关依法公开通缉台湾“资通电军”重要犯罪嫌疑人	1090	0	0	
 A159	SKIP	政治政策	http://www.people.com.cn/rss/politics.xml	镜观·足迹｜呵护千山万水 擘画永续发展	1471	0	0	duplicate of A154
 A160	SKIP	政治政策	http://www.people.com.cn/rss/politics.xml	学习手记 | “环境就是民生”	922	0	0	duplicate of A155
-A161	FETCHED	政治政策	http://www.people.com.cn/rss/politics.xml	中共中央办公厅印发《党组讨论和决定党员处分事项工作程序规定》	1896	0	0	
-A162	FETCHED	政治政策	http://www.people.com.cn/rss/politics.xml	天天学习丨中南海月刊（2025.05）	3090	0	0	
-A163	FETCHED	政治政策	http://www.people.com.cn/rss/politics.xml	多地升级信用修复服务 助力经营主体重塑良好信用	1860	0	0	
+A161	SKIP	政治政策	http://www.people.com.cn/rss/politics.xml	中共中央办公厅印发《党组讨论和决定党员处分事项工作程序规定》	1896	0	0	duplicate refetch of A{156,157,158}
+A162	SKIP	政治政策	http://www.people.com.cn/rss/politics.xml	天天学习丨中南海月刊（2025.05）	3090	0	0	duplicate refetch of A{156,157,158}
+A163	SKIP	政治政策	http://www.people.com.cn/rss/politics.xml	多地升级信用修复服务 助力经营主体重塑良好信用	1860	0	0	duplicate refetch of A{156,157,158}
 A164	FETCHED	政治政策	http://www.people.com.cn/rss/politics.xml	聚力为民解难题办实事	1004	0	0	
 A165	FETCHED	政治政策	http://www.people.com.cn/rss/politics.xml	“阿大葱油饼”焕新记（干部状态新观察·走进一线探作风）	2233	0	0	
 A166	FETCHED	政治政策	http://www.people.com.cn/rss/politics.xml	银发旅游，如何适老又悦老？（深阅读·文旅新观察）	2259	0	0	
@@ -1909,3 +1909,5 @@ K084	DONE	百科知识	https://zh.wikipedia.org/wiki/%E5%8E%84%E6%B4%9B%E7%89%B9
 K085	DONE	百科知识	https://zh.wikipedia.org/wiki/%E9%87%91%E6%9B%B2%E7%8D%8E	金曲奖	3162	1661	1661	
 K086	DONE	百科知识	https://zh.wikipedia.org/wiki/%E4%B8%9C%E4%B9%A1%E6%97%8F	东乡族	1574	825	825	
 K087	DONE	百科知识	https://zh.wikipedia.org/wiki/%E5%85%AB%E7%8E%8B%E4%B9%8B%E4%B9%B1	八王之乱	8937	5073	5073	
+K088	DONE	百科知识	https://zh.wikipedia.org/wiki/%E5%8D%97%E8%A1%97%E6%9D%91	南街村	1734	886	886	
+K089	FETCHED	百科知识	https://zh.wikipedia.org/wiki/%E6%B2%B3%E4%BA%95%E6%A1%88%E9%87%8C	河井案里	879	0	0	
