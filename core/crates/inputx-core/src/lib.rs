@@ -1,3 +1,14 @@
+// Historic clippy allowlist (mirrors inputx-pinyin/v2 crate — legacy
+// idioms; not correctness/perf issues).
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::excessive_precision)]
+#![allow(clippy::type_complexity)]
+#![allow(clippy::needless_range_loop)]
+#![allow(clippy::neg_multiply)]
+#![allow(clippy::manual_contains)]
+#![allow(clippy::manual_clamp)]
+#![allow(clippy::manual_range_contains)]
+
 //! inputx-core: platform-agnostic composite engine for the Inputx IME.
 //!
 //! Pure Rust — no `extern "C"`, no `wasm-bindgen`. The C ABI lives in the

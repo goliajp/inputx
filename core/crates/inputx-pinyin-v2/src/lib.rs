@@ -1,3 +1,14 @@
+// Historic clippy allowlist (see also v1 lib.rs) — v2 has more nested-if
+// checks that clippy would collapse, but the current shape mirrors v1
+// resolution order and keeps precedence steps textually parallel.
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::excessive_precision)]
+#![allow(clippy::type_complexity)]
+#![allow(clippy::needless_range_loop)]
+#![allow(clippy::manual_contains)]
+#![allow(clippy::manual_clamp)]
+#![allow(clippy::manual_range_contains)]
+
 //! Inputx pinyin engine **v2** — char-centric data model.
 //!
 //! This crate is the v2 of the pinyin engine, built parallel to the

@@ -9,6 +9,9 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::needless_range_loop)]
+#![allow(clippy::neg_multiply)]
+#![allow(clippy::manual_contains)]
+#![allow(clippy::manual_clamp)]
 
 //! `inputx-pinyin` — self-developed Mandarin Pinyin input method engine.
 //!

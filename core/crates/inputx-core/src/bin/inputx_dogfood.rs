@@ -1,3 +1,6 @@
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::manual_range_contains)]
+
 //! `inputx-dogfood` — batch v2 ranking validator
 //!
 //! Reads a segments TSV (`article_id\tseg_idx\tword\tpinyin\tnotes`),
