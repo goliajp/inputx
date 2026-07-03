@@ -730,6 +730,13 @@ mod tests {
             // 虚线 16059 and 续弦 8669. quickfix_boost lifts 虚线→19600
             // (#0) and 续弦→18700 (#1), 许仙 base falls to #2.
             ("xuxian", "虚线"),
+            // Polish-log 2026-07-03: "shouyin 收银 > 手印 > 收音 > 手淫，
+            // 首音不需要". Base freqs put 手印 (20834) at #0, 手淫 (16492)
+            // at #1, 收银 (23056) at #2 due to char-freq offsets.
+            // quickfix_boost lifts 收银→40000 (#0), 手印→35000 (#1),
+            // 收音→30000 (#2). 首音 added to exclusions_v1.tsv (phonology
+            // term, not needed at top; still available for K-best).
+            ("shouyin", "收银"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
