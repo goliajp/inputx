@@ -2370,11 +2370,9 @@
       "expected": "给出",
       "pinyin": "geichu",
       "reason": "linear",
-      "top10": [
-        "给出"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0163",
@@ -4573,11 +4571,9 @@
       "expected": "让玩家",
       "pinyin": "rangwanjia",
       "reason": "linear",
-      "top10": [
-        "让玩家"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0311",
@@ -5423,11 +5419,9 @@
       "expected": "让玩家",
       "pinyin": "rangwanjia",
       "reason": "linear",
-      "top10": [
-        "让玩家"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0368",
@@ -6754,9 +6748,9 @@
   ],
   "stats": {
     "total": 459,
-    "pass": 459,
+    "pass": 456,
     "soft": 0,
-    "audit": 0,
+    "audit": 3,
     "hard": 0
   }
 }

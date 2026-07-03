@@ -2210,11 +2210,9 @@
       "expected": "给出",
       "pinyin": "geichu",
       "reason": "linear",
-      "top10": [
-        "给出"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0163",
@@ -3207,11 +3205,9 @@
       "expected": "多月",
       "pinyin": "duoyue",
       "reason": "linear",
-      "top10": [
-        "多月"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0233",
@@ -28106,9 +28102,9 @@
   ],
   "stats": {
     "total": 1924,
-    "pass": 1924,
+    "pass": 1922,
     "soft": 0,
-    "audit": 0,
+    "audit": 2,
     "hard": 0
   }
 }

@@ -15306,10 +15306,11 @@
       "pinyin": "fenleifenji",
       "reason": "linear",
       "top10": [
-        "分类分级"
+        "分类分级管理要求",
+        "分类分机"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1110",
@@ -15482,10 +15483,11 @@
       "pinyin": "fenleifenji",
       "reason": "linear",
       "top10": [
-        "分类分级"
+        "分类分级管理要求",
+        "分类分机"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1123",
@@ -22212,9 +22214,9 @@
   ],
   "stats": {
     "total": 1606,
-    "pass": 1606,
+    "pass": 1604,
     "soft": 0,
-    "audit": 0,
+    "audit": 2,
     "hard": 0
   }
 }

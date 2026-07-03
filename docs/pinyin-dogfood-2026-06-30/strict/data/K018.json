@@ -26470,11 +26470,9 @@
       "expected": "嫁给",
       "pinyin": "jiagei",
       "reason": "linear",
-      "top10": [
-        "嫁给"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1728",
@@ -53260,10 +53258,11 @@
       "pinyin": "gehua",
       "reason": "linear",
       "top10": [
-        "各话"
+        "各环节安全责任主体",
+        "个护啊"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "3457",
@@ -54398,9 +54397,9 @@
   ],
   "stats": {
     "total": 3565,
-    "pass": 3565,
+    "pass": 3563,
     "soft": 0,
-    "audit": 0,
+    "audit": 2,
     "hard": 0
   }
 }

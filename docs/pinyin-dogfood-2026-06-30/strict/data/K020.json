@@ -68056,7 +68056,6 @@
       "pinyin": "weizai",
       "reason": "linear",
       "top10": [
-        "为载体",
         "危在旦夕"
       ],
       "rank": 99,
@@ -113482,11 +113481,9 @@
       "expected": "多月",
       "pinyin": "duoyue",
       "reason": "linear",
-      "top10": [
-        "多月"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "7842",
@@ -173835,9 +173832,9 @@
   ],
   "stats": {
     "total": 12125,
-    "pass": 12125,
+    "pass": 12124,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

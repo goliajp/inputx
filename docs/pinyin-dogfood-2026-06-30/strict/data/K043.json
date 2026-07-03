@@ -15871,11 +15871,9 @@
       "expected": "嫁给",
       "pinyin": "jiagei",
       "reason": "linear",
-      "top10": [
-        "嫁给"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1046",
@@ -15986,11 +15984,9 @@
       "expected": "嫁给",
       "pinyin": "jiagei",
       "reason": "linear",
-      "top10": [
-        "嫁给"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1053",
@@ -16196,11 +16192,9 @@
       "expected": "嫁给",
       "pinyin": "jiagei",
       "reason": "linear",
-      "top10": [
-        "嫁给"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1066",
@@ -147859,9 +147853,9 @@
   ],
   "stats": {
     "total": 9802,
-    "pass": 9802,
+    "pass": 9799,
     "soft": 0,
-    "audit": 0,
+    "audit": 3,
     "hard": 0
   }
 }

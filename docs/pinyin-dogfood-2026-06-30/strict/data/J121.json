@@ -5017,11 +5017,9 @@
       "expected": "也会",
       "pinyin": "yehui",
       "reason": "linear",
-      "top10": [
-        "也会"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0362",
@@ -7845,11 +7843,9 @@
       "expected": "承载着",
       "pinyin": "chengzaizhe",
       "reason": "linear",
-      "top10": [
-        "承载着"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0556",
@@ -10093,9 +10089,9 @@
   ],
   "stats": {
     "total": 731,
-    "pass": 731,
+    "pass": 729,
     "soft": 0,
-    "audit": 0,
+    "audit": 2,
     "hard": 0
   }
 }

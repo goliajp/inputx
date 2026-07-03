@@ -42,11 +42,9 @@
       "expected": "更安心",
       "pinyin": "genganxin",
       "reason": "linear",
-      "top10": [
-        "更安心"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0005",
@@ -683,11 +681,9 @@
       "expected": "被纳入",
       "pinyin": "beinaru",
       "reason": "linear",
-      "top10": [
-        "被纳入"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0053",
@@ -2937,11 +2933,9 @@
       "expected": "也会",
       "pinyin": "yehui",
       "reason": "linear",
-      "top10": [
-        "也会"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0216",
@@ -10698,9 +10692,9 @@
   ],
   "stats": {
     "total": 786,
-    "pass": 786,
+    "pass": 783,
     "soft": 0,
-    "audit": 0,
+    "audit": 3,
     "hard": 0
   }
 }

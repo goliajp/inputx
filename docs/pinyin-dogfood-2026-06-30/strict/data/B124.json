@@ -6641,11 +6641,9 @@
       "expected": "该类",
       "pinyin": "gailei",
       "reason": "linear",
-      "top10": [
-        "该类"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0458",
@@ -26916,11 +26914,9 @@
       "expected": "给出",
       "pinyin": "geichu",
       "reason": "linear",
-      "top10": [
-        "给出"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1858",
@@ -32379,11 +32375,9 @@
       "expected": "多月",
       "pinyin": "duoyue",
       "reason": "linear",
-      "top10": [
-        "多月"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "2243",
@@ -41459,11 +41453,9 @@
       "expected": "多月",
       "pinyin": "duoyue",
       "reason": "linear",
-      "top10": [
-        "多月"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "2891",
@@ -44493,9 +44485,9 @@
   ],
   "stats": {
     "total": 3098,
-    "pass": 3098,
+    "pass": 3094,
     "soft": 0,
-    "audit": 0,
+    "audit": 4,
     "hard": 0
   }
 }

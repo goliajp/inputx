@@ -21854,11 +21854,9 @@
       "expected": "五年前",
       "pinyin": "wunianqian",
       "reason": "linear",
-      "top10": [
-        "五年前"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1446",
@@ -57684,9 +57682,9 @@
   ],
   "stats": {
     "total": 3881,
-    "pass": 3881,
+    "pass": 3880,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

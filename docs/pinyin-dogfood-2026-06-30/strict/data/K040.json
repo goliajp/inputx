@@ -6614,11 +6614,9 @@
       "expected": "更见",
       "pinyin": "gengjian",
       "reason": "linear",
-      "top10": [
-        "更健康"
-      ],
+      "top10": [],
       "rank": 99,
-      "verdict": "PASS"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0453",
@@ -7628,11 +7626,9 @@
       "expected": "该处",
       "pinyin": "gaichu",
       "reason": "linear",
-      "top10": [
-        "该处"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0527",
@@ -9999,9 +9995,9 @@
   ],
   "stats": {
     "total": 690,
-    "pass": 690,
+    "pass": 688,
     "soft": 0,
-    "audit": 0,
+    "audit": 2,
     "hard": 0
   }
 }

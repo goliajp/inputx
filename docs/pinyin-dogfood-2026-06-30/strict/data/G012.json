@@ -7407,11 +7407,9 @@
       "expected": "这一天",
       "pinyin": "zheyitian",
       "reason": "linear",
-      "top10": [
-        "这一天"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0501",
@@ -18851,9 +18849,9 @@
   ],
   "stats": {
     "total": 1266,
-    "pass": 1266,
+    "pass": 1265,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

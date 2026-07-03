@@ -12255,7 +12255,6 @@
       "reason": "linear",
       "top10": [
         "事态",
-        "使他们",
         "食堂",
         "试探",
         "失态",
@@ -12263,7 +12262,8 @@
         "诗坛",
         "时态",
         "世态",
-        "势态"
+        "势态",
+        "世涛"
       ],
       "rank": 99,
       "verdict": "PASS"
@@ -38338,11 +38338,9 @@
       "expected": "闪烁着",
       "pinyin": "shanshuozhe",
       "reason": "linear",
-      "top10": [
-        "闪烁着"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "2548",
@@ -40826,22 +40824,18 @@
       "expected": "更不应",
       "pinyin": "gengbuying",
       "reason": "linear",
-      "top10": [
-        "更不应"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "2714",
       "expected": "被忽视",
       "pinyin": "beihushi",
       "reason": "linear",
-      "top10": [
-        "被忽视"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "2715",
@@ -52653,11 +52647,9 @@
       "expected": "北年",
       "pinyin": "beinian",
       "reason": "linear",
-      "top10": [
-        "北年"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "3496",
@@ -63444,11 +63436,9 @@
       "expected": "给出",
       "pinyin": "geichu",
       "reason": "linear",
-      "top10": [
-        "给出"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "4195",
@@ -78166,11 +78156,9 @@
       "expected": "常在",
       "pinyin": "changzai",
       "reason": "linear",
-      "top10": [
-        "常在"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "5186",
@@ -90216,9 +90204,9 @@
   ],
   "stats": {
     "total": 5989,
-    "pass": 5989,
+    "pass": 5983,
     "soft": 0,
-    "audit": 0,
+    "audit": 6,
     "hard": 0
   }
 }

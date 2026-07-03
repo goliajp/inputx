@@ -19643,11 +19643,9 @@
       "expected": "让玩家",
       "pinyin": "rangwanjia",
       "reason": "linear",
-      "top10": [
-        "让玩家"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1295",
@@ -21347,9 +21345,9 @@
   ],
   "stats": {
     "total": 1413,
-    "pass": 1413,
+    "pass": 1412,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

@@ -19490,11 +19490,9 @@
       "expected": "更会",
       "pinyin": "genghui",
       "reason": "linear",
-      "top10": [
-        "更会"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1311",
@@ -34256,9 +34254,9 @@
   ],
   "stats": {
     "total": 2326,
-    "pass": 2326,
+    "pass": 2325,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

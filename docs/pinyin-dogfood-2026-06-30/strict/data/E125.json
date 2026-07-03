@@ -274,11 +274,9 @@
       "expected": "更安心",
       "pinyin": "genganxin",
       "reason": "linear",
-      "top10": [
-        "更安心"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0022",
@@ -1988,11 +1986,9 @@
       "expected": "还得",
       "pinyin": "haidei",
       "reason": "linear",
-      "top10": [
-        "还得"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0144",
@@ -3088,11 +3084,9 @@
       "expected": "更安心",
       "pinyin": "genganxin",
       "reason": "linear",
-      "top10": [
-        "更安心"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0220",
@@ -5484,11 +5478,9 @@
       "expected": "更需要",
       "pinyin": "gengxuyao",
       "reason": "linear",
-      "top10": [
-        "更需要"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0386",
@@ -5584,11 +5576,9 @@
       "expected": "还得",
       "pinyin": "haidei",
       "reason": "linear",
-      "top10": [
-        "还得"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0393",
@@ -6768,11 +6758,9 @@
       "expected": "还得",
       "pinyin": "haidei",
       "reason": "linear",
-      "top10": [
-        "还得"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0480",
@@ -7927,9 +7915,9 @@
   ],
   "stats": {
     "total": 566,
-    "pass": 566,
+    "pass": 560,
     "soft": 0,
-    "audit": 0,
+    "audit": 6,
     "hard": 0
   }
 }

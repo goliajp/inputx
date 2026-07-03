@@ -626,11 +626,9 @@
       "expected": "为主题",
       "pinyin": "weizhuti",
       "reason": "linear",
-      "top10": [
-        "为主题"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0046",
@@ -3636,11 +3634,9 @@
       "expected": "承载着",
       "pinyin": "chengzaizhe",
       "reason": "linear",
-      "top10": [
-        "承载着"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0263",
@@ -8344,9 +8340,9 @@
   ],
   "stats": {
     "total": 602,
-    "pass": 602,
+    "pass": 600,
     "soft": 0,
-    "audit": 0,
+    "audit": 2,
     "hard": 0
   }
 }

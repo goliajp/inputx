@@ -6976,11 +6976,9 @@
       "expected": "给出",
       "pinyin": "gaichu",
       "reason": "linear",
-      "top10": [
-        "该处"
-      ],
+      "top10": [],
       "rank": 99,
-      "verdict": "PASS"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0514",
@@ -8757,9 +8755,9 @@
   ],
   "stats": {
     "total": 643,
-    "pass": 643,
+    "pass": 642,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

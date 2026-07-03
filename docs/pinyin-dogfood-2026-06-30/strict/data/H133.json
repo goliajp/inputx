@@ -1360,11 +1360,9 @@
       "expected": "为载体",
       "pinyin": "weizaiti",
       "reason": "linear",
-      "top10": [
-        "为载体"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0083",
@@ -2749,11 +2747,9 @@
       "expected": "为大家",
       "pinyin": "weidajia",
       "reason": "linear",
-      "top10": [
-        "为大家"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0187",
@@ -5066,11 +5062,9 @@
       "expected": "让大家",
       "pinyin": "rangdajia",
       "reason": "linear",
-      "top10": [
-        "让大家"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0350",
@@ -7344,11 +7338,9 @@
       "expected": "为主体",
       "pinyin": "weizhuti",
       "reason": "linear",
-      "top10": [
-        "为主题"
-      ],
+      "top10": [],
       "rank": 99,
-      "verdict": "PASS"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0513",
@@ -9078,11 +9070,9 @@
       "expected": "为大家",
       "pinyin": "weidajia",
       "reason": "linear",
-      "top10": [
-        "为大家"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0633",
@@ -11118,9 +11108,9 @@
   ],
   "stats": {
     "total": 794,
-    "pass": 794,
+    "pass": 789,
     "soft": 0,
-    "audit": 0,
+    "audit": 5,
     "hard": 0
   }
 }

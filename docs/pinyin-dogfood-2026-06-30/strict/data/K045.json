@@ -3598,11 +3598,9 @@
       "expected": "由该",
       "pinyin": "yougai",
       "reason": "linear",
-      "top10": [
-        "由该"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0236",
@@ -4844,11 +4842,9 @@
       "expected": "由该",
       "pinyin": "yougai",
       "reason": "linear",
-      "top10": [
-        "由该"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0314",
@@ -8418,11 +8414,9 @@
       "expected": "由该",
       "pinyin": "yougai",
       "reason": "linear",
-      "top10": [
-        "由该"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0546",
@@ -10970,9 +10964,9 @@
   ],
   "stats": {
     "total": 709,
-    "pass": 709,
+    "pass": 706,
     "soft": 0,
-    "audit": 0,
+    "audit": 3,
     "hard": 0
   }
 }
