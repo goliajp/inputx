@@ -4079,7 +4079,7 @@
         "津",
         "仅",
         "晋",
-        "斤"
+        "锦"
       ],
       "rank": 4,
       "verdict": "PASS"
@@ -30169,6 +30169,7 @@
       "reason": "linear",
       "top10": [
         "掌上办",
+        "长山岛",
         "掌上反映窗口",
         "掌上明珠",
         "掌上电脑",
@@ -30530,9 +30531,11 @@
       "expected": "长山岛",
       "pinyin": "zhangshandao",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "长山岛"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "2064",
@@ -31360,6 +31363,7 @@
       "reason": "linear",
       "top10": [
         "掌上办",
+        "长山岛",
         "掌上反映窗口",
         "掌上明珠",
         "掌上电脑",
@@ -31530,9 +31534,11 @@
       "expected": "长山岛",
       "pinyin": "zhangshandao",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "长山岛"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "2133",
@@ -31559,9 +31565,11 @@
       "expected": "长山岛",
       "pinyin": "zhangshandao",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "长山岛"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "2135",
@@ -31852,6 +31860,7 @@
       "reason": "linear",
       "top10": [
         "掌上办",
+        "长山岛",
         "掌上反映窗口",
         "掌上明珠",
         "掌上电脑",
@@ -31979,6 +31988,7 @@
       "reason": "linear",
       "top10": [
         "掌上办",
+        "长山岛",
         "掌上反映窗口",
         "掌上明珠",
         "掌上电脑",
@@ -49124,9 +49134,11 @@
       "expected": "左营区",
       "pinyin": "zuoyingqu",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "左营区"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "3320",
@@ -53854,6 +53866,7 @@
       "reason": "linear",
       "top10": [
         "掌上办",
+        "长山岛",
         "掌上反映窗口",
         "掌上明珠",
         "掌上电脑",
@@ -59451,9 +59464,11 @@
       "expected": "张锦鸿",
       "pinyin": "zhangjinhong",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "张锦鸿"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "4029",
@@ -59877,8 +59892,8 @@
         "哄",
         "洪",
         "宏",
-        "轰",
         "鸿",
+        "轰",
         "虹",
         "弘",
         "共"
@@ -60939,9 +60954,11 @@
       "expected": "职官表",
       "pinyin": "zhiguanbiao",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "职官表"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "4132",
@@ -61296,9 +61313,9 @@
   ],
   "stats": {
     "total": 4212,
-    "pass": 4206,
+    "pass": 4212,
     "soft": 0,
-    "audit": 6,
+    "audit": 0,
     "hard": 0
   }
 }
