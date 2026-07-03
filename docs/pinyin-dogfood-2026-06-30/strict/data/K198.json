@@ -4097,12 +4097,43 @@
     },
     {
       "idx": "0275",
-      "expected": "该团",
-      "pinyin": "gaituan",
+      "expected": "该",
+      "pinyin": "gai",
       "reason": "linear",
-      "top10": [],
-      "rank": 99,
-      "verdict": "AUDIT"
+      "top10": [
+        "团",
+        "税",
+        "敦",
+        "揣",
+        "湍",
+        "痪",
+        "疃",
+        "抟",
+        "图案",
+        "彖"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0275",
+      "expected": "团",
+      "pinyin": "tuan",
+      "reason": "linear",
+      "top10": [
+        "团",
+        "税",
+        "敦",
+        "揣",
+        "湍",
+        "痪",
+        "疃",
+        "抟",
+        "图案",
+        "彖"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
     },
     {
       "idx": "0276",
@@ -6637,10 +6668,10 @@
     }
   ],
   "stats": {
-    "total": 453,
-    "pass": 452,
+    "total": 454,
+    "pass": 454,
     "soft": 0,
-    "audit": 1,
+    "audit": 0,
     "hard": 0
   }
 }
