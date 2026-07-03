@@ -57,14 +57,34 @@ fn key_coord(c: char) -> Option<(Row, Col)> {
     // key on the same row adds 2 (= +1.0 physical).
     Some(match c {
         // Top row: q w e r t y u i o p
-        'q' => (0, 0),   'w' => (0, 2),   'e' => (0, 4),   'r' => (0, 6),   't' => (0, 8),
-        'y' => (0, 10),  'u' => (0, 12),  'i' => (0, 14),  'o' => (0, 16),  'p' => (0, 18),
+        'q' => (0, 0),
+        'w' => (0, 2),
+        'e' => (0, 4),
+        'r' => (0, 6),
+        't' => (0, 8),
+        'y' => (0, 10),
+        'u' => (0, 12),
+        'i' => (0, 14),
+        'o' => (0, 16),
+        'p' => (0, 18),
         // Home row: a s d f g h j k l (stagger +0.5 = scaled +1)
-        'a' => (1, 1),   's' => (1, 3),   'd' => (1, 5),   'f' => (1, 7),   'g' => (1, 9),
-        'h' => (1, 11),  'j' => (1, 13),  'k' => (1, 15),  'l' => (1, 17),
+        'a' => (1, 1),
+        's' => (1, 3),
+        'd' => (1, 5),
+        'f' => (1, 7),
+        'g' => (1, 9),
+        'h' => (1, 11),
+        'j' => (1, 13),
+        'k' => (1, 15),
+        'l' => (1, 17),
         // Bottom row: z x c v b n m (stagger +1.0 = scaled +2)
-        'z' => (2, 2),   'x' => (2, 4),   'c' => (2, 6),   'v' => (2, 8),
-        'b' => (2, 10),  'n' => (2, 12),  'm' => (2, 14),
+        'z' => (2, 2),
+        'x' => (2, 4),
+        'c' => (2, 6),
+        'v' => (2, 8),
+        'b' => (2, 10),
+        'n' => (2, 12),
+        'm' => (2, 14),
         _ => return None,
     })
 }
@@ -168,9 +188,8 @@ pub fn single_edit_neighbors(typed: &str, max_distance: f32) -> Vec<(String, f32
     // The 26 ASCII lowercase letters that have a key_coord entry —
     // computed once and shared across positions.
     const KEYBOARD_LETTERS: &[char] = &[
-        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
-        'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
-        'z', 'x', 'c', 'v', 'b', 'n', 'm',
+        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k',
+        'l', 'z', 'x', 'c', 'v', 'b', 'n', 'm',
     ];
 
     let mut out: Vec<(String, f32)> = Vec::with_capacity(chars.len() * 6);
@@ -208,10 +227,7 @@ mod tests {
     #[test]
     fn coords_cover_all_26_letters() {
         for c in 'a'..='z' {
-            assert!(
-                key_coord(c).is_some(),
-                "letter {c} should have a coord"
-            );
+            assert!(key_coord(c).is_some(), "letter {c} should have a coord");
         }
         assert!(key_coord('0').is_none());
         assert!(key_coord('-').is_none());
@@ -307,7 +323,10 @@ mod tests {
         //   horizontal: 'b' (d=1), 'm' (d=1) → "bi", "mi"
         //   vertical/diagonal: 'h' (d≈1.118), 'j' (d≈1.118)
         //     → "hi", "ji"
-        assert!(words.contains("bi"), "expected 'bi' among ni-variants, got {variants:?}");
+        assert!(
+            words.contains("bi"),
+            "expected 'bi' among ni-variants, got {variants:?}"
+        );
         assert!(words.contains("mi"), "expected 'mi' among ni-variants");
         // Position 1: i's adjacent keys
         //   horizontal: 'u', 'o' (d=1) → "nu", "no"
@@ -319,10 +338,14 @@ mod tests {
         // All log_probs are finite, negative, and at least as
         // negative as the d≤1.05 ceiling (-1.301).
         for (w, lp) in &variants {
-            assert!(lp.is_finite() && *lp < 0.0,
-                "variant {w} has invalid log_prob {lp}");
-            assert!(*lp <= -1.301,
-                "variant {w} log_prob {lp} should be ≤ adjacency ceiling -1.301");
+            assert!(
+                lp.is_finite() && *lp < 0.0,
+                "variant {w} has invalid log_prob {lp}"
+            );
+            assert!(
+                *lp <= -1.301,
+                "variant {w} log_prob {lp} should be ≤ adjacency ceiling -1.301"
+            );
         }
     }
 
@@ -336,7 +359,8 @@ mod tests {
         assert!(
             loose.len() > strict.len(),
             "loose ({}) should yield more than strict ({})",
-            loose.len(), strict.len()
+            loose.len(),
+            strict.len()
         );
     }
 }

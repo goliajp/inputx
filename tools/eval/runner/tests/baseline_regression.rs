@@ -44,8 +44,12 @@ fn gold_miu_within_threshold_of_baseline() {
     let pairs: Vec<(&str, f64, f64)> = ["gold_top1", "gold_top5", "gold_top10"]
         .iter()
         .map(|m| {
-            let b = base[*m].as_f64().unwrap_or_else(|| panic!("baseline missing {m}"));
-            let c = results.metric(m).unwrap_or_else(|| panic!("results missing {m}"));
+            let b = base[*m]
+                .as_f64()
+                .unwrap_or_else(|| panic!("baseline missing {m}"));
+            let c = results
+                .metric(m)
+                .unwrap_or_else(|| panic!("results missing {m}"));
             (*m, b, c)
         })
         .collect();

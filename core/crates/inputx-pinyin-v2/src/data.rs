@@ -13,12 +13,18 @@ const WORDS_TSV: &str = include_str!("../data/words.tsv");
 // Polish overlay files. Same files v1 consumes, so polish edits apply
 // uniformly to v1 and v2 (per [[ranking-orthogonal-table-model]]:
 // per-(buffer, word) overrides are the only sanctioned data surface).
-const TIER_OVERLAY_TSV: &str = include_str!("../../../../tools/scoring/data/polish/tier_overlay.tsv");
-const QUICKFIX_BOOST_TSV: &str = include_str!("../../../../tools/scoring/data/polish/quickfix_boost.tsv");
-const EXCLUSIONS_TSV: &str = include_str!("../../../../tools/scoring/data/polish/exclusions_v1.tsv");
-const PRIOR_CORRECTIONS_TSV: &str = include_str!("../../../../tools/scoring/data/polish/prior_corrections_v1.tsv");
-const MODERN_VOCAB_TSV: &str = include_str!("../../../../tools/scoring/data/polish/modern_vocab_v1.tsv");
-const CORPUS_GARBAGE_FILTER_TSV: &str = include_str!("../../../../tools/scoring/data/polish/corpus_garbage_filter_v1.tsv");
+const TIER_OVERLAY_TSV: &str =
+    include_str!("../../../../tools/scoring/data/polish/tier_overlay.tsv");
+const QUICKFIX_BOOST_TSV: &str =
+    include_str!("../../../../tools/scoring/data/polish/quickfix_boost.tsv");
+const EXCLUSIONS_TSV: &str =
+    include_str!("../../../../tools/scoring/data/polish/exclusions_v1.tsv");
+const PRIOR_CORRECTIONS_TSV: &str =
+    include_str!("../../../../tools/scoring/data/polish/prior_corrections_v1.tsv");
+const MODERN_VOCAB_TSV: &str =
+    include_str!("../../../../tools/scoring/data/polish/modern_vocab_v1.tsv");
+const CORPUS_GARBAGE_FILTER_TSV: &str =
+    include_str!("../../../../tools/scoring/data/polish/corpus_garbage_filter_v1.tsv");
 const MODERN_FREQ_TSV: &str = include_str!("../data/modern_freq.tsv");
 
 /// One row of `chars.tsv`.
@@ -87,9 +93,15 @@ fn parse_chars_tsv(text: &str) -> Vec<CharEntry> {
         if let (Some(ch_str), Some(cp_hex), Some(tier_s), Some(hsk_s), Some(canonical)) =
             (ch_str, cp_hex, tier_s, hsk_s, canonical)
         {
-            let Some(ch) = ch_str.chars().next() else { continue };
-            let Ok(cp) = u32::from_str_radix(cp_hex.trim(), 16) else { continue };
-            let Ok(tier) = tier_s.trim().parse::<u8>() else { continue };
+            let Some(ch) = ch_str.chars().next() else {
+                continue;
+            };
+            let Ok(cp) = u32::from_str_radix(cp_hex.trim(), 16) else {
+                continue;
+            };
+            let Ok(tier) = tier_s.trim().parse::<u8>() else {
+                continue;
+            };
             let hsk_level = hsk_s.trim().parse::<u8>().unwrap_or(0);
             out.push(CharEntry {
                 ch,
@@ -118,9 +130,15 @@ fn parse_readings_tsv(text: &str) -> Vec<ReadingEntry> {
         if let (Some(ch_str), Some(reading), Some(rank_s), Some(offset_s), Some(source)) =
             (ch_str, reading, rank_s, offset_s, source)
         {
-            let Some(ch) = ch_str.chars().next() else { continue };
-            let Some(rank) = ReadingRank::parse(rank_s.trim()) else { continue };
-            let Ok(offset) = offset_s.trim().parse::<i8>() else { continue };
+            let Some(ch) = ch_str.chars().next() else {
+                continue;
+            };
+            let Some(rank) = ReadingRank::parse(rank_s.trim()) else {
+                continue;
+            };
+            let Ok(offset) = offset_s.trim().parse::<i8>() else {
+                continue;
+            };
             out.push(ReadingEntry {
                 ch,
                 reading: reading.trim().to_owned(),
@@ -172,7 +190,9 @@ fn parse_words_tsv(text: &str) -> Vec<WordEntry> {
         if let (Some(code), Some(word), Some(rp), Some(tier_s), Some(source)) =
             (code, word, rp, tier_s, source)
         {
-            let Ok(tier) = tier_s.trim().parse::<u8>() else { continue };
+            let Ok(tier) = tier_s.trim().parse::<u8>() else {
+                continue;
+            };
             out.push(WordEntry {
                 code: code.to_owned(),
                 word: word.to_owned(),
@@ -199,25 +219,36 @@ pub fn words() -> &'static [WordEntry] {
     static CACHED: OnceLock<Vec<WordEntry>> = OnceLock::new();
     CACHED.get_or_init(|| {
         let mut out = parse_words_tsv(WORDS_TSV);
-        let mut existing: std::collections::HashSet<(String, String)> =
-            out.iter().map(|w| (w.code.clone(), w.word.clone())).collect();
+        let mut existing: std::collections::HashSet<(String, String)> = out
+            .iter()
+            .map(|w| (w.code.clone(), w.word.clone()))
+            .collect();
         for ln in MODERN_VOCAB_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') { continue; }
+            if ln.is_empty() || ln.starts_with('#') {
+                continue;
+            }
             let mut it = ln.split('\t');
             let code = it.next();
             let word = it.next();
             let freq_s = it.next();
             if let (Some(c), Some(w), Some(f)) = (code, word, freq_s) {
                 if let Ok(freq) = f.trim().parse::<u32>() {
-                    if existing.contains(&(c.to_owned(), w.to_owned())) { continue; }
-                    let tier: u8 = if freq >= 50_000 { 2 }
-                        else if freq >= 30_000 { 3 }
-                        else if freq >= 15_000 { 4 }
-                        else { 5 };
+                    if existing.contains(&(c.to_owned(), w.to_owned())) {
+                        continue;
+                    }
+                    let tier: u8 = if freq >= 50_000 {
+                        2
+                    } else if freq >= 30_000 {
+                        3
+                    } else if freq >= 15_000 {
+                        4
+                    } else {
+                        5
+                    };
                     out.push(WordEntry {
                         code: c.to_owned(),
                         word: w.to_owned(),
-                        reading_path: format!("[{}]", w),  // path not validated for supplements
+                        reading_path: format!("[{}]", w), // path not validated for supplements
                         tier,
                         source: "modern_vocab".to_owned(),
                     });
@@ -238,7 +269,9 @@ pub fn tier_overlay() -> &'static std::collections::HashMap<(String, String), u8
     CACHED.get_or_init(|| {
         let mut m = HashMap::new();
         for ln in TIER_OVERLAY_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') { continue; }
+            if ln.is_empty() || ln.starts_with('#') {
+                continue;
+            }
             let mut it = ln.split('\t');
             let buffer = it.next();
             let word = it.next();
@@ -260,7 +293,9 @@ pub fn quickfix_boost() -> &'static std::collections::HashMap<(String, String), 
     CACHED.get_or_init(|| {
         let mut m = HashMap::new();
         for ln in QUICKFIX_BOOST_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') { continue; }
+            if ln.is_empty() || ln.starts_with('#') {
+                continue;
+            }
             let mut it = ln.split('\t');
             let buffer = it.next();
             let word = it.next();
@@ -284,7 +319,9 @@ pub fn prior_corrections() -> &'static std::collections::HashMap<String, i32> {
     CACHED.get_or_init(|| {
         let mut m = HashMap::new();
         for ln in PRIOR_CORRECTIONS_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') { continue; }
+            if ln.is_empty() || ln.starts_with('#') {
+                continue;
+            }
             let mut it = ln.split('\t');
             let word = it.next();
             let boost_s = it.next();
@@ -312,7 +349,9 @@ pub fn modern_freq() -> &'static std::collections::HashMap<String, u16> {
     CACHED.get_or_init(|| {
         let mut m = HashMap::with_capacity(96_000);
         for ln in MODERN_FREQ_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') { continue; }
+            if ln.is_empty() || ln.starts_with('#') {
+                continue;
+            }
             let mut it = ln.split('\t');
             let word = it.next();
             let score_s = it.next();
@@ -337,7 +376,9 @@ pub fn exclusions() -> &'static std::collections::HashSet<(String, String)> {
     CACHED.get_or_init(|| {
         let mut s: HashSet<(String, String)> = HashSet::new();
         for ln in EXCLUSIONS_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') { continue; }
+            if ln.is_empty() || ln.starts_with('#') {
+                continue;
+            }
             let mut it = ln.split('\t');
             let code = it.next();
             let word = it.next();
@@ -346,7 +387,9 @@ pub fn exclusions() -> &'static std::collections::HashSet<(String, String)> {
             }
         }
         for ln in CORPUS_GARBAGE_FILTER_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') { continue; }
+            if ln.is_empty() || ln.starts_with('#') {
+                continue;
+            }
             let mut it = ln.split('\t');
             let code = it.next();
             let word = it.next();
@@ -358,7 +401,9 @@ pub fn exclusions() -> &'static std::collections::HashSet<(String, String)> {
         // wanted them back). Reads quickfix_boost directly to avoid
         // a dep cycle.
         for ln in QUICKFIX_BOOST_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') { continue; }
+            if ln.is_empty() || ln.starts_with('#') {
+                continue;
+            }
             let mut it = ln.split('\t');
             let code = it.next();
             let word = it.next();
@@ -395,7 +440,10 @@ mod tests {
     fn chars_canonical_reading_present_for_all() {
         let cs = chars();
         let missing = cs.iter().filter(|c| c.canonical_reading.is_empty()).count();
-        assert_eq!(missing, 0, "all 8105 chars must have kMandarin canonical reading");
+        assert_eq!(
+            missing, 0,
+            "all 8105 chars must have kMandarin canonical reading"
+        );
     }
 
     #[test]
@@ -450,7 +498,11 @@ mod tests {
         let rs = readings();
         let yi_readings: Vec<&ReadingEntry> = rs.iter().filter(|r| r.ch == '一').collect();
         // 一 should have at least the primary "yī" + a polyphone "yí" (一会儿)
-        assert!(yi_readings.iter().any(|r| r.reading == "yī" && r.rank == ReadingRank::Primary));
+        assert!(
+            yi_readings
+                .iter()
+                .any(|r| r.reading == "yī" && r.rank == ReadingRank::Primary)
+        );
         assert!(yi_readings.iter().any(|r| r.reading == "yí"));
     }
 
@@ -458,7 +510,11 @@ mod tests {
     fn readings_primary_has_offset_zero() {
         let rs = readings();
         for r in rs.iter().filter(|r| r.rank == ReadingRank::Primary) {
-            assert_eq!(r.tier_offset, 0, "primary reading must be tier_offset 0 ({} {})", r.ch, r.reading);
+            assert_eq!(
+                r.tier_offset, 0,
+                "primary reading must be tier_offset 0 ({} {})",
+                r.ch, r.reading
+            );
         }
     }
 
@@ -468,23 +524,28 @@ mod tests {
         // Soft pin: base + supplements. Allow growth as polish-A
         // adds words to modern_vocab_v1. Reject pathological doubling.
         let n = ws.len();
-        assert!(n >= 88_000 && n < 90_000,
-            "words.tsv len drift outside expected band: {}", n);
+        assert!(
+            n >= 88_000 && n < 90_000,
+            "words.tsv len drift outside expected band: {}",
+            n
+        );
     }
 
     #[test]
     fn words_tier_distribution() {
         let ws = words();
         let mut by_t = [0usize; 10];
-        for w in ws { by_t[w.tier as usize] += 1; }
+        for w in ws {
+            by_t[w.tier as usize] += 1;
+        }
         // Hard pins per ingest output (CC-CEDICT + HSK + modern_vocab):
-        assert_eq!(by_t[1], 150,   "tier 1 (HSK 1-2 multi-char)");
-        assert_eq!(by_t[2], 702,   "tier 2 (HSK 3-4 multi-char)");
+        assert_eq!(by_t[1], 150, "tier 1 (HSK 1-2 multi-char)");
+        assert_eq!(by_t[2], 702, "tier 2 (HSK 3-4 multi-char)");
         // tier 3 was 3493 base + modern_vocab freq>=60k entries
         assert!(by_t[3] >= 3493, "tier 3 ≥ base 3493 ({} got)", by_t[3]);
         assert!(by_t[4] >= 49734, "tier 4 ≥ base 49734 ({} got)", by_t[4]);
         assert!(by_t[5] >= 31357, "tier 5 ≥ base 31357 ({} got)", by_t[5]);
-        assert!(by_t[6] >= 2699,  "tier 6 ≥ base 2699 ({} got)", by_t[6]);
+        assert!(by_t[6] >= 2699, "tier 6 ≥ base 2699 ({} got)", by_t[6]);
     }
 
     #[test]
@@ -496,7 +557,10 @@ mod tests {
         assert_eq!(nh.code, "nihao");
         assert_eq!(nh.reading_path, "[你|nǐ][好|hǎo]");
         let xiuxi: Vec<&WordEntry> = ws.iter().filter(|w| w.word == "休息").collect();
-        assert!(!xiuxi.is_empty(), "休息 HSK 2 polyphone-neutral case must be in");
+        assert!(
+            !xiuxi.is_empty(),
+            "休息 HSK 2 polyphone-neutral case must be in"
+        );
         assert_eq!(xiuxi[0].tier, 1, "休息 is HSK 2 → tier 1");
     }
 
@@ -506,9 +570,11 @@ mod tests {
         for w in ws.iter().take(1000) {
             let bracket_count = w.reading_path.matches('|').count();
             let char_count = w.word.chars().count();
-            assert_eq!(bracket_count, char_count,
+            assert_eq!(
+                bracket_count, char_count,
                 "reading_path must have one |-separator per char (word={}, path={})",
-                w.word, w.reading_path);
+                w.word, w.reading_path
+            );
         }
     }
 }

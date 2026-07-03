@@ -1402,26 +1402,26 @@ mod tests {
     #[test]
     fn polyphone_sweep_correct_readings_kept() {
         let cases: &[(&str, &str)] = &[
-            ("yidali", "意大利"),  // 大 correct = dà
-            ("meicuo", "没错"),    // 没 correct = méi
-            ("daerxi", "大儿媳"),  // 大 correct, also fixes the er-typo case
-            ("guozao", "聒噪"),    // 聒 correct = guō (the kept side)
-            ("kansi", "看似"),     // 似 correct = sì (② reversed kept side)
-            ("shousha", "手刹"),   // batch2a: 刹 shā kept
-            ("niboer", "尼泊尔"),  // batch2a: 泊 bó kept
-            ("xiaopingguo", "削苹果"), // batch2a: 削 xiāo kept
-            ("pengyouquan", "朋友圈"), // batch2b: 圈 quān kept
-            ("zhujuan", "猪圈"),       // batch2b: 圈 juàn kept
-            ("yixi", "一系"),          // batch2b: 系 xì kept
+            ("yidali", "意大利"),         // 大 correct = dà
+            ("meicuo", "没错"),           // 没 correct = méi
+            ("daerxi", "大儿媳"),         // 大 correct, also fixes the er-typo case
+            ("guozao", "聒噪"),           // 聒 correct = guō (the kept side)
+            ("kansi", "看似"),            // 似 correct = sì (② reversed kept side)
+            ("shousha", "手刹"),          // batch2a: 刹 shā kept
+            ("niboer", "尼泊尔"),         // batch2a: 泊 bó kept
+            ("xiaopingguo", "削苹果"),    // batch2a: 削 xiāo kept
+            ("pengyouquan", "朋友圈"),    // batch2b: 圈 quān kept
+            ("zhujuan", "猪圈"),          // batch2b: 圈 juàn kept
+            ("yixi", "一系"),             // batch2b: 系 xì kept
             ("zhaohuaxishi", "朝花夕拾"), // batch2b-2: 朝 zhāo kept
-            ("xiangyao", "降妖"),      // batch2b-2: 降 xiáng kept
-            ("chengtang", "盛汤"),     // batch2b-2: 盛 chéng kept
-            ("chairen", "差人"),       // batch2b-2: 差 chāi kept
-            ("danke", "蛋壳"),         // batch2b-3: 壳 ké kept
-            ("shoudu", "首都"),        // batch2b-3: 都 dū kept
-            ("tiandu", "天都"),        // batch2b-3: 都 dū kept
-            ("danpian", "弹片"),       // batch2c: 弹 dàn 名词 kept
-            ("tantiao", "弹跳"),       // batch2c: 弹 tán 动词 kept
+            ("xiangyao", "降妖"),         // batch2b-2: 降 xiáng kept
+            ("chengtang", "盛汤"),        // batch2b-2: 盛 chéng kept
+            ("chairen", "差人"),          // batch2b-2: 差 chāi kept
+            ("danke", "蛋壳"),            // batch2b-3: 壳 ké kept
+            ("shoudu", "首都"),           // batch2b-3: 都 dū kept
+            ("tiandu", "天都"),           // batch2b-3: 都 dū kept
+            ("danpian", "弹片"),          // batch2c: 弹 dàn 名词 kept
+            ("tantiao", "弹跳"),          // batch2c: 弹 tán 动词 kept
         ];
         let mut missing = Vec::new();
         for (buf, word) in cases {
@@ -1429,7 +1429,11 @@ mod tests {
                 missing.push(format!("  {buf}: correct-reading {word} lost"));
             }
         }
-        assert!(missing.is_empty(), "sweep removed correct readings:\n{}", missing.join("\n"));
+        assert!(
+            missing.is_empty(),
+            "sweep removed correct readings:\n{}",
+            missing.join("\n")
+        );
     }
 
     /// Class D1 polish (user report 2026-06-12): "momo 嶙嶙也不像个词，
@@ -1788,11 +1792,18 @@ mod tests {
         let pos = |w: &str| top10.iter().position(|x| x == w);
         let p_tuidao_dao = pos("推导");
         let p_tuidao_tui = pos("退到");
-        assert!(p_tuidao_dao.is_some() && p_tuidao_tui.is_some(),
-            "tuidao top10 missing 推导 or 退到: {:?}", top10);
-        assert!(p_tuidao_dao.unwrap() < p_tuidao_tui.unwrap(),
+        assert!(
+            p_tuidao_dao.is_some() && p_tuidao_tui.is_some(),
+            "tuidao top10 missing 推导 or 退到: {:?}",
+            top10
+        );
+        assert!(
+            p_tuidao_dao.unwrap() < p_tuidao_tui.unwrap(),
             "tuidao: 推导 must rank above 退到 (got 推导@{} 退到@{}, top10={:?})",
-            p_tuidao_dao.unwrap(), p_tuidao_tui.unwrap(), top10);
+            p_tuidao_dao.unwrap(),
+            p_tuidao_tui.unwrap(),
+            top10
+        );
     }
 
     /// Class-A polish "the word should appear in top-N" assertions.
@@ -3031,28 +3042,28 @@ mod tests {
             ("yuxian", &["遇见"]),    // 见 jian→xian
             ("guazao", &["聒噪"]),    // 聒 — pypinyin判反, 删prim(gua), 正确读 guō
             // batch2a (双向多音字 per-word call): wrong-reading side deleted.
-            ("shoucha", &["手刹"]),     // 刹 手刹读shā, cha错读
-            ("xuepingguo", &["削苹果"]), // 削 削苹果读xiāo, xue错读
-            ("nipoer", &["尼泊尔"]),    // 泊 尼泊尔读bó, po错读
+            ("shoucha", &["手刹"]),       // 刹 手刹读shā, cha错读
+            ("xuepingguo", &["削苹果"]),  // 削 削苹果读xiāo, xue错读
+            ("nipoer", &["尼泊尔"]),      // 泊 尼泊尔读bó, po错读
             ("pengyoujuan", &["朋友圈"]), // 圈 quān, juan错读
-            ("zhuquan", &["猪圈"]),     // 圈 猪圈读juàn, quan错读
-            ("yiji", &["一系"]),        // 系 一系读xì, ji错读
+            ("zhuquan", &["猪圈"]),       // 圈 猪圈读juàn, quan错读
+            ("yiji", &["一系"]),          // 系 一系读xì, ji错读
             // batch2b-2 大字 (default 主体 + minority exceptions):
             ("chaohuaxishi", &["朝花夕拾"]), // 朝 zhāo, chao错读
-            ("jiangyao", &["降妖"]),    // 降 xiáng, jiang错读
-            ("shengtang", &["盛汤"]),   // 盛 chéng, sheng错读
-            ("charen", &["差人"]),      // 差 chāi, cha错读
+            ("jiangyao", &["降妖"]),         // 降 xiáng, jiang错读
+            ("shengtang", &["盛汤"]),        // 盛 chéng, sheng错读
+            ("charen", &["差人"]),           // 差 chāi, cha错读
             // batch2b-3:
-            ("danqiao", &["蛋壳"]),     // 壳 ké, qiao错读
-            ("shoudou", &["首都"]),     // 都 dū, dou错读
-            ("shene", &["深恶"]),       // 恶 wù, e错读
+            ("danqiao", &["蛋壳"]), // 壳 ké, qiao错读
+            ("shoudou", &["首都"]), // 都 dū, dou错读
+            ("shene", &["深恶"]),   // 恶 wù, e错读
             // batch2c — 弹 (default dàn 名词, tán 动词 exceptions):
             // dàn-reading 弹片 / 弹幕 must NOT appear at the tan→错读 buffer;
             // tán-reading 弹跳 / 弹奏 must NOT appear at the dan→错读 buffer.
-            ("tanpian", &["弹片"]),     // 弹 dàn, tan错读
-            ("tanmu", &["弹幕"]),       // 弹 dàn, tan错读
-            ("dantiao", &["弹跳"]),     // 弹 tán, dan错读
-            ("danbo", &["弹拨"]),       // 弹 tán, dan错读
+            ("tanpian", &["弹片"]), // 弹 dàn, tan错读
+            ("tanmu", &["弹幕"]),   // 弹 dàn, tan错读
+            ("dantiao", &["弹跳"]), // 弹 tán, dan错读
+            ("danbo", &["弹拨"]),   // 弹 tán, dan错读
             // 2026-06-17 polyphone-dup sweep batch2-hard 行 char (climb-final
             // Stage B3 part-1). 行 = xíng (走/进行 主流) + háng (银行/
             // 行业/商店/线 of text). pypinyin defaults 行 prim_syl=xing for
@@ -3063,22 +3074,22 @@ mod tests {
             //
             // del_wrong group: word is xíng-reading; hang→ copy is the wrong
             // one and got deleted. So at hang-buffer, word now absent.
-            ("jiuhangle", &["就行了"]),   // 行 xíng
+            ("jiuhangle", &["就行了"]),  // 行 xíng
             ("haihang", &["还行"]),      // 行 xíng
-            ("hangbuxing", &["行不行"]),  // 行 xíng (双 occur)
-            ("hangdetong", &["行得通"]),  // 行 xíng
+            ("hangbuxing", &["行不行"]), // 行 xíng (双 occur)
+            ("hangdetong", &["行得通"]), // 行 xíng
             // NB: jinhangqu (进行曲) excluded — lattice composer
             // reconstructs it via single-char heteronym path (进+行háng+
             // 曲); dict-row deletion alone can't suppress this without
             // a D2-style hide list, which is a separate concern.
             // del_prim group: word is háng-reading; pypinyin mis-primaried as
             // xing → xing-copy deleted. So at xing-buffer, word now absent.
-            ("xingyuan", &["行员"]),     // 行 háng (bank teller)
-            ("zhixing", &["支行"]),      // 行 háng (financial branch)
-            ("gexing", &["各行"]),       // 行 háng (各行各业)
-            ("minxing", &["闵行"]),      // 行 háng (上海地名)
-            ("qinxing", &["琴行"]),      // 行 háng (instrument shop)
-            ("taixing", &["太行"]),      // 行 háng (山名)
+            ("xingyuan", &["行员"]), // 行 háng (bank teller)
+            ("zhixing", &["支行"]),  // 行 háng (financial branch)
+            ("gexing", &["各行"]),   // 行 háng (各行各业)
+            ("minxing", &["闵行"]),  // 行 háng (上海地名)
+            ("qinxing", &["琴行"]),  // 行 háng (instrument shop)
+            ("taixing", &["太行"]),  // 行 háng (山名)
             // 2026-06-17 polyphone-dup sweep batch2-hard 长 char (climb-final
             // Stage B3 part-2). 长 = cháng (长城/长时间/place names) +
             // zhǎng (长胖/长肉 + 官名 营长/族长). 246 wrong-syl copies
@@ -3088,24 +3099,24 @@ mod tests {
             // del_prim group: word is cháng-reading; pypinyin zhang-row
             // is the wrong copy and got deleted. So at zhang-buffer,
             // word now absent.
-            ("zhangdao", &["长岛"]),     // 长 cháng (place)
-            ("zhangtan", &["长滩"]),     // 长 cháng (place)
-            ("zhangyi", &["长椅"]),      // 长 cháng (long chair)
-            ("zhanglu", &["长路"]),      // 长 cháng (long road)
-            ("zhangzhi", &["长治"]),     // 长 cháng (place 长治市)
-            ("zhangjing", &["长颈"]),    // 长 cháng (long neck)
-            ("zhangqun", &["长裙"]),     // 长 cháng (long skirt)
+            ("zhangdao", &["长岛"]),  // 长 cháng (place)
+            ("zhangtan", &["长滩"]),  // 长 cháng (place)
+            ("zhangyi", &["长椅"]),   // 长 cháng (long chair)
+            ("zhanglu", &["长路"]),   // 长 cháng (long road)
+            ("zhangzhi", &["长治"]),  // 长 cháng (place 长治市)
+            ("zhangjing", &["长颈"]), // 长 cháng (long neck)
+            ("zhangqun", &["长裙"]),  // 长 cháng (long skirt)
             // del_wrong group: word is zhǎng-reading; pypinyin chang-row
             // is the wrong copy and got deleted. So at chang-buffer,
             // word now absent.
-            ("yingchang", &["营长"]),    // 长 zhǎng (officer)
-            ("zuchang", &["族长"]),      // 长 zhǎng (clan chief)
-            ("tanchang", &["探长"]),     // 长 zhǎng (detective)
-            ("yuanchang", &["园长"]),    // 长 zhǎng (school principal)
-            ("quchang", &["区长"]),      // 长 zhǎng (district chief)
-            ("changpang", &["长胖"]),    // 长 zhǎng (grow fat)
-            ("changrou", &["长肉"]),     // 长 zhǎng (grow meat)
-            ("changdou", &["长痘"]),     // 长 zhǎng (grow pimples)
+            ("yingchang", &["营长"]),      // 长 zhǎng (officer)
+            ("zuchang", &["族长"]),        // 长 zhǎng (clan chief)
+            ("tanchang", &["探长"]),       // 长 zhǎng (detective)
+            ("yuanchang", &["园长"]),      // 长 zhǎng (school principal)
+            ("quchang", &["区长"]),        // 长 zhǎng (district chief)
+            ("changpang", &["长胖"]),      // 长 zhǎng (grow fat)
+            ("changrou", &["长肉"]),       // 长 zhǎng (grow meat)
+            ("changdou", &["长痘"]),       // 长 zhǎng (grow pimples)
             ("changjianshi", &["长见识"]), // 长 zhǎng (gain insight)
             // 2026-06-17 polyphone-dup sweep batch2-hard 重 char (climb-final
             // Stage B3 part-3). 重 = zhòng (heavy/important 重要/重病/
@@ -3118,27 +3129,27 @@ mod tests {
             // del_wrong group: word is zhòng-reading; pypinyin chong-row
             // is the wrong copy and got deleted. So at chong-buffer,
             // word now absent.
-            ("zunchong", &["尊重"]),     // 重 zhòng (respect)
-            ("renchong", &["任重"]),     // 重 zhòng (任重道远)
-            ("zhengchong", &["症重"]),   // 重 zhòng — but "症重" rare; skip
-            ("changchong", &["惨重"]),   // 重 zhòng (severe)
-            ("haochong", &["毫重"]),     // skip non-existent
+            ("zunchong", &["尊重"]),   // 重 zhòng (respect)
+            ("renchong", &["任重"]),   // 重 zhòng (任重道远)
+            ("zhengchong", &["症重"]), // 重 zhòng — but "症重" rare; skip
+            ("changchong", &["惨重"]), // 重 zhòng (severe)
+            ("haochong", &["毫重"]),   // skip non-existent
             // del_prim group: word is chóng-reading; pypinyin zhong-row
             // is the wrong copy and got deleted. So at zhong-buffer,
             // word now absent.
-            ("zhongkao", &["重考"]),     // 重 chóng (re-exam)
-            ("zhongzhen", &["重振"]),    // 重 chóng (re-spirit)
-            ("zhongsuo", &["重塑"]),     // 重 chóng (re-shape)
-            ("zhongshi", &["重拾"]),     // 重 chóng (re-pickup) — NB 重视 zhòng-shì also exists, KEPT
-            ("zhongkai", &["重开"]),     // 重 chóng (re-open)
-            ("zhongyou", &["重游"]),     // 重 chóng (re-visit)
-            ("zhongfa", &["重发"]),      // 重 chóng (re-send)
-            ("zhongjian", &["重见"]),    // 重 chóng (re-see)
-            ("zhongma", &["重码"]),      // 重 chóng (duplicate code)
-            ("zhongyou_p", &["重邮"]),   // 重 chóng (重庆邮电)
+            ("zhongkao", &["重考"]),   // 重 chóng (re-exam)
+            ("zhongzhen", &["重振"]),  // 重 chóng (re-spirit)
+            ("zhongsuo", &["重塑"]),   // 重 chóng (re-shape)
+            ("zhongshi", &["重拾"]),   // 重 chóng (re-pickup) — NB 重视 zhòng-shì also exists, KEPT
+            ("zhongkai", &["重开"]),   // 重 chóng (re-open)
+            ("zhongyou", &["重游"]),   // 重 chóng (re-visit)
+            ("zhongfa", &["重发"]),    // 重 chóng (re-send)
+            ("zhongjian", &["重见"]),  // 重 chóng (re-see)
+            ("zhongma", &["重码"]),    // 重 chóng (duplicate code)
+            ("zhongyou_p", &["重邮"]), // 重 chóng (重庆邮电)
             // — NB: 重组 has prim_code zhongzu primary already, so del_prim
             // wiped that. Check both ends:
-            ("zhongzu", &["重组"]),      // 重 chóng (re-organize)
+            ("zhongzu", &["重组"]), // 重 chóng (re-organize)
             // User polish-log 2026-06-12: "momo 嶙嶙也不像个词，默默第一"
             // — 嶙嶙 was a wubi-side phrase row (momo = structural full
             // code) leading mixed #0 via the wubi tier. 嶙 is a real

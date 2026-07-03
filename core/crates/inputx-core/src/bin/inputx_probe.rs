@@ -38,7 +38,9 @@ use inputx_core::{AutoCommitPolicy, EngineMode as Mode, ScoreComponents, Session
 fn print_help() {
     eprintln!("inputx-probe — engine introspection CLI\n");
     eprintln!("Usage:");
-    eprintln!("    inputx-probe <buffer> [--mode mixed|wubi|pinyin|japanese] [--jp] [--pinyin v1|v2]");
+    eprintln!(
+        "    inputx-probe <buffer> [--mode mixed|wubi|pinyin|japanese] [--jp] [--pinyin v1|v2]"
+    );
     eprintln!();
     eprintln!("Examples:");
     eprintln!("    inputx-probe jixu");
@@ -102,7 +104,9 @@ fn main() -> ExitCode {
                 // SAFETY: set before any v2-crate code paths read it.
                 // OnceLock cache hasn't fired because Session not yet created.
                 // safe because main has no other threads at this point.
-                unsafe { env::set_var("INPUTX_PINYIN_VERSION", v); }
+                unsafe {
+                    env::set_var("INPUTX_PINYIN_VERSION", v);
+                }
             }
             other => {
                 eprintln!("unknown arg: {other}");

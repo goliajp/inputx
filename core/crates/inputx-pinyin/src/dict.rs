@@ -307,9 +307,7 @@ impl PinyinDict {
     /// read + one hashmap probe).
     fn cell_dict_hits(&self, lower_pinyin: &str) -> Vec<(String, u64)> {
         match self.cell_dict_layer.read() {
-            Ok(layer) if !layer.is_empty() => {
-                layer.get(lower_pinyin).cloned().unwrap_or_default()
-            }
+            Ok(layer) if !layer.is_empty() => layer.get(lower_pinyin).cloned().unwrap_or_default(),
             _ => Vec::new(),
         }
     }
@@ -793,7 +791,11 @@ impl PinyinDict {
                 // candidates of this segment.
                 let prev_prev_word_opt: Option<String> = if use_trigram && prev_entry.1 != 0 {
                     dp[prev_entry.1].as_ref().and_then(|e| {
-                        if e.2.is_empty() { None } else { Some(e.2.clone()) }
+                        if e.2.is_empty() {
+                            None
+                        } else {
+                            Some(e.2.clone())
+                        }
                     })
                 } else {
                     None
@@ -895,7 +897,11 @@ impl PinyinDict {
                 }
                 let prev_prev_word_opt: Option<String> = if use_trigram && prev_entry.1 != 0 {
                     dp[prev_entry.1].as_ref().and_then(|e| {
-                        if e.2.is_empty() { None } else { Some(e.2.clone()) }
+                        if e.2.is_empty() {
+                            None
+                        } else {
+                            Some(e.2.clone())
+                        }
                     })
                 } else {
                     None
@@ -1040,11 +1046,7 @@ impl PinyinDict {
     /// beam since lattice viterbi prunes per-node, not per-final. CP-5.3
     /// step-2 added typo edges so K-best now includes typo-rescued
     /// alternates for typo inputs.
-    pub fn top_k_compositions_via_lattice(
-        &self,
-        buffer: &str,
-        k: usize,
-    ) -> Vec<(f64, String)> {
+    pub fn top_k_compositions_via_lattice(&self, buffer: &str, k: usize) -> Vec<(f64, String)> {
         let paths = match self.compose_via_lattice_paths(buffer, k, true, true, None) {
             Some(p) => p,
             None => return Vec::new(),
@@ -1074,16 +1076,11 @@ impl PinyinDict {
         // CP-5.4 step-2 follow-up: same typo-disable as the chain
         // variant above. Abbreviation input is unambiguous — no typo
         // hybrid composition.
-        let paths = match self.compose_via_lattice_paths(
-            buffer,
-            k,
-            false,
-            true,
-            Some(abbrev_resolver),
-        ) {
-            Some(p) => p,
-            None => return Vec::new(),
-        };
+        let paths =
+            match self.compose_via_lattice_paths(buffer, k, false, true, Some(abbrev_resolver)) {
+                Some(p) => p,
+                None => return Vec::new(),
+            };
         let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut out: Vec<(f64, String)> = Vec::with_capacity(paths.len());
         for p in paths {
@@ -1166,7 +1163,7 @@ impl PinyinDict {
         use crate::abbrev_channel::{abbrev_channel_log_prob, split_initials};
         use crate::fuzzy::FuzzyConfig;
         use crate::keyboard_adjacency::single_edit_neighbors;
-        use crate::lattice::{fuzzy_channel_log_prob, Edge, Graph};
+        use crate::lattice::{Edge, Graph, fuzzy_channel_log_prob};
 
         const MIN_LEN: usize = 4;
         const MAX_LEN: usize = 30;
@@ -1229,32 +1226,18 @@ impl PinyinDict {
                         self.lookup_raw_into(variant, &mut scratch);
                         for (word, raw_freq) in scratch.iter() {
                             let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
-                            graph.add_edge(Edge::fuzzy(
-                                j,
-                                i,
-                                word.clone(),
-                                weight,
-                                channel,
-                            ));
+                            graph.add_edge(Edge::fuzzy(j, i, word.clone(), weight, channel));
                         }
                     }
                 }
                 // Typo edges — gated by flag + syllable shape.
                 if include_typo_edges && seg.len() <= TYPO_MAX_SEG_LEN {
-                    for (variant, channel) in
-                        single_edit_neighbors(seg, TYPO_MAX_DISTANCE)
-                    {
+                    for (variant, channel) in single_edit_neighbors(seg, TYPO_MAX_DISTANCE) {
                         scratch.clear();
                         self.lookup_raw_into(&variant, &mut scratch);
                         for (word, raw_freq) in scratch.iter() {
                             let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
-                            graph.add_edge(Edge::typo(
-                                j,
-                                i,
-                                word.clone(),
-                                weight,
-                                channel,
-                            ));
+                            graph.add_edge(Edge::typo(j, i, word.clone(), weight, channel));
                         }
                     }
                 }
@@ -1263,9 +1246,9 @@ impl PinyinDict {
                 // initials-abbreviation shape).
                 if let Some(resolver) = abbrev_resolver {
                     if seg.len() >= 2
-                        && seg.bytes().all(|b| {
-                            !matches!(b, b'a' | b'e' | b'i' | b'o' | b'u' | b'v')
-                        })
+                        && seg
+                            .bytes()
+                            .all(|b| !matches!(b, b'a' | b'e' | b'i' | b'o' | b'u' | b'v'))
                     {
                         let initials = split_initials(seg);
                         if !initials.is_empty() {
@@ -1276,15 +1259,8 @@ impl PinyinDict {
                             // non-empty Vec.
                             if channel.is_finite() {
                                 for (word, score) in resolver(seg) {
-                                    let weight =
-                                        (score as f64 - STEP_PENALTY) as f32;
-                                    graph.add_edge(Edge::abbrev(
-                                        j,
-                                        i,
-                                        word,
-                                        weight,
-                                        channel,
-                                    ));
+                                    let weight = (score as f64 - STEP_PENALTY) as f32;
+                                    graph.add_edge(Edge::abbrev(j, i, word, weight, channel));
                                 }
                             }
                         }
@@ -1775,12 +1751,7 @@ impl PinyinDict {
     /// grandparent context to condition on. The DP that drives this
     /// only starts producing trigram contexts at step 3, matching the
     /// climb-plan O(N×V²) → O(N×V³) state extension.
-    pub fn lm_bonus(
-        &self,
-        prev_prev: Option<&str>,
-        prev: Option<&str>,
-        curr: &str,
-    ) -> f64 {
+    pub fn lm_bonus(&self, prev_prev: Option<&str>, prev: Option<&str>, curr: &str) -> f64 {
         // ── Order-2 path: keep Phase-2's λ_system × log_prob bigram bonus
         // verbatim, including the prev_prev signal being silently
         // discarded (a bigram model has no use for it). This preserves
@@ -2061,10 +2032,7 @@ mod tests {
             std::env::set_var("PINYIN_LM_TRIGRAM_LAMBDA", "1.0");
         }
         let dict = PinyinDict::embedded().with_lm_from_env();
-        assert_eq!(
-            dict.lm_order(), 3,
-            "trigram.binary should report order=3"
-        );
+        assert_eq!(dict.lm_order(), 3, "trigram.binary should report order=3");
 
         // Bigram contribution: P(中国 | 是) ~ -2 ish, scaled.
         let bonus_bigram = dict.lm_bonus(None, Some("是"), "中国");
@@ -2766,8 +2734,10 @@ mod tests {
         // loaded must produce the same lookup output on a non-trivial
         // pinyin. Ensures the L0.5 init isn't perturbing the order.
         assert_eq!(a.lookup("nihao"), b.lookup("nihao"));
-        assert_eq!(a.lookup_with_freq_into_test("ni"),
-                   b.lookup_with_freq_into_test("ni"));
+        assert_eq!(
+            a.lookup_with_freq_into_test("ni"),
+            b.lookup_with_freq_into_test("ni")
+        );
         assert_eq!(a.cell_dict_count(), 0);
     }
 
@@ -2862,8 +2832,11 @@ freq = 999999
         let pre_count = dict.cell_dict_count();
         let res = dict.load_cell_dict("this is = not [valid toml");
         assert!(res.is_err(), "invalid TOML should return Err");
-        assert_eq!(dict.cell_dict_count(), pre_count,
-                   "failed parse must leave layer unchanged");
+        assert_eq!(
+            dict.cell_dict_count(),
+            pre_count,
+            "failed parse must leave layer unchanged"
+        );
     }
 
     // Tiny test-only wrapper because lookup_with_freq_into is &mut-self
