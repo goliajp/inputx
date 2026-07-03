@@ -9594,11 +9594,9 @@
       "expected": "更稳定",
       "pinyin": "gengwending",
       "reason": "linear",
-      "top10": [
-        "更稳定"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0720",
@@ -10536,9 +10534,9 @@
   ],
   "stats": {
     "total": 789,
-    "pass": 789,
+    "pass": 788,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

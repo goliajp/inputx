@@ -8688,7 +8688,6 @@
       "reason": "linear",
       "top10": [
         "安宁",
-        "按年",
         "按钮",
         "安宁片",
         "安宁病房"
@@ -13462,11 +13461,9 @@
       "expected": "按年",
       "pinyin": "annian",
       "reason": "linear",
-      "top10": [
-        "按年"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0921",
@@ -13530,11 +13527,9 @@
       "expected": "按年",
       "pinyin": "annian",
       "reason": "linear",
-      "top10": [
-        "按年"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0927",
@@ -15200,9 +15195,9 @@
   ],
   "stats": {
     "total": 1051,
-    "pass": 1051,
+    "pass": 1049,
     "soft": 0,
-    "audit": 0,
+    "audit": 2,
     "hard": 0
   }
 }

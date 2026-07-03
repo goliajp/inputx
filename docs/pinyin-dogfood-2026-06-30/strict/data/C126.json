@@ -1607,11 +1607,9 @@
       "expected": "更安全",
       "pinyin": "genganquan",
       "reason": "linear",
-      "top10": [
-        "更安全"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0120",
@@ -6194,9 +6192,9 @@
   ],
   "stats": {
     "total": 448,
-    "pass": 448,
+    "pass": 447,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

@@ -7092,11 +7092,9 @@
       "expected": "多月",
       "pinyin": "duoyue",
       "reason": "linear",
-      "top10": [
-        "多月"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0483",
@@ -14826,11 +14824,9 @@
       "expected": "多月",
       "pinyin": "duoyue",
       "reason": "linear",
-      "top10": [
-        "多月"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0999",
@@ -25597,9 +25593,9 @@
   ],
   "stats": {
     "total": 1711,
-    "pass": 1711,
+    "pass": 1709,
     "soft": 0,
-    "audit": 0,
+    "audit": 2,
     "hard": 0
   }
 }

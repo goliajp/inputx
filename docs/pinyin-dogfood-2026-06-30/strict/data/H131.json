@@ -10796,11 +10796,9 @@
       "expected": "越少",
       "pinyin": "yueshao",
       "reason": "linear",
-      "top10": [
-        "越少"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0725",
@@ -10970,11 +10968,9 @@
       "expected": "越少",
       "pinyin": "yueshao",
       "reason": "linear",
-      "top10": [
-        "越少"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0736",
@@ -22842,9 +22838,9 @@
   ],
   "stats": {
     "total": 1532,
-    "pass": 1532,
+    "pass": 1530,
     "soft": 0,
-    "audit": 0,
+    "audit": 2,
     "hard": 0
   }
 }

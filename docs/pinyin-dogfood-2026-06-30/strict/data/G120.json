@@ -4017,11 +4017,9 @@
       "expected": "让世界",
       "pinyin": "rangshijie",
       "reason": "linear",
-      "top10": [
-        "让世界"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0284",
@@ -6644,11 +6642,9 @@
       "expected": "让世界",
       "pinyin": "rangshijie",
       "reason": "linear",
-      "top10": [
-        "让世界"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0472",
@@ -9104,9 +9100,9 @@
   ],
   "stats": {
     "total": 654,
-    "pass": 654,
+    "pass": 652,
     "soft": 0,
-    "audit": 0,
+    "audit": 2,
     "hard": 0
   }
 }

@@ -34046,7 +34046,6 @@
       "reason": "linear",
       "top10": [
         "两代",
-        "两代人",
         "两大高",
         "两道关",
         "两大主题",
@@ -34054,7 +34053,8 @@
         "两大比赛",
         "两大趋势",
         "粮道",
-        "两党制"
+        "两党制",
+        "两弹一星"
       ],
       "rank": 99,
       "verdict": "PASS"
@@ -39540,11 +39540,9 @@
       "expected": "被遗弃",
       "pinyin": "beiyiqi",
       "reason": "linear",
-      "top10": [
-        "被遗弃"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "2741",
@@ -46405,9 +46403,9 @@
   ],
   "stats": {
     "total": 3214,
-    "pass": 3214,
+    "pass": 3213,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

@@ -7087,11 +7087,9 @@
       "expected": "让他",
       "pinyin": "rangta",
       "reason": "linear",
-      "top10": [
-        "让他们"
-      ],
+      "top10": [],
       "rank": 99,
-      "verdict": "PASS"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0505",
@@ -8830,11 +8828,9 @@
       "expected": "给大家",
       "pinyin": "geidajia",
       "reason": "linear",
-      "top10": [
-        "给大家"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0625",
@@ -10772,11 +10768,9 @@
       "expected": "给大家",
       "pinyin": "geidajia",
       "reason": "linear",
-      "top10": [
-        "给大家"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0765",
@@ -10930,9 +10924,9 @@
   ],
   "stats": {
     "total": 784,
-    "pass": 784,
+    "pass": 781,
     "soft": 0,
-    "audit": 0,
+    "audit": 3,
     "hard": 0
   }
 }

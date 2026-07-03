@@ -5675,11 +5675,9 @@
       "expected": "也会",
       "pinyin": "yehui",
       "reason": "linear",
-      "top10": [
-        "也会"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0408",
@@ -6079,11 +6077,9 @@
       "expected": "也会",
       "pinyin": "yehui",
       "reason": "linear",
-      "top10": [
-        "也会"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0437",
@@ -9213,9 +9209,9 @@
   ],
   "stats": {
     "total": 668,
-    "pass": 668,
+    "pass": 666,
     "soft": 0,
-    "audit": 0,
+    "audit": 2,
     "hard": 0
   }
 }

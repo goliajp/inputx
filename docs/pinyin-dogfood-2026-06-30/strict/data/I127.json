@@ -5431,11 +5431,9 @@
       "expected": "更需要",
       "pinyin": "gengxuyao",
       "reason": "linear",
-      "top10": [
-        "更需要"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0395",
@@ -7570,9 +7568,9 @@
   ],
   "stats": {
     "total": 546,
-    "pass": 546,
+    "pass": 545,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

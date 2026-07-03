@@ -1598,11 +1598,9 @@
       "expected": "给出",
       "pinyin": "geichu",
       "reason": "linear",
-      "top10": [
-        "给出"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0112",
@@ -9593,9 +9591,9 @@
   ],
   "stats": {
     "total": 659,
-    "pass": 659,
+    "pass": 658,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

@@ -19646,10 +19646,11 @@
       "pinyin": "gehua",
       "reason": "linear",
       "top10": [
-        "各话"
+        "各环节安全责任主体",
+        "个护啊"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1299",
@@ -20700,9 +20701,9 @@
   ],
   "stats": {
     "total": 1386,
-    "pass": 1386,
+    "pass": 1385,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

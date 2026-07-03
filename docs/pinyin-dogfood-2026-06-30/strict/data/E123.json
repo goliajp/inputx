@@ -353,22 +353,18 @@
       "expected": "更安全",
       "pinyin": "genganquan",
       "reason": "linear",
-      "top10": [
-        "更安全"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0029",
       "expected": "更健康",
       "pinyin": "gengjiankang",
       "reason": "linear",
-      "top10": [
-        "更健康"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0030",
@@ -3003,11 +2999,9 @@
       "expected": "更健康",
       "pinyin": "gengjiankang",
       "reason": "linear",
-      "top10": [
-        "更健康"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0216",
@@ -6864,9 +6858,9 @@
   ],
   "stats": {
     "total": 503,
-    "pass": 503,
+    "pass": 500,
     "soft": 0,
-    "audit": 0,
+    "audit": 3,
     "hard": 0
   }
 }

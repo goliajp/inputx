@@ -5441,11 +5441,9 @@
       "expected": "为载体",
       "pinyin": "weizaiti",
       "reason": "linear",
-      "top10": [
-        "为载体"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0393",
@@ -8761,9 +8759,9 @@
   ],
   "stats": {
     "total": 637,
-    "pass": 637,
+    "pass": 636,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

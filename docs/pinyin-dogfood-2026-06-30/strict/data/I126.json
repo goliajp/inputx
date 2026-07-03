@@ -5456,11 +5456,9 @@
       "expected": "为主题",
       "pinyin": "weizhuti",
       "reason": "linear",
-      "top10": [
-        "为主题"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0391",
@@ -5778,11 +5776,9 @@
       "expected": "为主题",
       "pinyin": "weizhuti",
       "reason": "linear",
-      "top10": [
-        "为主题"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0415",
@@ -7095,11 +7091,9 @@
       "expected": "为主题",
       "pinyin": "weizhuti",
       "reason": "linear",
-      "top10": [
-        "为主题"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0510",
@@ -10815,9 +10809,9 @@
   ],
   "stats": {
     "total": 792,
-    "pass": 792,
+    "pass": 789,
     "soft": 0,
-    "audit": 0,
+    "audit": 3,
     "hard": 0
   }
 }

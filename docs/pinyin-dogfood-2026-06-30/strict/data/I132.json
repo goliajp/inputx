@@ -1365,11 +1365,9 @@
       "expected": "为蓝本",
       "pinyin": "weilanben",
       "reason": "linear",
-      "top10": [
-        "为蓝本"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0098",
@@ -1501,11 +1499,9 @@
       "expected": "为蓝本",
       "pinyin": "weilanben",
       "reason": "linear",
-      "top10": [
-        "为蓝本"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0109",
@@ -9327,7 +9323,6 @@
       "pinyin": "weizai",
       "reason": "linear",
       "top10": [
-        "为载体",
         "危在旦夕"
       ],
       "rank": 99,
@@ -9928,11 +9923,9 @@
       "expected": "被纳入",
       "pinyin": "beinaru",
       "reason": "linear",
-      "top10": [
-        "被纳入"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0690",
@@ -11768,9 +11761,9 @@
   ],
   "stats": {
     "total": 835,
-    "pass": 835,
+    "pass": 832,
     "soft": 0,
-    "audit": 0,
+    "audit": 3,
     "hard": 0
   }
 }

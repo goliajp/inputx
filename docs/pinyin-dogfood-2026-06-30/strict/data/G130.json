@@ -5583,11 +5583,9 @@
       "expected": "更广阔",
       "pinyin": "gengguangkuo",
       "reason": "linear",
-      "top10": [
-        "更广阔"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0416",
@@ -8530,9 +8528,9 @@
   ],
   "stats": {
     "total": 626,
-    "pass": 626,
+    "pass": 625,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

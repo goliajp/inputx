@@ -11029,11 +11029,9 @@
       "expected": "给出",
       "pinyin": "geichu",
       "reason": "linear",
-      "top10": [
-        "给出"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0784",
@@ -16008,7 +16006,6 @@
       "reason": "linear",
       "top10": [
         "两代",
-        "两代人",
         "两大高",
         "两道关",
         "两大主题",
@@ -16016,7 +16013,8 @@
         "两大比赛",
         "两大趋势",
         "粮道",
-        "两党制"
+        "两党制",
+        "两弹一星"
       ],
       "rank": 99,
       "verdict": "PASS"
@@ -16664,9 +16662,9 @@
   ],
   "stats": {
     "total": 1183,
-    "pass": 1183,
+    "pass": 1182,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

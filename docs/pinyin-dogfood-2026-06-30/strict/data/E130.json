@@ -8213,11 +8213,9 @@
       "expected": "更稳定",
       "pinyin": "gengwending",
       "reason": "linear",
-      "top10": [
-        "更稳定"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0593",
@@ -10054,9 +10052,9 @@
   ],
   "stats": {
     "total": 732,
-    "pass": 732,
+    "pass": 731,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

@@ -1405,11 +1405,9 @@
       "expected": "该类",
       "pinyin": "gailei",
       "reason": "linear",
-      "top10": [
-        "该类"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0088",
@@ -14150,9 +14148,9 @@
   ],
   "stats": {
     "total": 920,
-    "pass": 920,
+    "pass": 919,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

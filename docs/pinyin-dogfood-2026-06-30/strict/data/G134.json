@@ -4087,10 +4087,11 @@
       "pinyin": "gehuanjie",
       "reason": "linear",
       "top10": [
-        "各环节"
+        "各环节安全责任主体",
+        "个护按揭"
       ],
-      "rank": 0,
-      "verdict": "PASS"
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0284",
@@ -6456,11 +6457,9 @@
       "expected": "让他们",
       "pinyin": "rangtamen",
       "reason": "linear",
-      "top10": [
-        "让他们"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0451",
@@ -6657,11 +6656,9 @@
       "expected": "让大家",
       "pinyin": "rangdajia",
       "reason": "linear",
-      "top10": [
-        "让大家"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0465",
@@ -9575,9 +9572,9 @@
   ],
   "stats": {
     "total": 672,
-    "pass": 672,
+    "pass": 669,
     "soft": 0,
-    "audit": 0,
+    "audit": 3,
     "hard": 0
   }
 }

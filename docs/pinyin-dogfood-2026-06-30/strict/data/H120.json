@@ -8305,11 +8305,9 @@
       "expected": "给出",
       "pinyin": "gaichu",
       "reason": "linear",
-      "top10": [
-        "该处"
-      ],
+      "top10": [],
       "rank": 99,
-      "verdict": "PASS"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0606",
@@ -8715,11 +8713,9 @@
       "expected": "给出",
       "pinyin": "gaichu",
       "reason": "linear",
-      "top10": [
-        "该处"
-      ],
+      "top10": [],
       "rank": 99,
-      "verdict": "PASS"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0636",
@@ -11256,9 +11252,9 @@
   ],
   "stats": {
     "total": 823,
-    "pass": 823,
+    "pass": 821,
     "soft": 0,
-    "audit": 0,
+    "audit": 2,
     "hard": 0
   }
 }

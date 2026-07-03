@@ -2661,11 +2661,9 @@
       "expected": "更广阔",
       "pinyin": "gengguangkuo",
       "reason": "linear",
-      "top10": [
-        "更广阔"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0197",
@@ -8967,9 +8965,9 @@
   ],
   "stats": {
     "total": 652,
-    "pass": 652,
+    "pass": 651,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }

@@ -4692,11 +4692,9 @@
       "expected": "让他们",
       "pinyin": "rangtamen",
       "reason": "linear",
-      "top10": [
-        "让他们"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0325",
@@ -6916,11 +6914,9 @@
       "expected": "为主体",
       "pinyin": "weizhuti",
       "reason": "linear",
-      "top10": [
-        "为主题"
-      ],
+      "top10": [],
       "rank": 99,
-      "verdict": "PASS"
+      "verdict": "AUDIT"
     },
     {
       "idx": "0480",
@@ -9807,9 +9803,9 @@
   ],
   "stats": {
     "total": 688,
-    "pass": 688,
+    "pass": 686,
     "soft": 0,
-    "audit": 0,
+    "audit": 2,
     "hard": 0
   }
 }

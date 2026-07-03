@@ -5118,11 +5118,9 @@
       "expected": "也会",
       "pinyin": "yehui",
       "reason": "linear",
-      "top10": [
-        "也会"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0382",
@@ -8890,9 +8888,9 @@
   ],
   "stats": {
     "total": 673,
-    "pass": 673,
+    "pass": 672,
     "soft": 0,
-    "audit": 0,
+    "audit": 1,
     "hard": 0
   }
 }
