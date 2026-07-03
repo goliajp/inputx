@@ -120,8 +120,10 @@ impl CellDict {
 /// log / surface.
 #[cfg(feature = "cell-dict")]
 #[derive(Debug)]
-pub struct ParseError(/// Human-readable error message (verbatim from `toml`).
-                     pub String);
+pub struct ParseError(
+    /// Human-readable error message (verbatim from `toml`).
+    pub String,
+);
 
 #[cfg(feature = "cell-dict")]
 impl core::fmt::Display for ParseError {

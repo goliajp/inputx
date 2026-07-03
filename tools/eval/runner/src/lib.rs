@@ -43,8 +43,18 @@ Phase-1 work and is expected to lift these numbers.";
 /// The flat metric field names, in stable display order. Used by `--diff`
 /// and the regression check so both stay in sync with [`Results`].
 pub const METRIC_FIELDS: [&str; 12] = [
-    "top1", "top5", "top10", "gold_top1", "gold_top5", "gold_top10", "silver_top1", "silver_top5",
-    "silver_top10", "per_polyphone_top1", "per_polyphone_top5", "per_polyphone_top10",
+    "top1",
+    "top5",
+    "top10",
+    "gold_top1",
+    "gold_top5",
+    "gold_top10",
+    "silver_top1",
+    "silver_top5",
+    "silver_top10",
+    "per_polyphone_top1",
+    "per_polyphone_top5",
+    "per_polyphone_top10",
 ];
 
 /// One eval row: continuous pinyin, the gold hanzi string, and whether the
@@ -94,7 +104,11 @@ impl Tally {
 }
 
 fn ratio(num: u64, den: u64) -> f64 {
-    if den == 0 { 0.0 } else { num as f64 / den as f64 }
+    if den == 0 {
+        0.0
+    } else {
+        num as f64 / den as f64
+    }
 }
 
 /// The serialized results document. The six board-mandated fields

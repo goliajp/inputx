@@ -276,10 +276,7 @@ mod tests {
         // malformed bigram above — "我 是" is a far more common pair
         // than "中国 嘎".
         let normal = lm.log_prob("我", "是");
-        assert!(
-            normal.is_finite(),
-            "P(是|我) returned non-finite {normal}"
-        );
+        assert!(normal.is_finite(), "P(是|我) returned non-finite {normal}");
         assert!(
             normal > bad,
             "P(是|我)={normal} should be higher than the malformed P(嘎|中国)={bad}"

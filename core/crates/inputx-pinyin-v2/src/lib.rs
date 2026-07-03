@@ -90,7 +90,7 @@ pub fn enabled() -> bool {
         if let Some(v) = resolve_from_config_files() {
             return v;
         }
-        true  // Phase 7 final: v2 is now the default.
+        true // Phase 7 final: v2 is now the default.
     })
 }
 
@@ -182,7 +182,9 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
                         .unwrap_or(w.tier);
                     let mut score = 500_000.0 - (tier as f64) * 30_000.0;
                     // Slight penalty for fuzzy-normalized match.
-                    if try_buf != buffer { score -= 2_000.0; }
+                    if try_buf != buffer {
+                        score -= 2_000.0;
+                    }
                     out.push((w.word.clone(), score, tier));
                 }
             }
@@ -277,8 +279,7 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
     // Skip path 6 so:
     //   zhong     → 中/众/终 only, not 中国/中午
     //   lianxiang → 联想 only, not 联想学习/联想起
-    let has_exact_syllable = char_index().contains_key(buffer)
-        || code_index().contains_key(buffer);
+    let has_exact_syllable = char_index().contains_key(buffer) || code_index().contains_key(buffer);
     const PREFIX_CAP: usize = 30;
     let mut prefix_added = 0;
     if !buffer.is_empty() && !has_exact_syllable {
@@ -292,15 +293,28 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
                     continue;
                 }
                 for ce in rows {
-                    if seen.contains(&ce.ch.to_string()) { continue; }
-                    if data::exclusions().contains(&(buf_owned.clone(), ce.ch.to_string())) { continue; }
+                    if seen.contains(&ce.ch.to_string()) {
+                        continue;
+                    }
+                    if data::exclusions().contains(&(buf_owned.clone(), ce.ch.to_string())) {
+                        continue;
+                    }
                     prefix_chars_first.push((bare.as_str(), ce));
                 }
             }
             prefix_chars_first.sort_by(|a, b| {
-                let a_hsk = if a.1.hsk_level == 0 { 99u8 } else { a.1.hsk_level };
-                let b_hsk = if b.1.hsk_level == 0 { 99u8 } else { b.1.hsk_level };
-                a.1.char_tier.cmp(&b.1.char_tier)
+                let a_hsk = if a.1.hsk_level == 0 {
+                    99u8
+                } else {
+                    a.1.hsk_level
+                };
+                let b_hsk = if b.1.hsk_level == 0 {
+                    99u8
+                } else {
+                    b.1.hsk_level
+                };
+                a.1.char_tier
+                    .cmp(&b.1.char_tier)
                     .then_with(|| a_hsk.cmp(&b_hsk))
                     .then_with(|| (!a.1.is_primary).cmp(&!b.1.is_primary))
             });
@@ -308,10 +322,14 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
             let half = PREFIX_CAP / 2;
             for (_, ce) in prefix_chars_first.iter().take(half) {
                 let key = ce.ch.to_string();
-                if !seen.insert(key.clone()) { continue; }
+                if !seen.insert(key.clone()) {
+                    continue;
+                }
                 let tier = ce.char_tier;
                 let mut score = 220_000.0 - (tier as f64) * 30_000.0;
-                if !ce.is_primary { score -= 5_000.0; }
+                if !ce.is_primary {
+                    score -= 5_000.0;
+                }
                 if ce.hsk_level > 0 {
                     score += (7.0 - ce.hsk_level as f64) * 5_000.0;
                 }
@@ -336,7 +354,8 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
             .collect();
         // Tier asc, then code asc for determinism; pick top N.
         prefix_words.sort_by(|a, b| {
-            a.tier.cmp(&b.tier)
+            a.tier
+                .cmp(&b.tier)
                 .then_with(|| a.word.chars().count().cmp(&b.word.chars().count()))
                 .then_with(|| a.code.cmp(&b.code))
         });
@@ -344,10 +363,16 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
         // phrases — user typing one letter intends to see chars.
         // Score band: words 250k normally, but 150k at len==1 so chars
         // (200k base) rank above. See q_bare_letter_single_chars_lead_phrases.
-        let word_prefix_base = if buffer.len() == 1 { 150_000.0 } else { 250_000.0 };
+        let word_prefix_base = if buffer.len() == 1 {
+            150_000.0
+        } else {
+            250_000.0
+        };
         let word_cap = PREFIX_CAP.saturating_sub(prefix_added);
         for w in prefix_words.iter().take(word_cap) {
-            if !seen.insert(w.word.clone()) { continue; }
+            if !seen.insert(w.word.clone()) {
+                continue;
+            }
             let tier = w.tier;
             let score = word_prefix_base - (tier as f64) * 30_000.0;
             let display_tier = tier.saturating_add(3).min(9);
@@ -363,25 +388,42 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
                 continue;
             }
             for ce in rows {
-                if seen.contains(&ce.ch.to_string()) { continue; }
-                if data::exclusions().contains(&(buf_owned.clone(), ce.ch.to_string())) { continue; }
+                if seen.contains(&ce.ch.to_string()) {
+                    continue;
+                }
+                if data::exclusions().contains(&(buf_owned.clone(), ce.ch.to_string())) {
+                    continue;
+                }
                 prefix_chars.push((bare.as_str(), ce));
             }
         }
         prefix_chars.sort_by(|a, b| {
-            let a_hsk = if a.1.hsk_level == 0 { 99u8 } else { a.1.hsk_level };
-            let b_hsk = if b.1.hsk_level == 0 { 99u8 } else { b.1.hsk_level };
-            a.1.char_tier.cmp(&b.1.char_tier)
+            let a_hsk = if a.1.hsk_level == 0 {
+                99u8
+            } else {
+                a.1.hsk_level
+            };
+            let b_hsk = if b.1.hsk_level == 0 {
+                99u8
+            } else {
+                b.1.hsk_level
+            };
+            a.1.char_tier
+                .cmp(&b.1.char_tier)
                 .then_with(|| a_hsk.cmp(&b_hsk))
                 .then_with(|| (!a.1.is_primary).cmp(&!b.1.is_primary))
         });
         let remaining = PREFIX_CAP.saturating_sub(prefix_added);
         for (_, ce) in prefix_chars.iter().take(remaining) {
             let key = ce.ch.to_string();
-            if !seen.insert(key.clone()) { continue; }
+            if !seen.insert(key.clone()) {
+                continue;
+            }
             let tier = ce.char_tier;
             let mut score = 200_000.0 - (tier as f64) * 30_000.0;
-            if !ce.is_primary { score -= 5_000.0; }
+            if !ce.is_primary {
+                score -= 5_000.0;
+            }
             if ce.hsk_level > 0 {
                 score += (7.0 - ce.hsk_level as f64) * 5_000.0;
             }
@@ -402,8 +444,12 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
     //    pinyin pool, since most polish quickfix targets compete with
     //    non-boosted pinyin candidates at tier 3-5).
     for ((buf_k, word_k), boost_freq) in data::quickfix_boost().iter() {
-        if buf_k != buffer { continue; }
-        if data::exclusions().contains(&(buf_owned.clone(), word_k.clone())) { continue; }
+        if buf_k != buffer {
+            continue;
+        }
+        if data::exclusions().contains(&(buf_owned.clone(), word_k.clone())) {
+            continue;
+        }
         let boost_score = 540_000.0 + (*boost_freq as f64) / 100.0;
         if seen.contains(word_k) {
             if let Some(slot) = out.iter_mut().find(|(w, _, _)| w == word_k) {
@@ -493,15 +539,12 @@ fn compose_greedy(buffer: &str) -> Option<(String, f64, u8)> {
                 }
             }
             if let Some(chars) = char_index().get(prefix) {
-                if let Some(top) = chars
-                    .iter()
-                    .min_by_key(|c| {
-                        let hsk_rank = if c.hsk_level == 0 { 99 } else { c.hsk_level };
-                        let prominence_inv = u32::MAX
-                            .saturating_sub(*char_word_count().get(&c.ch).unwrap_or(&0));
-                        (c.char_tier, hsk_rank, !c.is_primary, prominence_inv)
-                    })
-                {
+                if let Some(top) = chars.iter().min_by_key(|c| {
+                    let hsk_rank = if c.hsk_level == 0 { 99 } else { c.hsk_level };
+                    let prominence_inv =
+                        u32::MAX.saturating_sub(*char_word_count().get(&c.ch).unwrap_or(&0));
+                    (c.char_tier, hsk_rank, !c.is_primary, prominence_inv)
+                }) {
                     best = Some((len, top.ch.to_string(), top.char_tier, false));
                     break;
                 }
@@ -517,8 +560,7 @@ fn compose_greedy(buffer: &str) -> Option<(String, f64, u8)> {
         // RANKING-MODEL-INVARIANTS §2 char-class allowlist.
         if !is_word {
             const COMPLETERS: &[&str] = &[
-                "的", "了", "吗", "呢", "啊", "吧", "着", "过",
-                "呀", "嘛", "哦", "哈", "嘿",
+                "的", "了", "吗", "呢", "啊", "吧", "着", "过", "呀", "嘛", "哦", "哈", "嘿",
             ];
             if !COMPLETERS.contains(&piece.as_str()) {
                 return None;
@@ -526,7 +568,9 @@ fn compose_greedy(buffer: &str) -> Option<(String, f64, u8)> {
         }
         composed_word.push_str(&piece);
         piece_count += 1;
-        if is_word { word_piece_count += 1; }
+        if is_word {
+            word_piece_count += 1;
+        }
         if tier > max_tier {
             max_tier = tier;
         }
@@ -540,9 +584,7 @@ fn compose_greedy(buffer: &str) -> Option<(String, f64, u8)> {
     if word_piece_count == 0 {
         return None;
     }
-    let score = 300_000.0
-        - (piece_count as f64) * 10_000.0
-        - (max_tier as f64) * 5_000.0;
+    let score = 300_000.0 - (piece_count as f64) * 10_000.0 - (max_tier as f64) * 5_000.0;
     // Phase 7c.4 validation: if composed_word EXISTS in words.tsv,
     // the buffer MUST be one of its registered codes. Otherwise the
     // composition picked a wrong char-reading combo (e.g. nuanhe →
@@ -598,7 +640,9 @@ fn extract_initials(reading_path: &str) -> String {
             continue;
         }
         let s = seg.trim_end_matches(']');
-        let Some((_, reading)) = s.split_once('|') else { continue };
+        let Some((_, reading)) = s.split_once('|') else {
+            continue;
+        };
         let bare = bare_letter_form(reading);
         if let Some(c) = bare.chars().next() {
             out.push(c.to_ascii_lowercase());
@@ -662,7 +706,9 @@ fn char_index() -> &'static std::collections::HashMap<String, Vec<CharLookupRow>
         }
         let mut m: HashMap<String, Vec<CharLookupRow>> = HashMap::new();
         for r in data::readings() {
-            let Some(&(tier, hsk_level)) = char_meta.get(&r.ch) else { continue };
+            let Some(&(tier, hsk_level)) = char_meta.get(&r.ch) else {
+                continue;
+            };
             let bare = bare_letter_form(&r.reading);
             m.entry(bare).or_default().push(CharLookupRow {
                 ch: r.ch,
@@ -683,8 +729,12 @@ fn normalize_uv(buffer: &str) -> String {
     // Only the lue/nue/lüe/nüe followed by consonant patterns. Restrict
     // to exact 3-letter sequences "lue" / "nue" anywhere in the buffer
     // (longer ones like "lüe" don't occur in ASCII IME input).
-    if out.contains("lue") { out = out.replace("lue", "lve"); }
-    if out.contains("nue") { out = out.replace("nue", "nve"); }
+    if out.contains("lue") {
+        out = out.replace("lue", "lve");
+    }
+    if out.contains("nue") {
+        out = out.replace("nue", "nve");
+    }
     out
 }
 
@@ -766,7 +816,10 @@ mod tests {
         assert!(!q.is_empty());
         let (w, s, _t) = &q[0];
         assert_eq!(w, "你好");
-        assert!(*s > 300_000.0 && *s < 500_000.0, "score in expected band: {s}");
+        assert!(
+            *s > 300_000.0 && *s < 500_000.0,
+            "score in expected band: {s}"
+        );
     }
 
     #[test]
@@ -783,8 +836,14 @@ mod tests {
     fn query_tier1_outranks_tier4() {
         // jixu: 继续 (HSK 4 → tier 2) should outrank 几许 (cedict, tier 4)
         let q = query("jixu");
-        let p_jixu = q.iter().position(|(w, _, _)| w == "继续").expect("继续 in result");
-        let p_jixu_lit = q.iter().position(|(w, _, _)| w == "几许").expect("几许 in result");
+        let p_jixu = q
+            .iter()
+            .position(|(w, _, _)| w == "继续")
+            .expect("继续 in result");
+        let p_jixu_lit = q
+            .iter()
+            .position(|(w, _, _)| w == "几许")
+            .expect("几许 in result");
         assert!(p_jixu < p_jixu_lit, "HSK 继续 must rank above non-HSK 几许");
     }
 
@@ -794,8 +853,10 @@ mod tests {
         let q = query("duan");
         let words: Vec<&str> = q.iter().map(|(w, _, _)| w.as_str()).collect();
         for expected in &["短", "段", "断", "端"] {
-            assert!(words.contains(expected),
-                "duan must return single char {expected}; got {words:?}");
+            assert!(
+                words.contains(expected),
+                "duan must return single char {expected}; got {words:?}"
+            );
         }
     }
 
@@ -818,8 +879,10 @@ mod tests {
     fn initials_lookup_wsm_yields_weishenme() {
         let q = query("wsm");
         let words: Vec<&str> = q.iter().map(|(w, _, _)| w.as_str()).collect();
-        assert!(words.contains(&"为什么"),
-            "wsm initials lookup must yield 为什么 ({words:?})");
+        assert!(
+            words.contains(&"为什么"),
+            "wsm initials lookup must yield 为什么 ({words:?})"
+        );
     }
 
     #[test]
@@ -829,9 +892,14 @@ mod tests {
         // Test invariant: exact-code candidates always rank above
         // initials-only candidates.
         let q = query("jixu");
-        let p_exact = q.iter().position(|(w, _, _)| w == "继续").expect("继续 from exact");
+        let p_exact = q
+            .iter()
+            .position(|(w, _, _)| w == "继续")
+            .expect("继续 from exact");
         for (i, (_, score, _)) in q.iter().enumerate() {
-            if i <= p_exact { continue }
+            if i <= p_exact {
+                continue;
+            }
             // Anything below 继续 must have score < 继续's score.
             assert!(*score <= q[p_exact].1, "ordering invariant");
         }
@@ -846,15 +914,21 @@ mod tests {
         // shouldn't crash. Result might be chars only (e.g. 啊 etc),
         // never an "initials match" emission (which would inflate
         // to thousands of words starting with 'a').
-        assert!(q.len() < 100, "single-letter must not balloon: got {}", q.len());
+        assert!(
+            q.len() < 100,
+            "single-letter must not balloon: got {}",
+            q.len()
+        );
     }
 
     #[test]
     fn composition_nihaoma_yields_nihao_plus_ma() {
         let q = query("nihaoma");
         let words: Vec<&str> = q.iter().map(|(w, _, _)| w.as_str()).collect();
-        assert!(words.contains(&"你好吗"),
-            "nihaoma must compose into 你好吗 ({words:?})");
+        assert!(
+            words.contains(&"你好吗"),
+            "nihaoma must compose into 你好吗 ({words:?})"
+        );
     }
 
     #[test]
@@ -865,8 +939,10 @@ mod tests {
         // for this buffer, but invariant must hold structurally).
         let q = query("jintianwomen");
         if let Some((w, s, _t)) = q.iter().find(|(w, _, _)| w == "今天我们") {
-            assert!(*s < 320_000.0,
-                "composition score must be below exact match band: {w} = {s}");
+            assert!(
+                *s < 320_000.0,
+                "composition score must be below exact match band: {w} = {s}"
+            );
         }
     }
 
@@ -877,8 +953,10 @@ mod tests {
         let q = query("ni");
         // Composition would produce e.g. 你你 (greedy double); make
         // sure we DON'T emit such.
-        assert!(!q.iter().any(|(w, _, _)| w == "你你"),
-            "短 buffer 不应触发 composition");
+        assert!(
+            !q.iter().any(|(w, _, _)| w == "你你"),
+            "短 buffer 不应触发 composition"
+        );
     }
 
     #[test]
@@ -886,20 +964,40 @@ mod tests {
         // Phase 6: 我 (HSK 1) must rank above 卧 (non-HSK, same 通用规范
         // tier 1, same primary reading). Previously 卧 won by codepoint.
         let q = query("wo");
-        let p_wo = q.iter().position(|(w, _, _)| w == "我").expect("我 in result");
-        let p_wo_other = q.iter().position(|(w, _, _)| w == "卧").expect("卧 in result");
-        assert!(p_wo < p_wo_other,
-            "HSK 1 我 must beat non-HSK 卧 (got 我@{} 卧@{})", p_wo, p_wo_other);
+        let p_wo = q
+            .iter()
+            .position(|(w, _, _)| w == "我")
+            .expect("我 in result");
+        let p_wo_other = q
+            .iter()
+            .position(|(w, _, _)| w == "卧")
+            .expect("卧 in result");
+        assert!(
+            p_wo < p_wo_other,
+            "HSK 1 我 must beat non-HSK 卧 (got 我@{} 卧@{})",
+            p_wo,
+            p_wo_other
+        );
     }
 
     #[test]
     fn hsk_char_overlay_hai_yields_hai_first() {
         // Phase 6: 还 (HSK 1) must rank above 亥 (non-HSK, same tier 1).
         let q = query("hai");
-        let p_hai = q.iter().position(|(w, _, _)| w == "还").expect("还 in result");
-        let p_hai_other = q.iter().position(|(w, _, _)| w == "亥").expect("亥 in result");
-        assert!(p_hai < p_hai_other,
-            "HSK 1 还 must beat non-HSK 亥 (got 还@{} 亥@{})", p_hai, p_hai_other);
+        let p_hai = q
+            .iter()
+            .position(|(w, _, _)| w == "还")
+            .expect("还 in result");
+        let p_hai_other = q
+            .iter()
+            .position(|(w, _, _)| w == "亥")
+            .expect("亥 in result");
+        assert!(
+            p_hai < p_hai_other,
+            "HSK 1 还 must beat non-HSK 亥 (got 还@{} 亥@{})",
+            p_hai,
+            p_hai_other
+        );
     }
 
     #[test]
@@ -913,7 +1011,9 @@ mod tests {
         // sequences.
         let q = query("wodehao");
         let words: Vec<&str> = q.iter().map(|(w, _, _)| w.as_str()).collect();
-        assert!(!words.contains(&"卧得号"),
-            "composition should NOT pick non-HSK chars when HSK option exists");
+        assert!(
+            !words.contains(&"卧得号"),
+            "composition should NOT pick non-HSK chars when HSK option exists"
+        );
     }
 }

@@ -109,16 +109,25 @@ pub trait PathToLattice {
 /// into the score path.
 pub const FUZZY_CHANNEL_LOG_PROBS: &[(&str, &str, f32)] = &[
     // Initial-position swaps (6 pairs, 12 directions).
-    ("zh", "z",  -1.0),  ("z",  "zh", -1.0),
-    ("ch", "c",  -1.0),  ("c",  "ch", -1.0),
-    ("sh", "s",  -1.0),  ("s",  "sh", -1.0),
-    ("n",  "l",  -1.5),  ("l",  "n",  -1.5),
-    ("f",  "h",  -2.0),  ("h",  "f",  -2.0),
-    ("r",  "l",  -2.0),  ("l",  "r",  -2.0),
+    ("zh", "z", -1.0),
+    ("z", "zh", -1.0),
+    ("ch", "c", -1.0),
+    ("c", "ch", -1.0),
+    ("sh", "s", -1.0),
+    ("s", "sh", -1.0),
+    ("n", "l", -1.5),
+    ("l", "n", -1.5),
+    ("f", "h", -2.0),
+    ("h", "f", -2.0),
+    ("r", "l", -2.0),
+    ("l", "r", -2.0),
     // Final-position swaps (3 pairs, 6 directions).
-    ("ing", "in",  -1.0), ("in",  "ing", -1.0),
-    ("eng", "en",  -1.0), ("en",  "eng", -1.0),
-    ("ang", "an",  -1.0), ("an",  "ang", -1.0),
+    ("ing", "in", -1.0),
+    ("in", "ing", -1.0),
+    ("eng", "en", -1.0),
+    ("en", "eng", -1.0),
+    ("ang", "an", -1.0),
+    ("an", "ang", -1.0),
 ];
 
 /// Compute the channel cost of substituting `variant` for the user's
@@ -227,7 +236,13 @@ impl Path1cTypo {
         }
         for (word, score) in resolutions {
             let log_prob = (score.max(1.0) as f32).log10();
-            graph.add_edge(Edge::typo(0, n, word.clone(), log_prob, self.channel_log_prob));
+            graph.add_edge(Edge::typo(
+                0,
+                n,
+                word.clone(),
+                log_prob,
+                self.channel_log_prob,
+            ));
         }
         resolutions.len()
     }
@@ -276,7 +291,13 @@ impl Path2Abbrev {
         }
         for (word, score) in resolutions {
             let log_prob = (score.max(1.0) as f32).log10();
-            graph.add_edge(Edge::abbrev(0, n, word.clone(), log_prob, self.channel_log_prob));
+            graph.add_edge(Edge::abbrev(
+                0,
+                n,
+                word.clone(),
+                log_prob,
+                self.channel_log_prob,
+            ));
         }
         resolutions.len()
     }
@@ -373,35 +394,62 @@ pub struct Edge {
 impl Edge {
     /// Construct an exact-pinyin edge (no channel penalty).
     pub fn exact(from: usize, to: usize, candidate: impl Into<Word>, log_prob: f32) -> Self {
-        Self { from, to, candidate: candidate.into(), log_prob, kind: EdgeKind::Exact }
+        Self {
+            from,
+            to,
+            candidate: candidate.into(),
+            log_prob,
+            kind: EdgeKind::Exact,
+        }
     }
 
     /// Construct a fuzzy-channel edge. `channel_log_prob` is log10 P(fuzzy | true).
     pub fn fuzzy(
-        from: usize, to: usize, candidate: impl Into<Word>, log_prob: f32, channel_log_prob: f32,
+        from: usize,
+        to: usize,
+        candidate: impl Into<Word>,
+        log_prob: f32,
+        channel_log_prob: f32,
     ) -> Self {
         Self {
-            from, to, candidate: candidate.into(), log_prob,
+            from,
+            to,
+            candidate: candidate.into(),
+            log_prob,
             kind: EdgeKind::Fuzzy(channel_log_prob),
         }
     }
 
     /// Construct a typo-rescue edge. `channel_log_prob` is log10 P(typo | true).
     pub fn typo(
-        from: usize, to: usize, candidate: impl Into<Word>, log_prob: f32, channel_log_prob: f32,
+        from: usize,
+        to: usize,
+        candidate: impl Into<Word>,
+        log_prob: f32,
+        channel_log_prob: f32,
     ) -> Self {
         Self {
-            from, to, candidate: candidate.into(), log_prob,
+            from,
+            to,
+            candidate: candidate.into(),
+            log_prob,
             kind: EdgeKind::Typo(channel_log_prob),
         }
     }
 
     /// Construct a simplified-pinyin (abbrev) edge. `channel_log_prob` is log10 P(abbrev | full).
     pub fn abbrev(
-        from: usize, to: usize, candidate: impl Into<Word>, log_prob: f32, channel_log_prob: f32,
+        from: usize,
+        to: usize,
+        candidate: impl Into<Word>,
+        log_prob: f32,
+        channel_log_prob: f32,
     ) -> Self {
         Self {
-            from, to, candidate: candidate.into(), log_prob,
+            from,
+            to,
+            candidate: candidate.into(),
+            log_prob,
             kind: EdgeKind::Abbrev(channel_log_prob),
         }
     }
@@ -447,7 +495,10 @@ impl Graph {
     /// Empty graph for a buffer of `n_bytes` bytes (so `n_bytes + 1`
     /// positions).
     pub fn for_buffer(n_bytes: usize) -> Self {
-        Self { n_positions: n_bytes + 1, edges: Vec::new() }
+        Self {
+            n_positions: n_bytes + 1,
+            edges: Vec::new(),
+        }
     }
 
     /// Number of positions (= buffer length + 1).
@@ -465,14 +516,21 @@ impl Graph {
         assert!(
             edge.from < self.n_positions,
             "edge.from {} out of range (n_positions {})",
-            edge.from, self.n_positions
+            edge.from,
+            self.n_positions
         );
         assert!(
             edge.to < self.n_positions,
             "edge.to {} out of range (n_positions {})",
-            edge.to, self.n_positions
+            edge.to,
+            self.n_positions
         );
-        assert!(edge.from < edge.to, "edge has empty span {}..{}", edge.from, edge.to);
+        assert!(
+            edge.from < edge.to,
+            "edge has empty span {}..{}",
+            edge.from,
+            edge.to
+        );
         self.edges.push(edge);
     }
 
@@ -551,7 +609,11 @@ impl Graph {
         final_partials.truncate(beam);
         final_partials
             .into_iter()
-            .map(|(score, words, edges)| Path { score, words, edges })
+            .map(|(score, words, edges)| Path {
+                score,
+                words,
+                edges,
+            })
             .collect()
     }
 }
@@ -656,10 +718,14 @@ mod tests {
         let paths = g.viterbi(3, lm);
         let top_two: Vec<String> = paths.iter().take(2).map(Path::sentence).collect();
         // Both real-word pairs must surface in the top-2 thanks to the LM.
-        assert!(top_two.contains(&"现金".to_string()),
-            "expected 现金 in top-2, got {top_two:?}");
-        assert!(top_two.contains(&"先进".to_string()),
-            "expected 先进 in top-2, got {top_two:?}");
+        assert!(
+            top_two.contains(&"现金".to_string()),
+            "expected 现金 in top-2, got {top_two:?}"
+        );
+        assert!(
+            top_two.contains(&"先进".to_string()),
+            "expected 先进 in top-2, got {top_two:?}"
+        );
     }
 
     /// Cross-channel: an exact edge and a fuzzy edge at the same span,
@@ -706,14 +772,18 @@ mod tests {
         // New path: PathToLattice → Graph → enumerate edges.
         let mut g = Graph::for_buffer(buf.len());
         let n_added = Path1aExact.populate_lattice(buf, &dict, &mut g);
-        let new_words: std::collections::BTreeSet<String> = g
-            .edges()
-            .iter()
-            .map(|e| e.candidate.clone())
-            .collect();
+        let new_words: std::collections::BTreeSet<String> =
+            g.edges().iter().map(|e| e.candidate.clone()).collect();
 
-        assert_eq!(n_added, old_words.len(), "edge count must match dict lookup count");
-        assert_eq!(old_words, new_words, "lattice edges must cover the same candidate set as the dict lookup");
+        assert_eq!(
+            n_added,
+            old_words.len(),
+            "edge count must match dict lookup count"
+        );
+        assert_eq!(
+            old_words, new_words,
+            "lattice edges must cover the same candidate set as the dict lookup"
+        );
 
         // Every edge must span the whole buffer (single-syllable case).
         for e in g.edges() {
@@ -739,8 +809,7 @@ mod tests {
         // dict lookup order is FST iteration order, not score order;
         // sort by score desc to compare against lattice viterbi top-K.
         scratch.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(core::cmp::Ordering::Equal));
-        let top_k_dict: Vec<String> =
-            scratch.iter().take(3).map(|(w, _)| w.clone()).collect();
+        let top_k_dict: Vec<String> = scratch.iter().take(3).map(|(w, _)| w.clone()).collect();
 
         let mut g = Graph::for_buffer(buf.len());
         Path1aExact.populate_lattice(buf, &dict, &mut g);
@@ -818,7 +887,9 @@ mod tests {
         use crate::fuzzy::FuzzyConfig;
 
         let dict = PinyinDict::embedded();
-        let path = Path1bFuzzy { fuzzy: FuzzyConfig::strict() };
+        let path = Path1bFuzzy {
+            fuzzy: FuzzyConfig::strict(),
+        };
 
         let mut g = Graph::for_buffer(2);
         let n = path.populate_lattice("ni", &dict, &mut g);
@@ -852,7 +923,10 @@ mod tests {
         let p = Path1cTypo::default();
         // 10^(-1.301) = 0.05
         let prob = 10f32.powf(p.channel_log_prob);
-        assert!((prob - 0.05).abs() < 1e-4, "default = log10(0.05), got prob {prob}");
+        assert!(
+            (prob - 0.05).abs() < 1e-4,
+            "default = log10(0.05), got prob {prob}"
+        );
     }
 
     /// CP-3.4: Path1cTypo.add_edges turns externally-resolved
@@ -901,7 +975,13 @@ mod tests {
         // Exact 拼音 at log_prob 5.9 → weight 5.9
         g.add_edge(Edge::exact(0, 4, "拼音", 5.9));
         // Typo 品音 at log_prob 6.5 → weight 6.5 + (-1.301) = 5.199
-        g.add_edge(Edge::typo(0, 4, "品音", 6.5, Path1cTypo::DEFAULT_CHANNEL_LOG_PROB));
+        g.add_edge(Edge::typo(
+            0,
+            4,
+            "品音",
+            6.5,
+            Path1cTypo::DEFAULT_CHANNEL_LOG_PROB,
+        ));
         let paths = g.viterbi(2, noop_lm);
         assert_eq!(paths[0].sentence(), "拼音");
     }
@@ -912,7 +992,10 @@ mod tests {
     fn path2_abbrev_default_channel_log_prob() {
         let p = Path2Abbrev::default();
         let prob = 10f32.powf(p.channel_log_prob);
-        assert!((prob - 0.02).abs() < 1e-4, "default = log10(0.02), got prob {prob}");
+        assert!(
+            (prob - 0.02).abs() < 1e-4,
+            "default = log10(0.02), got prob {prob}"
+        );
     }
 
     /// CP-3.5: Path2Abbrev.add_edges emits Abbrev edges. Compare with
@@ -944,8 +1027,20 @@ mod tests {
         // Match the climb-plan-suggested channel costs.
         g.add_edge(Edge::exact(0, 2, "exact", 5.0));
         g.add_edge(Edge::fuzzy(0, 2, "fuzzy", 5.5, -1.0));
-        g.add_edge(Edge::typo(0, 2, "typo", 6.0, Path1cTypo::DEFAULT_CHANNEL_LOG_PROB));
-        g.add_edge(Edge::abbrev(0, 2, "abbrev", 6.5, Path2Abbrev::DEFAULT_CHANNEL_LOG_PROB));
+        g.add_edge(Edge::typo(
+            0,
+            2,
+            "typo",
+            6.0,
+            Path1cTypo::DEFAULT_CHANNEL_LOG_PROB,
+        ));
+        g.add_edge(Edge::abbrev(
+            0,
+            2,
+            "abbrev",
+            6.5,
+            Path2Abbrev::DEFAULT_CHANNEL_LOG_PROB,
+        ));
 
         // Compute expected effective weights.
         // exact  = 5.0
@@ -1006,11 +1101,11 @@ mod tests {
         // resolve via the legacy path, the fixture is stale (dict
         // drifted) and the test is wrong, not the wire.
         let test_cases: &[&str] = &[
-            "nihao",          // 2 syllables
-            "wojiao",         // 2 syllables
-            "nihaoma",        // 3 syllables
-            "wodejia",        // 3 syllables
-            "nihaomawojiao",  // 5 syllables — exercises deeper DP
+            "nihao",         // 2 syllables
+            "wojiao",        // 2 syllables
+            "nihaoma",       // 3 syllables
+            "wodejia",       // 3 syllables
+            "nihaomawojiao", // 5 syllables — exercises deeper DP
         ];
 
         // Trigram precondition: this test asserts byte-equal for

@@ -2079,7 +2079,10 @@ mod tests {
     #[test]
     fn has_predictions_reflects_buffer_state() {
         let mut e = CompositeEngine::new();
-        assert!(!e.has_predictions(), "fresh engine reports has_predictions=true");
+        assert!(
+            !e.has_predictions(),
+            "fresh engine reports has_predictions=true"
+        );
         e.test_seed_prediction("吗");
         assert!(e.has_predictions(), "seeded prediction not reflected");
         e.cancel_predictions();

@@ -1445,12 +1445,11 @@ impl PinyinAdapter {
             };
             self.engine
                 .dict()
-                .best_composition_chain_via_lattice_with_abbrev(
-                    &self.buffer,
-                    &abbrev_resolver,
-                )
+                .best_composition_chain_via_lattice_with_abbrev(&self.buffer, &abbrev_resolver)
         } else {
-            self.engine.dict().best_composition_chain_via_lattice(&self.buffer)
+            self.engine
+                .dict()
+                .best_composition_chain_via_lattice(&self.buffer)
         };
         if !PINYIN_DISABLE_COMPOSE
             && self.buffer.len() >= 8
@@ -1824,13 +1823,11 @@ impl PinyinAdapter {
                 };
                 self.engine
                     .dict()
-                    .top_k_compositions_via_lattice_with_abbrev(
-                        &self.buffer,
-                        5,
-                        &abbrev_resolver,
-                    )
+                    .top_k_compositions_via_lattice_with_abbrev(&self.buffer, 5, &abbrev_resolver)
             } else {
-                self.engine.dict().top_k_compositions_via_lattice(&self.buffer, 5)
+                self.engine
+                    .dict()
+                    .top_k_compositions_via_lattice(&self.buffer, 5)
             };
             // Clone `top` so the borrow of `comps` ends before the
             // `for (_, sentence) in comps` move below.

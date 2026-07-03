@@ -119,7 +119,8 @@ fn main() {
     }
 
     let date = date_override.unwrap_or_else(today_utc);
-    let out_path = out_path.unwrap_or_else(|| eval_dir.join("results").join(format!("{date}.json")));
+    let out_path =
+        out_path.unwrap_or_else(|| eval_dir.join("results").join(format!("{date}.json")));
 
     // Load both sets up front so a bad path fails before the slow warmup.
     let gold = load_tsv(&gold_path).unwrap_or_else(|e| die(&format!("gold {gold_path:?}: {e}")));
@@ -159,15 +160,41 @@ fn write_results(path: &Path, results: &Results) -> std::io::Result<()> {
 }
 
 fn print_summary(r: &Results, out_path: &Path) {
-    println!("\nMIU accuracy — {} ({} rows, {:.1}s)", r.date, r.counts.total, r.elapsed_secs);
+    println!(
+        "\nMIU accuracy — {} ({} rows, {:.1}s)",
+        r.date, r.counts.total, r.elapsed_secs
+    );
     println!("  bucket      top1     top5     top10    n");
     let line = |name: &str, t1: f64, t5: f64, t10: f64, n: u64| {
-        println!("  {name:<10}  {:>6.2}%  {:>6.2}%  {:>6.2}%  {n}", t1 * 100.0, t5 * 100.0, t10 * 100.0);
+        println!(
+            "  {name:<10}  {:>6.2}%  {:>6.2}%  {:>6.2}%  {n}",
+            t1 * 100.0,
+            t5 * 100.0,
+            t10 * 100.0
+        );
     };
     line("overall", r.top1, r.top5, r.top10, r.counts.total);
-    line("gold", r.gold_top1, r.gold_top5, r.gold_top10, r.counts.gold);
-    line("silver", r.silver_top1, r.silver_top5, r.silver_top10, r.counts.silver);
-    line("polyphone", r.per_polyphone_top1, r.per_polyphone_top5, r.per_polyphone_top10, r.counts.polyphone);
+    line(
+        "gold",
+        r.gold_top1,
+        r.gold_top5,
+        r.gold_top10,
+        r.counts.gold,
+    );
+    line(
+        "silver",
+        r.silver_top1,
+        r.silver_top5,
+        r.silver_top10,
+        r.counts.silver,
+    );
+    line(
+        "polyphone",
+        r.per_polyphone_top1,
+        r.per_polyphone_top5,
+        r.per_polyphone_top10,
+        r.counts.polyphone,
+    );
     println!("\nwrote {}", out_path.display());
 }
 
@@ -207,7 +234,11 @@ fn print_diff(base_path: &Path, current: &Results, fail_threshold: Option<f64>) 
     for (m, (b, c)) in &table {
         let delta = (c - b) * 100.0;
         let sign = if delta >= 0.0 { "+" } else { "" };
-        println!("  {m:<20}  {:>6.2}% → {:>6.2}%   {sign}{delta:.2} pp", b * 100.0, c * 100.0);
+        println!(
+            "  {m:<20}  {:>6.2}% → {:>6.2}%   {sign}{delta:.2} pp",
+            b * 100.0,
+            c * 100.0
+        );
     }
 
     let Some(threshold_pp) = fail_threshold else {

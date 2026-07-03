@@ -76,12 +76,25 @@
 fn is_initial_letter(c: char) -> bool {
     matches!(
         c,
-        'b' | 'p' | 'm' | 'f'
-        | 'd' | 't' | 'n' | 'l'
-        | 'g' | 'k' | 'h'
-        | 'j' | 'q' | 'x'
-        | 'r' | 'z' | 'c' | 's'
-        | 'y' | 'w'
+        'b' | 'p'
+            | 'm'
+            | 'f'
+            | 'd'
+            | 't'
+            | 'n'
+            | 'l'
+            | 'g'
+            | 'k'
+            | 'h'
+            | 'j'
+            | 'q'
+            | 'x'
+            | 'r'
+            | 'z'
+            | 'c'
+            | 's'
+            | 'y'
+            | 'w'
     )
 }
 
@@ -221,7 +234,10 @@ mod tests {
         let v7 = abbrev_channel_log_prob(7);
         let v100 = abbrev_channel_log_prob(100);
         assert_eq!(v7, v100, "n=7 and n=100 should clamp to the same value");
-        assert!((v7 - (-0.301)).abs() < 1e-6, "ceiling should be -0.301, got {v7}");
+        assert!(
+            (v7 - (-0.301)).abs() < 1e-6,
+            "ceiling should be -0.301, got {v7}"
+        );
     }
 
     #[test]

@@ -30,7 +30,7 @@ fn main() -> ExitCode {
     let mut input: Option<String> = None;
     let mut output: Option<String> = None;
     let mut limit: Option<usize> = None;
-    let mut all_rows = false;  // emit all rows incl PASS
+    let mut all_rows = false; // emit all rows incl PASS
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -192,9 +192,18 @@ fn main() -> ExitCode {
     }
 
     eprintln!("dogfood done: {total} segments");
-    eprintln!("  PASS: {pass} ({:.1}%)", 100.0 * pass as f64 / total as f64);
-    eprintln!("  SOFT: {soft} ({:.1}%)", 100.0 * soft as f64 / total as f64);
-    eprintln!("  HARD: {hard} ({:.1}%)", 100.0 * hard as f64 / total as f64);
+    eprintln!(
+        "  PASS: {pass} ({:.1}%)",
+        100.0 * pass as f64 / total as f64
+    );
+    eprintln!(
+        "  SOFT: {soft} ({:.1}%)",
+        100.0 * soft as f64 / total as f64
+    );
+    eprintln!(
+        "  HARD: {hard} ({:.1}%)",
+        100.0 * hard as f64 / total as f64
+    );
     eprintln!("failures → {}", output);
     ExitCode::SUCCESS
 }
