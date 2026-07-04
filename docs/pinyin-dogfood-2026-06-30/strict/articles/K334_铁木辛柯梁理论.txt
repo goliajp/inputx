@@ -1,0 +1,3020 @@
+铁木辛柯梁理论
+
+铁木辛柯梁是20世纪早期由美籍乌克兰裔科学家与工程师斯蒂芬·铁木辛柯提出并发展的力学模型。模型考虑了剪应力和转动惯性，使其适于描述短梁、层合梁以及波长接近厚度的高频激励时梁的表现。结果方程有4阶，但不同于一般的梁理论，如欧拉-伯努利梁理论，还有一个2阶空间导数呈现。实际上，考虑了附加的变形机理有效地降低了梁的刚度，结果在一稳态载荷下挠度更大，在一组给定的边界条件时预估固有频率更低。后者在高频即波长更短时效果更明显，反向剪力距离缩短时也有同样效果。
+
+如果梁材料的剪切模量接近无穷，即此时梁为剪切刚体，并且忽略转动惯性，则铁木辛柯梁理论趋同于一般梁理论。
+
+
+== 控制方程 ==
+
+
+=== 准静态铁木辛柯梁 ===
+ 
+在静力学中铁木辛柯梁理论没有轴向影响，假定梁的位移服从于
+
+  
+    
+      
+        
+          u
+          
+            x
+          
+        
+        (
+        x
+        ,
+        y
+        ,
+        z
+        )
+        =
+        −
+        z
+         
+        φ
+        (
+        x
+        )
+         
+        ;
+         
+         
+        
+          u
+          
+            y
+          
+        
+        (
+        x
+        ,
+        y
+        ,
+        z
+        )
+        =
+        0
+         
+        ;
+         
+         
+        
+          u
+          
+            z
+          
+        
+        (
+        x
+        ,
+        y
+        )
+        =
+        w
+        (
+        x
+        )
+      
+    
+    {\displaystyle u_{x}(x,y,z)=-z~\varphi (x)~;~~u_{y}(x,y,z)=0~;~~u_{z}(x,y)=w(x)}
+  
+
+式中
+  
+    
+      
+        (
+        x
+        ,
+        y
+        ,
+        z
+        )
+      
+    
+    {\displaystyle (x,y,z)}
+  
+是梁上一点的坐标，
+  
+    
+      
+        
+          u
+          
+            x
+          
+        
+        ,
+        
+          u
+          
+            y
+          
+        
+        ,
+        
+          u
+          
+            z
+          
+        
+      
+    
+    {\displaystyle u_{x},u_{y},u_{z}}
+  
+是位移矢量的三维坐标分量，
+  
+    
+      
+        φ
+      
+    
+    {\displaystyle \varphi }
+  
+是对于梁的中性面的法向转角，
+  
+    
+      
+        w
+      
+    
+    {\displaystyle w}
+  
+是中性面的在
+  
+    
+      
+        z
+      
+    
+    {\displaystyle z}
+  
+方向的位移。
+控制方程是以下常微分方程的解耦系统：
+
+  
+    
+      
+        
+          
+            
+              
+              
+                
+                  
+                    
+                      
+                        d
+                      
+                      
+                        2
+                      
+                    
+                    
+                      
+                        d
+                      
+                      
+                        x
+                        
+                          2
+                        
+                      
+                    
+                  
+                
+                
+                  (
+                  
+                    E
+                    I
+                    
+                      
+                        
+                          
+                            d
+                          
+                          φ
+                        
+                        
+                          
+                            d
+                          
+                          x
+                        
+                      
+                    
+                  
+                  )
+                
+                =
+                q
+                (
+                x
+                ,
+                t
+                )
+              
+            
+            
+              
+              
+                
+                  
+                    
+                      
+                        d
+                      
+                      w
+                    
+                    
+                      
+                        d
+                      
+                      x
+                    
+                  
+                
+                =
+                φ
+                −
+                
+                  
+                    1
+                    
+                      κ
+                      A
+                      G
+                    
+                  
+                
+                
+                  
+                    
+                      d
+                    
+                    
+                      
+                        d
+                      
+                      x
+                    
+                  
+                
+                
+                  (
+                  
+                    E
+                    I
+                    
+                      
+                        
+                          
+                            d
+                          
+                          φ
+                        
+                        
+                          
+                            d
+                          
+                          x
+                        
+                      
+                    
+                  
+                  )
+                
+                .
+              
+            
+          
+        
+      
+    
+    {\displaystyle {\begin{aligned}&{\frac {\mathrm {d} ^{2}}{\mathrm {d} x^{2}}}\left(EI{\frac {\mathrm {d} \varphi }{\mathrm {d} x}}\right)=q(x,t)\\&{\frac {\mathrm {d} w}{\mathrm {d} x}}=\varphi -{\frac {1}{\kappa AG}}{\frac {\mathrm {d} }{\mathrm {d} x}}\left(EI{\frac {\mathrm {d} \varphi }{\mathrm {d} x}}\right).\end{aligned}}}
+  
+
+静态条件下的铁木辛柯梁理论，若在以下条件成立时，等同于欧拉-伯努利梁理论
+
+  
+    
+      
+        
+          
+            
+              E
+              I
+            
+            
+              κ
+              
+                L
+                
+                  2
+                
+              
+              A
+              G
+            
+          
+        
+        ≪
+        1
+      
+    
+    {\displaystyle {\frac {EI}{\kappa L^{2}AG}}\ll 1}
+  
+
+此时，可忽略上面控制方程的最后一项，得到有效的近似，式中
+  
+    
+      
+        L
+      
+    
+    {\displaystyle L}
+  
+是梁的长度。 
+对于等截面均匀梁，合并以上两个方程，
+
+  
+    
+      
+        E
+        I
+         
+        
+          
+            
+              
+                
+              
+              
+                
+                  
+                    
+                      d
+                    
+                    
+                      4
+                    
+                  
+                  w
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  
+                    d
+                  
+                  
+                    x
+                    
+                      4
+                    
+                  
+                
+              
+            
+          
+        
+        =
+        q
+        (
+        x
+        )
+        −
+        
+          
+            
+              
+                
+              
+              
+                
+                  E
+                  I
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  κ
+                  A
+                  G
+                
+              
+            
+          
+        
+         
+        
+          
+            
+              
+                
+              
+              
+                
+                  
+                    
+                      d
+                    
+                    
+                      2
+                    
+                  
+                  q
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  
+                    d
+                  
+                  
+                    x
+                    
+                      2
+                    
+                  
+                
+              
+            
+          
+        
+      
+    
+    {\displaystyle EI~{\cfrac {\mathrm {d} ^{4}w}{\mathrm {d} x^{4}}}=q(x)-{\cfrac {EI}{\kappa AG}}~{\cfrac {\mathrm {d} ^{2}q}{\mathrm {d} x^{2}}}}
+  
+
+
+=== 动态铁木辛柯梁 ===
+在铁木辛柯梁理论中若不考虑轴向影响，则给出梁的位移
+
+  
+    
+      
+        
+          u
+          
+            x
+          
+        
+        (
+        x
+        ,
+        y
+        ,
+        z
+        ,
+        t
+        )
+        =
+        −
+        z
+         
+        φ
+        (
+        x
+        ,
+        t
+        )
+         
+        ;
+         
+         
+        
+          u
+          
+            y
+          
+        
+        (
+        x
+        ,
+        y
+        ,
+        z
+        ,
+        t
+        )
+        =
+        0
+         
+        ;
+         
+         
+        
+          u
+          
+            z
+          
+        
+        (
+        x
+        ,
+        y
+        ,
+        z
+        ,
+        t
+        )
+        =
+        w
+        (
+        x
+        ,
+        t
+        )
+      
+    
+    {\displaystyle u_{x}(x,y,z,t)=-z~\varphi (x,t)~;~~u_{y}(x,y,z,t)=0~;~~u_{z}(x,y,z,t)=w(x,t)}
+  
+
+式中
+  
+    
+      
+        (
+        x
+        ,
+        y
+        ,
+        z
+        )
+      
+    
+    {\displaystyle (x,y,z)}
+  
+是梁内一点的坐标，
+  
+    
+      
+        
+          u
+          
+            x
+          
+        
+        ,
+        
+          u
+          
+            y
+          
+        
+        ,
+        
+          u
+          
+            z
+          
+        
+      
+    
+    {\displaystyle u_{x},u_{y},u_{z}}
+  
+是位移矢量的三维坐标分量，
+  
+    
+      
+        φ
+      
+    
+    {\displaystyle \varphi }
+  
+是对于梁的中性面的法向转角，
+  
+    
+      
+        w
+      
+    
+    {\displaystyle w}
+  
+是中性面
+  
+    
+      
+        z
+      
+    
+    {\displaystyle z}
+  
+方向的位移.
+从以上假设，铁木辛柯梁，考虑到振动，要用线性耦合偏微分方程描述：
+
+  
+    
+      
+        ρ
+        A
+        
+          
+            
+              
+                ∂
+                
+                  2
+                
+              
+              w
+            
+            
+              ∂
+              
+                t
+                
+                  2
+                
+              
+            
+          
+        
+        −
+        q
+        (
+        x
+        ,
+        t
+        )
+        =
+        
+          
+            ∂
+            
+              ∂
+              x
+            
+          
+        
+        
+          [
+          
+            κ
+            A
+            G
+            
+              (
+              
+                
+                  
+                    
+                      ∂
+                      w
+                    
+                    
+                      ∂
+                      x
+                    
+                  
+                
+                −
+                φ
+              
+              )
+            
+          
+          ]
+        
+      
+    
+    {\displaystyle \rho A{\frac {\partial ^{2}w}{\partial t^{2}}}-q(x,t)={\frac {\partial }{\partial x}}\left[\kappa AG\left({\frac {\partial w}{\partial x}}-\varphi \right)\right]}
+  
+
+  
+    
+      
+        ρ
+        I
+        
+          
+            
+              
+                ∂
+                
+                  2
+                
+              
+              φ
+            
+            
+              ∂
+              
+                t
+                
+                  2
+                
+              
+            
+          
+        
+        =
+        
+          
+            ∂
+            
+              ∂
+              x
+            
+          
+        
+        
+          (
+          
+            E
+            I
+            
+              
+                
+                  ∂
+                  φ
+                
+                
+                  ∂
+                  x
+                
+              
+            
+          
+          )
+        
+        +
+        κ
+        A
+        G
+        
+          (
+          
+            
+              
+                
+                  ∂
+                  w
+                
+                
+                  ∂
+                  x
+                
+              
+            
+            −
+            φ
+          
+          )
+        
+      
+    
+    {\displaystyle \rho I{\frac {\partial ^{2}\varphi }{\partial t^{2}}}={\frac {\partial }{\partial x}}\left(EI{\frac {\partial \varphi }{\partial x}}\right)+\kappa AG\left({\frac {\partial w}{\partial x}}-\varphi \right)}
+  
+
+其中因变量是梁的平移位移
+  
+    
+      
+        w
+        (
+        x
+        ,
+        t
+        )
+      
+    
+    {\displaystyle w(x,t)}
+  
+和转角位移
+  
+    
+      
+        φ
+        (
+        x
+        ,
+        t
+        )
+      
+    
+    {\displaystyle \varphi (x,t)}
+  
+。注意不同于欧拉-伯努利梁理论，转角位移是另一个变量而非挠度斜率的近似。此外，
+
+  
+    
+      
+        ρ
+      
+    
+    {\displaystyle \rho }
+  
+是梁材料的密度（而非线密度）；
+
+  
+    
+      
+        A
+      
+    
+    {\displaystyle A}
+  
+是截面面积；
+
+  
+    
+      
+        E
+      
+    
+    {\displaystyle E}
+  
+是弹性模量；
+
+  
+    
+      
+        G
+      
+    
+    {\displaystyle G}
+  
+是剪切模量；
+
+  
+    
+      
+        I
+      
+    
+    {\displaystyle I}
+  
+是轴惯性矩；
+
+  
+    
+      
+        κ
+      
+    
+    {\displaystyle \kappa }
+  
+，称作铁木辛柯剪切系数，由形状确定，通常矩形截面
+  
+    
+      
+        κ
+        =
+        5
+        
+          /
+        
+        6
+      
+    
+    {\displaystyle \kappa =5/6}
+  
+；
+
+  
+    
+      
+        q
+        (
+        x
+        ,
+        t
+        )
+      
+    
+    {\displaystyle q(x,t)}
+  
+是载荷分布（单位长度上的力）；
+
+  
+    
+      
+        m
+        :=
+        ρ
+        A
+      
+    
+    {\displaystyle m:=\rho A}
+  
+
+  
+    
+      
+        J
+        :=
+        ρ
+        I
+      
+    
+    {\displaystyle J:=\rho I}
+  
+
+这些参数不一定是常数。
+对于各向同性的线弹性均匀等截面梁，以上两个方程可合并成
+
+  
+    
+      
+        E
+        I
+         
+        
+          
+            
+              
+                
+              
+              
+                
+                  
+                    ∂
+                    
+                      4
+                    
+                  
+                  w
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  ∂
+                  
+                    x
+                    
+                      4
+                    
+                  
+                
+              
+            
+          
+        
+        +
+        m
+         
+        
+          
+            
+              
+                
+              
+              
+                
+                  
+                    ∂
+                    
+                      2
+                    
+                  
+                  w
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  ∂
+                  
+                    t
+                    
+                      2
+                    
+                  
+                
+              
+            
+          
+        
+        −
+        
+          (
+          
+            J
+            +
+            
+              
+                
+                  
+                    
+                  
+                  
+                    
+                      E
+                      I
+                      m
+                    
+                  
+                
+                
+                  
+                    
+                  
+                  
+                    
+                      k
+                      A
+                      G
+                    
+                  
+                
+              
+            
+          
+          )
+        
+        
+          
+            
+              
+                
+              
+              
+                
+                  
+                    ∂
+                    
+                      4
+                    
+                  
+                  w
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  ∂
+                  
+                    x
+                    
+                      2
+                    
+                  
+                   
+                  ∂
+                  
+                    t
+                    
+                      2
+                    
+                  
+                
+              
+            
+          
+        
+        +
+        
+          
+            
+              
+                
+              
+              
+                
+                  m
+                  J
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  k
+                  A
+                  G
+                
+              
+            
+          
+        
+         
+        
+          
+            
+              
+                
+              
+              
+                
+                  
+                    ∂
+                    
+                      4
+                    
+                  
+                  w
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  ∂
+                  
+                    t
+                    
+                      4
+                    
+                  
+                
+              
+            
+          
+        
+        =
+        q
+        (
+        x
+        ,
+        t
+        )
+        +
+        
+          
+            
+              
+                
+              
+              
+                
+                  J
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  k
+                  A
+                  G
+                
+              
+            
+          
+        
+         
+        
+          
+            
+              
+                
+              
+              
+                
+                  
+                    ∂
+                    
+                      2
+                    
+                  
+                  q
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  ∂
+                  
+                    t
+                    
+                      2
+                    
+                  
+                
+              
+            
+          
+        
+        −
+        
+          
+            
+              
+                
+              
+              
+                
+                  E
+                  I
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  k
+                  A
+                  G
+                
+              
+            
+          
+        
+         
+        
+          
+            
+              
+                
+              
+              
+                
+                  
+                    ∂
+                    
+                      2
+                    
+                  
+                  q
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  ∂
+                  
+                    x
+                    
+                      2
+                    
+                  
+                
+              
+            
+          
+        
+      
+    
+    {\displaystyle EI~{\cfrac {\partial ^{4}w}{\partial x^{4}}}+m~{\cfrac {\partial ^{2}w}{\partial t^{2}}}-\left(J+{\cfrac {EIm}{kAG}}\right){\cfrac {\partial ^{4}w}{\partial x^{2}~\partial t^{2}}}+{\cfrac {mJ}{kAG}}~{\cfrac {\partial ^{4}w}{\partial t^{4}}}=q(x,t)+{\cfrac {J}{kAG}}~{\cfrac {\partial ^{2}q}{\partial t^{2}}}-{\cfrac {EI}{kAG}}~{\cfrac {\partial ^{2}q}{\partial x^{2}}}}
+  
+
+
+==== 轴向影响 ====
+如果梁的位移由下式给出
+
+  
+    
+      
+        
+          u
+          
+            x
+          
+        
+        (
+        x
+        ,
+        y
+        ,
+        z
+        ,
+        t
+        )
+        =
+        
+          u
+          
+            0
+          
+        
+        (
+        x
+        ,
+        t
+        )
+        −
+        z
+         
+        φ
+        (
+        x
+        ,
+        t
+        )
+         
+        ;
+         
+         
+        
+          u
+          
+            y
+          
+        
+        (
+        x
+        ,
+        y
+        ,
+        z
+        ,
+        t
+        )
+        =
+        0
+         
+        ;
+         
+         
+        
+          u
+          
+            z
+          
+        
+        (
+        x
+        ,
+        y
+        ,
+        z
+        )
+        =
+        w
+        (
+        x
+        ,
+        t
+        )
+      
+    
+    {\displaystyle u_{x}(x,y,z,t)=u_{0}(x,t)-z~\varphi (x,t)~;~~u_{y}(x,y,z,t)=0~;~~u_{z}(x,y,z)=w(x,t)}
+  
+
+其中
+  
+    
+      
+        
+          u
+          
+            0
+          
+        
+      
+    
+    {\displaystyle u_{0}}
+  
+是
+  
+    
+      
+        x
+      
+    
+    {\displaystyle x}
+  
+方向的附加位移，则铁木辛柯梁的控制方程成为
+
+  
+    
+      
+        
+          
+            
+              
+                m
+                
+                  
+                    
+                      
+                        ∂
+                        
+                          2
+                        
+                      
+                      w
+                    
+                    
+                      ∂
+                      
+                        t
+                        
+                          2
+                        
+                      
+                    
+                  
+                
+              
+              
+                
+                =
+                
+                  
+                    ∂
+                    
+                      ∂
+                      x
+                    
+                  
+                
+                
+                  [
+                  
+                    κ
+                    A
+                    G
+                    
+                      (
+                      
+                        
+                          
+                            
+                              ∂
+                              w
+                            
+                            
+                              ∂
+                              x
+                            
+                          
+                        
+                        −
+                        φ
+                      
+                      )
+                    
+                  
+                  ]
+                
+                +
+                q
+                (
+                x
+                ,
+                t
+                )
+              
+            
+            
+              
+                J
+                
+                  
+                    
+                      
+                        ∂
+                        
+                          2
+                        
+                      
+                      φ
+                    
+                    
+                      ∂
+                      
+                        t
+                        
+                          2
+                        
+                      
+                    
+                  
+                
+              
+              
+                
+                =
+                N
+                (
+                x
+                ,
+                t
+                )
+                 
+                
+                  
+                    
+                      ∂
+                      w
+                    
+                    
+                      ∂
+                      x
+                    
+                  
+                
+                +
+                
+                  
+                    ∂
+                    
+                      ∂
+                      x
+                    
+                  
+                
+                
+                  (
+                  
+                    E
+                    I
+                    
+                      
+                        
+                          ∂
+                          φ
+                        
+                        
+                          ∂
+                          x
+                        
+                      
+                    
+                  
+                  )
+                
+                +
+                κ
+                A
+                G
+                
+                  (
+                  
+                    
+                      
+                        
+                          ∂
+                          w
+                        
+                        
+                          ∂
+                          x
+                        
+                      
+                    
+                    −
+                    φ
+                  
+                  )
+                
+              
+            
+          
+        
+      
+    
+    {\displaystyle {\begin{aligned}m{\frac {\partial ^{2}w}{\partial t^{2}}}&={\frac {\partial }{\partial x}}\left[\kappa AG\left({\frac {\partial w}{\partial x}}-\varphi \right)\right]+q(x,t)\\J{\frac {\partial ^{2}\varphi }{\partial t^{2}}}&=N(x,t)~{\frac {\partial w}{\partial x}}+{\frac {\partial }{\partial x}}\left(EI{\frac {\partial \varphi }{\partial x}}\right)+\kappa AG\left({\frac {\partial w}{\partial x}}-\varphi \right)\end{aligned}}}
+  
+
+其中
+  
+    
+      
+        J
+        =
+        ρ
+        I
+      
+    
+    {\displaystyle J=\rho I}
+  
+，
+  
+    
+      
+        N
+        (
+        x
+        ,
+        t
+        )
+      
+    
+    {\displaystyle N(x,t)}
+  
+是外加轴向力。任意外部轴向力的平衡依靠应力
+
+  
+    
+      
+        
+          N
+          
+            x
+            x
+          
+        
+        (
+        x
+        ,
+        t
+        )
+        =
+        
+          ∫
+          
+            −
+            h
+          
+          
+            h
+          
+        
+        
+          σ
+          
+            x
+            x
+          
+        
+         
+        d
+        z
+      
+    
+    {\displaystyle N_{xx}(x,t)=\int _{-h}^{h}\sigma _{xx}~dz}
+  
+
+式中
+  
+    
+      
+        
+          σ
+          
+            x
+            x
+          
+        
+      
+    
+    {\displaystyle \sigma _{xx}}
+  
+是轴向应力，梁的厚度设为
+  
+    
+      
+        2
+        h
+      
+    
+    {\displaystyle 2h}
+  
+。
+包含轴向力的梁方程合并为
+
+  
+    
+      
+        E
+        I
+         
+        
+          
+            
+              
+                
+              
+              
+                
+                  
+                    ∂
+                    
+                      4
+                    
+                  
+                  w
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  ∂
+                  
+                    x
+                    
+                      4
+                    
+                  
+                
+              
+            
+          
+        
+        +
+        N
+         
+        
+          
+            
+              
+                
+              
+              
+                
+                  
+                    ∂
+                    
+                      2
+                    
+                  
+                  w
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  ∂
+                  
+                    x
+                    
+                      2
+                    
+                  
+                
+              
+            
+          
+        
+        +
+        m
+         
+        
+          
+            
+              
+                ∂
+                
+                  2
+                
+              
+              w
+            
+            
+              ∂
+              
+                t
+                
+                  2
+                
+              
+            
+          
+        
+        −
+        
+          (
+          
+            J
+            +
+            
+              
+                
+                  
+                    
+                  
+                  
+                    
+                      m
+                      E
+                      I
+                    
+                  
+                
+                
+                  
+                    
+                  
+                  
+                    
+                      κ
+                      A
+                      G
+                    
+                  
+                
+              
+            
+          
+          )
+        
+         
+        
+          
+            
+              
+                
+              
+              
+                
+                  
+                    ∂
+                    
+                      4
+                    
+                  
+                  w
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  ∂
+                  
+                    x
+                    
+                      2
+                    
+                  
+                  ∂
+                  
+                    t
+                    
+                      2
+                    
+                  
+                
+              
+            
+          
+        
+        +
+        
+          
+            
+              
+                
+              
+              
+                
+                  m
+                  J
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  κ
+                  A
+                  G
+                
+              
+            
+          
+        
+         
+        
+          
+            
+              
+                
+              
+              
+                
+                  
+                    ∂
+                    
+                      4
+                    
+                  
+                  w
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  ∂
+                  
+                    t
+                    
+                      4
+                    
+                  
+                
+              
+            
+          
+        
+        =
+        q
+        +
+        
+          
+            
+              
+                
+              
+              
+                
+                  J
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  κ
+                  A
+                  G
+                
+              
+            
+          
+        
+         
+        
+          
+            
+              
+                ∂
+                
+                  2
+                
+              
+              q
+            
+            
+              ∂
+              
+                t
+                
+                  2
+                
+              
+            
+          
+        
+        −
+        
+          
+            
+              
+                
+              
+              
+                
+                  E
+                  I
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  κ
+                  A
+                  G
+                
+              
+            
+          
+        
+         
+        
+          
+            
+              
+                ∂
+                
+                  2
+                
+              
+              q
+            
+            
+              ∂
+              
+                x
+                
+                  2
+                
+              
+            
+          
+        
+      
+    
+    {\displaystyle EI~{\cfrac {\partial ^{4}w}{\partial x^{4}}}+N~{\cfrac {\partial ^{2}w}{\partial x^{2}}}+m~{\frac {\partial ^{2}w}{\partial t^{2}}}-\left(J+{\cfrac {mEI}{\kappa AG}}\right)~{\cfrac {\partial ^{4}w}{\partial x^{2}\partial t^{2}}}+{\cfrac {mJ}{\kappa AG}}~{\cfrac {\partial ^{4}w}{\partial t^{4}}}=q+{\cfrac {J}{\kappa AG}}~{\frac {\partial ^{2}q}{\partial t^{2}}}-{\cfrac {EI}{\kappa AG}}~{\frac {\partial ^{2}q}{\partial x^{2}}}}
+  
+
+
+==== 阻尼 ====
+如果，除轴向力外，也考虑与速度成正比的阻尼力，形如
+
+  
+    
+      
+        η
+        (
+        x
+        )
+         
+        
+          
+            
+              
+                
+              
+              
+                
+                  ∂
+                  w
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  ∂
+                  t
+                
+              
+            
+          
+        
+      
+    
+    {\displaystyle \eta (x)~{\cfrac {\partial w}{\partial t}}}
+  
+
+铁木辛柯梁的耦合控制方程成为
+
+  
+    
+      
+        m
+        
+          
+            
+              
+                ∂
+                
+                  2
+                
+              
+              w
+            
+            
+              ∂
+              
+                t
+                
+                  2
+                
+              
+            
+          
+        
+        +
+        η
+        (
+        x
+        )
+         
+        
+          
+            
+              
+                
+              
+              
+                
+                  ∂
+                  w
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  ∂
+                  t
+                
+              
+            
+          
+        
+        =
+        
+          
+            ∂
+            
+              ∂
+              x
+            
+          
+        
+        
+          [
+          
+            κ
+            A
+            G
+            
+              (
+              
+                
+                  
+                    
+                      ∂
+                      w
+                    
+                    
+                      ∂
+                      x
+                    
+                  
+                
+                −
+                φ
+              
+              )
+            
+          
+          ]
+        
+        +
+        q
+        (
+        x
+        ,
+        t
+        )
+      
+    
+    {\displaystyle m{\frac {\partial ^{2}w}{\partial t^{2}}}+\eta (x)~{\cfrac {\partial w}{\partial t}}={\frac {\partial }{\partial x}}\left[\kappa AG\left({\frac {\partial w}{\partial x}}-\varphi \right)\right]+q(x,t)}
+  
+
+  
+    
+      
+        J
+        
+          
+            
+              
+                ∂
+                
+                  2
+                
+              
+              φ
+            
+            
+              ∂
+              
+                t
+                
+                  2
+                
+              
+            
+          
+        
+        =
+        N
+        
+          
+            
+              ∂
+              w
+            
+            
+              ∂
+              x
+            
+          
+        
+        +
+        
+          
+            ∂
+            
+              ∂
+              x
+            
+          
+        
+        
+          (
+          
+            E
+            I
+            
+              
+                
+                  ∂
+                  φ
+                
+                
+                  ∂
+                  x
+                
+              
+            
+          
+          )
+        
+        +
+        κ
+        A
+        G
+        
+          (
+          
+            
+              
+                
+                  ∂
+                  w
+                
+                
+                  ∂
+                  x
+                
+              
+            
+            −
+            φ
+          
+          )
+        
+      
+    
+    {\displaystyle J{\frac {\partial ^{2}\varphi }{\partial t^{2}}}=N{\frac {\partial w}{\partial x}}+{\frac {\partial }{\partial x}}\left(EI{\frac {\partial \varphi }{\partial x}}\right)+\kappa AG\left({\frac {\partial w}{\partial x}}-\varphi \right)}
+  
+
+合并方程为
+
+  
+    
+      
+        
+          
+            
+              
+                E
+                I
+                 
+                
+                  
+                    
+                      
+                        
+                      
+                      
+                        
+                          
+                            ∂
+                            
+                              4
+                            
+                          
+                          w
+                        
+                      
+                    
+                    
+                      
+                        
+                      
+                      
+                        
+                          ∂
+                          
+                            x
+                            
+                              4
+                            
+                          
+                        
+                      
+                    
+                  
+                
+              
+              
+                
+                +
+                N
+                 
+                
+                  
+                    
+                      
+                        
+                      
+                      
+                        
+                          
+                            ∂
+                            
+                              2
+                            
+                          
+                          w
+                        
+                      
+                    
+                    
+                      
+                        
+                      
+                      
+                        
+                          ∂
+                          
+                            x
+                            
+                              2
+                            
+                          
+                        
+                      
+                    
+                  
+                
+                +
+                m
+                 
+                
+                  
+                    
+                      
+                        ∂
+                        
+                          2
+                        
+                      
+                      w
+                    
+                    
+                      ∂
+                      
+                        t
+                        
+                          2
+                        
+                      
+                    
+                  
+                
+                −
+                
+                  (
+                  
+                    J
+                    +
+                    
+                      
+                        
+                          
+                            
+                          
+                          
+                            
+                              m
+                              E
+                              I
+                            
+                          
+                        
+                        
+                          
+                            
+                          
+                          
+                            
+                              κ
+                              A
+                              G
+                            
+                          
+                        
+                      
+                    
+                  
+                  )
+                
+                 
+                
+                  
+                    
+                      
+                        
+                      
+                      
+                        
+                          
+                            ∂
+                            
+                              4
+                            
+                          
+                          w
+                        
+                      
+                    
+                    
+                      
+                        
+                      
+                      
+                        
+                          ∂
+                          
+                            x
+                            
+                              2
+                            
+                          
+                          ∂
+                          
+                            t
+                            
+                              2
+                            
+                          
+                        
+                      
+                    
+                  
+                
+                +
+                
+                  
+                    
+                      
+                        
+                      
+                      
+                        
+                          m
+                          J
+                        
+                      
+                    
+                    
+                      
+                        
+                      
+                      
+                        
+                          κ
+                          A
+                          G
+                        
+                      
+                    
+                  
+                
+                 
+                
+                  
+                    
+                      
+                        
+                      
+                      
+                        
+                          
+                            ∂
+                            
+                              4
+                            
+                          
+                          w
+                        
+                      
+                    
+                    
+                      
+                        
+                      
+                      
+                        
+                          ∂
+                          
+                            t
+                            
+                              4
+                            
+                          
+                        
+                      
+                    
+                  
+                
+                +
+                
+                  
+                    
+                      
+                        
+                      
+                      
+                        
+                          J
+                          η
+                          (
+                          x
+                          )
+                        
+                      
+                    
+                    
+                      
+                        
+                      
+                      
+                        
+                          κ
+                          A
+                          G
+                        
+                      
+                    
+                  
+                
+                 
+                
+                  
+                    
+                      
+                        
+                      
+                      
+                        
+                          
+                            ∂
+                            
+                              3
+                            
+                          
+                          w
+                        
+                      
+                    
+                    
+                      
+                        
+                      
+                      
+                        
+                          ∂
+                          
+                            t
+                            
+                              3
+                            
+                          
+                        
+                      
+                    
+                  
+                
+              
+            
+            
+              
+              
+                
+                −
+                
+                  
+                    
+                      
+                        
+                      
+                      
+                        
+                          E
+                          I
+                        
+                      
+                    
+                    
+                      
+                        
+                      
+                      
+                        
+                          κ
+                          A
+                          G
+                        
+                      
+                    
+                  
+                
+                 
+                
+                  
+                    
+                      
+                        
+                      
+                      
+                        
+                          
+                            ∂
+                            
+                              2
+                            
+                          
+                        
+                      
+                    
+                    
+                      
+                        
+                      
+                      
+                        
+                          ∂
+                          
+                            x
+                            
+                              2
+                            
+                          
+                        
+                      
+                    
+                  
+                
+                
+                  (
+                  
+                    η
+                    (
+                    x
+                    )
+                    
+                      
+                        
+                          
+                            
+                          
+                          
+                            
+                              ∂
+                              w
+                            
+                          
+                        
+                        
+                          
+                            
+                          
+                          
+                            
+                              ∂
+                              t
+                            
+                          
+                        
+                      
+                    
+                  
+                  )
+                
+                +
+                η
+                (
+                x
+                )
+                
+                  
+                    
+                      
+                        
+                      
+                      
+                        
+                          ∂
+                          w
+                        
+                      
+                    
+                    
+                      
+                        
+                      
+                      
+                        
+                          ∂
+                          t
+                        
+                      
+                    
+                  
+                
+                =
+                q
+                +
+                
+                  
+                    
+                      
+                        
+                      
+                      
+                        
+                          J
+                        
+                      
+                    
+                    
+                      
+                        
+                      
+                      
+                        
+                          κ
+                          A
+                          G
+                        
+                      
+                    
+                  
+                
+                 
+                
+                  
+                    
+                      
+                        ∂
+                        
+                          2
+                        
+                      
+                      q
+                    
+                    
+                      ∂
+                      
+                        t
+                        
+                          2
+                        
+                      
+                    
+                  
+                
+                −
+                
+                  
+                    
+                      
+                        
+                      
+                      
+                        
+                          E
+                          I
+                        
+                      
+                    
+                    
+                      
+                        
+                      
+                      
+                        
+                          κ
+                          A
+                          G
+                        
+                      
+                    
+                  
+                
+                 
+                
+                  
+                    
+                      
+                        ∂
+                        
+                          2
+                        
+                      
+                      q
+                    
+                    
+                      ∂
+                      
+                        x
+                        
+                          2
+                        
+                      
+                    
+                  
+                
+              
+            
+          
+        
+      
+    
+    {\displaystyle {\begin{aligned}EI~{\cfrac {\partial ^{4}w}{\partial x^{4}}}&+N~{\cfrac {\partial ^{2}w}{\partial x^{2}}}+m~{\frac {\partial ^{2}w}{\partial t^{2}}}-\left(J+{\cfrac {mEI}{\kappa AG}}\right)~{\cfrac {\partial ^{4}w}{\partial x^{2}\partial t^{2}}}+{\cfrac {mJ}{\kappa AG}}~{\cfrac {\partial ^{4}w}{\partial t^{4}}}+{\cfrac {J\eta (x)}{\kappa AG}}~{\cfrac {\partial ^{3}w}{\partial t^{3}}}\\&-{\cfrac {EI}{\kappa AG}}~{\cfrac {\partial ^{2}}{\partial x^{2}}}\left(\eta (x){\cfrac {\partial w}{\partial t}}\right)+\eta (x){\cfrac {\partial w}{\partial t}}=q+{\cfrac {J}{\kappa AG}}~{\frac {\partial ^{2}q}{\partial t^{2}}}-{\cfrac {EI}{\kappa AG}}~{\frac {\partial ^{2}q}{\partial x^{2}}}\end{aligned}}}
+  
+
+
+== 切变系数 ==
+确定切变系数不是直接的，一般它必须满足：
+
+  
+    
+      
+        
+          ∫
+          
+            A
+          
+        
+        τ
+        d
+        A
+        =
+        κ
+        A
+        G
+        φ
+        
+      
+    
+    {\displaystyle \int _{A}\tau dA=\kappa AG\varphi \,}
+  
+
+切变系数由泊松比确定。更严格的表达方法由多位科学家完成，包括斯蒂芬·铁木辛柯、雷蒙德·明德林（Raymond D. Mindlin）、考珀（G. R. Cowper）和约翰·哈钦森（John W. Hutchinson）等。工程实践中，斯蒂芬·铁木辛柯的表达一般状况下足够好。
+对于固态矩形截面：
+
+  
+    
+      
+        κ
+        =
+        
+          
+            
+              
+                
+              
+              
+                
+                  10
+                  (
+                  1
+                  +
+                  ν
+                  )
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  12
+                  +
+                  11
+                  ν
+                
+              
+            
+          
+        
+      
+    
+    {\displaystyle \kappa ={\cfrac {10(1+\nu )}{12+11\nu }}}
+  
+
+对于固态圆形截面：
+
+  
+    
+      
+        κ
+        =
+        
+          
+            
+              
+                
+              
+              
+                
+                  6
+                  (
+                  1
+                  +
+                  ν
+                  )
+                
+              
+            
+            
+              
+                
+              
+              
+                
+                  7
+                  +
+                  6
+                  ν
+                
+              
+            
+          
+        
+      
+    
+    {\displaystyle \kappa ={\cfrac {6(1+\nu )}{7+6\nu }}}
+  
+
+
+== 参考文献 ==
+
+Stephen P. Timoshenko. Schwingungsprobleme der technik. Verlag von Julius Springer. 1932.
