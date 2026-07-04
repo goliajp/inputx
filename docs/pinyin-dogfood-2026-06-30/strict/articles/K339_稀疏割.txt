@@ -1,0 +1,731 @@
+稀疏割
+
+在图论与近似演算法中，稀疏割问题（sparsest cut problem）要求将图的顶点集分成两部分，使跨越分割的边相对于两侧「体积」（volume）的比例最小。此问题同时要求分割既稀疏（跨割边少）又均衡（两侧大小相近），是谱图论、扩展图与图分割中的核心问题。
+
+
+== 背景：图上的割 ==
+设 
+  
+    
+      
+        G
+        =
+        (
+        V
+        ,
+        E
+        )
+      
+    
+    {\displaystyle G=(V,E)}
+  
+ 为无向图。割（cut）是将 
+  
+    
+      
+        V
+      
+    
+    {\displaystyle V}
+  
+ 分成不相交子集 
+  
+    
+      
+        S
+      
+    
+    {\displaystyle S}
+  
+ 与 
+  
+    
+      
+        T
+        =
+        V
+        ∖
+        S
+      
+    
+    {\displaystyle T=V\setminus S}
+  
+ 的分划。跨越割的边集
+
+  
+    
+      
+        ∂
+        S
+        =
+        {
+        {
+        u
+        ,
+        v
+        }
+        ∈
+        E
+        :
+        u
+        ∈
+        S
+        ,
+        
+        v
+        ∈
+        T
+        }
+      
+    
+    {\displaystyle \partial S=\{\{u,v\}\in E:u\in S,\,v\in T\}}
+  
+
+称为割集。最小割问题只关心 
+  
+    
+      
+        
+          |
+        
+        ∂
+        S
+        
+          |
+        
+      
+    
+    {\displaystyle |\partial S|}
+  
+ 的大小；稀疏割则进一步以两侧顶点的「体积」正规化，避免把极小集合与其余顶点分开这类平凡解。
+
+
+== 定义 ==
+对顶点 
+  
+    
+      
+        v
+      
+    
+    {\displaystyle v}
+  
+，令 
+  
+    
+      
+        d
+        (
+        v
+        )
+      
+    
+    {\displaystyle d(v)}
+  
+ 为其度。子集 
+  
+    
+      
+        S
+        ⊆
+        V
+      
+    
+    {\displaystyle S\subseteq V}
+  
+ 的体积（volume）为
+
+  
+    
+      
+        
+          v
+          o
+          l
+        
+        (
+        S
+        )
+        =
+        
+          ∑
+          
+            v
+            ∈
+            S
+          
+        
+        d
+        (
+        v
+        )
+        .
+      
+    
+    {\displaystyle \mathrm {vol} (S)=\sum _{v\in S}d(v).}
+  
+
+稀疏比（sparsity）定义为
+
+  
+    
+      
+        ϕ
+        (
+        S
+        )
+        =
+        
+          
+            
+              
+                |
+              
+              ∂
+              S
+              
+                |
+              
+            
+            
+              
+                v
+                o
+                l
+              
+              (
+              S
+              )
+              ⋅
+              
+                v
+                o
+                l
+              
+              (
+              V
+              ∖
+              S
+              )
+            
+          
+        
+        .
+      
+    
+    {\displaystyle \phi (S)={\frac {|\partial S|}{\mathrm {vol} (S)\cdot \mathrm {vol} (V\setminus S)}}.}
+  
+
+稀疏割问题即求使 
+  
+    
+      
+        ϕ
+        (
+        S
+        )
+      
+    
+    {\displaystyle \phi (S)}
+  
+ 最小的分割 
+  
+    
+      
+        S
+      
+    
+    {\displaystyle S}
+  
+，记最优值为 
+  
+    
+      
+        Φ
+        (
+        G
+        )
+        =
+        
+          min
+          
+            S
+            ⊂
+            V
+          
+        
+        ϕ
+        (
+        S
+        )
+      
+    
+    {\displaystyle \Phi (G)=\min _{S\subset V}\phi (S)}
+  
+。
+此目标函数在分子与分母之间取得平衡：若 
+  
+    
+      
+        
+          |
+        
+        S
+        
+          |
+        
+      
+    
+    {\displaystyle |S|}
+  
+ 很小，则 
+  
+    
+      
+        
+          v
+          o
+          l
+        
+        (
+        S
+        )
+      
+    
+    {\displaystyle \mathrm {vol} (S)}
+  
+ 小、分母小，稀疏比会变大；因此最优解倾向于两侧大小相近的分割。加权图中，
+  
+    
+      
+        d
+        (
+        v
+        )
+      
+    
+    {\displaystyle d(v)}
+  
+ 与 
+  
+    
+      
+        
+          |
+        
+        ∂
+        S
+        
+          |
+        
+      
+    
+    {\displaystyle |\partial S|}
+  
+ 改以边权计算。
+
+
+== 与切格常数及谱分割 ==
+切格不等式将 
+  
+    
+      
+        Φ
+        (
+        G
+        )
+      
+    
+    {\displaystyle \Phi (G)}
+  
+ 与图拉普拉斯矩阵的第二小特征值 
+  
+    
+      
+        
+          λ
+          
+            2
+          
+        
+      
+    
+    {\displaystyle \lambda _{2}}
+  
+ 联系起来：
+
+  
+    
+      
+        
+          
+            
+              λ
+              
+                2
+              
+            
+            2
+          
+        
+        ≤
+        Φ
+        (
+        G
+        )
+        ≤
+        
+          
+            2
+            
+              λ
+              
+                2
+              
+            
+          
+        
+        .
+      
+    
+    {\displaystyle {\frac {\lambda _{2}}{2}}\leq \Phi (G)\leq {\sqrt {2\lambda _{2}}}.}
+  
+
+因此，以 
+  
+    
+      
+        
+          λ
+          
+            2
+          
+        
+      
+    
+    {\displaystyle \lambda _{2}}
+  
+ 对应的特征向量做谱聚类（spectral clustering；亦称谱分割（spectral partitioning）），可得到稀疏割的 
+  
+    
+      
+        O
+        (
+        
+          
+            
+              λ
+              
+                2
+              
+            
+          
+        
+        )
+      
+    
+    {\displaystyle O({\sqrt {\lambda _{2}}})}
+  
+ 近似。谱方法计算快，但近似比本身未必最优；后述 Leighton–Rao 与 ARV 演算法从不同角度改进了可证明的近似保证。
+
+
+=== 谱分割近似比的证明 ===
+右侧不等式（
+  
+    
+      
+        Φ
+        (
+        G
+        )
+        =
+        O
+        (
+        
+          
+            
+              λ
+              
+                2
+              
+            
+          
+        
+        )
+      
+    
+    {\displaystyle \Phi (G)=O({\sqrt {\lambda _{2}}})}
+  
+）可由切格不等式右半部推出：取 
+  
+    
+      
+        
+          λ
+          
+            2
+          
+        
+      
+    
+    {\displaystyle \lambda _{2}}
+  
+ 的特征向量 
+  
+    
+      
+        f
+      
+    
+    {\displaystyle f}
+  
+，对阈值 
+  
+    
+      
+        t
+      
+    
+    {\displaystyle t}
+  
+ 令 
+  
+    
+      
+        S
+        =
+        {
+        v
+        :
+        f
+        (
+        v
+        )
+        ≤
+        t
+        }
+      
+    
+    {\displaystyle S=\{v:f(v)\leq t\}}
+  
+，可证存在 
+  
+    
+      
+        t
+      
+    
+    {\displaystyle t}
+  
+ 使 
+  
+    
+      
+        ϕ
+        (
+        S
+        )
+        =
+        O
+        (
+        
+          
+            
+              λ
+              
+                2
+              
+            
+            
+              /
+            
+            Δ
+          
+        
+        )
+      
+    
+    {\displaystyle \phi (S)=O({\sqrt {\lambda _{2}/\Delta }})}
+  
+。详见 Alon–Milman及 Chung。左侧不等式之证明见切格不等式条目。
+
+
+== 计算复杂度 ==
+稀疏割问题是 NP 难的。在一般图上求精确最优解在计算上不可行，研究重点因而放在多项式时间近似演算法及其在分割、嵌入与扩展图中的应用。
+
+
+== 近似演算法 ==
+
+
+=== Leighton–Rao 演算法 ===
+Leighton 与 Rao（1988）证明：对任意 
+  
+    
+      
+        n
+      
+    
+    {\displaystyle n}
+  
+ 顶点图，可在多项式时间内求得分割使 
+  
+    
+      
+        ϕ
+        (
+        S
+        )
+        ≤
+        O
+        (
+        log
+        ⁡
+        n
+        )
+        ⋅
+        Φ
+        (
+        G
+        )
+      
+    
+    {\displaystyle \phi (S)\leq O(\log n)\cdot \Phi (G)}
+  
+。其利用多商品流与最小割的最大流最小割定理，给出 
+  
+    
+      
+        O
+        (
+        log
+        ⁡
+        n
+        )
+      
+    
+    {\displaystyle O(\log n)}
+  
+ 近似演算法。其分析依赖于图的度量嵌入（metric embedding）：将顶点嵌入到 
+  
+    
+      
+        
+          ℓ
+          
+            1
+          
+        
+      
+    
+    {\displaystyle \ell _{1}}
+  
+ 空间，使图上距离与嵌入距离之比（失真）有界，再由此界定稀疏比。
+
+证明概要：建立多商品流（multicommodity flow），Leighton 与 Rao 证明最小多商品流最大值与 
+  
+    
+      
+        Φ
+        (
+        G
+        )
+      
+    
+    {\displaystyle \Phi (G)}
+  
+ 相差至多 
+  
+    
+      
+        O
+        (
+        log
+        ⁡
+        n
+        )
+      
+    
+    {\displaystyle O(\log n)}
+  
+ 倍；核心在于 
+  
+    
+      
+        
+          ℓ
+          
+            1
+          
+        
+      
+    
+    {\displaystyle \ell _{1}}
+  
+ 嵌入失真至多 
+  
+    
+      
+        O
+        (
+        log
+        ⁡
+        n
+        )
+      
+    
+    {\displaystyle O(\log n)}
+  
+。完整证明见 Leighton 与 Rao及 Vazirani。
+
+
+=== ARV 演算法 ===
+Arora、Rao 与 Vazirani（2004, 2009）提出 ARV 演算法，将近似比改进为 
+  
+    
+      
+        O
+        (
+        
+          
+            log
+            ⁡
+            n
+          
+        
+        )
+      
+    
+    {\displaystyle O({\sqrt {\log n}})}
+  
+。方法结合半正定规划（semidefinite programming，SDP）、扩展流（expander flows）与几何嵌入，是图分割近似史上的重要里程碑。Linial、London 与 Rabinovich（1995）的 
+  
+    
+      
+        
+          ℓ
+          
+            2
+          
+        
+      
+    
+    {\displaystyle \ell _{2}}
+  
+ 嵌入理论亦为此类结果提供了基础工具。
+证明：ARV 的完整分析涉及 SDP 解的几何结构与扩展流，篇幅长且技术性强，见 Arora–Rao–Vazirani 的 JACM 2009 论文。
+
+
+== 应用 ==
+图分割：将大型网路或资料关系图分成模组，使模组间连结相对稀疏。
+扩展图与混合时间：稀疏比与扩展性、马可夫链混合时间密切相关；小稀疏比意味图存在「瓶颈」。
+谱方法：在实务中常先用拉普拉斯特征向量做初始分割，再以稀疏割目标做后处理或理论分析。
+
+
+== 参见 ==
+切格不等式
+谱图论
+扩展图
+图分割
+
+
+== 参考文献 ==
