@@ -33,3 +33,7 @@ pub use engine::CompositeEngine;
 pub use merge::{Candidate, ScoreComponents, Source};
 pub use mode::Mode;
 pub use pinyin_adapter::PinyinAdapter;
+pub use pinyin_adapter::{
+    PINYIN_DISABLE_ASSOCIATION, PINYIN_DISABLE_COMPOSE, PINYIN_DISABLE_FUZZY,
+    PINYIN_DISABLE_PREDICTION,
+};

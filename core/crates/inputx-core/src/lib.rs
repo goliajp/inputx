@@ -38,7 +38,9 @@ pub mod wubi;
 
 pub use crate::wubi::{AutoCommitPolicy, L0Snapshot, WubiEngine, export_l0, import_l0};
 pub use composite::{
-    Candidate, CompositeEngine, Mode as EngineMode, PinyinAdapter, ScoreComponents, Source,
+    Candidate, CompositeEngine, Mode as EngineMode, PINYIN_DISABLE_ASSOCIATION,
+    PINYIN_DISABLE_COMPOSE, PINYIN_DISABLE_FUZZY, PINYIN_DISABLE_PREDICTION, PinyinAdapter,
+    ScoreComponents, Source,
 };
 pub use input_mode::InputMode;
 pub use locale::punct::{SmartQuoteState, ascii_to_cjk_punct};
