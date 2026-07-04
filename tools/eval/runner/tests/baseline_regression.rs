@@ -16,6 +16,7 @@
 
 use std::path::PathBuf;
 
+use inputx_core::{PINYIN_DISABLE_ASSOCIATION, PINYIN_DISABLE_COMPOSE, PINYIN_DISABLE_FUZZY};
 use inputx_eval::{Results, check_regression, load_tsv, run_eval};
 
 /// Alert threshold in fractional units (0.02 = 2 percentage points).
@@ -85,6 +86,12 @@ fn gold_miu_within_threshold_of_baseline() {
 /// Floor at 5.0% / 15.0% / 15.0%.
 #[test]
 fn fuzzy_miu_above_floor() {
+    // Gate-guarded per pinyin_adapter.rs pattern: fuzzy wire disabled
+    // (PINYIN_DISABLE_FUZZY = true, since 2026-06-28). Test revives
+    // automatically when the const flips back off.
+    if PINYIN_DISABLE_FUZZY {
+        return;
+    }
     let dir = eval_dir();
     let fuzzy = load_tsv(&dir.join("fuzzy_miu.tsv")).expect("read fuzzy_miu.tsv");
     assert!(!fuzzy.is_empty(), "fuzzy_miu.tsv should not be empty");
@@ -116,6 +123,12 @@ fn fuzzy_miu_above_floor() {
 /// Floor at 35.0% / 45.0% / 50.0%.
 #[test]
 fn typo_miu_above_floor() {
+    // Gate-guarded: typo edges live behind PINYIN_DISABLE_FUZZY
+    // (2-consonant-prefix + keyboard-adjacency rescue, per
+    // pinyin_adapter.rs gate doc). Auto-revives when flipped off.
+    if PINYIN_DISABLE_FUZZY {
+        return;
+    }
     let dir = eval_dir();
     let typo = load_tsv(&dir.join("typo_miu.tsv")).expect("read typo_miu.tsv");
     assert!(!typo.is_empty(), "typo_miu.tsv should not be empty");
@@ -148,6 +161,12 @@ fn typo_miu_above_floor() {
 /// Floor at 17.0% / 55.0% / 80.0%.
 #[test]
 fn abbrev_miu_above_floor() {
+    // Gate-guarded: 简拼 abbrev lives behind PINYIN_DISABLE_ASSOCIATION
+    // (short) + PINYIN_DISABLE_COMPOSE (long-abbrev resolver, e.g.
+    // zhrmghg → 中华人民共和国). Auto-revives when either gate flips.
+    if PINYIN_DISABLE_ASSOCIATION || PINYIN_DISABLE_COMPOSE {
+        return;
+    }
     let dir = eval_dir();
     let abbrev = load_tsv(&dir.join("abbrev_miu.tsv")).expect("read abbrev_miu.tsv");
     assert!(!abbrev.is_empty(), "abbrev_miu.tsv should not be empty");
