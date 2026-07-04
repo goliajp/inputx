@@ -1,0 +1,5658 @@
+{
+  "id": "K355",
+  "title": "K355",
+  "raw_text": "",
+  "cjk_char_count": 0,
+  "segments": [
+    {
+      "idx": "0001",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0002",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0003",
+      "expected": "男",
+      "pinyin": "nan",
+      "reason": "linear",
+      "top10": [
+        "南",
+        "难",
+        "男",
+        "楠",
+        "冉",
+        "喃",
+        "赧",
+        "囡",
+        "腩",
+        "蝻"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0004",
+      "expected": "辽宁",
+      "pinyin": "liaoning",
+      "reason": "linear",
+      "top10": [
+        "辽宁",
+        "辽宁省",
+        "辽宁篇",
+        "辽宁亿金电子"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0005",
+      "expected": "东港",
+      "pinyin": "donggang",
+      "reason": "linear",
+      "top10": [
+        "东岗"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0006",
+      "expected": "人",
+      "pinyin": "ren",
+      "reason": "linear",
+      "top10": [
+        "人",
+        "任",
+        "认",
+        "仁",
+        "忍",
+        "刃",
+        "韧",
+        "壬",
+        "纫",
+        "儿"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0007",
+      "expected": "中华",
+      "pinyin": "zhonghua",
+      "reason": "linear",
+      "top10": [
+        "中华",
+        "种花",
+        "重话"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0008",
+      "expected": "人民",
+      "pinyin": "renmin",
+      "reason": "linear",
+      "top10": [
+        "人民"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0009",
+      "expected": "共和",
+      "pinyin": "gonghe",
+      "reason": "linear",
+      "top10": [
+        "共和",
+        "恭贺"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0010",
+      "expected": "国",
+      "pinyin": "guo",
+      "reason": "linear",
+      "top10": [
+        "过",
+        "国",
+        "锅",
+        "果",
+        "郭",
+        "裹",
+        "活",
+        "划",
+        "唬",
+        "椁"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0011",
+      "expected": "政治",
+      "pinyin": "zhengzhi",
+      "reason": "linear",
+      "top10": [
+        "政治",
+        "整治",
+        "争执",
+        "正值",
+        "正直",
+        "正职"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0012",
+      "expected": "人物",
+      "pinyin": "renwu",
+      "reason": "linear",
+      "top10": [
+        "任务",
+        "人物",
+        "人武",
+        "壬午"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0013",
+      "expected": "东北大学",
+      "pinyin": "dongbeidaxue",
+      "reason": "linear",
+      "top10": [
+        "东北大学"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0014",
+      "expected": "工商管理",
+      "pinyin": "gongshangguanli",
+      "reason": "linear",
+      "top10": [
+        "公伤管理",
+        "工商管理硕士"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0015",
+      "expected": "学院",
+      "pinyin": "xueyuan",
+      "reason": "linear",
+      "top10": [
+        "学院",
+        "学员",
+        "血缘",
+        "雪原",
+        "学园"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0016",
+      "expected": "管理",
+      "pinyin": "guanli",
+      "reason": "linear",
+      "top10": [
+        "管理",
+        "惯例",
+        "官吏",
+        "观礼",
+        "冠礼"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0017",
+      "expected": "工程",
+      "pinyin": "gongcheng",
+      "reason": "linear",
+      "top10": [
+        "工程",
+        "供称",
+        "公称",
+        "攻城",
+        "共乘"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0018",
+      "expected": "专业",
+      "pinyin": "zhuanye",
+      "reason": "linear",
+      "top10": [
+        "专业",
+        "专页",
+        "转业"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0019",
+      "expected": "在职",
+      "pinyin": "zaizhi",
+      "reason": "linear",
+      "top10": [
+        "在职",
+        "栽植",
+        "宰制",
+        "再制"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0020",
+      "expected": "研究生",
+      "pinyin": "yanjiusheng",
+      "reason": "linear",
+      "top10": [
+        "研究生"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0021",
+      "expected": "毕业",
+      "pinyin": "biye",
+      "reason": "linear",
+      "top10": [
+        "毕业",
+        "比耶"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0022",
+      "expected": "工学",
+      "pinyin": "gongxue",
+      "reason": "linear",
+      "top10": [
+        "工学",
+        "公学",
+        "供血"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0023",
+      "expected": "硕士",
+      "pinyin": "shuoshi",
+      "reason": "linear",
+      "top10": [
+        "硕士"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0024",
+      "expected": "工程师",
+      "pinyin": "gongchengshi",
+      "reason": "linear",
+      "top10": [
+        "工程师"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0025",
+      "expected": "曾任",
+      "pinyin": "cengren",
+      "reason": "linear",
+      "top10": [
+        "曾任"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0026",
+      "expected": "中共",
+      "pinyin": "zhonggong",
+      "reason": "linear",
+      "top10": [
+        "重工"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0027",
+      "expected": "黑龙江",
+      "pinyin": "heilongjiang",
+      "reason": "linear",
+      "top10": [
+        "黑龙江",
+        "黑龙江省",
+        "黑龙江省卫健委"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0028",
+      "expected": "省委常委",
+      "pinyin": "shengweichangwei",
+      "reason": "linear",
+      "top10": [
+        "声威常委"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0029",
+      "expected": "中共",
+      "pinyin": "zhonggong",
+      "reason": "linear",
+      "top10": [
+        "重工"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0030",
+      "expected": "哈尔",
+      "pinyin": "haer",
+      "reason": "linear",
+      "top10": [
+        "哈尔滨",
+        "哈尔滨市",
+        "哈尔科夫"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0031",
+      "expected": "滨市",
+      "pinyin": "binshi",
+      "reason": "linear",
+      "top10": [
+        "宾士"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0032",
+      "expected": "委",
+      "pinyin": "wei",
+      "reason": "linear",
+      "top10": [
+        "为",
+        "未",
+        "喂",
+        "位",
+        "胃",
+        "维",
+        "委",
+        "威",
+        "微",
+        "卫"
+      ],
+      "rank": 6,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0033",
+      "expected": "书记",
+      "pinyin": "shuji",
+      "reason": "linear",
+      "top10": [
+        "书记",
+        "书籍",
+        "庶几",
+        "熟记",
+        "枢机",
+        "书脊",
+        "书迹"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0034",
+      "expected": "生平",
+      "pinyin": "shengping",
+      "reason": "linear",
+      "top10": [
+        "生平",
+        "升平"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0035",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0036",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0037",
+      "expected": "参加",
+      "pinyin": "canjia",
+      "reason": "linear",
+      "top10": [
+        "参加"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0038",
+      "expected": "工作",
+      "pinyin": "gongzuo",
+      "reason": "linear",
+      "top10": [
+        "工作"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0039",
+      "expected": "任",
+      "pinyin": "ren",
+      "reason": "linear",
+      "top10": [
+        "人",
+        "任",
+        "认",
+        "仁",
+        "忍",
+        "刃",
+        "韧",
+        "壬",
+        "纫",
+        "儿"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0040",
+      "expected": "辽宁省",
+      "pinyin": "liaoningsheng",
+      "reason": "linear",
+      "top10": [
+        "辽宁省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0041",
+      "expected": "沈阳",
+      "pinyin": "shenyang",
+      "reason": "linear",
+      "top10": [
+        "沈阳"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0042",
+      "expected": "气压机",
+      "pinyin": "qiyaji",
+      "reason": "linear",
+      "top10": [
+        "气压计"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0043",
+      "expected": "厂",
+      "pinyin": "chang",
+      "reason": "linear",
+      "top10": [
+        "场",
+        "尝",
+        "常",
+        "厂",
+        "昌",
+        "唱",
+        "畅",
+        "肠",
+        "偿",
+        "倡"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0044",
+      "expected": "工人",
+      "pinyin": "gongren",
+      "reason": "linear",
+      "top10": [
+        "工人",
+        "公认",
+        "供认",
+        "宫人"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0045",
+      "expected": "车间",
+      "pinyin": "chejian",
+      "reason": "linear",
+      "top10": [
+        "车间",
+        "车检"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0046",
+      "expected": "副",
+      "pinyin": "fu",
+      "reason": "linear",
+      "top10": [
+        "富",
+        "幅",
+        "扶",
+        "夫",
+        "服",
+        "副",
+        "府",
+        "福",
+        "复",
+        "佛"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0047",
+      "expected": "指导员",
+      "pinyin": "zhidaoyuan",
+      "reason": "linear",
+      "top10": [
+        "指导员"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0048",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0049",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0050",
+      "expected": "加入",
+      "pinyin": "jiaru",
+      "reason": "linear",
+      "top10": [
+        "假如",
+        "加入"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0051",
+      "expected": "中国",
+      "pinyin": "zhongguo",
+      "reason": "linear",
+      "top10": [
+        "中国"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0052",
+      "expected": "共产",
+      "pinyin": "gongchan",
+      "reason": "linear",
+      "top10": [
+        "共产",
+        "公产"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0053",
+      "expected": "党",
+      "pinyin": "dang",
+      "reason": "linear",
+      "top10": [
+        "党",
+        "当",
+        "挡",
+        "档",
+        "荡",
+        "铛",
+        "垱",
+        "珰",
+        "宕",
+        "谠"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0054",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0055",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0056",
+      "expected": "任",
+      "pinyin": "ren",
+      "reason": "linear",
+      "top10": [
+        "人",
+        "任",
+        "认",
+        "仁",
+        "忍",
+        "刃",
+        "韧",
+        "壬",
+        "纫",
+        "儿"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0057",
+      "expected": "共青团",
+      "pinyin": "gongqingtuan",
+      "reason": "linear",
+      "top10": [
+        "公卿图案"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0058",
+      "expected": "辽宁省",
+      "pinyin": "liaoningsheng",
+      "reason": "linear",
+      "top10": [
+        "辽宁省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0059",
+      "expected": "沈阳",
+      "pinyin": "shenyang",
+      "reason": "linear",
+      "top10": [
+        "沈阳"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0060",
+      "expected": "市委",
+      "pinyin": "shiwei",
+      "reason": "linear",
+      "top10": [
+        "示威",
+        "市委",
+        "侍卫",
+        "视为",
+        "十位",
+        "式微",
+        "时维"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0061",
+      "expected": "工作人员",
+      "pinyin": "gongzuorenyuan",
+      "reason": "linear",
+      "top10": [
+        "工作人员"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0062",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0063",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0064",
+      "expected": "任",
+      "pinyin": "ren",
+      "reason": "linear",
+      "top10": [
+        "人",
+        "任",
+        "认",
+        "仁",
+        "忍",
+        "刃",
+        "韧",
+        "壬",
+        "纫",
+        "儿"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0065",
+      "expected": "共青团",
+      "pinyin": "gongqingtuan",
+      "reason": "linear",
+      "top10": [
+        "公卿图案"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0066",
+      "expected": "辽宁省",
+      "pinyin": "liaoningsheng",
+      "reason": "linear",
+      "top10": [
+        "辽宁省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0067",
+      "expected": "沈阳",
+      "pinyin": "shenyang",
+      "reason": "linear",
+      "top10": [
+        "沈阳"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0068",
+      "expected": "市委常委",
+      "pinyin": "shiweichangwei",
+      "reason": "linear",
+      "top10": [
+        "示威常委"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0069",
+      "expected": "学校",
+      "pinyin": "xuexiao",
+      "reason": "linear",
+      "top10": [
+        "学校",
+        "雪鸮"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0070",
+      "expected": "部",
+      "pinyin": "bu",
+      "reason": "linear",
+      "top10": [
+        "不",
+        "布",
+        "部",
+        "步",
+        "补",
+        "捕",
+        "簿",
+        "埠",
+        "哺",
+        "怖"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0071",
+      "expected": "部长",
+      "pinyin": "buzhang",
+      "reason": "linear",
+      "top10": [
+        "部长"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0072",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0073",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0074",
+      "expected": "至",
+      "pinyin": "zhi",
+      "reason": "linear",
+      "top10": [
+        "只",
+        "之",
+        "指",
+        "支",
+        "直",
+        "制",
+        "治",
+        "智",
+        "志",
+        "知"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0075",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0076",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0077",
+      "expected": "辽宁省",
+      "pinyin": "liaoningsheng",
+      "reason": "linear",
+      "top10": [
+        "辽宁省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0078",
+      "expected": "沈阳市",
+      "pinyin": "shenyangshi",
+      "reason": "linear",
+      "top10": [
+        "沈阳市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0079",
+      "expected": "工业",
+      "pinyin": "gongye",
+      "reason": "linear",
+      "top10": [
+        "工业",
+        "功业",
+        "共业",
+        "宫掖"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0080",
+      "expected": "安装",
+      "pinyin": "anzhuang",
+      "reason": "linear",
+      "top10": [
+        "安装",
+        "暗桩"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0081",
+      "expected": "公司党委",
+      "pinyin": "gongsidangwei",
+      "reason": "linear",
+      "top10": [
+        "公司党委"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0082",
+      "expected": "办公室",
+      "pinyin": "bangongshi",
+      "reason": "linear",
+      "top10": [
+        "办公室"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0083",
+      "expected": "副",
+      "pinyin": "fu",
+      "reason": "linear",
+      "top10": [
+        "富",
+        "幅",
+        "扶",
+        "夫",
+        "服",
+        "副",
+        "府",
+        "福",
+        "复",
+        "佛"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0084",
+      "expected": "主任",
+      "pinyin": "zhuren",
+      "reason": "linear",
+      "top10": [
+        "主人",
+        "主任",
+        "助人"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0085",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0086",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0087",
+      "expected": "辽宁",
+      "pinyin": "liaoning",
+      "reason": "linear",
+      "top10": [
+        "辽宁",
+        "辽宁省",
+        "辽宁篇",
+        "辽宁亿金电子"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0088",
+      "expected": "广播电视",
+      "pinyin": "guangbodianshi",
+      "reason": "linear",
+      "top10": [
+        "广播电视"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0089",
+      "expected": "大学",
+      "pinyin": "daxue",
+      "reason": "linear",
+      "top10": [
+        "大学"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0090",
+      "expected": "机械",
+      "pinyin": "jixie",
+      "reason": "linear",
+      "top10": [
+        "机械"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0091",
+      "expected": "专业",
+      "pinyin": "zhuanye",
+      "reason": "linear",
+      "top10": [
+        "专业",
+        "专页",
+        "转业"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0092",
+      "expected": "学生",
+      "pinyin": "xuesheng",
+      "reason": "linear",
+      "top10": [
+        "学生"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0093",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0094",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0095",
+      "expected": "辽宁省",
+      "pinyin": "liaoningsheng",
+      "reason": "linear",
+      "top10": [
+        "辽宁省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0096",
+      "expected": "沈阳市",
+      "pinyin": "shenyangshi",
+      "reason": "linear",
+      "top10": [
+        "沈阳市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0097",
+      "expected": "工业",
+      "pinyin": "gongye",
+      "reason": "linear",
+      "top10": [
+        "工业",
+        "功业",
+        "共业",
+        "宫掖"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0098",
+      "expected": "安装公司",
+      "pinyin": "anzhuanggongsi",
+      "reason": "linear",
+      "top10": [
+        "安装公司"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0099",
+      "expected": "一队",
+      "pinyin": "yidui",
+      "reason": "linear",
+      "top10": [
+        "一对",
+        "一堆",
+        "仪队"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0100",
+      "expected": "副队长",
+      "pinyin": "fuduizhang",
+      "reason": "linear",
+      "top10": [
+        "副队长"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0101",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0102",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0103",
+      "expected": "一处",
+      "pinyin": "yichu",
+      "reason": "linear",
+      "top10": [
+        "一处",
+        "移出",
+        "溢出",
+        "益处",
+        "役畜",
+        "衣橱",
+        "移除"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0104",
+      "expected": "副",
+      "pinyin": "fu",
+      "reason": "linear",
+      "top10": [
+        "富",
+        "幅",
+        "扶",
+        "夫",
+        "服",
+        "副",
+        "府",
+        "福",
+        "复",
+        "佛"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0105",
+      "expected": "主任",
+      "pinyin": "zhuren",
+      "reason": "linear",
+      "top10": [
+        "主人",
+        "主任",
+        "助人"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0106",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0107",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0108",
+      "expected": "一处",
+      "pinyin": "yichu",
+      "reason": "linear",
+      "top10": [
+        "一处",
+        "移出",
+        "溢出",
+        "益处",
+        "役畜",
+        "衣橱",
+        "移除"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0109",
+      "expected": "主任",
+      "pinyin": "zhuren",
+      "reason": "linear",
+      "top10": [
+        "主人",
+        "主任",
+        "助人"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0110",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0111",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0112",
+      "expected": "公司",
+      "pinyin": "gongsi",
+      "reason": "linear",
+      "top10": [
+        "公司",
+        "公私"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0113",
+      "expected": "党委书记",
+      "pinyin": "dangweishuji",
+      "reason": "linear",
+      "top10": [
+        "党委书籍"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0114",
+      "expected": "副经理",
+      "pinyin": "fujingli",
+      "reason": "linear",
+      "top10": [
+        "副经理"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0115",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0116",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0117",
+      "expected": "共青团",
+      "pinyin": "gongqingtuan",
+      "reason": "linear",
+      "top10": [
+        "公卿图案"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0118",
+      "expected": "辽宁省",
+      "pinyin": "liaoningsheng",
+      "reason": "linear",
+      "top10": [
+        "辽宁省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0119",
+      "expected": "沈阳",
+      "pinyin": "shenyang",
+      "reason": "linear",
+      "top10": [
+        "沈阳"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0120",
+      "expected": "市委书记",
+      "pinyin": "shiweishuji",
+      "reason": "linear",
+      "top10": [
+        "示威书籍"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0121",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0122",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0123",
+      "expected": "辽宁省",
+      "pinyin": "liaoningsheng",
+      "reason": "linear",
+      "top10": [
+        "辽宁省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0124",
+      "expected": "沈阳",
+      "pinyin": "shenyang",
+      "reason": "linear",
+      "top10": [
+        "沈阳"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0125",
+      "expected": "国际",
+      "pinyin": "guoji",
+      "reason": "linear",
+      "top10": [
+        "国际",
+        "国籍",
+        "过激",
+        "过继",
+        "国技",
+        "腘肌"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0126",
+      "expected": "经济",
+      "pinyin": "jingji",
+      "reason": "linear",
+      "top10": [
+        "经济",
+        "竞技",
+        "荆棘",
+        "经纪",
+        "经籍",
+        "京畿",
+        "静寂",
+        "径迹",
+        "惊悸",
+        "劲急"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0127",
+      "expected": "技术",
+      "pinyin": "jishu",
+      "reason": "linear",
+      "top10": [
+        "技术",
+        "记述",
+        "基数",
+        "级数",
+        "计数",
+        "奇数",
+        "集束",
+        "疾书",
+        "继述"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0128",
+      "expected": "合作",
+      "pinyin": "hezuo",
+      "reason": "linear",
+      "top10": [
+        "合作"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0129",
+      "expected": "公司",
+      "pinyin": "gongsi",
+      "reason": "linear",
+      "top10": [
+        "公司",
+        "公私"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0130",
+      "expected": "副总经理",
+      "pinyin": "fuzongjingli",
+      "reason": "linear",
+      "top10": [
+        "副总经理"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0131",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0132",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0133",
+      "expected": "中共",
+      "pinyin": "zhonggong",
+      "reason": "linear",
+      "top10": [
+        "重工"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0134",
+      "expected": "辽",
+      "pinyin": "liao",
+      "reason": "linear",
+      "top10": [
+        "了",
+        "料",
+        "辽",
+        "聊",
+        "疗",
+        "撩",
+        "僚",
+        "缭",
+        "寥",
+        "瞭"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0135",
+      "expected": "中",
+      "pinyin": "zhong",
+      "reason": "linear",
+      "top10": [
+        "中",
+        "种",
+        "重",
+        "钟",
+        "众",
+        "忠",
+        "终",
+        "仲",
+        "肿",
+        "衷"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0136",
+      "expected": "县委书记",
+      "pinyin": "xianweishuji",
+      "reason": "linear",
+      "top10": [
+        "纤维书籍"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0137",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0138",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0139",
+      "expected": "沈阳市",
+      "pinyin": "shenyangshi",
+      "reason": "linear",
+      "top10": [
+        "沈阳市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0140",
+      "expected": "人民政府",
+      "pinyin": "renminzhengfu",
+      "reason": "linear",
+      "top10": [
+        "人民政府"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0141",
+      "expected": "市长",
+      "pinyin": "shizhang",
+      "reason": "linear",
+      "top10": [
+        "市长",
+        "师长",
+        "师丈",
+        "市丈",
+        "视障"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0142",
+      "expected": "助理",
+      "pinyin": "zhuli",
+      "reason": "linear",
+      "top10": [
+        "助力",
+        "助理",
+        "主力",
+        "伫立",
+        "朱鹂"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0143",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0144",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0145",
+      "expected": "沈阳市",
+      "pinyin": "shenyangshi",
+      "reason": "linear",
+      "top10": [
+        "沈阳市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0146",
+      "expected": "副",
+      "pinyin": "fu",
+      "reason": "linear",
+      "top10": [
+        "富",
+        "幅",
+        "扶",
+        "夫",
+        "服",
+        "副",
+        "府",
+        "福",
+        "复",
+        "佛"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0147",
+      "expected": "市长",
+      "pinyin": "shizhang",
+      "reason": "linear",
+      "top10": [
+        "市长",
+        "师长",
+        "师丈",
+        "市丈",
+        "视障"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0148",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0149",
+      "expected": "月",
+      "pinyin": "yue",
+      "reason": "linear",
+      "top10": [
+        "月",
+        "越",
+        "约",
+        "跃",
+        "岳",
+        "阅",
+        "曰",
+        "粤",
+        "悦",
+        "乐"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0150",
+      "expected": "哈尔滨市",
+      "pinyin": "haerbinshi",
+      "reason": "linear",
+      "top10": [
+        "哈尔滨市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0151",
+      "expected": "人民政府",
+      "pinyin": "renminzhengfu",
+      "reason": "linear",
+      "top10": [
+        "人民政府"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0152",
+      "expected": "副",
+      "pinyin": "fu",
+      "reason": "linear",
+      "top10": [
+        "富",
+        "幅",
+        "扶",
+        "夫",
+        "服",
+        "副",
+        "府",
+        "福",
+        "复",
+        "佛"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0153",
+      "expected": "市长",
+      "pinyin": "shizhang",
+      "reason": "linear",
+      "top10": [
+        "市长",
+        "师长",
+        "师丈",
+        "市丈",
+        "视障"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0154",
+      "expected": "中共",
+      "pinyin": "zhonggong",
+      "reason": "linear",
+      "top10": [
+        "重工"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0155",
+      "expected": "大庆",
+      "pinyin": "daqing",
+      "reason": "linear",
+      "top10": [
+        "大清流河",
+        "大清早",
+        "打情骂俏"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0156",
+      "expected": "市委",
+      "pinyin": "shiwei",
+      "reason": "linear",
+      "top10": [
+        "示威",
+        "市委",
+        "侍卫",
+        "视为",
+        "十位",
+        "式微",
+        "时维"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0157",
+      "expected": "副",
+      "pinyin": "fu",
+      "reason": "linear",
+      "top10": [
+        "富",
+        "幅",
+        "扶",
+        "夫",
+        "服",
+        "副",
+        "府",
+        "福",
+        "复",
+        "佛"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0158",
+      "expected": "书记",
+      "pinyin": "shuji",
+      "reason": "linear",
+      "top10": [
+        "书记",
+        "书籍",
+        "庶几",
+        "熟记",
+        "枢机",
+        "书脊",
+        "书迹"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0159",
+      "expected": "市长",
+      "pinyin": "shizhang",
+      "reason": "linear",
+      "top10": [
+        "市长",
+        "师长",
+        "师丈",
+        "市丈",
+        "视障"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0160",
+      "expected": "中共",
+      "pinyin": "zhonggong",
+      "reason": "linear",
+      "top10": [
+        "重工"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0161",
+      "expected": "大庆",
+      "pinyin": "daqing",
+      "reason": "linear",
+      "top10": [
+        "大清流河",
+        "大清早",
+        "打情骂俏"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0162",
+      "expected": "市委书记",
+      "pinyin": "shiweishuji",
+      "reason": "linear",
+      "top10": [
+        "示威书籍"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0163",
+      "expected": "中共",
+      "pinyin": "zhonggong",
+      "reason": "linear",
+      "top10": [
+        "重工"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0164",
+      "expected": "黑龙江",
+      "pinyin": "heilongjiang",
+      "reason": "linear",
+      "top10": [
+        "黑龙江",
+        "黑龙江省",
+        "黑龙江省卫健委"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0165",
+      "expected": "省委常委",
+      "pinyin": "shengweichangwei",
+      "reason": "linear",
+      "top10": [
+        "声威常委"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0166",
+      "expected": "大庆",
+      "pinyin": "daqing",
+      "reason": "linear",
+      "top10": [
+        "大清流河",
+        "大清早",
+        "打情骂俏"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0167",
+      "expected": "市委书记",
+      "pinyin": "shiweishuji",
+      "reason": "linear",
+      "top10": [
+        "示威书籍"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0168",
+      "expected": "中共",
+      "pinyin": "zhonggong",
+      "reason": "linear",
+      "top10": [
+        "重工"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0169",
+      "expected": "黑龙江",
+      "pinyin": "heilongjiang",
+      "reason": "linear",
+      "top10": [
+        "黑龙江",
+        "黑龙江省",
+        "黑龙江省卫健委"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0170",
+      "expected": "省委常委",
+      "pinyin": "shengweichangwei",
+      "reason": "linear",
+      "top10": [
+        "声威常委"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0171",
+      "expected": "副省长",
+      "pinyin": "fushengzhang",
+      "reason": "linear",
+      "top10": [
+        "副省长"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0172",
+      "expected": "中共",
+      "pinyin": "zhonggong",
+      "reason": "linear",
+      "top10": [
+        "重工"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0173",
+      "expected": "黑龙江",
+      "pinyin": "heilongjiang",
+      "reason": "linear",
+      "top10": [
+        "黑龙江",
+        "黑龙江省",
+        "黑龙江省卫健委"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0174",
+      "expected": "省委常委",
+      "pinyin": "shengweichangwei",
+      "reason": "linear",
+      "top10": [
+        "声威常委"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0175",
+      "expected": "中共",
+      "pinyin": "zhonggong",
+      "reason": "linear",
+      "top10": [
+        "重工"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0176",
+      "expected": "哈尔",
+      "pinyin": "haer",
+      "reason": "linear",
+      "top10": [
+        "哈尔滨",
+        "哈尔滨市",
+        "哈尔科夫"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0177",
+      "expected": "滨市",
+      "pinyin": "binshi",
+      "reason": "linear",
+      "top10": [
+        "宾士"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0178",
+      "expected": "委",
+      "pinyin": "wei",
+      "reason": "linear",
+      "top10": [
+        "为",
+        "未",
+        "喂",
+        "位",
+        "胃",
+        "维",
+        "委",
+        "威",
+        "微",
+        "卫"
+      ],
+      "rank": 6,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0179",
+      "expected": "委员",
+      "pinyin": "weiyuan",
+      "reason": "linear",
+      "top10": [
+        "委员",
+        "位元"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0180",
+      "expected": "常委",
+      "pinyin": "changwei",
+      "reason": "linear",
+      "top10": [
+        "常委",
+        "肠胃",
+        "长尾"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0181",
+      "expected": "书记",
+      "pinyin": "shuji",
+      "reason": "linear",
+      "top10": [
+        "书记",
+        "书籍",
+        "庶几",
+        "熟记",
+        "枢机",
+        "书脊",
+        "书迹"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0182",
+      "expected": "中共",
+      "pinyin": "zhonggong",
+      "reason": "linear",
+      "top10": [
+        "重工"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0183",
+      "expected": "黑龙江",
+      "pinyin": "heilongjiang",
+      "reason": "linear",
+      "top10": [
+        "黑龙江",
+        "黑龙江省",
+        "黑龙江省卫健委"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0184",
+      "expected": "省委常委",
+      "pinyin": "shengweichangwei",
+      "reason": "linear",
+      "top10": [
+        "声威常委"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0185",
+      "expected": "黑龙江省",
+      "pinyin": "heilongjiangsheng",
+      "reason": "linear",
+      "top10": [
+        "黑龙江省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0186",
+      "expected": "人大",
+      "pinyin": "renda",
+      "reason": "linear",
+      "top10": [
+        "人大"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0187",
+      "expected": "常委",
+      "pinyin": "changwei",
+      "reason": "linear",
+      "top10": [
+        "常委",
+        "肠胃",
+        "长尾"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0188",
+      "expected": "会",
+      "pinyin": "hui",
+      "reason": "linear",
+      "top10": [
+        "会",
+        "回",
+        "灰",
+        "挥",
+        "惠",
+        "汇",
+        "慧",
+        "辉",
+        "绘",
+        "毁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0189",
+      "expected": "党组书记",
+      "pinyin": "dangzushuji",
+      "reason": "linear",
+      "top10": [
+        "党组书籍"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0190",
+      "expected": "黑龙江省",
+      "pinyin": "heilongjiangsheng",
+      "reason": "linear",
+      "top10": [
+        "黑龙江省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0191",
+      "expected": "人大",
+      "pinyin": "renda",
+      "reason": "linear",
+      "top10": [
+        "人大"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0192",
+      "expected": "常委",
+      "pinyin": "changwei",
+      "reason": "linear",
+      "top10": [
+        "常委",
+        "肠胃",
+        "长尾"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0193",
+      "expected": "会",
+      "pinyin": "hui",
+      "reason": "linear",
+      "top10": [
+        "会",
+        "回",
+        "灰",
+        "挥",
+        "惠",
+        "汇",
+        "慧",
+        "辉",
+        "绘",
+        "毁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0194",
+      "expected": "副",
+      "pinyin": "fu",
+      "reason": "linear",
+      "top10": [
+        "富",
+        "幅",
+        "扶",
+        "夫",
+        "服",
+        "副",
+        "府",
+        "福",
+        "复",
+        "佛"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0195",
+      "expected": "主任",
+      "pinyin": "zhuren",
+      "reason": "linear",
+      "top10": [
+        "主人",
+        "主任",
+        "助人"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0196",
+      "expected": "党组书记",
+      "pinyin": "dangzushuji",
+      "reason": "linear",
+      "top10": [
+        "党组书籍"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0197",
+      "expected": "落马",
+      "pinyin": "luoma",
+      "reason": "linear",
+      "top10": [
+        "罗马",
+        "骡马",
+        "落马",
+        "骆马"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0198",
+      "expected": "因涉嫌",
+      "pinyin": "yinshexian",
+      "reason": "linear",
+      "top10": [
+        "隐射西安"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0199",
+      "expected": "严重",
+      "pinyin": "yanzhong",
+      "reason": "linear",
+      "top10": [
+        "严重",
+        "眼中",
+        "言中",
+        "言重"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0200",
+      "expected": "违纪",
+      "pinyin": "weiji",
+      "reason": "linear",
+      "top10": [
+        "危机",
+        "危急",
+        "危及",
+        "未及",
+        "违纪",
+        "微机",
+        "未几",
+        "伟绩",
+        "畏忌",
+        "围击"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0201",
+      "expected": "接受",
+      "pinyin": "jieshou",
+      "reason": "linear",
+      "top10": [
+        "接受",
+        "接收",
+        "接手",
+        "解手"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0202",
+      "expected": "组织",
+      "pinyin": "zuzhi",
+      "reason": "linear",
+      "top10": [
+        "组织",
+        "阻止",
+        "阻滞",
+        "阻值"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0203",
+      "expected": "调查",
+      "pinyin": "diaocha",
+      "reason": "linear",
+      "top10": [
+        "调查"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0204",
+      "expected": "他",
+      "pinyin": "ta",
+      "reason": "linear",
+      "top10": [
+        "他",
+        "她",
+        "它",
+        "塔",
+        "塌",
+        "踏",
+        "蹋",
+        "达",
+        "太",
+        "哈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0205",
+      "expected": "是",
+      "pinyin": "shi",
+      "reason": "linear",
+      "top10": [
+        "是",
+        "使",
+        "市",
+        "试",
+        "时",
+        "事",
+        "诗",
+        "式",
+        "实",
+        "石"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0206",
+      "expected": "中共",
+      "pinyin": "zhonggong",
+      "reason": "linear",
+      "top10": [
+        "重工"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0207",
+      "expected": "十八",
+      "pinyin": "shiba",
+      "reason": "linear",
+      "top10": [
+        "十八"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0208",
+      "expected": "大后",
+      "pinyin": "dahou",
+      "reason": "linear",
+      "top10": [
+        "大后方",
+        "大后天",
+        "大后年"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0209",
+      "expected": "黑龙江省",
+      "pinyin": "heilongjiangsheng",
+      "reason": "linear",
+      "top10": [
+        "黑龙江省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0210",
+      "expected": "第三位",
+      "pinyin": "disanwei",
+      "reason": "linear",
+      "top10": [
+        "第三位"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0211",
+      "expected": "落马",
+      "pinyin": "luoma",
+      "reason": "linear",
+      "top10": [
+        "罗马",
+        "骡马",
+        "落马",
+        "骆马"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0212",
+      "expected": "的",
+      "pinyin": "de",
+      "reason": "linear",
+      "top10": [
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0213",
+      "expected": "省部级",
+      "pinyin": "shengbuji",
+      "reason": "linear",
+      "top10": [
+        "省部级"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0214",
+      "expected": "官员",
+      "pinyin": "guanyuan",
+      "reason": "linear",
+      "top10": [
+        "官员",
+        "关员"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0215",
+      "expected": "据",
+      "pinyin": "ju",
+      "reason": "linear",
+      "top10": [
+        "举",
+        "据",
+        "局",
+        "剧",
+        "具",
+        "居",
+        "聚",
+        "距",
+        "巨",
+        "句"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0216",
+      "expected": "法制晚报",
+      "pinyin": "fazhiwanbao",
+      "reason": "linear",
+      "top10": [
+        "发直完爆"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0217",
+      "expected": "报道",
+      "pinyin": "baodao",
+      "reason": "linear",
+      "top10": [
+        "报道",
+        "报到",
+        "报导",
+        "刨刀"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0218",
+      "expected": "曾",
+      "pinyin": "ceng",
+      "reason": "linear",
+      "top10": [
+        "曾",
+        "层",
+        "蹭",
+        "增",
+        "僧",
+        "噌",
+        "鄫"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0219",
+      "expected": "因",
+      "pinyin": "yin",
+      "reason": "linear",
+      "top10": [
+        "因",
+        "阴",
+        "银",
+        "音",
+        "引",
+        "印",
+        "饮",
+        "隐",
+        "荫",
+        "殷"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0220",
+      "expected": "主政",
+      "pinyin": "zhuzheng",
+      "reason": "linear",
+      "top10": [
+        "主政"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0221",
+      "expected": "哈尔滨",
+      "pinyin": "haerbin",
+      "reason": "linear",
+      "top10": [
+        "哈尔滨"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0222",
+      "expected": "期间",
+      "pinyin": "qijian",
+      "reason": "linear",
+      "top10": [
+        "期间",
+        "其间",
+        "器件",
+        "旗舰",
+        "起见",
+        "齐肩",
+        "歧见",
+        "契箭",
+        "泣谏"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0223",
+      "expected": "的",
+      "pinyin": "de",
+      "reason": "linear",
+      "top10": [
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0224",
+      "expected": "失地",
+      "pinyin": "shidi",
+      "reason": "linear",
+      "top10": [
+        "实地",
+        "湿地",
+        "师弟",
+        "失地"
+      ],
+      "rank": 3,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0225",
+      "expected": "补偿",
+      "pinyin": "buchang",
+      "reason": "linear",
+      "top10": [
+        "补偿"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0226",
+      "expected": "问题",
+      "pinyin": "wenti",
+      "reason": "linear",
+      "top10": [
+        "问题",
+        "文体"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0227",
+      "expected": "遭到",
+      "pinyin": "zaodao",
+      "reason": "linear",
+      "top10": [
+        "遭到",
+        "早稻"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0228",
+      "expected": "哈尔滨市",
+      "pinyin": "haerbinshi",
+      "reason": "linear",
+      "top10": [
+        "哈尔滨市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0229",
+      "expected": "道外区",
+      "pinyin": "daowaiqu",
+      "reason": "linear",
+      "top10": [
+        "道外区"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0230",
+      "expected": "民主",
+      "pinyin": "minzhu",
+      "reason": "linear",
+      "top10": [
+        "民主"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0231",
+      "expected": "镇",
+      "pinyin": "zhen",
+      "reason": "linear",
+      "top10": [
+        "真",
+        "阵",
+        "镇",
+        "振",
+        "针",
+        "珍",
+        "震",
+        "诊",
+        "贞",
+        "枕"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0232",
+      "expected": "新立村",
+      "pinyin": "xinlicun",
+      "reason": "linear",
+      "top10": [
+        "新立村"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0233",
+      "expected": "和",
+      "pinyin": "he",
+      "reason": "linear",
+      "top10": [
+        "和",
+        "河",
+        "喝",
+        "合",
+        "呵",
+        "何",
+        "赫",
+        "核",
+        "贺",
+        "荷"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0234",
+      "expected": "光明",
+      "pinyin": "guangming",
+      "reason": "linear",
+      "top10": [
+        "光明"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0235",
+      "expected": "村",
+      "pinyin": "cun",
+      "reason": "linear",
+      "top10": [
+        "村",
+        "存",
+        "寸",
+        "蹲",
+        "忖",
+        "皴",
+        "浚",
+        "邨"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0236",
+      "expected": "村民",
+      "pinyin": "cunmin",
+      "reason": "linear",
+      "top10": [
+        "村民"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0237",
+      "expected": "的",
+      "pinyin": "de",
+      "reason": "linear",
+      "top10": [
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0238",
+      "expected": "联名",
+      "pinyin": "lianming",
+      "reason": "linear",
+      "top10": [
+        "联名"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0239",
+      "expected": "举报",
+      "pinyin": "jubao",
+      "reason": "linear",
+      "top10": [
+        "举报",
+        "具保",
+        "拒保",
+        "拒报",
+        "据报"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0240",
+      "expected": "举报信",
+      "pinyin": "jubaoxin",
+      "reason": "linear",
+      "top10": [
+        "举报信"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0241",
+      "expected": "称",
+      "pinyin": "cheng",
+      "reason": "linear",
+      "top10": [
+        "成",
+        "城",
+        "乘",
+        "程",
+        "橙",
+        "秤",
+        "承",
+        "称",
+        "诚",
+        "呈"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0242",
+      "expected": "市长",
+      "pinyin": "shizhang",
+      "reason": "linear",
+      "top10": [
+        "市长",
+        "师长",
+        "师丈",
+        "市丈",
+        "视障"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0243",
+      "expected": "民主",
+      "pinyin": "minzhu",
+      "reason": "linear",
+      "top10": [
+        "民主"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0244",
+      "expected": "乡",
+      "pinyin": "xiang",
+      "reason": "linear",
+      "top10": [
+        "想",
+        "向",
+        "像",
+        "香",
+        "响",
+        "项",
+        "相",
+        "享",
+        "巷",
+        "乡"
+      ],
+      "rank": 9,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0245",
+      "expected": "书记",
+      "pinyin": "shuji",
+      "reason": "linear",
+      "top10": [
+        "书记",
+        "书籍",
+        "庶几",
+        "熟记",
+        "枢机",
+        "书脊",
+        "书迹"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0246",
+      "expected": "黄某",
+      "pinyin": "huangmou",
+      "reason": "linear",
+      "top10": [
+        "黄某"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0247",
+      "expected": "等",
+      "pinyin": "deng",
+      "reason": "linear",
+      "top10": [
+        "等",
+        "灯",
+        "瞪",
+        "登",
+        "蹬",
+        "邓",
+        "凳",
+        "澄",
+        "橙",
+        "磴"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0248",
+      "expected": "领导",
+      "pinyin": "lingdao",
+      "reason": "linear",
+      "top10": [
+        "领导",
+        "领到"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0249",
+      "expected": "强行",
+      "pinyin": "qiangxing",
+      "reason": "linear",
+      "top10": [
+        "强行"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0250",
+      "expected": "按",
+      "pinyin": "an",
+      "reason": "linear",
+      "top10": [
+        "安",
+        "暗",
+        "岸",
+        "案",
+        "按",
+        "氨",
+        "庵",
+        "俺",
+        "鞍",
+        "黯"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0251",
+      "expected": "每平米",
+      "pinyin": "meipingmi",
+      "reason": "linear",
+      "top10": [
+        "每平米"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0252",
+      "expected": "元",
+      "pinyin": "yuan",
+      "reason": "linear",
+      "top10": [
+        "元",
+        "远",
+        "圆",
+        "原",
+        "员",
+        "院",
+        "源",
+        "园",
+        "愿",
+        "袁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0253",
+      "expected": "低价",
+      "pinyin": "dijia",
+      "reason": "linear",
+      "top10": [
+        "低价",
+        "地价",
+        "地岬"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0254",
+      "expected": "将",
+      "pinyin": "jiang",
+      "reason": "linear",
+      "top10": [
+        "将",
+        "讲",
+        "江",
+        "桨",
+        "降",
+        "奖",
+        "疆",
+        "姜",
+        "蒋",
+        "匠"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0255",
+      "expected": "亩",
+      "pinyin": "mu",
+      "reason": "linear",
+      "top10": [
+        "目",
+        "木",
+        "姆",
+        "幕",
+        "母",
+        "穆",
+        "牧",
+        "墓",
+        "慕",
+        "亩"
+      ],
+      "rank": 9,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0256",
+      "expected": "土地",
+      "pinyin": "tudi",
+      "reason": "linear",
+      "top10": [
+        "土地",
+        "徒弟"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0257",
+      "expected": "收购",
+      "pinyin": "shougou",
+      "reason": "linear",
+      "top10": [
+        "收购",
+        "受够"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0258",
+      "expected": "转手",
+      "pinyin": "zhuanshou",
+      "reason": "linear",
+      "top10": [
+        "转手",
+        "转授"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0259",
+      "expected": "出卖",
+      "pinyin": "chumai",
+      "reason": "linear",
+      "top10": [
+        "出卖"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0260",
+      "expected": "给",
+      "pinyin": "gei",
+      "reason": "linear",
+      "top10": [
+        "给"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0261",
+      "expected": "国家",
+      "pinyin": "guojia",
+      "reason": "linear",
+      "top10": [
+        "国家"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0262",
+      "expected": "每平米",
+      "pinyin": "meipingmi",
+      "reason": "linear",
+      "top10": [
+        "每平米"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0263",
+      "expected": "元",
+      "pinyin": "yuan",
+      "reason": "linear",
+      "top10": [
+        "元",
+        "远",
+        "圆",
+        "原",
+        "员",
+        "院",
+        "源",
+        "园",
+        "愿",
+        "袁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0264",
+      "expected": "从中",
+      "pinyin": "congzhong",
+      "reason": "linear",
+      "top10": [
+        "从中",
+        "从众",
+        "丛冢"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0265",
+      "expected": "谋利",
+      "pinyin": "mouli",
+      "reason": "linear",
+      "top10": [
+        "牟利",
+        "谋利"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0266",
+      "expected": "举报信",
+      "pinyin": "jubaoxin",
+      "reason": "linear",
+      "top10": [
+        "举报信"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0267",
+      "expected": "还称",
+      "pinyin": "haicheng",
+      "reason": "linear",
+      "top10": [
+        "海城"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0268",
+      "expected": "上午",
+      "pinyin": "shangwu",
+      "reason": "linear",
+      "top10": [
+        "上午",
+        "尚无",
+        "商务",
+        "晌午",
+        "尚武"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0269",
+      "expected": "在",
+      "pinyin": "zai",
+      "reason": "linear",
+      "top10": [
+        "在",
+        "再",
+        "宰",
+        "载",
+        "仔",
+        "灾",
+        "栽",
+        "哉",
+        "才",
+        "崽"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0270",
+      "expected": "农户",
+      "pinyin": "nonghu",
+      "reason": "linear",
+      "top10": [
+        "农户"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0271",
+      "expected": "毫不",
+      "pinyin": "haobu",
+      "reason": "linear",
+      "top10": [
+        "毫不",
+        "好不"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0272",
+      "expected": "知情",
+      "pinyin": "zhiqing",
+      "reason": "linear",
+      "top10": [
+        "知青",
+        "知情",
+        "挚情"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0273",
+      "expected": "的",
+      "pinyin": "de",
+      "reason": "linear",
+      "top10": [
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0274",
+      "expected": "情况",
+      "pinyin": "qingkuang",
+      "reason": "linear",
+      "top10": [
+        "情况",
+        "轻狂"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0275",
+      "expected": "下",
+      "pinyin": "xia",
+      "reason": "linear",
+      "top10": [
+        "下",
+        "夏",
+        "吓",
+        "瞎",
+        "霞",
+        "峡",
+        "辖",
+        "侠",
+        "虾",
+        "狭"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0276",
+      "expected": "雇佣",
+      "pinyin": "guyong",
+      "reason": "linear",
+      "top10": [
+        "雇佣",
+        "雇用"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0277",
+      "expected": "黑社会",
+      "pinyin": "heishehui",
+      "reason": "linear",
+      "top10": [
+        "黑社会"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0278",
+      "expected": "上",
+      "pinyin": "shang",
+      "reason": "linear",
+      "top10": [
+        "上",
+        "商",
+        "尚",
+        "伤",
+        "赏",
+        "晌",
+        "裳",
+        "汤",
+        "绱",
+        "熵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0279",
+      "expected": "千余",
+      "pinyin": "qianyu",
+      "reason": "linear",
+      "top10": [
+        "谦语"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0280",
+      "expected": "人",
+      "pinyin": "ren",
+      "reason": "linear",
+      "top10": [
+        "人",
+        "任",
+        "认",
+        "仁",
+        "忍",
+        "刃",
+        "韧",
+        "壬",
+        "纫",
+        "儿"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0281",
+      "expected": "手持",
+      "pinyin": "shouchi",
+      "reason": "linear",
+      "top10": [
+        "受持"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0282",
+      "expected": "砍刀",
+      "pinyin": "kandao",
+      "reason": "linear",
+      "top10": [
+        "看到",
+        "砍刀"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0283",
+      "expected": "铁锹",
+      "pinyin": "tieqiao",
+      "reason": "linear",
+      "top10": [
+        "铁锹",
+        "铁撬"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0284",
+      "expected": "等",
+      "pinyin": "deng",
+      "reason": "linear",
+      "top10": [
+        "等",
+        "灯",
+        "瞪",
+        "登",
+        "蹬",
+        "邓",
+        "凳",
+        "澄",
+        "橙",
+        "磴"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0285",
+      "expected": "凶器",
+      "pinyin": "xiongqi",
+      "reason": "linear",
+      "top10": [
+        "胸鳍",
+        "凶器",
+        "雄起"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0286",
+      "expected": "到",
+      "pinyin": "dao",
+      "reason": "linear",
+      "top10": [
+        "到",
+        "岛",
+        "刀",
+        "道",
+        "倒",
+        "导",
+        "盗",
+        "捣",
+        "稻",
+        "叨"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0287",
+      "expected": "农田",
+      "pinyin": "nongtian",
+      "reason": "linear",
+      "top10": [
+        "农田"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0288",
+      "expected": "里",
+      "pinyin": "li",
+      "reason": "linear",
+      "top10": [
+        "里",
+        "离",
+        "利",
+        "理",
+        "力",
+        "李",
+        "粒",
+        "梨",
+        "立",
+        "历"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0289",
+      "expected": "恶意",
+      "pinyin": "eyi",
+      "reason": "linear",
+      "top10": [
+        "恶意",
+        "遏抑"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0290",
+      "expected": "毁坏",
+      "pinyin": "huihuai",
+      "reason": "linear",
+      "top10": [
+        "毁坏"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0291",
+      "expected": "青苗",
+      "pinyin": "qingmiao",
+      "reason": "linear",
+      "top10": [
+        "轻描淡写"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0292",
+      "expected": "这一",
+      "pinyin": "zheyi",
+      "reason": "linear",
+      "top10": [
+        "这一",
+        "赭衣"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0293",
+      "expected": "行为",
+      "pinyin": "xingwei",
+      "reason": "linear",
+      "top10": [
+        "行为",
+        "兴味"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0294",
+      "expected": "激怒",
+      "pinyin": "jinu",
+      "reason": "linear",
+      "top10": [
+        "激怒"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0295",
+      "expected": "村民",
+      "pinyin": "cunmin",
+      "reason": "linear",
+      "top10": [
+        "村民"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0296",
+      "expected": "双方",
+      "pinyin": "shuangfang",
+      "reason": "linear",
+      "top10": [
+        "双方"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0297",
+      "expected": "发生",
+      "pinyin": "fasheng",
+      "reason": "linear",
+      "top10": [
+        "发生",
+        "发声"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0298",
+      "expected": "激烈",
+      "pinyin": "jilie",
+      "reason": "linear",
+      "top10": [
+        "激烈",
+        "吉列"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0299",
+      "expected": "的",
+      "pinyin": "de",
+      "reason": "linear",
+      "top10": [
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0300",
+      "expected": "殴斗",
+      "pinyin": "oudou",
+      "reason": "linear",
+      "top10": [
+        "殴斗"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0301",
+      "expected": "造成",
+      "pinyin": "zaocheng",
+      "reason": "linear",
+      "top10": [
+        "造成"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0302",
+      "expected": "两死",
+      "pinyin": "liangsi",
+      "reason": "linear",
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
+    },
+    {
+      "idx": "0303",
+      "expected": "一伤",
+      "pinyin": "yishang",
+      "reason": "linear",
+      "top10": [
+        "以上",
+        "衣裳"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0304",
+      "expected": "另外",
+      "pinyin": "lingwai",
+      "reason": "linear",
+      "top10": [
+        "另外"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0305",
+      "expected": "据",
+      "pinyin": "ju",
+      "reason": "linear",
+      "top10": [
+        "举",
+        "据",
+        "局",
+        "剧",
+        "具",
+        "居",
+        "聚",
+        "距",
+        "巨",
+        "句"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0306",
+      "expected": "新",
+      "pinyin": "xin",
+      "reason": "linear",
+      "top10": [
+        "心",
+        "新",
+        "信",
+        "辛",
+        "欣",
+        "芯",
+        "薪",
+        "锌",
+        "衅",
+        "馨"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0307",
+      "expected": "京报",
+      "pinyin": "jingbao",
+      "reason": "linear",
+      "top10": [
+        "警报",
+        "劲爆",
+        "惊爆"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0308",
+      "expected": "报道",
+      "pinyin": "baodao",
+      "reason": "linear",
+      "top10": [
+        "报道",
+        "报到",
+        "报导",
+        "刨刀"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0309",
+      "expected": "挂职",
+      "pinyin": "guazhi",
+      "reason": "linear",
+      "top10": [
+        "挂职"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0310",
+      "expected": "于",
+      "pinyin": "yu",
+      "reason": "linear",
+      "top10": [
+        "与",
+        "于",
+        "鱼",
+        "语",
+        "愈",
+        "育",
+        "余",
+        "玉",
+        "域",
+        "预"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0311",
+      "expected": "哈尔滨市",
+      "pinyin": "haerbinshi",
+      "reason": "linear",
+      "top10": [
+        "哈尔滨市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0312",
+      "expected": "建委",
+      "pinyin": "jianwei",
+      "reason": "linear",
+      "top10": [
+        "监委"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0313",
+      "expected": "的",
+      "pinyin": "de",
+      "reason": "linear",
+      "top10": [
+        "的",
+        "得",
+        "德",
+        "地",
+        "登",
+        "底",
+        "锝",
+        "嘚",
+        "陟",
+        "第二"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0314",
+      "expected": "之子",
+      "pinyin": "zhizi",
+      "reason": "linear",
+      "top10": [
+        "之子",
+        "质子",
+        "侄子",
+        "栀子",
+        "枝子",
+        "稚子",
+        "支子"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0315",
+      "expected": "盖阔",
+      "pinyin": "gaikuo",
+      "reason": "linear",
+      "top10": [
+        "概括"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0316",
+      "expected": "原名",
+      "pinyin": "yuanming",
+      "reason": "linear",
+      "top10": [
+        "原名",
+        "怨命"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0317",
+      "expected": "盖",
+      "pinyin": "gai",
+      "reason": "linear",
+      "top10": [
+        "该",
+        "盖",
+        "改",
+        "概",
+        "钙",
+        "丐",
+        "溉",
+        "核",
+        "汽",
+        "咳"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0318",
+      "expected": "宝华",
+      "pinyin": "baohua",
+      "reason": "linear",
+      "top10": [
+        "刨花"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0319",
+      "expected": "因",
+      "pinyin": "yin",
+      "reason": "linear",
+      "top10": [
+        "因",
+        "阴",
+        "银",
+        "音",
+        "引",
+        "印",
+        "饮",
+        "隐",
+        "荫",
+        "殷"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0320",
+      "expected": "插手",
+      "pinyin": "chashou",
+      "reason": "linear",
+      "top10": [
+        "插手",
+        "查收"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0321",
+      "expected": "工程建设",
+      "pinyin": "gongchengjianshe",
+      "reason": "linear",
+      "top10": [
+        "供称建设"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0322",
+      "expected": "利用",
+      "pinyin": "liyong",
+      "reason": "linear",
+      "top10": [
+        "利用"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0323",
+      "expected": "其父",
+      "pinyin": "qifu",
+      "reason": "linear",
+      "top10": [
+        "起伏",
+        "欺负",
+        "祈福",
+        "旗幅"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0324",
+      "expected": "职权",
+      "pinyin": "zhiquan",
+      "reason": "linear",
+      "top10": [
+        "职权"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0325",
+      "expected": "牟利",
+      "pinyin": "mouli",
+      "reason": "linear",
+      "top10": [
+        "牟利",
+        "谋利"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0326",
+      "expected": "亦",
+      "pinyin": "yi",
+      "reason": "linear",
+      "top10": [
+        "一",
+        "以",
+        "亿",
+        "意",
+        "乙",
+        "翼",
+        "亦",
+        "艺",
+        "义",
+        "医"
+      ],
+      "rank": 6,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0327",
+      "expected": "被",
+      "pinyin": "bei",
+      "reason": "linear",
+      "top10": [
+        "被",
+        "北",
+        "倍",
+        "背",
+        "备",
+        "杯",
+        "贝",
+        "碑",
+        "辈",
+        "悲"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0328",
+      "expected": "带走",
+      "pinyin": "daizou",
+      "reason": "linear",
+      "top10": [
+        "带走"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0329",
+      "expected": "调查",
+      "pinyin": "diaocha",
+      "reason": "linear",
+      "top10": [
+        "调查"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0330",
+      "expected": "因涉嫌",
+      "pinyin": "yinshexian",
+      "reason": "linear",
+      "top10": [
+        "隐射西安"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0331",
+      "expected": "严重",
+      "pinyin": "yanzhong",
+      "reason": "linear",
+      "top10": [
+        "严重",
+        "眼中",
+        "言中",
+        "言重"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0332",
+      "expected": "违纪",
+      "pinyin": "weiji",
+      "reason": "linear",
+      "top10": [
+        "危机",
+        "危急",
+        "危及",
+        "未及",
+        "违纪",
+        "微机",
+        "未几",
+        "伟绩",
+        "畏忌",
+        "围击"
+      ],
+      "rank": 4,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0333",
+      "expected": "黑龙江省",
+      "pinyin": "heilongjiangsheng",
+      "reason": "linear",
+      "top10": [
+        "黑龙江省"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0334",
+      "expected": "第十二届",
+      "pinyin": "dishierjie",
+      "reason": "linear",
+      "top10": [
+        "第十二饥饿"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0335",
+      "expected": "人大",
+      "pinyin": "renda",
+      "reason": "linear",
+      "top10": [
+        "人大"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0336",
+      "expected": "常委",
+      "pinyin": "changwei",
+      "reason": "linear",
+      "top10": [
+        "常委",
+        "肠胃",
+        "长尾"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0337",
+      "expected": "会",
+      "pinyin": "hui",
+      "reason": "linear",
+      "top10": [
+        "会",
+        "回",
+        "灰",
+        "挥",
+        "惠",
+        "汇",
+        "慧",
+        "辉",
+        "绘",
+        "毁"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0338",
+      "expected": "第二十",
+      "pinyin": "diershi",
+      "reason": "linear",
+      "top10": [
+        "三",
+        "伞",
+        "散",
+        "叁",
+        "糁",
+        "馓",
+        "霰",
+        "潵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0338",
+      "expected": "三",
+      "pinyin": "san",
+      "reason": "linear",
+      "top10": [
+        "三",
+        "伞",
+        "散",
+        "叁",
+        "糁",
+        "馓",
+        "霰",
+        "潵"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0339",
+      "expected": "次",
+      "pinyin": "ci",
+      "reason": "linear",
+      "top10": [
+        "此",
+        "次",
+        "刺",
+        "词",
+        "辞",
+        "磁",
+        "瓷",
+        "慈",
+        "祠",
+        "赐"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0340",
+      "expected": "会议",
+      "pinyin": "huiyi",
+      "reason": "linear",
+      "top10": [
+        "回忆",
+        "会议",
+        "会意",
+        "悔意",
+        "㧑挹"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0341",
+      "expected": "决定",
+      "pinyin": "jueding",
+      "reason": "linear",
+      "top10": [
+        "决定",
+        "绝顶"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0342",
+      "expected": "接受",
+      "pinyin": "jieshou",
+      "reason": "linear",
+      "top10": [
+        "接受",
+        "接收",
+        "接手",
+        "解手"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0343",
+      "expected": "其",
+      "pinyin": "qi",
+      "reason": "linear",
+      "top10": [
+        "起",
+        "七",
+        "骑",
+        "期",
+        "气",
+        "其",
+        "器",
+        "奇",
+        "齐",
+        "妻"
+      ],
+      "rank": 5,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0344",
+      "expected": "辞去",
+      "pinyin": "ciqu",
+      "reason": "linear",
+      "top10": [
+        "辞去"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0345",
+      "expected": "第十二届",
+      "pinyin": "dishierjie",
+      "reason": "linear",
+      "top10": [
+        "第十二饥饿"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0346",
+      "expected": "全国",
+      "pinyin": "quanguo",
+      "reason": "linear",
+      "top10": [
+        "全国"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0347",
+      "expected": "人民",
+      "pinyin": "renmin",
+      "reason": "linear",
+      "top10": [
+        "人民"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0348",
+      "expected": "代表",
+      "pinyin": "daibiao",
+      "reason": "linear",
+      "top10": [
+        "代表",
+        "戴表"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0349",
+      "expected": "大会",
+      "pinyin": "dahui",
+      "reason": "linear",
+      "top10": [
+        "大会"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0350",
+      "expected": "代表",
+      "pinyin": "daibiao",
+      "reason": "linear",
+      "top10": [
+        "代表",
+        "戴表"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0351",
+      "expected": "职务",
+      "pinyin": "zhiwu",
+      "reason": "linear",
+      "top10": [
+        "植物",
+        "职务",
+        "治污",
+        "织物",
+        "支吾"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0352",
+      "expected": "被",
+      "pinyin": "bei",
+      "reason": "linear",
+      "top10": [
+        "被",
+        "北",
+        "倍",
+        "背",
+        "备",
+        "杯",
+        "贝",
+        "碑",
+        "辈",
+        "悲"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0353",
+      "expected": "开除党籍",
+      "pinyin": "kaichudangji",
+      "reason": "linear",
+      "top10": [
+        "开除党籍"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0354",
+      "expected": "公职",
+      "pinyin": "gongzhi",
+      "reason": "linear",
+      "top10": [
+        "公职",
+        "供职",
+        "公制",
+        "公知"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0355",
+      "expected": "天津市",
+      "pinyin": "tianjinshi",
+      "reason": "linear",
+      "top10": [
+        "天津市"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0356",
+      "expected": "第一",
+      "pinyin": "diyi",
+      "reason": "linear",
+      "top10": [
+        "第一",
+        "敌意",
+        "地衣"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0357",
+      "expected": "中级",
+      "pinyin": "zhongji",
+      "reason": "linear",
+      "top10": [
+        "中级",
+        "终极",
+        "中继",
+        "中计",
+        "重击",
+        "中脊"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0358",
+      "expected": "人民法院",
+      "pinyin": "renminfayuan",
+      "reason": "linear",
+      "top10": [
+        "人民法院"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0359",
+      "expected": "一审",
+      "pinyin": "yishen",
+      "reason": "linear",
+      "top10": [
+        "一身",
+        "一审"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0360",
+      "expected": "宣判",
+      "pinyin": "xuanpan",
+      "reason": "linear",
+      "top10": [
+        "宣判"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0361",
+      "expected": "犯",
+      "pinyin": "fan",
+      "reason": "linear",
+      "top10": [
+        "翻",
+        "反",
+        "番",
+        "范",
+        "饭",
+        "烦",
+        "繁",
+        "犯",
+        "凡",
+        "返"
+      ],
+      "rank": 7,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0362",
+      "expected": "受贿罪",
+      "pinyin": "shouhuizui",
+      "reason": "linear",
+      "top10": [
+        "受贿罪"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0363",
+      "expected": "万余元",
+      "pinyin": "wanyuyuan",
+      "reason": "linear",
+      "top10": [
+        "晚育预案"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0364",
+      "expected": "判处",
+      "pinyin": "panchu",
+      "reason": "linear",
+      "top10": [
+        "判处"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0365",
+      "expected": "有期徒刑",
+      "pinyin": "youqituxing",
+      "reason": "linear",
+      "top10": [
+        "有期徒刑"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0366",
+      "expected": "年",
+      "pinyin": "nian",
+      "reason": "linear",
+      "top10": [
+        "年",
+        "念",
+        "碾",
+        "捻",
+        "撵",
+        "辗",
+        "粘",
+        "趁",
+        "辇",
+        "拈"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0367",
+      "expected": "并",
+      "pinyin": "bing",
+      "reason": "linear",
+      "top10": [
+        "并",
+        "丙",
+        "冰",
+        "病",
+        "兵",
+        "饼",
+        "柄",
+        "禀",
+        "秉",
+        "平"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0368",
+      "expected": "处罚金",
+      "pinyin": "chufajin",
+      "reason": "linear",
+      "top10": [
+        "处罚金"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0369",
+      "expected": "人民币",
+      "pinyin": "renminbi",
+      "reason": "linear",
+      "top10": [
+        "人民币"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0370",
+      "expected": "万元",
+      "pinyin": "wanyuan",
+      "reason": "linear",
+      "top10": [
+        "万元户"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0371",
+      "expected": "对",
+      "pinyin": "dui",
+      "reason": "linear",
+      "top10": [
+        "对",
+        "队",
+        "堆",
+        "兑",
+        "追",
+        "敦",
+        "怼",
+        "镦",
+        "碓",
+        "槌"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0372",
+      "expected": "受贿",
+      "pinyin": "shouhui",
+      "reason": "linear",
+      "top10": [
+        "收回",
+        "受贿",
+        "受惠",
+        "手绘"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0373",
+      "expected": "所得",
+      "pinyin": "suode",
+      "reason": "linear",
+      "top10": [
+        "所得"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0374",
+      "expected": "财物",
+      "pinyin": "caiwu",
+      "reason": "linear",
+      "top10": [
+        "财务",
+        "财物"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0375",
+      "expected": "及其",
+      "pinyin": "jiqi",
+      "reason": "linear",
+      "top10": [
+        "极其",
+        "机器",
+        "及其",
+        "激起",
+        "祭器",
+        "记起",
+        "集齐"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0376",
+      "expected": "孳息",
+      "pinyin": "zixi",
+      "reason": "linear",
+      "top10": [
+        "仔细",
+        "自习",
+        "孳息"
+      ],
+      "rank": 2,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0377",
+      "expected": "予以",
+      "pinyin": "yuyi",
+      "reason": "linear",
+      "top10": [
+        "予以",
+        "寓意",
+        "语义",
+        "愈益",
+        "语意",
+        "羽翼",
+        "雨衣",
+        "御医",
+        "浴衣",
+        "愚意"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0378",
+      "expected": "追缴",
+      "pinyin": "zhuijiao",
+      "reason": "linear",
+      "top10": [
+        "追剿",
+        "追缴"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0379",
+      "expected": "上缴国库",
+      "pinyin": "shangjiaoguoku",
+      "reason": "linear",
+      "top10": [
+        "上交国库"
+      ],
+      "rank": 99,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0380",
+      "expected": "参考资料",
+      "pinyin": "cankaoziliao",
+      "reason": "linear",
+      "top10": [
+        "参考资料"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0381",
+      "expected": "外部",
+      "pinyin": "waibu",
+      "reason": "linear",
+      "top10": [
+        "外部"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0382",
+      "expected": "链接",
+      "pinyin": "lianjie",
+      "reason": "linear",
+      "top10": [
+        "链接",
+        "廉洁",
+        "连接",
+        "联结",
+        "链结"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0383",
+      "expected": "带领",
+      "pinyin": "dailing",
+      "reason": "linear",
+      "top10": [
+        "带领"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0384",
+      "expected": "省",
+      "pinyin": "sheng",
+      "reason": "linear",
+      "top10": [
+        "省",
+        "生",
+        "剩",
+        "升",
+        "盛",
+        "声",
+        "圣",
+        "胜",
+        "绳",
+        "笙"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0385",
+      "expected": "全国",
+      "pinyin": "quanguo",
+      "reason": "linear",
+      "top10": [
+        "全国"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0386",
+      "expected": "人大代表",
+      "pinyin": "rendadaibiao",
+      "reason": "linear",
+      "top10": [
+        "人大代表"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0387",
+      "expected": "视察",
+      "pinyin": "shicha",
+      "reason": "linear",
+      "top10": [
+        "时差",
+        "视察",
+        "视差",
+        "失察"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0388",
+      "expected": "老",
+      "pinyin": "lao",
+      "reason": "linear",
+      "top10": [
+        "老",
+        "捞",
+        "劳",
+        "牢",
+        "姥",
+        "烙",
+        "涝",
+        "酪",
+        "唠",
+        "落"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0389",
+      "expected": "工业",
+      "pinyin": "gongye",
+      "reason": "linear",
+      "top10": [
+        "工业",
+        "功业",
+        "共业",
+        "宫掖"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0390",
+      "expected": "基地",
+      "pinyin": "jidi",
+      "reason": "linear",
+      "top10": [
+        "极低",
+        "基地",
+        "极地",
+        "基底",
+        "及第",
+        "寄递",
+        "继弟"
+      ],
+      "rank": 1,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0391",
+      "expected": "改造",
+      "pinyin": "gaizao",
+      "reason": "linear",
+      "top10": [
+        "改造"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0392",
+      "expected": "中国",
+      "pinyin": "zhongguo",
+      "reason": "linear",
+      "top10": [
+        "中国"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    },
+    {
+      "idx": "0393",
+      "expected": "经济网",
+      "pinyin": "jingjiwang",
+      "reason": "linear",
+      "top10": [
+        "经济网"
+      ],
+      "rank": 0,
+      "verdict": "PASS"
+    }
+  ],
+  "stats": {
+    "total": 394,
+    "pass": 393,
+    "soft": 0,
+    "audit": 1,
+    "hard": 0
+  }
+}
