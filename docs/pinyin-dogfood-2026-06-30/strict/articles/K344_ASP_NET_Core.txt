@@ -1,0 +1,107 @@
+ASP.NET Core
+
+ASP.NET Core 是新一代的 ASP.NET，早期称为 ASP.NET vNext，并且在推出初期命名为 ASP.NET 5，但随著 .NET Core 的成熟，以及 ASP.NET 5 的命名会使得外界将它视为 ASP.NET 的升级版，但它其实是新一代从头开始打造的 ASP.NET 核心功能，因此微软宣布将它改为与 .NET Core 同步的名称，即 ASP.NET Core。
+ASP.NET Core 可运行于 Windows 平台以及非 Windows 平台，如 Mac OSX 以及 Ubuntu Linux 作业系统，是 Microsoft 第一个具有跨平台能力的 Web 开发框架。
+微软在一开始开发时就将 ASP.NET Core 开源，因此它也是开源专案的一员，由.NET 基金会（页面存档备份，存于互联网档案馆） (.NET Foundation) 所管理。
+
+
+== 开发历程 ==
+ASP.NET vNext 最早是在2014年5月被提出，当时是以专案代号 K (Project K) 命名，包含工具与执行期平台都以 K 来命名，其名称为 KRE (K Runtime Environment) 如：
+
+KLR (K Language Runtime): Project K 的执行期平台。
+KVM (K Version Manager): Project K 的版本管理员。
+KPM (K Package Manager): Project K 的套件管理员，类似于 node.js 的 npm (Node.js Package Manager)。
+K (K Loader): Project K 的程式启动器。
+KRE 在 2014 年度时曾经一度在版本戳记上出现 RC 的字眼，但随后 ASP.NET Core 开发团队发出了一份新的 Roadmap，公布后续的版本计划 。
+到了 Build 2015 时，微软将专案 K 重新命名，改称为 .NET 执行环境 (.NET Execution Environment)，简称 DNX，其工具也开始进行更名:
+
+DNVM (.NET Version Manager): DNX 的版本管理员。
+DNU (.NET Package Manager): DNX 的工具，可支援建造，还原与管理封装等。
+DNX (.NET Loader): DNX 的程式启动器。
+后续到了 ASP.NET Core RC1 时，.NET Core 已经发展成熟，并且也具有自己的工具 .NET Core CLI (dotnet.exe)，此时微软决定将 DNX 和 .NET Core CLI 合并，并且正式于 ASP.NET Core 1.0.0 RC2 时将 DNX 支援终止，改由 .NET Core CLI 提供基础的编译与执行功能。
+
+
+== 核心功能 ==
+ASP.NET Core 核心设计上是采用 Open Web Interface for .NET (OWIN)  为概念发展，OWIN 在概念上就强调以程式码来定义系统功能，并一度在 ASP.NET MVC 5 列入其功能之一，后续的 Web API 与 SignalR 也使用了 OWIN，但并没有引起太多开发人员的重视，其主因还是因为 Visual Studio 简化了太多元件间参考定义的工作，若是要回归由原始码作业，反而会让开发人员无法适应。但随著微软确定将 ASP.NET Core 开发为可跨平台的核心架构时，其专案参考系统也由 Visual Studio 为主的加入参考对话盒转向到以 project.json (.NET Core / ASP.NET Core 的专案组态档) 为主，使得开发人员不能再以 GUI 介面来加入元件参考，只能利用编辑 project.json 的方式加入，这时由程式码加入功能的作法才慢慢的被开发人员所接受，虽然这在 Mac 以及 Linux 环境是再平常不过的事。
+
+
+=== 由程式码决定功能 ===
+ASP.NET Core 广泛应用了 .NET 的扩充方法 (Extension Method)，将 ASP.NET Core 的功能模组 (ASP.NET Core 的术语是 Middleware) 以扩充方法的方式附挂在 IApplicationBuilder 介面上，以 Use 开头的方法为命名标准，所有应用程式所需要的功能都必须添加在 Startup 类别内，DNX Runtime 在启动时会搜寻应用程式内的 Startup 物件，并唤起它内部的特定方法 (如 Configure())，以加入应用程式的功能。
+例如下列程式代码：
+
+
+=== 内建的相依注入 ===
+ASP.NET Core 核心内建了基本的相依注入 (Dependency Injection) 能力，这意味著 ASP.NET Core 应用程式具有更强的扩充能力，连带的如 ASP.NET Core MVC (ASP.NET Core 的 Web 开发框架) 也受惠于 ASP.NET Core 的相依注入功能，可在 Controller 内直接注入介面物件。ASP.NET Core 内提供了两种相依注入功能，一种是管线式相依注入 (ASP.NET Core 称它为 Framework-Provided Services)，另一种是由系统注册的相依注入，由开发人员利用 ASP.NET Core 提供的 IServiceCollection 介面内的方法注册需要的介面与服务，再由程式中取用。
+IServiceCollection 支援四种类型的服务相依注入：
+
+Transient: 每次要求时都建立，不论是否在同一范围。
+Scoped: 只在一个要求范围内建立一次，在当下的范围内等同于 Singleton。
+Singleton: 只会提供一个物件的执行个体，但生成是由系统做。
+Instance: 在应用程式的生命周期内只会提供一个物件的执行个体，但生成是由开发人员负责。
+ASP.NET Core 也不限只能用 ASP.NET Core 本身的相依注入功能，若是有喜欢或惯用的相依注入元件 (如 Autofac、StructureMap 等)，也可以用它们取代内建的相依注入功能。
+
+
+=== 代管 (Hosting) 方式 ===
+ASP.NET Core 支援自我代管 (Self-hosting) 以及 Web Server 代管 (Web Server-hosting) 的功能 ，早期 ASP.NET Core 有延续以 IIS 为主要代管服务的设计 (当时的代号为 Helios)，但是到了 ASP.NET Core Beta 8 时，微软宣布将以 Kestrel Server 为主要的代管伺服器 ，Kestrel Server 是以 libuv 为基础开发的 Web Server 代管行程 (Hosting Process)，借由 libuv 的协助，Kestrel Server 可跨平台，也可适用于 IIS，微软也为了 IIS 使用 Kestrel Server 而发展了 IIS Platform Handler，让 IIS 可直接将 HTTP 的要求直接转送给 Kestrel Server。
+自 ASP.NET Core 1.0.0-rc1 起，代管方式已经回归以 Kestrel Server 为主，原本的 IIS Platform Handler 也依 ASP.NET Core 的特性改写为 ASP.NET Core Module，若要使用 IIS 架设 ASP.NET Core 应用程式，必须要使用此模组。
+
+
+== 专案系统 ==
+在 ASP.NET Core v1.0 时期，ASP.NET Core 不再使用 .csproj 的专案管理方式，而是改用以目录为主的专案管理，原本的 Web.config 也不再存在，取而代之的是 project.json，以及作为组态设定的 appsettings.json 档案，这两个档案都是JSON格式。虽然在 Visual Studio 的 ASP.NET Core 的专案范本中，Web.config 仍然存在，但它的存在只是为了要在 IIS 中附挂上 HTTP Platform Handler 而已。
+随著 .NET Core v1.1 回归到 MSBuild 的策略，ASP.NET Core v1.1 起再次回到 .csproj 的专案管理方式，但仍保留以目录为主的专案管理作法。
+
+
+=== v1.0 时期 ===
+
+
+==== project.json ====
+ASP.NET Core v1.0 时期由 project.json 主掌专案的执行期的组态设定，包含专案的套件参考 (Package References)、专案的基本设定、启动指令、包含或排除指定目录、以及建造时的相关事件指令等。
+下列JSON为 project.json 的范例：
+
+
+==== appsettings.json ====
+appsettings.json 是用来替代 Web.config 内的 <appSettings /> 与 <connectionStrings /> 两个开发人员最常用的组态区段，其内容示例如下:
+
+不过 appsettings.json 不像 project.json 是由 DNX 自动读取，appsettings.json 或是后续加入的组态档都是属于功能之一，依照 ASP.NET Core 由程式码决定功能的特性，开发人员需要加入下列程式才能让 appsettings.json 生效。
+
+
+=== v1.1 时期 ===
+
+随著 .NET Core 1.1 回归 MSBuild 建置系统管理后，ASP.NET Core 1.1 的套件管理也可支援 IDE GUI 的图形化介面参考管理功能。
+ASP.NET Core 1.1 的 Visual Studio 工具也另外加入了 Bower 套件的图形化介面管理功能。
+
+
+== 套件相依管理 ==
+ASP.NET Core 的套件相依管理 (Package Dependency Management) 由 project.json 负责，project.json 内的 dependencies 区段以及 frameworks 区段负责管理对套件的相依，以及对特定 Framework 版本内组件的相依。
+dependencies 内的套件是以 "套件代码": "版本" 的格式设定，例如 "Microsoft.AspNet.Mvc": "1.0.0-rc1-final" 表示参考 Microsoft.AspNet.Mvc 套件的 v1.0.0-rc1-final 版本。套件与版本资讯是用NuGet所提供，和以往要以加入参考的方式加入对特定组件的相依性有很大的不同，而这也是 .NET Core/ASP.NET Core 的特色之一，不必再安装大包的 .NET Framework，只要使用 DNU 的 restore 指令，就能还原所参照的相依套件。
+
+frameworks 则是定义了特定系统环境内所相依的特定组件与其版本，在此定义的组件必须事先就安装在电脑内才能取用，与 dependencies 会还原套件不同。开发人员可以给定一个字串来代表特定环境 (例如dnx45表示 DNX on .NET 4.5、dnxcore5 表示 DNX on .NET Core 5)，然后在里面指定特定的组件与其版本。
+
+自 1.0.0-rc2 起，DNX 的功能由 .NET Core CLI 取代，因此还原套件的指令改为 dotnet restore。
+
+
+== 组件 ==
+ASP.NET Core 以 .NET Core 的基础发展，其目前的组件有：
+
+ASP.NET Core MVC : 目前钦定的 Web 应用程式开发框架。
+ASP.NET Core SignalR: 新一代的长时轮询 (Long-Time Polling) 讯息通讯基础建设，计划在 ASP.NET Core 1.0.0 释出后才会继续进行开发。
+Entity Framework Core: 下一代的 ADO.NET Entity Framework，采用 .NET Core 并重新设计，为钦定的 ORM 资料存取技术。
+Identity Core
+Razor Core
+Blazor
+Kestrel web server
+
+
+== 开发工具 ==
+ASP.NET Core 的可用开发工具有：
+
+Visual Studio，内建有 ASP.NET Core 的专案范本，也能够使用 IDE 的功能建造与部署应用程式 (例如 Azure Web App 或是 ASP.NET Docker Image on Azure 等)。
+Visual Studio Code，跨平台的 Visual Studio 编辑器。
+Yeoman Generator for ASP.NET，提供给 Mac 与 Linux 等作业系统，可直接产生专案范本的工具。
+只要是文字编辑器都可以编修 project.json 与程式码档案，但要自行处理建造与部署的细节。
+
+
+== 版本历程 ==
+
+
+== 参考 ==
