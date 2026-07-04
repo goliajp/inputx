@@ -3228,6 +3228,13 @@ mod tests {
                     "调试", "推送", "通缩", "退市", "听说", "同时", "同事", "天上", "天生",
                 ],
             ),
+            // 2026-07-04 user: "xiaxi 罅隙 这种词不要了，太生僻了" —
+            // 罅隙 is a real formal/literary word (crack/fissure) but the
+            // user considers it too obscure to lead. D2 via exclusions_v1.tsv
+            // keeps 罅隙 in pinyin.dict for K-best / initials reverse-lookup
+            // future-proofing when compose gates flip back on; only the
+            // Path-1 IDF display layer drops it here.
+            ("xiaxi", &["罅隙"]),
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
