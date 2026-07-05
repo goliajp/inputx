@@ -68309,11 +68309,9 @@
       "expected": "尼泊尔",
       "pinyin": "nipoer",
       "reason": "linear",
-      "top10": [
-        "尼泊尔"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "4651",
@@ -73956,9 +73954,9 @@
   ],
   "stats": {
     "total": 5062,
-    "pass": 5056,
+    "pass": 5055,
     "soft": 0,
-    "audit": 6,
+    "audit": 7,
     "hard": 0
   }
 }
