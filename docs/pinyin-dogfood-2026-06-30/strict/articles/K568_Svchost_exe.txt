@@ -1,0 +1,43 @@
+Svchost.exe
+
+Svchost.exe（服务主机，或称SvcHost）是一个系统进程，可以在Windows NT系列操作系统中托管一个或多个Windows服务。Svchost对于实现共享服务进程至关重要，在这种方式下，多个服务可以共享一个进程，以减少资源消耗。将多个服务组合到单一进程中可以节省计算资源，这一点对NT设计者来说尤其重要，因为在Windows操作系统中创建进程比其他操作系统（例如Unix家族）需要更多时间和内存。然而，如果其中一个服务引起未处理的异常，整个进程可能会崩溃。此外，对最终用户而言识别组件服务可能更加困难。用户经常报告与各种托管服务（特别是与Windows Update相关的问题），并由媒体作为涉及svchost的新闻报道。
+Svchost进程首次出现在Windows 2000中，尽管自Windows NT 3.1以来就已存在对共享服务进程的底层支持。
+
+
+== 实施 ==
+其可执行文件%SystemRoot%\System32\Svchost.exe 或 %SystemRoot%\SysWOW64\Svchost.exe（针对在64位系统上运行的32位服务）以多个实例运行，每个实例托管一个或多个服务。
+在SvcHost中运行的服务以动态链接库（DLLs）形式实现。每项服务的注册表键必须在Parameters子键下有一个名为ServiceDll的值，指向相应的服务DLL文件。它们的ImagePath定义格式为%SystemRoot%\System32\svchost.exe -k %service group%；（即netsvcs）。共享同一SvcHost过程的服务指定相同参数，在SCM数据库中有单一条目。当首次用特定参数启动SvcHost过程时，它会查找HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Svchost键下同名值，并将其解释为服务名称列表。然后它通知SCM所有它托管的服务。SCM不会为任何接收到的那些服务启动第二个SvcHost过程；相反，它只是向包含应启动该项业务名称并加载相应DLL SvcHost 的SvcHost过程发送“开始”命令。
+根据2003年微软发布资料显示，共享服​​务的最小工作集大约150 KB, 而独立进程则需要800 KB。
+
+
+=== Windows 10中Service Host分组变化 ===
+从Windows 10版本1903开始，微软改变了将服​​务分组到主机进程中的方式。在客户端计算机系统拥有超过3.5 GB内存时，则不再将服​​务分组到共享主机进制度中。相反地, 每项服​​务都在自己独立流成里运行, 这样做提高了服​​务间隔离性, 让计算机系统对服​​务故障和漏洞更具有弹性且更容易调试, 然而这样也增加了一些内存开销。
+
+
+=== 服役标签 ===
+从Windows Vista开始, 在共享流成(包括svchost)内部标识服​​务通过所谓服役标签完成. 每个线程信息块(TEB)内部SubProcessTag 存储着线索标签. 主要服役线索随后启动所有线索均传播该标签, Windows线程池API间接创建线索除外.
+目前一套服役标签管理程序是未公开API虽然被某些如netstat等windows工具使用以显示与各项服​​务相关联TCP连接情况. 也有第三方工具如ScTagQuery利用此API.
+
+
+== 托管服​​务识别和管理 ==
+从Windows XP及后续版本开始, 命令tasklist /svc可显示每个列出流成(即每个正在运行svchost.exe实例)所运行之服​务清单，并通过唯一流成ID号(PID)区分每个svchost实例。
+在Windows Vista和 Windows 7 中，Windows任务管理器中的“服务”标签包含一个服务列表，显示它们的组和进程ID（PID）；在任务管理器的“进程”标签中右击一个svchost实例并选择“转到服务”，将切换到该服务列表并选中在相应svchost实例下运行的服务。
+在Windows 8中简化了任务管理器界面使得用户可以通过点击展开每个svchost条目查看其内部运行之业务子列表。
+Sysinternals Process Explorer（可从微软免费下载）提供了有关在svchost.exe进程下运行的服务的额外信息，当用户将鼠标悬停在Process Explorer中的svchost实例上时。
+以上方法均无法让用户识别在一个svchost实例内运行的多个服务中哪一个访问了特定资源，例如处理器、磁盘、网络或内存；Windows资源监视器只能在进程级别记录（大部分）这些资源。但它确实可以在“CPU”标签上显示服务级别的处理器使用情况。可以使用命令netstat -b获取感知服务的TCP连接和UDP端口开放列表。
+为了解决在svchost实例内运行的服务出现的其他类型问题，必须重新配置被怀疑引起问题的所有服务，使每个服务都在其自己的svchost实例中运行。例如，sc config foo type= own 将重新配置名为“foo”的服务，在其自己的svchost实例中运行。将类型改回共享是通过类似命令完成的。此类配置更改生效前必须重启服务。然而，这种调试过程并非万无一失；在某些情况下，可能会发生海森虫错误，即当服务单独运行时问题消失。
+更复杂的故障排除方法是创建一个隔离的服务组。
+在Windows 10中，从1703版本开始，Microsoft重新设计了svchost，使其只托管每个进程一个服务，具体取决于可用系统内存。如果系统至少有3.5 GB 的RAM，默认设置会使服务独立托管。
+
+
+== 参看 ==
+Microsoft Windows元件列表
+Windows NT启动程序
+scvhost.exe - 一个名称非常相似的后门木马程式
+
+
+== 外部连结 ==
+Microsoft's Support Page on SVChost.exe（页面存档备份，存于互联网档案馆）
+Process Library about SvcHost.exe（页面存档备份，存于互联网档案馆）
+Svchost 进程分析器（页面存档备份，存于互联网档案馆）
+How to find processes behind svchost.exe（页面存档备份，存于互联网档案馆）
