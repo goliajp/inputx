@@ -232,8 +232,8 @@
       "pinyin": "er",
       "reason": "linear",
       "top10": [
-        "二",
         "而",
+        "二",
         "尔",
         "儿",
         "耳",
@@ -243,7 +243,7 @@
         "鸸",
         "洱"
       ],
-      "rank": 1,
+      "rank": 0,
       "verdict": "PASS"
     },
     {
@@ -2545,8 +2545,8 @@
       "pinyin": "er",
       "reason": "linear",
       "top10": [
-        "二",
         "而",
+        "二",
         "尔",
         "儿",
         "耳",
@@ -2556,7 +2556,7 @@
         "鸸",
         "洱"
       ],
-      "rank": 1,
+      "rank": 0,
       "verdict": "PASS"
     },
     {
@@ -3013,8 +3013,8 @@
       "pinyin": "er",
       "reason": "linear",
       "top10": [
-        "二",
         "而",
+        "二",
         "尔",
         "儿",
         "耳",
@@ -3024,7 +3024,7 @@
         "鸸",
         "洱"
       ],
-      "rank": 1,
+      "rank": 0,
       "verdict": "PASS"
     },
     {
@@ -3620,8 +3620,8 @@
       "pinyin": "er",
       "reason": "linear",
       "top10": [
-        "二",
         "而",
+        "二",
         "尔",
         "儿",
         "耳",
@@ -3631,7 +3631,7 @@
         "鸸",
         "洱"
       ],
-      "rank": 1,
+      "rank": 0,
       "verdict": "PASS"
     },
     {
@@ -4310,8 +4310,8 @@
       "pinyin": "er",
       "reason": "linear",
       "top10": [
-        "二",
         "而",
+        "二",
         "尔",
         "儿",
         "耳",
@@ -4321,7 +4321,7 @@
         "鸸",
         "洱"
       ],
-      "rank": 1,
+      "rank": 0,
       "verdict": "PASS"
     },
     {
@@ -10371,8 +10371,8 @@
       "pinyin": "er",
       "reason": "linear",
       "top10": [
-        "二",
         "而",
+        "二",
         "尔",
         "儿",
         "耳",
@@ -10382,7 +10382,7 @@
         "鸸",
         "洱"
       ],
-      "rank": 1,
+      "rank": 0,
       "verdict": "PASS"
     },
     {
@@ -11052,8 +11052,8 @@
       "pinyin": "er",
       "reason": "linear",
       "top10": [
-        "二",
         "而",
+        "二",
         "尔",
         "儿",
         "耳",
@@ -11063,7 +11063,7 @@
         "鸸",
         "洱"
       ],
-      "rank": 1,
+      "rank": 0,
       "verdict": "PASS"
     },
     {
@@ -13329,8 +13329,8 @@
       "pinyin": "er",
       "reason": "linear",
       "top10": [
-        "二",
         "而",
+        "二",
         "尔",
         "儿",
         "耳",
@@ -13340,7 +13340,7 @@
         "鸸",
         "洱"
       ],
-      "rank": 1,
+      "rank": 0,
       "verdict": "PASS"
     },
     {
@@ -16893,11 +16893,9 @@
       "expected": "第二层",
       "pinyin": "dierceng",
       "reason": "linear",
-      "top10": [
-        "第二层"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1146",
@@ -19655,11 +19653,9 @@
       "expected": "官方网站",
       "pinyin": "guanfangwangzhan",
       "reason": "linear",
-      "top10": [
-        "官方网站"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1333",
@@ -19976,9 +19972,9 @@
   ],
   "stats": {
     "total": 1360,
-    "pass": 1358,
+    "pass": 1356,
     "soft": 0,
-    "audit": 2,
+    "audit": 4,
     "hard": 0
   }
 }
