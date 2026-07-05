@@ -498,11 +498,9 @@
       "expected": "玉置浩二",
       "pinyin": "yuzhihaoer",
       "reason": "linear",
-      "top10": [
-        "玉置浩二"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0035",
@@ -1699,8 +1697,8 @@
       "pinyin": "er",
       "reason": "linear",
       "top10": [
-        "二",
         "而",
+        "二",
         "尔",
         "儿",
         "耳",
@@ -1710,7 +1708,7 @@
         "鸸",
         "洱"
       ],
-      "rank": 1,
+      "rank": 0,
       "verdict": "PASS"
     },
     {
@@ -2219,8 +2217,8 @@
       "pinyin": "er",
       "reason": "linear",
       "top10": [
-        "二",
         "而",
+        "二",
         "尔",
         "儿",
         "耳",
@@ -2230,7 +2228,7 @@
         "鸸",
         "洱"
       ],
-      "rank": 1,
+      "rank": 0,
       "verdict": "PASS"
     },
     {
@@ -5126,8 +5124,8 @@
       "pinyin": "er",
       "reason": "linear",
       "top10": [
-        "二",
         "而",
+        "二",
         "尔",
         "儿",
         "耳",
@@ -5137,7 +5135,7 @@
         "鸸",
         "洱"
       ],
-      "rank": 1,
+      "rank": 0,
       "verdict": "PASS"
     },
     {
@@ -5883,11 +5881,9 @@
       "expected": "玉置浩二",
       "pinyin": "yuzhihaoer",
       "reason": "linear",
-      "top10": [
-        "玉置浩二"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0393",
@@ -6814,9 +6810,9 @@
   ],
   "stats": {
     "total": 468,
-    "pass": 465,
+    "pass": 463,
     "soft": 0,
-    "audit": 3,
+    "audit": 5,
     "hard": 0
   }
 }
