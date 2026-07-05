@@ -743,6 +743,11 @@ mod tests {
             // char-freq offsets landing top-1..#3. modern_vocab boost
             // 猪脚→30000 flips it to #0.
             ("zhujiao", "猪脚"),
+            // Polish-log 2026-07-06: user /polish PLA marshals — 贺龙
+            // (He Long, Ten Marshals) sat at library base 16137 but
+            // 合拢/合龙 char-freq landed top-1/#2. modern_vocab boost
+            // 贺龙→30000 flips it to #0.
+            ("helong", "贺龙"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
