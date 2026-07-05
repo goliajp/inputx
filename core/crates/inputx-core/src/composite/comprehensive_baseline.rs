@@ -754,6 +754,11 @@ mod tests {
             // enough, 4-syll compound didn't K-best compose either).
             // modern_vocab boost 彭德怀→30000 surfaces at #0.
             ("pengdehuai", "彭德怀"),
+            // Polish-log 2026-07-06: user /polish PLA marshals — 林彪
+            // (Lin Biao, Ten Marshals) sat at library base 16839 but
+            // buffer returned 0 candidates (same 4-syll K-best gap
+            // as 彭德怀). modern_vocab boost 林彪→30000 surfaces at #0.
+            ("linbiao", "林彪"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
