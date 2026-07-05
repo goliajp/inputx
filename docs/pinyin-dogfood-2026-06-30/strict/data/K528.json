@@ -485,8 +485,8 @@
       "pinyin": "mu",
       "reason": "linear",
       "top10": [
-        "木",
         "目",
+        "木",
         "姆",
         "幕",
         "母",
@@ -1379,11 +1379,9 @@
       "expected": "木挽町幕",
       "pinyin": "muwantingmu",
       "reason": "linear",
-      "top10": [
-        "木挽町幕"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "0096",
@@ -19886,11 +19884,9 @@
       "expected": "木土",
       "pinyin": "mutu",
       "reason": "linear",
-      "top10": [
-        "木土"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1261",
@@ -20881,11 +20877,9 @@
       "expected": "木土",
       "pinyin": "mutu",
       "reason": "linear",
-      "top10": [
-        "木土"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1327",
@@ -21617,11 +21611,9 @@
       "expected": "木土",
       "pinyin": "mutu",
       "reason": "linear",
-      "top10": [
-        "木土"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1376",
@@ -23230,8 +23222,8 @@
       "pinyin": "mu",
       "reason": "linear",
       "top10": [
-        "木",
         "目",
+        "木",
         "姆",
         "幕",
         "母",
@@ -24838,11 +24830,9 @@
       "expected": "木土",
       "pinyin": "mutu",
       "reason": "linear",
-      "top10": [
-        "木土"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1587",
@@ -25945,8 +25935,8 @@
       "pinyin": "mu",
       "reason": "linear",
       "top10": [
-        "木",
         "目",
+        "木",
         "姆",
         "幕",
         "母",
@@ -26288,11 +26278,9 @@
       "expected": "木土",
       "pinyin": "mutu",
       "reason": "linear",
-      "top10": [
-        "木土"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "1687",
@@ -40153,11 +40141,9 @@
       "expected": "木土",
       "pinyin": "mutu",
       "reason": "linear",
-      "top10": [
-        "木土"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "2574",
@@ -40855,11 +40841,9 @@
       "expected": "木土",
       "pinyin": "mutu",
       "reason": "linear",
-      "top10": [
-        "木土"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "2622",
@@ -41918,8 +41902,8 @@
       "pinyin": "mu",
       "reason": "linear",
       "top10": [
-        "木",
         "目",
+        "木",
         "姆",
         "幕",
         "母",
@@ -47223,8 +47207,8 @@
       "pinyin": "mu",
       "reason": "linear",
       "top10": [
-        "木",
         "目",
+        "木",
         "姆",
         "幕",
         "母",
@@ -49233,11 +49217,9 @@
       "expected": "木土",
       "pinyin": "mutu",
       "reason": "linear",
-      "top10": [
-        "木土"
-      ],
-      "rank": 0,
-      "verdict": "PASS"
+      "top10": [],
+      "rank": 99,
+      "verdict": "AUDIT"
     },
     {
       "idx": "3153",
@@ -53510,9 +53492,9 @@
   ],
   "stats": {
     "total": 3541,
-    "pass": 3517,
+    "pass": 3508,
     "soft": 0,
-    "audit": 24,
+    "audit": 33,
     "hard": 0
   }
 }
