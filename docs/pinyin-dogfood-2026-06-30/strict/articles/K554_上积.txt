@@ -1,0 +1,1121 @@
+上积
+
+代数拓扑中，上积或杯积（cup product）是将两个度为p和q的上循环联接起来，形成度为p+q的复合循环的方法。这定义了上同调中的结合（与分散）分次交换积，将空间X的上同调转变为分次环
+  
+    
+      
+        
+          H
+          
+            ∗
+          
+        
+        (
+        X
+        )
+      
+    
+    {\displaystyle H^{*}(X)}
+  
+，称作上同调环。上积由詹姆斯·韦德尔·亚历山大、爱德华·切赫与哈斯勒·惠特尼于1935–1938年间提出，1944年塞缪尔·艾伦伯格给出了一般定义。
+
+
+== 定义 ==
+奇异上同调中，上积构造给出了拓扑空间X的分次上同调环
+  
+    
+      
+        
+          H
+          
+            ∗
+          
+        
+        (
+        X
+        )
+      
+    
+    {\displaystyle H^{*}(X)}
+  
+上的积。
+构造始于上链之积：若
+  
+    
+      
+        
+          α
+          
+            p
+          
+        
+      
+    
+    {\displaystyle \alpha ^{p}}
+  
+是p上链，且
+  
+    
+      
+        
+          β
+          
+            q
+          
+        
+      
+    
+    {\displaystyle \beta ^{q}}
+  
+是q上链，则
+
+  
+    
+      
+        (
+        
+          α
+          
+            p
+          
+        
+        ⌣
+        
+          β
+          
+            q
+          
+        
+        )
+        (
+        σ
+        )
+        =
+        
+          α
+          
+            p
+          
+        
+        (
+        σ
+        ∘
+        
+          ι
+          
+            0
+            ,
+            1
+            ,
+            .
+            .
+            .
+            p
+          
+        
+        )
+        ⋅
+        
+          β
+          
+            q
+          
+        
+        (
+        σ
+        ∘
+        
+          ι
+          
+            p
+            ,
+            p
+            +
+            1
+            ,
+            .
+            .
+            .
+            ,
+            p
+            +
+            q
+          
+        
+        )
+      
+    
+    {\displaystyle (\alpha ^{p}\smile \beta ^{q})(\sigma )=\alpha ^{p}(\sigma \circ \iota _{0,1,...p})\cdot \beta ^{q}(\sigma \circ \iota _{p,p+1,...,p+q})}
+  
+
+其中σ是奇异
+  
+    
+      
+        (
+        p
+        +
+        q
+        )
+      
+    
+    {\displaystyle (p+q)}
+  
+-单纯形，
+  
+    
+      
+        S
+        ⊂
+        {
+        0
+        ,
+        1
+        ,
+        .
+        .
+        .
+        ,
+        p
+        +
+        q
+        }
+      
+    
+    {\displaystyle S\subset \{0,1,...,p+q\}}
+  
+, 
+  
+    
+      
+        
+          ι
+          
+            S
+          
+        
+      
+    
+    {\displaystyle \iota _{S}}
+  
+
+是S张成的单纯形规范嵌入
+  
+    
+      
+        (
+        p
+        +
+        q
+        )
+      
+    
+    {\displaystyle (p+q)}
+  
+-单纯形，后者的顶点索引为
+  
+    
+      
+        {
+        0
+        ,
+        .
+        .
+        .
+        ,
+        p
+        +
+        q
+        }
+      
+    
+    {\displaystyle \{0,...,p+q\}}
+  
+。
+非正式地，
+  
+    
+      
+        σ
+        ∘
+        
+          ι
+          
+            0
+            ,
+            1
+            ,
+            .
+            .
+            .
+            ,
+            p
+          
+        
+      
+    
+    {\displaystyle \sigma \circ \iota _{0,1,...,p}}
+  
+是σ的第p个正面（front face），
+  
+    
+      
+        σ
+        ∘
+        
+          ι
+          
+            p
+            ,
+            p
+            +
+            1
+            ,
+            .
+            .
+            .
+            ,
+            p
+            +
+            q
+          
+        
+      
+    
+    {\displaystyle \sigma \circ \iota _{p,p+1,...,p+q}}
+  
+是σ的第q个背面（back face）。
+上链
+  
+    
+      
+        
+          α
+          
+            p
+          
+        
+      
+    
+    {\displaystyle \alpha ^{p}}
+  
+与
+  
+    
+      
+        
+          β
+          
+            q
+          
+        
+      
+    
+    {\displaystyle \beta ^{q}}
+  
+的上积的上边缘（coboundary）为
+
+  
+    
+      
+        δ
+        (
+        
+          α
+          
+            p
+          
+        
+        ⌣
+        
+          β
+          
+            q
+          
+        
+        )
+        =
+        δ
+        
+          
+            α
+            
+              p
+            
+          
+        
+        ⌣
+        
+          β
+          
+            q
+          
+        
+        +
+        (
+        −
+        1
+        
+          )
+          
+            p
+          
+        
+        (
+        
+          α
+          
+            p
+          
+        
+        ⌣
+        δ
+        
+          
+            β
+            
+              q
+            
+          
+        
+        )
+        .
+      
+    
+    {\displaystyle \delta (\alpha ^{p}\smile \beta ^{q})=\delta {\alpha ^{p}}\smile \beta ^{q}+(-1)^{p}(\alpha ^{p}\smile \delta {\beta ^{q}}).}
+  
+
+两个上循环的上积仍是上循环，上边缘与上循环（任意顺序）的积仍是上边缘。上积在上同调中引入了双线性运算
+
+  
+    
+      
+        
+          H
+          
+            p
+          
+        
+        (
+        X
+        )
+        ×
+        
+          H
+          
+            q
+          
+        
+        (
+        X
+        )
+        →
+        
+          H
+          
+            p
+            +
+            q
+          
+        
+        (
+        X
+        )
+        .
+      
+    
+    {\displaystyle H^{p}(X)\times H^{q}(X)\to H^{p+q}(X).}
+  
+
+
+== 性质 ==
+上同调中的上积满足以下特性
+
+  
+    
+      
+        
+          α
+          
+            p
+          
+        
+        ⌣
+        
+          β
+          
+            q
+          
+        
+        =
+        (
+        −
+        1
+        
+          )
+          
+            p
+            q
+          
+        
+        (
+        
+          β
+          
+            q
+          
+        
+        ⌣
+        
+          α
+          
+            p
+          
+        
+        )
+      
+    
+    {\displaystyle \alpha ^{p}\smile \beta ^{q}=(-1)^{pq}(\beta ^{q}\smile \alpha ^{p})}
+  
+
+因此相应的乘法是分次交换的。
+上积的函子性体现在以下方面：若
+
+  
+    
+      
+        f
+        :
+        X
+        →
+        Y
+      
+    
+    {\displaystyle f\colon X\to Y}
+  
+
+是连续函数，
+
+  
+    
+      
+        
+          f
+          
+            ∗
+          
+        
+        :
+        
+          H
+          
+            ∗
+          
+        
+        (
+        Y
+        )
+        →
+        
+          H
+          
+            ∗
+          
+        
+        (
+        X
+        )
+      
+    
+    {\displaystyle f^{*}\colon H^{*}(Y)\to H^{*}(X)}
+  
+
+是上同调中的诱导同态，则
+
+  
+    
+      
+        
+          f
+          
+            ∗
+          
+        
+        (
+        α
+        ⌣
+        β
+        )
+        =
+        
+          f
+          
+            ∗
+          
+        
+        (
+        α
+        )
+        ⌣
+        
+          f
+          
+            ∗
+          
+        
+        (
+        β
+        )
+        ,
+      
+    
+    {\displaystyle f^{*}(\alpha \smile \beta )=f^{*}(\alpha )\smile f^{*}(\beta ),}
+  
+
+对
+  
+    
+      
+        
+          H
+          
+            ∗
+          
+        
+        (
+        Y
+        )
+      
+    
+    {\displaystyle H^{*}(Y)}
+  
+中所有类α、β。也就是说，f *是（分次）环同态。
+
+
+== 解释 ==
+可将上积
+  
+    
+      
+        ⌣
+        :
+        
+          H
+          
+            p
+          
+        
+        (
+        X
+        )
+        ×
+        
+          H
+          
+            q
+          
+        
+        (
+        X
+        )
+        →
+        
+          H
+          
+            p
+            +
+            q
+          
+        
+        (
+        X
+        )
+      
+    
+    {\displaystyle \smile \colon H^{p}(X)\times H^{q}(X)\to H^{p+q}(X)}
+  
+视作由下面的组合诱导而来：
+  
+    
+      
+        
+          
+            C
+            
+              ∙
+            
+          
+          (
+          X
+          )
+          ×
+          
+            C
+            
+              ∙
+            
+          
+          (
+          X
+          )
+          →
+          
+            C
+            
+              ∙
+            
+          
+          (
+          X
+          ×
+          X
+          )
+          
+            
+              →
+              
+                Δ
+                
+                  ∗
+                
+              
+            
+          
+          
+            C
+            
+              ∙
+            
+          
+          (
+          X
+          )
+        
+      
+    
+    {\displaystyle \displaystyle C^{\bullet }(X)\times C^{\bullet }(X)\to C^{\bullet }(X\times X){\overset {\Delta ^{*}}{\to }}C^{\bullet }(X)}
+  
+以
+  
+    
+      
+        X
+      
+    
+    {\displaystyle X}
+  
+与
+  
+    
+      
+        X
+        ×
+        X
+      
+    
+    {\displaystyle X\times X}
+  
+的链复形表示，其中第一个映射是克奈映射，第二个映射由对角
+  
+    
+      
+        Δ
+        :
+        X
+        →
+        X
+        ×
+        X
+      
+    
+    {\displaystyle \Delta \colon X\to X\times X}
+  
+诱导。
+这个构成传给商，便给出了良定义的上同调映射，这就是上积。这种方法解释了上同调上积的存在，但没有解释同调上积：
+  
+    
+      
+        Δ
+        :
+        X
+        →
+        X
+        ×
+        X
+      
+    
+    {\displaystyle \Delta \colon X\to X\times X}
+  
+诱导了映射
+  
+    
+      
+        
+          Δ
+          
+            ∗
+          
+        
+        :
+        
+          H
+          
+            ∙
+          
+        
+        (
+        X
+        ×
+        X
+        )
+        →
+        
+          H
+          
+            ∙
+          
+        
+        (
+        X
+        )
+      
+    
+    {\displaystyle \Delta ^{*}\colon H^{\bullet }(X\times X)\to H^{\bullet }(X)}
+  
+，但还会诱导映射
+  
+    
+      
+        
+          Δ
+          
+            ∗
+          
+        
+        :
+        
+          H
+          
+            ∙
+          
+        
+        (
+        X
+        )
+        →
+        
+          H
+          
+            ∙
+          
+        
+        (
+        X
+        ×
+        X
+        )
+      
+    
+    {\displaystyle \Delta _{*}\colon H_{\bullet }(X)\to H_{\bullet }(X\times X)}
+  
+，后者与我们定义积的方法相反。不过，这在定义下积时是有用的。
+上积的这种表达体现了双线性，即
+  
+    
+      
+        (
+        
+          u
+          
+            1
+          
+        
+        +
+        
+          u
+          
+            2
+          
+        
+        )
+        ⌣
+        v
+        =
+        
+          u
+          
+            1
+          
+        
+        ⌣
+        v
+        +
+        
+          u
+          
+            2
+          
+        
+        ⌣
+        v
+      
+    
+    {\displaystyle (u_{1}+u_{2})\smile v=u_{1}\smile v+u_{2}\smile v}
+  
+；
+  
+    
+      
+        u
+        ⌣
+        (
+        
+          v
+          
+            1
+          
+        
+        +
+        
+          v
+          
+            2
+          
+        
+        )
+        =
+        u
+        ⌣
+        
+          v
+          
+            1
+          
+        
+        +
+        u
+        ⌣
+        
+          v
+          
+            2
+          
+        
+        .
+      
+    
+    {\displaystyle u\smile (v_{1}+v_{2})=u\smile v_{1}+u\smile v_{2}.}
+  
+
+
+== 例子 ==
+上积可用来区分流形和具有相同上同调群的空间之楔。空间
+  
+    
+      
+        X
+        :=
+        
+          S
+          
+            2
+          
+        
+        ∨
+        
+          S
+          
+            1
+          
+        
+        ∨
+        
+          S
+          
+            1
+          
+        
+      
+    
+    {\displaystyle X:=S^{2}\vee S^{1}\vee S^{1}}
+  
+与环面T具有相同的上同调群，但具有不同的上积。在X的情况下，与 
+  
+    
+      
+        
+          S
+          
+            1
+          
+        
+      
+    
+    {\displaystyle S^{1}}
+  
+相关的上链的乘法是退化的；而在T中，第一个上同调群中的乘法可用于将环面分解为2胞图，从而使积等于Z（更一般地说是M，此处是基模）。
+
+
+== 其他定义 ==
+
+
+=== 上积与微分形式 ===
+在德拉姆上同调中，微分形式的上积由楔积导出。即，两个闭微分形式的楔积属于两个原德拉姆类的上积的德拉姆类。
+
+
+=== 上积与几何相交 ===
+
+对于定向流形，有几何启发式，即“上积与相交是对偶的”。
+令
+  
+    
+      
+        M
+      
+    
+    {\displaystyle M}
+  
+为
+  
+    
+      
+        n
+      
+    
+    {\displaystyle n}
+  
+维定向光滑流形。若两个余维分别是i、j的子流形
+  
+    
+      
+        A
+        ,
+        B
+      
+    
+    {\displaystyle A,B}
+  
+横截着交，那么它们的交
+  
+    
+      
+        A
+        ∩
+        B
+      
+    
+    {\displaystyle A\cap B}
+  
+又是余维是i + j的子流形。将这些流形的基本同调类的像置于包含（inclusion）之中，就可以得到同调上的双线性积，与上积是庞加莱对偶的，即取庞加莱对
+  
+    
+      
+        [
+        A
+        
+          ]
+          
+            ∗
+          
+        
+        ,
+        [
+        B
+        
+          ]
+          
+            ∗
+          
+        
+        ∈
+        
+          H
+          
+            i
+          
+        
+        ,
+        
+          H
+          
+            j
+          
+        
+      
+    
+    {\displaystyle [A]^{*},[B]^{*}\in H^{i},H^{j}}
+  
+则有以下等式：
+
+  
+    
+      
+        [
+        A
+        
+          ]
+          
+            ∗
+          
+        
+        ⌣
+        [
+        B
+        
+          ]
+          
+            ∗
+          
+        
+        =
+        [
+        A
+        ∩
+        B
+        
+          ]
+          
+            ∗
+          
+        
+        ∈
+        
+          H
+          
+            i
+            +
+            j
+          
+        
+        (
+        X
+        ,
+        
+          Z
+        
+        )
+      
+    
+    {\displaystyle [A]^{*}\smile [B]^{*}=[A\cap B]^{*}\in H^{i+j}(X,\mathbb {Z} )}
+  
+.
+同样，环绕数也可用交来定义，将维数移动1，或者用链之补上的非零上积来定义。
+
+
+== 梅西积 ==
+
+上积是二元运算。可以定义三元甚至多元的高阶运算，称作梅西积，是上积的推广。它是一种高阶上同调运算，目前只定义了一部分（只定义了部分三元运算）。
+
+
+== 另见 ==
+奇异同调
+同调
+下积
+梅西积
+
+
+== 参考文献 ==
+
+James R. Munkres, "Elements of Algebraic Topology", Perseus Publishing, Cambridge Massachusetts (1984) ISBN 0-201-04586-9 (hardcover) ISBN 0-201-62728-0 (paperback)
+Glen E. Bredon, "Topology and Geometry", Springer-Verlag, New York (1993) ISBN 0-387-97926-3
+Allen Hatcher, "Algebraic Topology （页面存档备份，存于互联网档案馆）", Cambridge Publishing Company (2002) ISBN 0-521-79540-0
