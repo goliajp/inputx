@@ -737,6 +737,12 @@ mod tests {
             // 收音→30000 (#2). 首音 added to exclusions_v1.tsv (phonology
             // term, not needed at top; still available for K-best).
             ("shouyin", "收银"),
+            // Polish-log 2026-07-06: user /polish zhujiao 猪脚 — 猪脚
+            // (pork trotters, 猪脚饭 Cantonese/Taiwanese food) sat at
+            // library base 23015 while 主教/助教/注脚/住脚 all had
+            // char-freq offsets landing top-1..#3. modern_vocab boost
+            // 猪脚→30000 flips it to #0.
+            ("zhujiao", "猪脚"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
