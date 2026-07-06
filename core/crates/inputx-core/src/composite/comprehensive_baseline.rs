@@ -759,6 +759,12 @@ mod tests {
             // buffer returned 0 candidates (same 4-syll K-best gap
             // as 彭德怀). modern_vocab boost 林彪→30000 surfaces at #0.
             ("linbiao", "林彪"),
+            // Polish-log 2026-07-06: user /polish fuyao 敷药 — 敷药
+            // (apply medicine externally, common TCM verb) sat at library
+            // base 13829 while 服药 (take medicine orally, freq 19592)
+            // dominated so much that 敷药 didn't even surface in top10.
+            // quickfix_boost 敷药 → 22000 flips it to #0 above 服药.
+            ("fuyao", "敷药"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
