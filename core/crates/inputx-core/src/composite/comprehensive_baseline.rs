@@ -1549,6 +1549,30 @@ mod tests {
         );
     }
 
+    /// Class C polish (user report 2026-07-06): "khuq 跤 > 中奖 > 中将,
+    /// 五笔不应该出这种问题, 四码单字如果不是低频难检应该在词上面的".
+    /// khuq is a wubi 4-code full-code buffer that produces 跤 (single-char,
+    /// freq 17713) and phrases 中将 (25158) / 中奖 (18235). The wubi
+    /// engine's layer bonus (phrases get +400k over single-chars) pushed
+    /// the phrases to top, but the user considers 跤 (common single-char)
+    /// should lead. tier_overlay demotes 中将 → tier 6 and 中奖 → tier 5
+    /// so 跤 (natural tier ≤4) sorts above both. NOTE: user also raised
+    /// structural concern "五笔不应该出这种问题" — the wubi phrase-over-
+    /// single-char layer bonus deserves a framework-level review; per-entry
+    /// polish here is a workaround for this specific buffer only.
+    #[test]
+    fn polish_khuq_order() {
+        let top10 = mixed_top10("khuq".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("跤").expect("跤 missing from khuq top10");
+        let b = pos("中奖").expect("中奖 missing from khuq top10");
+        let c = pos("中将").expect("中将 missing from khuq top10");
+        assert!(
+            a < b && b < c,
+            "khuq: expected 跤<中奖<中将; got top10={top10:?}"
+        );
+    }
+
     /// Class C polish (user report 2026-07-06): "wugu 假痴不癫 肯定要放
     /// 很后面，T 级低, 无辜 > 五谷 > 无故 > 巫蛊 > 假痴不癫". Wubi
     /// 3-jianma 假痴不癫 was leading at #0 via 五笔 dispatch. tier_overlay
