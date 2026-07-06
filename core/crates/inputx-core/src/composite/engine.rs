@@ -941,6 +941,21 @@ impl CompositeEngine {
     pub fn pinyin_import_l0(&self, snap: inputx_pinyin::L0Snapshot) -> usize {
         self.pinyin.import_l0(snap)
     }
+
+    /// v1.15 hot-reload for the pinyin sub-engine: swap the underlying
+    /// `PinyinDict.map` with a fresh FST built from `map_bytes`. The
+    /// per-session L0 pins / cell-dict layer / LM survive. See
+    /// [`super::pinyin_adapter::PinyinAdapter::reload_pinyin_dict`].
+    ///
+    /// Process-global helpers ([`inputx_pinyin_helpers::pinyin_idf_reader`]
+    /// / the two `NgramTable` slots) are reloaded from the same signal
+    /// handler at a different layer — do NOT drive them from here so
+    /// per-session Rust code stays out of the process-global slot's
+    /// swap contract.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn reload_pinyin_dict(&mut self, map_bytes: Vec<u8>) -> Result<(), inputx_fsa::FsaError> {
+        self.pinyin.reload_pinyin_dict(map_bytes)
+    }
 }
 
 #[cfg(test)]

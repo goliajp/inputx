@@ -60,6 +60,42 @@ impl Default for Session {
     }
 }
 
+/// v1.15 hot-reload failure kinds returned by
+/// [`Session::reload_pinyin_data`]. Each variant stringifies its
+/// underlying cause so the FFI can surface a single `char*` without
+/// coupling to the concrete parse-error types.
+#[derive(Debug)]
+pub enum PinyinReloadError {
+    /// Reading `pinyin.dict` from the target directory failed.
+    ReadDict(String),
+    /// Reading `words.idf` from the target directory failed.
+    ReadIdf(String),
+    /// Parsing the new `pinyin.dict` bytes failed.
+    Dict(String),
+    /// Parsing the new `words.idf` bytes failed.
+    Idf(String),
+    /// Parsing the new `bigrams.ngm` bytes failed (only reached when
+    /// the file was present on disk).
+    NgmIntra(String),
+    /// Parsing the new `bigrams_inter.ngm` bytes failed.
+    NgmInter(String),
+}
+
+impl std::fmt::Display for PinyinReloadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ReadDict(s) => write!(f, "read pinyin.dict failed: {s}"),
+            Self::ReadIdf(s) => write!(f, "read words.idf failed: {s}"),
+            Self::Dict(s) => write!(f, "parse pinyin.dict failed: {s}"),
+            Self::Idf(s) => write!(f, "parse words.idf failed: {s}"),
+            Self::NgmIntra(s) => write!(f, "parse bigrams.ngm failed: {s}"),
+            Self::NgmInter(s) => write!(f, "parse bigrams_inter.ngm failed: {s}"),
+        }
+    }
+}
+
+impl std::error::Error for PinyinReloadError {}
+
 impl Session {
     pub fn new() -> Self {
         Self {
@@ -495,6 +531,56 @@ impl Session {
             }
             Source::Japanese => 0,
         }
+    }
+
+    /// v1.15 hot-reload for the pinyin sub-engine. Reads the four
+    /// files that a polish rebuild regenerates from `dir` — the
+    /// caller supplies the directory (typically the running IME
+    /// bundle's `Contents/Resources/data/`) — and drives:
+    ///
+    /// - process-global `pinyin_idf_reader` via
+    ///   [`inputx_pinyin_helpers::set_pinyin_idf_bytes`],
+    /// - this session's `PinyinDict.map` via
+    ///   [`crate::composite::CompositeEngine::reload_pinyin_dict`].
+    ///
+    /// NGM tables (`bigrams.ngm`, `bigrams_inter.ngm`) don't currently
+    /// change during polish so they're read but only fed to their
+    /// slots when present; missing NGM files skip that step without
+    /// failing the reload.
+    ///
+    /// Returns Ok(()) on success. On any parse or IO failure, leaves
+    /// both the process-global slot and the session dict in their
+    /// prior state and returns an error — never a half-applied swap.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn reload_pinyin_data(&mut self, dir: &std::path::Path) -> Result<(), PinyinReloadError> {
+        let dict_bytes = std::fs::read(dir.join("pinyin.dict"))
+            .map_err(|e| PinyinReloadError::ReadDict(format!("{e}")))?;
+        let idf_bytes = std::fs::read(dir.join("words.idf"))
+            .map_err(|e| PinyinReloadError::ReadIdf(format!("{e}")))?;
+        // Optional: NGM tables aren't polish-regenerated in the
+        // current pipeline, but read them if present so future polish
+        // rounds that update them "just work" without another code
+        // release.
+        let bigrams_ngm = std::fs::read(dir.join("bigrams.ngm")).ok();
+        let inter_ngm = std::fs::read(dir.join("bigrams_inter.ngm")).ok();
+
+        // Order matters: parse-check everything BEFORE swapping any
+        // slot, so a broken new .idf can't leave a good old dict
+        // paired with a bad new IdfReader.
+        inputx_pinyin_helpers::set_pinyin_idf_bytes(idf_bytes)
+            .map_err(|e| PinyinReloadError::Idf(format!("{e:?}")))?;
+        if let Some(bytes) = bigrams_ngm {
+            crate::composite::set_bigrams_ngm_bytes(bytes)
+                .map_err(|e| PinyinReloadError::NgmIntra(format!("{e:?}")))?;
+        }
+        if let Some(bytes) = inter_ngm {
+            crate::composite::set_inter_bigrams_ngm_bytes(bytes)
+                .map_err(|e| PinyinReloadError::NgmInter(format!("{e:?}")))?;
+        }
+        self.composite
+            .reload_pinyin_dict(dict_bytes)
+            .map_err(|e| PinyinReloadError::Dict(format!("{e:?}")))?;
+        Ok(())
     }
 
     fn append_pending(&mut self, text: String) {

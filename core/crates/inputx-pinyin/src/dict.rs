@@ -23,10 +23,18 @@
 //!   - `export_l0` / `import_l0` round-trip the L0 state for host-side
 //!     persistence (no `serde` dep on the lib).
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock, RwLock};
 
 use inputx_fsa::{Dict, Fsa};
+
+/// Byte container for PinyinDict FSTs: either a `'static` borrow of a
+/// compile-time embedded blob or an `Owned` `Vec<u8>` freshly loaded
+/// from disk during a hot-reload (v1.15 polish-without-restart flow).
+/// `Cow` unifies the two under one `AsRef<[u8]>` impl so `Dict` / `Fsa`
+/// don't need to change their generic bounds.
+type DictBytes = Cow<'static, [u8]>;
 
 use crate::bigram_lm::LmBackend;
 #[cfg(feature = "cell-dict")]
@@ -171,17 +179,17 @@ const TRIGRAMS_BYTES: &[u8] = &[];
 /// `RwLock` lets a single shared instance feed every concurrent IME /
 /// WASM session without exposing the lock to the caller.
 pub struct PinyinDict {
-    map: Dict<&'static [u8]>,
+    map: Dict<DictBytes>,
     /// Inter-token bigram FST (truly adjacent jieba tokens). Source of
     /// next-word predictions. `None` in bootstrap_only.
-    bigrams: Option<Fsa<&'static [u8]>>,
+    bigrams: Option<Fsa<DictBytes>>,
     /// Intra-token char-bigram FST (chars inside one phrase). Helps
     /// Viterbi prefer known phrases. NEVER used for predictions.
-    bigrams_intra: Option<Fsa<&'static [u8]>>,
+    bigrams_intra: Option<Fsa<DictBytes>>,
     /// Inter-token trigram index. Two-level Dict (a\0b) → [(c, count)] —
     /// predict only scans (a\0b, *), so two-level is the natural + smaller
     /// fit (~2 MB under the flat Fsa). Source of context-aware predictions.
-    trigrams: Option<Dict<&'static [u8]>>,
+    trigrams: Option<Dict<DictBytes>>,
     l0: RwLock<L0Inner>,
     /// Per-char max freq across ALL its pinyin readings (lazy init).
     /// Built once on first access by scanning the entire FST. Used by
@@ -210,38 +218,44 @@ impl PinyinDict {
     /// and initializes an empty L0). Callers should still cache the
     /// instance and reuse it for the program lifetime.
     pub fn embedded() -> Self {
-        fn load_optional(bytes: &'static [u8], label: &str) -> Option<Fsa<&'static [u8]>> {
+        fn load_optional(bytes: &'static [u8], label: &str) -> Option<Fsa<DictBytes>> {
             if bytes.is_empty() {
                 None
             } else {
-                Some(Fsa::new(bytes).unwrap_or_else(|_| panic!("invalid embedded {label} fsa")))
+                Some(
+                    Fsa::new(Cow::Borrowed(bytes))
+                        .unwrap_or_else(|_| panic!("invalid embedded {label} fsa")),
+                )
             }
         }
-        fn load_optional_dict(bytes: &'static [u8], label: &str) -> Option<Dict<&'static [u8]>> {
+        fn load_optional_dict(bytes: &'static [u8], label: &str) -> Option<Dict<DictBytes>> {
             if bytes.is_empty() {
                 None
             } else {
-                Some(Dict::new(bytes).unwrap_or_else(|_| panic!("invalid embedded {label} dict")))
+                Some(
+                    Dict::new(Cow::Borrowed(bytes))
+                        .unwrap_or_else(|_| panic!("invalid embedded {label} dict")),
+                )
             }
         }
         // dev/test escape hatch: INPUTX_PINYIN_DICT points at a dict file to
         // load at runtime instead of the embedded bytes — lets gate1
         // (07_validate/gate1_regression_corpus.py) validate a pipeline-built
-        // dict without rebuilding the binary. Box::leak supplies the 'static
-        // lifetime Dict needs; harmless in a short-lived probe. Not compiled
-        // for wasm (no fs/env there) — env unset everywhere else keeps the
-        // embedded-bytes behavior byte-for-byte unchanged.
+        // dict without rebuilding the binary. Pre-v1.15 this used
+        // `Box::leak` for a `&'static [u8]`; the DictBytes Cow now
+        // carries the owned bytes directly so the map keeps the
+        // allocation alive with no leak.
         #[cfg(not(target_arch = "wasm32"))]
-        let dict_bytes: &'static [u8] = match std::env::var_os("INPUTX_PINYIN_DICT") {
+        let dict_bytes: DictBytes = match std::env::var_os("INPUTX_PINYIN_DICT") {
             Some(path) => {
                 let data = std::fs::read(&path)
                     .unwrap_or_else(|e| panic!("INPUTX_PINYIN_DICT {path:?}: {e}"));
-                Box::leak(data.into_boxed_slice())
+                Cow::Owned(data)
             }
-            None => DICT_BYTES,
+            None => Cow::Borrowed(DICT_BYTES),
         };
         #[cfg(target_arch = "wasm32")]
-        let dict_bytes: &'static [u8] = DICT_BYTES;
+        let dict_bytes: DictBytes = Cow::Borrowed(DICT_BYTES);
 
         Self {
             map: Dict::new(dict_bytes).expect("invalid pinyin dict"),
@@ -322,6 +336,90 @@ impl PinyinDict {
     pub fn with_lm(mut self, lm: Option<Arc<dyn LmBackend>>) -> Self {
         self.lm = lm;
         self
+    }
+
+    /// v1.15 hot-reload constructor: build a fresh `PinyinDict` whose
+    /// `map` FST is loaded from the caller-supplied `Vec<u8>` (an
+    /// owned buffer, typically read from disk by the hot-reload
+    /// signal handler). The auxiliary FSTs (`bigrams`, `bigrams_intra`,
+    /// `trigrams`) stay on the embedded blobs — those don't change
+    /// with polish, so keeping them borrowed avoids a ~2 MB alloc per
+    /// session reload.
+    ///
+    /// L0 (user pins), cell-dict layer, and LM stay empty; use
+    /// [`Self::reload_map_preserving`] to reload while retaining
+    /// per-session user state.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn from_dict_bytes(map_bytes: Vec<u8>) -> Result<Self, inputx_fsa::FsaError> {
+        fn load_optional(bytes: &'static [u8], label: &str) -> Option<Fsa<DictBytes>> {
+            if bytes.is_empty() {
+                None
+            } else {
+                Some(
+                    Fsa::new(Cow::Borrowed(bytes))
+                        .unwrap_or_else(|_| panic!("invalid embedded {label} fsa")),
+                )
+            }
+        }
+        fn load_optional_dict(bytes: &'static [u8], label: &str) -> Option<Dict<DictBytes>> {
+            if bytes.is_empty() {
+                None
+            } else {
+                Some(
+                    Dict::new(Cow::Borrowed(bytes))
+                        .unwrap_or_else(|_| panic!("invalid embedded {label} dict")),
+                )
+            }
+        }
+        let map = Dict::new(Cow::<'static, [u8]>::Owned(map_bytes))?;
+        Ok(Self {
+            map,
+            bigrams: load_optional(BIGRAMS_BYTES, "bigrams"),
+            bigrams_intra: load_optional(BIGRAMS_INTRA_BYTES, "bigrams_intra"),
+            trigrams: load_optional_dict(TRIGRAMS_BYTES, "trigrams"),
+            l0: RwLock::new(L0Inner::new()),
+            char_max_freq: OnceLock::new(),
+            lm: None,
+            cell_dict_layer: RwLock::new(HashMap::new()),
+        })
+    }
+
+    /// v1.15 hot-reload: build a new `PinyinDict` from `map_bytes`
+    /// while carrying over the per-session L0 pins, cell-dict layer,
+    /// and LM backend from `self`. The freshly-built dict is
+    /// returned; the caller is responsible for atomically swapping it
+    /// into whatever holder (per-session `PinyinEngine::dict`) points
+    /// at the old one — that step lives one layer up so this crate
+    /// stays independent of the engine's storage decisions.
+    ///
+    /// Errors bubble the FST parse failure; on error the caller MUST
+    /// keep the old dict in place (this fn hands ownership only on
+    /// success).
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn reload_map_preserving(
+        &self,
+        map_bytes: Vec<u8>,
+    ) -> Result<Self, inputx_fsa::FsaError> {
+        let mut fresh = Self::from_dict_bytes(map_bytes)?;
+        // Preserve L0 (user pins + pick counters). export_l0/import_l0
+        // marshal through a serializable Snapshot, so the words don't
+        // need to still exist in the new FST — phantom pins survive
+        // as "user-declared preference" even if a polish round dropped
+        // the entry from the corpus.
+        let snap = self.export_l0();
+        fresh.import_l0(snap);
+        // Preserve LM backend (Arc; cheap clone).
+        fresh.lm = self.lm.clone();
+        // Preserve cell-dict layer.
+        if let Ok(old_cells) = self.cell_dict_layer.read()
+            && let Ok(mut new_cells) = fresh.cell_dict_layer.write()
+        {
+            *new_cells = old_cells.clone();
+        }
+        // char_max_freq is intentionally NOT preserved — it caches
+        // per-char maxes over the old FST; the new FST computes its
+        // own on first demand.
+        Ok(fresh)
     }
 
     /// Try to attach the Phase-2 KenLM bigram model from the file path
