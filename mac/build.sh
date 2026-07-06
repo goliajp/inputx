@@ -100,6 +100,21 @@ if [ -d "$CELL_DICT_SRC" ]; then
     cp -f "$CELL_DICT_SRC"/*.toml "$CELL_DICT_DST/" 2>/dev/null || true
     echo "[build] bundled cell-dicts: $(ls "$CELL_DICT_DST"/*.toml 2>/dev/null | wc -l | tr -d ' ') pack(s)"
 fi
+
+# v1.15 hot-reload: ship the pinyin data blobs into the bundle so
+# reinstall.py's data-only fast path can atomically replace them
+# without killing Inputx.app. Startup reads them via
+# InputxCore.setPinyinDataDirectory before IMKServer construction.
+PINYIN_DATA_DST="$APP_DIR/Contents/Resources/data"
+mkdir -p "$PINYIN_DATA_DST"
+cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-data-core/data/pinyin.dict"    "$PINYIN_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/words.idf"        "$PINYIN_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/bigrams.ngm"      "$PINYIN_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/bigrams_inter.ngm" "$PINYIN_DATA_DST/"
+shasum -a 256 "$PINYIN_DATA_DST"/*.dict "$PINYIN_DATA_DST"/*.idf "$PINYIN_DATA_DST"/*.ngm \
+    > "$PINYIN_DATA_DST/manifest.sha256"
+echo "[build] bundled pinyin data: $(ls "$PINYIN_DATA_DST" | grep -Ev '^manifest' | wc -l | tr -d ' ') file(s)"
+
 printf "APPLINPX" > "$APP_DIR/Contents/PkgInfo"
 
 # ----- Codesign -----

@@ -45,4 +45,12 @@ pub use composite::{
 pub use input_mode::InputMode;
 pub use locale::punct::{SmartQuoteState, ascii_to_cjk_punct};
 pub use locale::width::{full_width, half_width};
-pub use session::Session;
+pub use session::{PinyinReloadError, Session};
+
+/// v1.15 hot-reload wire points, re-exported so the FFI crate can
+/// touch them without pulling `inputx-pinyin-helpers` as a direct
+/// dep — inputx-core already links it.
+pub mod hot_reload {
+    pub use crate::composite::{set_bigrams_ngm_bytes, set_inter_bigrams_ngm_bytes};
+    pub use inputx_pinyin_helpers::{IdfReloadError, IdfReloadReport, set_pinyin_idf_bytes};
+}

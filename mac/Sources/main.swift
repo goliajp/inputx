@@ -13,6 +13,13 @@ import InputxKit
 // bug. If no: the mac binary links a different (stale) inputx-core.
 if CommandLine.arguments.count >= 3, CommandLine.arguments[1] == "probe" {
     let buf = CommandLine.arguments[2]
+    // v1.15 hot-reload: probe reads the same bundled data blobs the
+    // running IME would after startup. Failure here (missing bundle
+    // resource dir when the probe runs from a raw binary path)
+    // silently falls back to embedded — good enough for a smoke check.
+    if let resDir = Bundle.main.resourceURL?.appendingPathComponent("data") {
+        _ = InputxPinyinData.setDirectory(resDir.path)
+    }
     let sess = InputxSession()
     sess.setEngineMode(.mixed)
     sess.setJapaneseEnabled(true)
@@ -92,6 +99,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Pin process-global rare-CJK toggle so spawned InputxController
         // instances inherit the persisted pref.
         InputxRareChars.enabled = inputxSettings.showRareChars
+
+        // v1.15 hot-reload bootstrap. Point the Rust core at the
+        // bundle's `Contents/Resources/data/` so subsequent
+        // `inputx_session_new` calls (one per InputxController /
+        // client the OS spawns) initialise their pinyin dict from
+        // freshly-baked polish data on disk rather than the compile-
+        // time-embedded blobs. Failure here is soft — the Rust core
+        // stays on embedded and this build still runs; a future
+        // hot-reload signal will retry against the same directory.
+        if let resDir = Bundle.main.resourceURL?.appendingPathComponent("data") {
+            let ok = InputxPinyinData.setDirectory(resDir.path)
+            NSLog("Inputx pinyin data dir=%@ ok=%d", resDir.path, ok ? 1 : 0)
+        }
 
         guard let bundleID = Bundle.main.bundleIdentifier else {
             NSLog("Inputx: missing bundle identifier")
