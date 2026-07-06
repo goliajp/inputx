@@ -62,6 +62,17 @@ final class InputxController: IMKInputController {
             name: .inputxSettingsChanged,
             object: nil
         )
+        // v1.15 hot-reload observer. Posted by the AppDelegate SIGUSR1
+        // handler after `reinstall.py` swaps the pinyin data files
+        // under Contents/Resources/data/. Each running InputxController
+        // reloads its own PinyinDict from that directory so subsequent
+        // keystrokes see freshly-baked polish without a preedit break.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDictReloaded),
+            name: .inputxDictReloaded,
+            object: nil
+        )
     }
 
     deinit {
@@ -71,6 +82,16 @@ final class InputxController: IMKInputController {
     @objc private func handleSettingsChanged() {
         applySettingsToSession()
         InputxRareChars.enabled = inputxSettings.showRareChars
+    }
+
+    @objc private func handleDictReloaded() {
+        guard let dir = Bundle.main.resourceURL?.appendingPathComponent("data").path else {
+            NSLog("Inputx hot-reload: no bundle resource dir")
+            return
+        }
+        let ok = session.reloadPinyinData(from: dir)
+        NSLog("Inputx hot-reload session=%p dir=%@ ok=%d", self, dir, ok ? 1 : 0)
+        session.warmup()
     }
 
     // MARK: - IMKit overrides ------------------------------------------------

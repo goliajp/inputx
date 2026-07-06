@@ -94,6 +94,10 @@ let kConnectionName = "jp.golia.inputmethod.wubi_Connection"
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var server: IMKServer?
+    /// v1.15 hot-reload signal source. Retained on the delegate so it
+    /// isn't dropped after `applicationDidFinishLaunching` returns —
+    /// DispatchSourceSignal fires only while the source is alive.
+    private var reloadSignalSource: DispatchSourceSignal?
 
     func applicationDidFinishLaunching(_ note: Notification) {
         // Pin process-global rare-CJK toggle so spawned InputxController
@@ -118,6 +122,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             exit(1)
         }
         server = IMKServer(name: kConnectionName, bundleIdentifier: bundleID)
+
+        // v1.15 hot-reload: SIGUSR1 lands on the .main queue, which is
+        // the same queue IMKit uses to dispatch keystrokes. That
+        // guarantees the reload runs *between* keystrokes — a mid-
+        // preedit swap can't tear a lookup. The default signal handler
+        // for SIGUSR1 would terminate the process, so we `signal(…,
+        // SIG_IGN)` first to hand ownership over to the DispatchSource
+        // exclusively. `reinstall.py --hot-reload` fires this after it
+        // atomically replaces Contents/Resources/data/.
+        signal(SIGUSR1, SIG_IGN)
+        let src = DispatchSource.makeSignalSource(signal: SIGUSR1, queue: .main)
+        src.setEventHandler {
+            NSLog("Inputx SIGUSR1 → dict reload broadcast")
+            NotificationCenter.default.post(name: .inputxDictReloaded, object: nil)
+        }
+        src.resume()
+        self.reloadSignalSource = src
         // Settings entry point: click the active input source in the macOS
         // menu bar (the "Inputx Wubi" item next to the keyboard layout
         // icon). `InputxController.menu()` hosts every toggle / radio /
