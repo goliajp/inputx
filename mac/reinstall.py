@@ -97,6 +97,31 @@ LSREGISTER = (
 )
 PROCESS_PATTERN = "Inputx.app/Contents/MacOS/Inputx"
 
+# v1.15 hot-reload data-only detection --------------------------------------
+#
+# `SNAPSHOT_DIR/last-install.sha` records the git HEAD sha of the last
+# successful `mac/reinstall.py` run. Every reinstall (fast OR full)
+# updates it at the end. Phase D `classify_change_scope()` diffs it
+# against current HEAD to decide whether the polish that happened
+# since the last install is data-only (→ hot-reload fast path) or
+# also touched code (→ full reinstall).
+SNAPSHOT_DIR = HOME / "Library" / "Caches" / "inputx-reinstall-snapshots"
+LAST_INSTALL_SHA = SNAPSHOT_DIR / "last-install.sha"
+# Paths whose changes are pure-data (polish TSV / regenerated .dict /
+# .idf / .ngm blobs / bundled toml packs). If a diff falls entirely
+# within these prefixes since LAST_INSTALL_SHA, the fast path is safe.
+DATA_ONLY_PREFIXES: tuple[str, ...] = (
+    "core/crates/inputx-pinyin-data-core/data/",
+    "core/crates/inputx-pinyin-helpers/data/",
+    "core/crates/inputx-wubi-data/data/",
+    "core/crates/inputx-nihongo-data-jukugo/data/",
+    "core/crates/inputx-nihongo-data-kanji/data/",
+    "core/crates/inputx-pinyin/data/",
+    "core/crates/inputx-wubi/data/",
+    "tools/scoring/data/",
+    "docs/cell-dicts/",
+)
+
 # ─── Output ───────────────────────────────────────────────────────────
 
 
@@ -1454,6 +1479,75 @@ def _rollback(backup: Path | None, reason: str) -> None:
 # ─── Main ─────────────────────────────────────────────────────────────
 
 
+def _run_git(args: list[str]) -> str:
+    """Small wrapper — `git` from PROJECT_ROOT, stdout stripped."""
+    out = subprocess.check_output(["git", "-C", str(PROJECT_ROOT)] + args)
+    return out.decode().strip()
+
+
+def _current_head_sha() -> str:
+    return _run_git(["rev-parse", "HEAD"])
+
+
+def classify_change_scope() -> str:
+    """Diff HEAD against `LAST_INSTALL_SHA.read_text()` and return one of:
+
+    - "data-only": every changed file (committed OR uncommitted) sits under a
+      DATA_ONLY_PREFIXES prefix. Safe for the SIGUSR1 fast path.
+    - "code":     at least one changed file is outside the data prefixes. The
+      running IME binary won't reflect the new code — must do full reinstall.
+    - "unknown":  no LAST_INSTALL_SHA yet (first install this machine),
+      or the recorded sha is missing from the local repo (rebase / prune).
+      Safe fallback = full reinstall.
+    """
+    if not LAST_INSTALL_SHA.exists():
+        return "unknown"
+    try:
+        last_sha = LAST_INSTALL_SHA.read_text().strip()
+    except OSError:
+        return "unknown"
+    if not last_sha:
+        return "unknown"
+    # Verify the sha still exists in the local repo.
+    try:
+        subprocess.check_output(
+            ["git", "-C", str(PROJECT_ROOT), "cat-file", "-e", last_sha],
+            stderr=subprocess.DEVNULL,
+        )
+    except subprocess.CalledProcessError:
+        return "unknown"
+
+    # Committed changes since last install.
+    committed = _run_git(["diff", "--name-only", f"{last_sha}..HEAD"]).splitlines()
+    # Uncommitted changes on top of HEAD (working tree + index). These are
+    # ALSO going into the built bundle, so they count.
+    uncommitted = _run_git(["status", "--porcelain"]).splitlines()
+    # `status --porcelain` lines look like "XY path" — strip status chars.
+    uncommitted_paths = []
+    for line in uncommitted:
+        if len(line) >= 4:
+            uncommitted_paths.append(line[3:].strip())
+    all_paths = list(dict.fromkeys(committed + uncommitted_paths))  # dedup, preserve order
+    if not all_paths:
+        # Nothing changed — treat as data-only (no-op fast path fine).
+        return "data-only"
+    for path in all_paths:
+        if not any(path.startswith(prefix) for prefix in DATA_ONLY_PREFIXES):
+            log(f"scope=code — changed outside data prefixes: {path}")
+            return "code"
+    return "data-only"
+
+
+def _record_install_sha() -> None:
+    """Persist current HEAD as the successful-install marker for the next
+    `classify_change_scope()` call. Best-effort; failure is non-fatal."""
+    try:
+        SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
+        LAST_INSTALL_SHA.write_text(_current_head_sha() + "\n")
+    except (OSError, subprocess.CalledProcessError) as e:
+        log(f"warn: couldn't record install sha: {e}")
+
+
 def do_hot_reload_data() -> None:
     """v1.15 hot-reload fast path.
 
@@ -1561,8 +1655,15 @@ def main() -> None:
     # host app's IMKClient Mach-port alive — user's active preedit
     # survives the polish.
     parser.add_argument("--force-hot-reload", action="store_true",
-                        help="Phase C manual test: skip full reinstall, "
-                             "swap only the pinyin data files + kill -USR1 Inputx")
+                        help="Manual test: run hot-reload path regardless of "
+                             "the auto scope check")
+    parser.add_argument("--no-hot-reload", action="store_true",
+                        help="Disable the auto data-only branch; always run "
+                             "the full reinstall + pkill flow (fallback if a "
+                             "hot-reload flow breaks in production)")
+    parser.add_argument("--rehearse", action="store_true",
+                        help="Print the auto-detected scope + polish-rebuild "
+                             "target files then exit — no SIGUSR1, no swap")
     args = parser.parse_args()
 
     if args.clean:
@@ -1571,6 +1672,20 @@ def main() -> None:
 
     if args.force_hot_reload:
         do_hot_reload_data()
+        _record_install_sha()
+        return
+
+    scope = classify_change_scope()
+    log(f"change scope since last install: {scope}")
+    if args.rehearse:
+        log(f"--rehearse: scope={scope}; "
+            f"would take {'hot-reload' if scope == 'data-only' else 'full reinstall'} "
+            f"path. Exiting without action.")
+        return
+    if scope == "data-only" and APP_DST.exists() and not args.no_hot_reload:
+        log("→ data-only fast path (hot-reload; user's typing sessions stay alive)")
+        do_hot_reload_data()
+        _record_install_sha()
         return
 
     mode, state = classify_state()
@@ -1594,6 +1709,11 @@ def main() -> None:
         run_fn()
     else:
         with_safety_net(run_fn)
+    # v1.15 hot-reload: record HEAD as the marker so the next
+    # reinstall's classify_change_scope() can tell "data-only since"
+    # from "code changed since". Only reached when the full reinstall
+    # above returned cleanly.
+    _record_install_sha()
 
 
 if __name__ == "__main__":
