@@ -41,4 +41,4 @@ pub use pinyin_adapter::{
 // (`Session::reload_pinyin_data`) needs to touch the process-global
 // NgramTable slots living inside pinyin_adapter.rs. Rest of the module
 // still hides the adapter internals.
-pub(crate) use pinyin_adapter::{set_bigrams_ngm_bytes, set_inter_bigrams_ngm_bytes};
+pub use pinyin_adapter::{set_bigrams_ngm_bytes, set_inter_bigrams_ngm_bytes};

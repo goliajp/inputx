@@ -318,6 +318,125 @@ pub extern "C" fn inputx_get_show_rare_chars() -> u8 {
     if inputx_core::wubi::show_rare() { 1 } else { 0 }
 }
 
+// ---------------------------------------------------------------------------
+// v1.15 hot-reload FFI ------------------------------------------------------
+// ---------------------------------------------------------------------------
+
+/// Process-global remembered pinyin data directory, set once by
+/// [`inputx_set_pinyin_data_dir`] at Inputx.app startup (or by tests /
+/// probe binaries). [`inputx_session_new`] pre-warms per-session
+/// PinyinDict from these bytes so every session picks up whatever
+/// polish shipped with the current bundle. [`inputx_reload_pinyin_data`]
+/// updates it to a caller-supplied `dir` for the current signal event.
+static PROCESS_PINYIN_DATA_DIR: std::sync::OnceLock<std::sync::RwLock<Option<std::path::PathBuf>>> =
+    std::sync::OnceLock::new();
+
+fn pinyin_data_dir_slot() -> &'static std::sync::RwLock<Option<std::path::PathBuf>> {
+    PROCESS_PINYIN_DATA_DIR.get_or_init(|| std::sync::RwLock::new(None))
+}
+
+/// Point the process-global "pinyin data source" at `dir`. Called once
+/// by mac/Sources/main.swift right before `IMKServer(name:…)` builds
+/// so subsequent `inputx_session_new` calls initialise from disk bytes
+/// rather than the embedded blobs.
+///
+/// Returns 0 on success (and eager-reloads all process-global slots
+/// from disk immediately so tests / probe binaries pick up the new
+/// bytes without spinning a session). Returns a negative errno-style
+/// code on failure:
+///   -1 : `dir` was NULL or not valid UTF-8
+///   -2 : reading / parsing one of the four data files failed
+///
+/// # Safety
+/// `dir` must be NUL-terminated UTF-8.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_set_pinyin_data_dir(dir: *const c_char) -> i32 {
+    let Some(path) = (unsafe { cstr_to_pathbuf(dir) }) else {
+        return -1;
+    };
+    // Remember for future sessions so process-global slots stay in
+    // sync with per-session dicts.
+    if let Ok(mut slot) = pinyin_data_dir_slot().write() {
+        *slot = Some(path.clone());
+    }
+    // Eager-load process-global slots so the very first
+    // `inputx_session_new` sees consistent state. Per-session
+    // PinyinDict is populated inside session ctor from the same
+    // path.
+    match std::fs::read(path.join("words.idf"))
+        .map_err(|e| format!("read words.idf: {e}"))
+        .and_then(|bytes| {
+            inputx_core::hot_reload::set_pinyin_idf_bytes(bytes).map_err(|e| format!("{e}"))
+        }) {
+        Ok(_) => {}
+        Err(_) => return -2,
+    }
+    if let Ok(bytes) = std::fs::read(path.join("bigrams.ngm"))
+        && inputx_core::hot_reload::set_bigrams_ngm_bytes(bytes).is_err()
+    {
+        return -2;
+    }
+    if let Ok(bytes) = std::fs::read(path.join("bigrams_inter.ngm"))
+        && inputx_core::hot_reload::set_inter_bigrams_ngm_bytes(bytes).is_err()
+    {
+        return -2;
+    }
+    0
+}
+
+/// Reload the pinyin data for a single running session (typically fired
+/// from Swift's SIGUSR1 DispatchSource, once per InputxController).
+/// The caller passes the same `dir` that was set at startup — usually
+/// the running bundle's `Contents/Resources/data/`, atomically replaced
+/// by `reinstall.py`'s data-only fast path just before the signal.
+///
+/// Process-global slots (IdfReader, NgramTables) are ALSO re-read
+/// here; that's a small redundancy across N sessions but keeps a
+/// session's own view consistent even if it's the first to fire.
+///
+/// Returns 0 on success. On failure returns a negative errno-style
+/// code and leaves both the session dict and the process-global
+/// slots in their pre-call state:
+///   -1 : NULL / bad UTF-8 in `dir`, or NULL `session`
+///   -2 : IO / parse failure — see stderr for details
+///
+/// # Safety
+/// `session` must come from `inputx_session_new`; `dir` must be a
+/// NUL-terminated UTF-8 string.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_reload_pinyin_data(
+    session: *mut InputxSession,
+    dir: *const c_char,
+) -> i32 {
+    let Some(s) = (unsafe { session.as_mut() }) else {
+        return -1;
+    };
+    let Some(path) = (unsafe { cstr_to_pathbuf(dir) }) else {
+        return -1;
+    };
+    match s.inner.reload_pinyin_data(&path) {
+        Ok(()) => 0,
+        Err(e) => {
+            eprintln!("[inputx_reload_pinyin_data] {e}");
+            -2
+        }
+    }
+}
+
+/// Small helper: `*const c_char` → `Option<PathBuf>`. Returns `None`
+/// for NULL / non-UTF-8. Keeps the FFI shims focused.
+///
+/// # Safety
+/// `p` must be NULL or point at a NUL-terminated C string.
+unsafe fn cstr_to_pathbuf(p: *const c_char) -> Option<std::path::PathBuf> {
+    if p.is_null() {
+        return None;
+    }
+    let cstr = unsafe { CStr::from_ptr(p) };
+    let s = cstr.to_str().ok()?;
+    Some(std::path::PathBuf::from(s))
+}
+
 // ----------------------------------------------------------------------
 // Phase 4 dual-engine FFI (items 44 + 45)
 // ----------------------------------------------------------------------
