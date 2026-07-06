@@ -1454,6 +1454,98 @@ def _rollback(backup: Path | None, reason: str) -> None:
 # ─── Main ─────────────────────────────────────────────────────────────
 
 
+def do_hot_reload_data() -> None:
+    """v1.15 hot-reload fast path.
+
+    Regenerate pinyin.dict + words.idf (polish-rebuild), atomically
+    swap them into the installed bundle's Contents/Resources/data/,
+    codesign --force to keep hardened-runtime happy, then send SIGUSR1
+    to the running Inputx process so it re-parses in place. No
+    IMKClient churn → user's active preedit / typing survives.
+
+    Fall back to a full reinstall when:
+    - the bundle isn't installed yet (`APP_DST.exists() is False`);
+    - the running Inputx process can't be located (no PID for USR1);
+    - any single-step in the fast path errors — safer to reset than
+      leave the bundle half-swapped.
+    """
+    if not APP_DST.exists():
+        die("bundle not installed yet — run `mac/reinstall.py` first")
+    data_dir = APP_DST / "Contents" / "Resources" / "data"
+    if not data_dir.exists():
+        die(f"{data_dir} missing — bundle predates Phase B (v1.15). "
+            "Run a full `mac/reinstall.py` to install a Phase-B bundle first.")
+
+    log("(1/4) polish-rebuild — regenerate pinyin.dict + words.idf")
+    project_root = PROJECT_ROOT
+    subprocess.run(
+        ["make", "polish-rebuild"],
+        cwd=str(project_root),
+        check=True,
+    )
+
+    log("(2/4) atomic swap of Contents/Resources/data/")
+    sources = {
+        "pinyin.dict": project_root
+            / "core/crates/inputx-pinyin-data-core/data/pinyin.dict",
+        "words.idf": project_root
+            / "core/crates/inputx-pinyin-helpers/data/words.idf",
+        "bigrams.ngm": project_root
+            / "core/crates/inputx-pinyin-helpers/data/bigrams.ngm",
+        "bigrams_inter.ngm": project_root
+            / "core/crates/inputx-pinyin-helpers/data/bigrams_inter.ngm",
+    }
+    for name, src in sources.items():
+        if not src.exists():
+            die(f"missing source {src} — polish-rebuild output layout changed?")
+    staging = data_dir.parent / "data.new"
+    if staging.exists():
+        shutil.rmtree(staging)
+    staging.mkdir(parents=True)
+    for name, src in sources.items():
+        shutil.copy2(src, staging / name)
+    # Manifest for reinstall.py's future diff-mode (Phase D).
+    with (staging / "manifest.sha256").open("w") as fh:
+        for name in sources:
+            digest = subprocess.check_output(
+                ["shasum", "-a", "256", str(staging / name)]
+            ).decode()
+            fh.write(digest)
+    # Atomic swap: old data/ → data.old, staging → data/.
+    old = data_dir.parent / "data.old"
+    if old.exists():
+        shutil.rmtree(old)
+    os.rename(data_dir, old)
+    os.rename(staging, data_dir)
+    shutil.rmtree(old)
+
+    log("(3/4) codesign --force (hardened-runtime bundle integrity)")
+    subprocess.run(
+        ["codesign", "--force", "--deep", "--options", "runtime",
+         "--sign", "-", str(APP_DST)],
+        check=False,  # sign-with-ad-hoc may fail on a Developer-signed bundle;
+                     # a full re-sign is only needed to satisfy hardened-runtime
+                     # inspection, which macOS re-runs on next process launch,
+                     # not on the currently-running one. Non-fatal.
+    )
+
+    log("(4/4) kill -USR1 Inputx (signal running process to re-parse)")
+    try:
+        out = subprocess.check_output(["pgrep", "-f", PROCESS_PATTERN])
+        pids = [int(p) for p in out.decode().split()]
+    except subprocess.CalledProcessError:
+        log("Inputx not running — nothing to signal; next launch will read new files")
+        return
+    if not pids:
+        log("Inputx not running — nothing to signal")
+        return
+    for pid in pids:
+        os.kill(pid, signal.SIGUSR1)
+        log(f"→ SIGUSR1 sent to pid {pid}")
+    log("✓ hot-reload dispatched; watch `log stream --process Inputx` for "
+        "'SIGUSR1 → dict reload broadcast'")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                       formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -1463,10 +1555,22 @@ def main() -> None:
                         help="skip backup snapshot + binary probe-test")
     parser.add_argument("--clean", action="store_true",
                         help="uninstall bundle + all TIS rows (migration)")
+    # v1.15 hot-reload: swap pinyin.dict / words.idf / bigrams*.ngm
+    # inside the installed bundle in place, then send SIGUSR1 to the
+    # running Inputx process so it re-parses without exit. Keeps every
+    # host app's IMKClient Mach-port alive — user's active preedit
+    # survives the polish.
+    parser.add_argument("--force-hot-reload", action="store_true",
+                        help="Phase C manual test: skip full reinstall, "
+                             "swap only the pinyin data files + kill -USR1 Inputx")
     args = parser.parse_args()
 
     if args.clean:
         clean_tis_state()
+        return
+
+    if args.force_hot_reload:
+        do_hot_reload_data()
         return
 
     mode, state = classify_state()

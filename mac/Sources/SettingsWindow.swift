@@ -284,4 +284,12 @@ extension Notification.Name {
     /// `InputxController` instance so the running session re-applies
     /// without waiting for the next `activateServer` boundary.
     static let inputxSettingsChanged = Notification.Name("InputxSettingsChanged")
+
+    /// v1.15 hot-reload: posted by the AppDelegate SIGUSR1 handler
+    /// (`reinstall.py` data-only fast path) after it swaps
+    /// pinyin.dict / words.idf / bigrams*.ngm in
+    /// Contents/Resources/data/. Every live `InputxController`
+    /// observes it and calls `session.reloadPinyinData(from:)` so
+    /// active preedit stays alive across a polish round.
+    static let inputxDictReloaded = Notification.Name("InputxDictReloaded")
 }
