@@ -1555,6 +1555,23 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-06): "bingtong 病痛 > 冰桶 >
+    /// 丙酮". Base freqs (病痛 23002 > 冰桶 14411 > 丙酮 14110) suggested
+    /// 病痛 should lead but 丙酮 was #0 due to IDF asymmetry. quickfix_boost
+    /// lifts 病痛 → 30000 (#0), 冰桶 → 25000 (#1), 丙酮 base falls to #2.
+    #[test]
+    fn polish_bingtong_order() {
+        let top10 = mixed_top10("bingtong".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("病痛").expect("病痛 missing from bingtong top10");
+        let b = pos("冰桶").expect("冰桶 missing from bingtong top10");
+        let c = pos("丙酮").expect("丙酮 missing from bingtong top10");
+        assert!(
+            a < b && b < c,
+            "bingtong: expected 病痛<冰桶<丙酮; got top10={top10:?}"
+        );
+    }
+
     /// Class C polish (user report 2026-07-06): "khuq 跤 > 中奖 > 中将,
     /// 五笔不应该出这种问题, 四码单字如果不是低频难检应该在词上面的".
     /// khuq is a wubi 4-code full-code buffer that produces 跤 (single-char,
