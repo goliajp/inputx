@@ -36,6 +36,20 @@ final class InputxController: IMKInputController {
     /// drop any in-flight composition.
     private static let capsLockKeyCode: UInt16 = 57
 
+    // MARK: - Segment mode (拼音手动分段) state
+    //
+    // `segmentAnchorIdx == nil` → auto mode (normal). When the user presses
+    // ← while pinyin-composing, we enter segment mode: `segmentAnchors` is a
+    // snapshot of the ← stop points (descending prefix lengths with
+    // candidates) and `segmentAnchorIdx` indexes into it (0 = largest /
+    // longest first segment; ← increments toward shorter, → decrements).
+    private var segmentAnchorIdx: Int? = nil
+    private var segmentAnchors: [Int] = []
+    /// Already-confirmed Chinese prefix during 逐段确认 (e.g. "小明"). Stays in
+    /// the marked-text region — caret right after it — until the whole string
+    /// is segmented, then the accumulated text is inserted into the host.
+    private var segmentCommitted: String = ""
+
     override init!(server: IMKServer!, delegate: Any!, client inputClient: Any!) {
         super.init(server: server, delegate: delegate, client: inputClient)
         applySettingsToSession()
@@ -91,6 +105,9 @@ final class InputxController: IMKInputController {
         }
         let ok = session.reloadPinyinData(from: dir)
         NSLog("Inputx hot-reload session=%p dir=%@ ok=%d", self, dir, ok ? 1 : 0)
+        // Kick a warmup so the first keystroke after the swap doesn't
+        // eat the FST re-walk cost. Warmup is a session method; if it
+        // ever fails we still just take the cost on next keystroke.
         session.warmup()
     }
 
@@ -147,6 +164,169 @@ final class InputxController: IMKInputController {
         } else {
             candidatePanel?.hide()
         }
+    }
+
+    // MARK: - Segment mode (拼音手动分段) helpers ----------------------------
+
+    /// Enter segment mode from auto mode. Only when pinyin-composing with ≥1
+    /// stop point. Returns false (caller falls back to page-turn) otherwise.
+    private func tryEnterSegmentMode(client sender: Any!) -> Bool {
+        guard session.isComposing else { return false }
+        let anchors = session.segmentAnchors()
+        guard !anchors.isEmpty else { return false }
+        segmentCommitted = ""
+        segmentAnchors = anchors
+        segmentAnchorIdx = 0
+        refreshSegmentPanel(client: sender)
+        return true
+    }
+
+    /// Route a key while in segment mode. ← shrink, → grow (idx 0 + → exits),
+    /// ↑↓ move selection, digit / space commit the active segment. Letters /
+    /// backspace leave the mode (the accumulated Chinese is committed first)
+    /// and return false so the caller re-handles the key normally.
+    private func handleSegmentKey(codepoint: UInt32, client sender: Any!) -> Bool {
+        guard let idx = segmentAnchorIdx, idx < segmentAnchors.count else {
+            return false
+        }
+        switch codepoint {
+        case 0xF702: // ← shrink to next shorter anchor (clamp at shortest)
+            segmentAnchorIdx = min(idx + 1, segmentAnchors.count - 1)
+            refreshSegmentPanel(client: sender)
+            return true
+        case 0xF703: // → grow; growing past the longest anchor leaves the mode
+            if idx == 0 {
+                leaveSegmentMode(commitAccumulated: true, client: sender)
+                return true
+            }
+            segmentAnchorIdx = idx - 1
+            refreshSegmentPanel(client: sender)
+            return true
+        case 0xF700: // ↑
+            _ = candidatePanel?.moveSelectionUp()
+            return true
+        case 0xF701: // ↓
+            _ = candidatePanel?.moveSelectionDown()
+            return true
+        case 0x20: // space → commit highlighted segment candidate
+            commitSegmentStep(
+                candIdx: candidatePanel?.selectedAbsoluteIndex() ?? 0,
+                client: sender
+            )
+            return true
+        case 0x1B: // esc → drop everything (accumulated Chinese + buffer)
+            session.clear()
+            segmentCommitted = ""
+            exitSegmentState()
+            candidatePanel?.hide()
+            clearMarkedText(client: sender)
+            return true
+        default:
+            // digit 1-9 / 0 → commit that segment candidate
+            if let cand = candidatePanel?.candidateIndex(forNumberKey: codepoint) {
+                commitSegmentStep(candIdx: cand, client: sender)
+                return true
+            }
+            // letter / backspace / etc. → leave (commit accumulated), then the
+            // key gets normal handling by the caller.
+            leaveSegmentMode(commitAccumulated: true, client: sender)
+            return false
+        }
+    }
+
+    /// Show the active segment's candidates + render the composition.
+    private func refreshSegmentPanel(client sender: Any!) {
+        guard let idx = segmentAnchorIdx, idx < segmentAnchors.count else { return }
+        let k = segmentAnchors[idx]
+        let count = session.segmentCandidateCount(prefixLen: k)
+        var words: [String] = []
+        words.reserveCapacity(count)
+        for i in 0..<count {
+            if let w = session.segmentCandidate(prefixLen: k, at: i) {
+                words.append(w)
+            }
+        }
+        candidatePanel?.showPredictions(words: words, client: sender as AnyObject?)
+        updateSegmentPreedit(client: sender)
+    }
+
+    /// Commit the active segment as Chinese into `segmentCommitted`; the
+    /// remainder re-segments. When nothing's left, insert the accumulated
+    /// Chinese into the host and leave segment mode.
+    private func commitSegmentStep(candIdx: Int, client sender: Any!) {
+        guard let idx = segmentAnchorIdx, idx < segmentAnchors.count else { return }
+        let k = segmentAnchors[idx]
+        guard let word = session.commitSegment(prefixLen: k, at: candIdx),
+              !word.isEmpty else { return }
+        segmentCommitted += word
+        let remaining = session.preedit ?? ""
+        if remaining.isEmpty {
+            commitText(segmentCommitted, to: sender)
+            segmentCommitted = ""
+            exitSegmentState()
+            candidatePanel?.hide()
+        } else {
+            segmentAnchors = session.segmentAnchors()
+            segmentAnchorIdx = 0
+            refreshSegmentPanel(client: sender)
+        }
+    }
+
+    /// Leave segment mode. If `commitAccumulated`, the already-confirmed
+    /// Chinese is inserted into the host first; the remaining pinyin buffer
+    /// then falls back to normal auto composition.
+    private func leaveSegmentMode(commitAccumulated: Bool, client sender: Any!) {
+        if commitAccumulated, !segmentCommitted.isEmpty {
+            commitText(segmentCommitted, to: sender)
+        }
+        segmentCommitted = ""
+        exitSegmentState()
+        updatePreedit(client: sender)
+        if session.isComposing {
+            candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+        } else {
+            candidatePanel?.hide()
+        }
+    }
+
+    private func exitSegmentState() {
+        segmentAnchorIdx = nil
+        segmentAnchors = []
+    }
+
+    /// Marked text = `segmentCommitted`(已确认中文) + remaining pinyin. The
+    /// active segment `[committed ..< committed+k]` gets a thick underline,
+    /// the rest a thin one, and the caret sits right after the committed
+    /// Chinese — matching the user's `小明|‸zai‸xizao` spec.
+    private func updateSegmentPreedit(client sender: Any?) {
+        guard let client = sender as? IMKTextInput,
+              let idx = segmentAnchorIdx, idx < segmentAnchors.count else { return }
+        let k = segmentAnchors[idx]
+        let remaining = session.preedit ?? ""
+        let full = segmentCommitted + remaining
+        let attr = NSMutableAttributedString(string: full)
+        let cN = (segmentCommitted as NSString).length
+        let segLen = min(k, (remaining as NSString).length)
+        attr.addAttribute(
+            .underlineStyle,
+            value: NSUnderlineStyle.thick.rawValue,
+            range: NSRange(location: cN, length: segLen)
+        )
+        let restStart = cN + segLen
+        let restLen = (full as NSString).length - restStart
+        if restLen > 0 {
+            attr.addAttribute(
+                .underlineStyle,
+                value: NSUnderlineStyle.single.rawValue,
+                range: NSRange(location: restStart, length: restLen)
+            )
+        }
+        lastPreeditSent = full
+        client.setMarkedText(
+            attr,
+            selectionRange: NSRange(location: cN, length: 0),
+            replacementRange: NSRange(location: NSNotFound, length: 0)
+        )
     }
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
@@ -259,6 +439,32 @@ final class InputxController: IMKInputController {
             codepoint = typedScalar.value
         }
 
+        // ---- Segment mode (拼音手动分段, user 2026-06-07) -----------------
+        // Once active (user pressed ← while pinyin-composing), ALL keys route
+        // through `handleSegmentKey` first and bypass the prediction/normal
+        // candidate paths below. `segmentAnchorIdx` is the source of truth;
+        // the panel borrows `showPredictions` only to render the segment's
+        // candidate list. Keys segment mode doesn't own (letters, etc.) exit
+        // the mode and fall through to normal handling.
+        if segmentAnchorIdx != nil {
+            if handleSegmentKey(codepoint: codepoint, client: sender) {
+                return true
+            }
+            // handleSegmentKey already left segment mode (and committed any
+            // accumulated Chinese); fall through to normal handling of this
+            // key (letter / backspace).
+        }
+
+        // ← enters segment mode from auto mode whenever pinyin-composing —
+        // INDEPENDENT of candidate-panel visibility. A long pinyin string like
+        // `xiaomingzaixizao` has no whole-string candidate so the panel is
+        // hidden; without this, ← would fall through to the host and wipe the
+        // marked text. Must run before the PUA arrow / pagination blocks.
+        if codepoint == 0xF702, segmentAnchorIdx == nil, session.isComposing,
+           tryEnterSegmentMode(client: sender) {
+            return true
+        }
+
         // Prediction-mode dismissals. When the panel is showing 联想
         // predictions (post-commit) and the user presses a key that
         // semantically means "I'm done / I don't want a prediction",
@@ -315,7 +521,8 @@ final class InputxController: IMKInputController {
                 case 0xF701: // down arrow
                     _ = panel.moveSelectionDown()
                     return true
-                case 0xF702: // left arrow → previous page
+                case 0xF702: // left arrow → previous page (segment-mode entry
+                    // is handled earlier, before this block)
                     _ = panel.prevPage()
                     return true
                 case 0xF703: // right arrow → next page

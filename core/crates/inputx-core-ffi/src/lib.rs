@@ -287,6 +287,97 @@ pub unsafe extern "C" fn inputx_session_set_auto_commit_policy(
     }
 }
 
+// ─── Segment mode (拼音手动分段, user 2026-06-07) ──────────────────────
+// ← stop points + first-segment candidates + partial commit. Pinyin-only
+// (a prefix is a 表音 concept); wubi is absent by construction.
+
+/// Number of ← stop points (anchors) for the current pinyin buffer.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_segment_anchor_count(
+    session: *const InputxSession,
+) -> usize {
+    let Some(s) = (unsafe { session.as_ref() }) else {
+        return 0;
+    };
+    s.inner.segment_anchors().len()
+}
+
+/// The `i`-th anchor (a prefix length), in DESCENDING order. 0 if out of
+/// range. The largest anchor (`i = 0`) is where the first ← lands.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_segment_anchor(
+    session: *const InputxSession,
+    i: usize,
+) -> usize {
+    let Some(s) = (unsafe { session.as_ref() }) else {
+        return 0;
+    };
+    s.inner.segment_anchors().get(i).copied().unwrap_or(0)
+}
+
+/// Number of candidates for the first segment `buffer[0..k]`.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_segment_candidate_count(
+    session: *const InputxSession,
+    k: usize,
+) -> usize {
+    let Some(s) = (unsafe { session.as_ref() }) else {
+        return 0;
+    };
+    s.inner.segment_candidates(k).len()
+}
+
+/// Candidate `#index` for the first segment `buffer[0..k]`, as a heap C
+/// string (free via `inputx_string_free`). NULL if out of range.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_segment_candidate(
+    session: *const InputxSession,
+    k: usize,
+    index: usize,
+) -> *mut c_char {
+    let Some(s) = (unsafe { session.as_ref() }) else {
+        return core::ptr::null_mut();
+    };
+    match s.inner.segment_candidates(k).get(index) {
+        Some(text) => dup_to_cstring(text),
+        None => core::ptr::null_mut(),
+    }
+}
+
+/// Commit the first segment `buffer[0..k]`'s candidate `#index`; the
+/// remainder `buffer[k..]` is kept and re-composed. Returns the committed
+/// word as a heap C string (free via `inputx_string_free`), or NULL if
+/// `k`/`index` is out of range.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_commit_segment(
+    session: *mut InputxSession,
+    k: usize,
+    index: usize,
+) -> *mut c_char {
+    let Some(s) = (unsafe { session.as_mut() }) else {
+        return core::ptr::null_mut();
+    };
+    match s.inner.commit_segment(k, index) {
+        Some(word) => dup_to_cstring(&word),
+        None => core::ptr::null_mut(),
+    }
+}
+
 /// Free a string previously returned by a `inputx_*` function. Safe with NULL.
 ///
 /// # Safety
