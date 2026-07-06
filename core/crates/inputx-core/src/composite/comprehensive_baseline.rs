@@ -771,6 +771,10 @@ mod tests {
             // filtered from top10 too. modern_vocab add 盖在 → 30000
             // surfaces at #0.
             ("gaizai", "盖在"),
+            // Polish-log 2026-07-06: user /polish beidiao 背调第一, 贝雕
+            // 删了. After D1 deletion of 贝雕 (obscure), 背调 (background
+            // check, modern HR term at modern_vocab 45000) leads.
+            ("beidiao", "背调"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
@@ -3335,6 +3339,13 @@ mod tests {
             // corpus digests can't re-admit. 物价 / 屋架 / 无价 auto-lead
             // as the real wujia candidates.
             ("wujia", &["五加"]),
+            // User polish-log 2026-07-06: "beidiao 背调第一, 贝雕删了" —
+            // 贝雕 (shell carving, obscure niche craft) at library freq
+            // 2987 led over 背调 (background check, common HR term).
+            // D1 deleted 贝雕 from library.tsv + logged to
+            // corpus_garbage_filter_v1; 背调 (already in modern_vocab at
+            // 45000) auto-leads.
+            ("beidiao", &["贝雕"]),
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
