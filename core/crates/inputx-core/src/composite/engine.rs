@@ -942,6 +942,19 @@ impl CompositeEngine {
         self.pinyin.import_l0(snap)
     }
 
+    // ─── Segment mode (拼音手动分段) — pinyin-only passthroughs ────────
+    pub fn segment_anchors(&self) -> Vec<usize> {
+        self.pinyin.segment_anchors()
+    }
+
+    pub fn segment_candidates(&self, k: usize) -> Vec<String> {
+        self.pinyin.segment_candidates(k)
+    }
+
+    pub fn commit_segment(&mut self, k: usize, idx: usize) -> Option<String> {
+        self.pinyin.commit_segment(k, idx)
+    }
+
     /// v1.15 hot-reload for the pinyin sub-engine: swap the underlying
     /// `PinyinDict.map` with a fresh FST built from `map_bytes`. The
     /// per-session L0 pins / cell-dict layer / LM survive. See

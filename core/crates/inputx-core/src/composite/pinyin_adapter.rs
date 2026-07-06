@@ -1373,6 +1373,62 @@ impl PinyinAdapter {
         Some(word)
     }
 
+    // ─── Segment mode (manual 分段, user 2026-06-07) ──────────────────
+    // Engine-internal, STATELESS helpers for the Swift-layer segment-mode
+    // interaction: ← shrinks the first segment to the next-shorter prefix
+    // that still has candidates; picking commits that segment and the
+    // remainder continues. Wubi is naturally absent here — these are
+    // pinyin-only (a prefix is a 表音 concept), which gives the segment
+    // mode's px>nx>(no wx) ordering for free, no engine_gap touched.
+
+    /// ← stop points (吸附点): prefix lengths `k` in DESCENDING order where
+    /// `buffer[0..k]` has ≥1 dict candidate. e.g. "xiaomingzaixizao" →
+    /// [8,7,6,4,3,2] = xiaoming/xiaomin/xiaomi/xiao/xia/xi. Empty buffer →
+    /// empty. The largest anchor is where the first ← lands.
+    pub fn segment_anchors(&self) -> Vec<usize> {
+        let n = self.buffer.len();
+        let mut anchors = Vec::new();
+        let mut buf = Vec::new();
+        for k in (1..=n).rev() {
+            self.engine.dict().lookup_into(&self.buffer[..k], &mut buf);
+            if !buf.is_empty() {
+                anchors.push(k);
+            }
+        }
+        anchors
+    }
+
+    /// Candidates for the active first segment `buffer[0..k]`. Pinyin-only.
+    pub fn segment_candidates(&self, k: usize) -> Vec<String> {
+        let k = k.min(self.buffer.len());
+        if k == 0 {
+            return Vec::new();
+        }
+        let mut out = Vec::new();
+        self.engine.dict().lookup_into(&self.buffer[..k], &mut out);
+        out
+    }
+
+    /// Commit the first segment `buffer[0..k]`'s candidate `#idx`. Records
+    /// the (prefix, word) L0 pick, drops the committed prefix
+    /// (`buffer = buffer[k..]`), and refreshes normal candidates for the
+    /// remainder so the next ← round / auto mode works on what's left.
+    /// Returns the committed word, or `None` if `k`/`idx` is out of range.
+    pub fn commit_segment(&mut self, k: usize, idx: usize) -> Option<String> {
+        let k = k.min(self.buffer.len());
+        if k == 0 {
+            return None;
+        }
+        let prefix = self.buffer[..k].to_string();
+        let mut cands = Vec::new();
+        self.engine.dict().lookup_into(&prefix, &mut cands);
+        let word = cands.get(idx)?.clone();
+        self.engine.dict().record_pick(&prefix, &word);
+        self.buffer = self.buffer[k..].to_string();
+        self.refresh_candidates();
+        Some(word)
+    }
+
     /// Force-pin a (pinyin, word) pair into L0 — surface for the host's
     /// "always use this for this input" affordance (item 74 settings).
     pub fn pin(&self, pinyin: &str, word: &str) -> bool {
@@ -2738,6 +2794,33 @@ mod tests {
             "single commit should not produce a bigram, got {:?}",
             snap.user_bigram
         );
+    }
+
+    #[test]
+    fn segment_mode_anchors_and_commit() {
+        let mut a = PinyinAdapter::new();
+        for b in b"xiaomingzaixizao" {
+            a.handle_letter(*b);
+        }
+        // Real anchors here are [8,7,6,4,3,2] =
+        // xiaoming/xiaomin/xiaomi/xiao/xia/xi (xiaom=5, x=1 have no word).
+        let anchors = a.segment_anchors();
+        // Core invariants (词典内容无关):
+        assert!(!anchors.is_empty(), "expected anchors");
+        assert!(
+            anchors.windows(2).all(|w| w[0] > w[1]),
+            "anchors must be strictly descending: {anchors:?}"
+        );
+        let top = *anchors.first().unwrap();
+        assert!(
+            !a.segment_candidates(top).is_empty(),
+            "largest anchor must have candidates"
+        );
+        // commit_segment drops exactly the prefix: buffer = buffer[k..]
+        let shortest = *anchors.last().unwrap();
+        let before = a.buffer_str().len();
+        assert!(a.commit_segment(shortest, 0).is_some());
+        assert_eq!(a.buffer_str().len(), before - shortest);
     }
 
     #[test]

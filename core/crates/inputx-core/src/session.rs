@@ -462,6 +462,22 @@ impl Session {
         r
     }
 
+    // Segment mode (拼音手动分段, user 2026-06-07). Pinyin-only; delegate
+    // straight to the composite engine's pinyin adapter.
+    pub fn segment_anchors(&self) -> Vec<usize> {
+        self.composite.segment_anchors()
+    }
+
+    pub fn segment_candidates(&self, k: usize) -> Vec<String> {
+        self.composite.segment_candidates(k)
+    }
+
+    pub fn commit_segment(&mut self, k: usize, idx: usize) -> Option<String> {
+        let r = self.composite.commit_segment(k, idx);
+        self.refresh_caches();
+        r
+    }
+
     pub fn take_pending_commit(&mut self) -> Option<String> {
         self.pending_commit.take()
     }

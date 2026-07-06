@@ -237,6 +237,42 @@ public final class InputxSession {
         return next
     }
 
+    // MARK: - Segment mode (拼音手动分段)
+    //
+    // ← stop points (anchors, descending prefix lengths that have
+    // candidates) + first-segment candidates + partial commit. Pinyin-only
+    // by construction — wubi never participates in segment mode.
+
+    /// The ← stop points: descending prefix lengths where `buffer[0..k]`
+    /// has candidates. Empty when not pinyin-composing. The first element
+    /// (largest) is where the first ← lands.
+    public func segmentAnchors() -> [Int] {
+        let n = Int(inputx_session_segment_anchor_count(handle))
+        return (0..<n).map { Int(inputx_session_segment_anchor(handle, UInt($0))) }
+    }
+
+    /// Number of candidates for the first segment `buffer[0..k]`.
+    public func segmentCandidateCount(prefixLen k: Int) -> Int {
+        Int(inputx_session_segment_candidate_count(handle, UInt(k)))
+    }
+
+    /// Candidate at `index` for the first segment `buffer[0..k]`.
+    public func segmentCandidate(prefixLen k: Int, at index: Int) -> String? {
+        guard let cstr = inputx_session_segment_candidate(handle, UInt(k), UInt(index))
+        else { return nil }
+        defer { inputx_string_free(cstr) }
+        return String(cString: cstr)
+    }
+
+    /// Commit the first segment `buffer[0..k]`'s candidate at `index`; the
+    /// remainder is kept and re-composed. Returns committed text or `nil`.
+    public func commitSegment(prefixLen k: Int, at index: Int) -> String? {
+        guard let cstr = inputx_session_commit_segment(handle, UInt(k), UInt(index))
+        else { return nil }
+        defer { inputx_string_free(cstr) }
+        return String(cString: cstr)
+    }
+
     // MARK: - v1.15 hot-reload ----------------------------------------------
 
     /// Reload this session's pinyin dict from `path` (typically the
