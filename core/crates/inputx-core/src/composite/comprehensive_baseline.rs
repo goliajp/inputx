@@ -765,6 +765,12 @@ mod tests {
             // dominated so much that 敷药 didn't even surface in top10.
             // quickfix_boost 敷药 → 22000 flips it to #0 above 服药.
             ("fuyao", "敷药"),
+            // Polish-log 2026-07-06: user /polish gaizai 盖在 — 盖在
+            // (V+prep phrase "covered on/at") missing from library
+            // entirely; only 改在 (freq 15362) existed at this code but
+            // filtered from top10 too. modern_vocab add 盖在 → 30000
+            // surfaces at #0.
+            ("gaizai", "盖在"),
         ];
         run("pinyin_multi", cases, pinyin_top, pinyin_top10);
     }
