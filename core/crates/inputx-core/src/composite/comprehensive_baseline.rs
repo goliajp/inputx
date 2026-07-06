@@ -1549,6 +1549,24 @@ mod tests {
         );
     }
 
+    /// Class C polish (user report 2026-07-06): "wugu 假痴不癫 肯定要放
+    /// 很后面，T 级低, 无辜 > 五谷 > 无故 > 巫蛊 > 假痴不癫". Wubi
+    /// 3-jianma 假痴不癫 was leading at #0 via 五笔 dispatch. tier_overlay
+    /// 假痴不癫 → tier 8 demotes it below all real pinyin candidates.
+    #[test]
+    fn polish_wugu_order() {
+        let top10 = mixed_top10("wugu".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("无辜").expect("无辜 missing from wugu top10");
+        let b = pos("五谷").expect("五谷 missing from wugu top10");
+        let c = pos("巫蛊").expect("巫蛊 missing from wugu top10");
+        let d = pos("假痴不癫").expect("假痴不癫 missing from wugu top10");
+        assert!(
+            a < b && b < c && c < d,
+            "wugu: expected 无辜<五谷<巫蛊<假痴不癫; got top10={top10:?}"
+        );
+    }
+
     /// Class C polish (user report 2026-06-10): "quanquan 拳拳 劝劝
     /// 要放在最后". 拳拳 is idiom-only (拳拳之心), kept in the dict
     /// (and on the AA-redup-sweep keep whitelist) but tier-demoted so
