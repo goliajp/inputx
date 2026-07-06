@@ -3257,6 +3257,13 @@ mod tests {
             // future-proofing when compose gates flip back on; only the
             // Path-1 IDF display layer drops it here.
             ("xiaxi", &["罅隙"]),
+            // User polish-log 2026-07-06: "wujia 五加 不是词" — 五加 is
+            // a jieba sub-word noise (from compounds 五加科 / 五加皮 in
+            // Chinese herbal medicine, none standalone). D1 deleted from
+            // library.tsv + logged to corpus_garbage_filter_v1 so future
+            // corpus digests can't re-admit. 物价 / 屋架 / 无价 auto-lead
+            // as the real wujia candidates.
+            ("wujia", &["五加"]),
         ];
         let mut failures = Vec::new();
         for (buf, blocklist) in cases {
