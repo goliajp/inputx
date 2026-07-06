@@ -41,6 +41,26 @@ impl PinyinEngine {
     pub fn fuzzy(&self) -> FuzzyConfig {
         self.fuzzy
     }
+
+    /// v1.15 hot-reload entry point. Replace `self.dict` with a fresh
+    /// [`PinyinDict`] built from `map_bytes` (the raw bytes of a
+    /// freshly-baked `pinyin.dict`), carrying over the per-session L0
+    /// pins, cell-dict layer, and LM backend so a polish round doesn't
+    /// destroy the user's typing memory.
+    ///
+    /// On parse failure the engine's dict is left untouched and the
+    /// FST error is returned; callers should log and continue with
+    /// the old dict rather than falling back to embedded (which would
+    /// silently undo any polish already applied).
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn reload_dict_from_bytes(
+        &mut self,
+        map_bytes: Vec<u8>,
+    ) -> Result<(), inputx_fsa::FsaError> {
+        let fresh = self.dict.reload_map_preserving(map_bytes)?;
+        self.dict = fresh;
+        Ok(())
+    }
 }
 
 impl Default for PinyinEngine {

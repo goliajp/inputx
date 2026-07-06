@@ -9,10 +9,12 @@
 //! directly — the dict's `lookup_into` is allocation-friendly for hot
 //! per-keystroke refresh.
 
+use std::borrow::Cow;
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 
+use arc_swap::ArcSwap;
 use inputx_ngram::NgramTable;
 use inputx_pinyin::PinyinEngine;
 use inputx_pinyin_helpers::{
@@ -107,11 +109,24 @@ fn use_lattice() -> bool {
     })
 }
 
-fn embedded_bigrams_table() -> &'static NgramTable<&'static [u8]> {
-    static TABLE: OnceLock<NgramTable<&'static [u8]>> = OnceLock::new();
-    TABLE.get_or_init(|| {
-        NgramTable::from_bytes(EMBEDDED_BIGRAMS_NGM)
-            .expect("inputx-pinyin-cement EMBEDDED_BIGRAMS_NGM must be a valid NGMv1 blob")
+/// v1.15 hot-reload wrapper for the intra-token NgramTable. Behind an
+/// `ArcSwap` so [`set_bigrams_ngm_bytes`] can replace the payload
+/// without killing the process; call sites hold the returned `Arc` for
+/// a keystroke scope so a mid-lookup swap can't tear their result.
+///
+/// Cold path still loads [`EMBEDDED_BIGRAMS_NGM`] bytes once via
+/// `Cow::Borrowed` — zero copy at startup — and only pays the
+/// allocation cost when polish delivers a new `Vec<u8>`.
+fn embedded_bigrams_table() -> Arc<NgramTable<Cow<'static, [u8]>>> {
+    bigrams_table_slot().load_full()
+}
+
+fn bigrams_table_slot() -> &'static ArcSwap<NgramTable<Cow<'static, [u8]>>> {
+    static SLOT: OnceLock<ArcSwap<NgramTable<Cow<'static, [u8]>>>> = OnceLock::new();
+    SLOT.get_or_init(|| {
+        let table = NgramTable::from_bytes(Cow::Borrowed(EMBEDDED_BIGRAMS_NGM))
+            .expect("inputx-pinyin-cement EMBEDDED_BIGRAMS_NGM must be a valid NGMv1 blob");
+        ArcSwap::from_pointee(table)
     })
 }
 
@@ -123,13 +138,59 @@ fn embedded_bigrams_table() -> &'static NgramTable<&'static [u8]> {
 /// includes the pair. Built with `min_count=15` to cut the (路, 要)-
 /// style noise zone (count=12) below the (用, 不) signal zone
 /// (count=16) — see user report 2026-06-06 luyaozhi calibration.
-fn embedded_inter_bigrams_table() -> &'static NgramTable<&'static [u8]> {
-    static TABLE: OnceLock<NgramTable<&'static [u8]>> = OnceLock::new();
-    TABLE.get_or_init(|| {
-        NgramTable::from_bytes(EMBEDDED_INTER_BIGRAMS_NGM)
+fn embedded_inter_bigrams_table() -> Arc<NgramTable<Cow<'static, [u8]>>> {
+    inter_bigrams_table_slot().load_full()
+}
+
+fn inter_bigrams_table_slot() -> &'static ArcSwap<NgramTable<Cow<'static, [u8]>>> {
+    static SLOT: OnceLock<ArcSwap<NgramTable<Cow<'static, [u8]>>>> = OnceLock::new();
+    SLOT.get_or_init(|| {
+        let table = NgramTable::from_bytes(Cow::Borrowed(EMBEDDED_INTER_BIGRAMS_NGM))
             .expect("inputx-pinyin-helpers EMBEDDED_INTER_BIGRAMS_NGM must be a valid NGMv1 blob")
+        ;
+        ArcSwap::from_pointee(table)
     })
 }
+
+/// Swap the intra-token NgramTable's bytes at runtime. Returns the
+/// entry count of the new table on success; leaves the old table in
+/// place on parse failure. See module-level v1.15 hot-reload notes.
+/// Consumed by Phase-C FFI `inputx_reload_pinyin_data`; kept public
+/// as the wire point for that reload.
+#[allow(dead_code)]
+pub fn set_bigrams_ngm_bytes(bytes: Vec<u8>) -> Result<(), NgmReloadError> {
+    let table =
+        NgramTable::from_bytes(Cow::Owned(bytes)).map_err(|e| NgmReloadError::Parse(format!("{e:?}")))?;
+    bigrams_table_slot().store(Arc::new(table));
+    Ok(())
+}
+
+/// Swap the inter-token NgramTable's bytes at runtime.
+#[allow(dead_code)]
+pub fn set_inter_bigrams_ngm_bytes(bytes: Vec<u8>) -> Result<(), NgmReloadError> {
+    let table =
+        NgramTable::from_bytes(Cow::Owned(bytes)).map_err(|e| NgmReloadError::Parse(format!("{e:?}")))?;
+    inter_bigrams_table_slot().store(Arc::new(table));
+    Ok(())
+}
+
+/// Failure for the NGM hot-reload setters. Stringifies the underlying
+/// [`inputx_ngram::OpenError`] to sidestep its lack of Display.
+#[allow(dead_code)]
+#[derive(Debug)]
+pub enum NgmReloadError {
+    Parse(String),
+}
+
+impl std::fmt::Display for NgmReloadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Parse(s) => write!(f, "NgramTable parse failed: {s}"),
+        }
+    }
+}
+
+impl std::error::Error for NgmReloadError {}
 
 /// Touch one byte per 4 KB page across `blob` so the OS keeps the
 /// region in the working set even under memory pressure. Used by
@@ -600,7 +661,11 @@ impl PinyinAdapter {
         // of its own, so the call site has to feed it the canonical
         // key. See `inputx_pinyin::normalize_lookup_key` for the rule.
         let lookup_buf = inputx_pinyin::normalize_lookup_key(&self.buffer);
-        let exact_entries = pinyin_idf_reader().lookup(lookup_buf.as_bytes());
+        // Hold the Arc for the rest of this scope so mid-lookup hot-
+        // reload can't drop the reader out from under the borrowed
+        // Entry slices below (v1.15 pinyin_idf_reader -> ArcSwap).
+        let idf_reader = pinyin_idf_reader();
+        let exact_entries = idf_reader.lookup(lookup_buf.as_bytes());
         // L0 pin lookup — cement-level state, intentionally orthogonal
         // to the corpus snapshot in EMBEDDED_PINYIN_IDF.
         let pinned: Option<String> = self.engine.dict().pinned_word(&self.buffer);
@@ -1005,8 +1070,8 @@ impl PinyinAdapter {
             // window. Sort-key proper cutover (legacy f64 → Q4 log
             // additive) follows in sub-phase C3.
             let _ = dict; // dict still in scope for path 5 below; ack the unused legacy reader.
-            let bigram_bonus =
-                legacy_bigram_boost_from_ngm(embedded_bigrams_table(), prev_committed, w);
+            let bigrams = embedded_bigrams_table();
+            let bigram_bonus = legacy_bigram_boost_from_ngm(&bigrams, prev_committed, w);
             // v1.8.2 WU-ο: bigram boost flows into log_likelihood_q4
             // too — the Q4 sort key (primary) finally sees the same
             // bigram signal the legacy f64 (tiebreaker) has had since
@@ -1017,8 +1082,7 @@ impl PinyinAdapter {
             // an i16 in Q4 log-space (`Q4 · ln(count)`), zero when
             // `prev_committed` is None or the pair is unseen — so
             // cold-session ranking is unchanged.
-            let bigram_q4 =
-                bigram_boost_from_ngm(embedded_bigrams_table(), prev_committed, w) as i32;
+            let bigram_q4 = bigram_boost_from_ngm(&bigrams, prev_committed, w) as i32;
             let components = components.map(|mut c| {
                 c.log_likelihood_q4 = c.log_likelihood_q4.saturating_add(bigram_q4);
                 c
@@ -1331,6 +1395,18 @@ impl PinyinAdapter {
         self.engine.dict().import_l0(snap)
     }
 
+    /// v1.15 hot-reload passthrough: swap this session's `PinyinEngine`
+    /// dict with a fresh one built from `map_bytes`. See
+    /// [`inputx_pinyin::PinyinEngine::reload_dict_from_bytes`] for the
+    /// preservation guarantees (L0 pins, cell-dict layer, LM). Any
+    /// active composing state (`self.buffer`, `self.candidates`, …)
+    /// is left alone — a mid-preedit reload keeps the current preedit
+    /// live; the next keystroke sees the new dict.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn reload_pinyin_dict(&mut self, map_bytes: Vec<u8>) -> Result<(), inputx_fsa::FsaError> {
+        self.engine.reload_dict_from_bytes(map_bytes)
+    }
+
     fn refresh_candidates(&mut self) {
         self.candidates.clear();
         self.has_non_speculative_candidate = false;
@@ -1502,7 +1578,7 @@ impl PinyinAdapter {
             let ngm_table = embedded_bigrams_table();
             let inter_table = embedded_inter_bigrams_table();
             let link_present = |a: &str, b: &str| -> bool {
-                combined_bigram_log_prob_q4(ngm_table, inter_table, Some(a), b) > 0
+                combined_bigram_log_prob_q4(&ngm_table, &inter_table, Some(a), b) > 0
             };
             let bigrams_ok = match chain.len() {
                 0 | 1 => true,
@@ -1567,7 +1643,8 @@ impl PinyinAdapter {
             use inputx_pinyin::lattice::{Edge, Graph};
             let mut graph = Graph::for_buffer(lookup_buf.len().max(1));
             let n = lookup_buf.len().max(1);
-            for entry in pinyin_idf_reader().lookup(lookup_buf.as_bytes()) {
+            let idf_reader = pinyin_idf_reader();
+            for entry in idf_reader.lookup(lookup_buf.as_bytes()) {
                 let raw = entry.raw_freq.max(1) as f32;
                 graph.add_edge(Edge::exact(0, n, entry.word.to_string(), raw.log10()));
             }
@@ -1579,7 +1656,8 @@ impl PinyinAdapter {
                 }
             }
         } else {
-            for entry in pinyin_idf_reader().lookup(lookup_buf.as_bytes()) {
+            let idf_reader = pinyin_idf_reader();
+            for entry in idf_reader.lookup(lookup_buf.as_bytes()) {
                 let w = entry.word.to_string();
                 if seen.insert(w.clone()) {
                     self.candidates.push(w);
@@ -1663,6 +1741,7 @@ impl PinyinAdapter {
         // demotion would crowd out legitimate wubi entries at
         // wubi-shaped buffers. Path 1c carries the same caveat.
         if !PINYIN_DISABLE_FUZZY && !self.has_non_speculative_candidate {
+            let idf_reader = pinyin_idf_reader();
             for variant in fuzzy_buffer_variants(&self.buffer) {
                 if variant == self.buffer {
                     continue;
@@ -1684,7 +1763,7 @@ impl PinyinAdapter {
                 // freq downstream (they hit the `FUZZY_BASE * 0.3`
                 // path in candidates_with_scores), so we only need
                 // the word list — entry.log_prior is discarded here.
-                for entry in pinyin_idf_reader().lookup(variant.as_bytes()) {
+                for entry in idf_reader.lookup(variant.as_bytes()) {
                     let w = entry.word.to_string();
                     if seen.insert(w.clone()) {
                         self.candidates.push(w.clone());
@@ -1925,8 +2004,8 @@ impl PinyinAdapter {
                         let non_zero = (1..n)
                             .filter(|&i| {
                                 combined_bigram_log_prob_q4(
-                                    ngm_table,
-                                    inter_table,
+                                    &ngm_table,
+                                    &inter_table,
                                     Some(chars[i - 1].as_str()),
                                     &chars[i],
                                 ) > 0

@@ -37,3 +37,8 @@ pub use pinyin_adapter::{
     PINYIN_DISABLE_ASSOCIATION, PINYIN_DISABLE_COMPOSE, PINYIN_DISABLE_FUZZY,
     PINYIN_DISABLE_PREDICTION,
 };
+// v1.15 hot-reload wire points — the Session-level reload driver
+// (`Session::reload_pinyin_data`) needs to touch the process-global
+// NgramTable slots living inside pinyin_adapter.rs. Rest of the module
+// still hides the adapter internals.
+pub(crate) use pinyin_adapter::{set_bigrams_ngm_bytes, set_inter_bigrams_ngm_bytes};

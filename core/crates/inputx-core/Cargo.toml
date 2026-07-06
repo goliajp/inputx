@@ -59,6 +59,10 @@ inputx-nihongo-data-kanji = { path = "../inputx-nihongo-data-kanji", version = "
 inputx-phonetic-edit = { path = "../inputx-phonetic-edit", version = "1.4" }
 # L0 export/import JSON is hand-rolled in composite/l0_json.rs (zero-dep
 # milestone, Stage A — see .claude/PLAN-self-built-fsa.md). No serde.
+# v1.15 hot-reload: process-global NgramTable slots hold ArcSwap so
+# polish can replace bytes without process restart. See
+# `composite/pinyin_adapter.rs::bigrams_table_slot`.
+arc-swap = "1"
 
 [dev-dependencies]
 # Property-based fuzz testing — generates randomized op sequences and
