@@ -146,8 +146,7 @@ fn inter_bigrams_table_slot() -> &'static ArcSwap<NgramTable<Cow<'static, [u8]>>
     static SLOT: OnceLock<ArcSwap<NgramTable<Cow<'static, [u8]>>>> = OnceLock::new();
     SLOT.get_or_init(|| {
         let table = NgramTable::from_bytes(Cow::Borrowed(EMBEDDED_INTER_BIGRAMS_NGM))
-            .expect("inputx-pinyin-helpers EMBEDDED_INTER_BIGRAMS_NGM must be a valid NGMv1 blob")
-        ;
+            .expect("inputx-pinyin-helpers EMBEDDED_INTER_BIGRAMS_NGM must be a valid NGMv1 blob");
         ArcSwap::from_pointee(table)
     })
 }
@@ -159,8 +158,8 @@ fn inter_bigrams_table_slot() -> &'static ArcSwap<NgramTable<Cow<'static, [u8]>>
 /// as the wire point for that reload.
 #[allow(dead_code)]
 pub fn set_bigrams_ngm_bytes(bytes: Vec<u8>) -> Result<(), NgmReloadError> {
-    let table =
-        NgramTable::from_bytes(Cow::Owned(bytes)).map_err(|e| NgmReloadError::Parse(format!("{e:?}")))?;
+    let table = NgramTable::from_bytes(Cow::Owned(bytes))
+        .map_err(|e| NgmReloadError::Parse(format!("{e:?}")))?;
     bigrams_table_slot().store(Arc::new(table));
     Ok(())
 }
@@ -168,8 +167,8 @@ pub fn set_bigrams_ngm_bytes(bytes: Vec<u8>) -> Result<(), NgmReloadError> {
 /// Swap the inter-token NgramTable's bytes at runtime.
 #[allow(dead_code)]
 pub fn set_inter_bigrams_ngm_bytes(bytes: Vec<u8>) -> Result<(), NgmReloadError> {
-    let table =
-        NgramTable::from_bytes(Cow::Owned(bytes)).map_err(|e| NgmReloadError::Parse(format!("{e:?}")))?;
+    let table = NgramTable::from_bytes(Cow::Owned(bytes))
+        .map_err(|e| NgmReloadError::Parse(format!("{e:?}")))?;
     inter_bigrams_table_slot().store(Arc::new(table));
     Ok(())
 }
