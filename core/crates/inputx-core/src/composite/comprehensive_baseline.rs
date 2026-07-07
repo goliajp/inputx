@@ -486,6 +486,11 @@ mod tests {
             ("huluobo", "胡萝卜"),
             // Polish 2026-06-30: user "ceshi 测试最高".
             ("ceshi", "测试"),
+            // Polish 2026-07-07: user "fangfeiziwo 放飞自我 现在房费自我
+            // 肯定是错的要删". Class A add — real modern 4-char idiom
+            // that wasn't in dict; K-best previously assembled 房费自我
+            // (nonsense) as top-1. Added at freq 50000 in modern_vocab_v1.
+            ("fangfeiziwo", "放飞自我"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
