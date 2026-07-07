@@ -396,10 +396,7 @@ impl PinyinDict {
     /// keep the old dict in place (this fn hands ownership only on
     /// success).
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn reload_map_preserving(
-        &self,
-        map_bytes: Vec<u8>,
-    ) -> Result<Self, inputx_fsa::FsaError> {
+    pub fn reload_map_preserving(&self, map_bytes: Vec<u8>) -> Result<Self, inputx_fsa::FsaError> {
         let mut fresh = Self::from_dict_bytes(map_bytes)?;
         // Preserve L0 (user pins + pick counters). export_l0/import_l0
         // marshal through a serializable Snapshot, so the words don't
