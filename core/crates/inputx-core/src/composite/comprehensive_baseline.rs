@@ -491,6 +491,12 @@ mod tests {
             // that wasn't in dict; K-best previously assembled 房费自我
             // (nonsense) as top-1. Added at freq 50000 in modern_vocab_v1.
             ("fangfeiziwo", "放飞自我"),
+            // Polish 2026-07-07: user "guigu 硅谷". Class A add — 硅谷
+            // absent from v2 words.tsv, and 硅光 / 硅光子 / 硅光技术
+            // (all modern_vocab tier 3 @ 30k) dominated the top-3.
+            // Added at freq 60000 → tier 2 in modern_vocab_v1 to beat
+            // the whole 硅光* cluster.
+            ("guigu", "硅谷"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
