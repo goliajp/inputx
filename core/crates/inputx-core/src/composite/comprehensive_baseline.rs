@@ -497,6 +497,10 @@ mod tests {
             // Added at freq 60000 → tier 2 in modern_vocab_v1 to beat
             // the whole 硅光* cluster.
             ("guigu", "硅谷"),
+            // Polish 2026-07-08: user "wuyiwei 误以为". Class A add —
+            // 误以为 absent from v2 words.tsv; top-1 was 无以为报.
+            // Added at freq 50000 → tier 2 in modern_vocab_v1.
+            ("wuyiwei", "误以为"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
