@@ -1547,12 +1547,21 @@ def classify_change_scope() -> str:
     committed = _run_git(["diff", "--name-only", f"{last_sha}..HEAD"]).splitlines()
     # Uncommitted changes on top of HEAD (working tree + index). These are
     # ALSO going into the built bundle, so they count.
-    uncommitted = _run_git(["status", "--porcelain"]).splitlines()
-    # `status --porcelain` lines look like "XY path" — strip status chars.
+    # Do NOT go through `_run_git` here — its `.strip()` eats the leading
+    # space of the first unstaged-only line (` M path` format), which then
+    # off-by-one's the `line[3:]` parse below and misclassifies the path
+    # ("core/..." → "ore/..." → misses the whitelist prefix → scope=code).
+    porcelain = subprocess.check_output(
+        ["git", "-C", str(PROJECT_ROOT), "status", "--porcelain"]
+    ).decode()
+    uncommitted = porcelain.splitlines()
+    # `status --porcelain` lines are `XY PATH` where XY are two status
+    # chars (either could be a space) then a space separator, so PATH
+    # starts at index 3.
     uncommitted_paths = []
     for line in uncommitted:
         if len(line) >= 4:
-            uncommitted_paths.append(line[3:].strip())
+            uncommitted_paths.append(line[3:])
     all_paths = list(dict.fromkeys(committed + uncommitted_paths))  # dedup, preserve order
     if not all_paths:
         # Nothing changed — treat as data-only (no-op fast path fine).
