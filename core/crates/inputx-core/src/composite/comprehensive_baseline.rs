@@ -540,6 +540,11 @@ mod tests {
             // from v2 (cedict had 御手/玉手/预售/驭手 tier 4 only).
             // Freq 60000 → tier 2.
             ("yushou", "御守"),
+            // Polish 2026-07-08: user "jieqian 解签". Class A add —
+            // 解签 (interpreting a fortune stick) missing from both
+            // v1 library and v2 words.tsv entirely. Top-1 was 借钱
+            // (cedict tier 4). Freq 60000 → tier 2.
+            ("jieqian", "解签"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
