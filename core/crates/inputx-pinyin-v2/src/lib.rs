@@ -52,6 +52,8 @@ use std::sync::OnceLock;
 
 pub mod data;
 
+pub use data::set_polish_data_dir;
+
 fn parse_token(s: &str) -> Option<bool> {
     let s = s.trim();
     match s {
@@ -353,15 +355,20 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
         }
 
         // Word prefix matches — iterate words.tsv, filter by starts_with.
-        let mut prefix_words: Vec<&data::WordEntry> = data::words()
+        // Hold the Arc<Vec<WordEntry>> for the scope so the refs collected
+        // into prefix_words stay valid; polish hot-reload can swap the
+        // words payload between requests but not mid-request.
+        let words_prefix_arc = data::words();
+        let excl_arc = data::exclusions();
+        let mut prefix_words: Vec<&data::WordEntry> = words_prefix_arc
             .iter()
             .filter(|w| w.code.starts_with(buffer) && w.code.as_str() != buffer)
             .filter(|w| !seen.contains(&w.word))
-            .filter(|w| !data::exclusions().contains(&(buf_owned.clone(), w.word.clone())))
+            .filter(|w| !excl_arc.contains(&(buf_owned.clone(), w.word.clone())))
             // Also honor exclusion against the word's OWN code — so a
             // D1 like (yidalimian, 义大利面) blocks the prefix-completion
             // surfacing too (yidal → ... → 义大利面 from yidalimian).
-            .filter(|w| !data::exclusions().contains(&(w.code.clone(), w.word.clone())))
+            .filter(|w| !excl_arc.contains(&(w.code.clone(), w.word.clone())))
             .collect();
         // Tier asc, then code asc for determinism; pick top N.
         prefix_words.sort_by(|a, b| {
@@ -608,34 +615,45 @@ fn compose_greedy(buffer: &str) -> Option<(String, f64, u8)> {
     Some((composed_word, score, max_tier))
 }
 
-/// Lazy index: word → set of valid codes (from words.tsv). Used by
-/// compose_greedy to reject "this word exists but at a different
-/// reading" compositions.
-fn word_codes() -> &'static std::collections::HashMap<&'static str, Vec<&'static str>> {
+/// Version-guarded index: word → set of valid codes (from words.tsv).
+/// Used by compose_greedy to reject "this word exists but at a
+/// different reading" compositions. Rebuilds on polish hot-reload.
+fn word_codes() -> std::sync::Arc<std::collections::HashMap<String, Vec<String>>> {
     use std::collections::HashMap;
-    static CACHED: OnceLock<HashMap<&'static str, Vec<&'static str>>> = OnceLock::new();
-    CACHED.get_or_init(|| {
-        let mut m: HashMap<&'static str, Vec<&'static str>> = HashMap::new();
-        for w in data::words() {
-            m.entry(w.word.as_str()).or_default().push(w.code.as_str());
+    use std::sync::Arc;
+    static CACHED: OnceLock<arc_swap::ArcSwap<(u64, Arc<HashMap<String, Vec<String>>>)>> =
+        OnceLock::new();
+    let slot = CACHED
+        .get_or_init(|| arc_swap::ArcSwap::from_pointee((u64::MAX, Arc::new(HashMap::new()))));
+    data::versioned_cache(slot, || {
+        let mut m: HashMap<String, Vec<String>> = HashMap::new();
+        let words_arc = data::words();
+        for w in words_arc.iter() {
+            m.entry(w.word.clone()).or_default().push(w.code.clone());
         }
         m
     })
 }
 
-/// Initials index for Phase 4 reverse-lookup.
+/// Initials index for Phase 4 reverse-lookup, version-guarded so it
+/// rebuilds on polish hot-reload.
 ///
 /// Build: for each word, parse `reading_path` `[char|reading]…`, take
 /// the bare first letter of each reading, join → "wsm" for 为什么.
-fn initials_index() -> &'static std::collections::HashMap<String, Vec<&'static data::WordEntry>> {
+fn initials_index() -> std::sync::Arc<std::collections::HashMap<String, Vec<data::WordEntry>>> {
     use std::collections::HashMap;
-    static CACHED: OnceLock<HashMap<String, Vec<&'static data::WordEntry>>> = OnceLock::new();
-    CACHED.get_or_init(|| {
-        let mut m: HashMap<String, Vec<&'static data::WordEntry>> = HashMap::new();
-        for w in data::words() {
+    use std::sync::Arc;
+    static CACHED: OnceLock<arc_swap::ArcSwap<(u64, Arc<HashMap<String, Vec<data::WordEntry>>>)>> =
+        OnceLock::new();
+    let slot = CACHED
+        .get_or_init(|| arc_swap::ArcSwap::from_pointee((u64::MAX, Arc::new(HashMap::new()))));
+    data::versioned_cache(slot, || {
+        let mut m: HashMap<String, Vec<data::WordEntry>> = HashMap::new();
+        let words_arc = data::words();
+        for w in words_arc.iter() {
             let initials = extract_initials(&w.reading_path);
             if !initials.is_empty() {
-                m.entry(initials).or_default().push(w);
+                m.entry(initials).or_default().push(w.clone());
             }
         }
         m
@@ -686,12 +704,16 @@ struct CharLookupRow {
 /// Total word count alone misled (十 in many number compounds inflates
 /// it above 是); HSK-tier-weighted signal is closer to "is this char
 /// part of words a learner / daily user encounters".
-fn char_word_count() -> &'static std::collections::HashMap<char, u32> {
+fn char_word_count() -> std::sync::Arc<std::collections::HashMap<char, u32>> {
     use std::collections::HashMap;
-    static CACHED: OnceLock<HashMap<char, u32>> = OnceLock::new();
-    CACHED.get_or_init(|| {
+    use std::sync::Arc;
+    static CACHED: OnceLock<arc_swap::ArcSwap<(u64, Arc<HashMap<char, u32>>)>> = OnceLock::new();
+    let slot = CACHED
+        .get_or_init(|| arc_swap::ArcSwap::from_pointee((u64::MAX, Arc::new(HashMap::new()))));
+    data::versioned_cache(slot, || {
         let mut m: HashMap<char, u32> = HashMap::with_capacity(8200);
-        for w in data::words() {
+        let words_arc = data::words();
+        for w in words_arc.iter() {
             let weight = match w.tier {
                 1 => 1000,
                 2 => 300,
@@ -768,19 +790,23 @@ fn bare_letter_form(reading: &str) -> String {
     out
 }
 
-/// Lazy index: `code` → list of [`WordEntry`] rows. Built once on
-/// first call by walking `data::words()`.
-fn code_index() -> &'static std::collections::HashMap<&'static str, Vec<&'static data::WordEntry>> {
+/// Version-guarded index: `code` → owned [`WordEntry`] rows. Rebuilds
+/// on `data::words()` swap (polish hot-reload). Clones WordEntry
+/// per row so the index doesn't hold references into a specific
+/// words_arc generation — ~9 MB overhead at 90k entries but simpler
+/// than tracking Arc-scope invalidation.
+fn code_index() -> std::sync::Arc<std::collections::HashMap<String, Vec<data::WordEntry>>> {
     use std::collections::HashMap;
-    static CACHED: OnceLock<HashMap<&'static str, Vec<&'static data::WordEntry>>> = OnceLock::new();
-    CACHED.get_or_init(|| {
-        let mut m: HashMap<&'static str, Vec<&'static data::WordEntry>> = HashMap::new();
-        for w in data::words() {
-            // Safety: data::words() returns &'static [WordEntry] (cached
-            // forever via OnceLock), so taking &'static references into it
-            // is sound for the lifetime of the process.
-            let w_static: &'static data::WordEntry = w;
-            m.entry(w_static.code.as_str()).or_default().push(w_static);
+    use std::sync::Arc;
+    static CACHED: OnceLock<arc_swap::ArcSwap<(u64, Arc<HashMap<String, Vec<data::WordEntry>>>)>> =
+        OnceLock::new();
+    let slot = CACHED
+        .get_or_init(|| arc_swap::ArcSwap::from_pointee((u64::MAX, Arc::new(HashMap::new()))));
+    data::versioned_cache(slot, || {
+        let mut m: HashMap<String, Vec<data::WordEntry>> = HashMap::new();
+        let words_arc = data::words();
+        for w in words_arc.iter() {
+            m.entry(w.code.clone()).or_default().push(w.clone());
         }
         m
     })

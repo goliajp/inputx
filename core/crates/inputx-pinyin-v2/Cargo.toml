@@ -9,6 +9,12 @@ authors = ["GOLIA K.K."]
 repository = "https://github.com/goliajp/inputx"
 
 [dependencies]
+# v1.16 polish hot-reload: swap polish overlay TSVs at runtime so
+# `/polish` reflects into the running IME without a rebuild + pkill.
+# Guards words()/tier_overlay()/quickfix_boost()/prior_corrections()/
+# exclusions() derived caches so a SIGUSR1 hot-reload replaces both
+# the raw TSV bytes and the parsed HashMaps atomically.
+arc-swap = "1"
 
 [lints]
 workspace = true

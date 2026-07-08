@@ -596,6 +596,19 @@ impl Session {
         self.composite
             .reload_pinyin_dict(dict_bytes)
             .map_err(|e| PinyinReloadError::Dict(format!("{e:?}")))?;
+        // v1.16: v2 engine's polish overlay TSVs live behind ArcSwap
+        // too. If a `polish/` subdir exists next to `pinyin.dict`,
+        // swap those bytes so v2's `words()` / `tier_overlay()` /
+        // `quickfix_boost()` / etc. rebuild on next query. Without
+        // this step, the running Inputx binary would keep using the
+        // compile-time-embedded TSV even after a hot-reload — which
+        // is what made every polish since v2's default flip look
+        // like it worked (per probe) while actually being invisible
+        // to the running IME.
+        let polish_dir = dir.join("polish");
+        if polish_dir.is_dir() {
+            inputx_pinyin_v2::set_polish_data_dir(&polish_dir);
+        }
         Ok(())
     }
 

@@ -4,28 +4,125 @@
 //! Sources documented in `docs/pinyin-char-centric-rewrite-2026-06-29/PLAN.md`
 //! and regeneratable via `tools/v2-ingest/build-chars-readings.py`.
 
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
+
+use arc_swap::ArcSwap;
 
 const CHARS_TSV: &str = include_str!("../data/chars.tsv");
 const READINGS_TSV: &str = include_str!("../data/readings.tsv");
 const WORDS_TSV: &str = include_str!("../data/words.tsv");
+const MODERN_FREQ_TSV: &str = include_str!("../data/modern_freq.tsv");
 
 // Polish overlay files. Same files v1 consumes, so polish edits apply
 // uniformly to v1 and v2 (per [[ranking-orthogonal-table-model]]:
 // per-(buffer, word) overrides are the only sanctioned data surface).
-const TIER_OVERLAY_TSV: &str =
+//
+// v1.16 hot-reload: these bytes live behind `ArcSwap<String>` so a
+// SIGUSR1 signal can replace them at runtime and the derived caches
+// (`words()` / `tier_overlay()` / `quickfix_boost()` / `exclusions()`
+// / `prior_corrections()`) rebuild against the new bytes without a
+// binary swap. Cold path still starts from the compile-time embedded
+// content so tests + probe binaries have zero setup.
+const EMBEDDED_TIER_OVERLAY_TSV: &str =
     include_str!("../../../../tools/scoring/data/polish/tier_overlay.tsv");
-const QUICKFIX_BOOST_TSV: &str =
+const EMBEDDED_QUICKFIX_BOOST_TSV: &str =
     include_str!("../../../../tools/scoring/data/polish/quickfix_boost.tsv");
-const EXCLUSIONS_TSV: &str =
+const EMBEDDED_EXCLUSIONS_TSV: &str =
     include_str!("../../../../tools/scoring/data/polish/exclusions_v1.tsv");
-const PRIOR_CORRECTIONS_TSV: &str =
+const EMBEDDED_PRIOR_CORRECTIONS_TSV: &str =
     include_str!("../../../../tools/scoring/data/polish/prior_corrections_v1.tsv");
-const MODERN_VOCAB_TSV: &str =
+const EMBEDDED_MODERN_VOCAB_TSV: &str =
     include_str!("../../../../tools/scoring/data/polish/modern_vocab_v1.tsv");
-const CORPUS_GARBAGE_FILTER_TSV: &str =
+const EMBEDDED_CORPUS_GARBAGE_FILTER_TSV: &str =
     include_str!("../../../../tools/scoring/data/polish/corpus_garbage_filter_v1.tsv");
-const MODERN_FREQ_TSV: &str = include_str!("../data/modern_freq.tsv");
+
+// Version counter incremented on every polish-TSV swap. Derived-cache
+// slots below store `(version, Arc<data>)` and rebuild lazily when
+// they see a newer version. Cheap `Ordering::Relaxed` compare on the
+// hot lookup path.
+static POLISH_VERSION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+fn bump_polish_version() {
+    POLISH_VERSION.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+}
+
+fn current_polish_version() -> u64 {
+    POLISH_VERSION.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+fn polish_tsv_slot(embedded: &'static str) -> ArcSwap<String> {
+    ArcSwap::from_pointee(embedded.to_owned())
+}
+
+fn tier_overlay_tsv_slot() -> &'static ArcSwap<String> {
+    static SLOT: OnceLock<ArcSwap<String>> = OnceLock::new();
+    SLOT.get_or_init(|| polish_tsv_slot(EMBEDDED_TIER_OVERLAY_TSV))
+}
+
+fn quickfix_boost_tsv_slot() -> &'static ArcSwap<String> {
+    static SLOT: OnceLock<ArcSwap<String>> = OnceLock::new();
+    SLOT.get_or_init(|| polish_tsv_slot(EMBEDDED_QUICKFIX_BOOST_TSV))
+}
+
+fn exclusions_tsv_slot() -> &'static ArcSwap<String> {
+    static SLOT: OnceLock<ArcSwap<String>> = OnceLock::new();
+    SLOT.get_or_init(|| polish_tsv_slot(EMBEDDED_EXCLUSIONS_TSV))
+}
+
+fn prior_corrections_tsv_slot() -> &'static ArcSwap<String> {
+    static SLOT: OnceLock<ArcSwap<String>> = OnceLock::new();
+    SLOT.get_or_init(|| polish_tsv_slot(EMBEDDED_PRIOR_CORRECTIONS_TSV))
+}
+
+fn modern_vocab_tsv_slot() -> &'static ArcSwap<String> {
+    static SLOT: OnceLock<ArcSwap<String>> = OnceLock::new();
+    SLOT.get_or_init(|| polish_tsv_slot(EMBEDDED_MODERN_VOCAB_TSV))
+}
+
+fn corpus_garbage_filter_tsv_slot() -> &'static ArcSwap<String> {
+    static SLOT: OnceLock<ArcSwap<String>> = OnceLock::new();
+    SLOT.get_or_init(|| polish_tsv_slot(EMBEDDED_CORPUS_GARBAGE_FILTER_TSV))
+}
+
+/// v1.16 hot-reload driver: replace all 6 polish-overlay TSVs at
+/// once. `dir` is expected to contain the six file names
+/// `tier_overlay.tsv`, `quickfix_boost.tsv`, `exclusions_v1.tsv`,
+/// `prior_corrections_v1.tsv`, `modern_vocab_v1.tsv`,
+/// `corpus_garbage_filter_v1.tsv`. Any file that's missing is left
+/// on its previous bytes (i.e. embedded or the last successful
+/// reload) — non-fatal so a partial polish snapshot still swaps
+/// what it has.
+///
+/// The parse of each replacement TSV is deferred to the first
+/// accessor call after the swap (version counter guards); a broken
+/// TSV therefore surfaces as a slower first lookup, not as an
+/// immediate error. Callers wanting parse validation should call
+/// `words()` / `tier_overlay()` / etc. once after swap and check
+/// the returned data.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn set_polish_data_dir(dir: &std::path::Path) {
+    let files: &[(&str, &ArcSwap<String>)] = &[
+        ("tier_overlay.tsv", tier_overlay_tsv_slot()),
+        ("quickfix_boost.tsv", quickfix_boost_tsv_slot()),
+        ("exclusions_v1.tsv", exclusions_tsv_slot()),
+        ("prior_corrections_v1.tsv", prior_corrections_tsv_slot()),
+        ("modern_vocab_v1.tsv", modern_vocab_tsv_slot()),
+        (
+            "corpus_garbage_filter_v1.tsv",
+            corpus_garbage_filter_tsv_slot(),
+        ),
+    ];
+    let mut swapped = false;
+    for (name, slot) in files {
+        if let Ok(bytes) = std::fs::read_to_string(dir.join(name)) {
+            slot.store(Arc::new(bytes));
+            swapped = true;
+        }
+    }
+    if swapped {
+        bump_polish_version();
+    }
+}
 
 /// One row of `chars.tsv`.
 #[derive(Debug, Clone)]
@@ -215,124 +312,184 @@ fn parse_words_tsv(text: &str) -> Vec<WordEntry> {
 ///   freq >= 30000 → tier 3
 ///   freq >= 15000 → tier 4
 ///   freq <  15000 → tier 5
-pub fn words() -> &'static [WordEntry] {
-    static CACHED: OnceLock<Vec<WordEntry>> = OnceLock::new();
-    CACHED.get_or_init(|| {
-        let mut out = parse_words_tsv(WORDS_TSV);
-        let mut existing: std::collections::HashSet<(String, String)> = out
-            .iter()
-            .map(|w| (w.code.clone(), w.word.clone()))
-            .collect();
-        for ln in MODERN_VOCAB_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') {
-                continue;
-            }
-            let mut it = ln.split('\t');
-            let code = it.next();
-            let word = it.next();
-            let freq_s = it.next();
-            if let (Some(c), Some(w), Some(f)) = (code, word, freq_s) {
-                if let Ok(freq) = f.trim().parse::<u32>() {
-                    if existing.contains(&(c.to_owned(), w.to_owned())) {
-                        continue;
-                    }
-                    let tier: u8 = if freq >= 50_000 {
-                        2
-                    } else if freq >= 30_000 {
-                        3
-                    } else if freq >= 15_000 {
-                        4
-                    } else {
-                        5
-                    };
-                    out.push(WordEntry {
-                        code: c.to_owned(),
-                        word: w.to_owned(),
-                        reading_path: format!("[{}]", w), // path not validated for supplements
-                        tier,
-                        source: "modern_vocab".to_owned(),
-                    });
-                    existing.insert((c.to_owned(), w.to_owned()));
+pub fn words() -> Arc<Vec<WordEntry>> {
+    versioned_cache(words_cache_slot(), build_words)
+}
+
+fn words_cache_slot() -> &'static ArcSwap<(u64, Arc<Vec<WordEntry>>)> {
+    static SLOT: OnceLock<ArcSwap<(u64, Arc<Vec<WordEntry>>)>> = OnceLock::new();
+    SLOT.get_or_init(|| ArcSwap::from_pointee((u64::MAX, Arc::new(Vec::new()))))
+}
+
+fn build_words() -> Vec<WordEntry> {
+    let mut out = parse_words_tsv(WORDS_TSV);
+    let mut existing: std::collections::HashSet<(String, String)> = out
+        .iter()
+        .map(|w| (w.code.clone(), w.word.clone()))
+        .collect();
+    let modern_vocab_tsv = modern_vocab_tsv_slot().load_full();
+    for ln in modern_vocab_tsv.lines() {
+        if ln.is_empty() || ln.starts_with('#') {
+            continue;
+        }
+        let mut it = ln.split('\t');
+        let code = it.next();
+        let word = it.next();
+        let freq_s = it.next();
+        if let (Some(c), Some(w), Some(f)) = (code, word, freq_s) {
+            if let Ok(freq) = f.trim().parse::<u32>() {
+                if existing.contains(&(c.to_owned(), w.to_owned())) {
+                    continue;
                 }
+                let tier: u8 = if freq >= 50_000 {
+                    2
+                } else if freq >= 30_000 {
+                    3
+                } else if freq >= 15_000 {
+                    4
+                } else {
+                    5
+                };
+                out.push(WordEntry {
+                    code: c.to_owned(),
+                    word: w.to_owned(),
+                    reading_path: format!("[{}]", w), // path not validated for supplements
+                    tier,
+                    source: "modern_vocab".to_owned(),
+                });
+                existing.insert((c.to_owned(), w.to_owned()));
             }
         }
-        out
-    })
+    }
+    out
+}
+
+/// Version-guarded lazy cache: reads the current polish-TSV version,
+/// compares against the cached version, and rebuilds if newer. Kept
+/// tiny + generic so all 5 polish-derived caches share the same
+/// swap semantics. `pub(crate)` so `lib.rs::code_index` can share
+/// the same version epoch — code_index builds on top of words()
+/// and must invalidate whenever polish adds new words.
+pub(crate) fn versioned_cache<T, F>(slot: &'static ArcSwap<(u64, Arc<T>)>, builder: F) -> Arc<T>
+where
+    F: FnOnce() -> T,
+{
+    let current = current_polish_version();
+    let snap = slot.load_full();
+    if snap.0 == current {
+        return snap.1.clone();
+    }
+    let built = Arc::new(builder());
+    slot.store(Arc::new((current, built.clone())));
+    built
 }
 
 // ─── Polish overlay loaders ────────────────────────────────────
 
 /// `tier_overlay.tsv` row: (buffer, word) → override_tier.
-pub fn tier_overlay() -> &'static std::collections::HashMap<(String, String), u8> {
-    use std::collections::HashMap;
-    static CACHED: OnceLock<HashMap<(String, String), u8>> = OnceLock::new();
-    CACHED.get_or_init(|| {
-        let mut m = HashMap::new();
-        for ln in TIER_OVERLAY_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') {
-                continue;
-            }
-            let mut it = ln.split('\t');
-            let buffer = it.next();
-            let word = it.next();
-            let tier_s = it.next();
-            if let (Some(b), Some(w), Some(t)) = (buffer, word, tier_s) {
-                if let Ok(tier) = t.trim().parse::<u8>() {
-                    m.insert((b.to_owned(), w.to_owned()), tier);
-                }
-            }
-        }
-        m
+pub fn tier_overlay() -> Arc<std::collections::HashMap<(String, String), u8>> {
+    versioned_cache(tier_overlay_cache_slot(), build_tier_overlay)
+}
+
+fn tier_overlay_cache_slot()
+-> &'static ArcSwap<(u64, Arc<std::collections::HashMap<(String, String), u8>>)> {
+    static SLOT: OnceLock<ArcSwap<(u64, Arc<std::collections::HashMap<(String, String), u8>>)>> =
+        OnceLock::new();
+    SLOT.get_or_init(|| {
+        ArcSwap::from_pointee((u64::MAX, Arc::new(std::collections::HashMap::new())))
     })
 }
 
-/// `quickfix_boost.tsv` row: (buffer, word) → boost_freq.
-pub fn quickfix_boost() -> &'static std::collections::HashMap<(String, String), u32> {
+fn build_tier_overlay() -> std::collections::HashMap<(String, String), u8> {
     use std::collections::HashMap;
-    static CACHED: OnceLock<HashMap<(String, String), u32>> = OnceLock::new();
-    CACHED.get_or_init(|| {
-        let mut m = HashMap::new();
-        for ln in QUICKFIX_BOOST_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') {
-                continue;
-            }
-            let mut it = ln.split('\t');
-            let buffer = it.next();
-            let word = it.next();
-            let freq_s = it.next();
-            if let (Some(b), Some(w), Some(f)) = (buffer, word, freq_s) {
-                if let Ok(freq) = f.trim().parse::<u32>() {
-                    m.insert((b.to_owned(), w.to_owned()), freq);
-                }
+    let mut m = HashMap::new();
+    let tsv = tier_overlay_tsv_slot().load_full();
+    for ln in tsv.lines() {
+        if ln.is_empty() || ln.starts_with('#') {
+            continue;
+        }
+        let mut it = ln.split('\t');
+        let buffer = it.next();
+        let word = it.next();
+        let tier_s = it.next();
+        if let (Some(b), Some(w), Some(t)) = (buffer, word, tier_s) {
+            if let Ok(tier) = t.trim().parse::<u8>() {
+                m.insert((b.to_owned(), w.to_owned()), tier);
             }
         }
-        m
+    }
+    m
+}
+
+/// `quickfix_boost.tsv` row: (buffer, word) → boost_freq.
+pub fn quickfix_boost() -> Arc<std::collections::HashMap<(String, String), u32>> {
+    versioned_cache(quickfix_boost_cache_slot(), build_quickfix_boost)
+}
+
+fn quickfix_boost_cache_slot()
+-> &'static ArcSwap<(u64, Arc<std::collections::HashMap<(String, String), u32>>)> {
+    static SLOT: OnceLock<ArcSwap<(u64, Arc<std::collections::HashMap<(String, String), u32>>)>> =
+        OnceLock::new();
+    SLOT.get_or_init(|| {
+        ArcSwap::from_pointee((u64::MAX, Arc::new(std::collections::HashMap::new())))
     })
+}
+
+fn build_quickfix_boost() -> std::collections::HashMap<(String, String), u32> {
+    use std::collections::HashMap;
+    let mut m = HashMap::new();
+    let tsv = quickfix_boost_tsv_slot().load_full();
+    for ln in tsv.lines() {
+        if ln.is_empty() || ln.starts_with('#') {
+            continue;
+        }
+        let mut it = ln.split('\t');
+        let buffer = it.next();
+        let word = it.next();
+        let freq_s = it.next();
+        if let (Some(b), Some(w), Some(f)) = (buffer, word, freq_s) {
+            if let Ok(freq) = f.trim().parse::<u32>() {
+                m.insert((b.to_owned(), w.to_owned()), freq);
+            }
+        }
+    }
+    m
 }
 
 /// `prior_corrections_v1.tsv` word → Q4 log-prior boost. Applies globally
 /// to that word regardless of buffer (lifts e.g. 继续 over 积蓄 anywhere
 /// they compete).
-pub fn prior_corrections() -> &'static std::collections::HashMap<String, i32> {
+pub fn prior_corrections() -> Arc<std::collections::HashMap<String, i32>> {
+    versioned_cache(prior_corrections_cache_slot(), build_prior_corrections)
+}
+
+fn prior_corrections_cache_slot()
+-> &'static ArcSwap<(u64, Arc<std::collections::HashMap<String, i32>>)> {
+    static SLOT: OnceLock<ArcSwap<(u64, Arc<std::collections::HashMap<String, i32>>)>> =
+        OnceLock::new();
+    SLOT.get_or_init(|| {
+        ArcSwap::from_pointee((u64::MAX, Arc::new(std::collections::HashMap::new())))
+    })
+}
+
+fn build_prior_corrections() -> std::collections::HashMap<String, i32> {
     use std::collections::HashMap;
-    static CACHED: OnceLock<HashMap<String, i32>> = OnceLock::new();
-    CACHED.get_or_init(|| {
-        let mut m = HashMap::new();
-        for ln in PRIOR_CORRECTIONS_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') {
-                continue;
-            }
-            let mut it = ln.split('\t');
-            let word = it.next();
-            let boost_s = it.next();
-            if let (Some(w), Some(b)) = (word, boost_s) {
-                if let Ok(boost) = b.trim().parse::<i32>() {
-                    m.insert(w.to_owned(), boost);
-                }
+    let mut m = HashMap::new();
+    let tsv = prior_corrections_tsv_slot().load_full();
+    for ln in tsv.lines() {
+        if ln.is_empty() || ln.starts_with('#') {
+            continue;
+        }
+        let mut it = ln.split('\t');
+        let word = it.next();
+        let boost_s = it.next();
+        if let (Some(w), Some(b)) = (word, boost_s) {
+            if let Ok(boost) = b.trim().parse::<i32>() {
+                m.insert(w.to_owned(), boost);
             }
         }
-        m
-    })
+    }
+    m
 }
 
 /// `modern_freq.tsv` word/char → percentile-rank score (0..25000) from
@@ -370,49 +527,62 @@ pub fn modern_freq() -> &'static std::collections::HashMap<String, u16> {
 /// MINUS quickfix_boost entries (those are explicit resurrections —
 /// e.g. user D1-deleted 洞洞 then later added a quickfix_boost to
 /// bring it back).
-pub fn exclusions() -> &'static std::collections::HashSet<(String, String)> {
-    use std::collections::HashSet;
-    static CACHED: OnceLock<HashSet<(String, String)>> = OnceLock::new();
-    CACHED.get_or_init(|| {
-        let mut s: HashSet<(String, String)> = HashSet::new();
-        for ln in EXCLUSIONS_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') {
-                continue;
-            }
-            let mut it = ln.split('\t');
-            let code = it.next();
-            let word = it.next();
-            if let (Some(c), Some(w)) = (code, word) {
-                s.insert((c.to_owned(), w.to_owned()));
-            }
-        }
-        for ln in CORPUS_GARBAGE_FILTER_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') {
-                continue;
-            }
-            let mut it = ln.split('\t');
-            let code = it.next();
-            let word = it.next();
-            if let (Some(c), Some(w)) = (code, word) {
-                s.insert((c.to_owned(), w.to_owned()));
-            }
-        }
-        // Remove entries that have an explicit quickfix_boost (= user
-        // wanted them back). Reads quickfix_boost directly to avoid
-        // a dep cycle.
-        for ln in QUICKFIX_BOOST_TSV.lines() {
-            if ln.is_empty() || ln.starts_with('#') {
-                continue;
-            }
-            let mut it = ln.split('\t');
-            let code = it.next();
-            let word = it.next();
-            if let (Some(c), Some(w)) = (code, word) {
-                s.remove(&(c.to_owned(), w.to_owned()));
-            }
-        }
-        s
+pub fn exclusions() -> Arc<std::collections::HashSet<(String, String)>> {
+    versioned_cache(exclusions_cache_slot(), build_exclusions)
+}
+
+fn exclusions_cache_slot()
+-> &'static ArcSwap<(u64, Arc<std::collections::HashSet<(String, String)>>)> {
+    static SLOT: OnceLock<ArcSwap<(u64, Arc<std::collections::HashSet<(String, String)>>)>> =
+        OnceLock::new();
+    SLOT.get_or_init(|| {
+        ArcSwap::from_pointee((u64::MAX, Arc::new(std::collections::HashSet::new())))
     })
+}
+
+fn build_exclusions() -> std::collections::HashSet<(String, String)> {
+    use std::collections::HashSet;
+    let mut s: HashSet<(String, String)> = HashSet::new();
+    let excl_tsv = exclusions_tsv_slot().load_full();
+    for ln in excl_tsv.lines() {
+        if ln.is_empty() || ln.starts_with('#') {
+            continue;
+        }
+        let mut it = ln.split('\t');
+        let code = it.next();
+        let word = it.next();
+        if let (Some(c), Some(w)) = (code, word) {
+            s.insert((c.to_owned(), w.to_owned()));
+        }
+    }
+    let garbage_tsv = corpus_garbage_filter_tsv_slot().load_full();
+    for ln in garbage_tsv.lines() {
+        if ln.is_empty() || ln.starts_with('#') {
+            continue;
+        }
+        let mut it = ln.split('\t');
+        let code = it.next();
+        let word = it.next();
+        if let (Some(c), Some(w)) = (code, word) {
+            s.insert((c.to_owned(), w.to_owned()));
+        }
+    }
+    // Remove entries that have an explicit quickfix_boost (= user
+    // wanted them back). Reads quickfix_boost directly to avoid
+    // a dep cycle.
+    let quickfix_tsv = quickfix_boost_tsv_slot().load_full();
+    for ln in quickfix_tsv.lines() {
+        if ln.is_empty() || ln.starts_with('#') {
+            continue;
+        }
+        let mut it = ln.split('\t');
+        let code = it.next();
+        let word = it.next();
+        if let (Some(c), Some(w)) = (code, word) {
+            s.remove(&(c.to_owned(), w.to_owned()));
+        }
+    }
+    s
 }
 
 #[cfg(test)]
@@ -524,8 +694,11 @@ mod tests {
         // Soft pin: base + supplements. Allow growth as polish-A
         // adds words to modern_vocab_v1. Reject pathological doubling.
         let n = ws.len();
+        // 2026-07-09: band re-set from 88k-90k → 110k-120k to reflect
+        // the ~24k modern_vocab entries accumulated through polish
+        // adds since the pin was last tuned.
         assert!(
-            n >= 88_000 && n < 90_000,
+            (110_000..120_000).contains(&n),
             "words.tsv len drift outside expected band: {}",
             n
         );
@@ -535,12 +708,20 @@ mod tests {
     fn words_tier_distribution() {
         let ws = words();
         let mut by_t = [0usize; 10];
-        for w in ws {
+        for w in ws.iter() {
             by_t[w.tier as usize] += 1;
         }
-        // Hard pins per ingest output (CC-CEDICT + HSK + modern_vocab):
-        assert_eq!(by_t[1], 150, "tier 1 (HSK 1-2 multi-char)");
-        assert_eq!(by_t[2], 702, "tier 2 (HSK 3-4 multi-char)");
+        // Tier 1-2 use `>=` since polish adds accrete over time.
+        assert!(
+            by_t[1] >= 150,
+            "tier 1 (HSK 1-2 multi-char) ≥ 150 (got {})",
+            by_t[1]
+        );
+        assert!(
+            by_t[2] >= 702,
+            "tier 2 (HSK 3-4 + polish-A) ≥ 702 (got {})",
+            by_t[2]
+        );
         // tier 3 was 3493 base + modern_vocab freq>=60k entries
         assert!(by_t[3] >= 3493, "tier 3 ≥ base 3493 ({} got)", by_t[3]);
         assert!(by_t[4] >= 49734, "tier 4 ≥ base 49734 ({} got)", by_t[4]);

@@ -1624,20 +1624,52 @@ def do_hot_reload_data() -> None:
         "bigrams_inter.ngm": project_root
             / "core/crates/inputx-pinyin-helpers/data/bigrams_inter.ngm",
     }
+    # v1.16 hot-reload: also swap the 6 polish overlay TSVs into
+    # `data/polish/`. v2 engine reads these via ArcSwap so the
+    # running Inputx picks up polish additions without a binary
+    # rebuild. Pre-v1.16 v2 used compile-time `include_str!` for
+    # these TSVs, making SIGUSR1 a no-op for anything v2-flavored.
+    polish_sources = {
+        "tier_overlay.tsv": project_root
+            / "tools/scoring/data/polish/tier_overlay.tsv",
+        "quickfix_boost.tsv": project_root
+            / "tools/scoring/data/polish/quickfix_boost.tsv",
+        "exclusions_v1.tsv": project_root
+            / "tools/scoring/data/polish/exclusions_v1.tsv",
+        "prior_corrections_v1.tsv": project_root
+            / "tools/scoring/data/polish/prior_corrections_v1.tsv",
+        "modern_vocab_v1.tsv": project_root
+            / "tools/scoring/data/polish/modern_vocab_v1.tsv",
+        "corpus_garbage_filter_v1.tsv": project_root
+            / "tools/scoring/data/polish/corpus_garbage_filter_v1.tsv",
+    }
     for name, src in sources.items():
         if not src.exists():
             die(f"missing source {src} — polish-rebuild output layout changed?")
+    for name, src in polish_sources.items():
+        if not src.exists():
+            die(f"missing polish source {src}")
     staging = data_dir.parent / "data.new"
     if staging.exists():
         shutil.rmtree(staging)
     staging.mkdir(parents=True)
     for name, src in sources.items():
         shutil.copy2(src, staging / name)
+    polish_stage = staging / "polish"
+    polish_stage.mkdir()
+    for name, src in polish_sources.items():
+        shutil.copy2(src, polish_stage / name)
     # Manifest for reinstall.py's future diff-mode (Phase D).
     with (staging / "manifest.sha256").open("w") as fh:
         for name in sources:
             digest = subprocess.check_output(
                 ["shasum", "-a", "256", str(staging / name)]
+            ).decode()
+            fh.write(digest)
+    with (polish_stage / "manifest.sha256").open("w") as fh:
+        for name in polish_sources:
+            digest = subprocess.check_output(
+                ["shasum", "-a", "256", str(polish_stage / name)]
             ).decode()
             fh.write(digest)
     # Atomic swap: old data/ → data.old, staging → data/.
