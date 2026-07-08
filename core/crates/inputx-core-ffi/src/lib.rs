@@ -472,6 +472,16 @@ pub unsafe extern "C" fn inputx_set_pinyin_data_dir(dir: *const c_char) -> i32 {
     {
         return -2;
     }
+    // v1.16: if a `polish/` subdir exists next to the pinyin dict
+    // artifacts, prime v2's polish overlay slots from it so the
+    // first session sees the bundle's shipped polish TSVs — not
+    // whatever was baked into the crate at compile time. Missing
+    // dir is fine (older bundles that predate v1.16 just stay on
+    // embedded constants).
+    let polish_dir = path.join("polish");
+    if polish_dir.is_dir() {
+        inputx_core::hot_reload::set_v2_polish_data_dir(&polish_dir);
+    }
     0
 }
 

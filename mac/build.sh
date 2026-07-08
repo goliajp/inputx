@@ -111,9 +111,24 @@ cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-data-core/data/pinyin.dict"    "$
 cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/words.idf"        "$PINYIN_DATA_DST/"
 cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/bigrams.ngm"      "$PINYIN_DATA_DST/"
 cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/bigrams_inter.ngm" "$PINYIN_DATA_DST/"
+
+# v1.16 hot-reload: v2 engine reads polish overlay TSVs at runtime
+# via ArcSwap slots. Ship the 6 polish TSVs so Session::reload_pinyin_data
+# can find them at `Contents/Resources/data/polish/` and swap them in
+# on SIGUSR1 without a binary swap.
+POLISH_DST="$PINYIN_DATA_DST/polish"
+mkdir -p "$POLISH_DST"
+cp -f "$PROJECT_ROOT/tools/scoring/data/polish/tier_overlay.tsv"             "$POLISH_DST/"
+cp -f "$PROJECT_ROOT/tools/scoring/data/polish/quickfix_boost.tsv"           "$POLISH_DST/"
+cp -f "$PROJECT_ROOT/tools/scoring/data/polish/exclusions_v1.tsv"            "$POLISH_DST/"
+cp -f "$PROJECT_ROOT/tools/scoring/data/polish/prior_corrections_v1.tsv"     "$POLISH_DST/"
+cp -f "$PROJECT_ROOT/tools/scoring/data/polish/modern_vocab_v1.tsv"          "$POLISH_DST/"
+cp -f "$PROJECT_ROOT/tools/scoring/data/polish/corpus_garbage_filter_v1.tsv" "$POLISH_DST/"
+
 shasum -a 256 "$PINYIN_DATA_DST"/*.dict "$PINYIN_DATA_DST"/*.idf "$PINYIN_DATA_DST"/*.ngm \
     > "$PINYIN_DATA_DST/manifest.sha256"
-echo "[build] bundled pinyin data: $(ls "$PINYIN_DATA_DST" | grep -Ev '^manifest' | wc -l | tr -d ' ') file(s)"
+shasum -a 256 "$POLISH_DST"/*.tsv > "$POLISH_DST/manifest.sha256"
+echo "[build] bundled pinyin data: $(ls "$PINYIN_DATA_DST" | grep -Ev '^manifest|^polish' | wc -l | tr -d ' ') file(s) + $(ls "$POLISH_DST" | grep -v '^manifest' | wc -l | tr -d ' ') polish tsv(s)"
 
 printf "APPLINPX" > "$APP_DIR/Contents/PkgInfo"
 

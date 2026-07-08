@@ -53,4 +53,8 @@ pub use session::{PinyinReloadError, Session};
 pub mod hot_reload {
     pub use crate::composite::{set_bigrams_ngm_bytes, set_inter_bigrams_ngm_bytes};
     pub use inputx_pinyin_helpers::{IdfReloadError, IdfReloadReport, set_pinyin_idf_bytes};
+    // v1.16: v2 engine's polish overlay TSVs — same lifecycle as the
+    // v1 pinyin.dict / words.idf swap. Re-exported so inputx-core-ffi
+    // doesn't need to add its own dep on inputx-pinyin-v2.
+    pub use inputx_pinyin_v2::set_polish_data_dir as set_v2_polish_data_dir;
 }
