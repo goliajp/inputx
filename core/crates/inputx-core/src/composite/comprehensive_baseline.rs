@@ -527,6 +527,10 @@ mod tests {
             ("youku", "优酷"),
             ("aiqiyi", "爱奇艺"),
             ("zhihu", "知乎"),
+            // Polish 2026-07-08: user "ali 阿里". Class A add — 阿里
+            // absent from v2 (only compounds 阿里巴巴/阿里山/阿里地区
+            // /阿里斯 filled top 3-6). Added at freq 60000 → tier 2.
+            ("ali", "阿里"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
