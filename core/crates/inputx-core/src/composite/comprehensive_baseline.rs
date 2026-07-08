@@ -545,6 +545,12 @@ mod tests {
             // v1 library and v2 words.tsv entirely. Top-1 was 借钱
             // (cedict tier 4). Freq 60000 → tier 2.
             ("jieqian", "解签"),
+            // Polish 2026-07-08: user "fenzhi 分支 第一". Class B via
+            // quickfix_boost (v2 dedup would swallow a modern_vocab
+            // override — 分支 was already in cedict tier 4, plus 分之
+            // cedict+hsk4 tier 2 held #0). quickfix promotes to tier 1
+            // to beat cedict tier 2 sovereignty-style.
+            ("fenzhi", "分支"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
