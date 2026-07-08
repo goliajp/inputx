@@ -108,8 +108,12 @@ PROCESS_PATTERN = "Inputx.app/Contents/MacOS/Inputx"
 SNAPSHOT_DIR = HOME / "Library" / "Caches" / "inputx-reinstall-snapshots"
 LAST_INSTALL_SHA = SNAPSHOT_DIR / "last-install.sha"
 # Paths whose changes are pure-data (polish TSV / regenerated .dict /
-# .idf / .ngm blobs / bundled toml packs). If a diff falls entirely
-# within these prefixes since LAST_INSTALL_SHA, the fast path is safe.
+# .idf / .ngm blobs / bundled toml packs / #[cfg(test)] test-only src
+# files that every /polish action append cases to). If a diff falls
+# entirely within these prefixes since LAST_INSTALL_SHA, the fast
+# path is safe — none of these files ship in the .app bundle's
+# release build, so a hot-swap of Contents/Resources/data/ + SIGUSR1
+# reflects the polish end-to-end.
 DATA_ONLY_PREFIXES: tuple[str, ...] = (
     "core/crates/inputx-pinyin-data-core/data/",
     "core/crates/inputx-pinyin-helpers/data/",
@@ -120,6 +124,11 @@ DATA_ONLY_PREFIXES: tuple[str, ...] = (
     "core/crates/inputx-wubi/data/",
     "tools/scoring/data/",
     "docs/cell-dicts/",
+    # Test-only src files the /polish protocol appends baseline cases
+    # to. Gated behind `#[cfg(test)]` at composite/mod.rs so they never
+    # link into the release `libinputx_core.a` the .app bundle carries.
+    "core/crates/inputx-core/src/composite/comprehensive_baseline.rs",
+    "core/crates/inputx-core/src/composite/baseline_quality_test.rs",
 )
 
 # ─── Output ───────────────────────────────────────────────────────────
