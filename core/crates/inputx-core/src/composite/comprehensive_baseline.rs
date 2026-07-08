@@ -993,6 +993,22 @@ mod tests {
         );
     }
 
+    /// 2026-07-08 polish: user "harete 腫れて". Class A add — te-form of
+    /// 腫れる (to swell) missing from nihongo jukugo; top-1 was kana
+    /// はれて. `晴れてる` was appearing at #3 (wrong verb entirely).
+    /// Added `harete 腫れて jukugo 72` (freq matches 晴れた band).
+    #[test]
+    fn polish_harete_harete_kanji_leads() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::JapaneseOnly);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in "harete".bytes() {
+            let _ = e.handle_letter(b);
+        }
+        let top = e.candidates().first().map(|c| c.word.clone());
+        assert_eq!(top.as_deref(), Some("腫れて"), "harete #0 = 腫れて");
+    }
+
     /// 2026-07-08 polish: user "haguki 歯茎". Class A add — 歯茎 (gums)
     /// missing from nihongo library; top-1 was default kana はぐき.
     /// Added `haguki 歯茎 jukugo 78` (freq matches 歯磨き band).
