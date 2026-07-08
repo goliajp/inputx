@@ -520,12 +520,12 @@ mod tests {
             ("douyin", "抖音"),
             ("weibo", "微博"),
             ("bilibili", "哔哩哔哩"),
-            ("teshila", "特斯拉"),
+            ("tesila", "特斯拉"),
             ("gaotong", "高通"),
             ("wangyi", "网易"),
             ("souhu", "搜狐"),
             ("youku", "优酷"),
-            ("iqiyi", "爱奇艺"),
+            ("aiqiyi", "爱奇艺"),
             ("zhihu", "知乎"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
