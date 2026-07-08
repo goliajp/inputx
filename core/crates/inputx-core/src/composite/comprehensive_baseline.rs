@@ -535,6 +535,11 @@ mod tests {
             // 水煮 absent from v2 (cedict only had 水柱/水珠 tier 4).
             // Cooking staple (水煮鱼 / 水煮肉片 etc.). Freq 60000 → tier 2.
             ("shuizhu", "水煮"),
+            // Polish 2026-07-08: user "yushou 御守". Class A add —
+            // 御守 (shrine amulet, Japanese-origin loanword) absent
+            // from v2 (cedict had 御手/玉手/预售/驭手 tier 4 only).
+            // Freq 60000 → tier 2.
+            ("yushou", "御守"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
