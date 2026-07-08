@@ -561,6 +561,21 @@ mod tests {
             // — user-specified idiom absent from dict; K-best was
             // returning 自保七段 (nonsense compose). Freq 50000 → tier 2.
             ("zibaoqiduan", "自暴其短"),
+            // Polish 2026-07-09 batch: user "并且，你可以广泛地补充一些
+            // 高频的四字成语". Audited ~60 common idioms, added 9 that
+            // were missing or wrong top-1. 初生之犊 needed quickfix_boost
+            // (previously in corpus_garbage_filter as freq=0; v2 dedup
+            // logic un-excludes on quickfix presence). All others via
+            // modern_vocab_v1 freq 60000 → tier 2.
+            ("dadazhekou", "大打折扣"),
+            ("yimoyiyang", "一模一样"),
+            ("mingmingbaibai", "明明白白"),
+            ("dacidabei", "大慈大悲"),
+            ("chunhuaqiushi", "春华秋实"),
+            ("chushengzhidu", "初生之犊"),
+            ("yiruquanwang", "一如既往"),
+            ("yijuchengming", "一举成名"),
+            ("zilishengsheng", "自力更生"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
