@@ -551,6 +551,12 @@ mod tests {
             // cedict+hsk4 tier 2 held #0). quickfix promotes to tier 1
             // to beat cedict tier 2 sovereignty-style.
             ("fenzhi", "分支"),
+            // Polish 2026-07-08: user "wangle 王磊不是词，忘了倒要加上".
+            // Class A add — 忘了 (colloquial verb+了) absent from dict;
+            // K-best had assembled 王磊 (personal-name compose) as the
+            // sole top-1. modern_vocab @ freq 60000 → tier 2 = 440k,
+            // 忘了 leads and 王磊 falls off top-10 entirely.
+            ("wangle", "忘了"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
