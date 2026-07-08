@@ -130,6 +130,22 @@ DATA_ONLY_PREFIXES: tuple[str, ...] = (
     # link into the release `libinputx_core.a` the .app bundle carries.
     "core/crates/inputx-core/src/composite/comprehensive_baseline.rs",
     "core/crates/inputx-core/src/composite/baseline_quality_test.rs",
+    # Tooling that DOES NOT ship in the .app bundle — reinstall.py
+    # itself runs from the workspace, not from install location, so
+    # changes to it don't affect the running Inputx binary and MUST
+    # NOT force a bundle swap. Same for build.sh / hot-patch scripts,
+    # the workflow YAML, etc. Fixes the self-referential trap where
+    # every whitelist expansion previously triggered a full reinstall.
+    "mac/reinstall.py",
+    "mac/build.sh",
+    "mac/hot-patch-assets.sh",
+    "mac/scripts/",
+    "mac/release.sh",
+    "mac/notarize.sh",
+    "Makefile",
+    ".github/",
+    "docs/",
+    "README.md",
 )
 
 # ─── Output ───────────────────────────────────────────────────────────
