@@ -993,6 +993,21 @@ mod tests {
         );
     }
 
+    /// 2026-07-08 polish: user "haguki 歯茎". Class A add — 歯茎 (gums)
+    /// missing from nihongo library; top-1 was default kana はぐき.
+    /// Added `haguki 歯茎 jukugo 78` (freq matches 歯磨き band).
+    #[test]
+    fn polish_haguki_haguki_kanji_leads() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::JapaneseOnly);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in "haguki".bytes() {
+            let _ = e.handle_letter(b);
+        }
+        let top = e.candidates().first().map(|c| c.word.clone());
+        assert_eq!(top.as_deref(), Some("歯茎"), "haguki #0 = 歯茎");
+    }
+
     /// 2026-06-09 KANJIDIC2 backfill v2: filled single-kanji readings for
     /// every 常用 (grade 1-8) + 人名用 (9-10) char missing from nihongo
     /// (1225 + 841 chars; nihongo single-kanji coverage was ~43%). Flat
