@@ -122,6 +122,7 @@ DATA_ONLY_PREFIXES: tuple[str, ...] = (
     "core/crates/inputx-nihongo-data-kanji/data/",
     "core/crates/inputx-pinyin/data/",
     "core/crates/inputx-wubi/data/",
+    "core/crates/inputx-nihongo/data/",
     "tools/scoring/data/",
     "docs/cell-dicts/",
     # Test-only src files the /polish protocol appends baseline cases
