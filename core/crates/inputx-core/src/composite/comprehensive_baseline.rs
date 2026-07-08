@@ -557,6 +557,10 @@ mod tests {
             // sole top-1. modern_vocab @ freq 60000 → tier 2 = 440k,
             // 忘了 leads and 王磊 falls off top-10 entirely.
             ("wangle", "忘了"),
+            // Polish 2026-07-09: user "zibaoqiduan 自暴其短". Class A add
+            // — user-specified idiom absent from dict; K-best was
+            // returning 自保七段 (nonsense compose). Freq 50000 → tier 2.
+            ("zibaoqiduan", "自暴其短"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
