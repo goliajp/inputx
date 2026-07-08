@@ -506,6 +506,27 @@ mod tests {
             // 云/体育/网/音乐) filled the top-6. Added at freq 80000
             // → tier 2 to outrank the compound cluster.
             ("tengxun", "腾讯"),
+            // Polish 2026-07-08 batch: user "主要科技公司名称要加入
+            // 词库". Class A adds to modern_vocab_v1 (freq >= 50000
+            // → v2 tier 2). 微博 was already in v2 cedict @ tier 4;
+            // modern_vocab dedup skipped my override so tier_overlay
+            // route `weibo\t微博\t2` applied. Wubi 4-code buffers
+            // (guge / didi) still win 平静 / 耕耘 by cross-engine
+            // precedence — pinyin-only mode below returns the tech
+            // company as expected.
+            ("baidu", "百度"),
+            ("huawei", "华为"),
+            ("guge", "谷歌"),
+            ("douyin", "抖音"),
+            ("weibo", "微博"),
+            ("bilibili", "哔哩哔哩"),
+            ("teshila", "特斯拉"),
+            ("gaotong", "高通"),
+            ("wangyi", "网易"),
+            ("souhu", "搜狐"),
+            ("youku", "优酷"),
+            ("iqiyi", "爱奇艺"),
+            ("zhihu", "知乎"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
