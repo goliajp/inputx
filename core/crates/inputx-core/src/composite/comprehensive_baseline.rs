@@ -501,6 +501,11 @@ mod tests {
             // 误以为 absent from v2 words.tsv; top-1 was 无以为报.
             // Added at freq 50000 → tier 2 in modern_vocab_v1.
             ("wuyiwei", "误以为"),
+            // Polish 2026-07-08: user "tengxun 腾讯". Class A add —
+            // 腾讯 absent from v2 while its compounds (腾讯会议/文档/
+            // 云/体育/网/音乐) filled the top-6. Added at freq 80000
+            // → tier 2 to outrank the compound cluster.
+            ("tengxun", "腾讯"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
