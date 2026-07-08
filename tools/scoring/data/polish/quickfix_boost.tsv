@@ -422,3 +422,4 @@ fuyao	敷药	22000	# 2026-07-06 user polish: /polish fuyao 敷药 above 服药
 bingtong	病痛	30000	# 2026-07-06 user polish: /polish bingtong 病痛 > 冰桶 > 丙酮
 bingtong	冰桶	25000	# 2026-07-06 user polish: 冰桶 above 丙酮
 fenzhi	分支	60000	# user 2026-07-08 "分支 第一": v2 cedict 分之 tier 2 was #0; quickfix promotes to tier 1
+chushengzhidu	初生之犊	60000	# user 2026-07-09: 4-char idiom form (常用 sub-idiom of 初生之犊不畏虎); previously in corpus_garbage_filter as "freq=0", resurrected via quickfix per v2 rule
