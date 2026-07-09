@@ -576,6 +576,30 @@ mod tests {
             ("yiruquanwang", "一如既往"),
             ("yijuchengming", "一举成名"),
             ("zilishengsheng", "自力更生"),
+            // Polish 2026-07-09 batch #2: user "常见四字成语应该是有很多的
+            // 你需要找到一个好的来源然后全量补充". Ingested from
+            // pwxcoo/chinese-xinhua idiom.json (~30k), filtered to:
+            //   1. 4-char, all-tier-1 chars (通用规范一级 = 3500),
+            //   2. per-char pinyin syllable validated against v2
+            //      readings.tsv (rejects source data typos, keeps
+            //      polyphone variants),
+            //   3. word appears in v2 modern_freq.tsv @ score ≥ 10000,
+            //   4. missing from v2 words.tsv AND modern_vocab_v1.tsv.
+            // Yield: 14 idioms after ü→v canonicalization + dedup pass.
+            ("damodayang", "大模大样"),
+            ("guaimoguaiyang", "怪模怪样"),
+            ("xiangmoxiangyang", "像模像样"),
+            ("banshengbushu", "半生不熟"),
+            ("lusishuishou", "鹿死谁手"),
+            ("fushangdajia", "富商大贾"),
+            ("gouxuepentou", "狗血喷头"),
+            ("zhanuanhaihan", "乍暖还寒"),
+            ("xiuweixiangtou", "臭味相投"),
+            ("fushangjujia", "富商巨贾"),
+            ("xieloutianji", "泄露天机"),
+            ("laodiaozhongdan", "老调重弹"),
+            ("chousibaojian", "抽丝剥茧"),
+            ("renshengchaolu", "人生朝露"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
