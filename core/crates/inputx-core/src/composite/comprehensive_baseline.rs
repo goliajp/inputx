@@ -600,6 +600,18 @@ mod tests {
             ("laodiaozhongdan", "老调重弹"),
             ("chousibaojian", "抽丝剥茧"),
             ("renshengchaolu", "人生朝露"),
+            // Polish 2026-07-10: polyphone alternate routes for common
+            // 4-char idioms where users mis-type a polyphone char with
+            // the "wrong" reading. E.g. 长治久安 is chángzhìjiǔ'ān but
+            // if user types `zhangzhijiuan` (long=grow, wrong) the idiom
+            // now still lands. 780 alternates via quickfix_boost.tsv
+            // (not modern_vocab — modern_vocab entries aggregate char
+            // freq, would tip-scale 得/大 above 的/大 single-char pins).
+            // Test-pin one from each of the 4 major polyphone classes.
+            ("zhangzhijiuan", "长治久安"),       // 长 cháng→zhǎng
+            ("daichiyijing", "大吃一惊"),        // 大 dà→dài
+            ("hushuibadao", "胡说八道"),         // 说 shuō→shuì
+            ("juedaiduoshu", "绝大多数"),        // 大 dà→dài
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
