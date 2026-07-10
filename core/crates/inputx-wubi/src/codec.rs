@@ -73,13 +73,7 @@ impl Shape {
 /// Wubi 86 末笔识别码: (last stroke, shape) → key letter.
 #[inline]
 pub const fn shibie_ma(stroke: Stroke, shape: Shape) -> u8 {
-    let table: [[u8; 3]; 5] = [
-        [b'g', b'f', b'd'],
-        [b'h', b'j', b'k'],
-        [b't', b'r', b'e'],
-        [b'y', b'u', b'i'],
-        [b'n', b'b', b'v'],
-    ];
+    let table: [[u8; 3]; 5] = [*b"gfd", *b"hjk", *b"tre", *b"yui", *b"nbv"];
     let s = stroke as usize - 1;
     let p = shape as usize - 1;
     table[s][p]

@@ -139,7 +139,7 @@ impl L0Inner {
             .sum();
         let vocab: u64 = {
             let mut seen = HashMap::<&str, ()>::with_capacity(self.user_bigram.len());
-            for ((_, c), _) in self.user_bigram.iter() {
+            for (_, c) in self.user_bigram.keys() {
                 seen.insert(c.as_str(), ());
             }
             seen.len() as u64
