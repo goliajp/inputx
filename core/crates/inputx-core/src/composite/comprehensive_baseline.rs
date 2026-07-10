@@ -608,10 +608,10 @@ mod tests {
             // (not modern_vocab — modern_vocab entries aggregate char
             // freq, would tip-scale 得/大 above 的/大 single-char pins).
             // Test-pin one from each of the 4 major polyphone classes.
-            ("zhangzhijiuan", "长治久安"),       // 长 cháng→zhǎng
-            ("daichiyijing", "大吃一惊"),        // 大 dà→dài
-            ("hushuibadao", "胡说八道"),         // 说 shuō→shuì
-            ("juedaiduoshu", "绝大多数"),        // 大 dà→dài
+            ("zhangzhijiuan", "长治久安"), // 长 cháng→zhǎng
+            ("daichiyijing", "大吃一惊"),  // 大 dà→dài
+            ("hushuibadao", "胡说八道"),   // 说 shuō→shuì
+            ("juedaiduoshu", "绝大多数"),  // 大 dà→dài
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
@@ -1825,6 +1825,31 @@ mod tests {
         if !failures.is_empty() {
             panic!(
                 "{} jianma-cleanup cases failed:\n{}",
+                failures.len(),
+                failures.join("\n")
+            );
+        }
+    }
+
+    /// Polish-log 2026-07-10: user flagged shej candidates polluted by
+    /// dogfood article-segment fragments ("这种垃圾短句怎么进了词库").
+    /// Root cause: A147-era ingest dumped clause slices into
+    /// modern_vocab_v1.tsv at flat freq 30000. Phase-1 sweep audited
+    /// all >=5-hanzi rows per-row (1611 rows, 1454 deleted, logged to
+    /// corpus_garbage_filter_v1.tsv). These fragments must never
+    /// resurface.
+    #[test]
+    fn polish_shej_dogfood_fragments_removed() {
+        let top10 = mixed_top10(b"shej");
+        let mut failures = Vec::new();
+        for bad in &["涉及多个政府部门", "涉及本部门的政务数据校核申请"] {
+            if top10.iter().any(|w| w == bad) {
+                failures.push(format!("  shej: {bad} still surfaces; top10={top10:?}"));
+            }
+        }
+        if !failures.is_empty() {
+            panic!(
+                "{} shej dogfood-fragment cases failed:\n{}",
                 failures.len(),
                 failures.join("\n")
             );
