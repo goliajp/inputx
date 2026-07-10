@@ -936,7 +936,7 @@ mod tests {
         assert!(
             !cands.iter().any(|w| w == "曳光弹"),
             "曳光弹 must not appear for jixu — its reading is yeguangdan. Got candidates: {:?}",
-            &cands.iter().take(10).collect::<Vec<_>>()
+            cands.iter().take(10).collect::<Vec<_>>()
         );
     }
 
