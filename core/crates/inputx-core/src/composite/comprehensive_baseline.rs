@@ -1713,6 +1713,22 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-10): "chongshi 重试 第二".
+    /// 重试 sat #3 behind 冲蚀/重拾. Pair-boost in quickfix_boost
+    /// (充实 60000 / 重试 50000) — same winner-take-all workaround as
+    /// the qingjiao polish — keeps 充实 #0 and lands 重试 #1.
+    #[test]
+    fn polish_chongshi_chongshi_second() {
+        let top10 = mixed_top10("chongshi".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("充实").expect("充实 missing from chongshi top10");
+        let b = pos("重试").expect("重试 missing from chongshi top10");
+        assert!(
+            a == 0 && b == 1,
+            "chongshi: expected 充实 #0, 重试 #1; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-10): "xiangcai 湘菜".
     /// 湘菜 was absent from v2 words.tsv (buffer returned 香菜 only).
     /// modern_vocab @ 15000 → tier 4 lands it #1 behind the more
