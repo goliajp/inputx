@@ -612,6 +612,11 @@ mod tests {
             ("daichiyijing", "大吃一惊"),  // 大 dà→dài
             ("hushuibadao", "胡说八道"),   // 说 shuō→shuì
             ("juedaiduoshu", "绝大多数"),  // 大 dà→dài
+            // Polish 2026-07-10: user "haidilao 海底捞". Class A add —
+            // 海底捞 (hotpot chain) absent everywhere; buffer returned
+            // ZERO candidates (not even a K-best compose). modern_vocab
+            // @ freq 60000 → tier 2.
+            ("haidilao", "海底捞"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
