@@ -573,9 +573,14 @@ mod tests {
             ("dacidabei", "大慈大悲"),
             ("chunhuaqiushi", "春华秋实"),
             ("chushengzhidu", "初生之犊"),
-            ("yiruquanwang", "一如既往"),
+            // 2026-07-10 vocab-audit P2: the 07-09 batch rows for
+            // 一如既往/自力更生 carried corrupt pinyin (yiruquanwang /
+            // zilishengsheng — not typos a typer would make). Rows
+            // replaced with correct-pinyin modern_vocab rows; pins
+            // updated to match.
+            ("yirujiwang", "一如既往"),
             ("yijuchengming", "一举成名"),
-            ("zilishengsheng", "自力更生"),
+            ("ziligengsheng", "自力更生"),
             // Polish 2026-07-09 batch #2: user "常见四字成语应该是有很多的
             // 你需要找到一个好的来源然后全量补充". Ingested from
             // pwxcoo/chinese-xinhua idiom.json (~30k), filtered to:
@@ -1900,7 +1905,14 @@ mod tests {
     fn polish_shej_dogfood_fragments_removed() {
         let top10 = mixed_top10(b"shej");
         let mut failures = Vec::new();
-        for bad in &["涉及多个政府部门", "涉及本部门的政务数据校核申请"] {
+        // P2 extension (same sweep, 2-4 hanzi classes): 社均 is a
+        // stats-jargon slice, 舌尖上 a 舌尖上的中国 title slice.
+        for bad in &[
+            "涉及多个政府部门",
+            "涉及本部门的政务数据校核申请",
+            "社均",
+            "舌尖上",
+        ] {
             if top10.iter().any(|w| w == bad) {
                 failures.push(format!("  shej: {bad} still surfaces; top10={top10:?}"));
             }
