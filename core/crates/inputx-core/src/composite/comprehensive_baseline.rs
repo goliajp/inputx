@@ -617,6 +617,10 @@ mod tests {
             // ZERO candidates (not even a K-best compose). modern_vocab
             // @ freq 60000 → tier 2.
             ("haidilao", "海底捞"),
+            // Polish 2026-07-10: user "latiao 辣条". Verified already
+            // correct at probe time (library digested freq 23575, sole
+            // candidate at #0) — no data change; pin so it can't drift.
+            ("latiao", "辣条"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
