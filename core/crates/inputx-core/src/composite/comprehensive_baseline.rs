@@ -1713,6 +1713,22 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-10): "xiangcai 湘菜".
+    /// 湘菜 was absent from v2 words.tsv (buffer returned 香菜 only).
+    /// modern_vocab @ 15000 → tier 4 lands it #1 behind the more
+    /// common 香菜 (30000 → tier 3 overshot to #0 in probe).
+    #[test]
+    fn polish_xiangcai_xiangcai_behind_xiangcai() {
+        let top10 = mixed_top10("xiangcai".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("香菜").expect("香菜 missing from xiangcai top10");
+        let b = pos("湘菜").expect("湘菜 missing from xiangcai top10");
+        assert!(
+            a == 0 && b == 1,
+            "xiangcai: expected 香菜 #0, 湘菜 #1; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-10): "qingjiao 青椒第二".
     /// 青椒 sat at #3 behind 倾角/清剿 (v2 within-tier weights don't
     /// track library freq). quickfix promotion is winner-take-all at
