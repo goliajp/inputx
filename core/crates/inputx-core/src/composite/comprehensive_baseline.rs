@@ -1713,6 +1713,23 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-10): "qingjiao 青椒第二".
+    /// 青椒 sat at #3 behind 倾角/清剿 (v2 within-tier weights don't
+    /// track library freq). quickfix promotion is winner-take-all at
+    /// any value, so a pair-boost holds the order by data: 请教 60000
+    /// stays #0, 青椒 50000 lands #1.
+    #[test]
+    fn polish_qingjiao_qingjiao_second() {
+        let top10 = mixed_top10("qingjiao".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("请教").expect("请教 missing from qingjiao top10");
+        let b = pos("青椒").expect("青椒 missing from qingjiao top10");
+        assert!(
+            a == 0 && b == 1,
+            "qingjiao: expected 请教 #0, 青椒 #1; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-06-26): "xuxian 虚线 续弦 都要
     /// 在许仙前面". 许仙 (白蛇传 proper noun) base 17781 was crowding
     /// #0 over the common-usage 虚线 (16059) and 续弦 (8669).
