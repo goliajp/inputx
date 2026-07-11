@@ -1794,6 +1794,30 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-11): "baiping 白屏
+    /// heiping 黑屏". Both tech terms absent from v2 words.tsv
+    /// (白屏 absent everywhere; 黑屏 in v1 library @ 19194 but the
+    /// heiping buffer returned NOTHING). modern_vocab @ 15000 each:
+    /// 白屏 lands #1 behind the common 摆平 (tier 4, 21611); 黑屏
+    /// is the only heiping candidate → #0.
+    #[test]
+    fn polish_baiping_heiping_screen_terms() {
+        let top10 = mixed_top10("baiping".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("摆平").expect("摆平 missing from baiping top10");
+        let b = pos("白屏").expect("白屏 missing from baiping top10");
+        assert!(
+            a == 0 && b == 1,
+            "baiping: expected 摆平 #0, 白屏 #1; got top10={top10:?}"
+        );
+        let top10 = mixed_top10("heiping".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("黑屏"),
+            "heiping: expected 黑屏 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-11): "tuichu 退出 > 推出".
     /// 推出 led by a hair (404844 vs 404742 — v2 within-tier weights
     /// don't track library freq). quickfix_boost lifts 退出 to #0.
