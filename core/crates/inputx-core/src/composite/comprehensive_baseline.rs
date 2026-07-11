@@ -1794,6 +1794,21 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-11): "tuichu 退出 > 推出".
+    /// 推出 led by a hair (404844 vs 404742 — v2 within-tier weights
+    /// don't track library freq). quickfix_boost lifts 退出 to #0.
+    #[test]
+    fn polish_tuichu_tuichu_first() {
+        let top10 = mixed_top10("tuichu".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("退出").expect("退出 missing from tuichu top10");
+        let b = pos("推出").expect("推出 missing from tuichu top10");
+        assert!(
+            a == 0 && b == 1,
+            "tuichu: expected 退出 #0, 推出 #1; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-11): "jinlai 进来 第一".
     /// 近来 sat #0 over 进来 despite 进来's higher library freq
     /// (36093 vs 26802 — v2 within-tier weights don't track library
