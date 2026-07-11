@@ -1750,6 +1750,35 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-11): "shoujian 收件第一".
+    /// 收件 was absent from v2 words.tsv (buffer returned 收监/兽奸/
+    /// 手贱 only) despite library freq 19224 — same gap shape as the
+    /// xiangcai polish. modern_vocab @ 30000 → tier 3 lands it #0
+    /// above cedict-tier-4 收监.
+    #[test]
+    fn polish_shoujian_shoujian_first() {
+        let top10 = mixed_top10("shoujian".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("收件").expect("收件 missing from shoujian top10");
+        assert!(
+            a == 0,
+            "shoujian: expected 收件 #0; got top10={top10:?}"
+        );
+    }
+
+    /// Class D2 polish (user report 2026-07-11): "兽奸删除（太小众
+    /// 恶劣了）". Real cedict word but vile + niche — exclusions_v1
+    /// hides it from shoujian display; stays in v2 words.tsv so
+    /// nothing else regresses.
+    #[test]
+    fn polish_shoujian_shoujian_hidden() {
+        let top10 = mixed_top10("shoujian".as_bytes());
+        assert!(
+            !top10.iter().any(|x| x == "兽奸"),
+            "shoujian: 兽奸 must not appear; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-11): "jinlai 进来 第一".
     /// 近来 sat #0 over 进来 despite 进来's higher library freq
     /// (36093 vs 26802 — v2 within-tier weights don't track library
