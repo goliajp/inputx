@@ -34,10 +34,10 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-QUICKFIX_PATH = REPO_ROOT / "tools/scoring/data/polish_reports/quickfix_boost.tsv"
+QUICKFIX_PATH = REPO_ROOT / "tools/scoring/data/polish/quickfix_boost.tsv"
 MODERN_PATH = REPO_ROOT / "tools/scoring/data/polish/modern_vocab_v1.tsv"
 WUBI_PHRASES_PATH = REPO_ROOT / "core/crates/inputx-wubi/data/phrases.txt"
-PINYIN_WEIGHTS_PATH = REPO_ROOT / "core/crates/inputx-pinyin/data/weights/weights.tsv"
+PINYIN_WEIGHTS_PATH = REPO_ROOT / "core/crates/inputx-pinyin/data/library.tsv"
 
 
 def run_cmd(cmd: list[str], cwd: Path | None = None, capture: bool = False) -> str:
