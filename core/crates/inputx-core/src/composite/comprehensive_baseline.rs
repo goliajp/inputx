@@ -1750,6 +1750,22 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-11): "jinlai 进来 第一".
+    /// 近来 sat #0 over 进来 despite 进来's higher library freq
+    /// (36093 vs 26802 — v2 within-tier weights don't track library
+    /// freq). quickfix_boost lifts 进来 to 60000 → #0.
+    #[test]
+    fn polish_jinlai_jinlai_first() {
+        let top10 = mixed_top10("jinlai".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("进来").expect("进来 missing from jinlai top10");
+        let b = pos("近来").expect("近来 missing from jinlai top10");
+        assert!(
+            a == 0 && b == 1,
+            "jinlai: expected 进来 #0, 近来 #1; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-10): "qingjiao 青椒第二".
     /// 青椒 sat at #3 behind 倾角/清剿 (v2 within-tier weights don't
     /// track library freq). quickfix promotion is winner-take-all at
