@@ -1766,6 +1766,21 @@ mod tests {
         );
     }
 
+    /// Class D2 polish (user report 2026-07-11): "shoujiao 兽交 手交
+    /// 这种词删了". Same shape as the shoujian 兽奸 case — cedict
+    /// ingest rows, modern_freq 0, vile + niche — exclusions_v1
+    /// hides both from shoujiao display.
+    #[test]
+    fn polish_shoujiao_vile_terms_hidden() {
+        let top10 = mixed_top10("shoujiao".as_bytes());
+        for w in ["兽交", "手交"] {
+            assert!(
+                !top10.iter().any(|x| x == w),
+                "shoujiao: {w} must not appear; got top10={top10:?}"
+            );
+        }
+    }
+
     /// Class D2 polish (user report 2026-07-11): "兽奸删除（太小众
     /// 恶劣了）". Real cedict word but vile + niche — exclusions_v1
     /// hides it from shoujian display; stays in v2 words.tsv so
