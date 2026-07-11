@@ -1818,6 +1818,21 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-11): "luanma 乱码 > 乱麻".
+    /// 乱麻 led (base 18678 vs 16953). quickfix_boost 20545 (top base
+    /// + 10% margin, pick-helper derived) lifts 乱码 to #0.
+    #[test]
+    fn polish_luanma_luanma_first() {
+        let top10 = mixed_top10("luanma".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("乱码").expect("乱码 missing from luanma top10");
+        let b = pos("乱麻").expect("乱麻 missing from luanma top10");
+        assert!(
+            a == 0 && b == 1,
+            "luanma: expected 乱码 #0, 乱麻 #1; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-11): "tuichu 退出 > 推出".
     /// 推出 led by a hair (404844 vs 404742 — v2 within-tier weights
     /// don't track library freq). quickfix_boost lifts 退出 to #0.
