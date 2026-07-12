@@ -1818,6 +1818,27 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-12): "laduzi 拉肚子 要在
+    /// 日语前". In Mixed+JP the mechanical kana renders (ァヅジ/ぁづじ)
+    /// out-tiered 拉肚子 (base 26606 → mid tier). quickfix 60000
+    /// lifts its natural z-score tier above JP mechanical kana.
+    #[test]
+    fn polish_laduzi_laduzi_above_jp_kana() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"laduzi" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e.candidates().iter().take(10).map(|c| c.word.clone()).collect();
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("拉肚子"),
+            "laduzi Mixed+JP: expected 拉肚子 #0 above JP kana; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-12): "yingle 赢了".
     /// 赢了 was absent from every data surface — the buffer only
     /// returned a fuzzy 营垒 (yinglei). verb+了 units are legit dict
