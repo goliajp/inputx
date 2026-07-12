@@ -1818,6 +1818,33 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-12): "nanwei 难为 第一".
+    /// 南纬 led despite lower library freq (17786 vs 24426).
+    /// quickfix_boost 19564 (pick-helper derived) lifts 难为 to #0.
+    #[test]
+    fn polish_nanwei_nanwei_first() {
+        let top10 = mixed_top10("nanwei".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("难为").expect("难为 missing from nanwei top10");
+        let b = pos("南纬").expect("南纬 missing from nanwei top10");
+        assert!(
+            a == 0 && b == 1,
+            "nanwei: expected 难为 #0, 南纬 #1; got top10={top10:?}"
+        );
+    }
+
+    /// Class D2 polish (user report 2026-07-12): "nanwei 男卫 删掉".
+    /// cedict ingest row, modern_freq 0 — same shape as the shoujian/
+    /// shoujiao cases. exclusions_v1 hides it from nanwei display.
+    #[test]
+    fn polish_nanwei_nanwei_hidden() {
+        let top10 = mixed_top10("nanwei".as_bytes());
+        assert!(
+            !top10.iter().any(|x| x == "男卫"),
+            "nanwei: 男卫 must not appear; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-12): "laduzi 拉肚子 要在
     /// 日语前". In Mixed+JP the mechanical kana renders (ァヅジ/ぁづじ)
     /// out-tiered 拉肚子 (base 26606 → mid tier). quickfix 60000
