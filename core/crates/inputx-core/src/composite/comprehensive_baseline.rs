@@ -1818,6 +1818,21 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-12): "xiejiao 斜角第一".
+    /// 斜角 sat #2 behind 邪教/歇脚. quickfix_boost 19276 (top base
+    /// 17524 + 10% margin, pick-helper derived) lifts it to #0.
+    #[test]
+    fn polish_xiejiao_xiejiao_first() {
+        let top10 = mixed_top10("xiejiao".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("斜角").expect("斜角 missing from xiejiao top10");
+        let b = pos("邪教").expect("邪教 missing from xiejiao top10");
+        assert!(
+            a == 0 && b == 1,
+            "xiejiao: expected 斜角 #0, 邪教 #1; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-12): "nanwei 难为 第一".
     /// 南纬 led despite lower library freq (17786 vs 24426).
     /// quickfix_boost 19564 (pick-helper derived) lifts 难为 to #0.
