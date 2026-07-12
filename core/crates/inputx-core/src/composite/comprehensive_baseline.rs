@@ -1818,6 +1818,21 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-12): "yingle 赢了".
+    /// 赢了 was absent from every data surface — the buffer only
+    /// returned a fuzzy 营垒 (yinglei). verb+了 units are legit dict
+    /// entries (对了/duile precedent in both v1 library and v2
+    /// cedict). modern_vocab @ 15000 → #0 (no exact competitor).
+    #[test]
+    fn polish_yingle_yingle_first() {
+        let top10 = mixed_top10("yingle".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("赢了"),
+            "yingle: expected 赢了 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-12): "jianjie 间接 > 简洁
     /// > 简介 > 见解". Was [间接, 见解, 简介, 简洁]. quickfix is
     /// winner-take-all, so a chain-boost (间接 60000 / 简洁 50000 /
