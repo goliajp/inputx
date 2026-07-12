@@ -1866,6 +1866,21 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-12): "guazhe 挂着".
+    /// 挂着 was absent from every data surface — the guazhe buffer
+    /// returned NOTHING (only 惦挂着 exists in v1 library). verb+着
+    /// units are legit dict entries (看着 34440 precedent).
+    /// modern_vocab @ 15000 → #0 (no competitor).
+    #[test]
+    fn polish_guazhe_guazhe_first() {
+        let top10 = mixed_top10("guazhe".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("挂着"),
+            "guazhe: expected 挂着 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-12): "yingle 赢了".
     /// 赢了 was absent from every data surface — the buffer only
     /// returned a fuzzy 营垒 (yinglei). verb+了 units are legit dict
