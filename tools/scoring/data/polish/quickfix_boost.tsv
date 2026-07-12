@@ -1212,3 +1212,6 @@ chongshi	重试	50000	# user 2026-07-10 "重试 第二": lift to #1 above 冲蚀
 jinlai	进来	60000	# user 2026-07-11 "进来 第一": lift above 近来
 tuichu	退出	60000	# user 2026-07-11 "退出 > 推出": lift above 推出
 luanma	乱码	20545	# user pick | top=乱麻 base=16953
+jianjie	间接	60000	# user 2026-07-12 "间接>简洁>简介>见解": chain-boost, 间接 stays #0
+jianjie	简洁	50000	# user 2026-07-12 "间接>简洁>简介>见解": lift to #1
+jianjie	简介	40000	# user 2026-07-12 "间接>简洁>简介>见解": lift to #2, 见解 falls to #3

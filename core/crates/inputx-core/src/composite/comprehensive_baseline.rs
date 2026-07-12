@@ -1818,6 +1818,25 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-12): "jianjie 间接 > 简洁
+    /// > 简介 > 见解". Was [间接, 见解, 简介, 简洁]. quickfix is
+    /// winner-take-all, so a chain-boost (间接 60000 / 简洁 50000 /
+    /// 简介 40000, qingjiao precedent) pins the top-3; unboosted
+    /// 见解 falls to #3.
+    #[test]
+    fn polish_jianjie_full_order() {
+        let top10 = mixed_top10("jianjie".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("间接").expect("间接 missing from jianjie top10");
+        let b = pos("简洁").expect("简洁 missing from jianjie top10");
+        let c = pos("简介").expect("简介 missing from jianjie top10");
+        let d = pos("见解").expect("见解 missing from jianjie top10");
+        assert!(
+            a == 0 && b == 1 && c == 2 && d == 3,
+            "jianjie: expected 间接>简洁>简介>见解 at #0..#3; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-11): "luanma 乱码 > 乱麻".
     /// 乱麻 led (base 18678 vs 16953). quickfix_boost 20545 (top base
     /// + 10% margin, pick-helper derived) lifts 乱码 to #0.
