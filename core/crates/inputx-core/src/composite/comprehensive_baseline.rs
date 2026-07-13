@@ -2012,6 +2012,29 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-13): "gaizhu 盖住
+    /// chuangwai 窗外". Both v1-present / v2-missing (盖住 19223,
+    /// 窗外 27935). 窗外 additionally needed a 回捞: the 2026-07-10
+    /// modern-vocab audit P2 mistagged it "frag-grammar" and its
+    /// corpus_garbage_filter row was killing BOTH the v1 dict row
+    /// (build-time drop) and the v2 display (exclusions = v1 ∪
+    /// garbage filter) — the false-positive record was removed.
+    #[test]
+    fn polish_gaizhu_chuangwai_present() {
+        let top10 = mixed_top10("gaizhu".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("盖住"),
+            "gaizhu: expected 盖住 #0; got top10={top10:?}"
+        );
+        let top10 = mixed_top10("chuangwai".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("窗外"),
+            "chuangwai: expected 窗外 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-13): "fazhen 法阵".
     /// 法阵 was absent from every data surface (v1 library has only
     /// low-freq 发疹/发针; the buffer surfaced a fuzzy 法政).
