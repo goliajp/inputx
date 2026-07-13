@@ -1842,6 +1842,36 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-13): "zuowei 作为 > 座位".
+    /// 座位 (32420) led over the far more common 作为 (41456) via
+    /// tier ordering. quickfix_boost 35662 (座位 base + 10% margin,
+    /// pick-helper derived) lifts 作为 to #0.
+    #[test]
+    fn polish_zuowei_zuowei_first() {
+        let top10 = mixed_top10("zuowei".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("作为").expect("作为 missing from zuowei top10");
+        let b = pos("座位").expect("座位 missing from zuowei top10");
+        assert!(
+            a == 0 && b == 1,
+            "zuowei: expected 作为 #0, 座位 #1; got top10={top10:?}"
+        );
+    }
+
+    /// Class D polish (user report 2026-07-13): "做为不是词要删".
+    /// Nonstandard variant of 作为 — D1-deleted from v1 library
+    /// (+ garbage filter record); the v2 cedict ingest row is
+    /// suppressed via exclusions_v1 per the ingest-artifact
+    /// precedent.
+    #[test]
+    fn polish_zuowei_zuowei_variant_gone() {
+        let top10 = mixed_top10("zuowei".as_bytes());
+        assert!(
+            !top10.iter().any(|x| x == "做为"),
+            "zuowei: 做为 must not appear; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-13): "qingliang 轻量 >
     /// 清凉，清亮不是个词". 轻量 sat #2. quickfix_boost 27385 (清凉
     /// base 24896 + 10% margin, pick-helper derived) lifts it to #0;
