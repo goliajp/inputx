@@ -2012,6 +2012,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-13): "fazhen 法阵".
+    /// 法阵 was absent from every data surface (v1 library has only
+    /// low-freq 发疹/发针; the buffer surfaced a fuzzy 法政).
+    /// modern_vocab @ 15000 → #0 (no exact competitor).
+    #[test]
+    fn polish_fazhen_fazhen_first() {
+        let top10 = mixed_top10("fazhen".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("法阵"),
+            "fazhen: expected 法阵 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-13): "bianjing 辩经".
     /// 辩经 was absent from every data surface (v1 library has only
     /// 变靓/汴京/边境). modern_vocab @ 15000 → tier 4, lands #1
