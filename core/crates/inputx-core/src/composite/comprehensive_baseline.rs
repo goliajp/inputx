@@ -1901,6 +1901,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-14): "huacaoshumu 花草树木".
+    /// 花草树木 in v1 library @ 7223 but absent from v2 words.tsv —
+    /// the buffer only returned the composed 花草数目. modern_vocab
+    /// @ 15000 → #0 (no exact competitor).
+    #[test]
+    fn polish_huacaoshumu_present() {
+        let top10 = mixed_top10("huacaoshumu".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("花草树木"),
+            "huacaoshumu: expected 花草树木 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-14): "shumu 树木第一".
     /// 数目 (v2 tier ordering) led over 树木. quickfix_boost 26877
     /// (数目 base + 10% margin, pick-helper derived) lifts 树木 to #0.
