@@ -1818,6 +1818,33 @@ mod tests {
         );
     }
 
+    /// Pin (user report 2026-07-12): "shiyishi 试一试". Verified
+    /// already #0 in both Mixed and Mixed+JP at report time — no data
+    /// change; this test pins it against drift. (The report's
+    /// screenshot was the shiyashi buffer — that JP compose pollution
+    /// is a framework gate gap, tracked separately.)
+    #[test]
+    fn polish_shiyishi_shiyishi_first() {
+        let top10 = mixed_top10("shiyishi".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("试一试"),
+            "shiyishi: expected 试一试 #0; got top10={top10:?}"
+        );
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"shiyishi" {
+            let _ = e.handle_letter(*b);
+        }
+        assert_eq!(
+            e.candidates().first().map(|c| c.word.as_str()),
+            Some("试一试"),
+            "shiyishi Mixed+JP: expected 试一试 #0"
+        );
+    }
+
     /// Class B polish (user report 2026-07-12): "xiejiao 斜角第一".
     /// 斜角 sat #2 behind 邪教/歇脚. quickfix_boost 19276 (top base
     /// 17524 + 10% margin, pick-helper derived) lifts it to #0.
