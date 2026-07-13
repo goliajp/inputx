@@ -2012,6 +2012,42 @@ mod tests {
         );
     }
 
+    /// Garbage-filter recall sweep (user directive 2026-07-13, applied
+    /// 2026-07-14): per-row LLM re-review of all 17,800 audit-P1/P2
+    /// filter rows; 691 false positives recalled (see
+    /// docs/pinyin-gf-recall-2026-07-14/). Representatives pinned:
+    /// lib>0 double-kill victims (木村/出去玩), lib=0 re-adds
+    /// (咋整/并没有), and the ambiguous-segmentation guard — 立案
+    /// resurfaced by the recall must stay BELOW 脸/连 (tier_overlay 5
+    /// + stale dogfood quickfix removed).
+    #[test]
+    fn gf_recall_sweep_representatives() {
+        for (buf, expect) in [
+            ("mucun", "木村"),
+            ("chuquwan", "出去玩"),
+            ("zazheng", "咋整"),
+            ("bingmeiyou", "并没有"),
+        ] {
+            let top10 = mixed_top10(buf.as_bytes());
+            assert_eq!(
+                top10.first().map(String::as_str),
+                Some(expect),
+                "{buf}: expected {expect} #0; got top10={top10:?}"
+            );
+        }
+        let top10 = mixed_top10("lian".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("脸"),
+            "lian: expected 脸 #0; got top10={top10:?}"
+        );
+        let lian_pos = top10.iter().position(|x| x == "立案");
+        assert!(
+            lian_pos.is_none_or(|p| p >= 3),
+            "lian: 立案 must not crowd top-3; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-13): "gaizhu 盖住
     /// chuangwai 窗外". Both v1-present / v2-missing (盖住 19223,
     /// 窗外 27935). 窗外 additionally needed a 回捞: the 2026-07-10
