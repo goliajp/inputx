@@ -1760,10 +1760,7 @@ mod tests {
         let top10 = mixed_top10("shoujian".as_bytes());
         let pos = |w: &str| top10.iter().position(|x| x == w);
         let a = pos("收件").expect("收件 missing from shoujian top10");
-        assert!(
-            a == 0,
-            "shoujian: expected 收件 #0; got top10={top10:?}"
-        );
+        assert!(a == 0, "shoujian: expected 收件 #0; got top10={top10:?}");
     }
 
     /// Class D2 polish (user report 2026-07-11): "shoujiao 兽交 手交
@@ -1900,7 +1897,12 @@ mod tests {
         for b in b"laduzi" {
             let _ = e.handle_letter(*b);
         }
-        let top10: Vec<String> = e.candidates().iter().take(10).map(|c| c.word.clone()).collect();
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
         assert_eq!(
             top10.first().map(String::as_str),
             Some("拉肚子"),
