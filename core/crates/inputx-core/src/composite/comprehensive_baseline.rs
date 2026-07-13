@@ -1982,6 +1982,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-13): "mobao 墨宝".
+    /// 墨宝 in v1 library @ 16054 but absent from v2 words.tsv — the
+    /// buffer only returned the composed junk 摸吧哦 (same gap shape
+    /// as 黑屏/武僧/躲过去). modern_vocab @ 15000 → #0.
+    #[test]
+    fn polish_mobao_mobao_first() {
+        let top10 = mixed_top10("mobao".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("墨宝"),
+            "mobao: expected 墨宝 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-13): "duoguoqu 躲过去".
     /// 躲过去 in v1 library @ 10888 but absent from v2 words.tsv —
     /// the buffer returned NOTHING (same gap shape as 黑屏/武僧).
