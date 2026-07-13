@@ -1901,6 +1901,21 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-14): "shumu 树木第一".
+    /// 数目 (v2 tier ordering) led over 树木. quickfix_boost 26877
+    /// (数目 base + 10% margin, pick-helper derived) lifts 树木 to #0.
+    #[test]
+    fn polish_shumu_shumu_first() {
+        let top10 = mixed_top10("shumu".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("树木").expect("树木 missing from shumu top10");
+        let b = pos("数目").expect("数目 missing from shumu top10");
+        assert!(
+            a == 0 && b == 1,
+            "shumu: expected 树木 #0, 数目 #1; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-13): "chongqi 重启 > 充气".
     /// 充气 led by a hair (402477 vs 401818). quickfix_boost 24533
     /// (top base + 10% margin, pick-helper derived) lifts 重启 to #0.
