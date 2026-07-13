@@ -1910,6 +1910,34 @@ mod tests {
         );
     }
 
+    /// Framework fix (user report 2026-07-12, shiyashi screenshot):
+    /// compose_sentence expanded EVERY single-kanji homophone per
+    /// slot (始/指/此/歯/私/資 all read shi) → ~30 cartesian products
+    /// (始や始/始や指/...) flooding the window. Fix: single-kanji
+    /// compose slots take the top-freq homophone only (japanese/
+    /// compose.rs + facade twin). Genuine composes (私は学生です,
+    /// 先生は) are jukugo-slot driven and unaffected.
+    #[test]
+    fn jp_compose_single_kanji_slots_no_cartesian_flood() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"shiyashi" {
+            let _ = e.handle_letter(*b);
+        }
+        let words: Vec<String> = e.candidates().iter().map(|c| c.word.clone()).collect();
+        let is_kanji = |ch: char| ('一'..='鿿').contains(&ch);
+        let spliced = words
+            .iter()
+            .filter(|w| w.contains('や') && w.chars().next().is_some_and(is_kanji))
+            .count();
+        assert!(
+            spliced <= 2,
+            "shiyashi Mixed+JP: expected ≤2 kanji-や-kanji compose products, got {spliced}: {words:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-12): "guazhe 挂着".
     /// 挂着 was absent from every data surface — the guazhe buffer
     /// returned NOTHING (only 惦挂着 exists in v1 library). verb+着

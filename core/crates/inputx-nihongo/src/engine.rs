@@ -324,6 +324,18 @@ pub fn kanji_suffixes() -> &'static [(&'static str, &'static str)] {
         .as_slice()
 }
 
+/// Single-kanji slot lookup for compose paths: top-freq homophone
+/// ONLY. Full expansion (始/指/此/歯/私/資 all read `shi`) multiplies
+/// across compose slots into a cartesian flood — user report
+/// 2026-07-12, `shiyashi` → 始や始/始や指/指や始/... ~30 products
+/// crowding the candidate window. One kanji per reading per slot is
+/// what a converter would actually guess; the rest were never
+/// plausible sentence pieces. Jukugo slots stay fully expanded —
+/// multi-char dict words are real and bounded.
+fn top_kanji_by_reading(reading: &str) -> Option<(char, u32)> {
+    kanji::lookup_by_reading(reading).max_by_key(|&(_, f)| f)
+}
+
 /// Single-segment compose: (content_word, particle/copula_suffix).
 /// Returns (composed_word_string, content_freq) pairs.
 ///
@@ -339,7 +351,7 @@ fn compose_one_segment(buffer: &str) -> Vec<(String, u32)> {
             for (compound, freq) in jukugo::lookup_by_reading(prefix) {
                 out.push((format!("{compound}{s_kana}"), freq));
             }
-            for (ch, freq) in kanji::lookup_by_reading(prefix) {
+            if let Some((ch, freq)) = top_kanji_by_reading(prefix) {
                 out.push((format!("{ch}{s_kana}"), freq));
             }
         }
@@ -397,7 +409,7 @@ fn compose_sentence(buffer: &str) -> Vec<Candidate> {
         for (compound, freq) in jukugo::lookup_by_reading(right) {
             right_hits.push((compound.to_string(), freq));
         }
-        for (ch, freq) in kanji::lookup_by_reading(right) {
+        if let Some((ch, freq)) = top_kanji_by_reading(right) {
             right_hits.push((ch.to_string(), freq));
         }
         for (lw, lf) in &lefts {
