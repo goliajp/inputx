@@ -1938,6 +1938,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-13): "wuseng 武僧".
+    /// 武僧 in v1 library @ 12030 but absent from v2 words.tsv —
+    /// the wuseng buffer returned NOTHING (same gap shape as 黑屏).
+    /// modern_vocab @ 15000 → #0 (no competitor).
+    #[test]
+    fn polish_wuseng_wuseng_first() {
+        let top10 = mixed_top10("wuseng".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("武僧"),
+            "wuseng: expected 武僧 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-12): "guazhe 挂着".
     /// 挂着 was absent from every data surface — the guazhe buffer
     /// returned NOTHING (only 惦挂着 exists in v1 library). verb+着
