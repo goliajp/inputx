@@ -1982,6 +1982,22 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-13): "bianjing 辩经".
+    /// 辩经 was absent from every data surface (v1 library has only
+    /// 变靓/汴京/边境). modern_vocab @ 15000 → tier 4, lands #1
+    /// behind the common 边境 (27835) per the 白屏 precedent.
+    #[test]
+    fn polish_bianjing_bianjing_present() {
+        let top10 = mixed_top10("bianjing".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("边境").expect("边境 missing from bianjing top10");
+        let b = pos("辩经").expect("辩经 missing from bianjing top10");
+        assert!(
+            a == 0 && b == 1,
+            "bianjing: expected 边境 #0, 辩经 #1; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-13): "mobao 墨宝".
     /// 墨宝 in v1 library @ 16054 but absent from v2 words.tsv — the
     /// buffer only returned the composed junk 摸吧哦 (same gap shape
