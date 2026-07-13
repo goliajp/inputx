@@ -1842,6 +1842,35 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-13): "qingliang 轻量 >
+    /// 清凉，清亮不是个词". 轻量 sat #2. quickfix_boost 27385 (清凉
+    /// base 24896 + 10% margin, pick-helper derived) lifts it to #0;
+    /// 清凉 follows at #1.
+    #[test]
+    fn polish_qingliang_qingliang_first() {
+        let top10 = mixed_top10("qingliang".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("轻量").expect("轻量 missing from qingliang top10");
+        let b = pos("清凉").expect("清凉 missing from qingliang top10");
+        assert!(
+            a == 0 && b == 1,
+            "qingliang: expected 轻量 #0, 清凉 #1; got top10={top10:?}"
+        );
+    }
+
+    /// Class D2 polish (user report 2026-07-13): "清亮不是个词".
+    /// Real v1-library/cedict word (清亮 11109) but the user doesn't
+    /// want it at this buffer — exclusions_v1 hides it from display,
+    /// entry stays in dict for reverse-lookup.
+    #[test]
+    fn polish_qingliang_qingliang_hidden() {
+        let top10 = mixed_top10("qingliang".as_bytes());
+        assert!(
+            !top10.iter().any(|x| x == "清亮"),
+            "qingliang: 清亮 must not appear; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-13): "chongqi 重启 > 充气".
     /// 充气 led by a hair (402477 vs 401818). quickfix_boost 24533
     /// (top base + 10% margin, pick-helper derived) lifts 重启 to #0.
