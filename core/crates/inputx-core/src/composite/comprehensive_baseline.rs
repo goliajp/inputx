@@ -1938,6 +1938,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-13): "duoguoqu 躲过去".
+    /// 躲过去 in v1 library @ 10888 but absent from v2 words.tsv —
+    /// the buffer returned NOTHING (same gap shape as 黑屏/武僧).
+    /// modern_vocab @ 15000 → #0 (no competitor).
+    #[test]
+    fn polish_duoguoqu_duoguoqu_first() {
+        let top10 = mixed_top10("duoguoqu".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("躲过去"),
+            "duoguoqu: expected 躲过去 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-13): "wuseng 武僧".
     /// 武僧 in v1 library @ 12030 but absent from v2 words.tsv —
     /// the wuseng buffer returned NOTHING (same gap shape as 黑屏).
