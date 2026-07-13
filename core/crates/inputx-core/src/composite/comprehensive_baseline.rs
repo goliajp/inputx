@@ -1842,6 +1842,21 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-13): "chongqi 重启 > 充气".
+    /// 充气 led by a hair (402477 vs 401818). quickfix_boost 24533
+    /// (top base + 10% margin, pick-helper derived) lifts 重启 to #0.
+    #[test]
+    fn polish_chongqi_chongqi_first() {
+        let top10 = mixed_top10("chongqi".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("重启").expect("重启 missing from chongqi top10");
+        let b = pos("充气").expect("充气 missing from chongqi top10");
+        assert!(
+            a == 0 && b == 1,
+            "chongqi: expected 重启 #0, 充气 #1; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-12): "xiejiao 斜角第一".
     /// 斜角 sat #2 behind 邪教/歇脚. quickfix_boost 19276 (top base
     /// 17524 + 10% margin, pick-helper derived) lifts it to #0.
