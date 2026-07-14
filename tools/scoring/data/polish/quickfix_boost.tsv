@@ -97,7 +97,6 @@ sisi	思思	35000	# 2026-06-30 v2: polish-log expects 思思 #0; v1 had it via p
 # quickfix per buffer to lock the expected top-1.
 ba	吧	35000
 la	啦	35000
-xie	些	35000
 xue	学	35000
 xin	心	35000
 xing	行	35000
@@ -1227,3 +1226,9 @@ tujian	图鉴	17354	# user pick | top=土建 base=17949
 bianjing	边境	60000	# user 2026-07-13: 边境 #0 > 辩经 #1; 汴京(backfill 新词)不得插队
 bianjing	辩经	50000	# 同上 — pair-boost 保 #1
 fazhen	法阵	60000	# user 2026-07-13: 法阵 #0; 发疹(backfill 新词)不得抢位
+# 2026-07-14 user: "xie 斜放到第四位". v2 quickfix = winner-take-all,
+# 单行 boost 会直接抢 #0 -> 必须 chain-boost 把整条顺序钉死.
+xie	些	60000	# base 49476 — 保 #0 (baseline pin)
+xie	写	55000	# base 45940 — #1
+xie	鞋	50000	# base 40834 — #2
+xie	斜	45000	# base 31350 — #3 (user 要的第四位); 歇 无 quickfix 自然退 #4
