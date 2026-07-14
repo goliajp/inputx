@@ -2188,6 +2188,25 @@ mod tests {
         );
     }
 
+    /// Class D1 polish (user report 2026-07-14): "pusu 朴素第一，补校不是一个词".
+    /// 补校 was not a pinyin candidate at all — it was a wubi phrase (pusu is
+    /// its wubi code) digested out of the corpus at freq 0, and an exact wubi
+    /// phrase match outranks pinyin in the cross-engine merge, so it held #0.
+    /// Deleting the wubi library row does both halves of the request at once.
+    #[test]
+    fn polish_pusu_pusu_first_buxiao_gone() {
+        let top10 = mixed_top10("pusu".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("朴素"),
+            "pusu: expected 朴素 #0; got top10={top10:?}"
+        );
+        assert!(
+            !top10.iter().any(|w| w == "补校"),
+            "pusu: 补校 is not a word and must not appear; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-14): "xie 斜放到第四位".
     /// 斜 sat at #4 behind 歇. v2's quickfix is winner-take-all, so a lone
     /// boost row on 斜 would have taken #0 outright (it did — the pinyin_only
