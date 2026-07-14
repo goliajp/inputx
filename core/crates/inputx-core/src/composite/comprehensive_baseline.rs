@@ -2188,6 +2188,23 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-14): "xie 斜放到第四位".
+    /// 斜 sat at #4 behind 歇. v2's quickfix is winner-take-all, so a lone
+    /// boost row on 斜 would have taken #0 outright (it did — the pinyin_only
+    /// baseline caught it). Placing a word at rank N therefore needs the whole
+    /// prefix chain boosted above it: 些 60000 > 写 55000 > 鞋 50000 > 斜 45000,
+    /// with 歇 left unboosted so it falls to #4.
+    #[test]
+    fn polish_xie_xie_fourth() {
+        let top10 = mixed_top10("xie".as_bytes());
+        let head: Vec<&str> = top10.iter().take(5).map(String::as_str).collect();
+        assert_eq!(
+            head,
+            ["些", "写", "鞋", "斜", "歇"],
+            "xie: got top10={top10:?}"
+        );
+    }
+
     /// v2 non-idiom backfill (2026-07-14). The v2 word list came from
     /// CC-CEDICT + HSK and never absorbed the v1 corpus vocabulary, so
     /// 135,579 v1 non-four-hanzi words were missing from v2 entirely.
