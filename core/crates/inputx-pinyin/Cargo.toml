@@ -62,7 +62,7 @@ kenlm-rs = { version = "0.1", optional = true }
 # crate of deps (ureq/aho-corasick/flate2/bzip2-rs/tar/encoding_rs/
 # serde_json) is gone too. The remaining `pinyin-build-dict` +
 # `pinyin-build-ngrams-fsa` only need toml/serde for read paths.
-toml = { version = "0.8", optional = true }
+toml = { version = "1.1", optional = true }
 serde = { version = "1", optional = true, features = ["derive"] }
 
 [build-dependencies]
@@ -70,7 +70,7 @@ inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 
 [dev-dependencies]
 proptest = "1"
-criterion = "0.5"
+criterion = "0.8"
 
 [[bench]]
 name = "lookup"

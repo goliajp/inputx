@@ -503,12 +503,13 @@ fn fetch_http(url: &str, source_id: &str) -> Result<FetchResult, String> {
         .call()
         .map_err(|e| format!("HTTP GET {url}: {e}"))?;
     let status = resp.status();
-    if !(200..300).contains(&status) {
+    if !status.is_success() {
         return Err(format!("HTTP {url} returned status {status}"));
     }
 
     let mut bytes = Vec::new();
-    resp.into_reader()
+    resp.into_body()
+        .into_reader()
         .take(512 * 1024 * 1024) // 512 MiB hard cap; jieba dict.txt is ~5 MiB
         .read_to_end(&mut bytes)
         .map_err(|e| format!("read body: {e}"))?;

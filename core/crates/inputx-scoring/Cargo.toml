@@ -30,7 +30,10 @@ std = []
 # v1.10: parse `data/engine_weights.toml` at build time and emit
 # generated const literals. Runtime-irrelevant — toml-rs doesn't ship
 # in the published crate's binary footprint.
-toml = { version = "0.8", default-features = false, features = ["parse"] }
+# toml 1.x moved `Value` / `from_str` behind the serde feature; the
+# build script deserializes into toml::Value, so default features
+# (parse + display + serde) are required.
+toml = "1.1"
 
 [lints]
 workspace = true

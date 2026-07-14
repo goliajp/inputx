@@ -2188,6 +2188,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-14): "tujian 图鉴第一".
+    /// Both candidates in top-2 already; 土建 (construction jargon) led
+    /// on modern-freq prior despite a lower library freq than 图鉴.
+    /// quickfix_boost 17354 = 土建 base 15777 + 10% margin.
+    #[test]
+    fn polish_tujian_tujian_first() {
+        let top10 = mixed_top10("tujian".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("图鉴"),
+            "tujian: expected 图鉴 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-13): "wuseng 武僧".
     /// 武僧 in v1 library @ 12030 but absent from v2 words.tsv —
     /// the wuseng buffer returned NOTHING (same gap shape as 黑屏).

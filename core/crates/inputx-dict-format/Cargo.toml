@@ -32,7 +32,7 @@ inputx-scoring = { path = "../inputx-scoring", version = "1.4" }
 # Zero-copy mmap loader. Production-grade, used by ripgrep et al.
 memmap2 = "0.9"
 # Header sha256_of_payload for build-reproducibility verification.
-sha2 = "0.10"
+sha2 = "0.11"
 
 [dev-dependencies]
 tempfile = "3"
