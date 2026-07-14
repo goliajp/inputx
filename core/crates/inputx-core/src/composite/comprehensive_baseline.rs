@@ -2188,6 +2188,47 @@ mod tests {
         );
     }
 
+    /// v2 non-idiom backfill (2026-07-14). The v2 word list came from
+    /// CC-CEDICT + HSK and never absorbed the v1 corpus vocabulary, so
+    /// 135,579 v1 non-four-hanzi words were missing from v2 entirely.
+    /// Every candidate was reviewed row-by-row; 15,081 admitted @ 15000.
+    #[test]
+    fn v2_nonidiom_backfill_representatives() {
+        for (buf, expect) in [
+            ("naodong", "脑洞"),
+            ("chaoshan", "潮汕"),
+            ("zaotangzi", "澡堂子"),
+            ("meinanzi", "美男子"),
+        ] {
+            let top10 = mixed_top10(buf.as_bytes());
+            assert_eq!(
+                top10.first().map(String::as_str),
+                Some(expect),
+                "{buf}: expected {expect} #0; got top10={top10:?}"
+            );
+        }
+        // The backfill introduced 汴京 (bianjing) and 发疹 (fazhen), which
+        // displaced two user-decided orderings. quickfix_boost pins the
+        // user's order back; the new words stay, just behind. Guard both.
+        let bj = mixed_top10("bianjing".as_bytes());
+        assert_eq!(
+            bj.first().map(String::as_str),
+            Some("边境"),
+            "bianjing: {bj:?}"
+        );
+        assert_eq!(
+            bj.get(1).map(String::as_str),
+            Some("辩经"),
+            "bianjing: {bj:?}"
+        );
+        let fz = mixed_top10("fazhen".as_bytes());
+        assert_eq!(
+            fz.first().map(String::as_str),
+            Some("法阵"),
+            "fazhen: {fz:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-14): "tujian 图鉴第一".
     /// Both candidates in top-2 already; 土建 (construction jargon) led
     /// on modern-freq prior despite a lower library freq than 图鉴.

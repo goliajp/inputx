@@ -1222,3 +1222,8 @@ qingliang	轻量	27385	# user pick | top=清凉 base=13967
 zuowei	作为	35662	# user pick | top=座位 base=41456
 shumu	树木	26877	# user pick | top=数目 base=23392
 tujian	图鉴	17354	# user pick | top=土建 base=17949
+# 2026-07-14 v2 non-idiom backfill 引入的新词(汴京/发疹)撞了既有 polish 的排序;
+# 用户拍板的顺序是硬约束 —— chain-boost 钉回原顺序, 新词保留在后面.
+bianjing	边境	60000	# user 2026-07-13: 边境 #0 > 辩经 #1; 汴京(backfill 新词)不得插队
+bianjing	辩经	50000	# 同上 — pair-boost 保 #1
+fazhen	法阵	60000	# user 2026-07-13: 法阵 #0; 发疹(backfill 新词)不得抢位
