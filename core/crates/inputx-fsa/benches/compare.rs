@@ -4,8 +4,9 @@
 //!
 //!     cargo bench -p inputx-fsa
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 use inputx_fsa::{Dict, DictBuilder};
+use std::hint::black_box;
 
 fn build() -> Vec<u8> {
     let mut b = DictBuilder::new();

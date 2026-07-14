@@ -9,10 +9,11 @@
 //!   dict_prefix     < 1µs    (first 5 hits)
 //!   encode_*        < 500ns
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 use inputx_wubi::{
     Decomp, Shape, Stroke, WubiDict, embedded_seed, encode_into, lookup_jianma1, lookup_zigen,
 };
+use std::hint::black_box;
 
 fn bench_zigen_lookup(c: &mut Criterion) {
     c.bench_function("zigen_lookup_hit", |b| {

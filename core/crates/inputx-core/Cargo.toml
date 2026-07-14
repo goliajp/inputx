@@ -71,7 +71,7 @@ proptest = "1"
 # Criterion — fine-grained perf measurement for the composite engine hot
 # path. Complements (doesn't replace) the perfgate unit test, which gates
 # regressions; criterion is for tuning + reporting.
-criterion = "0.5"
+criterion = "0.8"
 
 [features]
 # Force perfgate tests to run even under parallel `cargo test --release`.

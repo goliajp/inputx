@@ -29,7 +29,7 @@ crate-type = ["staticlib"]
 inputx-core = { path = "../inputx-core" }
 
 [build-dependencies]
-cbindgen = "0.28"
+cbindgen = "0.29"
 
 [dev-dependencies]
 # Fuzz the C ABI: random op sequences must not panic across the boundary.
