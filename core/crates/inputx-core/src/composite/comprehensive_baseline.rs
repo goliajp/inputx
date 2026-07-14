@@ -2041,6 +2041,36 @@ mod tests {
         );
     }
 
+    /// v2 chengyu backfill sweep (user directive 2026-07-14, "做 v2
+    /// backfill sweep 补成语" + "你用自己 llm 专业知识一个个审查才能
+    /// 入库"): all 36,674 v1 four-hanzi words missing from v2 were
+    /// judged per-row; 4,697 proposals, 4,668 accepted after lead
+    /// per-row review (29 rejected: misspellings / variant glyphs /
+    /// bad-pinyin codes). See docs/pinyin-v2-chengyu-2026-07-14/.
+    #[test]
+    fn v2_chengyu_backfill_representatives() {
+        for (buf, expect) in [
+            ("yegonghaolong", "叶公好龙"),
+            ("paodingjieniu", "庖丁解牛"),
+            ("chengmenlixue", "程门立雪"),
+            ("banmennongfu", "班门弄斧"),
+            ("wusuoweiju", "无所畏惧"),
+        ] {
+            let top10 = mixed_top10(buf.as_bytes());
+            assert_eq!(
+                top10.first().map(String::as_str),
+                Some(expect),
+                "{buf}: expected {expect} #0; got top10={top10:?}"
+            );
+        }
+        // The 29 rejected forms (大作文章 / 默默无名 / 莫明其妙 …) are
+        // NOT asserted absent here: they already live in the v1
+        // library.tsv corpus, so declining to backfill them into v2
+        // does not make them un-typeable. Purging misspelling variants
+        // from the v1 main dict belongs to the separate library-audit
+        // project, not to this backfill.
+    }
+
     /// Garbage-filter recall sweep (user directive 2026-07-13, applied
     /// 2026-07-14): per-row LLM re-review of all 17,800 audit-P1/P2
     /// filter rows; 691 false positives recalled (see
