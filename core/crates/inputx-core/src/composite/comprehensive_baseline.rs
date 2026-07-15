@@ -2216,6 +2216,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-16): "chayi 差异第一".
+    /// 差异 carries the highest library freq of the group (28532) but the
+    /// modern-freq prior lifted 诧异 (base 20425) above it. quickfix 23000
+    /// (诧异 base + 10% margin) flips 差异 to #0.
+    #[test]
+    fn polish_chayi_chayi_first() {
+        let top10 = mixed_top10("chayi".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("差异"),
+            "chayi: expected 差异 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D polish (user report 2026-07-15): "weidu ... 唯读 删除".
     /// 唯读 is the Taiwan term for read-only (大陆规范: 只读) and existed only
     /// as a v2 CC-CEDICT entry — not in the v1 pinyin library. Logged in
