@@ -1236,3 +1236,8 @@ xie	斜	45000	# base 31350 — #3 (user 要的第四位); 歇 无 quickfix 自�
 # pair-boost 油箱 above 邮箱 to pin 邮箱 at #1 (幽香 unboosted -> #2).
 youxiang	油箱	60000	# 保 #0
 youxiang	邮箱	50000	# 第二位
+# 2026-07-15 user: "weidu 维度第二, 未读第三". 唯独 keeps #0.
+# v2 quickfix winner-take-all -> chain-boost the whole head in order.
+weidu	唯独	60000	# 保 #0
+weidu	维度	50000	# 第二位
+weidu	未读	40000	# 第三位

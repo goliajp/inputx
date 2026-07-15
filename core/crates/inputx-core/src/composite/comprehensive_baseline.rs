@@ -2202,6 +2202,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-15): "weidu 维度第二，未读第三".
+    /// 唯独 keeps #0; 维度 and 未读 were at #3/#6. v2's quickfix is
+    /// winner-take-all, so pinning ranks means chain-boosting the whole head
+    /// in order: 唯独 60000 > 维度 50000 > 未读 40000, with 纬度/围堵/惟独
+    /// unboosted so they fall below.
+    #[test]
+    fn polish_weidu_head_order() {
+        let top10 = mixed_top10("weidu".as_bytes());
+        let head: Vec<&str> = top10.iter().take(3).map(String::as_str).collect();
+        assert_eq!(head, ["唯独", "维度", "未读"], "weidu: got top10={top10:?}");
+    }
+
     /// Class B polish (user report 2026-07-15): "youxiang 邮箱第二".
     /// 邮箱 sat at #2 behind 油箱/幽香 despite the highest library freq (27403).
     /// "Second place" needs a pair boost, not a single row: v2's quickfix is
