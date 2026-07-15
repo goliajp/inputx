@@ -1987,6 +1987,34 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-15): "jiejiari 现在日语在前".
+    /// With Japanese enabled the mechanical kana じえじあり/ジエジアリ lead;
+    /// 节假日 (base 25131, mid tier) sat at #2 below them. quickfix 55000
+    /// lifts it to tier 1 — the JP-first positional rule places kana above
+    /// pinyin tiers 2+, but tier-1 pinyin wins. Same 55k calibration as
+    /// 简码 / 娭毑 / 世锦赛 / 复读.
+    #[test]
+    fn polish_jiejiari_jiejiari_above_jp_kana() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"jiejiari" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("节假日"),
+            "jiejiari Mixed+JP: expected 节假日 #0 above JP kana; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-12): "laduzi 拉肚子 要在
     /// 日语前". In Mixed+JP the mechanical kana renders (ァヅジ/ぁづじ)
     /// out-tiered 拉肚子 (base 26606 → mid tier). quickfix 60000
