@@ -2188,6 +2188,20 @@ mod tests {
         );
     }
 
+    /// Class D polish (user report 2026-07-15): "weidu ... 唯读 删除".
+    /// 唯读 is the Taiwan term for read-only (大陆规范: 只读) and existed only
+    /// as a v2 CC-CEDICT entry — not in the v1 pinyin library. Logged in
+    /// corpus_garbage_filter_v1.tsv, which v2 folds into its runtime exclusion
+    /// set (exclusions_v1 ∪ garbage_filter), dropping it from output.
+    #[test]
+    fn polish_weidu_weidu_no_weidu_taiwan() {
+        let top10 = mixed_top10("weidu".as_bytes());
+        assert!(
+            !top10.iter().any(|w| w == "唯读"),
+            "weidu: 唯读 (台湾用语) must not appear; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-15): "youxiang 邮箱第二".
     /// 邮箱 sat at #2 behind 油箱/幽香 despite the highest library freq (27403).
     /// "Second place" needs a pair boost, not a single row: v2's quickfix is
