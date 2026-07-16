@@ -2230,6 +2230,21 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-16): "chengbuzhu 撑不住".
+    /// 撑不住 lives in v1 library (freq 19544) but was absent from v2, so
+    /// the buffer returned NOTHING (same v2-ingest-gap shape as 黑屏/武僧/
+    /// 躲过去/挂着). verb+不+resultative is a legit typing unit.
+    /// modern_vocab @ 15000 → #0 (no competitor).
+    #[test]
+    fn polish_chengbuzhu_chengbuzhu_first() {
+        let top10 = mixed_top10("chengbuzhu".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("撑不住"),
+            "chengbuzhu: expected 撑不住 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D polish (user report 2026-07-15): "weidu ... 唯读 删除".
     /// 唯读 is the Taiwan term for read-only (大陆规范: 只读) and existed only
     /// as a v2 CC-CEDICT entry — not in the v1 pinyin library. Logged in
