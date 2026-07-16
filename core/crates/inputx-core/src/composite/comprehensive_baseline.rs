@@ -2216,6 +2216,22 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-17): "dangji 当即 > 宕机 > 当季 >
+    /// 党籍 > 党纪，一般政治用语都应该后置". A modern_vocab row (党纪 45000)
+    /// had lifted the political term to #0. The requested order also inverts
+    /// the natural freq of 党籍/党纪 (14312 < 16382), so all five need chain
+    /// boosts: 60000/55000/50000/45000/40000 descending.
+    #[test]
+    fn polish_dangji_full_order() {
+        let top10 = mixed_top10("dangji".as_bytes());
+        let head: Vec<&str> = top10.iter().take(5).map(String::as_str).collect();
+        assert_eq!(
+            head,
+            ["当即", "宕机", "当季", "党籍", "党纪"],
+            "dangji: got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-16): "chayi 差异第一".
     /// 差异 carries the highest library freq of the group (28532) but the
     /// modern-freq prior lifted 诧异 (base 20425) above it. quickfix 23000

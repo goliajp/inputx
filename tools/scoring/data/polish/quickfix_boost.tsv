@@ -1243,3 +1243,11 @@ weidu	维度	50000	# 第二位
 weidu	未读	40000	# 第三位
 jiejiari	节假日	55000	# 2026-07-15 user "jiejiari 现在日语在前": tier-1 lift above JP kana じえじあり/ジエジアリ; same 55k calibration as 简码/娭毑/世锦赛/复读
 chayi	差异	23000	# 2026-07-16 user "chayi 差异第一": 差异(base 28532)被 modern-freq prior 抬起的 诧异(base 20425)压在 #1; 诧异 base + 10% margin
+# 2026-07-17 user: "dangji 当即 > 宕机 > 当季 > 党籍 > 党纪, 一般政治用语都应该后置".
+# modern_vocab 有一行 党纪 45000 把政治词顶到 #0; 全序含 党籍>党纪(与自然 freq 相反)
+# -> 五词全链 boost 钉死.
+dangji	当即	60000	# #0
+dangji	宕机	55000	# #1
+dangji	当季	50000	# #2
+dangji	党籍	45000	# #3
+dangji	党纪	40000	# #4 政治用语后置
