@@ -2333,6 +2333,22 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-18): "tangxia 躺下第一".
+    /// In v2, 淌下/躺下 are both cedict tier 4 with identical score AND
+    /// identical modern_freq (0 — jieba segments 躺下 as 躺/下), so the
+    /// sort fell through to the alphabetical key and 淌 (U+6DCC) beat
+    /// 躺 (U+8EBA) by codepoint. 淌下 has no v1 library row at all;
+    /// 躺下 carries v1 freq 22445. quickfix 24700 (own base + 10%).
+    #[test]
+    fn polish_tangxia_tangxia_first() {
+        let top10 = mixed_top10("tangxia".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("躺下"),
+            "tangxia: expected 躺下 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D polish (user report 2026-07-15): "weidu ... 唯读 删除".
     /// 唯读 is the Taiwan term for read-only (大陆规范: 只读) and existed only
     /// as a v2 CC-CEDICT entry — not in the v1 pinyin library. Logged in
