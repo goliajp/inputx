@@ -2216,6 +2216,26 @@ mod tests {
         );
     }
 
+    /// Class D2 polish (user report 2026-07-17): "lvli 膂力 删除".
+    /// 膂力 is a real but literary/rare word that sat at #0 over the everyday
+    /// 履历. Real word → D2 hide via exclusions_v1.tsv (not a D1 row delete):
+    /// v1's Path-1 display drops it and v2 folds exclusions_v1 into its
+    /// runtime exclusion set, while the dict entry survives for K-best /
+    /// reverse-lookup paths.
+    #[test]
+    fn polish_lvli_lvli_hidden_lvli_first() {
+        let top10 = mixed_top10("lvli".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("履历"),
+            "lvli: expected 履历 #0; got top10={top10:?}"
+        );
+        assert!(
+            !top10.iter().any(|w| w == "膂力"),
+            "lvli: 膂力 must be hidden; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-17): "dangji 当即 > 宕机 > 当季 >
     /// 党籍 > 党纪，一般政治用语都应该后置". A modern_vocab row (党纪 45000)
     /// had lifted the political term to #0. The requested order also inverts
