@@ -1987,6 +1987,32 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-17): "tianmafan 添麻烦 第一",
+    /// with the general principle "一般常用的拼音或五笔刚好完全命中时肯定是
+    /// 要在日语前面的". Same shape as jiejiari: mechanical kana led while
+    /// 添麻烦 (base 22795, mid tier) sat at #2. quickfix 55000 → tier 1.
+    #[test]
+    fn polish_tianmafan_tianmafan_above_jp_kana() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"tianmafan" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("添麻烦"),
+            "tianmafan Mixed+JP: expected 添麻烦 #0 above JP kana; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-15): "jiejiari 现在日语在前".
     /// With Japanese enabled the mechanical kana じえじあり/ジエジアリ lead;
     /// 节假日 (base 25131, mid tier) sat at #2 below them. quickfix 55000
