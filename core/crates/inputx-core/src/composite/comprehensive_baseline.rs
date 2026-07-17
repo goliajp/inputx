@@ -1987,6 +1987,41 @@ mod tests {
         );
     }
 
+    /// Framework rule (PLAN-exact-common-above-jp-kana, 2026-07-17), from
+    /// the user principle "一般常用的拼音或五笔刚好完全命中时肯定是要在
+    /// 日语前面的". v2 caps the natural tier of exact whole-buffer word
+    /// matches with modern_freq ≥ 20000 at tier 4 — the same bucket as the
+    /// ≥5-letter mechanical-kana band, where px > nx puts the word first.
+    /// These buffers carry NO quickfix rows: the ordering is rule-driven.
+    /// (The lian 立案 overlay-sovereignty guard lives in the gf-recall test.)
+    #[test]
+    fn framework_exact_common_word_above_jp_kana() {
+        for (buf, expect) in [
+            ("aijiaaihu", "挨家挨户"),
+            ("anjisuan", "氨基酸"),
+            ("anbujiuban", "按部就班"),
+        ] {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::Mixed);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            e.set_japanese_enabled(true);
+            for b in buf.bytes() {
+                let _ = e.handle_letter(b);
+            }
+            let top10: Vec<String> = e
+                .candidates()
+                .iter()
+                .take(10)
+                .map(|c| c.word.clone())
+                .collect();
+            assert_eq!(
+                top10.first().map(String::as_str),
+                Some(expect),
+                "{buf} Mixed+JP: expected {expect} #0 above JP kana (rule-driven, no quickfix); got top10={top10:?}"
+            );
+        }
+    }
+
     /// Class B polish (user report 2026-07-17): "tianmafan 添麻烦 第一",
     /// with the general principle "一般常用的拼音或五笔刚好完全命中时肯定是
     /// 要在日语前面的". Same shape as jiejiari: mechanical kana led while
