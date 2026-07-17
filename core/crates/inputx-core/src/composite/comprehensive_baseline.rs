@@ -2216,24 +2216,15 @@ mod tests {
         );
     }
 
-    /// Class D2 polish (user report 2026-07-17): "lvli 膂力 删除".
-    /// 膂力 is a real but literary/rare word that sat at #0 over the everyday
-    /// 履历. Real word → D2 hide via exclusions_v1.tsv (not a D1 row delete):
-    /// v1's Path-1 display drops it and v2 folds exclusions_v1 into its
-    /// runtime exclusion set, while the dict entry survives for K-best /
-    /// reverse-lookup paths.
+    /// Class B polish (user report 2026-07-17): first "lvli 膂力 删除",
+    /// then revised to "那保留只是排第二吧". The interim D2 exclusion was
+    /// withdrawn; instead 履历 gets a quickfix (7300 = 膂力 base 6633 + 10%
+    /// margin) so it takes #0 and 膂力 stays visible at #1.
     #[test]
-    fn polish_lvli_lvli_hidden_lvli_first() {
+    fn polish_lvli_lvli_first_lvli_second() {
         let top10 = mixed_top10("lvli".as_bytes());
-        assert_eq!(
-            top10.first().map(String::as_str),
-            Some("履历"),
-            "lvli: expected 履历 #0; got top10={top10:?}"
-        );
-        assert!(
-            !top10.iter().any(|w| w == "膂力"),
-            "lvli: 膂力 must be hidden; got top10={top10:?}"
-        );
+        let head: Vec<&str> = top10.iter().take(2).map(String::as_str).collect();
+        assert_eq!(head, ["履历", "膂力"], "lvli: got top10={top10:?}");
     }
 
     /// Class B polish (user report 2026-07-17): "dangji 当即 > 宕机 > 当季 >
