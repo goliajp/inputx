@@ -164,6 +164,18 @@ pub fn populate(buffer: &str) -> Candidates {
 ///   reading_path's first-letter-per-char extraction at index build.
 ///
 /// Order: score desc → shorter word first → alphabetical (stable).
+/// Exact-common-word tier repair (PLAN-exact-common-above-jp-kana,
+/// 2026-07-17). cedict ingest defaults many genuinely common words to
+/// tier 5 (it carries no Chinese-corpus usage signal), which loses to
+/// the ≥5-letter mechanical-kana band at tier 4 in Mixed+JP. An exact
+/// whole-buffer word match whose modern_freq (jieba percentile,
+/// 0..25000) clears this bar gets its NATURAL tier capped here — the
+/// same bucket the modern_vocab freq≥15000 mapping assigns. Explicit
+/// tier_overlay rows still override the capped value (user demotes
+/// like lian 立案 5 stay sovereign).
+const EXACT_COMMON_TIER_CAP: u8 = 4;
+const EXACT_COMMON_MODERN_FREQ_MIN: u16 = 20_000;
+
 pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
     if buffer.is_empty() {
         return Vec::new();
@@ -182,6 +194,7 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
     };
 
     // 1. Words (multi-char): exact code match (literal + normalized lue→lve).
+    let modern = data::modern_freq();
     for try_buf in std::iter::once(buffer).chain(alt_buffer) {
         if let Some(rows) = code_index().get(try_buf) {
             for w in rows {
@@ -189,10 +202,19 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
                     continue;
                 }
                 if seen.insert(w.word.clone()) {
+                    // Exact-common tier repair (see consts above): cap the
+                    // NATURAL tier only; explicit overlay rows override it.
+                    let natural_tier = if w.tier > EXACT_COMMON_TIER_CAP
+                        && modern.get(&w.word).copied().unwrap_or(0) >= EXACT_COMMON_MODERN_FREQ_MIN
+                    {
+                        EXACT_COMMON_TIER_CAP
+                    } else {
+                        w.tier
+                    };
                     let tier = data::tier_overlay()
                         .get(&(buf_owned.clone(), w.word.clone()))
                         .copied()
-                        .unwrap_or(w.tier);
+                        .unwrap_or(natural_tier);
                     let mut score = 500_000.0 - (tier as f64) * 30_000.0;
                     // Slight penalty for fuzzy-normalized match.
                     if try_buf != buffer {
