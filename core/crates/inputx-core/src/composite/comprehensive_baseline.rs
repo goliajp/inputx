@@ -2333,6 +2333,22 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-18): "gejutese 各具特色".
+    /// v2-ingest gap: 各具特色 lives in v1 (freq 10742) but not in v2 —
+    /// the buffer showed JP kana + the K-best splice 格局特色 instead.
+    /// (The chengyu backfill's first-pass reviewer had judged it KEEP as
+    /// an assembled 各+具+特色; user explicitly wants it.) modern_vocab
+    /// @ 15000 → tier 4, where px > nx puts it above the kana band.
+    #[test]
+    fn polish_gejutese_gejutese_first() {
+        let top10 = mixed_top10("gejutese".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("各具特色"),
+            "gejutese: expected 各具特色 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-18): "jianju 间距 > 艰巨，
     /// 这两个在最前面". Was [艰巨, 检举, 间距, 兼具]. Pair boost per the
     /// winner-take-all rule: 间距 60000 > 艰巨 50000; 检举/兼具 unboosted
