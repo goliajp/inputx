@@ -2333,6 +2333,17 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-18): "jianju 间距 > 艰巨，
+    /// 这两个在最前面". Was [艰巨, 检举, 间距, 兼具]. Pair boost per the
+    /// winner-take-all rule: 间距 60000 > 艰巨 50000; 检举/兼具 unboosted
+    /// fall behind.
+    #[test]
+    fn polish_jianju_head_pair() {
+        let top10 = mixed_top10("jianju".as_bytes());
+        let head: Vec<&str> = top10.iter().take(2).map(String::as_str).collect();
+        assert_eq!(head, ["间距", "艰巨"], "jianju: got top10={top10:?}");
+    }
+
     /// Class B polish (user report 2026-07-18): "tangxia 躺下第一".
     /// In v2, 淌下/躺下 are both cedict tier 4 with identical score AND
     /// identical modern_freq (0 — jieba segments 躺下 as 躺/下), so the
