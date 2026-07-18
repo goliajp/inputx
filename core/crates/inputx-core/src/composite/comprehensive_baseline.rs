@@ -2360,6 +2360,17 @@ mod tests {
         assert_eq!(head, ["间距", "艰巨"], "jianju: got top10={top10:?}");
     }
 
+    /// Class B polish (user report 2026-07-18): "jiqi 机器 第一".
+    /// 机器 carries the highest v1 base of the group (35883 vs 极其 29042)
+    /// but v2's HSK-derived tiers put the adverb 极其 at #0. quickfix
+    /// 31950 (极其 base + 10%); 极其 unboosted falls to #1.
+    #[test]
+    fn polish_jiqi_jiqi_first() {
+        let top10 = mixed_top10("jiqi".as_bytes());
+        let head: Vec<&str> = top10.iter().take(2).map(String::as_str).collect();
+        assert_eq!(head, ["机器", "极其"], "jiqi: got top10={top10:?}");
+    }
+
     /// Class B polish (user report 2026-07-18): "fenwei 氛围 > 分为".
     /// 氛围 carries the higher v1 base (29248 vs 分为 27863) but the
     /// modern-freq prior lifted 分为 to #0. quickfix 30650 (分为 base +
