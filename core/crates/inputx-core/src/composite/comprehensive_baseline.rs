@@ -2360,6 +2360,18 @@ mod tests {
         assert_eq!(head, ["间距", "艰巨"], "jianju: got top10={top10:?}");
     }
 
+    /// Class B polish (user report 2026-07-18): "mideng 幂等第一，迷瞪
+    /// 似乎不是词". 迷瞪 IS a real word (现汉方言词, mídeng 神志迷糊) —
+    /// per the user's own hedge it stays visible at #1 rather than being
+    /// deleted; only the tech term 幂等 is lifted to #0. 迷瞪 had led via
+    /// its modern_freq tiebreak (15303 vs 幂等's 0).
+    #[test]
+    fn polish_mideng_mideng_first_mideng_kept() {
+        let top10 = mixed_top10("mideng".as_bytes());
+        let head: Vec<&str> = top10.iter().take(2).map(String::as_str).collect();
+        assert_eq!(head, ["幂等", "迷瞪"], "mideng: got top10={top10:?}");
+    }
+
     /// Class B polish (user report 2026-07-18): "tangxia 躺下第一".
     /// In v2, 淌下/躺下 are both cedict tier 4 with identical score AND
     /// identical modern_freq (0 — jieba segments 躺下 as 躺/下), so the
