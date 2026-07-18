@@ -2360,6 +2360,17 @@ mod tests {
         assert_eq!(head, ["间距", "艰巨"], "jianju: got top10={top10:?}");
     }
 
+    /// Class B polish (user report 2026-07-18): "fenwei 氛围 > 分为".
+    /// 氛围 carries the higher v1 base (29248 vs 分为 27863) but the
+    /// modern-freq prior lifted 分为 to #0. quickfix 30650 (分为 base +
+    /// 10%); 分为 unboosted falls to #1 naturally.
+    #[test]
+    fn polish_fenwei_fenwei_first() {
+        let top10 = mixed_top10("fenwei".as_bytes());
+        let head: Vec<&str> = top10.iter().take(2).map(String::as_str).collect();
+        assert_eq!(head, ["氛围", "分为"], "fenwei: got top10={top10:?}");
+    }
+
     /// Class B polish (user report 2026-07-18): "mideng 幂等第一，迷瞪
     /// 似乎不是词". 迷瞪 IS a real word (现汉方言词, mídeng 神志迷糊) —
     /// per the user's own hedge it stays visible at #1 rather than being
