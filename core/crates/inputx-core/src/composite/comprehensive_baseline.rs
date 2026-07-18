@@ -2360,6 +2360,19 @@ mod tests {
         assert_eq!(head, ["间距", "艰巨"], "jianju: got top10={top10:?}");
     }
 
+    /// Class B polish (user report 2026-07-18): "wytf 领先 > 依靠" — the
+    /// first wubi-side Class B. quickfix_boost is pinyin-only (wubi never
+    /// reads it), so the kongdang precedent applies: reorder via a clean
+    /// library.tsv freq edit, source marked `polish` so corpus digest
+    /// cannot clobber it. 领先 28113 → 35260 (依靠 32054 + 10%), layer 1
+    /// unchanged.
+    #[test]
+    fn polish_wytf_lingxian_first() {
+        let top10 = mixed_top10("wytf".as_bytes());
+        let head: Vec<&str> = top10.iter().take(2).map(String::as_str).collect();
+        assert_eq!(head, ["领先", "依靠"], "wytf: got top10={top10:?}");
+    }
+
     /// Class B polish (user report 2026-07-18): "jiqi 机器 第一".
     /// 机器 carries the highest v1 base of the group (35883 vs 极其 29042)
     /// but v2's HSK-derived tiers put the adverb 极其 at #0. quickfix
