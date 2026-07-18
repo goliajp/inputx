@@ -2048,6 +2048,32 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-18): "shouxieti 手写体要在日语前".
+    /// 手写体 is v2 tier 5 (cedict) with modern_freq 18308 — just below the
+    /// exact-common cap threshold (20000), so the framework rule doesn't lift
+    /// it and tier-4 mechanical kana led. quickfix 55000 → tier 1.
+    #[test]
+    fn polish_shouxieti_shouxieti_above_jp_kana() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"shouxieti" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("手写体"),
+            "shouxieti Mixed+JP: expected 手写体 #0 above JP kana; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-15): "jiejiari 现在日语在前".
     /// With Japanese enabled the mechanical kana じえじあり/ジエジアリ lead;
     /// 节假日 (base 25131, mid tier) sat at #2 below them. quickfix 55000
