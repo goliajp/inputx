@@ -2375,6 +2375,22 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-18): "chuda 触达".
+    /// 触达 was absent from BOTH v1 library and v2 words — the buffer
+    /// showed only JP kana + prefix-completion fillers (出单/初代/出道).
+    /// Common tech/business word (用户触达). modern_vocab @ 15000 →
+    /// tier 4 exact, px > nx puts it above the kana band; the prefix
+    /// fillers yield to the exact match.
+    #[test]
+    fn polish_chuda_chuda_first() {
+        let top10 = mixed_top10("chuda".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("触达"),
+            "chuda: expected 触达 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-18): "jianju 间距 > 艰巨，
     /// 这两个在最前面". Was [艰巨, 检举, 间距, 兼具]. Pair boost per the
     /// winner-take-all rule: 间距 60000 > 艰巨 50000; 检举/兼具 unboosted
