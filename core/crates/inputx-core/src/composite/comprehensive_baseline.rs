@@ -2410,6 +2410,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-20): "qingyan 轻烟第一".
+    /// 轻烟 was in neither v1 nor v2, so the buffer showed only the
+    /// cedict tier-4 pair 青眼 / 轻言. modern_vocab @ 30000 → natural
+    /// tier 3, which outranks tier 4 without a quickfix override.
+    #[test]
+    fn polish_qingyan_qingyan_first() {
+        let top10 = mixed_top10("qingyan".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("轻烟"),
+            "qingyan: expected 轻烟 #0; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
