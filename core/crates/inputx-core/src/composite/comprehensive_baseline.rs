@@ -2403,6 +2403,11 @@ mod tests {
             Some("房中"),
             "fangzhong: expected 房中 #0; got top10={top10:?}"
         );
+        assert!(
+            !top10.contains(&"房仲".to_string()),
+            "fangzhong: 房仲 is a Taiwan-only term (房屋仲介), excluded from \
+             Path-1 per user 2026-07-20 \"台湾用语删了吧\"; got top10={top10:?}"
+        );
     }
 
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
