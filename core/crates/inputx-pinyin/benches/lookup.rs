@@ -127,10 +127,8 @@ fn bench_record_pick(c: &mut Criterion) {
     // shared global state with N-many counters.
     group.bench_function("zhongguo_to_zhongguo", |b| {
         b.iter_with_setup(PinyinEngine::new, |eng| {
-            black_box(
-                eng.dict()
-                    .record_pick(black_box("zhongguo"), black_box("中国")),
-            );
+            eng.dict()
+                .record_pick(black_box("zhongguo"), black_box("中国"));
         });
     });
     group.finish();

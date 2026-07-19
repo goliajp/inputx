@@ -39,7 +39,7 @@ type DictBytes = Cow<'static, [u8]>;
 use crate::bigram_lm::LmBackend;
 #[cfg(feature = "cell-dict")]
 use crate::cell_dict::{CellDict, ParseError as CellDictParseError};
-use crate::ranking::{L0Inner, L0Snapshot, PROMOTE_THRESHOLD};
+use crate::ranking::{L0Inner, L0Snapshot};
 
 /// Phase-2 LM mixing weight read from env `PINYIN_LM_LAMBDA` on first
 /// call and cached. Default 1.0, picked at CP-2.6 sweet-spot sweep
@@ -684,31 +684,22 @@ impl PinyinDict {
     // L0 mutation
     // -------------------------------------------------------------------
 
-    /// Record that the user picked `word` for `pinyin`. If this is the
-    /// `PROMOTE_THRESHOLD`-th consecutive pick, the word is auto-pinned
-    /// and all counters for `pinyin` are cleared. Returns `true` iff this
-    /// call caused a promotion.
+    /// Record that the user picked `word` for `pinyin`, incrementing that
+    /// pair's usage counter. Ranking is NOT affected — counters are
+    /// statistics. Only [`Self::pin`] changes candidate order.
     ///
     /// Silently no-ops if `(pinyin, word)` isn't in L1 (defends against
     /// the host accidentally feeding us things the user couldn't actually
     /// have selected).
-    pub fn record_pick(&self, pinyin: &str, word: &str) -> bool {
+    pub fn record_pick(&self, pinyin: &str, word: &str) {
         if !self.exists_in_l1(pinyin, word) {
-            return false;
+            return;
         }
         let lower = lower_str(pinyin);
         let Ok(mut l0) = self.l0.write() else {
-            return false;
+            return;
         };
-        let key = (lower.clone(), word.to_string());
-        let count = l0.pick_counts.entry(key).or_insert(0);
-        *count += 1;
-        if *count >= PROMOTE_THRESHOLD {
-            l0.pins.insert(lower.clone(), word.to_string());
-            l0.pick_counts.retain(|(p, _), _| p != &lower);
-            return true;
-        }
-        false
+        *l0.pick_counts.entry((lower, word.to_string())).or_insert(0) += 1;
     }
 
     /// Force-pin a word without going through the pick counter. Validates
@@ -2260,46 +2251,34 @@ mod tests {
         assert_eq!(d.l0_pending_count(), 0);
     }
 
+    /// Auto-pin removal (user 2026-07-20 "整个自动置顶都关了吧"): picking
+    /// the same candidate any number of times must NEVER reorder
+    /// candidates. Previously the 3rd pick auto-pinned it, silently
+    /// rewriting the user's candidate order.
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
-    fn record_pick_promotes_after_threshold() {
+    fn record_pick_never_pins_however_many_times() {
         let d = PinyinDict::embedded();
-        // shi has many candidates; pick a non-default one and pin it via
-        // 3 picks. 时 is a real shi-reading entry.
-        let target = "时";
-        for _ in 0..(PROMOTE_THRESHOLD - 1) {
-            assert!(!d.record_pick("shi", target));
-        }
-        assert!(d.record_pick("shi", target), "should promote on Nth pick");
-        assert_eq!(d.lookup("shi").first().map(String::as_str), Some(target));
-        assert_eq!(d.l0_pin_count(), 1);
-        // Counters reset on promotion.
-        assert_eq!(d.l0_pending_count(), 0);
-    }
-
-    #[cfg(not(feature = "bootstrap_only"))]
-    #[test]
-    fn record_pick_resets_on_promotion_so_others_must_earn_3_again() {
-        let d = PinyinDict::embedded();
-        for _ in 0..PROMOTE_THRESHOLD {
+        let before = d.lookup("shi").first().cloned();
+        for _ in 0..10 {
             d.record_pick("shi", "时");
         }
-        // Now picking 事 once shouldn't auto-flip.
-        assert!(!d.record_pick("shi", "事"));
-        assert_eq!(d.lookup("shi").first().map(String::as_str), Some("时"));
-        // But three picks of 事 will dethrone 时.
-        for _ in 0..(PROMOTE_THRESHOLD - 1) {
-            d.record_pick("shi", "事");
-        }
-        assert_eq!(d.lookup("shi").first().map(String::as_str), Some("事"));
+        assert_eq!(
+            d.lookup("shi").first().cloned(),
+            before,
+            "record_pick must not reorder candidates"
+        );
+        assert_eq!(d.l0_pin_count(), 0, "record_pick must not create pins");
+        // The counter itself still accrues — it is usage statistics.
+        assert_eq!(d.l0_pending_count(), 1);
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
     fn record_pick_rejects_unknown_word() {
         let d = PinyinDict::embedded();
-        for _ in 0..PROMOTE_THRESHOLD {
-            assert!(!d.record_pick("shi", "this_is_not_a_real_word"));
+        for _ in 0..5 {
+            d.record_pick("shi", "this_is_not_a_real_word");
         }
         assert_eq!(d.l0_pin_count(), 0);
         assert_eq!(d.l0_pending_count(), 0);

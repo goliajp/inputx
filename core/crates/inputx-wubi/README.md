@@ -25,7 +25,7 @@ embedded.
 - Wubi 86 encoder, all four canonical rules
 - **L0 / L1+ ranking** — immutable layered lexicon (Auto < Phrase < Zigen
   < Jianma3 < Jianma2 < Jianma1 by base weight) plus a mutable per-user
-  override layer with a 3-pick auto-promotion rule
+  override layer driven by explicit pins only
 - Layer prefs — host-tunable multipliers per layer
 - Reproducible weight pipeline (`wubi-build-weights`) with CI byte-diff
   verify
@@ -51,9 +51,9 @@ let candidates = dict.lookup("khlg");
 let mut buf = Vec::new();
 dict.lookup_into("ipbf", &mut buf);
 
-// Tell the dict the user picked a candidate. After 3 picks of the same
-// (code, word), it's auto-pinned to L0. Pin/forget/layer-prefs APIs are
-// also exposed for explicit host control.
+// Tell the dict the user picked a candidate. This bumps a usage counter
+// only — candidate order never changes as a result. Use the pin / forget
+// / layer-prefs APIs for explicit host control of ordering.
 dict.record_pick("khlg", "跑车");
 ```
 

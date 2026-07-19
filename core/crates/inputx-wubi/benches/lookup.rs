@@ -58,7 +58,7 @@ fn bench_dict(c: &mut Criterion) {
 
     // L0 mutation hot path — one IME keystroke per call.
     c.bench_function("dict_record_pick", |b| {
-        b.iter(|| black_box(dict.record_pick(black_box("gggg"), black_box("王"))));
+        b.iter(|| dict.record_pick(black_box("gggg"), black_box("王")));
     });
 
     // L0 snapshot — runs at app shutdown / suspension; not strictly hot but

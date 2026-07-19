@@ -11,9 +11,11 @@
 //!   - **Pinned candidates** — `code → preferred_word`. A pin moves that word
 //!     to position 0 in `lookup`'s output, regardless of L1+ weight.
 //!   - **Pick counters** — `(code, word) → u32`. [`WubiDict::record_pick`] increments
-//!     the counter; once it hits [`PROMOTE_THRESHOLD`], the word is auto-
-//!     pinned and all counters for that code are reset (so a later, different
-//!     pick has to earn its 3 votes from scratch — prevents thrashing).
+//!     the counter. Counters are usage statistics ONLY: they never change
+//!     ranking. Auto-pin was removed 2026-07-20 (user: "整个自动置顶都关了
+//!     吧，没必要这个功能") — repeatedly picking a non-top candidate used to
+//!     silently pin it at position 0, which made candidate order drift under
+//!     the user instead of staying at the dictionary's ruling.
 //!   - **Layer preferences** — `Layer → f64` multiplier (default 1.0, with
 //!     `Auto = 0.7` so extension characters don't dominate). Applied to the
 //!     L1 nominal weight at sort time. Settable via API; **not** auto-tuned.
@@ -31,52 +33,16 @@ use crate::layer::{DEFAULT_LAYER_PREFS, LAYER_COUNT, Layer, unpack};
 
 const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/wubi86.dict"));
 
-/// Number of consecutive picks of the same `(code, word)` required before
-/// L0 auto-pins it. Defaults to 3; can be overridden at build time via the
-/// `WUBI_PROMOTE_THRESHOLD` env var (developer escape hatch — not exposed
-/// to end users).
-pub const PROMOTE_THRESHOLD: u32 = parse_threshold_const();
-
-const fn parse_threshold_const() -> u32 {
-    match option_env!("WUBI_PROMOTE_THRESHOLD") {
-        Some(s) => parse_u32_const(s),
-        None => 3,
-    }
-}
-
-const fn parse_u32_const(s: &str) -> u32 {
-    let bytes = s.as_bytes();
-    if bytes.is_empty() {
-        panic!("WUBI_PROMOTE_THRESHOLD must not be empty");
-    }
-    let mut i = 0;
-    let mut n: u32 = 0;
-    while i < bytes.len() {
-        let b = bytes[i];
-        if b < b'0' || b > b'9' {
-            panic!("WUBI_PROMOTE_THRESHOLD must be ASCII digits");
-        }
-        n = n * 10 + (b - b'0') as u32;
-        i += 1;
-    }
-    if n == 0 {
-        panic!("WUBI_PROMOTE_THRESHOLD must be >= 1");
-    }
-    n
-}
-
 /// Persistent state of the L0 layer. Caller serializes / deserializes this
 /// however it likes (TOML, MessagePack, sqlite, …) — the crate intentionally
 /// has no `serde` dependency.
 #[derive(Debug, Clone)]
 pub struct L0Snapshot {
-    /// `(code, word)` pairs the user has pinned (manually or via `record_pick`
-    /// reaching threshold).
+    /// `(code, word)` pairs the user has pinned. Only `pin` creates these —
+    /// picking a candidate never does (auto-pin removed 2026-07-20).
     pub pins: Vec<(String, String)>,
-    /// `(code, word, count)` — pending pick counts that haven't yet reached
-    /// `PROMOTE_THRESHOLD`. Snapshot semantics are best-effort; a count of
-    /// `threshold - 1` restored after restart needs only one more pick to
-    /// promote.
+    /// `(code, word, count)` — how often the user picked each candidate.
+    /// Usage statistics only; does not affect ranking.
     pub pick_counts: Vec<(String, String, u32)>,
     /// Layer multipliers, indexed by `Layer as usize`.
     pub layer_prefs: [f64; LAYER_COUNT],
@@ -476,30 +442,23 @@ impl WubiDict {
     // L0 mutation
     // -------------------------------------------------------------------
 
-    /// Record that the user picked `word` for `code`. If this is the
-    /// `PROMOTE_THRESHOLD`-th consecutive pick, the word is auto-pinned and
-    /// all counters for `code` are cleared. Returns `true` iff this call
-    /// caused a promotion.
+    /// Record that the user picked `word` for `code`, incrementing that
+    /// pair's usage counter. Ranking is NOT affected — counters are
+    /// statistics. Only [`Self::pin`] changes candidate order.
     ///
     /// Silently no-ops if `(code, word)` isn't in L1 (defends against the
     /// host accidentally feeding us things the user couldn't actually have
     /// selected from candidates).
-    pub fn record_pick(&self, code: &str, word: &str) -> bool {
+    pub fn record_pick(&self, code: &str, word: &str) {
         if !self.exists_in_l1(code, word) {
-            return false;
+            return;
         }
         let Ok(mut l0) = self.l0.write() else {
-            return false;
+            return;
         };
-        let key = (code.to_string(), word.to_string());
-        let count = l0.pick_counts.entry(key).or_insert(0);
-        *count += 1;
-        if *count >= PROMOTE_THRESHOLD {
-            l0.pins.insert(code.to_string(), word.to_string());
-            l0.pick_counts.retain(|(c, _), _| c != code);
-            return true;
-        }
-        false
+        *l0.pick_counts
+            .entry((code.to_string(), word.to_string()))
+            .or_insert(0) += 1;
     }
 
     /// User-pinned word for `code`, if any. Used by the composite
@@ -666,40 +625,33 @@ mod tests {
         }
     }
 
+    /// Auto-pin removal (user 2026-07-20 "整个自动置顶都关了吧"): picking
+    /// the same candidate any number of times must NEVER reorder
+    /// candidates. Previously the 3rd pick auto-pinned it, which silently
+    /// rewrote the user's candidate order (fcu: 3 picks of 云 moved it
+    /// above 去 and it stayed there).
     #[test]
-    fn record_pick_promotes_after_threshold() {
+    fn record_pick_never_pins_however_many_times() {
         let d = WubiDict::embedded();
-        // Three picks → promoted.
-        assert!(!d.record_pick("khlg", "跑车"));
-        assert!(!d.record_pick("khlg", "跑车"));
-        assert!(d.record_pick("khlg", "跑车"));
-        assert_eq!(d.lookup("khlg").first().map(String::as_str), Some("跑车"));
-        assert_eq!(d.l0_pin_count(), 1);
-        // Counters reset on promotion.
-        assert_eq!(d.l0_pending_count(), 0);
-    }
-
-    #[test]
-    fn record_pick_resets_on_promotion_so_others_must_earn_3_again() {
-        let d = WubiDict::embedded();
-        // Promote 跑车 first.
-        for _ in 0..3 {
+        let before = d.lookup("khlg").first().cloned();
+        for _ in 0..10 {
             d.record_pick("khlg", "跑车");
         }
-        // Now picking 中国 once shouldn't auto-flip.
-        assert!(!d.record_pick("khlg", "中国"));
-        assert_eq!(d.lookup("khlg").first().map(String::as_str), Some("跑车"));
-        // But three picks of 中国 will dethrone 跑车.
-        assert!(!d.record_pick("khlg", "中国"));
-        assert!(d.record_pick("khlg", "中国"));
-        assert_eq!(d.lookup("khlg").first().map(String::as_str), Some("中国"));
+        assert_eq!(
+            d.lookup("khlg").first().cloned(),
+            before,
+            "record_pick must not reorder candidates"
+        );
+        assert_eq!(d.l0_pin_count(), 0, "record_pick must not create pins");
+        // The counter itself still accrues — it is usage statistics.
+        assert_eq!(d.l0_pending_count(), 1);
     }
 
     #[test]
     fn record_pick_rejects_unknown_word() {
         let d = WubiDict::embedded();
-        for _ in 0..PROMOTE_THRESHOLD {
-            assert!(!d.record_pick("khlg", "this_is_not_a_real_word"));
+        for _ in 0..5 {
+            d.record_pick("khlg", "this_is_not_a_real_word");
         }
         assert_eq!(d.l0_pin_count(), 0);
         assert_eq!(d.l0_pending_count(), 0);
@@ -789,9 +741,4 @@ mod tests {
         d.set_layer_pref(Layer::Phrase, f64::NAN);
         assert_eq!(d.layer_pref(Layer::Phrase), 0.0);
     }
-
-    // Compile-time check — `PROMOTE_THRESHOLD` is a `const`, so a runtime
-    // assertion would be trivially true (and clippy flags it). A `const _`
-    // assertion fails at compile time if anyone ever sets it to 0.
-    const _: () = assert!(PROMOTE_THRESHOLD >= 1);
 }

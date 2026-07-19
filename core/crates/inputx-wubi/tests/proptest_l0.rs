@@ -8,9 +8,7 @@ use std::collections::HashMap;
 use proptest::prelude::*;
 use proptest::sample;
 
-use inputx_wubi::{
-    DEFAULT_LAYER_PREFS, L0Snapshot, LAYER_COUNT, Layer, PROMOTE_THRESHOLD, WubiDict,
-};
+use inputx_wubi::{DEFAULT_LAYER_PREFS, L0Snapshot, LAYER_COUNT, Layer, WubiDict};
 
 // A curated set of (code, word) pairs known to exist in the embedded
 // dictionary. We sample from these instead of inventing strings — the
@@ -51,23 +49,22 @@ fn layer_strategy() -> impl Strategy<Value = Layer> {
 }
 
 proptest! {
-    /// Repeated picks of the same valid (code, word) pin only when the
-    /// counter reaches `PROMOTE_THRESHOLD`, never before.
+    /// Repeated picks NEVER pin, however many times (auto-pin removed
+    /// 2026-07-20). Candidate order stays at the dictionary's ruling
+    /// unless the user explicitly pins.
     #[test]
-    fn record_pick_promotes_iff_threshold_reached(
+    fn record_pick_never_promotes(
         entry in entry_strategy(),
-        n in 1u32..(PROMOTE_THRESHOLD * 3),
+        n in 1u32..12,
     ) {
         let dict = WubiDict::embedded();
         let (code, word) = entry;
-        for i in 1..=n {
-            let promoted = dict.record_pick(&code, &word);
-            // Promotion fires exactly on the threshold-th call (first multiple).
-            let expected_promotion_step = i.is_multiple_of(PROMOTE_THRESHOLD);
-            prop_assert_eq!(promoted, expected_promotion_step,
-                "iteration {} of {}: expected promote={}, got {}",
-                i, n, expected_promotion_step, promoted);
+        let before = dict.lookup(&code);
+        for _ in 1..=n {
+            dict.record_pick(&code, &word);
         }
+        prop_assert_eq!(dict.l0_pin_count(), 0);
+        prop_assert_eq!(dict.lookup(&code), before);
     }
 
     /// Picking a word that doesn't exist for `code` never modifies state.
@@ -77,8 +74,8 @@ proptest! {
         bogus in "[A-Z]{8,16}",   // uppercase guarantees no FST hit
     ) {
         let dict = WubiDict::embedded();
-        for _ in 0..(PROMOTE_THRESHOLD + 2) {
-            prop_assert!(!dict.record_pick(&code, &bogus));
+        for _ in 0..5 {
+            dict.record_pick(&code, &bogus);
         }
         prop_assert_eq!(dict.l0_pin_count(), 0);
         prop_assert_eq!(dict.l0_pending_count(), 0);
@@ -122,9 +119,6 @@ proptest! {
             }
         }
         for (code, word) in &pick_entries {
-            // Don't push a pick on a code that already has a pin (record_pick
-            // would clear counters on promotion). We're not testing that
-            // here — separate test.
             if !pinned_codes.contains_key(code) {
                 src.record_pick(code, word);
             }

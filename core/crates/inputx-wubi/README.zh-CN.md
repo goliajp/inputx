@@ -19,7 +19,7 @@
 - 完整的五笔 86 编码器，覆盖四种规范分解规则
 - 135,822 条字典通过有限状态转换器 (FST) 内嵌进二进制
 - 两层排序——基于语料的逐条频率 (L1+) 加上用户可变覆盖层 (L0)，
-  带 3-pick 自动升级规则
+  只由显式 pin 驱动
 - Layer prefs——宿主可调的层级权重乘子
 - 可重现的权重生成管线，CI 字节级 diff 校验
 - 纯 Rust，库代码零 `unsafe`，`no_std + alloc` 兼容
@@ -52,7 +52,7 @@ let dict = WubiDict::embedded();
 let candidates = dict.lookup("khlg");
 // ["中国", "跨国", "跑车", ...]
 
-// 通知字典：用户选了某个候选。同一 (code, word) 被选 3 次后，自动升为 L0 默认。
+// 通知字典：用户选了某个候选。只累加使用计数，不改变候选次序。
 dict.record_pick("khlg", "跑车");
 ```
 
@@ -87,10 +87,10 @@ displayed_score = LAYER_BASE[layer] × layer_prefs[layer] + freq_score
 
 **层级**（优先级升序）：Auto、Phrase、Zigen、Jianma3、Jianma2、Jianma1。
 
-**L0 升级规则**：`record_pick(code, word)` 递增 `(code, word)` 计数器。
-达到阈值（默认 3，可在编译时通过 `WUBI_PROMOTE_THRESHOLD` 覆盖）时，
-该词成为该 code 的 L0 pin，并清空该 code 下所有计数器——后续若有
-不同的词想要取代，需要重新攒满 3 次。
+**L0 计数器**：`record_pick(code, word)` 递增 `(code, word)` 计数器。
+计数器只是使用统计，**不影响排序**。候选次序由词库裁定，只有显式
+`pin` 才能改变它。（自动置顶已于 2026-07-20 移除：反复选择某个非首位
+候选曾会把它静默钉到 0 号位，让候选次序在用户脚下漂移。）
 
 ## 性能
 

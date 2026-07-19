@@ -99,10 +99,11 @@ impl WubiEngine {
     // -------------------------------------------------------------------
 
     /// Tell the dictionary that the user just committed `word` for `code`.
-    /// Returns `true` if this call caused an auto-promotion to L0.
+    /// Bumps the usage counter only — candidate order never changes as a
+    /// result (auto-pin removed 2026-07-20). Use `pin` to change order.
     #[wasm_bindgen(js_name = recordPick)]
-    pub fn record_pick(&self, code: &str, word: &str) -> bool {
-        self.dict.record_pick(code, word)
+    pub fn record_pick(&self, code: &str, word: &str) {
+        self.dict.record_pick(code, word);
     }
 
     /// Force-pin a word as L0 default for `code` without going through the
