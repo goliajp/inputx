@@ -27,7 +27,7 @@ the full attribution chain.
 - **Segmenter** — DP all-splits enumeration of a pinyin buffer
 - **Fuzzy syllables** — 9 toggleable consonant/vowel-pair tolerances
   (`z⇄zh`, `n⇄l`, `en⇄eng`, …) for non-standard typists
-- **L0 user-learning** — 3-pick auto-pin per `(input, word)` pair, with
+- **L0 user overrides** — explicit per-`(input, word)` pins, with
   JSON-serializable snapshot for cross-session persistence
 - **Streaming prefix scan** (`prefix_for_each`) — zero-allocation visitor
   over FST entries matching a prefix, used by Inputx's per-keystroke
@@ -58,8 +58,9 @@ dict.prefix_for_each("zho", |pinyin, word, freq| {
     println!("{pinyin} {word} (freq={freq})");
 });
 
-// Tell the engine the user picked a word. After 3 picks of the same
-// (input, word), it's auto-pinned to L0 for that input.
+// Tell the engine the user picked a word. This bumps a usage counter
+// only — candidate order never changes as a result. Use `pin` to override
+// ordering explicitly.
 dict.record_pick("zhongguo", "中国");
 ```
 

@@ -98,11 +98,12 @@ impl PinyinEngine {
     // -------------------------------------------------------------------
 
     /// Tell the dictionary that the user just committed `word` for
-    /// `pinyin`. Returns `true` if this call caused an auto-promotion to
-    /// L0.
+    /// `pinyin`. Bumps the usage counter only — candidate order never
+    /// changes as a result (auto-pin removed 2026-07-20). Use `pin` to
+    /// change order.
     #[wasm_bindgen(js_name = recordPick)]
-    pub fn record_pick(&self, pinyin: &str, word: &str) -> bool {
-        self.dict.record_pick(pinyin, word)
+    pub fn record_pick(&self, pinyin: &str, word: &str) {
+        self.dict.record_pick(pinyin, word);
     }
 
     /// Force-pin a word as L0 default for `pinyin` without going through

@@ -9,10 +9,12 @@
 //!     word to position 0 in `lookup`'s output, regardless of L1
 //!     freq_score.
 //!   - **Pick counters** — `(pinyin, word) → u32`.
-//!     [`crate::dict::PinyinDict::record_pick`] increments the counter;
-//!     once it reaches [`PROMOTE_THRESHOLD`], the word is auto-pinned and
-//!     all counters for that pinyin are reset (so a later, different pick
-//!     has to earn its 3 votes from scratch — prevents thrashing).
+//!     [`crate::dict::PinyinDict::record_pick`] increments the counter.
+//!     Counters are usage statistics ONLY: they never change ranking.
+//!     Auto-pin was removed 2026-07-20 (user: "整个自动置顶都关了吧,
+//!     没必要这个功能") — repeatedly picking a non-top candidate used to
+//!     silently pin it at position 0, making candidate order drift under
+//!     the user instead of staying at the dictionary's ruling.
 //!
 //! Pinyin v0.2 has no layer concept (wubi has 字根 / 简码 / 词组 layers
 //! that are wubi-encoding specific). If we ever need layer prefs (e.g.,
@@ -20,40 +22,6 @@
 //! FST value format `(layer << 56) | freq_score` like wubi does.
 
 use std::collections::HashMap;
-
-/// Number of consecutive picks of the same `(pinyin, word)` required before
-/// L0 auto-pins it. Defaults to 3; can be overridden at build time via the
-/// `PINYIN_PROMOTE_THRESHOLD` env var (developer escape hatch — not
-/// exposed to end users).
-pub const PROMOTE_THRESHOLD: u32 = parse_threshold_const();
-
-const fn parse_threshold_const() -> u32 {
-    match option_env!("PINYIN_PROMOTE_THRESHOLD") {
-        Some(s) => parse_u32_const(s),
-        None => 3,
-    }
-}
-
-const fn parse_u32_const(s: &str) -> u32 {
-    let bytes = s.as_bytes();
-    if bytes.is_empty() {
-        panic!("PINYIN_PROMOTE_THRESHOLD must not be empty");
-    }
-    let mut i = 0;
-    let mut n: u32 = 0;
-    while i < bytes.len() {
-        let b = bytes[i];
-        if b < b'0' || b > b'9' {
-            panic!("PINYIN_PROMOTE_THRESHOLD must be ASCII digits");
-        }
-        n = n * 10 + (b - b'0') as u32;
-        i += 1;
-    }
-    if n == 0 {
-        panic!("PINYIN_PROMOTE_THRESHOLD must be >= 1");
-    }
-    n
-}
 
 /// Persistent state of the L0 layer. Caller serializes / deserializes this
 /// however it likes (TOML, JSON, MessagePack, sqlite, …) — the crate
@@ -66,13 +34,12 @@ const fn parse_u32_const(s: &str) -> u32 {
 /// v1 format. See [`L0Snapshot::is_pre_v2`] for the v1-shape check.
 #[derive(Debug, Clone, Default)]
 pub struct L0Snapshot {
-    /// `(pinyin, word)` pairs the user has pinned (manually or via
-    /// `record_pick` reaching threshold).
+    /// `(pinyin, word)` pairs the user has pinned. Only `pin` creates
+    /// these — picking a candidate never does (auto-pin removed
+    /// 2026-07-20).
     pub pins: Vec<(String, String)>,
-    /// `(pinyin, word, count)` — pending pick counts that haven't yet
-    /// reached `PROMOTE_THRESHOLD`. Snapshot semantics are best-effort;
-    /// a count of `threshold - 1` restored after restart needs only one
-    /// more pick to promote.
+    /// `(pinyin, word, count)` — how often the user picked each
+    /// candidate. Usage statistics only; does not affect ranking.
     pub pick_counts: Vec<(String, String, u32)>,
     /// Phase-4 user-bigram pick counts. `((prev_word, curr_word),
     /// count)` — populated by `pinyin_adapter.commit_at()` after the
@@ -168,11 +135,6 @@ impl L0Inner {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn promote_threshold_is_at_least_one() {
-        const _GUARD: () = assert!(PROMOTE_THRESHOLD >= 1);
-    }
 
     #[test]
     fn snapshot_default_is_empty() {

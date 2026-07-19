@@ -64,7 +64,7 @@ pub use dict::{PinyinDict, normalize_lookup_key};
 pub use encode::{char_to_pinyin, covered_char_count};
 pub use engine::PinyinEngine;
 pub use fuzzy::FuzzyConfig;
-pub use ranking::{L0Snapshot, PROMOTE_THRESHOLD};
+pub use ranking::L0Snapshot;
 pub use segmenter::{Segmentation, segment};
 pub use session::Session;
 pub use syllable::{

@@ -2391,6 +2391,44 @@ mod tests {
         );
     }
 
+    /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
+    /// 这个功能"). Repeatedly committing a NON-top candidate must never
+    /// promote it to #0 — candidate order is the dictionary's ruling plus
+    /// explicit pins, nothing else.
+    ///
+    /// Origin: `fcu` (wubi 去/支/云). The user picked 云 (idx 2) three
+    /// times on 2026-07-19; the old 3-pick auto-pin then wired 云 to #0
+    /// and 去 stayed demoted across restarts — visible in the live
+    /// polish-log as the candidate list flipping from [去,支,云] to
+    /// [云,去,支] mid-session.
+    #[test]
+    fn repeated_commits_never_reorder_candidates() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+
+        let baseline = mixed_top10(b"fcu");
+        let target = &baseline[2];
+
+        for _ in 0..5 {
+            for b in b"fcu" {
+                let _ = e.handle_letter(*b);
+            }
+            let idx = e
+                .candidates()
+                .iter()
+                .position(|c| &c.word == target)
+                .expect("target must stay present");
+            assert_eq!(e.commit_index(idx).as_deref(), Some(target.as_str()));
+        }
+
+        assert_eq!(
+            mixed_top10(b"fcu"),
+            baseline,
+            "committing the #2 candidate 5x must not reorder fcu"
+        );
+    }
+
     /// Class B polish (user report 2026-07-18): "jianju 间距 > 艰巨，
     /// 这两个在最前面". Was [艰巨, 检举, 间距, 兼具]. Pair boost per the
     /// winner-take-all rule: 间距 60000 > 艰巨 50000; 检举/兼具 unboosted

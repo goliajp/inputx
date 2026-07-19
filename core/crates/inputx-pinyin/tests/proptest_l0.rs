@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use proptest::prelude::*;
 use proptest::sample;
 
-use inputx_pinyin::{L0Snapshot, PROMOTE_THRESHOLD, PinyinDict};
+use inputx_pinyin::{L0Snapshot, PinyinDict};
 
 /// A curated set of (pinyin, word) pairs known to exist in the embedded
 /// dictionary AND known to have ≥ 2 candidates per pinyin (gives
@@ -41,25 +41,22 @@ fn entry_strategy() -> impl Strategy<Value = (String, String)> {
 }
 
 proptest! {
-    /// Repeated picks of the same valid (pinyin, word) pin only when the
-    /// counter reaches `PROMOTE_THRESHOLD`, never before.
+    /// Repeated picks NEVER pin, however many times (auto-pin removed
+    /// 2026-07-20). Candidate order stays at the dictionary's ruling
+    /// unless the user explicitly pins.
     #[test]
-    fn record_pick_promotes_iff_threshold_reached(
+    fn record_pick_never_promotes(
         entry in entry_strategy(),
-        n in 1u32..(PROMOTE_THRESHOLD * 3),
+        n in 1u32..12,
     ) {
         let dict = PinyinDict::embedded();
         let (pinyin, word) = entry;
-        for i in 1..=n {
-            let promoted = dict.record_pick(&pinyin, &word);
-            // Promotion fires on multiples of the threshold (counter resets
-            // on promotion, so picks 1..(N-1), N (promote), N+1..(2N-1),
-            // 2N (promote again), …).
-            let expected = i.is_multiple_of(PROMOTE_THRESHOLD);
-            prop_assert_eq!(promoted, expected,
-                "iter {} of {}: expected promote={}, got {}",
-                i, n, expected, promoted);
+        let before = dict.lookup(&pinyin);
+        for _ in 1..=n {
+            dict.record_pick(&pinyin, &word);
         }
+        prop_assert_eq!(dict.l0_pin_count(), 0);
+        prop_assert_eq!(dict.lookup(&pinyin), before);
     }
 
     /// Picking a word that doesn't exist for `pinyin` never modifies state.
@@ -69,8 +66,8 @@ proptest! {
         bogus in "[A-Z]{8,16}",   // uppercase ascii guarantees no FST hit
     ) {
         let dict = PinyinDict::embedded();
-        for _ in 0..(PROMOTE_THRESHOLD + 2) {
-            prop_assert!(!dict.record_pick(&pinyin, &bogus));
+        for _ in 0..5 {
+            dict.record_pick(&pinyin, &bogus);
         }
         prop_assert_eq!(dict.l0_pin_count(), 0);
         prop_assert_eq!(dict.l0_pending_count(), 0);

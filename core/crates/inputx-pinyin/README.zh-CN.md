@@ -25,7 +25,7 @@ L0 / L1+ 排序、WebAssembly 原生支持
     （`银行 → yinhang`、`重新 → chongxin`、`着陆 → zhuolu` 等）
 - **分段器**——DP 枚举拼音缓冲区的所有合法切分
 - **模糊音**——9 对可切换的辅音/元音容错（`z⇄zh`、`n⇄l`、`en⇄eng` 等）
-- **L0 用户学习**——同一 `(input, word)` 被选 3 次自动 pin，JSON
+- **L0 用户覆盖**——显式的 `(input, word)` pin，JSON
   序列化的快照支持跨会话持久化
 - **流式前缀扫描**（`prefix_for_each`）——零分配 visitor 遍历 FST 中匹配
   前缀的所有条目，Inputx 用它在每次 keystroke 上做 partial-input
@@ -66,7 +66,7 @@ dict.prefix_for_each("zho", |pinyin, word, freq| {
     println!("{pinyin} {word} (freq={freq})");
 });
 
-// 通知引擎用户选了某个词。同一 (input, word) 被选 3 次后自动 pin 到 L0。
+// 通知引擎用户选了某个词。只累加使用计数，不改变候选次序。
 dict.record_pick("zhongguo", "中国");
 ```
 
