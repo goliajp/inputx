@@ -2391,6 +2391,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-20): "fangzhong 房中，第一".
+    /// v2-ingest gap: 房中 lives in v1 library (freq 15522) but not in v2
+    /// words, so the buffer returned only the cedict Taiwan term 房仲.
+    /// modern_vocab @ 15000 → exact tier 4, which leads.
+    #[test]
+    fn polish_fangzhong_fangzhong_first() {
+        let top10 = mixed_top10("fangzhong".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("房中"),
+            "fangzhong: expected 房中 #0; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
