@@ -276,7 +276,6 @@ tuibu	退捕	30000
 zuoxi	做细	30000
 jumuyuantiao	举目远眺	30000	# strict-0001 un-exclude (was wrongly in corpus_garbage_filter)
 xigoucun	西沟村	30000	# strict-0001 un-exclude (was wrongly in corpus_garbage_filter)
-yichu	一处	30000	# strict-0001 over 溢出
 # 2026-06-30 user "jiangsu 江苏，所有的省也要补上" — PRC 省级 batch
 jiangsu	江苏	50000
 hubei	湖北	50000
@@ -393,7 +392,6 @@ hecha	喝茶	50000
 yizhi	一直	55000
 jiyi	记忆	55000
 xianshi	显示	50000
-yichu	一处	45000
 # zhidao 之道 was at 55k via modern_vocab (literary), need 知道 even higher
 zhidao	知道	70000
 
@@ -1263,3 +1261,13 @@ fenwei	氛围	30650	# 2026-07-18 user "氛围 > 分为": 氛围 base 29248 本�
 jiqi	机器	31950	# 2026-07-18 user "机器 第一": 机器 base 35883 本为组内最高, 被 v2 HSK tier 压; 极其 base 29042+10%
 shouxieti	手写体	55000	# 2026-07-18 user "手写体要在日语前": mf 18308 差 20000 阈值未入 exact-common cap; tier-1 55000 JP 校准
 jiewei	结尾	19470	# 2026-07-20 user "结尾第一": modern_freq prior 反转 (解围 23675 > 结尾 23637 差 38) 但 v1 语料 结尾 28796 >> 解围 17699; 解围 base 17699+10%
+# 2026-07-21 user "yichu 移除 > 溢出 > 益处 > 衣橱 > 一处 > 移出 > 役畜": full reorder.
+# Descending chain (winner-take-all tier 1). 役畜 (draft animals, real but
+# uncommon word) intentionally gets NO row → stays tier 4, naturally last.
+# Supersedes the old strict-0001 "一处 over 溢出" rows (removed above).
+yichu	移除	70000
+yichu	溢出	64000
+yichu	益处	58000
+yichu	衣橱	52000
+yichu	一处	46000
+yichu	移出	40000
