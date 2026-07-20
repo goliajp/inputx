@@ -2485,6 +2485,27 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-21): "yichu 移除 > 溢出 > 益处 >
+    /// 衣橱 > 一处 > 移出 > 役畜". Full 7-candidate reorder via a descending
+    /// quickfix chain (winner-take-all tier 1). 役畜 (draft animals — a
+    /// real but uncommon word, so KEPT not deleted) gets no quickfix row
+    /// and stays tier 4, landing last. Supersedes the old strict-0001
+    /// "一处 over 溢出" rows, which the new explicit order inverts.
+    #[test]
+    fn polish_yichu_full_order() {
+        let top10 = mixed_top10("yichu".as_bytes());
+        let want = ["移除", "溢出", "益处", "衣橱", "一处", "移出", "役畜"];
+        let got: Vec<&str> = top10
+            .iter()
+            .filter(|w| want.contains(&w.as_str()))
+            .map(String::as_str)
+            .collect();
+        assert_eq!(
+            got, want,
+            "yichu: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
