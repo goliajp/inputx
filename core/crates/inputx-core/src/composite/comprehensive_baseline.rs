@@ -2459,6 +2459,32 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-20): "qian 千应该在第四位".
+    /// 千 was buried at #44 (score 434831). Root cause: a single-char
+    /// row `qian 千 35000` in modern_vocab_v1 turned it into a tier-3
+    /// WORD entry (410000 + modern_freq 24831 = 434831). The word path
+    /// runs before the char path and claims the dedup slot, so 千 never
+    /// got its natural single-char score — and tier-3-word is far worse
+    /// than what 千 earns as a char (通用规范 tier 1, HSK 2).
+    ///
+    /// Deleting that row lets the char path score it normally; 千 lands
+    /// at #2 (521434), i.e. better than the requested 4th. No override
+    /// was added — forcing it to exactly 4th would mean demoting it
+    /// below 浅 (modern_freq 24784 < 千 24831, HSK 5 vs 2), i.e.
+    /// contradicting the data.
+    ///
+    /// Lesson: single-char rows do not belong in modern_vocab — they
+    /// shadow the char path and can only lower a char's rank.
+    #[test]
+    fn polish_qian_qian_in_top4() {
+        let top10 = mixed_top10("qian".as_bytes());
+        let idx = top10.iter().position(|w| w == "千");
+        assert!(
+            matches!(idx, Some(i) if i <= 3),
+            "qian: expected 千 within top-4; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
