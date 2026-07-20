@@ -2439,6 +2439,26 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-20): "shazhang 纱帐第一".
+    /// 纱帐 came in from modern_vocab at 15000 → tier 4, tying the cedict
+    /// row 煞账 (also tier 4) at score 380000, so the codepoint
+    /// tiebreak put 煞(U+715E) ahead of 纱(U+7EB1). Raising the SAME
+    /// modern_vocab row to 30000 buys tier 3, which wins outright.
+    ///
+    /// Note for future polishes: `data.rs::build_words` keeps only the
+    /// FIRST modern_vocab row per (code, word) — appending a second row
+    /// with a higher freq is silently ignored, the existing row must be
+    /// edited in place.
+    #[test]
+    fn polish_shazhang_shazhang_first() {
+        let top10 = mixed_top10("shazhang".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("纱帐"),
+            "shazhang: expected 纱帐 #0; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
