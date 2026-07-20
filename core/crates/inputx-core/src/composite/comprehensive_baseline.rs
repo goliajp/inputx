@@ -2424,6 +2424,21 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-20): "jiewei 结尾第一".
+    /// All five v2 rows are tier 4, so order fell to modern_freq, where
+    /// 解围 (23675) edged 结尾 (23637) by 38 — while the v1 corpus has
+    /// 结尾 28796 vs 解围 17699, i.e. the jieba-percentile prior is
+    /// inverted here (same family as tujian / chayi / fenwei).
+    #[test]
+    fn polish_jiewei_jiewei_first() {
+        let top10 = mixed_top10("jiewei".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("结尾"),
+            "jiewei: expected 结尾 #0; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
