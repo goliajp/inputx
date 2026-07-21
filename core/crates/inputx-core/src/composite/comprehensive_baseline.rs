@@ -2520,6 +2520,22 @@ mod tests {
         assert_eq!(head, ["备案", "血案"], "tlpv: got top10={top10:?}");
     }
 
+    /// Class B polish (user report 2026-07-21): "fuzhi 复制第一 赋值第二
+    /// 扶植第三". 福祉 held #0 via an earlier quickfix (30000); the three
+    /// requested words go above it with a descending chain, so 福祉 keeps
+    /// its row and simply lands at #4 — the earlier ruling is honoured as
+    /// far as the new one allows.
+    #[test]
+    fn polish_fuzhi_head_order() {
+        let top10 = mixed_top10("fuzhi".as_bytes());
+        let head: Vec<&str> = top10.iter().take(4).map(String::as_str).collect();
+        assert_eq!(
+            head,
+            ["复制", "赋值", "扶植", "福祉"],
+            "fuzhi: got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
