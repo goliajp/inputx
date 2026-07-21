@@ -2506,6 +2506,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-21): "tlpv 备案第一". Wubi-side
+    /// Class B, so the kongdang route (quickfix_boost is pinyin-only):
+    /// both candidates are layer-1 entries ordered purely by freq, and
+    /// 备案 (filing/registration) lost to 血案 (murder case) 19275 vs
+    /// 19466. library.tsv freq 19275 → 21413 (血案 + 10%), layer 1
+    /// unchanged, source flipped to `polish` so corpus digest can't
+    /// clobber it.
+    #[test]
+    fn polish_tlpv_beian_first() {
+        let top10 = mixed_top10("tlpv".as_bytes());
+        let head: Vec<&str> = top10.iter().take(2).map(String::as_str).collect();
+        assert_eq!(head, ["备案", "血案"], "tlpv: got top10={top10:?}");
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
