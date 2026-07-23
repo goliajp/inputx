@@ -2674,16 +2674,15 @@ mod tests {
         assert_eq!(head, ["唯独", "维度", "未读"], "weidu: got top10={top10:?}");
     }
 
-    /// Class B polish (user report 2026-07-15): "youxiang 邮箱第二".
-    /// 邮箱 sat at #2 behind 油箱/幽香 despite the highest library freq (27403).
-    /// "Second place" needs a pair boost, not a single row: v2's quickfix is
-    /// winner-take-all, so a lone 邮箱 row would seize #0. 油箱 60000 > 邮箱 50000
-    /// pins 邮箱 to #1 while 幽香 (unboosted) drops to #2.
+    /// Class B polish (user report 2026-07-21): "youxiang 邮箱第一".
+    /// Supersedes the 2026-07-15 "邮箱第二" ruling — the user now wants 邮箱
+    /// at #0, so the pair boost is simply swapped: 邮箱 60000 > 油箱 50000,
+    /// 幽香 (unboosted) stays #2.
     #[test]
-    fn polish_youxiang_youxiang_second() {
+    fn polish_youxiang_youxiang_first() {
         let top10 = mixed_top10("youxiang".as_bytes());
         let head: Vec<&str> = top10.iter().take(2).map(String::as_str).collect();
-        assert_eq!(head, ["油箱", "邮箱"], "youxiang: got top10={top10:?}");
+        assert_eq!(head, ["邮箱", "油箱"], "youxiang: got top10={top10:?}");
     }
 
     /// Class D1 polish (user report 2026-07-14): "pusu 朴素第一，补校不是一个词".
