@@ -819,6 +819,43 @@ pub unsafe extern "C" fn inputx_session_smart_quote(
         .unwrap_or(codepoint)
 }
 
+/// Context-based smart quote. Decides the CJK curly form of `codepoint`
+/// (`"` or `'`) from the character immediately before the caret rather
+/// than an in-memory toggle, so it survives IME switches, mouse clicks,
+/// and mid-text edits.
+///
+/// `prev_codepoint` is the caret's preceding character; `has_prev` must
+/// be `0` when the caret is at the very start of the document (or the
+/// host could not read context — in which case the host should instead
+/// call [`inputx_session_smart_quote`] for the toggle fallback). Non-quote
+/// codepoints pass through unchanged.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_smart_quote_ctx(
+    session: *mut InputxSession,
+    codepoint: u32,
+    prev_codepoint: u32,
+    has_prev: u8,
+) -> u32 {
+    let Some(s) = (unsafe { session.as_mut() }) else {
+        return codepoint;
+    };
+    let Some(c) = char::from_u32(codepoint) else {
+        return codepoint;
+    };
+    let prev = if has_prev != 0 {
+        char::from_u32(prev_codepoint)
+    } else {
+        None
+    };
+    s.inner
+        .smart_quote_ctx(c, prev)
+        .map(|m| m as u32)
+        .unwrap_or(codepoint)
+}
+
 /// Reset the session's smart-quote alternator (next quote will be opening).
 ///
 /// # Safety
@@ -961,6 +998,7 @@ mod tests {
         SetMode(u8),
         GetMode,
         SmartQuote(u32),
+        SmartQuoteCtx(u32, u32, u8),
         SmartQuoteReset,
         PunctAsciiToCjk(u32),
         PunctFullWidth(u32),
@@ -985,6 +1023,8 @@ mod tests {
             1 => any::<u8>().prop_map(FfiOp::SetMode),
             1 => Just(FfiOp::GetMode),
             1 => any::<u32>().prop_map(FfiOp::SmartQuote),
+            1 => (any::<u32>(), any::<u32>(), any::<u8>())
+                    .prop_map(|(c, p, h)| FfiOp::SmartQuoteCtx(c, p, h)),
             1 => Just(FfiOp::SmartQuoteReset),
             1 => any::<u32>().prop_map(FfiOp::PunctAsciiToCjk),
             1 => any::<u32>().prop_map(FfiOp::PunctFullWidth),
@@ -1060,6 +1100,9 @@ mod tests {
                         FfiOp::SmartQuote(cp) => {
                             let _ = inputx_session_smart_quote(s, *cp);
                         }
+                        FfiOp::SmartQuoteCtx(cp, prev, has_prev) => {
+                            let _ = inputx_session_smart_quote_ctx(s, *cp, *prev, *has_prev);
+                        }
                         FfiOp::SmartQuoteReset => inputx_session_smart_quote_reset(s),
                         FfiOp::PunctAsciiToCjk(cp) => {
                             let _ = inputx_punct_ascii_to_cjk(*cp);
@@ -1130,6 +1173,13 @@ mod tests {
                         FfiOp::SmartQuote(cp) => {
                             // NULL session: pass-through (returns input).
                             prop_assert_eq!(inputx_session_smart_quote(null_s, *cp), *cp);
+                        }
+                        FfiOp::SmartQuoteCtx(cp, prev, has_prev) => {
+                            // NULL session: pass-through (returns input).
+                            prop_assert_eq!(
+                                inputx_session_smart_quote_ctx(null_s, *cp, *prev, *has_prev),
+                                *cp
+                            );
                         }
                         FfiOp::SmartQuoteReset => inputx_session_smart_quote_reset(null_s),
                         FfiOp::L0Export(eng) => {
