@@ -760,7 +760,8 @@ final class InputxController: IMKInputController {
                 }
                 if let mapped = applyLocaleIfApplicable(
                     codepoint: codepoint,
-                    event: event
+                    event: event,
+                    client: sender as? IMKTextInput
                 ) {
                     commitText(mapped, to: sender)
                     return true
@@ -1063,9 +1064,39 @@ final class InputxController: IMKInputController {
     /// returns 0x27 (apostrophe) regardless of whether shift is held —
     /// pressing shift on the same physical key clearly signals "double
     /// quote intent" and we route accordingly.
+    /// The caret's document context for smart-quote direction.
+    private enum CaretContext {
+        /// Caret at document start → next quote opens.
+        case start
+        /// Unicode scalar immediately before the caret.
+        case preceding(UInt32)
+        /// Client can't report a caret / surrounding text (terminals,
+        /// some web/Electron views) → use the toggle fallback.
+        case unavailable
+    }
+
+    /// Read the scalar immediately before the caret from `client`. Reads a
+    /// 2-unit UTF-16 window so a surrogate pair (emoji etc.) resolves to a
+    /// whole scalar rather than a lone surrogate; quote direction only
+    /// needs the scalar's rough class (letter / space / punctuation).
+    private func caretContext(client: IMKTextInput) -> CaretContext {
+        let sel = client.selectedRange()
+        if sel.location == NSNotFound { return .unavailable }
+        if sel.location == 0 { return .start }
+        let take = min(sel.location, 2)
+        let range = NSRange(location: sel.location - take, length: take)
+        guard let s = client.attributedSubstring(from: range)?.string,
+            let scalar = s.unicodeScalars.last
+        else {
+            return .unavailable
+        }
+        return .preceding(scalar.value)
+    }
+
     private func applyLocaleIfApplicable(
         codepoint: UInt32,
-        event: NSEvent
+        event: NSEvent,
+        client: IMKTextInput?
     ) -> String? {
         guard inputxSettings.useCjkPunct else {
             // Pure full-width mode: only the width toggle applies.
@@ -1074,7 +1105,11 @@ final class InputxController: IMKInputController {
                 : nil
         }
 
-        // Quote chars route through the session's stateful smart-quote.
+        // Quote chars: prefer the stateless context path (curly form
+        // derived from the caret's preceding character), which survives
+        // IME switches, mouse clicks, and mid-text edits. Fall back to the
+        // in-memory toggle only when the client can't report context
+        // (terminals, some web/Electron views).
         // Apostrophe + shift → force-interpret as double-quote regardless
         // of what the layout returned. (`charactersIgnoringModifiers` on
         // some layouts returns 0x27 for shift+apostrophe; trust the
@@ -1086,7 +1121,14 @@ final class InputxController: IMKInputController {
             } else {
                 codepoint
             }
-            let mapped = session.smartQuote(cp)
+            let mapped: UInt32 = switch client.map(caretContext(client:)) ?? .unavailable {
+            case .start:
+                session.smartQuoteCtx(cp, prev: nil)
+            case .preceding(let prevCp):
+                session.smartQuoteCtx(cp, prev: prevCp)
+            case .unavailable:
+                session.smartQuote(cp)
+            }
             if mapped != cp {
                 return stringFromCodepoint(mapped)
             }
