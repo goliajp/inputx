@@ -314,19 +314,18 @@ public final class InputxSession {
     }
 
     /// Context-based smart quote. Decides the curly form of `codepoint`
-    /// (`"` / `'`) from the caret's preceding character rather than an
+    /// (`"` / `'`) from the document text before the caret rather than an
     /// in-memory toggle, so it survives IME switches, mouse clicks, and
-    /// mid-text edits. Pass `prev == nil` when the caret is at document
-    /// start; when the host cannot read context at all, call
-    /// `smartQuote(_:)` (the toggle fallback) instead. Non-quote
-    /// codepoints pass through unchanged.
-    public func smartQuoteCtx(_ codepoint: UInt32, prev: UInt32?) -> UInt32 {
-        return inputx_session_smart_quote_ctx(
-            handle,
-            codepoint,
-            prev ?? 0,
-            prev == nil ? 0 : 1
-        )
+    /// mid-text edits (and handles Chinese `他说“…”`, no space before the
+    /// opener). Nesting-aware: counts unclosed quotes of this type on the
+    /// current line. `contextBefore` is the text up to the caret (a
+    /// bounded window is fine; empty = opens). When the host cannot read
+    /// context at all, call `smartQuote(_:)` (the toggle fallback)
+    /// instead. Non-quote codepoints pass through unchanged.
+    public func smartQuoteCtx(_ codepoint: UInt32, contextBefore: String) -> UInt32 {
+        return contextBefore.withCString { ctx in
+            inputx_session_smart_quote_ctx(handle, codepoint, ctx)
+        }
     }
 
     public func smartQuoteReset() {

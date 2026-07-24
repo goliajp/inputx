@@ -820,24 +820,27 @@ pub unsafe extern "C" fn inputx_session_smart_quote(
 }
 
 /// Context-based smart quote. Decides the CJK curly form of `codepoint`
-/// (`"` or `'`) from the character immediately before the caret rather
-/// than an in-memory toggle, so it survives IME switches, mouse clicks,
-/// and mid-text edits.
+/// (`"` or `'`) from the document text before the caret rather than an
+/// in-memory toggle, so it survives IME switches, mouse clicks, and
+/// mid-text edits (and handles Chinese `他说“…”`, no space before the
+/// opener). Nesting-aware: it counts unclosed quotes of this type on the
+/// current line.
 ///
-/// `prev_codepoint` is the caret's preceding character; `has_prev` must
-/// be `0` when the caret is at the very start of the document (or the
-/// host could not read context — in which case the host should instead
-/// call [`inputx_session_smart_quote`] for the toggle fallback). Non-quote
+/// `ctx_before_utf8` is a NUL-terminated UTF-8 string of the document
+/// text up to the caret (a bounded window is fine; only the current line
+/// is counted). NULL / empty is treated as no context → the quote opens.
+/// A host that cannot read context at all should instead call
+/// [`inputx_session_smart_quote`] (the toggle fallback). Non-quote
 /// codepoints pass through unchanged.
 ///
 /// # Safety
-/// `session` must be valid (or NULL).
+/// `session` must be valid (or NULL); `ctx_before_utf8` must be NULL or a
+/// valid NUL-terminated pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn inputx_session_smart_quote_ctx(
     session: *mut InputxSession,
     codepoint: u32,
-    prev_codepoint: u32,
-    has_prev: u8,
+    ctx_before_utf8: *const c_char,
 ) -> u32 {
     let Some(s) = (unsafe { session.as_mut() }) else {
         return codepoint;
@@ -845,13 +848,15 @@ pub unsafe extern "C" fn inputx_session_smart_quote_ctx(
     let Some(c) = char::from_u32(codepoint) else {
         return codepoint;
     };
-    let prev = if has_prev != 0 {
-        char::from_u32(prev_codepoint)
+    let ctx = if ctx_before_utf8.is_null() {
+        ""
     } else {
-        None
+        unsafe { CStr::from_ptr(ctx_before_utf8) }
+            .to_str()
+            .unwrap_or("")
     };
     s.inner
-        .smart_quote_ctx(c, prev)
+        .smart_quote_ctx(c, ctx)
         .map(|m| m as u32)
         .unwrap_or(codepoint)
 }
@@ -998,7 +1003,7 @@ mod tests {
         SetMode(u8),
         GetMode,
         SmartQuote(u32),
-        SmartQuoteCtx(u32, u32, u8),
+        SmartQuoteCtx(u32, String),
         SmartQuoteReset,
         PunctAsciiToCjk(u32),
         PunctFullWidth(u32),
@@ -1023,8 +1028,8 @@ mod tests {
             1 => any::<u8>().prop_map(FfiOp::SetMode),
             1 => Just(FfiOp::GetMode),
             1 => any::<u32>().prop_map(FfiOp::SmartQuote),
-            1 => (any::<u32>(), any::<u32>(), any::<u8>())
-                    .prop_map(|(c, p, h)| FfiOp::SmartQuoteCtx(c, p, h)),
+            1 => (any::<u32>(), ".*")
+                    .prop_map(|(c, ctx)| FfiOp::SmartQuoteCtx(c, ctx)),
             1 => Just(FfiOp::SmartQuoteReset),
             1 => any::<u32>().prop_map(FfiOp::PunctAsciiToCjk),
             1 => any::<u32>().prop_map(FfiOp::PunctFullWidth),
@@ -1100,8 +1105,10 @@ mod tests {
                         FfiOp::SmartQuote(cp) => {
                             let _ = inputx_session_smart_quote(s, *cp);
                         }
-                        FfiOp::SmartQuoteCtx(cp, prev, has_prev) => {
-                            let _ = inputx_session_smart_quote_ctx(s, *cp, *prev, *has_prev);
+                        FfiOp::SmartQuoteCtx(cp, ctx) => {
+                            if let Ok(cs) = CString::new(ctx.clone()) {
+                                let _ = inputx_session_smart_quote_ctx(s, *cp, cs.as_ptr());
+                            }
                         }
                         FfiOp::SmartQuoteReset => inputx_session_smart_quote_reset(s),
                         FfiOp::PunctAsciiToCjk(cp) => {
@@ -1174,12 +1181,14 @@ mod tests {
                             // NULL session: pass-through (returns input).
                             prop_assert_eq!(inputx_session_smart_quote(null_s, *cp), *cp);
                         }
-                        FfiOp::SmartQuoteCtx(cp, prev, has_prev) => {
+                        FfiOp::SmartQuoteCtx(cp, ctx) => {
                             // NULL session: pass-through (returns input).
-                            prop_assert_eq!(
-                                inputx_session_smart_quote_ctx(null_s, *cp, *prev, *has_prev),
-                                *cp
-                            );
+                            if let Ok(cs) = CString::new(ctx.clone()) {
+                                prop_assert_eq!(
+                                    inputx_session_smart_quote_ctx(null_s, *cp, cs.as_ptr()),
+                                    *cp
+                                );
+                            }
                         }
                         FfiOp::SmartQuoteReset => inputx_session_smart_quote_reset(null_s),
                         FfiOp::L0Export(eng) => {
