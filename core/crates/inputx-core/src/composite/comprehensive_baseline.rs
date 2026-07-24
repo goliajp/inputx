@@ -2590,6 +2590,21 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-24): "yatong 牙痛第一".
+    /// 牙痛 and 压痛 are both v2 tier 4; modern_freq put the medical term
+    /// 压痛 (tenderness) at #0 over 牙痛 (toothache), while v1 corpus has
+    /// 牙痛 10556 > 压痛 6569. Single quickfix (winner-take-all) lifts 牙痛
+    /// to #0; 压痛 falls to #1.
+    #[test]
+    fn polish_yatong_yatong_first() {
+        let top10 = mixed_top10("yatong".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("牙痛"),
+            "yatong: expected 牙痛 #0; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
