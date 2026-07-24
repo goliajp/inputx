@@ -2536,6 +2536,17 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-24): "zhifu 支付第一，制服第二，
+    /// 致富第三". 致富 held #0 via an earlier quickfix (30000); the three
+    /// requested words go above it with a descending chain, so 致富 keeps
+    /// its row and lands at #2 (its requested third place).
+    #[test]
+    fn polish_zhifu_head_order() {
+        let top10 = mixed_top10("zhifu".as_bytes());
+        let head: Vec<&str> = top10.iter().take(3).map(String::as_str).collect();
+        assert_eq!(head, ["支付", "制服", "致富"], "zhifu: got top10={top10:?}");
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
