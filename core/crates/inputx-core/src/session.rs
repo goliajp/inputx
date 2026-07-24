@@ -132,18 +132,19 @@ impl Session {
         self.smart_quote.map(c)
     }
 
-    /// Context-based smart quote: decide the curly form from the caret's
-    /// preceding character (`prev`, `None` at document start) rather than
-    /// the in-memory toggle. Stateless — survives IME switches, mouse
-    /// clicks, and mid-text edits. Hosts that can read document context
-    /// should prefer this; the toggle [`Self::smart_quote`] remains the
-    /// fallback for hosts that cannot.
+    /// Context-based smart quote: decide the curly form from the document
+    /// text before the caret (`ctx_before`) rather than the in-memory
+    /// toggle. Stateless and nesting-aware — survives IME switches, mouse
+    /// clicks, and mid-text edits, and handles Chinese `他说“…”` (no space
+    /// before the opener). Hosts that can read document context should
+    /// prefer this; the toggle [`Self::smart_quote`] remains the fallback
+    /// for hosts that cannot.
     ///
     /// Also syncs the toggle to the derived direction, so if the *next*
     /// quote is typed in a context-less host the fallback continues from
     /// the right side rather than a stale toggle value.
-    pub fn smart_quote_ctx(&mut self, c: char, prev: Option<char>) -> Option<char> {
-        let mapped = crate::locale::punct::quote_for_preceding(prev, c)?;
+    pub fn smart_quote_ctx(&mut self, c: char, ctx_before: &str) -> Option<char> {
+        let mapped = crate::locale::punct::quote_direction(ctx_before, c)?;
         self.smart_quote.sync_after(c, mapped);
         Some(mapped)
     }

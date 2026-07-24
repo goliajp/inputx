@@ -1064,33 +1064,34 @@ final class InputxController: IMKInputController {
     /// returns 0x27 (apostrophe) regardless of whether shift is held —
     /// pressing shift on the same physical key clearly signals "double
     /// quote intent" and we route accordingly.
+    /// Longest preceding-text window (UTF-16 units) read for smart-quote
+    /// nesting. Quotations are opened/closed within a line in normal
+    /// typing; a few hundred units covers realistic lines cheaply. The
+    /// Rust side scopes counting to the current line within this window.
+    private static let smartQuoteContextWindow = 500
+
     /// The caret's document context for smart-quote direction.
     private enum CaretContext {
-        /// Caret at document start → next quote opens.
-        case start
-        /// Unicode scalar immediately before the caret.
-        case preceding(UInt32)
+        /// Document text before the caret (possibly empty at doc start).
+        case text(String)
         /// Client can't report a caret / surrounding text (terminals,
         /// some web/Electron views) → use the toggle fallback.
         case unavailable
     }
 
-    /// Read the scalar immediately before the caret from `client`. Reads a
-    /// 2-unit UTF-16 window so a surrogate pair (emoji etc.) resolves to a
-    /// whole scalar rather than a lone surrogate; quote direction only
-    /// needs the scalar's rough class (letter / space / punctuation).
+    /// Read the text immediately before the caret from `client`, up to
+    /// `smartQuoteContextWindow` UTF-16 units. Returns `.unavailable` when
+    /// the client can't report a caret or context.
     private func caretContext(client: IMKTextInput) -> CaretContext {
         let sel = client.selectedRange()
         if sel.location == NSNotFound { return .unavailable }
-        if sel.location == 0 { return .start }
-        let take = min(sel.location, 2)
+        if sel.location == 0 { return .text("") }
+        let take = min(sel.location, Self.smartQuoteContextWindow)
         let range = NSRange(location: sel.location - take, length: take)
-        guard let s = client.attributedSubstring(from: range)?.string,
-            let scalar = s.unicodeScalars.last
-        else {
+        guard let s = client.attributedSubstring(from: range)?.string else {
             return .unavailable
         }
-        return .preceding(scalar.value)
+        return .text(s)
     }
 
     private func applyLocaleIfApplicable(
@@ -1122,10 +1123,8 @@ final class InputxController: IMKInputController {
                 codepoint
             }
             let mapped: UInt32 = switch client.map(caretContext(client:)) ?? .unavailable {
-            case .start:
-                session.smartQuoteCtx(cp, prev: nil)
-            case .preceding(let prevCp):
-                session.smartQuoteCtx(cp, prev: prevCp)
+            case .text(let ctx):
+                session.smartQuoteCtx(cp, contextBefore: ctx)
             case .unavailable:
                 session.smartQuote(cp)
             }
