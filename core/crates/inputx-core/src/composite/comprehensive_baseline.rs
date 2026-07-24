@@ -2575,6 +2575,21 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-24): "yake 牙科第一".
+    /// 牙科 and 亚科 are both v2 tier 4, so order fell to modern_freq,
+    /// where the taxonomy term 亚科 (subfamily) edged 牙科 (dentistry) —
+    /// while v1 corpus has 牙科 22820 >> 亚科 11196. A single quickfix
+    /// (winner-take-all) lifts 牙科 to #0; 亚科 falls to #1.
+    #[test]
+    fn polish_yake_yake_first() {
+        let top10 = mixed_top10("yake".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("牙科"),
+            "yake: expected 牙科 #0; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
