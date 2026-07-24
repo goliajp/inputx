@@ -2561,6 +2561,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-24): "xianmafan 嫌麻烦".
+    /// Absent from both v1 and v2 — the buffer showed only JP kana (≥5
+    /// letters → kana tier 4). Same shape as gejutese: modern_vocab @
+    /// 15000 → tier 4 exact, where px > nx puts it above the kana band.
+    #[test]
+    fn polish_xianmafan_xianmafan_first() {
+        let top10 = mixed_top10("xianmafan".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("嫌麻烦"),
+            "xianmafan: expected 嫌麻烦 #0; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
