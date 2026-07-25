@@ -2605,6 +2605,34 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-25): "xinsu 新宿第一".
+    /// Both candidates are v2 tier 4, so order fell to the modern_freq
+    /// tiebreaker — and only the archaic 信宿 (two nights' lodging, 16745)
+    /// has a jieba entry while the Tokyo place name 新宿 (modern_vocab
+    /// supplement) gets +0. v1 corpus disagrees: 新宿 17925 >> 信宿 7934.
+    /// quickfix (winner-take-all → tier 1) lifts 新宿 to #0; 信宿 → #1.
+    #[test]
+    fn polish_xinsu_xinsu_first() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"xinsu" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("新宿"),
+            "xinsu Mixed+JP: expected 新宿 #0; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
