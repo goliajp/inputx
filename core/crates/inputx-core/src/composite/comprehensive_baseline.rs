@@ -2633,6 +2633,41 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-25): "chidai 池袋".
+    /// 池袋 (Ikebukuro) lives in v1 library.tsv at 12149 but never made it
+    /// into the v2 words.tsv ingest, so chidai emitted 痴呆 alone — the
+    /// systemic "v2 ingest 缺 v1 语料词" gap, not a ranking bug. Added to
+    /// modern_vocab_v1 at 15000, the minimum that maps to tier 4: at tier 5
+    /// it would sink below the >=5-letter mechanical-kana band with JP on.
+    /// 痴呆 keeps #0 on its modern_freq ruling (22945); the invariant pinned
+    /// here is that 池袋 surfaces at all AND outranks the kana.
+    #[test]
+    fn polish_chidai_ikebukuro_present_above_jp_kana() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"chidai" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        let ikebukuro = top10.iter().position(|w| w == "池袋");
+        assert!(
+            ikebukuro.is_some_and(|i| i < 3),
+            "chidai Mixed+JP: expected 池袋 within top-3; got top10={top10:?}"
+        );
+        let kana = top10.iter().position(|w| w == "ちだい");
+        assert!(
+            kana.is_none_or(|k| ikebukuro.unwrap() < k),
+            "chidai Mixed+JP: expected 池袋 above kana ちだい; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
