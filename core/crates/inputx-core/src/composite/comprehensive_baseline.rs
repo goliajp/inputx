@@ -2668,20 +2668,30 @@ mod tests {
         );
     }
 
-    /// Class A polish (user report 2026-07-26): "bale 拔了".
+    /// Class A+B polish (user reports 2026-07-26): "bale 拔了", then
+    /// "现在罢了是第一，我想拔了第二，芭乐第三".
+    ///
     /// 拔了 existed in NO source (v1 library.tsv, v2 words.tsv, modern_vocab
     /// all lacked it under every code), so bale emitted only 罢了 / 芭乐.
     /// Added to modern_vocab_v1 at 15000 → tier 4, matching the file's
     /// existing X+了 colloquial band (寄了 15000 / 凉了 18000).
     ///
-    /// Landing is #2 by construction, not by choice: a tier-4 exact word
-    /// scores 380000 + modern_freq, and modern_vocab additions carry no
-    /// modern_freq entry (+0), so 拔了 is pinned at 380000 and cannot pass
-    /// 芭乐 (385408). The next tier up (3) scores 410000 and would overtake
-    /// 罢了 (404674) outright — there is no #1 rung between them. Pinned
-    /// invariant is therefore "present in top-3 AND above the kana".
+    /// That alone could only reach #2: a tier-4 exact word scores 380000 +
+    /// modern_freq, and modern_vocab additions carry no modern_freq entry
+    /// (+0), so 拔了 sat pinned at 380000 — unable to pass 芭乐 (385408)
+    /// within its tier, while the next tier up (410000) would have overtaken
+    /// 罢了 (404674) outright. No #1 rung existed between them, so the
+    /// requested order needed an explicit 3-row quickfix chain (60k/50k/40k),
+    /// which sidesteps the tier arithmetic entirely: all three become tier 1
+    /// and the sovereignty rule strips their modern_freq, so boost value
+    /// alone orders them.
+    ///
+    /// 芭乐 is boosted too rather than left to land #2 on its own — its
+    /// natural #2 was only "nothing ahead of it", so any future tier-4
+    /// addition to bale scoring above 385408 would have displaced it to #3
+    /// and broken the requested 芭乐-third ruling.
     #[test]
-    fn polish_bale_bale_present_above_jp_kana() {
+    fn polish_bale_three_rank_order_lock() {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::Mixed);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
@@ -2695,15 +2705,11 @@ mod tests {
             .take(10)
             .map(|c| c.word.clone())
             .collect();
-        let bale = top10.iter().position(|w| w == "拔了");
-        assert!(
-            bale.is_some_and(|i| i < 3),
-            "bale Mixed+JP: expected 拔了 within top-3; got top10={top10:?}"
-        );
-        let kana = top10.iter().position(|w| w == "ばぇ");
-        assert!(
-            kana.is_none_or(|k| bale.unwrap() < k),
-            "bale Mixed+JP: expected 拔了 above kana ばぇ; got top10={top10:?}"
+        let head: Vec<&str> = top10.iter().take(3).map(String::as_str).collect();
+        assert_eq!(
+            head,
+            vec!["罢了", "拔了", "芭乐"],
+            "bale Mixed+JP: expected 罢了 / 拔了 / 芭乐 in that order; got top10={top10:?}"
         );
     }
 
