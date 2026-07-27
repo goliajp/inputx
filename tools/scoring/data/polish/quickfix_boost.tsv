@@ -1293,3 +1293,12 @@ xinsu	新宿	8727	# 2026-07-25 user "xinsu 新宿第一": 新宿 (modern_vocab t
 bale	罢了	60000
 bale	拔了	50000
 bale	芭乐	40000
+# 2026-07-28 user "goujian 构建 > 勾践 > 构件": descending chain. 勾践
+# (modern_vocab tier 4, no modern_freq entry) was pinned at 380000 and could
+# not pass either cedict incumbent (构件 404267 / 构建 404176 = 380000 +
+# modern_freq) within its tier. Explicit 3-row chain locks all three ranks —
+# all become tier 1 and the sovereignty rule strips modern_freq, so boost
+# value alone orders them.
+goujian	构建	60000
+goujian	勾践	54000
+goujian	构件	48000
