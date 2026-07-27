@@ -2754,6 +2754,42 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-28): "yougoujian 有够贱".
+    ///
+    /// 有够贱 existed in no source, so yougoujian had no exact match at all
+    /// and fell through to K-best, which emitted the nonsense 尤诟几案
+    /// (260000) below two JP kana readings. Added to modern_vocab_v1 at
+    /// 15000 → tier 4, which as an exact match scores 380000 and takes #0
+    /// outright; the K-best product stops being emitted once the exact path
+    /// fires.
+    ///
+    /// On [[feedback-no-fake-long-compounds]]: 有够X is a productive
+    /// intensifier shape (有够烦 / 有够蠢 / …), which that rule normally
+    /// keeps out of modern_vocab. It does not apply here — the rule targets
+    /// compounds auto-harvested from dogfood segment TSVs, and this is an
+    /// explicit per-word user request. No sibling 有够X rows were added.
+    #[test]
+    fn polish_yougoujian_leads() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"yougoujian" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("有够贱"),
+            "yougoujian Mixed+JP: expected 有够贱 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
