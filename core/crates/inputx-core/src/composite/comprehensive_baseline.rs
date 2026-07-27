@@ -2723,8 +2723,16 @@ mod tests {
     /// quickfix chain (60k/54k/48k, the fuzhi / zhifu descending-chain
     /// convention) locks all three ranks at tier 1 where boost value alone
     /// orders them.
+    ///
+    /// Class A follow-up (user report 2026-07-28): "goujian 够贱第四". 够贱
+    /// existed in no source (v1 library.tsv, v2 words.tsv, modern_vocab all
+    /// lacked it), so goujian emitted only the three above. Added to
+    /// modern_vocab_v1 at 15000 → tier 4, which lands it at exactly #3: no
+    /// modern_freq entry means it is pinned at 380000, below the boosted trio
+    /// and above the JP kana (240000). Rank 4 is by construction, not by
+    /// boost — the report asked for fourth, so no quickfix row was added.
     #[test]
-    fn polish_goujian_three_rank_order_lock() {
+    fn polish_goujian_four_rank_order_lock() {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::Mixed);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
@@ -2738,11 +2746,11 @@ mod tests {
             .take(10)
             .map(|c| c.word.clone())
             .collect();
-        let head: Vec<&str> = top10.iter().take(3).map(String::as_str).collect();
+        let head: Vec<&str> = top10.iter().take(4).map(String::as_str).collect();
         assert_eq!(
             head,
-            vec!["构建", "勾践", "构件"],
-            "goujian Mixed+JP: expected 构建 / 勾践 / 构件 in that order; got top10={top10:?}"
+            vec!["构建", "勾践", "构件", "够贱"],
+            "goujian Mixed+JP: expected 构建 / 勾践 / 构件 / 够贱 in that order; got top10={top10:?}"
         );
     }
 
