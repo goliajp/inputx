@@ -2713,6 +2713,39 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-28): "goujian 构建 > 勾践 > 构件".
+    ///
+    /// 构件 (404267) and 构建 (404176) are v2 cedict tier-4 entries scoring
+    /// 380000 + modern_freq; 勾践 comes from modern_vocab_v1 (15000, tier 4)
+    /// and carries no modern_freq entry, so it sat pinned at 380000 behind
+    /// both. Same shape as the bale chain above: within-tier arithmetic
+    /// offers no rung between the two incumbents, so an explicit 3-row
+    /// quickfix chain (60k/54k/48k, the fuzhi / zhifu descending-chain
+    /// convention) locks all three ranks at tier 1 where boost value alone
+    /// orders them.
+    #[test]
+    fn polish_goujian_three_rank_order_lock() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"goujian" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        let head: Vec<&str> = top10.iter().take(3).map(String::as_str).collect();
+        assert_eq!(
+            head,
+            vec!["构建", "勾践", "构件"],
+            "goujian Mixed+JP: expected 构建 / 勾践 / 构件 in that order; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
