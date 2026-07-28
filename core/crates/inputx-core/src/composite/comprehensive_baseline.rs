@@ -2824,6 +2824,11 @@ mod tests {
     /// cannot re-admit it. v2 folds the garbage filter into its runtime
     /// exclusion set keyed on (code, word), so the entry is gone at every
     /// buffer, not just this one.
+    ///
+    /// 躺着也中枪 is a 5-char meme phrase carried by CC-CEDICT. It lived only
+    /// in the generated v2 words.tsv (tier 6), which build-words.py rewrites
+    /// from source on every ingest, so a hand edit there would not survive —
+    /// the garbage filter is the durable D1 surface for generated tables.
     #[test]
     fn polish_tangzhenye_tangzheyezhongqiang_deleted() {
         let top10 = mixed_top10("tangzhenye".as_bytes());
@@ -2831,10 +2836,15 @@ mod tests {
             !top10.iter().any(|w| w == "汤镇业"),
             "tangzhenye: 汤镇业 must be gone from the dict; got top10={top10:?}"
         );
+        let top10 = mixed_top10("tangzheyezhongqiang".as_bytes());
+        assert!(
+            !top10.iter().any(|w| w == "躺着也中枪"),
+            "tangzheyezhongqiang: 躺着也中枪 must be gone from the dict; got top10={top10:?}"
+        );
         let top10 = mixed_top10("tangzhe".as_bytes());
         assert!(
-            !top10.iter().any(|w| w == "汤镇业"),
-            "tangzhe: 汤镇业 must not bleed in by code prefix; got top10={top10:?}"
+            !top10.iter().any(|w| w == "汤镇业" || w == "躺着也中枪"),
+            "tangzhe: neither must bleed in by code prefix; got top10={top10:?}"
         );
     }
 
