@@ -2790,6 +2790,24 @@ mod tests {
         );
     }
 
+    /// Regression pin (user report 2026-07-28): "gougou 狗狗".
+    ///
+    /// No data change — 狗狗 was already #0 (387109 = tier-4 cedict 380000 +
+    /// modern_freq 7109) and the report is satisfied as-is. Pinned because
+    /// it had no coverage at all, and because its 叠字 sibling 猫猫 was
+    /// silently blocklisted by the 2026-06-22 `childlike_duplicate` sweep
+    /// (see polish_maomao_maomao_leads) — 狗狗 escaped only by accident of
+    /// which rows that sweep picked, so the invariant is worth locking.
+    #[test]
+    fn polish_gougou_gougou_leads() {
+        let top10 = mixed_top10("gougou".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("狗狗"),
+            "gougou: expected 狗狗 #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-28): "maomao 猫猫".
     ///
     /// Needed a 回捞, not just an add. The 2026-06-22 D1 sweep tagged 猫猫
