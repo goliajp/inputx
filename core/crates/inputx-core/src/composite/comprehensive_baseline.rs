@@ -2022,6 +2022,88 @@ mod tests {
         }
     }
 
+    /// Framework rule (ceiling-first JP band, 2026-07-29), from the user
+    /// directive "日语怎么可能会超过常见拼音的 100% 命中，任何时候这都不
+    /// 应该，这是危险信号" + "日语真正的高分档还是应该不低，但再高几乎也
+    /// 不应该超过 100% 命中的拼音常见词，更不可能超过五笔".
+    ///
+    /// Sibling of `framework_exact_common_word_above_jp_kana`: that rule
+    /// only cleared the mechanical-KANA bands, leaving the JP kanji DICT
+    /// band (jukugo + single kanji, freq quantile) at tier 2-3 where it
+    /// still beat exact-hit common Chinese words. 85 (buffer, word) pairs
+    /// over 54 buffers were affected. `JP_TIER_CEILING` in
+    /// japanese_adapter.rs now clamps every JP dict path at tier 4, where
+    /// px > nx decides. No quickfix rows on these buffers — rule-driven.
+    #[test]
+    fn framework_exact_common_word_above_jp_dict() {
+        for (buf, expect, jp_loser) in [
+            ("henji", "痕迹", "返事"),
+            ("shiyou", "石油", "仕様"),
+            ("jinji", "紧急", "人事"),
+            ("bijin", "逼近", "美人"),
+            ("kantan", "勘探", "簡単"),
+            ("miman", "弥漫", "未満"),
+        ] {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::Mixed);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            e.set_japanese_enabled(true);
+            for b in buf.bytes() {
+                let _ = e.handle_letter(b);
+            }
+            let top10: Vec<String> = e
+                .candidates()
+                .iter()
+                .take(10)
+                .map(|c| c.word.clone())
+                .collect();
+            assert_eq!(
+                top10.first().map(String::as_str),
+                Some(expect),
+                "{buf} Mixed+JP: expected {expect} #0 above JP dict {jp_loser} \
+                 (rule-driven, no quickfix); got top10={top10:?}"
+            );
+        }
+    }
+
+    /// The other half of the ceiling-first directive: "单个的假名或者两个
+    /// 音节的假名，排名还是要确保能在中文的预测词和低频率词前面".
+    ///
+    /// The ceiling must not be so aggressive that kana disappears. Short
+    /// buffers (≤ 2 letters) keep `JP_TIER_SHORT_KANA` = 1 — safe because
+    /// `words.tsv` has zero codes that short, so there is no exact-hit
+    /// Chinese WORD to protect there — and two-syllable buffers sit at
+    /// the ceiling, still above every low-freq / predicted Chinese
+    /// candidate (t5+). A regression here means kana sank out of view:
+    /// clamping short kana to t3 during development pushed も / え past
+    /// rank 50 at `mo` / `e`.
+    #[test]
+    fn framework_short_kana_stays_visible_under_jp_ceiling() {
+        for (buf, kana, max_rank) in [
+            ("ki", "き", 3usize),
+            ("ka", "か", 6),
+            ("sa", "さ", 6),
+            ("kana", "かな", 0),
+            ("tuli", "ツィ", 4),
+        ] {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::Mixed);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            e.set_japanese_enabled(true);
+            for b in buf.bytes() {
+                let _ = e.handle_letter(b);
+            }
+            let words: Vec<String> = e.candidates().iter().map(|c| c.word.clone()).collect();
+            let rank = words.iter().position(|w| w == kana);
+            assert!(
+                rank.is_some_and(|r| r <= max_rank),
+                "{buf} Mixed+JP: kana {kana} must rank within #{max_rank}; \
+                 got rank={rank:?} top10={:?}",
+                &words[..words.len().min(10)]
+            );
+        }
+    }
+
     /// Class B polish (user report 2026-07-17): "tianmafan 添麻烦 第一",
     /// with the general principle "一般常用的拼音或五笔刚好完全命中时肯定是
     /// 要在日语前面的". Same shape as jiejiari: mechanical kana led while
