@@ -2715,6 +2715,44 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-29): "huashuo 话说 > 华硕".
+    /// Same shape as xinsu: both candidates are v2 tier 4 with no usable
+    /// usage signal to separate them — 话说 is a cedict row whose
+    /// modern_freq is 0 (jieba segments the discourse marker as 话+说)
+    /// and 华硕 is a modern_vocab supplement at 15000, which carries no
+    /// modern_freq entry either. Equal tier + equal within-tier score
+    /// meant the order fell all the way through to the alphabetical
+    /// tiebreak, where 华 (U+534E) < 话 (U+8BDD) put the ASUS brand name
+    /// ahead of an everyday opener. quickfix (winner-take-all → tier 1)
+    /// lifts 话说 to #0, derived from 华硕's v1 corpus base 17053 + 10%.
+    /// 华硕 stays visible at #1.
+    #[test]
+    fn polish_huashuo_huashuo_first() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"huashuo" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("话说"),
+            "huashuo Mixed+JP: expected 话说 #0; got top10={top10:?}"
+        );
+        assert!(
+            top10.iter().any(|w| w == "华硕"),
+            "huashuo: 华硕 must stay visible (reorder, not a delete); \
+             got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-07-25): "chidai 池袋".
     /// 池袋 (Ikebukuro) lives in v1 library.tsv at 12149 but never made it
     /// into the v2 words.tsv ingest, so chidai emitted 痴呆 alone — the
