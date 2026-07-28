@@ -2814,6 +2814,30 @@ mod tests {
         );
     }
 
+    /// Class D1 polish (user report 2026-07-28): "汤镇业/躺着也中枪 这种应该
+    /// 删掉 … 2 字以上的词本来就应该谨慎，字数越高谨慎要求也越高".
+    ///
+    /// 汤镇业 is a 3-char proper noun (a Hong Kong actor) that reached the
+    /// 2-char buffer tangzhe by code prefix. Deleted from all three surfaces
+    /// it occupied — modern_vocab_v1 (30000), v1 library.tsv (5922), and
+    /// logged in corpus_garbage_filter_v1.tsv so a future corpus digest
+    /// cannot re-admit it. v2 folds the garbage filter into its runtime
+    /// exclusion set keyed on (code, word), so the entry is gone at every
+    /// buffer, not just this one.
+    #[test]
+    fn polish_tangzhenye_tangzheyezhongqiang_deleted() {
+        let top10 = mixed_top10("tangzhenye".as_bytes());
+        assert!(
+            !top10.iter().any(|w| w == "汤镇业"),
+            "tangzhenye: 汤镇业 must be gone from the dict; got top10={top10:?}"
+        );
+        let top10 = mixed_top10("tangzhe".as_bytes());
+        assert!(
+            !top10.iter().any(|w| w == "汤镇业"),
+            "tangzhe: 汤镇业 must not bleed in by code prefix; got top10={top10:?}"
+        );
+    }
+
     /// Regression pin (user report 2026-07-28): "gougou 狗狗".
     ///
     /// No data change — 狗狗 was already #0 (387109 = tier-4 cedict 380000 +
