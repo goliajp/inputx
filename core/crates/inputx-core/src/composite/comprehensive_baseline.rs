@@ -2790,6 +2790,30 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-28): "tangzhe 躺着 … 更恶劣的是，
+    /// 躺着没有，躺着也中枪又有".
+    ///
+    /// 躺着 was absent from every source (v1 library.tsv, v2 words.tsv,
+    /// modern_vocab), so tangzhe surfaced only two entries bleeding in by
+    /// code prefix: 汤镇业 (160000, an actor's name, code tangzhenye) and
+    /// 躺着也中枪 (70000, a 5-char meme, code tangzheyezhongqiang). The base
+    /// word existed nowhere while its own 5-char derivative did.
+    ///
+    /// Freq 30000 → tier 3 (410000). The nearest structural peer is 带着
+    /// (35000, same V+着 shape); 30000 is the tier-3 floor, one notch
+    /// conservative. Once an exact match exists the prefix-bleed candidates
+    /// stop being emitted at this buffer entirely — they are deleted
+    /// separately (see polish_tangzhenye_tangzheyezhongqiang_deleted).
+    #[test]
+    fn polish_tangzhe_tangzhe_leads() {
+        let top10 = mixed_top10("tangzhe".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("躺着"),
+            "tangzhe: expected 躺着 #0; got top10={top10:?}"
+        );
+    }
+
     /// Regression pin (user report 2026-07-28): "gougou 狗狗".
     ///
     /// No data change — 狗狗 was already #0 (387109 = tier-4 cedict 380000 +
