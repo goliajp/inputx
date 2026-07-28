@@ -2790,6 +2790,37 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-07-28): "maomao 猫猫".
+    ///
+    /// Needed a 回捞, not just an add. The 2026-06-22 D1 sweep tagged 猫猫
+    /// `childlike_duplicate` and logged it in corpus_garbage_filter_v1.tsv;
+    /// v2 folds that file into its runtime exclusion set (exclusions = v1 ∪
+    /// garbage filter), so a plain modern_vocab row was swallowed silently —
+    /// the word did not appear at any rank. Same mechanism as the 窗外
+    /// false-positive removed on 2026-07-13 (see
+    /// polish_gaizhu_chuangwai_present). The blocklist row was deleted.
+    ///
+    /// Freq 30000 → tier 3 (410000) rather than the usual 15000 → tier 4,
+    /// so 猫猫 deterministically clears the incumbent 猫毛 (modern_vocab
+    /// 15000, tier 4, 380000) without needing a quickfix row; two tier-4
+    /// entries would have tied at 380000. 30000 is the file's common-word
+    /// band (喝水 / 轻烟).
+    ///
+    /// Sibling note: the same sweep tagged 11 other 叠字 nicknames (贝贝 /
+    /// 便便 / 啵啵 / 兜兜 / 加加 / 尼尼 / 妞妞 / 球球 / 糖糖 / 兔兔 / 猪猪)
+    /// while leaving 狗狗 alone. Only 猫猫 was recalled here — a blanket
+    /// un-blocklist needs the per-row audit that [[feedback-sweep-per-row-audit]]
+    /// requires.
+    #[test]
+    fn polish_maomao_maomao_leads() {
+        let top10 = mixed_top10("maomao".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("猫猫"),
+            "maomao: expected 猫猫 #0; got top10={top10:?}"
+        );
+    }
+
     /// Auto-pin removal (user 2026-07-20: "整个自动置顶都关了吧，没必要
     /// 这个功能"). Repeatedly committing a NON-top candidate must never
     /// promote it to #0 — candidate order is the dictionary's ruling plus
