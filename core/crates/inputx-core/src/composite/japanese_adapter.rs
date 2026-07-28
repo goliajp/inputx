@@ -88,6 +88,76 @@ fn buffer_is_foreign_romaji(buf: &str) -> bool {
     FOREIGN.iter().any(|p| lower.contains(p))
 }
 
+/// Ceiling-first JP band model (user directive 2026-07-29):
+///
+/// > 如果有明显命中的中文常见词，不应该在日语以下，特别是长词，但是我也
+/// > 希望，单个的假名或者两个音节的假名，排名还是要确保能在中文的预测词和
+/// > 低频率词前面 […] 日语真正的高分档还是应该不低，但再高几乎也不应该
+/// > 超过 100% 命中的拼音常见词，更不可能超过五笔。
+///
+/// Translated into the 10-tier × 3-engine matrix, that is a **ceiling**,
+/// not an ordering rule — and the ceiling is fully determined by what
+/// already occupies the neighbouring tiers:
+///
+/// ```text
+///   t0/t1  wubi prominent simcode          ← JP must never reach
+///   t≤4    pinyin exact-hit common word    ← EXACT_COMMON_TIER_CAP = 4
+///   t4     ***JP CEILING***                ← every JP dict / kana path
+///   t5/t6  pinyin low-freq exact words     ← JP must outrank
+///   t7..t9 predictions / compose / fuzzy   ← JP must outrank
+/// ```
+///
+/// At tier 4 the tier × engine table finishes the job with no extra
+/// rule: `engine_gap_q4 (110) > within_tier_max_q4 (100)` means an
+/// exact-hit common Chinese word ALWAYS beats a same-tier JP candidate
+/// (px > nx), while the tier gap means that same JP candidate always
+/// beats Chinese low-freq and predicted candidates at t5+. Both halves
+/// of the user's rule fall out of one number.
+///
+/// Consequently NO JP path may emit a tier below this value. Paths that
+/// used to (pure-kana jukugo t2, the freq-quantile dict band t2/t3) are
+/// clamped here; the dict tail keeps its own spread at t5/t6/t9 via the
+/// nihongo quantile in `engine_weights.toml`.
+const JP_TIER_CEILING: u8 = 4;
+
+/// The one sanctioned exception to the ceiling: kana on a buffer of
+/// [`JP_SHORT_BUFFER_MAX`] letters or fewer.
+///
+/// This is not a carve-out — it is the ceiling's own premise failing to
+/// apply. The ceiling exists to keep JP under "exact-hit common Chinese
+/// **word**", and `words.tsv` contains **zero** codes of ≤2 letters
+/// (measured 2026-07-29), so at these buffers there is no such word to
+/// protect. What IS present is the pinyin single-char path, whose common
+/// chars sit at t1/t2 and therefore still lead — while rare chars at
+/// t5/t6 correctly yield (see `pinyin_rare_cjk_chars_yield_to_jp_basic_kana`).
+///
+/// Keeping it at tier 1 also preserves the 2026-06-03 ruling
+/// 「常规假名短字符一定要比其他日语高」: `ki` must give き/キ over
+/// 気/起/記. At a shared tier the within-tier freq score puts the kanji
+/// first, so the separation has to be a tier.
+///
+/// Tier 1 is safe against the pinyin single-char path too: v2 grades
+/// chars 1/2/3 only (通用规范汉字表 一/二/三级), so a 一级字 ties here
+/// and still wins on px > nx, while a 三级字 at t3 correctly yields —
+/// which is the "假名要在低频前面" half of the same directive. Demoting
+/// this to t3 was tried and pushed も / え out of the top 50 entirely
+/// at `mo` / `e`, because every competing char sits at t1-t3.
+const JP_TIER_SHORT_KANA: u8 = 1;
+const JP_SHORT_BUFFER_MAX: usize = 2;
+
+/// Mechanical kana on a buffer long enough to be unambiguously a Chinese
+/// multi-syllable word shape. Below the ceiling so a real JP dict entry
+/// leads its own reading (`akashi` → 明石, not あかし) — the mirror of
+/// the short-buffer rule above.
+const JP_TIER_LONG_KANA: u8 = 5;
+const JP_LONG_BUFFER_MIN: usize = 5;
+
+/// Speculative JP band — prefix predictions and `compose_sentence`
+/// products. Machine-spliced output is not a dict hit and must sit
+/// with the other engines' speculative candidates, below every real
+/// entry of every engine.
+const JP_TIER_SPECULATIVE: u8 = 7;
+
 pub struct JapaneseAdapter {
     engine: JapaneseEngine,
 }
@@ -281,14 +351,21 @@ impl JapaneseAdapter {
                         0,
                         inputx_nihongo_data_jukugo::nihongo_jukugo_corpus_total(),
                     );
-                    // WU-ψ: JP compose products → tier 4 (mechanical,
-                    // less-confident than exact dict hits).
+                    // 2026-07-29 ceiling-first: compose products are
+                    // machine-spliced, not dict hits — they belong in
+                    // the speculative band with JP predictions (7), not
+                    // at the JP ceiling. Pre-fix they sat at tier 4 and
+                    // were held down only by mechanical kana occupying
+                    // the same tier with a higher within-tier score; the
+                    // moment kana moved, 係ます / 日か吏ます led
+                    // `kakarimasu`. Tier is the honest place to say
+                    // "speculative".
                     let components = super::merge::ScoreComponents::three_axis(
                         log_prior_q4,
                         log_likelihood_q4,
                         mt,
                     )
-                    .with_tier(4);
+                    .with_tier(JP_TIER_SPECULATIVE);
                     return (c.word.clone(), s, Some(components));
                 }
                 // base = per-kind floor; freq-weighted add lifts high-freq
@@ -455,16 +532,31 @@ impl JapaneseAdapter {
                 // syllable is invariant priority over single-kanji
                 // candidates ("常规假名短字符一定要比其他日语高").
                 let buf_len = self.engine.preedit().chars().count();
+                let short_buf = buf_len <= JP_SHORT_BUFFER_MAX;
                 let tier_jp: u8 = if c.proximity_milli < 1000 {
-                    7
+                    JP_TIER_SPECULATIVE
                 } else {
                     match c.kind {
-                        KanaKind::Hiragana | KanaKind::Katakana => match buf_len {
-                            1 | 2 => 1,
-                            3 => 2,
-                            4 => 5,
-                            _ => 4,
-                        },
+                        // Mechanical kana rendering. Pre-2026-07-29 this
+                        // was a 4-band split (1-2→1, 3→2, 4→5, ≥5→4)
+                        // guessing Chinese-vs-Japanese intent from buffer
+                        // length. The ceiling collapses the middle: at
+                        // tier 4 kana loses to every exact-hit common
+                        // Chinese word via px > nx and beats every
+                        // low-freq / predicted Chinese candidate via the
+                        // tier gap, so 3-letter and 4-letter buffers no
+                        // longer need to differ. Only the two ends keep a
+                        // band of their own, each for a documented reason
+                        // (see the consts above).
+                        KanaKind::Hiragana | KanaKind::Katakana => {
+                            if short_buf {
+                                JP_TIER_SHORT_KANA
+                            } else if buf_len >= JP_LONG_BUFFER_MIN {
+                                JP_TIER_LONG_KANA
+                            } else {
+                                JP_TIER_CEILING
+                            }
+                        }
                         KanaKind::Kanji => {
                             let multi = c.word.chars().count() > 1;
                             let pure_kana = is_pure_kana(&c.word);
@@ -481,6 +573,7 @@ impl JapaneseAdapter {
                                 // mixed-mode排序.
                                 (true, false) => {
                                     inputx_scoring::nihongo_tier_from_freq(c.freq as u64)
+                                        .max(JP_TIER_CEILING)
                                 }
                                 // Pure-kana multi-char "jukugo" (えっ,
                                 // ありがとう) — kana 感叹/寒暄 in the
@@ -489,13 +582,23 @@ impl JapaneseAdapter {
                                 // ("えっ at #3 for single `e` is wrong").
                                 // FIXED tier 2 (not via quantile) —
                                 // this is a non-freq attestation.
-                                (true, true) => 2,
+                                (true, true) => JP_TIER_CEILING,
                                 // Single basic kana from dict (も で
                                 // を に — jukugo TSV entries of one
                                 // char pure_kana).  Phase C 2026-06-03:
                                 // FIXED tier 1 (user attestation —
                                 // basic kana 在很高级).
-                                (false, true) => 1,
+                                // Dict basic kana (も で を) — same
+                                // short-buffer rule as mechanical kana
+                                // above; they are the same thing to the
+                                // user, only sourced differently.
+                                (false, true) => {
+                                    if short_buf {
+                                        JP_TIER_SHORT_KANA
+                                    } else {
+                                        JP_TIER_CEILING
+                                    }
+                                }
                                 // Single kanji (a kanji char emitted by
                                 // kanji::lookup_by_reading — 気 起 記
                                 // etc.) — Phase D 2026-06-03: route
@@ -505,6 +608,7 @@ impl JapaneseAdapter {
                                 // (low freq) sinks to tier 5-6.
                                 (false, false) => {
                                     inputx_scoring::nihongo_tier_from_freq(c.freq as u64)
+                                        .max(JP_TIER_CEILING)
                                 }
                             }
                         }

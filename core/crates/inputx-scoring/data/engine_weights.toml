@@ -239,9 +239,34 @@ log_freq_sigma = 0.482
 #   起    freq=75 z=1.08 → tier 3
 #   記    freq=47 z=0.25 → tier 4
 #   其    freq=59 z=0.65 → tier 3
-tier_1_above = 2.5
-tier_2_above = 1.5
-tier_3_above = 0.5
+#
+# 2026-07-29 ceiling-first re-band (user: "日语怎么可能会超过常见拼音的
+# 100% 命中，任何时候这都不应该" + "日语真正的高分档还是应该不低，但再高
+# 几乎也不应该超过 100% 命中的拼音常见词，更不可能超过五笔").
+#
+# The JP ceiling is now a hard tier 4 — see JP_TIER_CEILING in
+# composite/japanese_adapter.rs for the full band table and rationale.
+# Tiers 1-3 are unreachable from this quantile; the top three bands
+# (old 2/3/4) collapse onto the ceiling, and the tail keeps its own
+# spread (5 / 6 / 9). Collapsing rather than shifting is deliberate:
+# 明石 (akashi, freq=35) already sat at tier 4 and beats its mechanical
+# kana on within-tier score, so ANY downward shift of the dict band
+# loses that — the ceiling has to pull the band UP into 4, not push
+# it down.
+#
+# Within-tier ordering still separates these rows: JP candidates carry
+# a real freq-driven (log_prior_q4, log_likelihood_q4) pair, unlike the
+# pinyin v2 word path.
+#
+# Resulting distribution: t4 = 17,159 / t5 = 11,711 / t6 = 154 /
+# t9 = 6,148 (the z < -2.5 longtail cutoff is preserved — without it
+# those 6,148 rare kanji would be PROMOTED into the dict band).
+#
+# (build.rs enforces strictly-descending thresholds, hence 11.0/10.0/
+# 9.0 rather than a repeated sentinel. Max observed z is 2.19.)
+tier_1_above = 11.0     # unreachable — JP ceiling is tier 4
+tier_2_above = 10.0
+tier_3_above = 9.0
 tier_4_above = -0.5
 tier_5_above = -1.5
 tier_6_above = -2.5
