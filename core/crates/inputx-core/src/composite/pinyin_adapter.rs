@@ -613,26 +613,50 @@ impl PinyinAdapter {
         // corpus bigrams).
         if inputx_pinyin_v2::enabled() {
             let _ = prev_committed;
-            return inputx_pinyin_v2::query(&self.buffer)
-                .into_iter()
-                .map(|(w, s, tier)| {
-                    // Construct ScoreComponents so cross-engine merge.rs
-                    // can sort by tier (its primary key) instead of
-                    // bottoming v2 entries at i32::MIN via None.
-                    let mut comp = super::merge::ScoreComponents::three_axis(
-                        // Q4 log-prior: encode tier as -tier*80 so lower
-                        // tier = higher log-prior contribution (matches
-                        // v1 Q4 magnitude band).
-                        -(tier as i32) * 80,
-                        // log_likelihood: small positive constant (Exact
-                        // match weight in v1 IDF).
-                        200,
-                        inputx_scoring::MatchType::Exact,
-                    );
-                    comp.tier = tier;
-                    (w, s, Some(comp))
-                })
-                .collect();
+            // Within-tier ordering (2026-07-29). Pre-fix this filled
+            // `log_prior_q4 = -tier*80` + `log_likelihood_q4 = 200`,
+            // which is a redundant echo of `tier` (already carried
+            // separately in `comp.tier`) and — worse — degenerate: at
+            // tier ≥ 3 the sum goes negative, `within_tier_clamp` floors
+            // it to 0, and EVERY v2 candidate in that tier scores
+            // identically on the merge's primary Q4 key. Ordering then
+            // fell through to the legacy f64 `score`, which merge.rs
+            // documents as "a deterministic tiebreaker only".
+            //
+            // v2 already ranks correctly internally (tier asc, then a
+            // score carrying modern_freq + prior_corrections + quickfix
+            // sovereignty). So rather than re-deriving those signals
+            // here — and silently dropping whichever one v2 adds next —
+            // take v2's own rank within its tier group as the within-tier
+            // axis. `query()` returns tier-ascending, so tier groups are
+            // contiguous. Order-preserving by construction, and it moves
+            // the ordering onto the axis the matrix model actually
+            // designates for it.
+            let scored = inputx_pinyin_v2::query(&self.buffer);
+            let mut out: Vec<super::merge::Scored> = Vec::with_capacity(scored.len());
+            let mut group_tier: Option<u8> = None;
+            let mut rank_in_tier: i32 = 0;
+            for (w, s, tier) in scored {
+                if group_tier == Some(tier) {
+                    rank_in_tier += 1;
+                } else {
+                    group_tier = Some(tier);
+                    rank_in_tier = 0;
+                }
+                // Rank 0 takes the top of the band and each subsequent
+                // candidate steps down one Q4. Saturates at 0 past 100
+                // candidates in one tier, where the legacy `score`
+                // tiebreaker still holds the tail in v2's order.
+                let within = (inputx_scoring::tier::WITHIN_TIER_MAX_Q4 - rank_in_tier).max(0);
+                let mut comp = super::merge::ScoreComponents::three_axis(
+                    within,
+                    0,
+                    inputx_scoring::MatchType::Exact,
+                );
+                comp.tier = tier;
+                out.push((w, s, Some(comp)));
+            }
+            return out;
         }
         // Score exact-match entries via the dict; everything else
         // (initials + prefix-completion injected entries) gets a small
