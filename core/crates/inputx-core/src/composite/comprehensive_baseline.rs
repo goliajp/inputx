@@ -636,6 +636,12 @@ mod tests {
             // modern_vocab; the buffer only produced fuzzy jiazheng hits
             // (家政 / 加征 / 假证). modern_vocab @ freq 30000.
             ("jiazhe", "夹着"),
+            // Polish 2026-07-30: user "jiazhu 夹住". Class A add — 夹住
+            // sits in the legacy v1 library.tsv (16034) but never made it
+            // into v2 words.tsv, so the dict only had cedict tier-4 家主
+            // (403286) / 加注. modern_vocab @ freq 60000 → tier 2 = 440k,
+            // clearing tier 4 the way 御守/解签 do.
+            ("jiazhu", "夹住"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
