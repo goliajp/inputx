@@ -3435,6 +3435,33 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-30): "fangzhi 防止 > 防治 > 放置
+    /// > 仿制 > 防制 > 纺织 > 方知 > 方志". All eight are pre-existing
+    /// digested rows; base freq had 纺织 (17796) leading over 防止 (31851)
+    /// via IDF asymmetry, and 防制 (7878) has to jump above 纺织. An explicit
+    /// 8-row quickfix chain (60000 down to 46000 in 2000 steps) puts them all
+    /// in the promoted tier where boost value alone orders them.
+    #[test]
+    fn polish_fangzhi_full_order() {
+        let top10 = mixed_top10("fangzhi".as_bytes());
+        let expected = [
+            "防止", "防治", "放置", "仿制", "防制", "纺织", "方知", "方志",
+        ];
+        let ranks: Vec<usize> = expected
+            .iter()
+            .map(|w| {
+                top10
+                    .iter()
+                    .position(|x| x == w)
+                    .unwrap_or_else(|| panic!("{w} missing from fangzhi top10: {top10:?}"))
+            })
+            .collect();
+        assert!(
+            ranks.windows(2).all(|p| p[0] < p[1]),
+            "fangzhi: expected {expected:?} in order; got top10={top10:?}"
+        );
+    }
+
     /// Class C polish (user report 2026-07-06): "khuq 跤 > 中奖 > 中将,
     /// 五笔不应该出这种问题, 四码单字如果不是低频难检应该在词上面的".
     /// khuq is a wubi 4-code full-code buffer that produces 跤 (single-char,
