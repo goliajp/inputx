@@ -631,6 +631,11 @@ mod tests {
             // from library.tsv entirely; the buffer's sole candidate was
             // 烃类 via a fuzzy path. modern_vocab @ freq 30000.
             ("tingle", "停了"),
+            // Polish 2026-07-30: user "jiazhe 夹着". Class A add — 夹着
+            // (verb+着, same shape as 躺着) in neither v2 words.tsv nor
+            // modern_vocab; the buffer only produced fuzzy jiazheng hits
+            // (家政 / 加征 / 假证). modern_vocab @ freq 30000.
+            ("jiazhe", "夹着"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
