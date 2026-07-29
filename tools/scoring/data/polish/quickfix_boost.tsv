@@ -181,6 +181,7 @@ ci	此	30000
 ming	名	30000
 # 2026-06-30 dogfood Iter L: 2-char modern SOFT + single-char残余
 lianjie	链接	30000
+lianjie	连接	60000	# 2026-07-29 user "lianjie 连接第一": 连接 base 31309 > 链接 14595 但 链接 有 modern_vocab 55000; pair-boost 让 连接 领先
 # RETIRED-r10-bad-order rizhi	日志	30000
 leisi	类似	30000
 zhuanji	专辑	30000

@@ -3383,6 +3383,23 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-29): "lianjie 连接第一".
+    /// 连接 (library 31309) sat at #2 behind 链接 (14595) because 链接
+    /// carries a modern_vocab 55000 row plus a 30000 quickfix. Adding a
+    /// 60000 quickfix for 连接 puts both in the same promoted tier where
+    /// boost value decides: 连接 #0, 链接 #1.
+    #[test]
+    fn polish_lianjie_lianjie_first() {
+        let top10 = mixed_top10("lianjie".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("连接").expect("连接 missing from lianjie top10");
+        let b = pos("链接").expect("链接 missing from lianjie top10");
+        assert!(
+            a == 0 && b == 1,
+            "lianjie: expected 连接 #0, 链接 #1; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-06-26): "xuxian 虚线 续弦 都要
     /// 在许仙前面". 许仙 (白蛇传 proper noun) base 17781 was crowding
     /// #0 over the common-usage 虚线 (16059) and 续弦 (8669).
