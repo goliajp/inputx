@@ -3478,6 +3478,25 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-30): "bianji 编辑 > 边际 > 遍及".
+    /// A 2026-06-30 dogfood quickfix row (bianji 遍及 30000) had promoted
+    /// 遍及 to tier 1 = 540300, outranking 编辑 (cedict+hsk5 tier 3 = 434977)
+    /// and 边际 (cedict tier 4 = 403724). That row is retired and replaced by
+    /// an explicit 3-row chain (60000 / 55000 / 50000) so boost value alone
+    /// orders all three within tier 1.
+    #[test]
+    fn polish_bianji_order() {
+        let top10 = mixed_top10("bianji".as_bytes());
+        let pos = |w: &str| top10.iter().position(|x| x == w);
+        let a = pos("编辑").expect("编辑 missing from bianji top10");
+        let b = pos("边际").expect("边际 missing from bianji top10");
+        let c = pos("遍及").expect("遍及 missing from bianji top10");
+        assert!(
+            a < b && b < c,
+            "bianji: expected 编辑<边际<遍及; got top10={top10:?}"
+        );
+    }
+
     /// Class C polish (user report 2026-07-06): "khuq 跤 > 中奖 > 中将,
     /// 五笔不应该出这种问题, 四码单字如果不是低频难检应该在词上面的".
     /// khuq is a wubi 4-code full-code buffer that produces 跤 (single-char,

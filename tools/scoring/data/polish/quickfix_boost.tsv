@@ -212,7 +212,7 @@ shenchu	深处	30000
 jinxiu	锦绣	30000
 yanjiang	沿江	30000
 # RETIRED-r10-bad-order xinxi	心系	30000
-bianji	遍及	30000
+# RETIRED-2026-07-30-bad-order bianji	遍及	30000  (superseded by 3-row chain below)
 
 # strict-0001 auto-polish (54 quickfix from SOFT+single-HARD)
 lu	麓	30000	# strict-0001 HARD single
@@ -1317,3 +1317,11 @@ fangzhi	防制	52000
 fangzhi	纺织	50000
 fangzhi	方知	48000
 fangzhi	方志	46000
+# 2026-07-30 user "bianji 编辑 > 边际 > 遍及": the 06-30 dogfood row
+# (bianji 遍及 30000, retired above) promoted 遍及 to tier 1 = 540300, which
+# outranked 编辑 (cedict+hsk5 tier 3 = 434977) and 边际 (cedict tier 4 =
+# 403724). Explicit 3-row chain puts all three in tier 1 where boost value
+# alone orders them (goujian / fangzhi precedent).
+bianji	编辑	60000
+bianji	边际	55000
+bianji	遍及	50000
