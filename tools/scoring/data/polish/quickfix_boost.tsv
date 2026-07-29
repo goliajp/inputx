@@ -1304,3 +1304,16 @@ goujian	构建	60000
 goujian	勾践	54000
 goujian	构件	48000
 huashuo	话说	18758	# 2026-07-29 user "huashuo 话说 > 华硕": 话说 在 v2 words.tsv (cedict tier 4) 但 modern_freq=0 (jieba 切成 话+说), 华硕 modern_vocab 15000 也是 tier 4 —— 同档同分, 最终按字母序 华(U+534E)<话(U+8BDD) 决胜。华硕 v1 语料 17053 base +10%
+# 2026-07-30 user "fangzhi 防止 > 防治 > 放置 > 仿制 > 防制 > 纺织 > 方知 >
+# 方志": all eight are pre-existing digested rows; base freq had 纺织 (17796)
+# leading over 防止 (31851) via IDF asymmetry, and 防制 (7878) needs to jump
+# above 纺织. Explicit 8-row chain — all become tier 1 where boost value alone
+# orders them (goujian precedent).
+fangzhi	防止	60000
+fangzhi	防治	58000
+fangzhi	放置	56000
+fangzhi	仿制	54000
+fangzhi	防制	52000
+fangzhi	纺织	50000
+fangzhi	方知	48000
+fangzhi	方志	46000
