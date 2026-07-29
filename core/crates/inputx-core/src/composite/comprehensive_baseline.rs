@@ -626,6 +626,11 @@ mod tests {
             // correct at probe time (library digested freq 23575, sole
             // candidate at #0) — no data change; pin so it can't drift.
             ("latiao", "辣条"),
+            // Polish 2026-07-30: user "tingle 停了". Class A add —
+            // 停了 (colloquial verb+了, same shape as 忘了/拔了) absent
+            // from library.tsv entirely; the buffer's sole candidate was
+            // 烃类 via a fuzzy path. modern_vocab @ freq 30000.
+            ("tingle", "停了"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
