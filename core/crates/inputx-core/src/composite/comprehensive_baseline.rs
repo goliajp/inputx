@@ -3497,6 +3497,32 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-30):
+    /// "fanhua 繁华 > 泛化 > 反话 > 反华 > 繁花".
+    /// All five are pre-existing digested rows; base order ran
+    /// 繁华 / 繁花 / 反话 / 反华 / 泛化 — 泛化 (library 10668 + modern_vocab
+    /// 15000) sat last while 繁花 (19324) led the rest on raw library freq.
+    /// Explicit 5-row chain (60000 / 56000 / 52000 / 48000 / 44000) puts all
+    /// five in tier 1 where boost value alone orders them.
+    #[test]
+    fn polish_fanhua_order() {
+        let top10 = mixed_top10("fanhua".as_bytes());
+        let expected = ["繁华", "泛化", "反话", "反华", "繁花"];
+        let ranks: Vec<usize> = expected
+            .iter()
+            .map(|w| {
+                top10
+                    .iter()
+                    .position(|x| x == w)
+                    .unwrap_or_else(|| panic!("{w} missing from fanhua top10: {top10:?}"))
+            })
+            .collect();
+        assert!(
+            ranks.windows(2).all(|p| p[0] < p[1]),
+            "fanhua: expected {expected:?} in order; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-07-30): "dongshi 懂事 第一".
     /// A modern_vocab_v1 row (dongshi 董事 50000) lifted 董事 over 懂事 even
     /// though the library freqs run the other way (懂事 29367 > 董事 24272) —
