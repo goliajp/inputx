@@ -3497,6 +3497,27 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-07-30): "dongshi 懂事 第一".
+    /// A modern_vocab_v1 row (dongshi 董事 50000) lifted 董事 over 懂事 even
+    /// though the library freqs run the other way (懂事 29367 > 董事 24272) —
+    /// the modern-freq overlay inverted the natural order. A single quickfix
+    /// row (55000) promotes 懂事 to tier 1; 董事 keeps its modern_vocab
+    /// standing at #1.
+    #[test]
+    fn polish_dongshi_order() {
+        let top10 = mixed_top10("dongshi".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("懂事"),
+            "dongshi: expected 懂事 at #0; got top10={top10:?}"
+        );
+        let b = top10
+            .iter()
+            .position(|x| x == "董事")
+            .expect("董事 missing from dongshi top10");
+        assert!(b > 0, "dongshi: expected 董事 below 懂事; got {top10:?}");
+    }
+
     /// Class C polish (user report 2026-07-06): "khuq 跤 > 中奖 > 中将,
     /// 五笔不应该出这种问题, 四码单字如果不是低频难检应该在词上面的".
     /// khuq is a wubi 4-code full-code buffer that produces 跤 (single-char,

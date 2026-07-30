@@ -1325,3 +1325,8 @@ fangzhi	方志	46000
 bianji	编辑	60000
 bianji	边际	55000
 bianji	遍及	50000
+# 2026-07-30 user "dongshi 懂事 第一": modern_vocab_v1 row (dongshi 董事 50000)
+# lifted 董事 above 懂事 (library 29367 > 董事 library 24272), so the modern-freq
+# overlay inverted the natural order. Single boost row promotes 懂事 to tier 1;
+# 董事 keeps its modern_vocab standing at #1.
+dongshi	懂事	55000
