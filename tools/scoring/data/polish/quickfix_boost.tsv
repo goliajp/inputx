@@ -1330,3 +1330,13 @@ bianji	遍及	50000
 # overlay inverted the natural order. Single boost row promotes 懂事 to tier 1;
 # 董事 keeps its modern_vocab standing at #1.
 dongshi	懂事	55000
+# 2026-07-30 user "fanhua 繁华 > 泛化 > 反话 > 反华 > 繁花": all five are
+# pre-existing digested rows; base order was 繁华 / 繁花 / 反话 / 反华 / 泛化 —
+# 泛化 (library 10668 + modern_vocab 15000) sat last while 繁花 (19324) led the
+# rest on raw library freq. Explicit 5-row chain puts all five in tier 1 where
+# boost value alone orders them (fangzhi / bianji precedent).
+fanhua	繁华	60000
+fanhua	泛化	56000
+fanhua	反话	52000
+fanhua	反华	48000
+fanhua	繁花	44000
