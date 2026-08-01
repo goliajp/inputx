@@ -642,6 +642,11 @@ mod tests {
             // (403286) / 加注. modern_vocab @ freq 60000 → tier 2 = 440k,
             // clearing tier 4 the way 御守/解签 do.
             ("jiazhu", "夹住"),
+            // Polish 2026-08-01: user "miaobian 描边". Class A add — 描边
+            // (graphics/design term, also gaming slang) absent from both
+            // v1 library.tsv and v2 words.tsv; the buffer's sole candidate
+            // was digested 秒变 (380k). modern_vocab @ freq 30000 → 410k.
+            ("miaobian", "描边"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
