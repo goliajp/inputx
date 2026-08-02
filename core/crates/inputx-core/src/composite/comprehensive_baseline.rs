@@ -653,6 +653,11 @@ mod tests {
             // the buffer only surfaced prefix-completion compounds
             // (超高压/超高温/超高频 @ 130k). modern_vocab @ 30000 → 410k.
             ("chaogao", "超高"),
+            // Polish 2026-08-02: user "zaobuzhu 遭不住". Class A add —
+            // colloquial V+不住 (同族 撑不住/耐不住/熬不住 all modern_vocab
+            // @ 15000); the buffer returned zero candidates from every
+            // engine. modern_vocab @ family-standard 15000 → 380k.
+            ("zaobuzhu", "遭不住"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
