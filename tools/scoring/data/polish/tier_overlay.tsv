@@ -55,3 +55,4 @@ khuq	中奖	5	# 2026-07-06 user polish: 中奖 phrase demoted below 跤 (single-
 weibo	微博	2	# user 2026-07-08: v2 cedict has 微博 @ tier 4, modern_vocab dedup skips my tier-2 add; direct tier override to unstick
 lian	立案	5	# 2026-07-14 gf-recall: ambiguous li-an segmentation must not beat 脸/连 muscle memory
 jiang	激昂	5	# 2026-07-14 gf-recall: ambiguous ji-ang segmentation must not beat 江/将 muscle memory
+jianlou	检漏	5	# user 2026-08-02: "检漏好像不是词?" — real but technical (检漏仪/真空检漏), lib freq 3094 yet outranked 捡漏 15033; demote to less_common so 简陋/捡漏/箭楼 lead

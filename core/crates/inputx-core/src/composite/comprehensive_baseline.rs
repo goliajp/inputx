@@ -3580,6 +3580,31 @@ mod tests {
         assert!(b > 0, "yanzhi: expected 研制 below 颜值; got {top10:?}");
     }
 
+    /// Class C polish (user report 2026-08-02): "jianlou 检漏好像不是词?".
+    /// 检漏 IS real (technical: 检漏仪 / 真空检漏) so no D1 — but at lib
+    /// freq 3094 it outranked colloquial 捡漏 (15033) in the live scores,
+    /// an inversion of the natural library order. tier_overlay demotes
+    /// (jianlou, 检漏) to tier 5: 简陋 leads, 捡漏 second, 检漏 sinks
+    /// below the everyday words but stays reachable.
+    #[test]
+    fn polish_jianlou_jianlou_demoted() {
+        let top10 = mixed_top10("jianlou".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("简陋"),
+            "jianlou: expected 简陋 at #0; got top10={top10:?}"
+        );
+        assert!(
+            !top10.iter().take(3).any(|x| x == "检漏"),
+            "jianlou: 检漏 must not be in top-3; got {top10:?}"
+        );
+        let jian = top10
+            .iter()
+            .position(|x| x == "捡漏")
+            .expect("捡漏 missing from jianlou top10");
+        assert!(jian < 3, "jianlou: expected 捡漏 in top-3; got {top10:?}");
+    }
+
     /// Class C polish (user report 2026-07-06): "khuq 跤 > 中奖 > 中将,
     /// 五笔不应该出这种问题, 四码单字如果不是低频难检应该在词上面的".
     /// khuq is a wubi 4-code full-code buffer that produces 跤 (single-char,
