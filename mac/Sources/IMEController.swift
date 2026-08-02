@@ -25,7 +25,11 @@ import InputxKit
 @objc(InputxController)
 final class InputxController: IMKInputController {
     private let session = InputxSession()
-    private var candidatePanel: CandidatePanel?
+    // Shared, process-wide panel — IMKit churns controllers per input
+    // context; a per-controller NSPanel leaks on dealloc (2026-08-02
+    // audit: 1,341 orphaned window clusters / 1.2 GB RSS). See
+    // CandidatePanel's class doc.
+    private let candidatePanel = CandidatePanel.shared
     /// Detects pure shift single-clicks (no other key in between) to
     /// toggle `InputxInputMode` between `.cjk` and `.en`. See
     /// `InputxShiftSingleClickDetector` for the state machine.
@@ -55,8 +59,10 @@ final class InputxController: IMKInputController {
         applySettingsToSession()
         // Custom CandidatePanel (no IMKServer needed — see CandidatePanel.swift
         // for why we dropped IMKCandidates in favor of a custom NSWindow).
+        // The panel itself is `CandidatePanel.shared`, initialized as a
+        // stored-property default above — first controller pays the
+        // one-time pre-warm, every later controller reuses the window.
         _ = server
-        self.candidatePanel = CandidatePanel()
         // Pay the FST / 简拼-index cold-start cost up front so the first
         // measured keystroke doesn't take ~1-2 s.
         session.warmup()
@@ -124,7 +130,7 @@ final class InputxController: IMKInputController {
         // Client switched away while composing — drop in-flight state rather
         // than auto-commit into a textfield the user just left.
         session.clear()
-        candidatePanel?.hide()
+        candidatePanel.hide()
         clearMarkedText(client: sender)
         // A shift held across deactivation would otherwise leave the
         // detector armed forever; reset.
@@ -157,12 +163,12 @@ final class InputxController: IMKInputController {
                     words.append(w)
                 }
             }
-            candidatePanel?.showPredictions(
+            candidatePanel.showPredictions(
                 words: words,
                 client: sender as AnyObject?
             )
         } else {
-            candidatePanel?.hide()
+            candidatePanel.hide()
         }
     }
 
@@ -203,14 +209,14 @@ final class InputxController: IMKInputController {
             refreshSegmentPanel(client: sender)
             return true
         case 0xF700: // ↑
-            _ = candidatePanel?.moveSelectionUp()
+            _ = candidatePanel.moveSelectionUp()
             return true
         case 0xF701: // ↓
-            _ = candidatePanel?.moveSelectionDown()
+            _ = candidatePanel.moveSelectionDown()
             return true
         case 0x20: // space → commit highlighted segment candidate
             commitSegmentStep(
-                candIdx: candidatePanel?.selectedAbsoluteIndex() ?? 0,
+                candIdx: candidatePanel.selectedAbsoluteIndex() ?? 0,
                 client: sender
             )
             return true
@@ -218,12 +224,12 @@ final class InputxController: IMKInputController {
             session.clear()
             segmentCommitted = ""
             exitSegmentState()
-            candidatePanel?.hide()
+            candidatePanel.hide()
             clearMarkedText(client: sender)
             return true
         default:
             // digit 1-9 / 0 → commit that segment candidate
-            if let cand = candidatePanel?.candidateIndex(forNumberKey: codepoint) {
+            if let cand = candidatePanel.candidateIndex(forNumberKey: codepoint) {
                 commitSegmentStep(candIdx: cand, client: sender)
                 return true
             }
@@ -246,7 +252,7 @@ final class InputxController: IMKInputController {
                 words.append(w)
             }
         }
-        candidatePanel?.showPredictions(words: words, client: sender as AnyObject?)
+        candidatePanel.showPredictions(words: words, client: sender as AnyObject?)
         updateSegmentPreedit(client: sender)
     }
 
@@ -264,7 +270,7 @@ final class InputxController: IMKInputController {
             commitText(segmentCommitted, to: sender)
             segmentCommitted = ""
             exitSegmentState()
-            candidatePanel?.hide()
+            candidatePanel.hide()
         } else {
             segmentAnchors = session.segmentAnchors()
             segmentAnchorIdx = 0
@@ -283,9 +289,9 @@ final class InputxController: IMKInputController {
         exitSegmentState()
         updatePreedit(client: sender)
         if session.isComposing {
-            candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+            candidatePanel.refresh(session: session, client: sender as AnyObject?)
         } else {
-            candidatePanel?.hide()
+            candidatePanel.hide()
         }
     }
 
@@ -396,8 +402,8 @@ final class InputxController: IMKInputController {
         // producing the user-observed "stale prediction shows next to
         // unrelated typing" bug.
         if session.inputMode == .en {
-            if let panel = candidatePanel, panel.isVisible, panel.isPredictionMode {
-                panel.hide()
+            if candidatePanel.isVisible, candidatePanel.isPredictionMode {
+                candidatePanel.hide()
             }
             return false
         }
@@ -471,17 +477,17 @@ final class InputxController: IMKInputController {
         // hide the panel. Letter keys naturally dismiss via Path C's
         // refresh; Esc / Backspace need explicit handling because they
         // wouldn't otherwise reach a panel-refresh call.
-        if let panel = candidatePanel, panel.isPredictionMode, panel.isVisible {
+        if candidatePanel.isPredictionMode, candidatePanel.isVisible {
             // Esc → dismiss + consume (don't propagate to host).
             if codepoint == 0x1B {
-                panel.hide()
+                candidatePanel.hide()
                 updatePreedit(client: sender)
                 return true
             }
             // Backspace / forward-delete → dismiss + consume (no buffer
             // to delete; the user pressed it to back out of predictions).
             if codepoint == 0x08 || codepoint == 0x7F {
-                panel.hide()
+                candidatePanel.hide()
                 updatePreedit(client: sender)
                 return true
             }
@@ -503,7 +509,7 @@ final class InputxController: IMKInputController {
                 && codepoint != 0x2D   // '-'
                 && codepoint != 0x3D   // '='
             {
-                panel.hide()
+                candidatePanel.hide()
                 // fall through; Path B below applies locale mapping.
             }
         }
@@ -513,20 +519,20 @@ final class InputxController: IMKInputController {
         // keys still pass through to the host. When the panel is hidden,
         // all PUA passes through.
         if (0xF700...0xF8FF).contains(codepoint) {
-            if let panel = candidatePanel, panel.isVisible {
+            if candidatePanel.isVisible {
                 switch codepoint {
                 case 0xF700: // up arrow
-                    _ = panel.moveSelectionUp()
+                    _ = candidatePanel.moveSelectionUp()
                     return true
                 case 0xF701: // down arrow
-                    _ = panel.moveSelectionDown()
+                    _ = candidatePanel.moveSelectionDown()
                     return true
                 case 0xF702: // left arrow → previous page (segment-mode entry
                     // is handled earlier, before this block)
-                    _ = panel.prevPage()
+                    _ = candidatePanel.prevPage()
                     return true
                 case 0xF703: // right arrow → next page
-                    _ = panel.nextPage()
+                    _ = candidatePanel.nextPage()
                     return true
                 default:
                     break
@@ -547,17 +553,17 @@ final class InputxController: IMKInputController {
         // 2026-05-27 so `-` could be typed as chōonpu (ー) in JP mode
         // (see Path B chōonpu skip below + inputx-nihongo engine `-` accept).
         // User: "`-` 是假名输入中的长音符号，必须要变成可输入的字符".
-        if let panel = candidatePanel, panel.isVisible {
+        if candidatePanel.isVisible {
             let shifted = event.modifierFlags.contains(.shift)
             switch codepoint {
             case 0x09: // Tab
-                if shifted { _ = panel.prevPage() } else { _ = panel.nextPage() }
+                if shifted { _ = candidatePanel.prevPage() } else { _ = candidatePanel.nextPage() }
                 return true
             case 0x5B, 0x7B: // '[' or '{' — previous page
-                _ = panel.prevPage()
+                _ = candidatePanel.prevPage()
                 return true
             case 0x5D, 0x7D: // ']' or '}' — next page
-                _ = panel.nextPage()
+                _ = candidatePanel.nextPage()
                 return true
             default:
                 break
@@ -566,7 +572,7 @@ final class InputxController: IMKInputController {
 
         // ---- Path A0b: Return → commit highlighted (English fallback) ----
         // User 2026-06-16 (refined): "如果没有上下或 [] 调整过选择的话，
-        // 回车是英文上屏". Enter splits on `panel.selectionTouched`:
+        // 回车是英文上屏". Enter splits on `candidatePanel.selectionTouched`:
         //
         //   - panel visible AND user actively moved selection (↑/↓ or
         //     `[`/`]`) → commit the highlighted candidate (Sogou-style
@@ -593,15 +599,15 @@ final class InputxController: IMKInputController {
         //
         // 0x0D = main-keyboard Return; 0x03 = numpad Enter (Apple's ETX).
         if codepoint == 0x0D || codepoint == 0x03 {
-            if let panel = candidatePanel, panel.isVisible, panel.selectionTouched {
-                let idx = panel.selectedAbsoluteIndex() ?? 0
-                if panel.isPredictionMode {
+            if candidatePanel.isVisible, candidatePanel.selectionTouched {
+                let idx = candidatePanel.selectedAbsoluteIndex() ?? 0
+                if candidatePanel.isPredictionMode {
                     if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
                         commitText(committed, to: sender)
                     }
                 } else {
                     let bufferBefore = session.preedit ?? ""
-                    let candsBefore = panel.current
+                    let candsBefore = candidatePanel.current
                     if let committed = session.commit(at: idx), !committed.isEmpty {
                         commitText(committed, to: sender)
                         PolishLog.recordIfMiss(
@@ -621,7 +627,7 @@ final class InputxController: IMKInputController {
             if session.isComposing, let pre = session.preedit, !pre.isEmpty {
                 commitText(pre, to: sender)
                 session.clear()
-                candidatePanel?.hide()
+                candidatePanel.hide()
                 clearMarkedText(client: sender)
                 return true
             }
@@ -637,8 +643,8 @@ final class InputxController: IMKInputController {
         // predictions (Path C / refresh); Esc / Backspace dismiss
         // explicitly (handled above).
         if codepoint == 0x20,
-           let panel = candidatePanel, panel.isVisible, panel.isPredictionMode {
-            let idx = panel.selectedAbsoluteIndex() ?? 0
+           candidatePanel.isVisible, candidatePanel.isPredictionMode {
+            let idx = candidatePanel.selectedAbsoluteIndex() ?? 0
             if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
                 commitText(committed, to: sender)
             }
@@ -653,12 +659,12 @@ final class InputxController: IMKInputController {
         // (panel just opened), this matches the legacy "Space = commit #0"
         // semantic via Path C below. Falls through if not composing.
         if codepoint == 0x20,
-           let panel = candidatePanel, panel.isVisible,
-           let idx = panel.selectedAbsoluteIndex(),
+           candidatePanel.isVisible,
+           let idx = candidatePanel.selectedAbsoluteIndex(),
            idx > 0
         {
             let bufferBefore = session.preedit ?? ""
-            let candsBefore = panel.current
+            let candsBefore = candidatePanel.current
             if let committed = session.commit(at: idx), !committed.isEmpty {
                 commitText(committed, to: sender)
                 PolishLog.recordIfMiss(
@@ -678,14 +684,14 @@ final class InputxController: IMKInputController {
         // ---- Path A: number-key candidate commit ---------------------------
         // When the panel is up, 1-9 + 0 picks the corresponding candidate
         // (0 → 10th slot) without touching the engine state machine.
-        if let panel = candidatePanel, panel.isVisible,
-           let idx = panel.candidateIndex(forNumberKey: codepoint) {
+        if candidatePanel.isVisible,
+           let idx = candidatePanel.candidateIndex(forNumberKey: codepoint) {
             // Route based on whether the panel is showing predictions
             // (post-commit 联想) or regular buffer-driven candidates.
             // Predictions commit through `commitPrediction(at:)` which
             // triggers a fresh round of predictions internally (chained
             // 联想 — Sogou 句串 style).
-            if panel.isPredictionMode {
+            if candidatePanel.isPredictionMode {
                 if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
                     commitText(committed, to: sender)
                 }
@@ -694,7 +700,7 @@ final class InputxController: IMKInputController {
                 return true
             }
             let bufferBefore = session.preedit ?? ""
-            let candsBefore = panel.current
+            let candsBefore = candidatePanel.current
             if let committed = session.commit(at: idx), !committed.isEmpty {
                 commitText(committed, to: sender)
                 // Telemetry: log #0 != #picked as a polish-corpus signal.
@@ -806,11 +812,11 @@ final class InputxController: IMKInputController {
         // commit and is now idle, show predictions in the panel
         // instead of leaving it empty.
         if session.isComposing {
-            candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+            candidatePanel.refresh(session: session, client: sender as AnyObject?)
         } else if drained != nil {
             showPredictionsOrHide(client: sender)
         } else {
-            candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+            candidatePanel.refresh(session: session, client: sender as AnyObject?)
         }
         return true
     }
@@ -861,7 +867,7 @@ final class InputxController: IMKInputController {
             }
             session.clear()
             if savedMode != .cjk { _ = session.setInputMode(savedMode) }
-            candidatePanel?.hide()
+            candidatePanel.hide()
             clearMarkedText(client: sender)
             // CapsLock isn't shift; disarm any half-armed shift single-click.
             shiftDetector.observeOtherModifierChange()
@@ -893,7 +899,7 @@ final class InputxController: IMKInputController {
             commitText(committed, to: sender)
         }
         updatePreedit(client: sender)
-        candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+        candidatePanel.refresh(session: session, client: sender as AnyObject?)
         InputModeToast.shared.show(mode: newMode)
     }
 

@@ -14,7 +14,18 @@ import InputxKit
 ///
 /// The window is borderless and a key panel that doesn't steal focus from
 /// the host app. It's positioned via the IMK client's caret rect.
+///
+/// Process-wide SINGLETON. IMKit churns `InputxController` instances at
+/// every input-context activation (~19/hour measured 2026-08-02); a
+/// per-controller panel leaks its `NSPanel` on controller dealloc,
+/// because `preWarmRows` orders the window front (resident-but-invisible
+/// perf design below) and an ordered-in window stays registered with
+/// AppKit past the last Swift reference — 1,341 live window clusters /
+/// 1.2 GB RSS after 3 days. One shared panel also pays the pre-warm
+/// cost (row build, glyph cache, AL calibration, compositor setup)
+/// once per process instead of once per context.
 final class CandidatePanel {
+    static let shared = CandidatePanel()
     /// All candidates from the engine (not just current page).
     private(set) var current: [String] = []
     /// `true` when the panel is showing 联想 (next-word predictions)
@@ -123,7 +134,10 @@ final class CandidatePanel {
     /// `anchorY` is set by `positionNear` and never touched by AL.
     private var anchorY: CGFloat = 0
 
-    init() {
+    // `private` — the singleton above is the only construction point.
+    // Every extra instance is a permanent window-server leak (see class
+    // doc); the compiler enforces what the 2026-08-02 audit found.
+    private init() {
         // Borderless floating panel — doesn't steal focus, sits above host.
         // Compact width (user-tuned 2x narrower than original 220pt) —
         // numbered rows + word + page indicator only.
