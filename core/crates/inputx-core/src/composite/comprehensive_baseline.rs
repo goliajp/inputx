@@ -647,6 +647,12 @@ mod tests {
             // v1 library.tsv and v2 words.tsv; the buffer's sole candidate
             // was digested 秒变 (380k). modern_vocab @ freq 30000 → 410k.
             ("miaobian", "描边"),
+            // Polish 2026-08-02: user "chaogao 超高". Class A add — 超高
+            // sits in v1 library.tsv (25172 digested) but never made it
+            // into v2 words.tsv (known v1→v2 ingest gap, same as 夹住);
+            // the buffer only surfaced prefix-completion compounds
+            // (超高压/超高温/超高频 @ 130k). modern_vocab @ 30000 → 410k.
+            ("chaogao", "超高"),
         ];
         run("ext_common", cases, pinyin_top, pinyin_top10);
     }
