@@ -3555,6 +3555,26 @@ mod tests {
         assert!(b > 0, "dongshi: expected 董事 below 懂事; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-08-02): "yanzhi 颜值第一".
+    /// 颜值 sat at #5 (380k) under 研制/胭脂/腌制/阏氏/焉知. A single
+    /// quickfix row (55000 → tier 1 = 540550) promotes it to #0 over
+    /// 研制 404887; the rest of the order is untouched (dongshi
+    /// single-row precedent).
+    #[test]
+    fn polish_yanzhi_order() {
+        let top10 = mixed_top10("yanzhi".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("颜值"),
+            "yanzhi: expected 颜值 at #0; got top10={top10:?}"
+        );
+        let b = top10
+            .iter()
+            .position(|x| x == "研制")
+            .expect("研制 missing from yanzhi top10");
+        assert!(b > 0, "yanzhi: expected 研制 below 颜值; got {top10:?}");
+    }
+
     /// Class C polish (user report 2026-07-06): "khuq 跤 > 中奖 > 中将,
     /// 五笔不应该出这种问题, 四码单字如果不是低频难检应该在词上面的".
     /// khuq is a wubi 4-code full-code buffer that produces 跤 (single-char,
