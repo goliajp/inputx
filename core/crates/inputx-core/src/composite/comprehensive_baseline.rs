@@ -4641,6 +4641,58 @@ mod tests {
         );
     }
 
+    /// Polish 2026-08-05 (user /polish): "fangdic / fangdich / fangdicha
+    /// 这种情况下，仍然应该是房地产在前，没到底 4 字还在前，预测逻辑上要做
+    /// 好排序，matching 怎么都应该是有序的".
+    ///
+    /// Class C — 房地产商 / 房地产业 carried a bulk `30000` freq in
+    /// modern_vocab_v1.tsv (→ v2 tier 3) while the base word 房地产 only
+    /// exists in the cedict-derived words.tsv at tier 5. v2's prefix
+    /// completion path scores `250000 − tier·30000 + modern_freq`, so the
+    /// two derived compounds (modern_freq 0 — neither appears in the jieba
+    /// corpus at all) outranked their own base word (modern_freq 24650) at
+    /// every partial buffer. Both demoted to 12000 (→ tier 5), which puts
+    /// all three in one tier and lets the modern-freq tiebreaker order them
+    /// honestly.
+    ///
+    /// Before: [房地产业 160000, 房地产商 160000, 房地产 124650]
+    /// After:  [房地产 124650, 房地产业 100000, 房地产商 100000]
+    #[test]
+    fn polish_fangdic_base_word_leads_its_extensions() {
+        for buf in ["fangdic", "fangdich", "fangdicha"] {
+            let top10 = pinyin_top10(buf.as_bytes());
+            let pos = |w: &str| top10.iter().position(|x| x == w);
+            let base = pos("房地产").unwrap_or_else(|| {
+                panic!("房地产 missing from {buf} top10; got {top10:?}");
+            });
+            for ext in ["房地产业", "房地产商"] {
+                if let Some(e) = pos(ext) {
+                    assert!(
+                        base < e,
+                        "{buf}: 房地产 must lead its extension {ext}; got {top10:?}"
+                    );
+                }
+            }
+        }
+        // The full code still resolves to the base word, and each
+        // extension still owns its own complete code.
+        assert_eq!(
+            pinyin_top10(b"fangdichan").first().map(String::as_str),
+            Some("房地产"),
+            "fangdichan must still lead 房地产"
+        );
+        assert_eq!(
+            pinyin_top10(b"fangdichanye").first().map(String::as_str),
+            Some("房地产业"),
+            "fangdichanye must still lead 房地产业"
+        );
+        assert_eq!(
+            pinyin_top10(b"fangdichanshang").first().map(String::as_str),
+            Some("房地产商"),
+            "fangdichanshang must still lead 房地产商"
+        );
+    }
+
     #[test]
     fn no_traditional_in_top5_for_common_pinyin() {
         // List of (pinyin, traditional_blocklist) — traditional forms
