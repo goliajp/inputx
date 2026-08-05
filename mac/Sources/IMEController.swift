@@ -109,7 +109,7 @@ final class InputxController: IMKInputController {
             NSLog("Inputx hot-reload: no bundle resource dir")
             return
         }
-        let ok = session.reloadPinyinData(from: dir)
+        let ok = session.reloadEngineData(from: dir)
         NSLog("Inputx hot-reload session=%p dir=%@ ok=%d", self, dir, ok ? 1 : 0)
         // Kick a warmup so the first keystroke after the swap doesn't
         // eat the FST re-walk cost. Warmup is a session method; if it

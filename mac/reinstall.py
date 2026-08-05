@@ -127,18 +127,26 @@ LAST_INSTALL_SHA = SNAPSHOT_DIR / "last-install.sha"
 # from, or (c) something that never reaches the bundle at all (tests,
 # tooling, CI, docs).
 #
-# The wubi / nihongo data prefixes used to be listed and did NOT meet
-# that bar: their tables are embedded in the binary, so a wubi or JP
-# polish took the fast path and shipped NOTHING. Caught 2026-08-05 by
-# the `wyet 信用 > 食用` polish — hot-reload reported success and the
-# installed bundle went on answering 食用. Anything embedded now
-# correctly classifies as "code" and forces a full reinstall.
+# The wubi / nihongo data prefixes were briefly removed from this list
+# (2026-08-05): their tables were embedded in the binary, so a wubi or JP
+# polish took the fast path and shipped NOTHING — caught by the
+# `wyet 信用 > 食用` polish, where hot-reload reported success and the
+# installed bundle went on answering 食用. v1.17 fixed the underlying
+# gap instead of living with it: those tables now sit behind ArcSwap
+# slots, ship in the bundle, and get read back by
+# `Session::reload_engine_data`, so the prefixes are admissible again —
+# this time because the swap set genuinely carries them.
 DATA_ONLY_PREFIXES: tuple[str, ...] = (
     # (a) files the swap set copies verbatim.
     "core/crates/inputx-pinyin-data-core/data/",
     "core/crates/inputx-pinyin-helpers/data/",
+    "core/crates/inputx-wubi-data/data/",
+    "core/crates/inputx-nihongo-data-kanji/data/",
+    "core/crates/inputx-nihongo-data-jukugo/data/",
     # (b) sources `polish-rebuild` regenerates those files from.
     "core/crates/inputx-pinyin/data/",
+    "core/crates/inputx-wubi/data/",
+    "core/crates/inputx-nihongo/data/",
     "tools/scoring/data/",
     # (c) things that never reach the bundle.
     # Test-only src files the /polish protocol appends baseline cases
@@ -1676,6 +1684,21 @@ def do_hot_reload_data() -> None:
             / "core/crates/inputx-pinyin-helpers/data/bigrams.ngm",
         "bigrams_inter.ngm": project_root
             / "core/crates/inputx-pinyin-helpers/data/bigrams_inter.ngm",
+        # v1.17: the wubi + nihongo tables. Until these shipped here, the
+        # only way to change them was to replace the binary — which is why
+        # a wubi or JP polish forced a full reinstall, and (while the
+        # whitelist wrongly admitted them) could take the fast path and
+        # deliver nothing at all. Note the rename: wubi and pinyin both
+        # call their IDF `words.idf` in-crate, so wubi's lands here as
+        # `wubi.idf` to keep the flat data dir unambiguous.
+        "wubi.idf": project_root
+            / "core/crates/inputx-wubi-data/data/words.idf",
+        "wubi86.dict": project_root
+            / "core/crates/inputx-wubi-data/data/wubi86.dict",
+        "kanji.idf": project_root
+            / "core/crates/inputx-nihongo-data-kanji/data/kanji.idf",
+        "jukugo.idf": project_root
+            / "core/crates/inputx-nihongo-data-jukugo/data/jukugo.idf",
     }
     # v1.16 hot-reload: also swap the 6 polish overlay TSVs into
     # `data/polish/`. v2 engine reads these via ArcSwap so the
