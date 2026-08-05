@@ -107,24 +107,40 @@ PROCESS_PATTERN = "Inputx.app/Contents/MacOS/Inputx"
 # also touched code (→ full reinstall).
 SNAPSHOT_DIR = HOME / "Library" / "Caches" / "inputx-reinstall-snapshots"
 LAST_INSTALL_SHA = SNAPSHOT_DIR / "last-install.sha"
-# Paths whose changes are pure-data (polish TSV / regenerated .dict /
-# .idf / .ngm blobs / bundled toml packs / #[cfg(test)] test-only src
-# files that every /polish action append cases to). If a diff falls
-# entirely within these prefixes since LAST_INSTALL_SHA, the fast
-# path is safe — none of these files ship in the .app bundle's
-# release build, so a hot-swap of Contents/Resources/data/ + SIGUSR1
-# reflects the polish end-to-end.
+# Paths a change may touch and still qualify for the SIGUSR1 fast path.
+#
+# The admission rule is NOT "this file is data rather than code". It is:
+# **the hot-reload swap set actually carries this file's effect into the
+# installed bundle.** `do_hot_reload_data()` copies exactly
+#
+#     pinyin.dict, words.idf, bigrams.ngm, bigrams_inter.ngm
+#     polish/{tier_overlay, quickfix_boost, exclusions_v1,
+#             prior_corrections_v1, modern_vocab_v1,
+#             corpus_garbage_filter_v1}.tsv
+#
+# into Contents/Resources/data/. Everything else the engines read is
+# `include_bytes!` / `include_str!` — it lives INSIDE the binary, and no
+# amount of SIGUSR1 will change it without shipping a new binary.
+#
+# So a prefix belongs here only if it is (a) one of the files above,
+# (b) a source that `polish-rebuild` regenerates one of those files
+# from, or (c) something that never reaches the bundle at all (tests,
+# tooling, CI, docs).
+#
+# The wubi / nihongo data prefixes used to be listed and did NOT meet
+# that bar: their tables are embedded in the binary, so a wubi or JP
+# polish took the fast path and shipped NOTHING. Caught 2026-08-05 by
+# the `wyet 信用 > 食用` polish — hot-reload reported success and the
+# installed bundle went on answering 食用. Anything embedded now
+# correctly classifies as "code" and forces a full reinstall.
 DATA_ONLY_PREFIXES: tuple[str, ...] = (
+    # (a) files the swap set copies verbatim.
     "core/crates/inputx-pinyin-data-core/data/",
     "core/crates/inputx-pinyin-helpers/data/",
-    "core/crates/inputx-wubi-data/data/",
-    "core/crates/inputx-nihongo-data-jukugo/data/",
-    "core/crates/inputx-nihongo-data-kanji/data/",
+    # (b) sources `polish-rebuild` regenerates those files from.
     "core/crates/inputx-pinyin/data/",
-    "core/crates/inputx-wubi/data/",
-    "core/crates/inputx-nihongo/data/",
     "tools/scoring/data/",
-    "docs/cell-dicts/",
+    # (c) things that never reach the bundle.
     # Test-only src files the /polish protocol appends baseline cases
     # to. Gated behind `#[cfg(test)]` at composite/mod.rs so they never
     # link into the release `libinputx_core.a` the .app bundle carries.
