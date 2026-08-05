@@ -317,6 +317,11 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
     let has_exact_syllable = char_index().contains_key(buffer) || code_index().contains_key(buffer);
     const PREFIX_CAP: usize = 30;
     let mut prefix_added = 0;
+    // Word prefix-completion band bookkeeping: `rank` drives the score,
+    // `words` marks the entries that already consumed modern_freq as an
+    // ordering key so the global modern-freq pass skips them.
+    let mut prefix_word_rank: usize = 0;
+    let mut prefix_word_words: std::collections::HashSet<String> = std::collections::HashSet::new();
     if !buffer.is_empty() && !has_exact_syllable {
         // Bare-letter buffer: collect chars FIRST so PREFIX_CAP doesn't
         // run out of slots before single chars surface.
@@ -382,41 +387,90 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
         // words payload between requests but not mid-request.
         let words_prefix_arc = data::words();
         let excl_arc = data::exclusions();
-        let mut prefix_words: Vec<&data::WordEntry> = words_prefix_arc
-            .iter()
-            .filter(|w| w.code.starts_with(buffer) && w.code.as_str() != buffer)
-            .filter(|w| !seen.contains(&w.word))
-            .filter(|w| !excl_arc.contains(&(buf_owned.clone(), w.word.clone())))
-            // Also honor exclusion against the word's OWN code — so a
-            // D1 like (yidalimian, 义大利面) blocks the prefix-completion
-            // surfacing too (yidal → ... → 义大利面 from yidalimian).
-            .filter(|w| !excl_arc.contains(&(w.code.clone(), w.word.clone())))
-            .collect();
-        // Tier asc, then code asc for determinism; pick top N.
-        prefix_words.sort_by(|a, b| {
-            a.tier
-                .cmp(&b.tier)
-                .then_with(|| a.word.chars().count().cmp(&b.word.chars().count()))
-                .then_with(|| a.code.cmp(&b.code))
-        });
-        // For bare-letter buffer (e.g. "q"), single chars should lead
-        // phrases — user typing one letter intends to see chars.
-        // Score band: words 250k normally, but 150k at len==1 so chars
-        // (200k base) rank above. See q_bare_letter_single_chars_lead_phrases.
+        // Ordering rule for the word prefix band (Phase 7d, 2026-08-05).
+        // User report: "fangdic ... 仍然应该是房地产在前，没到底 4 字还在
+        // 前，预测逻辑上要做好排序，matching 怎么都应该是有序的".
+        //
+        // Keys, all structural — no per-entry data participates:
+        //   1. 字数 asc      — fewer characters completes sooner. Because a
+        //                      code carries exactly one syllable per
+        //                      character, "A's code is a strict prefix of
+        //                      B's code" implies 字数(A) < 字数(B). So this
+        //                      key alone guarantees a word always outranks
+        //                      its own extensions (房地产 < 房地产商 /
+        //                      房地产业, 人民 < 人民币, 计算机 < 计算机病毒).
+        //   2. tier asc      — quality band, within one 字数 group.
+        //   3. modern_freq desc — corpus signal, within one (字数, tier).
+        //   4. code len asc  — proximity: fewer letters left to type.
+        //   5. code, word asc — alphabetical, for total determinism.
+        //
+        // Pre-Phase-7d this sorted (tier, 字数, code) and then scored
+        // `250000 − tier·30000`, with `display_tier = tier + 3`. Since
+        // display tier is the merge's primary key, tier decided everything
+        // and length never got a vote — a tier-3 4-char extension buried
+        // the tier-5 3-char base word it extends.
+        //
+        // Decorate-sort-undecorate: a short buffer ("z") reaches tens of
+        // thousands of rows here, so the key — which needs a modern_freq
+        // HashMap probe and a UTF-8 char count — is computed once per row
+        // rather than twice per comparison. Keeps the path inside the
+        // one-frame budget the perfgate test enforces.
+        let modern_for_sort = data::modern_freq();
+        let mut prefix_words: Vec<(usize, u8, std::cmp::Reverse<u16>, usize, &str, &str)> =
+            words_prefix_arc
+                .iter()
+                .filter(|w| w.code.starts_with(buffer) && w.code.as_str() != buffer)
+                .filter(|w| !seen.contains(&w.word))
+                .filter(|w| !excl_arc.contains(&(buf_owned.clone(), w.word.clone())))
+                // Also honor exclusion against the word's OWN code — so a
+                // D1 like (yidalimian, 义大利面) blocks the prefix-completion
+                // surfacing too (yidal → ... → 义大利面 from yidalimian).
+                .filter(|w| !excl_arc.contains(&(w.code.clone(), w.word.clone())))
+                .map(|w| {
+                    (
+                        w.word.chars().count(),
+                        w.tier,
+                        std::cmp::Reverse(modern_for_sort.get(&w.word).copied().unwrap_or(0)),
+                        w.code.len(),
+                        w.code.as_str(),
+                        w.word.as_str(),
+                    )
+                })
+                .collect();
+        prefix_words.sort_unstable();
+        // Single band for the whole word prefix-completion class: tier 7
+        // ("specialty — prefix predictions" in the canonical tier table;
+        // v1's CP-B path used the same `.with_tier(7)`). One band is what
+        // lets the ordering above survive into the cross-engine merge —
+        // spreading predictions over tiers 3..9 by their own entry tier
+        // made tier, not completion distance, the decisive key.
+        const PREFIX_WORD_TIER: u8 = 7;
+        // For a bare-letter buffer (e.g. "q") single chars should lead
+        // phrases — the user typing one letter intends to see chars. Chars
+        // carry `char_tier + 3`, so char_tier ≤ 3 already bands above the
+        // words; char_tier 4 lands in band 7 alongside them and is settled
+        // by score instead. Its floor is `200000 − 4·30000 − 5000` (rare
+        // reading, no HSK/prominence bonus) = 75000, so a 60000 word base
+        // minus the 30k rank window stays under it.
+        // See q_bare_letter_single_chars_lead_phrases.
         let word_prefix_base = if buffer.len() == 1 {
-            150_000.0
+            60_000.0
         } else {
             250_000.0
         };
+        // Rank-derived score: the sort above IS the ordering, so the score
+        // just has to preserve it. Step 1000 keeps the band inside a 30k
+        // window (PREFIX_CAP = 30), narrow enough that it stays in the same
+        // neighbourhood as the char prefix bands it shares tier 7 with.
         let word_cap = PREFIX_CAP.saturating_sub(prefix_added);
-        for w in prefix_words.iter().take(word_cap) {
-            if !seen.insert(w.word.clone()) {
+        for (.., word) in prefix_words.iter().take(word_cap) {
+            if !seen.insert((*word).to_owned()) {
                 continue;
             }
-            let tier = w.tier;
-            let score = word_prefix_base - (tier as f64) * 30_000.0;
-            let display_tier = tier.saturating_add(3).min(9);
-            out.push((w.word.clone(), score, display_tier));
+            let score = word_prefix_base - (prefix_word_rank as f64) * 1_000.0;
+            out.push(((*word).to_owned(), score, PREFIX_WORD_TIER));
+            prefix_word_words.insert((*word).to_owned());
+            prefix_word_rank += 1;
             prefix_added += 1;
         }
 
@@ -531,6 +585,13 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
     let quickfix = data::quickfix_boost();
     for entry in out.iter_mut() {
         if quickfix.contains_key(&(buf_owned.clone(), entry.0.clone())) {
+            continue;
+        }
+        // Word prefix-completion band (Phase 7d): modern_freq is already
+        // key 3 of that band's own ordering, and its score is rank-derived
+        // at 1000/step. Adding the raw 0..25000 percentile on top would
+        // scramble the ranks it just helped produce.
+        if prefix_word_words.contains(&entry.0) {
             continue;
         }
         if let Some(&freq_score) = modern.get(&entry.0) {
@@ -962,6 +1023,63 @@ mod tests {
             // Anything below 继续 must have score < 继续's score.
             assert!(*score <= q[p_exact].1, "ordering invariant");
         }
+    }
+
+    /// Phase 7d (user report 2026-08-05): "matching 怎么都应该是有序的".
+    ///
+    /// Structural invariant of the word prefix-completion band: a word
+    /// always outranks every word that EXTENDS it. Because a code carries
+    /// exactly one syllable per character, "A's code is a strict prefix of
+    /// B's code" implies 字数(A) < 字数(B), and 字数 is the band's primary
+    /// key — so the guarantee holds no matter what tier the entries carry.
+    ///
+    /// The two 人民 / 计算机 chains are deliberately TIER-INVERTED, which
+    /// is what makes them a test of the rule rather than of the data:
+    ///   人民   tier 4  <  人民币     tier 2 (cedict+hsk4)
+    ///   计算机 tier 5  <  计算机病毒 tier 4 (modern_vocab 15000)
+    /// Pre-Phase-7d both extensions won on tier and buried their own base
+    /// word — 人民 came dead LAST at `renmi`, 计算机 sixth at `jisuanj`.
+    #[test]
+    fn prefix_band_base_word_outranks_its_extensions() {
+        let cases: &[(&str, &str, &[&str])] = &[
+            ("renmi", "人民", &["人民币", "人民网", "人民大会堂"]),
+            (
+                "jisuanj",
+                "计算机",
+                &["计算机病毒", "计算机程序", "计算机网络"],
+            ),
+            ("fangdic", "房地产", &["房地产商", "房地产业"]),
+            ("beijin", "北京", &["北京市", "北京鸭"]),
+        ];
+        for (buffer, base, extensions) in cases {
+            let q = query(buffer);
+            let pos = |w: &str| q.iter().position(|(x, _, _)| x == w);
+            let p_base =
+                pos(base).unwrap_or_else(|| panic!("{base} missing from query({buffer}): {q:?}"));
+            for ext in *extensions {
+                let Some(p_ext) = pos(ext) else { continue };
+                assert!(
+                    p_base < p_ext,
+                    "{buffer}: {base}@{p_base} must outrank its extension {ext}@{p_ext}"
+                );
+            }
+        }
+    }
+
+    /// Phase 7d: the prefix-completion class occupies exactly ONE tier
+    /// band. Spreading it over `entry_tier + 3` is what let tier preempt
+    /// the ordering above — this pins the band so a future tier tweak
+    /// can't silently reintroduce the split.
+    #[test]
+    fn prefix_band_is_a_single_tier() {
+        let q = query("fangdic");
+        let tiers: Vec<u8> = q.iter().map(|(_, _, t)| *t).collect();
+        assert!(!tiers.is_empty(), "fangdic produced no candidates");
+        assert!(
+            tiers.iter().all(|t| *t == 7),
+            "fangdic candidates are all word prefix completions and must \
+             share tier 7; got {q:?}"
+        );
     }
 
     #[test]
