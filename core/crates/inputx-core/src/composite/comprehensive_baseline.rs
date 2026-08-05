@@ -4693,6 +4693,56 @@ mod tests {
         );
     }
 
+    /// Phase 7d framework rule (same 2026-08-05 report, second half:
+    /// "预测逻辑上要做好排序，matching 怎么都应该是有序的"). The v2 prefix
+    /// band orders by 字数 first inside a single tier, so a word always
+    /// outranks the words that extend it — end-to-end through the
+    /// cross-engine merge, not just inside `inputx_pinyin_v2::query`.
+    ///
+    /// Chains are tier-inverted on purpose (人民 tier 4 < 人民币 tier 2;
+    /// 计算机 tier 5 < 计算机病毒 tier 4) so passing means the ordering
+    /// came from the structural rule, not from the entries' tiers.
+    /// Before Phase 7d: `renmi` → [人民币 任命 人民军 人民性 人民网
+    /// 人民大会堂 人民日报社 人民] — the base word came dead last.
+    #[test]
+    fn prefix_completion_base_word_outranks_extensions() {
+        let cases: &[(&str, &str, &[&str])] = &[
+            ("renmi", "人民", &["人民币", "人民网", "人民大会堂"]),
+            (
+                "jisuanj",
+                "计算机",
+                &["计算机病毒", "计算机程序", "计算机网络"],
+            ),
+            ("fangdic", "房地产", &["房地产商", "房地产业"]),
+            ("beijin", "北京", &["北京市", "北京鸭"]),
+            ("xiaox", "小心", &["小心翼翼"]),
+        ];
+        let mut failures = Vec::new();
+        for (buffer, base, extensions) in cases {
+            let top10 = pinyin_top10(buffer.as_bytes());
+            let pos = |w: &str| top10.iter().position(|x| x == w);
+            let Some(p_base) = pos(base) else {
+                failures.push(format!("  {buffer}: {base} missing; got {top10:?}"));
+                continue;
+            };
+            for ext in *extensions {
+                if let Some(p_ext) = pos(ext)
+                    && p_base > p_ext
+                {
+                    failures.push(format!(
+                        "  {buffer}: {base}@{p_base} must outrank {ext}@{p_ext}; got {top10:?}"
+                    ));
+                }
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} prefix-ordering invariant breaks:\n{}",
+            failures.len(),
+            failures.join("\n")
+        );
+    }
+
     #[test]
     fn no_traditional_in_top5_for_common_pinyin() {
         // List of (pinyin, traditional_blocklist) — traditional forms
