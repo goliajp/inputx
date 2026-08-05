@@ -2634,6 +2634,19 @@ mod tests {
         assert_eq!(head, ["备案", "血案"], "tlpv: got top10={top10:?}");
     }
 
+    /// Class B polish (user report 2026-08-05): "wyet 信用 > 食用". Same
+    /// wubi kongdang route as tlpv — all three wyet rows are layer-1, so
+    /// ordering is pure freq and 信用 (29283) lost to 食用 (29856) by 573.
+    /// library.tsv freq 29283 → 33000 (食用 + ~10%), layer 1 unchanged,
+    /// source flipped to `polish` so a corpus digest can't clobber it.
+    /// 停用 keeps #2 untouched.
+    #[test]
+    fn polish_wyet_xinyong_first() {
+        let top10 = mixed_top10("wyet".as_bytes());
+        let head: Vec<&str> = top10.iter().take(3).map(String::as_str).collect();
+        assert_eq!(head, ["信用", "食用", "停用"], "wyet: got top10={top10:?}");
+    }
+
     /// Class B polish (user report 2026-07-21): "fuzhi 复制第一 赋值第二
     /// 扶植第三". 福祉 held #0 via an earlier quickfix (30000); the three
     /// requested words go above it with a descending chain, so 福祉 keeps
