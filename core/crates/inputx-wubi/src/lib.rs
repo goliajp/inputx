@@ -34,7 +34,7 @@ pub mod zigen;
 
 pub use codec::{DecompRef, EncodeError, Shape, Stroke, encode_with_lookup};
 pub use decomp::{Decomp, embedded_seed};
-pub use dict::{L0Snapshot, WubiDict};
+pub use dict::{DICT_BYTES, L0Snapshot, WubiDict};
 pub use encode::{EncodedCode, encode, encode_into};
 pub use jianma::{iter_jianma1, lookup_jianma1};
 pub use layer::{DEFAULT_LAYER_PREFS, LAYER_BASE, LAYER_COUNT, Layer};

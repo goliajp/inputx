@@ -16,9 +16,15 @@ categories = ["text-processing", "internationalization"]
 crate-type = ["rlib"]
 
 [dependencies]
+# Lock-free swap of the process-global IdfReader, so a polish rebuild
+# can replace the dict under a running IME without exiting. Mirrors
+# inputx-pinyin-helpers.
+arc-swap = "1"
 # Wubi facade — Layer enum + dict primitives for the IDF entry decode
 # helpers (layer_from_idf_tag returns inputx_wubi::Layer).
 inputx-wubi = { workspace = true }
+# FsaError, surfaced by the wubi FST hot-reload setter.
+inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 # IDFv1 binary dict reader (v1.4.3 stone).
 inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
 # Q4 fixed-point constants for log_prior_q4 round-trip helpers.

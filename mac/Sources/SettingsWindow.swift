@@ -289,7 +289,7 @@ extension Notification.Name {
     /// (`reinstall.py` data-only fast path) after it swaps
     /// pinyin.dict / words.idf / bigrams*.ngm in
     /// Contents/Resources/data/. Every live `InputxController`
-    /// observes it and calls `session.reloadPinyinData(from:)` so
+    /// observes it and calls `session.reloadEngineData(from:)` so
     /// active preedit stays alive across a polish round.
     static let inputxDictReloaded = Notification.Name("InputxDictReloaded")
 }

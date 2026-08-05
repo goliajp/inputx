@@ -101,16 +101,28 @@ if [ -d "$CELL_DICT_SRC" ]; then
     echo "[build] bundled cell-dicts: $(ls "$CELL_DICT_DST"/*.toml 2>/dev/null | wc -l | tr -d ' ') pack(s)"
 fi
 
-# v1.15 hot-reload: ship the pinyin data blobs into the bundle so
+# v1.15 hot-reload: ship the engine data blobs into the bundle so
 # reinstall.py's data-only fast path can atomically replace them
 # without killing Inputx.app. Startup reads them via
-# InputxCore.setPinyinDataDirectory before IMKServer construction.
-PINYIN_DATA_DST="$APP_DIR/Contents/Resources/data"
-mkdir -p "$PINYIN_DATA_DST"
-cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-data-core/data/pinyin.dict"    "$PINYIN_DATA_DST/"
-cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/words.idf"        "$PINYIN_DATA_DST/"
-cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/bigrams.ngm"      "$PINYIN_DATA_DST/"
-cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/bigrams_inter.ngm" "$PINYIN_DATA_DST/"
+# InputxEngineData.setDirectory before IMKServer construction.
+#
+# v1.17: wubi + nihongo joined. Their tables used to be reachable ONLY
+# by replacing the binary, so a wubi or JP polish forced a full
+# reinstall — and, until the whitelist was corrected, could take the
+# fast path and ship nothing at all. Note the renames: both wubi and
+# pinyin call their IDF `words.idf` in-crate, so wubi's lands here as
+# `wubi.idf` to keep the flat data dir unambiguous.
+ENGINE_DATA_DST="$APP_DIR/Contents/Resources/data"
+mkdir -p "$ENGINE_DATA_DST"
+cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-data-core/data/pinyin.dict"     "$ENGINE_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/words.idf"         "$ENGINE_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/bigrams.ngm"       "$ENGINE_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/bigrams_inter.ngm" "$ENGINE_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-wubi-data/data/words.idf"              "$ENGINE_DATA_DST/wubi.idf"
+cp -f "$PROJECT_ROOT/core/crates/inputx-wubi-data/data/wubi86.dict"            "$ENGINE_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-nihongo-data-kanji/data/kanji.idf"     "$ENGINE_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-nihongo-data-jukugo/data/jukugo.idf"   "$ENGINE_DATA_DST/"
+PINYIN_DATA_DST="$ENGINE_DATA_DST"
 
 # v1.16 hot-reload: v2 engine reads polish overlay TSVs at runtime
 # via ArcSwap slots. Ship the 6 polish TSVs so Session::reload_pinyin_data
