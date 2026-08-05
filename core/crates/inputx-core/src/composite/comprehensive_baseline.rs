@@ -3580,6 +3580,28 @@ mod tests {
         assert!(b > 0, "yanzhi: expected 研制 below 颜值; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-08-05): "baifen 百分 > 白粉".
+    /// The two were a PERFECT tie — same v2 tier (4, both cedict), same
+    /// modern_freq (22193), so both scored 402193 and the order fell
+    /// through to the final codepoint tiebreak, where 白 (U+767D) edges
+    /// out 百 (U+767E). Nothing in the corpus signal separates them, so
+    /// this is an attested per-case preference: a single quickfix row
+    /// (55000 → tier 1 = 540550) puts 百分 at #0 and leaves 白粉 at #1.
+    #[test]
+    fn polish_baifen_order() {
+        let top10 = mixed_top10("baifen".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("百分"),
+            "baifen: expected 百分 at #0; got top10={top10:?}"
+        );
+        let b = top10
+            .iter()
+            .position(|x| x == "白粉")
+            .expect("白粉 missing from baifen top10");
+        assert!(b > 0, "baifen: expected 白粉 below 百分; got {top10:?}");
+    }
+
     /// Class C polish (user report 2026-08-02): "jianlou 检漏好像不是词?".
     /// 检漏 IS real (technical: 检漏仪 / 真空检漏) so no D1 — but at lib
     /// freq 3094 it outranked colloquial 捡漏 (15033) in the live scores,
