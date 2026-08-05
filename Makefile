@@ -61,6 +61,10 @@ polish-rebuild:
 	cd core && cargo run --release --bin idf-from-wubi-tables
 	cd core && cargo run --release --bin idf-from-nihongo-kanji
 	cd core && cargo run --release --bin idf-from-nihongo-jukugo
+	@# v1.17: re-emit the compiled wubi FST to a shippable file. build.rs
+	@# leaves it in OUT_DIR, which reinstall.py has no way to copy — that
+	@# is why a wubi polish used to need a full reinstall.
+	cd core && cargo run --release --bin wubi-emit-dict -- crates/inputx-wubi-data/data/wubi86.dict
 	@echo "[polish] (3/3) baseline gate"
 	$(MAKE) baseline
 	@echo "[polish] ✓ rebuild complete + baseline green"

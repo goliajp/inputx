@@ -24,14 +24,23 @@
 //! position 0. So in steady state most codes have empty L0 and the layer
 //! base ordering wins (hence "L0 default ≈ L1 default").
 
+use std::borrow::Cow;
 use std::collections::HashMap;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
+use arc_swap::ArcSwap;
 use inputx_fsa::Dict;
 
 use crate::layer::{DEFAULT_LAYER_PREFS, LAYER_COUNT, Layer, unpack};
 
-const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/wubi86.dict"));
+/// The wubi86 table as `build.rs` compiled it from `data/library.tsv` +
+/// the structural tables. Also re-emitted verbatim to a shippable file
+/// by the `wubi-emit-dict` bin — see its docs for why.
+pub const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/wubi86.dict"));
+
+/// Byte container for the code→candidates map: borrowed from
+/// [`DICT_BYTES`] at startup, owned after a hot-reload.
+type DictBytes = Cow<'static, [u8]>;
 
 /// Persistent state of the L0 layer. Caller serializes / deserializes this
 /// however it likes (TOML, MessagePack, sqlite, …) — the crate intentionally
@@ -73,7 +82,12 @@ impl L0Inner {
 /// mutability via `RwLock` lets a single shared instance feed every
 /// concurrent IME / WASM session without exposing the lock to the caller.
 pub struct WubiDict {
-    map: Dict<&'static [u8]>,
+    /// Code → candidates index. Behind an [`ArcSwap`] so
+    /// [`WubiDict::reload_map_from_bytes`] can replace the whole table
+    /// under a running IME — taking `&self`, exactly like the `l0`
+    /// mutations below, so the L0 layer beside it (user pins, pick
+    /// counts, layer prefs) survives a dict swap untouched.
+    map: ArcSwap<Dict<DictBytes>>,
     l0: RwLock<L0Inner>,
 }
 
@@ -83,20 +97,40 @@ impl WubiDict {
     /// the instance and reuse it for the program lifetime.
     pub fn embedded() -> Self {
         Self {
-            map: Dict::new(DICT_BYTES).expect("invalid embedded wubi dict"),
+            map: ArcSwap::from_pointee(
+                Dict::new(Cow::Borrowed(DICT_BYTES)).expect("invalid embedded wubi dict"),
+            ),
             l0: RwLock::new(L0Inner::new()),
         }
+    }
+
+    /// Replace the code→candidates map with one parsed from `bytes`
+    /// (owned), leaving the L0 layer — pins, pick counts, layer prefs —
+    /// exactly as it was. Takes `&self` so a process-global
+    /// `&'static WubiDict` can be reloaded in place.
+    ///
+    /// On parse failure the old map stays installed and the error is
+    /// returned; a half-swapped dict is never observable. Readers that
+    /// already called `self.map.load()` keep their snapshot until they
+    /// drop it, which is what makes a mid-keystroke reload safe.
+    ///
+    /// Fed by `Session::reload_engine_data` from the running bundle's
+    /// `Contents/Resources/data/wubi86.dict`.
+    pub fn reload_map_from_bytes(&self, bytes: Vec<u8>) -> Result<(), inputx_fsa::FsaError> {
+        let parsed = Dict::new(Cow::Owned(bytes))?;
+        self.map.store(Arc::new(parsed));
+        Ok(())
     }
 
     /// Number of distinct codes in the dictionary. (The two-level `Dict`
     /// counts codes, not total (code, word) pairs.)
     pub fn len(&self) -> usize {
-        self.map.len() as usize
+        self.map.load().len() as usize
     }
 
     /// `true` iff the dictionary has zero codes.
     pub fn is_empty(&self) -> bool {
-        self.map.is_empty()
+        self.map.load().is_empty()
     }
 
     /// Number of L0 pinned codes.
@@ -172,24 +206,26 @@ impl WubiDict {
         // Tuple: (word, score, is_single, freq, layer).
         let mut scratch: Vec<(String, f64, bool, u64, Layer)> = Vec::with_capacity(8);
         let mut max_phrase_freq: u64 = 0;
-        self.map.get_for_each(lower.as_bytes(), |word, value| {
-            if let Ok(s) = core::str::from_utf8(word) {
-                let (layer, freq) = unpack(value);
-                let base = layer.base() as f64;
-                let pref = prefs[layer.as_index()];
-                let is_single = s.chars().count() == 1;
-                if !is_single && freq > max_phrase_freq {
-                    max_phrase_freq = freq;
+        self.map
+            .load()
+            .get_for_each(lower.as_bytes(), |word, value| {
+                if let Ok(s) = core::str::from_utf8(word) {
+                    let (layer, freq) = unpack(value);
+                    let base = layer.base() as f64;
+                    let pref = prefs[layer.as_index()];
+                    let is_single = s.chars().count() == 1;
+                    if !is_single && freq > max_phrase_freq {
+                        max_phrase_freq = freq;
+                    }
+                    scratch.push((
+                        s.to_string(),
+                        base * pref + freq as f64,
+                        is_single,
+                        freq,
+                        layer,
+                    ));
                 }
-                scratch.push((
-                    s.to_string(),
-                    base * pref + freq as f64,
-                    is_single,
-                    freq,
-                    layer,
-                ));
-            }
-        });
+            });
 
         // Apply full-code single-char promote (lifts qualifying single
         // chars above the same-code phrases) and L0 pin (lifts the pinned
@@ -268,18 +304,20 @@ impl WubiDict {
         // Track the highest phrase frequency at this code so the
         // promote decision can be made after the scan.
         let mut max_phrase_freq: u64 = 0;
-        self.map.get_for_each(lower.as_bytes(), |word, value| {
-            if let Ok(s) = core::str::from_utf8(word) {
-                let (layer, freq) = unpack(value);
-                let base = layer.base() as f64;
-                let pref = prefs[layer.as_index()];
-                let is_single = s.chars().count() == 1;
-                if !is_single && freq > max_phrase_freq {
-                    max_phrase_freq = freq;
+        self.map
+            .load()
+            .get_for_each(lower.as_bytes(), |word, value| {
+                if let Ok(s) = core::str::from_utf8(word) {
+                    let (layer, freq) = unpack(value);
+                    let base = layer.base() as f64;
+                    let pref = prefs[layer.as_index()];
+                    let is_single = s.chars().count() == 1;
+                    if !is_single && freq > max_phrase_freq {
+                        max_phrase_freq = freq;
+                    }
+                    scratch.push((s.to_string(), base * pref + freq as f64, is_single, freq));
                 }
-                scratch.push((s.to_string(), base * pref + freq as f64, is_single, freq));
-            }
-        });
+            });
         scratch.sort_by(|a, b| {
             let a_promote = full_code && a.2 && a.3 > max_phrase_freq;
             let b_promote = full_code && b.2 && b.3 > max_phrase_freq;
@@ -315,12 +353,14 @@ impl WubiDict {
     pub fn lookup_with_meta(&self, code: &str) -> Vec<(String, Layer, u64)> {
         let lower = code.to_ascii_lowercase();
         let mut results = Vec::new();
-        self.map.get_for_each(lower.as_bytes(), |word, value| {
-            if let Ok(s) = core::str::from_utf8(word) {
-                let (layer, freq) = unpack(value);
-                results.push((s.to_string(), layer, freq));
-            }
-        });
+        self.map
+            .load()
+            .get_for_each(lower.as_bytes(), |word, value| {
+                if let Ok(s) = core::str::from_utf8(word) {
+                    let (layer, freq) = unpack(value);
+                    results.push((s.to_string(), layer, freq));
+                }
+            });
         results
     }
 
@@ -342,6 +382,7 @@ impl WubiDict {
         let prefix_len = lower.len();
         let mut results: Vec<(String, u64, usize)> = Vec::new();
         self.map
+            .load()
             .prefix_for_each(lower.as_bytes(), |code_bytes, word_bytes, value| {
                 if code_bytes.len() <= prefix_len {
                     return;
@@ -372,12 +413,14 @@ impl WubiDict {
     pub fn lookup_with_freq_layer_into(&self, code: &str, out: &mut Vec<(String, Layer, u64)>) {
         out.clear();
         let lower = code.to_ascii_lowercase();
-        self.map.get_for_each(lower.as_bytes(), |word, value| {
-            if let Ok(s) = core::str::from_utf8(word) {
-                let (layer, freq) = unpack(value);
-                out.push((s.to_string(), layer, freq));
-            }
-        });
+        self.map
+            .load()
+            .get_for_each(lower.as_bytes(), |word, value| {
+                if let Ok(s) = core::str::from_utf8(word) {
+                    let (layer, freq) = unpack(value);
+                    out.push((s.to_string(), layer, freq));
+                }
+            });
     }
 
     /// Iterate every entry in the embedded dict, in FST traversal order
@@ -393,6 +436,7 @@ impl WubiDict {
     pub fn all_entries(&self) -> Vec<(String, String, Layer, u64)> {
         let mut results: Vec<(String, String, Layer, u64)> = Vec::new();
         self.map
+            .load()
             .prefix_for_each(b"", |code_bytes, word_bytes, value| {
                 if let (Ok(code), Ok(word)) = (
                     core::str::from_utf8(code_bytes),
@@ -419,6 +463,7 @@ impl WubiDict {
 
         let mut results: Vec<(String, String, f64)> = Vec::new();
         self.map
+            .load()
             .prefix_for_each(lower.as_bytes(), |code_bytes, word_bytes, value| {
                 if let (Ok(code), Ok(word)) = (
                     core::str::from_utf8(code_bytes),

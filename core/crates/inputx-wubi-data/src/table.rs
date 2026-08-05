@@ -14,6 +14,19 @@ fn dict() -> &'static WubiDict {
     DICT.get_or_init(WubiDict::embedded)
 }
 
+/// Replace the process-global wubi table's code→candidates map with one
+/// parsed from `bytes`, keeping the L0 layer (pins / pick counts / layer
+/// prefs) that lives beside it.
+///
+/// Paired with [`crate::set_wubi_idf_bytes`]: the .idf drives the
+/// composite cross-engine path, this FST drives `Mode::WubiOnly` and the
+/// engine's own candidate list (which is what auto-commit's uniqueness
+/// check reads). Reloading one without the other leaves those two
+/// disagreeing, so `Session::reload_engine_data` always does both.
+pub fn set_wubi_dict_bytes(bytes: Vec<u8>) -> Result<(), inputx_fsa::FsaError> {
+    dict().reload_map_from_bytes(bytes)
+}
+
 /// Codepoint cutoff for "rare CJK". Anything ≥ this lands in CJK Extension
 /// B (`U+20000`) or higher — blocks where most consumer fonts on iOS /
 /// Android lack glyphs, so committing those characters into typical apps
