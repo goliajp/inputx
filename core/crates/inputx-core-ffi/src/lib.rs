@@ -441,7 +441,7 @@ fn pinyin_data_dir_slot() -> &'static std::sync::RwLock<Option<std::path::PathBu
 /// # Safety
 /// `dir` must be NUL-terminated UTF-8.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn inputx_set_pinyin_data_dir(dir: *const c_char) -> i32 {
+pub unsafe extern "C" fn inputx_set_engine_data_dir(dir: *const c_char) -> i32 {
     let Some(path) = (unsafe { cstr_to_pathbuf(dir) }) else {
         return -1;
     };
@@ -469,6 +469,30 @@ pub unsafe extern "C" fn inputx_set_pinyin_data_dir(dir: *const c_char) -> i32 {
     }
     if let Ok(bytes) = std::fs::read(path.join("bigrams_inter.ngm"))
         && inputx_core::hot_reload::set_inter_bigrams_ngm_bytes(bytes).is_err()
+    {
+        return -2;
+    }
+    // v1.17: the wubi + nihongo IDF slots. Absent file = older bundle,
+    // fall through on the embedded blob; present-but-unparseable = hard
+    // error, because a stale table that looks fresh is the exact failure
+    // this path exists to prevent.
+    if let Ok(bytes) = std::fs::read(path.join("wubi.idf"))
+        && inputx_core::hot_reload::set_wubi_idf_bytes(bytes).is_err()
+    {
+        return -2;
+    }
+    if let Ok(bytes) = std::fs::read(path.join("wubi86.dict"))
+        && inputx_core::hot_reload::set_wubi_dict_bytes(bytes).is_err()
+    {
+        return -2;
+    }
+    if let Ok(bytes) = std::fs::read(path.join("kanji.idf"))
+        && inputx_core::hot_reload::set_nihongo_kanji_idf_bytes(bytes).is_err()
+    {
+        return -2;
+    }
+    if let Ok(bytes) = std::fs::read(path.join("jukugo.idf"))
+        && inputx_core::hot_reload::set_nihongo_jukugo_idf_bytes(bytes).is_err()
     {
         return -2;
     }
@@ -505,7 +529,7 @@ pub unsafe extern "C" fn inputx_set_pinyin_data_dir(dir: *const c_char) -> i32 {
 /// `session` must come from `inputx_session_new`; `dir` must be a
 /// NUL-terminated UTF-8 string.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn inputx_reload_pinyin_data(
+pub unsafe extern "C" fn inputx_reload_engine_data(
     session: *mut InputxSession,
     dir: *const c_char,
 ) -> i32 {
@@ -515,13 +539,34 @@ pub unsafe extern "C" fn inputx_reload_pinyin_data(
     let Some(path) = (unsafe { cstr_to_pathbuf(dir) }) else {
         return -1;
     };
-    match s.inner.reload_pinyin_data(&path) {
+    match s.inner.reload_engine_data(&path) {
         Ok(()) => 0,
         Err(e) => {
-            eprintln!("[inputx_reload_pinyin_data] {e}");
+            eprintln!("[inputx_reload_engine_data] {e}");
             -2
         }
     }
+}
+
+// Pre-v1.17 symbol names, from when the reload covered only the pinyin
+// engine. Kept as ABI-compatible aliases so a Swift layer built against
+// an older header still links and behaves identically.
+//
+/// # Safety
+/// Same contract as [`inputx_set_engine_data_dir`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_set_pinyin_data_dir(dir: *const c_char) -> i32 {
+    unsafe { inputx_set_engine_data_dir(dir) }
+}
+
+/// # Safety
+/// Same contract as [`inputx_reload_engine_data`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_reload_pinyin_data(
+    session: *mut InputxSession,
+    dir: *const c_char,
+) -> i32 {
+    unsafe { inputx_reload_engine_data(session, dir) }
 }
 
 /// Small helper: `*const c_char` → `Option<PathBuf>`. Returns `None`

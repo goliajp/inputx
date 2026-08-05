@@ -26,6 +26,10 @@ default = []
 # Self-built zero-dependency index — replaces fst (two-level Dict: code →
 # [(word, packed layer|freq)]). See .claude/PLAN-self-built-fsa.md.
 inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
+# Lock-free swap of the code→candidates map, so a polish rebuild can
+# replace the table under a running IME without exiting — and without
+# disturbing the L0 layer (pins / prefs) sitting beside it.
+arc-swap = "1"
 
 [build-dependencies]
 inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
@@ -33,6 +37,10 @@ inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 [dev-dependencies]
 criterion = "0.8"
 proptest = "1"
+
+[[bin]]
+name = "wubi-emit-dict"
+path = "tools/emit_dict.rs"
 
 [[bin]]
 name = "wubi-gen-dict"

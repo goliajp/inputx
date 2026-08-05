@@ -61,11 +61,11 @@ impl Default for Session {
 }
 
 /// v1.15 hot-reload failure kinds returned by
-/// [`Session::reload_pinyin_data`]. Each variant stringifies its
+/// [`Session::reload_engine_data`]. Each variant stringifies its
 /// underlying cause so the FFI can surface a single `char*` without
 /// coupling to the concrete parse-error types.
 #[derive(Debug)]
-pub enum PinyinReloadError {
+pub enum EngineReloadError {
     /// Reading `pinyin.dict` from the target directory failed.
     ReadDict(String),
     /// Reading `words.idf` from the target directory failed.
@@ -79,9 +79,21 @@ pub enum PinyinReloadError {
     NgmIntra(String),
     /// Parsing the new `bigrams_inter.ngm` bytes failed.
     NgmInter(String),
+    /// Parsing the new `wubi.idf` bytes failed (only reached when the
+    /// file was present on disk).
+    WubiIdf(String),
+    /// Parsing the new `wubi86.dict` bytes failed.
+    WubiDict(String),
+    /// Parsing the new `kanji.idf` bytes failed.
+    NihongoKanjiIdf(String),
+    /// Parsing the new `jukugo.idf` bytes failed.
+    NihongoJukugoIdf(String),
 }
 
-impl std::fmt::Display for PinyinReloadError {
+/// Pre-v1.17 name, when the reload covered only the pinyin engine.
+pub type PinyinReloadError = EngineReloadError;
+
+impl std::fmt::Display for EngineReloadError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ReadDict(s) => write!(f, "read pinyin.dict failed: {s}"),
@@ -90,11 +102,15 @@ impl std::fmt::Display for PinyinReloadError {
             Self::Idf(s) => write!(f, "parse words.idf failed: {s}"),
             Self::NgmIntra(s) => write!(f, "parse bigrams.ngm failed: {s}"),
             Self::NgmInter(s) => write!(f, "parse bigrams_inter.ngm failed: {s}"),
+            Self::WubiIdf(s) => write!(f, "parse wubi.idf failed: {s}"),
+            Self::WubiDict(s) => write!(f, "parse wubi86.dict failed: {s}"),
+            Self::NihongoKanjiIdf(s) => write!(f, "parse kanji.idf failed: {s}"),
+            Self::NihongoJukugoIdf(s) => write!(f, "parse jukugo.idf failed: {s}"),
         }
     }
 }
 
-impl std::error::Error for PinyinReloadError {}
+impl std::error::Error for EngineReloadError {}
 
 impl Session {
     pub fn new() -> Self {
@@ -566,53 +582,89 @@ impl Session {
         }
     }
 
-    /// v1.15 hot-reload for the pinyin sub-engine. Reads the four
-    /// files that a polish rebuild regenerates from `dir` — the
+    /// v1.15 hot-reload, extended in v1.17 to cover all three engines.
+    /// Reads the files a polish rebuild regenerates from `dir` — the
     /// caller supplies the directory (typically the running IME
     /// bundle's `Contents/Resources/data/`) — and drives:
     ///
     /// - process-global `pinyin_idf_reader` via
     ///   [`inputx_pinyin_helpers::set_pinyin_idf_bytes`],
     /// - this session's `PinyinDict.map` via
-    ///   [`crate::composite::CompositeEngine::reload_pinyin_dict`].
+    ///   [`crate::composite::CompositeEngine::reload_pinyin_dict`],
+    /// - process-global `wubi_idf_reader` / `nihongo_{kanji,jukugo}_idf_reader`
+    ///   via their `set_*_idf_bytes` counterparts.
     ///
-    /// NGM tables (`bigrams.ngm`, `bigrams_inter.ngm`) don't currently
-    /// change during polish so they're read but only fed to their
-    /// slots when present; missing NGM files skip that step without
-    /// failing the reload.
+    /// Pinyin's two files are required; everything else is optional and
+    /// skipped when absent. That is what lets a bundle roll back to a
+    /// version that predates a given file without failing the reload —
+    /// the NGM tables have always worked this way, and the three engine
+    /// IDFs join them because bundles built before v1.17 don't ship
+    /// them. A file that IS present but fails to parse is still a hard
+    /// error: silently keeping a stale dict is the failure mode this
+    /// whole path exists to remove.
     ///
     /// Returns Ok(()) on success. On any parse or IO failure, leaves
-    /// both the process-global slot and the session dict in their
+    /// both the process-global slots and the session dict in their
     /// prior state and returns an error — never a half-applied swap.
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn reload_pinyin_data(&mut self, dir: &std::path::Path) -> Result<(), PinyinReloadError> {
+    pub fn reload_engine_data(&mut self, dir: &std::path::Path) -> Result<(), EngineReloadError> {
         let dict_bytes = std::fs::read(dir.join("pinyin.dict"))
-            .map_err(|e| PinyinReloadError::ReadDict(format!("{e}")))?;
+            .map_err(|e| EngineReloadError::ReadDict(format!("{e}")))?;
         let idf_bytes = std::fs::read(dir.join("words.idf"))
-            .map_err(|e| PinyinReloadError::ReadIdf(format!("{e}")))?;
+            .map_err(|e| EngineReloadError::ReadIdf(format!("{e}")))?;
         // Optional: NGM tables aren't polish-regenerated in the
         // current pipeline, but read them if present so future polish
         // rounds that update them "just work" without another code
         // release.
         let bigrams_ngm = std::fs::read(dir.join("bigrams.ngm")).ok();
         let inter_ngm = std::fs::read(dir.join("bigrams_inter.ngm")).ok();
+        // v1.17: the wubi and nihongo engines' IDF tables. Optional for
+        // the same reason the NGMs are — a bundle built before v1.17
+        // doesn't ship them, and rolling back to one must not brick the
+        // reload.
+        let wubi_idf = std::fs::read(dir.join("wubi.idf")).ok();
+        let kanji_idf = std::fs::read(dir.join("kanji.idf")).ok();
+        let jukugo_idf = std::fs::read(dir.join("jukugo.idf")).ok();
+        // The wubi FST is a second, independent table: the .idf above
+        // feeds the cross-engine composite path, this one feeds
+        // `Mode::WubiOnly` and the engine's own candidate list — which
+        // is what auto-commit's uniqueness check reads. Reloading one
+        // without the other would let those two disagree about which
+        // words exist at a code.
+        let wubi_dict = std::fs::read(dir.join("wubi86.dict")).ok();
 
         // Order matters: parse-check everything BEFORE swapping any
         // slot, so a broken new .idf can't leave a good old dict
         // paired with a bad new IdfReader.
         inputx_pinyin_helpers::set_pinyin_idf_bytes(idf_bytes)
-            .map_err(|e| PinyinReloadError::Idf(format!("{e:?}")))?;
+            .map_err(|e| EngineReloadError::Idf(format!("{e:?}")))?;
         if let Some(bytes) = bigrams_ngm {
             crate::composite::set_bigrams_ngm_bytes(bytes)
-                .map_err(|e| PinyinReloadError::NgmIntra(format!("{e:?}")))?;
+                .map_err(|e| EngineReloadError::NgmIntra(format!("{e:?}")))?;
         }
         if let Some(bytes) = inter_ngm {
             crate::composite::set_inter_bigrams_ngm_bytes(bytes)
-                .map_err(|e| PinyinReloadError::NgmInter(format!("{e:?}")))?;
+                .map_err(|e| EngineReloadError::NgmInter(format!("{e:?}")))?;
+        }
+        if let Some(bytes) = wubi_idf {
+            inputx_wubi_data::set_wubi_idf_bytes(bytes)
+                .map_err(|e| EngineReloadError::WubiIdf(format!("{e}")))?;
+        }
+        if let Some(bytes) = wubi_dict {
+            inputx_wubi_data::set_wubi_dict_bytes(bytes)
+                .map_err(|e| EngineReloadError::WubiDict(format!("{e:?}")))?;
+        }
+        if let Some(bytes) = kanji_idf {
+            inputx_nihongo_data_kanji::set_nihongo_kanji_idf_bytes(bytes)
+                .map_err(|e| EngineReloadError::NihongoKanjiIdf(format!("{e}")))?;
+        }
+        if let Some(bytes) = jukugo_idf {
+            inputx_nihongo_data_jukugo::set_nihongo_jukugo_idf_bytes(bytes)
+                .map_err(|e| EngineReloadError::NihongoJukugoIdf(format!("{e}")))?;
         }
         self.composite
             .reload_pinyin_dict(dict_bytes)
-            .map_err(|e| PinyinReloadError::Dict(format!("{e:?}")))?;
+            .map_err(|e| EngineReloadError::Dict(format!("{e:?}")))?;
         // v1.16: v2 engine's polish overlay TSVs live behind ArcSwap
         // too. If a `polish/` subdir exists next to `pinyin.dict`,
         // swap those bytes so v2's `words()` / `tier_overlay()` /
@@ -668,7 +720,7 @@ mod tests {
         // indicates one of the sub-engines (wubi/pinyin/jp) isn't being
         // backspaced symmetrically with typing, so state drifts across
         // a backspace-then-retype cycle.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.set_japanese_enabled(true);
         // Phase A: type fa-----
@@ -707,7 +759,7 @@ mod tests {
         // entered explicitly with `-`). With JP enabled and a romaji buffer
         // in progress, each `-` keystroke should be routed to the engine,
         // extending the JP composition so コーヒー surfaces among candidates.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.set_japanese_enabled(true);
         for b in b"ko" {
@@ -747,7 +799,7 @@ mod tests {
         // Outside JP composition (no JP enabled, or JP buffer empty), `-`
         // must NOT be consumed by the engine — it should fall through so
         // the host gets a regular hyphen via locale punct routing.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         // No JP enabled, no composing — `-` falls through.
         assert!(
@@ -771,7 +823,7 @@ mod tests {
         // (去/起/前) via raw corpus freq. Fix: `scoring::length_bias`
         // in `compute_single_letter_top_k` favors single chars for
         // bare-letter prefix completion. wubi Jianma1 (q→我) stays #0.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'q' as u32, 0);
         let cands = sess.candidates();
@@ -798,7 +850,7 @@ mod tests {
 
     #[test]
     fn typing_g_with_unique_policy_auto_commits_yi() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::OnUniqueMatch);
         assert!(sess.handle_key(b'g' as u32, 0));
         assert_eq!(sess.take_pending_commit().as_deref(), Some("一"));
@@ -807,7 +859,7 @@ mod tests {
 
     #[test]
     fn typing_jeg_then_space_commits_first_candidate() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'j' as u32, 0);
         sess.handle_key(b'e' as u32, 0);
@@ -821,7 +873,7 @@ mod tests {
 
     #[test]
     fn typing_jeg_then_digit_2_commits_second_candidate() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'j' as u32, 0);
         sess.handle_key(b'e' as u32, 0);
@@ -834,26 +886,26 @@ mod tests {
 
     #[test]
     fn digit_when_not_composing_passes_through() {
-        let mut sess = s();
+        let mut sess = Session::new();
         assert!(!sess.handle_key(b'5' as u32, 0));
     }
 
     #[test]
     fn cmd_combo_passes_through() {
-        let mut sess = s();
+        let mut sess = Session::new();
         assert!(!sess.handle_key(b'c' as u32, 1 << 3));
         assert!(!sess.handle_key(b'a' as u32, 1 << 1));
     }
 
     #[test]
     fn space_when_not_composing_passes_through() {
-        let mut sess = s();
+        let mut sess = Session::new();
         assert!(!sess.handle_key(CP_SPACE, 0));
     }
 
     #[test]
     fn backspace_pops_then_passes_through_when_empty() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'g' as u32, 0);
         sess.handle_key(b'g' as u32, 0);
@@ -866,7 +918,7 @@ mod tests {
 
     #[test]
     fn escape_clears_composition() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'd' as u32, 0);
         sess.handle_key(b'd' as u32, 0);
@@ -877,7 +929,7 @@ mod tests {
 
     #[test]
     fn punctuation_mid_composition_commits_top_and_passes_through() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'g' as u32, 0);
         let consumed = sess.handle_key(b',' as u32, 0);
@@ -897,7 +949,7 @@ mod tests {
 
     #[test]
     fn typing_ipbf_with_default_auto_commits_xue() {
-        let mut sess = s();
+        let mut sess = Session::new();
         for cp in b"ipbf" {
             sess.handle_key(*cp as u32, 0);
         }
@@ -914,7 +966,7 @@ mod tests {
         // (The original ROADMAP wording said `wgkf → 国` — wrong wubi code;
         // 国 is `lgyi`, 中国 phrase is `khlg`. khlg is the canonical
         // multi-candidate test code in the wubi crate's own tests.)
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         for cp in b"khlg" {
             sess.handle_key(*cp as u32, 0);
@@ -934,7 +986,7 @@ mod tests {
         // `yeguangdan`). If this test ever fails, the pinyin engine
         // has acquired a fuzzy / heteronym path that's pulling
         // 曳光弹 into jixu candidates and needs to be traced.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.set_mode(crate::composite::Mode::PinyinOnly);
         for cp in b"jixu" {
@@ -965,7 +1017,7 @@ mod tests {
         // single-char with corpus presence (鹟 freq 5961) above the
         // phrase, even when the phrase had far higher actual frequency
         // (公司 freq 42817). The corrected rule compares freqs.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         for cp in b"wcng" {
             sess.handle_key(*cp as u32, 0);
@@ -987,7 +1039,7 @@ mod tests {
         // Pre-fix, 两 (Auto layer, base ~100k) lost to 两败俱伤 (Phrase
         // layer, base ~400k) at gmww. The full-code single-char-wins
         // rule in `inputx_wubi::dict::lookup_into` corrects this.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         for cp in b"gmww" {
             sess.handle_key(*cp as u32, 0);
@@ -1010,7 +1062,7 @@ mod tests {
     #[test]
     fn item_47_mixed_pinyin_input_gives_pinyin_candidate() {
         // Manual probe per ROADMAP item 47: `zhongguo` → 中国 (Source::Pinyin).
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         for cp in b"zhongguo" {
             sess.handle_key(*cp as u32, 0);
@@ -1022,7 +1074,7 @@ mod tests {
 
     #[test]
     fn item_44_mode_switch_round_trip() {
-        let mut sess = s();
+        let mut sess = Session::new();
         assert_eq!(sess.mode(), Mode::Mixed);
         sess.set_mode(Mode::WubiOnly);
         assert_eq!(sess.mode(), Mode::WubiOnly);
@@ -1032,7 +1084,7 @@ mod tests {
 
     #[test]
     fn item_44_pinyin_only_mode_skips_wubi() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_mode(Mode::PinyinOnly);
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         for cp in b"women" {
@@ -1095,7 +1147,7 @@ mod tests {
 
     #[test]
     fn set_input_mode_toggles() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::En);
         assert_eq!(sess.input_mode(), InputMode::En);
         sess.set_input_mode(InputMode::Cjk);
@@ -1104,7 +1156,7 @@ mod tests {
 
     #[test]
     fn set_input_mode_same_is_noop() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::Cjk);
         assert_eq!(sess.input_mode(), InputMode::Cjk);
         assert!(sess.take_pending_commit().is_none());
@@ -1114,7 +1166,7 @@ mod tests {
     fn en_mode_consumes_no_keys() {
         // Every keystroke variety should pass straight through to the host:
         // letters, digits, punct, space, return, backspace, escape, ctrl/cmd.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::En);
         for cp in b"hello world! 12,3.45" {
             assert!(
@@ -1132,7 +1184,7 @@ mod tests {
     #[test]
     fn en_mode_has_no_preedit_or_candidates() {
         // Engine never runs in EN — preedit empty, no candidates, no commits.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::En);
         for cp in b"khlg" {
             sess.handle_key(*cp as u32, 0);
@@ -1146,7 +1198,7 @@ mod tests {
     fn cjk_to_en_with_preedit_commits_raw_ascii() {
         // User types "jeg" in CJK, then toggles to EN. The preedit
         // letters ship as English (user signaled "not CJK after all").
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'j' as u32, 0);
         sess.handle_key(b'e' as u32, 0);
@@ -1162,7 +1214,7 @@ mod tests {
     #[test]
     fn cjk_to_en_without_preedit_just_switches() {
         // No in-flight composing → toggle is a pure state flip.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::En);
         assert!(sess.take_pending_commit().is_none());
         assert_eq!(sess.input_mode(), InputMode::En);
@@ -1172,7 +1224,7 @@ mod tests {
     fn cjk_return_with_preedit_commits_raw_ascii() {
         // Return in CJK while composing ships the raw codes as ASCII
         // and swallows the event (no \n to host).
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'h' as u32, 0);
         sess.handle_key(b'u' as u32, 0);
@@ -1189,7 +1241,7 @@ mod tests {
     fn cjk_return_without_preedit_passes_through() {
         // Plain return with no composing → engine doesn't consume it
         // so the host receives the \n normally.
-        let mut sess = s();
+        let mut sess = Session::new();
         assert!(!sess.handle_key(CP_RETURN, 0));
         assert!(sess.take_pending_commit().is_none());
     }
@@ -1199,7 +1251,7 @@ mod tests {
         // Tab while composing must not leak to the host (no \t in the
         // text field) and must not disturb preedit. Reserved for future
         // candidate page navigation.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         for cp in b"jeg" {
             sess.handle_key(*cp as u32, 0);
@@ -1216,7 +1268,7 @@ mod tests {
     fn cjk_tab_without_preedit_passes_through() {
         // Plain tab with no composing → engine doesn't consume so the
         // host receives \t as a tab character.
-        let mut sess = s();
+        let mut sess = Session::new();
         assert!(!sess.handle_key(0x09, 0));
         assert!(sess.take_pending_commit().is_none());
     }
@@ -1224,7 +1276,7 @@ mod tests {
     #[test]
     fn en_to_cjk_is_pure_state_flip_no_commit() {
         // EN→Cjk has nothing to drain (EN doesn't buffer). Just flips state.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::En);
         for cp in b"hel" {
             sess.handle_key(*cp as u32, 0);
@@ -1237,7 +1289,7 @@ mod tests {
 
     #[test]
     fn clear_resets_input_mode() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::En);
         sess.clear();
         assert_eq!(sess.input_mode(), InputMode::Cjk);
@@ -1870,6 +1922,117 @@ mod jiazai_ranking {
                 load,
                 at
             );
+        }
+    }
+}
+
+/// v1.17 hot-reload wiring.
+///
+/// Before v1.17 only the pinyin half of a bundle's data dir was ever read
+/// back. The wubi and nihongo tables were `include_bytes!`-only, so a wubi
+/// or JP polish could not reach a running process at all — and once
+/// `reinstall.py` classified those paths as data-only, such a polish took
+/// the SIGUSR1 fast path and shipped nothing while reporting success.
+/// These tests pin the wiring that closed it.
+#[cfg(test)]
+mod engine_data_reload {
+    use super::*;
+
+    /// Stage a directory shaped like a bundle's `Contents/Resources/data/`
+    /// from the embedded blobs, so the reload path can be exercised
+    /// without an installed .app.
+    #[cfg(not(target_arch = "wasm32"))]
+    fn stage_data_dir(tag: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "inputx-reload-{}-{}-{tag}",
+            std::process::id(),
+            std::time::SystemTime::UNIX_EPOCH
+                .elapsed()
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).expect("create staging dir");
+        let w = |name: &str, bytes: &[u8]| {
+            std::fs::write(dir.join(name), bytes).unwrap_or_else(|e| panic!("write {name}: {e}"))
+        };
+        w("pinyin.dict", inputx_pinyin_data_core::EMBEDDED_PINYIN_DICT);
+        w("words.idf", inputx_pinyin_helpers::EMBEDDED_PINYIN_IDF);
+        w("wubi.idf", inputx_wubi_data::EMBEDDED_WUBI_IDF);
+        w("wubi86.dict", inputx_wubi::DICT_BYTES);
+        w(
+            "kanji.idf",
+            inputx_nihongo_data_kanji::EMBEDDED_NIHONGO_KANJI_IDF,
+        );
+        w(
+            "jukugo.idf",
+            inputx_nihongo_data_jukugo::EMBEDDED_NIHONGO_JUKUGO_IDF,
+        );
+        dir
+    }
+
+    #[test]
+    #[cfg(not(target_arch = "wasm32"))]
+    fn reload_engine_data_round_trips_all_three_engines() {
+        let dir = stage_data_dir("ok");
+        let mut sess = Session::new();
+        sess.reload_engine_data(&dir).expect("reload must succeed");
+
+        // Same bytes in as were already loaded, so every engine must
+        // still answer identically afterwards.
+        for (buf, expect) in [("wyet", "信用"), ("jixu", "继续")] {
+            sess.clear();
+            for b in buf.bytes() {
+                sess.handle_key(b as u32, 0);
+            }
+            assert!(
+                sess.candidates().iter().any(|c| c == expect),
+                "{buf} lost {expect} after reload; got {:?}",
+                sess.candidates().iter().take(5).collect::<Vec<_>>()
+            );
+        }
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    #[cfg(not(target_arch = "wasm32"))]
+    fn reload_engine_data_tolerates_a_pre_v1_17_bundle() {
+        // A bundle built before v1.17 ships only the pinyin files. The
+        // reload must still succeed on it — rolling back to an older
+        // .app must not brick the signal path.
+        let dir = stage_data_dir("old-bundle");
+        for gone in ["wubi.idf", "wubi86.dict", "kanji.idf", "jukugo.idf"] {
+            std::fs::remove_file(dir.join(gone)).expect("remove");
+        }
+        let mut sess = Session::new();
+        sess.reload_engine_data(&dir)
+            .expect("missing engine files must be skipped, not fatal");
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    #[cfg(not(target_arch = "wasm32"))]
+    fn reload_engine_data_rejects_a_corrupt_wubi_table() {
+        // Proves the wubi files are genuinely read and parsed by this
+        // path rather than being listed and ignored — the failure mode
+        // that let a wubi polish "succeed" while shipping nothing.
+        for (name, want) in [
+            ("wubi86.dict", "wubi86.dict"),
+            ("wubi.idf", "wubi.idf"),
+            ("kanji.idf", "kanji.idf"),
+            ("jukugo.idf", "jukugo.idf"),
+        ] {
+            let dir = stage_data_dir(name);
+            std::fs::write(dir.join(name), b"not a dict at all").expect("corrupt");
+            let mut sess = Session::new();
+            let err = sess
+                .reload_engine_data(&dir)
+                .expect_err("a corrupt {name} must fail the reload");
+            let msg = format!("{err}");
+            assert!(
+                msg.contains(want),
+                "error should name the offending file; got {msg:?}"
+            );
+            std::fs::remove_dir_all(&dir).ok();
         }
     }
 }

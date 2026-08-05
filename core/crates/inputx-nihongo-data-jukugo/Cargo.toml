@@ -16,6 +16,10 @@ categories = ["text-processing", "internationalization"]
 crate-type = ["rlib"]
 
 [dependencies]
+# Lock-free swap of the process-global IdfReader, so a polish rebuild
+# can replace the dict under a running IME without exiting. Mirrors
+# inputx-pinyin-helpers.
+arc-swap = "1"
 inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
 
 [lints]

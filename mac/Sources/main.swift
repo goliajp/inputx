@@ -18,7 +18,7 @@ if CommandLine.arguments.count >= 3, CommandLine.arguments[1] == "probe" {
     // resource dir when the probe runs from a raw binary path)
     // silently falls back to embedded — good enough for a smoke check.
     if let resDir = Bundle.main.resourceURL?.appendingPathComponent("data") {
-        _ = InputxPinyinData.setDirectory(resDir.path)
+        _ = InputxEngineData.setDirectory(resDir.path)
     }
     let sess = InputxSession()
     sess.setEngineMode(.mixed)
@@ -113,7 +113,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // stays on embedded and this build still runs; a future
         // hot-reload signal will retry against the same directory.
         if let resDir = Bundle.main.resourceURL?.appendingPathComponent("data") {
-            let ok = InputxPinyinData.setDirectory(resDir.path)
+            let ok = InputxEngineData.setDirectory(resDir.path)
             NSLog("Inputx pinyin data dir=%@ ok=%d", resDir.path, ok ? 1 : 0)
         }
 

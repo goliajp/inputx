@@ -275,15 +275,23 @@ public final class InputxSession {
 
     // MARK: - v1.15 hot-reload ----------------------------------------------
 
-    /// Reload this session's pinyin dict from `path` (typically the
-    /// running bundle's `Contents/Resources/data/`, atomically
-    /// replaced by `reinstall.py`'s data-only fast path). Preserves
-    /// L0 pins / cell-dict / LM; leaves any in-flight preedit alone.
-    /// Returns `true` on success; on failure the session's dict is
-    /// left in its prior state.
+    /// Reload this session's dicts from `path` (typically the running
+    /// bundle's `Contents/Resources/data/`, atomically replaced by
+    /// `reinstall.py`'s data-only fast path). Covers all three engines
+    /// as of v1.17 — pinyin dict + IDF, wubi IDF, nihongo kanji/jukugo
+    /// IDFs. Preserves L0 pins / cell-dict / LM; leaves any in-flight
+    /// preedit alone. Returns `true` on success; on failure the
+    /// session's dicts are left in their prior state.
+    @discardableResult
+    public func reloadEngineData(from path: String) -> Bool {
+        return path.withCString { inputx_reload_engine_data(handle, $0) == 0 }
+    }
+
+    /// Pre-v1.17 name, when the reload covered only the pinyin engine.
+    @available(*, deprecated, renamed: "reloadEngineData(from:)")
     @discardableResult
     public func reloadPinyinData(from path: String) -> Bool {
-        return path.withCString { inputx_reload_pinyin_data(handle, $0) == 0 }
+        return reloadEngineData(from: path)
     }
 
     // MARK: - L0 persistence -------------------------------------------------
@@ -397,20 +405,23 @@ public enum InputxRareChars {
 
 // MARK: - v1.15 hot-reload bootstrap + signal-driven refresh ---------------
 
-/// Process-global entry points for the hot-reload flow. `setPinyinDataDirectory`
+/// Process-global entry points for the hot-reload flow. `setDirectory`
 /// is called once at app startup (before `IMKServer` is built) so
-/// [`inputx_session_new`] loads polish data from disk instead of the
+/// [`inputx_session_new`] loads dict data from disk instead of the
 /// embedded blobs. `reload` is called per-session from the SIGUSR1
 /// DispatchSource after `reinstall.py` swaps the on-disk files.
-public enum InputxPinyinData {
-    /// Point the Rust core at the bundle's pinyin-data directory.
+public enum InputxEngineData {
+    /// Point the Rust core at the bundle's engine-data directory.
     /// Returns `true` on success; a failure here is fatal at startup —
     /// downstream sessions would fall back to embedded, silently
     /// masking the polish flow — so callers typically `preconditionFailure`
     /// on `false`.
     @discardableResult
     public static func setDirectory(_ path: String) -> Bool {
-        return path.withCString { inputx_set_pinyin_data_dir($0) == 0 }
+        return path.withCString { inputx_set_engine_data_dir($0) == 0 }
     }
-
 }
+
+/// Pre-v1.17 name, when the hot-reload covered only the pinyin engine.
+@available(*, deprecated, renamed: "InputxEngineData")
+public typealias InputxPinyinData = InputxEngineData

@@ -45,7 +45,7 @@ pub use composite::{
 pub use input_mode::InputMode;
 pub use locale::punct::{SmartQuoteState, ascii_to_cjk_punct};
 pub use locale::width::{full_width, half_width};
-pub use session::{PinyinReloadError, Session};
+pub use session::{EngineReloadError, PinyinReloadError, Session};
 
 /// v1.15 hot-reload wire points, re-exported so the FFI crate can
 /// touch them without pulling `inputx-pinyin-helpers` as a direct
@@ -53,6 +53,15 @@ pub use session::{PinyinReloadError, Session};
 pub mod hot_reload {
     pub use crate::composite::{set_bigrams_ngm_bytes, set_inter_bigrams_ngm_bytes};
     pub use inputx_pinyin_helpers::{IdfReloadError, IdfReloadReport, set_pinyin_idf_bytes};
+    // v1.17: the other two engines' IDF slots. Same lifecycle as the
+    // pinyin one — a polish rebuild regenerates the .idf, reinstall.py
+    // swaps it into the bundle, SIGUSR1 lands it in the running process.
+    // Before this, wubi and nihongo tables were reachable only by
+    // replacing the binary, which is why every wubi / JP polish used to
+    // force a full reinstall (and, worse, could silently ship nothing).
+    pub use inputx_nihongo_data_jukugo::set_nihongo_jukugo_idf_bytes;
+    pub use inputx_nihongo_data_kanji::set_nihongo_kanji_idf_bytes;
+    pub use inputx_wubi_data::{set_wubi_dict_bytes, set_wubi_idf_bytes};
     // v1.16: v2 engine's polish overlay TSVs — same lifecycle as the
     // v1 pinyin.dict / words.idf swap. Re-exported so inputx-core-ffi
     // doesn't need to add its own dep on inputx-pinyin-v2.

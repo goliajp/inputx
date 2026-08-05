@@ -48,6 +48,9 @@ inputx-fsa = { path = "../inputx-fsa", version = "1.3" }
 # immutable; this monorepo no longer references the -cement crates.
 inputx-pinyin-helpers = { path = "../inputx-pinyin-helpers", version = "1.6" }
 inputx-wubi-data = { path = "../inputx-wubi-data", version = "1.6" }
+# Embedded pinyin.dict bytes — used by the reload round-trip test to
+# stage a data dir without shelling out to the repo layout.
+inputx-pinyin-data-core = { path = "../inputx-pinyin-data-core", version = "1.4" }
 inputx-nihongo-data-jukugo = { path = "../inputx-nihongo-data-jukugo", version = "1.6" }
 inputx-nihongo-data-kanji = { path = "../inputx-nihongo-data-kanji", version = "1.6" }
 # v1.8.0 WU-ν: real weighted phonetic edit-distance for the pinyin fuzzy
