@@ -1516,15 +1516,34 @@ def _current_head_sha() -> str:
 
 
 def classify_change_scope() -> str:
-    """Diff HEAD against `LAST_INSTALL_SHA.read_text()` and return one of:
+    """Diff the CURRENT WORKING TREE against the tree that was last
+    installed (`LAST_INSTALL_SHA`, written by `_record_install_sha`) and
+    return one of:
 
-    - "data-only": every changed file (committed OR uncommitted) sits under a
-      DATA_ONLY_PREFIXES prefix. Safe for the SIGUSR1 fast path.
+    - "data-only": every changed file sits under a DATA_ONLY_PREFIXES
+      prefix. Safe for the SIGUSR1 fast path.
     - "code":     at least one changed file is outside the data prefixes. The
       running IME binary won't reflect the new code — must do full reinstall.
     - "unknown":  no LAST_INSTALL_SHA yet (first install this machine),
       or the recorded sha is missing from the local repo (rebase / prune).
       Safe fallback = full reinstall.
+
+    One `git diff <marker>` against the working tree, not the old
+    `marker..HEAD` + `status --porcelain` pair. The question this
+    function answers is "what changed since the bytes I installed?", and
+    the marker commit already carries the working tree as installed, so
+    a single working-tree diff answers it directly. The two-scan version
+    got it wrong in both directions once an install happened dirty (the
+    /polish protocol's Step-5-before-Step-6 order makes that the norm):
+    a file installed dirty and then committed showed up in `marker..HEAD`
+    as new code, and a file installed dirty and left dirty showed up in
+    `status --porcelain` as new code. Both forced a needless full
+    reinstall, whose real cost is host apps with a live IMK session
+    (WeChat) going mute until restarted.
+
+    `git diff` only covers tracked files, so untracked ones are scanned
+    separately — a brand-new source file is real code even though no
+    diff mentions it.
     """
     if not LAST_INSTALL_SHA.exists():
         return "unknown"
@@ -1543,26 +1562,17 @@ def classify_change_scope() -> str:
     except subprocess.CalledProcessError:
         return "unknown"
 
-    # Committed changes since last install.
-    committed = _run_git(["diff", "--name-only", f"{last_sha}..HEAD"]).splitlines()
-    # Uncommitted changes on top of HEAD (working tree + index). These are
-    # ALSO going into the built bundle, so they count.
-    # Do NOT go through `_run_git` here — its `.strip()` eats the leading
-    # space of the first unstaged-only line (` M path` format), which then
-    # off-by-one's the `line[3:]` parse below and misclassifies the path
-    # ("core/..." → "ore/..." → misses the whitelist prefix → scope=code).
-    porcelain = subprocess.check_output(
-        ["git", "-C", str(PROJECT_ROOT), "status", "--porcelain"]
-    ).decode()
-    uncommitted = porcelain.splitlines()
-    # `status --porcelain` lines are `XY PATH` where XY are two status
-    # chars (either could be a space) then a space separator, so PATH
-    # starts at index 3.
-    uncommitted_paths = []
-    for line in uncommitted:
-        if len(line) >= 4:
-            uncommitted_paths.append(line[3:])
-    all_paths = list(dict.fromkeys(committed + uncommitted_paths))  # dedup, preserve order
+    # Tracked files that differ between the installed tree and the
+    # working tree — committed since, uncommitted now, or both.
+    changed = subprocess.check_output(
+        ["git", "-C", str(PROJECT_ROOT), "diff", "--name-only", last_sha],
+    ).decode().splitlines()
+    # Untracked files (`git diff` can't see them).
+    untracked = subprocess.check_output(
+        ["git", "-C", str(PROJECT_ROOT),
+         "ls-files", "--others", "--exclude-standard"],
+    ).decode().splitlines()
+    all_paths = list(dict.fromkeys(changed + untracked))  # dedup, preserve order
     if not all_paths:
         # Nothing changed — treat as data-only (no-op fast path fine).
         return "data-only"
@@ -1574,11 +1584,38 @@ def classify_change_scope() -> str:
 
 
 def _record_install_sha() -> None:
-    """Persist current HEAD as the successful-install marker for the next
-    `classify_change_scope()` call. Best-effort; failure is non-fatal."""
+    """Persist a marker describing what was actually installed, for the
+    next `classify_change_scope()` call. Best-effort; failure is non-fatal.
+
+    The marker must describe HEAD **plus the working tree**, not bare
+    HEAD. The /polish protocol deploys at Step 5 and commits at Step 6,
+    so an install routinely carries uncommitted changes. Recording bare
+    HEAD made the very next run re-see those same changes — now
+    committed — as brand-new code and take the full-reinstall path for
+    something already installed. That cost is not academic: a full
+    reinstall kills the IME process, and host apps holding a live IMK
+    session (WeChat) go "switches fine, types nothing" until restarted.
+    Observed 2026-08-05: the framework commit installed dirty at
+    648549c3, got committed as c7b24786, and the next (pure-data)
+    polish re-read `inputx-pinyin-v2/src/lib.rs` out of that diff.
+
+    `git stash create` builds a commit object for the current working
+    tree WITHOUT touching the tree, the index, or any ref — exactly the
+    "what did I just install" snapshot we need. It prints nothing when
+    the tree is clean, in which case HEAD already describes the install.
+
+    The commit it makes is dangling, so `git gc` can eventually prune
+    it. `classify_change_scope()` already treats a missing sha as
+    "unknown" → full reinstall, so the decay path is the old behavior,
+    never something worse.
+    """
     try:
         SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
-        LAST_INSTALL_SHA.write_text(_current_head_sha() + "\n")
+        stashed = subprocess.check_output(
+            ["git", "-C", str(PROJECT_ROOT), "stash", "create"],
+        ).decode().strip()
+        marker = stashed or _current_head_sha()
+        LAST_INSTALL_SHA.write_text(marker + "\n")
     except (OSError, subprocess.CalledProcessError) as e:
         log(f"warn: couldn't record install sha: {e}")
 
@@ -1754,6 +1791,16 @@ def main() -> None:
         do_hot_reload_data()
         _record_install_sha()
         return
+
+    # From here on the IME process gets replaced, which severs the Mach
+    # connection every host app's IMK client is holding. Apps re-bind on
+    # their next activation, but ones that keep a long-lived input
+    # session — WeChat is the reliable offender — end up able to SWITCH
+    # to us and unable to TYPE, with a full app restart as the only
+    # recovery. Say so up front instead of letting the user rediscover it.
+    log("→ full reinstall (the IME process is replaced)")
+    log("  note: an app you were actively typing in may switch but not "
+        "type until you fully quit and reopen it (WeChat does this)")
 
     mode, state = classify_state()
     if mode == "corrupt":
