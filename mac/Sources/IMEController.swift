@@ -415,7 +415,7 @@ final class InputxController: IMKInputController {
                !event.modifierFlags.contains(.option),
                let typed = event.characters,
                let scalar = typed.unicodeScalars.first,
-               isAsciiAlnum(scalar.value),
+               isFullWidthAlnumKey(scalar.value),
                let wide = stringFromCodepoint(InputxLocale.fullWidth(scalar.value)) {
                 commitText(wide, to: sender)
                 return true
@@ -484,6 +484,54 @@ final class InputxController: IMKInputController {
         if codepoint == 0xF702, segmentAnchorIdx == nil, session.isComposing,
            tryEnterSegmentMode(client: sender) {
             return true
+        }
+
+        // ---- 全角英数 mode -------------------------------------------------
+        //
+        // `useFullWidth` is a *mode*, not a punct modifier (user 2026-08-08:
+        // "打开以后输入直接上屏用日语全角的英文和数字"). While it's on, ASCII
+        // letters, digits and the space bar never reach the engine — they
+        // commit straight through as their full-width forms (`nihao` →
+        // ｎｉｈａｏ, `123` → １２３, space → U+3000), matching macOS 日本語
+        // IM's 「英字（全角）」 mode. Chinese composing resumes the moment
+        // the toggle goes back off.
+        //
+        // Punctuation deliberately stays on Path B: 中文标点 wins there when
+        // it's on (`,` → `，`), and the width pass only picks up what the CJK
+        // punct table didn't map.
+        //
+        // Placed ahead of every candidate-panel path (Space-commits-#0,
+        // number-key pick, 联想 dismissals) because in this mode those keys
+        // are literal text, not panel navigation. The panel can only be a
+        // leftover from before the toggle flipped, which the flush below
+        // clears. Segment mode keeps first refusal above — it exits itself
+        // on the keys it doesn't own and falls through to here.
+        if inputxSettings.useFullWidth,
+           codepoint < 0x80, isFullWidthAlnumKey(codepoint),
+           !event.modifierFlags.contains(.command),
+           !event.modifierFlags.contains(.control),
+           !event.modifierFlags.contains(.option) {
+            // Toggled on mid-composition: land the in-flight 候选/preedit
+            // first so the full-width text doesn't queue up behind a
+            // stranded marked-text area.
+            if session.isComposing {
+                if let top = session.commit(at: 0), !top.isEmpty {
+                    commitText(top, to: sender)
+                }
+                session.clear()
+                candidatePanel.hide()
+                clearMarkedText(client: sender)
+            } else if session.predictionCount > 0 {
+                // Letters normally dismiss 联想 via Path C's refresh; that
+                // path is bypassed here, so cancel explicitly.
+                session.cancelPredictions()
+                candidatePanel.hide()
+            }
+            if let wide = stringFromCodepoint(InputxLocale.fullWidth(codepoint)) {
+                commitText(wide, to: sender)
+                return true
+            }
+            return false
         }
 
         // Prediction-mode dismissals. When the panel is showing 联想
@@ -696,50 +744,6 @@ final class InputxController: IMKInputController {
             return true
         }
 
-        // ---- Path A-: 全角英数 mode ----------------------------------------
-        //
-        // `useFullWidth` is a *mode*, not a punct modifier (user 2026-08-08:
-        // "打开以后输入直接上屏用日语全角的英文和数字"). While it's on, ASCII
-        // letters and digits never reach the engine — they commit straight
-        // through as their full-width forms (`nihao` → ｎｉｈａｏ, `123` →
-        // １２３), matching macOS 日本語 IM's 「英字（全角）」 mode. Chinese
-        // composing resumes the moment the toggle goes back off.
-        //
-        // Punctuation deliberately stays on Path B: 中文标点 wins there
-        // when it's on (`,` → `，`), and the width pass only picks up what
-        // the CJK punct table didn't map.
-        //
-        // Runs ahead of Path A so a digit widens instead of picking a
-        // candidate — in this mode the panel can only be a leftover from
-        // before the toggle flipped, which the flush below clears.
-        if inputxSettings.useFullWidth,
-           codepoint < 0x80, isAsciiAlnum(codepoint),
-           !event.modifierFlags.contains(.command),
-           !event.modifierFlags.contains(.control),
-           !event.modifierFlags.contains(.option) {
-            // Toggled on mid-composition: land the in-flight候选/preedit
-            // first so the full-width text doesn't queue up behind a
-            // stranded marked-text area.
-            if session.isComposing {
-                if let top = session.commit(at: 0), !top.isEmpty {
-                    commitText(top, to: sender)
-                }
-                session.clear()
-                candidatePanel.hide()
-                clearMarkedText(client: sender)
-            } else if session.predictionCount > 0 {
-                // Letters normally dismiss 联想 via Path C's refresh; that
-                // path is bypassed here, so cancel explicitly.
-                session.cancelPredictions()
-                candidatePanel.hide()
-            }
-            if let wide = stringFromCodepoint(InputxLocale.fullWidth(codepoint)) {
-                commitText(wide, to: sender)
-                return true
-            }
-            return false
-        }
-
         // ---- Path A: number-key candidate commit ---------------------------
         // When the panel is up, 1-9 + 0 picks the corresponding candidate
         // (0 → 10th slot) without touching the engine state machine.
@@ -897,11 +901,14 @@ final class InputxController: IMKInputController {
         return (0x41...0x5A).contains(codepoint) || (0x61...0x7A).contains(codepoint)
     }
 
-    /// `true` iff `codepoint` is an ASCII letter or digit — the set the
-    /// 全角英数 mode widens. Punct is excluded: it belongs to Path B, where
-    /// 中文标点 gets first refusal before the width pass.
-    private func isAsciiAlnum(_ codepoint: UInt32) -> Bool {
-        return isAsciiLetter(codepoint) || (0x30...0x39).contains(codepoint)
+    /// `true` iff `codepoint` is an ASCII letter, digit, or the space bar —
+    /// the set 全角英数 mode widens (space → U+3000 IDEOGRAPHIC SPACE, as
+    /// macOS 日本語 IM's 「英字（全角）」 does). Punct is excluded: it belongs
+    /// to Path B, where 中文标点 gets first refusal before the width pass.
+    private func isFullWidthAlnumKey(_ codepoint: UInt32) -> Bool {
+        return isAsciiLetter(codepoint)
+            || (0x30...0x39).contains(codepoint)
+            || codepoint == 0x20
     }
 
     /// Process a `flagsChanged` event. Routes shift toggles through the

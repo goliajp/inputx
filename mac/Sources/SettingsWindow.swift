@@ -126,8 +126,8 @@ private struct SettingsRootView: View {
                         inputxSettings.useFullWidth = newValue
                         broadcastChanged()
                     }
-                Text("开启后字母与数字直接以全角上屏（ｎｉｈａｏ／１２３），"
-                     + "期间不进入中文 / 日语组字。")
+                Text("开启后字母、数字与空格直接以全角上屏"
+                     + "（ｎｉｈａｏ／１２３／　），期间不进入中文 / 日语组字。")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 Toggle("显示罕用扩展字（CJK Ext B+）", isOn: $showRareChars)
