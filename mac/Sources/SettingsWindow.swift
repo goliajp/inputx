@@ -121,11 +121,15 @@ private struct SettingsRootView: View {
                         inputxSettings.useCjkPunct = newValue
                         broadcastChanged()
                     }
-                Toggle("英文 / 数字全宽", isOn: $useFullWidth)
+                Toggle("英文数字全角", isOn: $useFullWidth)
                     .onChange(of: useFullWidth) { newValue in
                         inputxSettings.useFullWidth = newValue
                         broadcastChanged()
                     }
+                Text("开启后字母与数字直接以全角上屏（ｎｉｈａｏ／１２３），"
+                     + "期间不进入中文 / 日语组字。")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
                 Toggle("显示罕用扩展字（CJK Ext B+）", isOn: $showRareChars)
                     .onChange(of: showRareChars) { newValue in
                         inputxSettings.showRareChars = newValue
