@@ -4728,6 +4728,31 @@ mod tests {
         );
     }
 
+    /// Polish 2026-08-10 (user /polish): "mengban 蒙板".
+    ///
+    /// Class A — `mengban` had NO word entry in either pinyin surface.
+    /// The buffer returned a single candidate, 盟邦, which is not even
+    /// an exact match (it lives at `mengbang` and reached `mengban`
+    /// through the prefix-completion band at `composed_fallback_score`).
+    ///
+    /// The add had to land on BOTH surfaces: `library.tsv` feeds v1's
+    /// pinyin.dict + words.idf, but v2 (the default engine since Phase
+    /// 7) builds its word table from `words.tsv` ∪ `modern_vocab_v1.tsv`
+    /// and never reads library.tsv — a library-only add is invisible at
+    /// runtime. freq 16000 → v2 tier 4, the same tier cedict assigns
+    /// every 2-char word (盟邦 / 蒙蔽 / 蒙馆 are all tier 4).
+    ///
+    /// Before: [盟邦]   After: [蒙板]
+    #[test]
+    fn polish_mengban_yields_mengban() {
+        let top10 = pinyin_top10(b"mengban");
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("蒙板"),
+            "mengban must lead 蒙板 (Class A add); got {top10:?}"
+        );
+    }
+
     /// Phase 7d framework rule (same 2026-08-05 report, second half:
     /// "预测逻辑上要做好排序，matching 怎么都应该是有序的"). The v2 prefix
     /// band orders by 字数 first inside a single tier, so a word always
