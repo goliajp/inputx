@@ -1,0 +1,1861 @@
+loaded 1845 rows across 6 chars
+
+=== verdict tally (1845 rows) ===
+  UNCERTAIN         :  1579  ( 85.6%)
+  LIKELY_SPURIOUS   :   133  (  7.2%)
+  SPURIOUS          :   117  (  6.3%)
+  LEGITIMATE        :    16  (  0.9%)
+
+=== verdict by source char ===
+  地: {'LEGITIMATE': 8, 'UNCERTAIN': 573, 'SPURIOUS': 37, 'LIKELY_SPURIOUS': 85}
+  得: {'UNCERTAIN': 626, 'LEGITIMATE': 1, 'LIKELY_SPURIOUS': 23}
+  的: {'UNCERTAIN': 101, 'SPURIOUS': 80, 'LIKELY_SPURIOUS': 7}
+  了: {'LEGITIMATE': 4, 'UNCERTAIN': 222, 'LIKELY_SPURIOUS': 18}
+  谁: {'LEGITIMATE': 2, 'UNCERTAIN': 57}
+  那: {'LEGITIMATE': 1}
+char	wrong_code	word	freq	primary	verdict	note
+地	gede	各地	33862	gedi	LEGITIMATE	whitelist N+助词
+地	jiede	接地	26319	jiedi	LEGITIMATE	whitelist N+助词
+地	yingde	营地	25878	yingdi	LEGITIMATE	whitelist N+助词
+地	deli	地里	24582	dili	UNCERTAIN	default
+地	jingjingde	静静地	24476	jingjingdi	SPURIOUS	重叠副词 '静静' + 助词
+地	zuode	坐地	24119	zuodi	UNCERTAIN	single-char prefix '坐' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	suide	随地	23851	suidi	UNCERTAIN	single-char prefix '随' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	momode	默默地	23740	momodi	SPURIOUS	重叠副词 '默默' + 助词
+地	jingde	静地	23482	jingdi	UNCERTAIN	single-char prefix '静' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	shenshende	深深地	23010	shenshendi	SPURIOUS	重叠副词 '深深' + 助词
+地	hede	何地	22481	hedi	UNCERTAIN	single-char prefix '何' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	deda	地大	22463	dida	UNCERTAIN	default
+地	dedai	地大	22463	dida	UNCERTAIN	default
+地	qiaoqiaode	悄悄地	22461	qiaoqiaodi	SPURIOUS	重叠副词 '悄悄' + 助词
+地	dongde	动地	22334	dongdi	UNCERTAIN	single-char prefix '动' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	shijiegede	世界各地	22300	shijiegedi	LIKELY_SPURIOUS	>=3-char prefix '世界各' + 助词 (long phrase + 助词)
+地	rende	人地	22119	rendi	UNCERTAIN	single-char prefix '人' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	mande	满地	21980	mandi	UNCERTAIN	single-char prefix '满' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	deer	地儿	21918	dier	UNCERTAIN	default
+地	jiade	家地	21810	jiadi	UNCERTAIN	single-char prefix '家' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	zhede	着地	21807	zhedi	UNCERTAIN	single-char prefix '着' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	diede	爹地	21721	diedi	UNCERTAIN	single-char prefix '爹' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	zhende	真地	21575	zhendi	UNCERTAIN	single-char prefix '真' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	tongde	同地	21486	tongdi	UNCERTAIN	single-char prefix '同' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	dejiu	地久	21447	dijiu	UNCERTAIN	default
+地	beide	北地	21274	beidi	LEGITIMATE	whitelist N+助词
+地	shangde	上地	20988	shangdi	UNCERTAIN	single-char prefix '上' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	lvde	绿地	20740	lvdi	UNCERTAIN	single-char prefix '绿' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	debei	地被	20715	dibei	UNCERTAIN	default
+地	dezhong	地中	20637	dizhong	UNCERTAIN	default
+地	gaide	该地	20547	gaidi	LEGITIMATE	whitelist N+助词
+地	xingde	性地	20471	xingdi	UNCERTAIN	single-char prefix '性' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	debiao	地标	20341	dibiao	UNCERTAIN	default
+地	deya	地亚	20105	diya	UNCERTAIN	default
+地	shude	属地	19912	shudi	LEGITIMATE	whitelist N+助词
+地	lide	离地	19907	lidi	UNCERTAIN	single-char prefix '离' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	keluodeya	克罗地亚	19633	keluodiya	UNCERTAIN	default
+地	tuode	拖地	19434	tuodi	UNCERTAIN	single-char prefix '拖' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	zhongde	中地	19387	zhongdi	LEGITIMATE	whitelist N+助词
+地	qingqingde	轻轻地	19296	qingqingdi	SPURIOUS	重叠副词 '轻轻' + 助词
+地	kuaide	块地	19149	kuaidi	UNCERTAIN	single-char prefix '块' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	kaide	开地	18844	kaidi	UNCERTAIN	single-char prefix '开' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	tianshideli	天时地利	18818	tianshidili	UNCERTAIN	default
+地	jinde	近地	18768	jindi	UNCERTAIN	single-char prefix '近' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	qixide	栖息地	18759	qixidi	UNCERTAIN	2-char prefix '栖息' + 助词 (V+助词 or 2-char N+助词)
+地	huide	会地	18750	huidi	UNCERTAIN	single-char prefix '会' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	mengde	猛地	18732	mengdi	UNCERTAIN	single-char prefix '猛' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	toutoude	偷偷地	18647	toutoudi	SPURIOUS	重叠副词 '偷偷' + 助词
+地	denuan	地暖	18543	dinuan	UNCERTAIN	default
+地	caide	菜地	18488	caidi	UNCERTAIN	single-char prefix '菜' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	deji	地级	18471	diji	UNCERTAIN	default
+地	shide	市地	18002	shidi	UNCERTAIN	single-char prefix '市' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	xide	洗地	17947	xidi	UNCERTAIN	single-char prefix '洗' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	deling	地灵	17766	diling	UNCERTAIN	default
+地	guide	跪地	17613	guidi	UNCERTAIN	single-char prefix '跪' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	jude	距地	17232	judi	UNCERTAIN	single-char prefix '距' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	shengde	声地	17051	shengdi	UNCERTAIN	single-char prefix '声' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	shide	史地	17050	shidi	UNCERTAIN	single-char prefix '史' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	xide	西地	17047	xidi	LEGITIMATE	whitelist N+助词
+地	kadeya	卡地亚	16953	kadiya	UNCERTAIN	default
+地	mingde	名地	16878	mingdi	UNCERTAIN	single-char prefix '名' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	bande	般地	16868	bandi	UNCERTAIN	single-char prefix '般' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	jujude	聚居地	16819	jujudi	UNCERTAIN	2-char prefix '聚居' + 助词 (V+助词 or 2-char N+助词)
+地	dejishi	地级市	16747	dijishi	UNCERTAIN	default
+地	liede	烈地	16698	liedi	UNCERTAIN	single-char prefix '烈' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	weidemala	危地马拉	16676	weidimala	UNCERTAIN	default
+地	gaide	改地	16648	gaidi	UNCERTAIN	single-char prefix '改' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	mude	亩地	16646	mudi	UNCERTAIN	single-char prefix '亩' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	deguang	地广	16401	diguang	UNCERTAIN	default
+地	dedi	地底	16370	didi	UNCERTAIN	default
+地	jiede	借地	16184	jiedi	UNCERTAIN	single-char prefix '借' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	pude	铺地	16176	pudi	UNCERTAIN	single-char prefix '铺' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	jingtiande	惊天地	16075	jingtiandi	UNCERTAIN	2-char prefix '惊天' + 助词 (V+助词 or 2-char N+助词)
+地	xiaode	笑地	16023	xiaodi	UNCERTAIN	single-char prefix '笑' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	luodeya	罗地亚	15984	luodiya	UNCERTAIN	default
+地	dedidaodao	地地道道	15968	dididaodao	UNCERTAIN	default
+地	heshihede	何时何地	15849	heshihedi	LIKELY_SPURIOUS	>=3-char prefix '何时何' + 助词 (long phrase + 助词)
+地	demo	地魔	15801	dimo	UNCERTAIN	default
+地	depei	地陪	15750	dipei	UNCERTAIN	default
+地	shuinide	水泥地	15717	shuinidi	UNCERTAIN	2-char prefix '水泥' + 助词 (V+助词 or 2-char N+助词)
+地	shide	似地	15693	shidi	UNCERTAIN	single-char prefix '似' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	zhide	置地	15652	zhidi	UNCERTAIN	single-char prefix '置' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	dezoule	地走了	15563	dizoule	UNCERTAIN	2-char prefix '地走' + 助词 (V+助词 or 2-char N+助词)
+地	dezouliao	地走了	15563	dizoule	UNCERTAIN	2-char prefix '地走' + 助词 (V+助词 or 2-char N+助词)
+地	dewang	地王	15554	diwang	UNCERTAIN	default
+地	hande	汉地	15551	handi	UNCERTAIN	single-char prefix '汉' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	jiande	渐地	15540	jiandi	UNCERTAIN	single-char prefix '渐' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	detai	地台	15538	ditai	UNCERTAIN	default
+地	wenwende	稳稳地	15485	wenwendi	SPURIOUS	重叠副词 '稳稳' + 助词
+地	deshu	地鼠	15408	dishu	UNCERTAIN	default
+地	maide	麦地	15406	maidi	UNCERTAIN	single-char prefix '麦' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	tianbupade	天不怕地	15395	tianbupadi	LIKELY_SPURIOUS	>=3-char prefix '天不怕' + 助词 (long phrase + 助词)
+地	guode	果地	15384	guodi	UNCERTAIN	single-char prefix '果' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	dela	地拉	15298	dila	UNCERTAIN	default
+地	dezhi	地直	15277	dizhi	UNCERTAIN	default
+地	mude	目地	15243	mudi	UNCERTAIN	single-char prefix '目' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	baohude	保护地	15196	baohudi	UNCERTAIN	2-char prefix '保护' + 助词 (V+助词 or 2-char N+助词)
+地	xiande	闲地	15179	xiandi	UNCERTAIN	single-char prefix '闲' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	wade	挖地	15114	wadi	UNCERTAIN	single-char prefix '挖' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	paishede	拍摄地	14983	paishedi	UNCERTAIN	2-char prefix '拍摄' + 助词 (V+助词 or 2-char N+助词)
+地	chongchongde	重重地	14737	chongchongdi	SPURIOUS	重叠副词 '重重' + 助词
+地	zhenchengde	真诚地	14619	zhenchengdi	UNCERTAIN	2-char prefix '真诚' + 助词 (V+助词 or 2-char N+助词)
+地	dehuo	地火	14608	dihuo	UNCERTAIN	default
+地	defeng	地缝	14566	difeng	UNCERTAIN	default
+地	yede	野地	14422	yedi	UNCERTAIN	single-char prefix '野' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	detan	地坛	14416	ditan	UNCERTAIN	default
+地	tianchadebie	天差地别	14356	tianchadibie	UNCERTAIN	default
+地	jiaoaode	骄傲地	14314	jiaoaodi	UNCERTAIN	2-char prefix '骄傲' + 助词 (V+助词 or 2-char N+助词)
+地	shengde	省地	14273	shengdi	UNCERTAIN	single-char prefix '省' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	shude	蜀地	14259	shudi	UNCERTAIN	single-char prefix '蜀' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	dunde	遁地	14203	dundi	UNCERTAIN	single-char prefix '遁' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	dezai	地栽	14169	dizai	UNCERTAIN	default
+地	tiede	贴地	14069	tiedi	UNCERTAIN	single-char prefix '贴' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	youxiande	悠闲地	14067	youxiandi	UNCERTAIN	2-char prefix '悠闲' + 助词 (V+助词 or 2-char N+助词)
+地	jujide	聚集地	14001	jujidi	UNCERTAIN	2-char prefix '聚集' + 助词 (V+助词 or 2-char N+助词)
+地	lude	露地	13869	ludi	UNCERTAIN	single-char prefix '露' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	dehua	地滑	13831	dihua	UNCERTAIN	default
+地	jiande	建地	13820	jiandi	UNCERTAIN	single-char prefix '建' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	dewang	地网	13602	diwang	UNCERTAIN	default
+地	wuqingde	无情地	13544	wuqingdi	UNCERTAIN	2-char prefix '无情' + 助词 (V+助词 or 2-char N+助词)
+地	dandande	淡淡地	13392	dandandi	SPURIOUS	重叠副词 '淡淡' + 助词
+地	deku	地库	13282	diku	UNCERTAIN	default
+地	zede	泽地	13275	zedi	UNCERTAIN	single-char prefix '泽' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	zhengde	征地	13202	zhengdi	UNCERTAIN	single-char prefix '征' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	daxide	大溪地	13114	daxidi	UNCERTAIN	2-char prefix '大溪' + 助词 (V+助词 or 2-char N+助词)
+地	jizhongde	集中地	13025	jizhongdi	UNCERTAIN	2-char prefix '集中' + 助词 (V+助词 or 2-char N+助词)
+地	mode	漠地	12993	modi	UNCERTAIN	single-char prefix '漠' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	sanjiaode	三角地	12818	sanjiaodi	UNCERTAIN	2-char prefix '三角' + 助词 (V+助词 or 2-char N+助词)
+地	yingde	硬地	12755	yingdi	UNCERTAIN	single-char prefix '硬' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	maide	卖地	12691	maidi	UNCERTAIN	single-char prefix '卖' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	zerende	责任地	12599	zerendi	UNCERTAIN	2-char prefix '责任' + 助词 (V+助词 or 2-char N+助词)
+地	weide	围地	12580	weidi	UNCERTAIN	single-char prefix '围' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	shamode	沙漠地	12508	shamodi	UNCERTAIN	2-char prefix '沙漠' + 助词 (V+助词 or 2-char N+助词)
+地	chongde	冲地	12499	chongdi	UNCERTAIN	single-char prefix '冲' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	jubande	举办地	12397	jubandi	UNCERTAIN	2-char prefix '举办' + 助词 (V+助词 or 2-char N+助词)
+地	gonggonglvde	公共绿地	12343	gonggonglvdi	LIKELY_SPURIOUS	>=3-char prefix '公共绿' + 助词 (long phrase + 助词)
+地	huade	划地	12251	huadi	UNCERTAIN	single-char prefix '划' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	jinde	劲地	12183	jindi	UNCERTAIN	single-char prefix '劲' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	fantianfude	翻天复地	12090	fantianfudi	LIKELY_SPURIOUS	>=3-char prefix '翻天复' + 助词 (long phrase + 助词)
+地	mandepao	满地跑	12090	mandipao	UNCERTAIN	default
+地	zirandeli	自然地理	12049	zirandili	UNCERTAIN	default
+地	xiangde	响地	12026	xiangdi	UNCERTAIN	single-char prefix '响' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	zuande	钻地	11987	zuandi	UNCERTAIN	single-char prefix '钻' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	dedi	地低	11985	didi	UNCERTAIN	default
+地	deya	地压	11982	diya	UNCERTAIN	default
+地	daidaide	呆呆地	11967	daidaidi	SPURIOUS	重叠副词 '呆呆' + 助词
+地	dedixia	地底下	11961	didixia	UNCERTAIN	default
+地	shibacengde	十八层地	11934	shibacengdi	LIKELY_SPURIOUS	>=3-char prefix '十八层' + 助词 (long phrase + 助词)
+地	bijingzhide	必经之地	11914	bijingzhidi	LIKELY_SPURIOUS	>=3-char prefix '必经之' + 助词 (long phrase + 助词)
+地	mandezhaoya	满地找牙	11826	mandizhaoya	UNCERTAIN	default
+地	jide	急地	11818	jidi	UNCERTAIN	single-char prefix '急' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	tianyude	天与地	11723	tianyudi	UNCERTAIN	2-char prefix '天与' + 助词 (V+助词 or 2-char N+助词)
+地	yude	雨地	11688	yudi	UNCERTAIN	single-char prefix '雨' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	xiande	县地	11516	xiandi	UNCERTAIN	single-char prefix '县' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	xuanzede	选择地	11458	xuanzedi	UNCERTAIN	2-char prefix '选择' + 助词 (V+助词 or 2-char N+助词)
+地	dekuo	地扩	11431	dikuo	UNCERTAIN	default
+地	manhuangzhide	蛮荒之地	11377	manhuangzhidi	LIKELY_SPURIOUS	>=3-char prefix '蛮荒之' + 助词 (long phrase + 助词)
+地	rongshenzhide	容身之地	11362	rongshenzhidi	LIKELY_SPURIOUS	>=3-char prefix '容身之' + 助词 (long phrase + 助词)
+地	shende	慎地	11350	shendi	UNCERTAIN	single-char prefix '慎' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	juede	掘地	11316	juedi	UNCERTAIN	single-char prefix '掘' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	huhude	呼呼地	11304	huhudi	SPURIOUS	重叠副词 '呼呼' + 助词
+地	jude	局地	11302	judi	UNCERTAIN	single-char prefix '局' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	shishide	适时地	11197	shishidi	UNCERTAIN	2-char prefix '适时' + 助词 (V+助词 or 2-char N+助词)
+地	chunde	春地	11158	chundi	UNCERTAIN	single-char prefix '春' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	chufade	出发地	11139	chufadi	UNCERTAIN	2-char prefix '出发' + 助词 (V+助词 or 2-char N+助词)
+地	laolaode	牢牢地	11109	laolaodi	SPURIOUS	重叠副词 '牢牢' + 助词
+地	lide	犁地	10996	lidi	UNCERTAIN	single-char prefix '犁' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	deseng	地僧	10995	diseng	UNCERTAIN	default
+地	suidetutan	随地吐痰	10968	suiditutan	UNCERTAIN	default
+地	dewei	地维	10896	diwei	UNCERTAIN	default
+地	huanlede	欢乐地	10888	huanledi	UNCERTAIN	2-char prefix '欢乐' + 助词 (V+助词 or 2-char N+助词)
+地	jiaojiede	交界地	10836	jiaojiedi	UNCERTAIN	2-char prefix '交界' + 助词 (V+助词 or 2-char N+助词)
+地	hanxude	含蓄地	10817	hanxudi	UNCERTAIN	2-char prefix '含蓄' + 助词 (V+助词 or 2-char N+助词)
+地	dekan	地勘	10809	dikan	UNCERTAIN	default
+地	shifeizhide	是非之地	10806	shifeizhidi	LIKELY_SPURIOUS	>=3-char prefix '是非之' + 助词 (long phrase + 助词)
+地	xiade	辖地	10741	xiadi	UNCERTAIN	single-char prefix '辖' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	guideqiurao	跪地求饶	10634	guidiqiurao	UNCERTAIN	default
+地	fashengde	发生地	10558	fashengdi	UNCERTAIN	2-char prefix '发生' + 助词 (V+助词 or 2-char N+助词)
+地	beishangde	悲伤地	10550	beishangdi	UNCERTAIN	2-char prefix '悲伤' + 助词 (V+助词 or 2-char N+助词)
+地	yigejinde	一个劲地	10538	yigejindi	LIKELY_SPURIOUS	>=3-char prefix '一个劲' + 助词 (long phrase + 助词)
+地	deduikong	地对空	10523	diduikong	UNCERTAIN	default
+地	yangde	养地	10508	yangdi	UNCERTAIN	single-char prefix '养' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	jianjiede	间接地	10505	jianjiedi	UNCERTAIN	2-char prefix '间接' + 助词 (V+助词 or 2-char N+助词)
+地	xitongde	系统地	10486	xitongdi	UNCERTAIN	2-char prefix '系统' + 助词 (V+助词 or 2-char N+助词)
+地	delana	地拉那	10439	dilana	UNCERTAIN	default
+地	tanshuaide	坦率地	10435	tanshuaidi	UNCERTAIN	2-char prefix '坦率' + 助词 (V+助词 or 2-char N+助词)
+地	side	私地	10412	sidi	UNCERTAIN	single-char prefix '私' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	defu	地富	10323	difu	UNCERTAIN	default
+地	jutideshuo	具体地说	10314	jutidishuo	UNCERTAIN	default
+地	chuangzaoxingde	创造性地	10252	chuangzaoxingdi	LIKELY_SPURIOUS	>=3-char prefix '创造性' + 助词 (long phrase + 助词)
+地	bisaichangde	比赛场地	10148	bisaichangdi	LIKELY_SPURIOUS	>=3-char prefix '比赛场' + 助词 (long phrase + 助词)
+地	hujide	户籍地	10116	hujidi	UNCERTAIN	2-char prefix '户籍' + 助词 (V+助词 or 2-char N+助词)
+地	depin	地贫	10083	dipin	UNCERTAIN	default
+地	zhide	织地	10075	zhidi	UNCERTAIN	single-char prefix '织' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	deshouhu	地守护	10070	dishouhu	UNCERTAIN	default
+地	feide	肥地	10048	feidi	UNCERTAIN	single-char prefix '肥' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	liangansande	两岸三地	10009	liangansandi	LIKELY_SPURIOUS	>=3-char prefix '两岸三' + 助词 (long phrase + 助词)
+地	culvede	粗略地	9991	culvedi	UNCERTAIN	2-char prefix '粗略' + 助词 (V+助词 or 2-char N+助词)
+地	wubaoliude	无保留地	9987	wubaoliudi	LIKELY_SPURIOUS	>=3-char prefix '无保留' + 助词 (long phrase + 助词)
+地	pande	盘地	9962	pandi	UNCERTAIN	single-char prefix '盘' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	deduide	地对地	9943	diduidi	UNCERTAIN	2-char prefix '地对' + 助词 (V+助词 or 2-char N+助词)
+地	deduidi	地对地	9943	diduidi	UNCERTAIN	2-char prefix '地对' + 助词 (V+助词 or 2-char N+助词)
+地	diduide	地对地	9943	diduidi	UNCERTAIN	2-char prefix '地对' + 助词 (V+助词 or 2-char N+助词)
+地	lingde	岭地	9850	lingdi	UNCERTAIN	single-char prefix '岭' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	minruide	敏锐地	9849	minruidi	UNCERTAIN	2-char prefix '敏锐' + 助词 (V+助词 or 2-char N+助词)
+地	paode	刨地	9667	paodi	UNCERTAIN	single-char prefix '刨' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	deanmen	地安门	9623	dianmen	UNCERTAIN	default
+地	qianchengde	虔诚地	9619	qianchengdi	UNCERTAIN	2-char prefix '虔诚' + 助词 (V+助词 or 2-char N+助词)
+地	deguang	地光	9513	diguang	UNCERTAIN	default
+地	liede	劣地	9496	liedi	UNCERTAIN	single-char prefix '劣' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	xixide	细细地	9425	xixidi	SPURIOUS	重叠副词 '细细' + 助词
+地	gedefengsu	各地风俗	9370	gedifengsu	UNCERTAIN	default
+地	guozaode	过早地	9185	guozaodi	UNCERTAIN	2-char prefix '过早' + 助词 (V+助词 or 2-char N+助词)
+地	degeng	地耕	9146	digeng	UNCERTAIN	default
+地	dexiao	地效	9014	dixiao	UNCERTAIN	default
+地	dekeng	地坑	9012	dikeng	UNCERTAIN	default
+地	saide	赛地	9005	saidi	UNCERTAIN	single-char prefix '赛' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	quanshenggede	全省各地	8959	quanshenggedi	LIKELY_SPURIOUS	>=3-char prefix '全省各' + 助词 (long phrase + 助词)
+地	luyingde	露营地	8863	luyingdi	UNCERTAIN	2-char prefix '露营' + 助词 (V+助词 or 2-char N+助词)
+地	zuguogede	祖国各地	8848	zuguogedi	LIKELY_SPURIOUS	>=3-char prefix '祖国各' + 助词 (long phrase + 助词)
+地	mohude	模糊地	8843	mohudi	UNCERTAIN	2-char prefix '模糊' + 助词 (V+助词 or 2-char N+助词)
+地	liulide	流利地	8757	liulidi	UNCERTAIN	2-char prefix '流利' + 助词 (V+助词 or 2-char N+助词)
+地	nanguode	难过地	8731	nanguodi	UNCERTAIN	2-char prefix '难过' + 助词 (V+助词 or 2-char N+助词)
+地	dexian	地县	8700	dixian	UNCERTAIN	default
+地	gongjingde	恭敬地	8697	gongjingdi	UNCERTAIN	2-char prefix '恭敬' + 助词 (V+助词 or 2-char N+助词)
+地	qijibande	奇迹般地	8686	qijibandi	LIKELY_SPURIOUS	>=3-char prefix '奇迹般' + 助词 (long phrase + 助词)
+地	mengliede	猛烈地	8669	mengliedi	UNCERTAIN	2-char prefix '猛烈' + 助词 (V+助词 or 2-char N+助词)
+地	timiande	体面地	8651	timiandi	UNCERTAIN	2-char prefix '体面' + 助词 (V+助词 or 2-char N+助词)
+地	jide	祭地	8604	jidi	UNCERTAIN	single-char prefix '祭' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	shuliande	熟练地	8604	shuliandi	UNCERTAIN	2-char prefix '熟练' + 助词 (V+助词 or 2-char N+助词)
+地	jijiede	集结地	8595	jijiedi	UNCERTAIN	2-char prefix '集结' + 助词 (V+助词 or 2-char N+助词)
+地	deji	地籍	8504	diji	UNCERTAIN	default
+地	dedahan	地大喊	8398	didahan	UNCERTAIN	default
+地	dedaihan	地大喊	8398	didahan	UNCERTAIN	default
+地	yuchunde	愚蠢地	8349	yuchundi	UNCERTAIN	2-char prefix '愚蠢' + 助词 (V+助词 or 2-char N+助词)
+地	dujiade	度假地	8327	dujiadi	UNCERTAIN	2-char prefix '度假' + 助词 (V+助词 or 2-char N+助词)
+地	muxide	木樨地	8323	muxidi	UNCERTAIN	2-char prefix '木樨' + 助词 (V+助词 or 2-char N+助词)
+地	waijingde	外景地	8323	waijingdi	UNCERTAIN	2-char prefix '外景' + 助词 (V+助词 or 2-char N+助词)
+地	chichide	痴痴地	8315	chichidi	SPURIOUS	重叠副词 '痴痴' + 助词
+地	youcaide	油菜地	8228	youcaidi	UNCERTAIN	2-char prefix '油菜' + 助词 (V+助词 or 2-char N+助词)
+地	zhusude	住宿地	8097	zhusudi	UNCERTAIN	2-char prefix '住宿' + 助词 (V+助词 or 2-char N+助词)
+地	fangde	坊地	8091	fangdi	UNCERTAIN	single-char prefix '坊' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	tiantiande	甜甜地	8091	tiantiandi	SPURIOUS	重叠副词 '甜甜' + 助词
+地	changde	厂地	8067	changdi	UNCERTAIN	single-char prefix '厂' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	huodedao	火地岛	8029	huodidao	UNCERTAIN	default
+地	deba	地霸	7994	diba	UNCERTAIN	default
+地	fande	番地	7971	fandi	UNCERTAIN	single-char prefix '番' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	fanzhide	繁殖地	7960	fanzhidi	UNCERTAIN	2-char prefix '繁殖' + 助词 (V+助词 or 2-char N+助词)
+地	shifade	始发地	7934	shifadi	UNCERTAIN	2-char prefix '始发' + 助词 (V+助词 or 2-char N+助词)
+地	nuannuande	暖暖地	7836	nuannuandi	SPURIOUS	重叠副词 '暖暖' + 助词
+地	zhizhide	直直地	7836	zhizhidi	SPURIOUS	重叠副词 '直直' + 助词
+地	xide	吸地	7791	xidi	UNCERTAIN	single-char prefix '吸' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	dejuan	地圈	7739	diquan	UNCERTAIN	default
+地	dequan	地圈	7739	diquan	UNCERTAIN	default
+地	liaoyangde	疗养地	7730	liaoyangdi	UNCERTAIN	2-char prefix '疗养' + 助词 (V+助词 or 2-char N+助词)
+地	jiade	甲地	7590	jiadi	UNCERTAIN	single-char prefix '甲' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	liuchangde	流畅地	7575	liuchangdi	UNCERTAIN	2-char prefix '流畅' + 助词 (V+助词 or 2-char N+助词)
+地	wulunhede	无论何地	7552	wulunhedi	LIKELY_SPURIOUS	>=3-char prefix '无论何' + 助词 (long phrase + 助词)
+地	deqian	地钱	7482	diqian	UNCERTAIN	default
+地	renduodeshao	人多地少	7482	renduodishao	UNCERTAIN	default
+地	zhongzhuande	中转地	7422	zhongzhuandi	UNCERTAIN	2-char prefix '中转' + 助词 (V+助词 or 2-char N+助词)
+地	ziyuande	自愿地	7393	ziyuandi	UNCERTAIN	2-char prefix '自愿' + 助词 (V+助词 or 2-char N+助词)
+地	kuangde	旷地	7387	kuangdi	UNCERTAIN	single-char prefix '旷' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	hanhude	含糊地	7264	hanhudi	UNCERTAIN	2-char prefix '含糊' + 助词 (V+助词 or 2-char N+助词)
+地	mangmangde	忙忙地	7253	mangmangdi	SPURIOUS	重叠副词 '忙忙' + 助词
+地	langfeide	浪费地	7233	langfeidi	UNCERTAIN	2-char prefix '浪费' + 助词 (V+助词 or 2-char N+助词)
+地	sude	簌地	7233	sudi	UNCERTAIN	single-char prefix '簌' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	yude	舆地	7180	yudi	UNCERTAIN	single-char prefix '舆' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	chouxiangde	抽象地	7173	chouxiangdi	UNCERTAIN	2-char prefix '抽象' + 助词 (V+助词 or 2-char N+助词)
+地	wangde	旺地	7146	wangdi	UNCERTAIN	single-char prefix '旺' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	kongkuangde	空旷地	7099	kongkuangdi	UNCERTAIN	2-char prefix '空旷' + 助词 (V+助词 or 2-char N+助词)
+地	meidaoyide	每到一地	7048	meidaoyidi	LIKELY_SPURIOUS	>=3-char prefix '每到一' + 助词 (long phrase + 助词)
+地	yinyinde	隐隐地	6907	yinyindi	SPURIOUS	重叠副词 '隐隐' + 助词
+地	detangongyuan	地坛公园	6868	ditangongyuan	UNCERTAIN	default
+地	youyoude	幽幽地	6868	youyoudi	SPURIOUS	重叠副词 '幽幽' + 助词
+地	fushude	附属地	6848	fushudi	UNCERTAIN	2-char prefix '附属' + 助词 (V+助词 or 2-char N+助词)
+地	pingde	坪地	6795	pingdi	UNCERTAIN	single-char prefix '坪' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	chandoude	颤抖地	6675	chandoudi	UNCERTAIN	2-char prefix '颤抖' + 助词 (V+助词 or 2-char N+助词)
+地	feiqide	废弃地	6593	feiqidi	UNCERTAIN	2-char prefix '废弃' + 助词 (V+助词 or 2-char N+助词)
+地	desha	地煞	6551	disha	UNCERTAIN	default
+地	yinshiyinde	因时因地	6514	yinshiyindi	LIKELY_SPURIOUS	>=3-char prefix '因时因' + 助词 (long phrase + 助词)
+地	dege	地格	6487	dige	UNCERTAIN	default
+地	dejin	地锦	6463	dijin	UNCERTAIN	default
+地	defengli	地缝里	6442	difengli	UNCERTAIN	default
+地	deshouhou	地守候	6442	dishouhou	UNCERTAIN	default
+地	xiuxiande	休闲地	6412	xiuxiandi	UNCERTAIN	2-char prefix '休闲' + 助词 (V+助词 or 2-char N+助词)
+地	yide	乙地	6403	yidi	UNCERTAIN	single-char prefix '乙' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	shuchude	输出地	6369	shuchudi	UNCERTAIN	2-char prefix '输出' + 助词 (V+助词 or 2-char N+助词)
+地	wawade	哇哇地	6369	wawadi	SPURIOUS	重叠副词 '哇哇' + 助词
+地	liufangde	流放地	6359	liufangdi	UNCERTAIN	2-char prefix '流放' + 助词 (V+助词 or 2-char N+助词)
+地	kede	客地	6312	kedi	UNCERTAIN	single-char prefix '客' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	lianjiade	廉价地	6312	lianjiadi	UNCERTAIN	2-char prefix '廉价' + 助词 (V+助词 or 2-char N+助词)
+地	delaoshu	地老鼠	6235	dilaoshu	UNCERTAIN	default
+地	mande	蛮地	6117	mandi	UNCERTAIN	single-char prefix '蛮' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	reqiede	热切地	6117	reqiedi	UNCERTAIN	2-char prefix '热切' + 助词 (V+助词 or 2-char N+助词)
+地	zhucede	注册地	5940	zhucedi	UNCERTAIN	2-char prefix '注册' + 助词 (V+助词 or 2-char N+助词)
+地	diede	嗲地	5930	diedi	UNCERTAIN	single-char prefix '嗲' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	feide	废地	5930	feidi	UNCERTAIN	single-char prefix '废' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	wengwengde	嗡嗡地	5930	wengwengdi	SPURIOUS	重叠副词 '嗡嗡' + 助词
+地	yaoraode	妖娆地	5930	yaoraodi	UNCERTAIN	2-char prefix '妖娆' + 助词 (V+助词 or 2-char N+助词)
+地	defu	地肤	5895	difu	UNCERTAIN	default
+地	qishenzhide	栖身之地	5895	qishenzhidi	LIKELY_SPURIOUS	>=3-char prefix '栖身之' + 助词 (long phrase + 助词)
+地	chide	尺地	5879	chidi	UNCERTAIN	single-char prefix '尺' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	liurude	流入地	5835	liurudi	UNCERTAIN	2-char prefix '流入' + 助词 (V+助词 or 2-char N+助词)
+地	chengbaode	承包地	5771	chengbaodi	UNCERTAIN	2-char prefix '承包' + 助词 (V+助词 or 2-char N+助词)
+地	xiongmengde	凶猛地	5771	xiongmengdi	UNCERTAIN	2-char prefix '凶猛' + 助词 (V+助词 or 2-char N+助词)
+地	shurude	输入地	5686	shurudi	UNCERTAIN	2-char prefix '输入' + 助词 (V+助词 or 2-char N+助词)
+地	huanchongde	缓冲地	5663	huanchongdi	UNCERTAIN	2-char prefix '缓冲' + 助词 (V+助词 or 2-char N+助词)
+地	jihaode	极好地	5633	jihaodi	UNCERTAIN	2-char prefix '极好' + 助词 (V+助词 or 2-char N+助词)
+地	xiaode	销地	5633	xiaodi	UNCERTAIN	single-char prefix '销' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	minjiede	敏捷地	5577	minjiedi	UNCERTAIN	2-char prefix '敏捷' + 助词 (V+助词 or 2-char N+助词)
+地	tianhaizaode	填海造地	5527	tianhaizaodi	LIKELY_SPURIOUS	>=3-char prefix '填海造' + 助词 (long phrase + 助词)
+地	jianduande	简短地	5489	jianduandi	UNCERTAIN	2-char prefix '简短' + 助词 (V+助词 or 2-char N+助词)
+地	edude	恶毒地	5433	edudi	UNCERTAIN	2-char prefix '恶毒' + 助词 (V+助词 or 2-char N+助词)
+地	deburong	地不容	5393	diburong	UNCERTAIN	default
+地	youzhixude	有秩序地	5393	youzhixudi	LIKELY_SPURIOUS	>=3-char prefix '有秩序' + 助词 (long phrase + 助词)
+地	banamade	巴拿马地	5354	banamadi	LIKELY_SPURIOUS	>=3-char prefix '巴拿马' + 助词 (long phrase + 助词)
+地	chaoshengde	朝圣地	5354	chaoshengdi	UNCERTAIN	2-char prefix '朝圣' + 助词 (V+助词 or 2-char N+助词)
+地	maizangde	埋葬地	5354	maizangdi	UNCERTAIN	2-char prefix '埋葬' + 助词 (V+助词 or 2-char N+助词)
+地	boluode	波罗地	5311	boluodi	UNCERTAIN	2-char prefix '波罗' + 助词 (V+助词 or 2-char N+助词)
+地	delu	地炉	5286	dilu	UNCERTAIN	default
+地	paomade	跑马地	5286	paomadi	UNCERTAIN	2-char prefix '跑马' + 助词 (V+助词 or 2-char N+助词)
+地	wuweide	无畏地	5286	wuweidi	UNCERTAIN	2-char prefix '无畏' + 助词 (V+助词 or 2-char N+助词)
+地	aode	凹地	5167	aodi	UNCERTAIN	single-char prefix '凹' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	bugaoxingde	不高兴地	5167	bugaoxingdi	LIKELY_SPURIOUS	>=3-char prefix '不高兴' + 助词 (long phrase + 助词)
+地	siyoude	私有地	5073	siyoudi	UNCERTAIN	2-char prefix '私有' + 助词 (V+助词 or 2-char N+助词)
+地	tiyuchangde	体育场地	4961	tiyuchangdi	LIKELY_SPURIOUS	>=3-char prefix '体育场' + 助词 (long phrase + 助词)
+地	chaofengde	嘲讽地	4842	chaofengdi	UNCERTAIN	2-char prefix '嘲讽' + 助词 (V+助词 or 2-char N+助词)
+地	jiaohuade	狡猾地	4842	jiaohuadi	UNCERTAIN	2-char prefix '狡猾' + 助词 (V+助词 or 2-char N+助词)
+地	kongduide	空对地	4842	kongduidi	UNCERTAIN	2-char prefix '空对' + 助词 (V+助词 or 2-char N+助词)
+地	zanzhude	暂住地	4842	zanzhudi	UNCERTAIN	2-char prefix '暂住' + 助词 (V+助词 or 2-char N+助词)
+地	zhubande	主办地	4804	zhubandi	UNCERTAIN	2-char prefix '主办' + 助词 (V+助词 or 2-char N+助词)
+地	zhuchande	主产地	4804	zhuchandi	UNCERTAIN	2-char prefix '主产' + 助词 (V+助词 or 2-char N+助词)
+地	kongdongde	空洞地	4747	kongdongdi	UNCERTAIN	2-char prefix '空洞' + 助词 (V+助词 or 2-char N+助词)
+地	zhusuode	住所地	4747	zhusuodi	UNCERTAIN	2-char prefix '住所' + 助词 (V+助词 or 2-char N+助词)
+地	decao	地槽	4734	dicao	UNCERTAIN	default
+地	kende	垦地	4734	kendi	UNCERTAIN	single-char prefix '垦' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	laogude	牢固地	4734	laogudi	UNCERTAIN	2-char prefix '牢固' + 助词 (V+助词 or 2-char N+助词)
+地	liuchude	流出地	4734	liuchudi	UNCERTAIN	2-char prefix '流出' + 助词 (V+助词 or 2-char N+助词)
+地	dewozi	地窝子	4652	diwozi	UNCERTAIN	default
+地	qianrude	迁入地	4652	qianrudi	UNCERTAIN	2-char prefix '迁入' + 助词 (V+助词 or 2-char N+助词)
+地	zhouqixingde	周期性地	4480	zhouqixingdi	LIKELY_SPURIOUS	>=3-char prefix '周期性' + 助词 (long phrase + 助词)
+地	baobaode	薄薄地	4422	baobaodi	SPURIOUS	重叠副词 '薄薄' + 助词
+地	chaoxiaode	嘲笑地	4422	chaoxiaodi	UNCERTAIN	2-char prefix '嘲笑' + 助词 (V+助词 or 2-char N+助词)
+地	dela	地蜡	4422	dila	UNCERTAIN	default
+地	dezoudong	地走动	4422	dizoudong	UNCERTAIN	default
+地	jiazhuangde	假装地	4422	jiazhuangdi	UNCERTAIN	2-char prefix '假装' + 助词 (V+助词 or 2-char N+助词)
+地	kuaihuode	快活地	4422	kuaihuodi	UNCERTAIN	2-char prefix '快活' + 助词 (V+助词 or 2-char N+助词)
+地	nongchangde	农场地	4422	nongchangdi	UNCERTAIN	2-char prefix '农场' + 助词 (V+助词 or 2-char N+助词)
+地	qianxunde	谦逊地	4422	qianxundi	UNCERTAIN	2-char prefix '谦逊' + 助词 (V+助词 or 2-char N+助词)
+地	xiede	泻地	4422	xiedi	UNCERTAIN	single-char prefix '泻' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	youzhide	幼稚地	4422	youzhidi	UNCERTAIN	2-char prefix '幼稚' + 助词 (V+助词 or 2-char N+助词)
+地	tuoguande	托管地	4193	tuoguandi	UNCERTAIN	2-char prefix '托管' + 助词 (V+助词 or 2-char N+助词)
+地	demao	地锚	4131	dimao	UNCERTAIN	default
+地	jidude	极度地	4131	jidudi	UNCERTAIN	2-char prefix '极度' + 助词 (V+助词 or 2-char N+助词)
+地	zangshenzhide	葬身之地	4131	zangshenzhidi	LIKELY_SPURIOUS	>=3-char prefix '葬身之' + 助词 (long phrase + 助词)
+地	anzangde	安葬地	3861	anzangdi	UNCERTAIN	2-char prefix '安葬' + 助词 (V+助词 or 2-char N+助词)
+地	degaoxin	地高辛	3861	digaoxin	UNCERTAIN	default
+地	dejisheng	地纪胜	3861	dijisheng	UNCERTAIN	default
+地	juliede	剧烈地	3861	juliedi	UNCERTAIN	2-char prefix '剧烈' + 助词 (V+助词 or 2-char N+助词)
+地	kenqiede	恳切地	3861	kenqiedi	UNCERTAIN	2-char prefix '恳切' + 助词 (V+助词 or 2-char N+助词)
+地	qingkuaide	轻快地	3831	qingkuaidi	UNCERTAIN	2-char prefix '轻快' + 助词 (V+助词 or 2-char N+助词)
+地	nuomande	诺曼地	3727	nuomandi	UNCERTAIN	2-char prefix '诺曼' + 助词 (V+助词 or 2-char N+助词)
+地	chengshilvde	城市绿地	3686	chengshilvdi	LIKELY_SPURIOUS	>=3-char prefix '城市绿' + 助词 (long phrase + 助词)
+地	detangtui	地堂腿	3686	ditangtui	UNCERTAIN	default
+地	mubande	木板地	3686	mubandi	UNCERTAIN	2-char prefix '木板' + 助词 (V+助词 or 2-char N+助词)
+地	qingshuaide	轻率地	3686	qingshuaidi	UNCERTAIN	2-char prefix '轻率' + 助词 (V+助词 or 2-char N+助词)
+地	tantude	滩涂地	3686	tantudi	UNCERTAIN	2-char prefix '滩涂' + 助词 (V+助词 or 2-char N+助词)
+地	buzhiqingde	不知情地	3468	buzhiqingdi	LIKELY_SPURIOUS	>=3-char prefix '不知情' + 助词 (long phrase + 助词)
+地	caoshuaide	草率地	3468	caoshuaidi	UNCERTAIN	2-char prefix '草率' + 助词 (V+助词 or 2-char N+助词)
+地	detingji	地厅级	3468	ditingji	UNCERTAIN	default
+地	qingxiede	倾斜地	3468	qingxiedi	UNCERTAIN	2-char prefix '倾斜' + 助词 (V+助词 or 2-char N+助词)
+地	tulaode	徒劳地	3468	tulaodi	UNCERTAIN	2-char prefix '徒劳' + 助词 (V+助词 or 2-char N+助词)
+地	yinhande	隐含地	3468	yinhandi	UNCERTAIN	2-char prefix '隐含' + 助词 (V+助词 or 2-char N+助词)
+地	defantu	地翻土	3239	difantu	UNCERTAIN	default
+地	gunde	滚地	3239	gundi	UNCERTAIN	single-char prefix '滚' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	aolide	奥利地	3135	aolidi	UNCERTAIN	2-char prefix '奥利' + 助词 (V+助词 or 2-char N+助词)
+地	chande	禅地	3094	chandi	UNCERTAIN	single-char prefix '禅' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	chendiandiande	沉甸甸地	3094	chendiandiandi	LIKELY_SPURIOUS	>=3-char prefix '沉甸甸' + 助词 (long phrase + 助词)
+地	dejieshe	地接社	3094	dijieshe	UNCERTAIN	default
+地	dekanyuan	地堪院	3094	dikanyuan	UNCERTAIN	default
+地	delieshanbeng	地裂山崩	3094	dilieshanbeng	UNCERTAIN	default
+地	demaideng	地埋灯	3094	dimaideng	UNCERTAIN	default
+地	demandeng	地埋灯	3094	dimaideng	UNCERTAIN	default
+地	detiaogang	地条钢	3094	ditiaogang	UNCERTAIN	default
+地	duofade	多发地	3094	duofadi	UNCERTAIN	2-char prefix '多发' + 助词 (V+助词 or 2-char N+助词)
+地	fangcunde	方寸地	3094	fangcundi	UNCERTAIN	2-char prefix '方寸' + 助词 (V+助词 or 2-char N+助词)
+地	guimide	诡秘地	3094	guimidi	UNCERTAIN	2-char prefix '诡秘' + 助词 (V+助词 or 2-char N+助词)
+地	huanxiangde	幻想地	3094	huanxiangdi	UNCERTAIN	2-char prefix '幻想' + 助词 (V+助词 or 2-char N+助词)
+地	huopode	活泼地	3094	huopodi	SPURIOUS	V/Adj '活泼' + 助词
+地	jiguande	籍贯地	3094	jiguandi	UNCERTAIN	2-char prefix '籍贯' + 助词 (V+助词 or 2-char N+助词)
+地	jingjuede	警觉地	3094	jingjuedi	UNCERTAIN	2-char prefix '警觉' + 助词 (V+助词 or 2-char N+助词)
+地	jixunde	集训地	3094	jixundi	UNCERTAIN	2-char prefix '集训' + 助词 (V+助词 or 2-char N+助词)
+地	kutiankude	哭天哭地	3094	kutiankudi	LIKELY_SPURIOUS	>=3-char prefix '哭天哭' + 助词 (long phrase + 助词)
+地	lansande	懒散地	3094	lansandi	UNCERTAIN	2-char prefix '懒散' + 助词 (V+助词 or 2-char N+助词)
+地	shanshande	闪闪地	3094	shanshandi	SPURIOUS	重叠副词 '闪闪' + 助词
+地	shilide	失礼地	3094	shilidi	UNCERTAIN	2-char prefix '失礼' + 助词 (V+助词 or 2-char N+助词)
+地	taotaode	滔滔地	3094	taotaodi	SPURIOUS	重叠副词 '滔滔' + 助词
+地	touyunde	头晕地	3094	touyundi	UNCERTAIN	2-char prefix '头晕' + 助词 (V+助词 or 2-char N+助词)
+地	waiwaide	歪歪地	3094	waiwaidi	SPURIOUS	重叠副词 '歪歪' + 助词
+地	xishude	稀疏地	3094	xishudi	UNCERTAIN	2-char prefix '稀疏' + 助词 (V+助词 or 2-char N+助词)
+地	xunmengde	迅猛地	3094	xunmengdi	UNCERTAIN	2-char prefix '迅猛' + 助词 (V+助词 or 2-char N+助词)
+地	yaoyaode	遥遥地	3094	yaoyaodi	SPURIOUS	重叠副词 '遥遥' + 助词
+地	youzhunbeide	有准备地	3094	youzhunbeidi	LIKELY_SPURIOUS	>=3-char prefix '有准备' + 助词 (long phrase + 助词)
+地	zhengjiede	整洁地	3094	zhengjiedi	UNCERTAIN	2-char prefix '整洁' + 助词 (V+助词 or 2-char N+助词)
+地	zhengkuaide	整块地	3094	zhengkuaidi	UNCERTAIN	2-char prefix '整块' + 助词 (V+助词 or 2-char N+助词)
+地	zhentianhande	震天撼地	3094	zhentianhandi	LIKELY_SPURIOUS	>=3-char prefix '震天撼' + 助词 (long phrase + 助词)
+地	zhongshizhide	众矢之地	3094	zhongshizhidi	LIKELY_SPURIOUS	>=3-char prefix '众矢之' + 助词 (long phrase + 助词)
+地	zuzude	足足地	3094	zuzudi	SPURIOUS	重叠副词 '足足' + 助词
+地	baofuxingde	报复性地	2987	baofuxingdi	LIKELY_SPURIOUS	>=3-char prefix '报复性' + 助词 (long phrase + 助词)
+地	dejiao	地椒	2987	dijiao	UNCERTAIN	default
+地	faxiangzhide	发祥之地	2987	faxiangzhidi	LIKELY_SPURIOUS	>=3-char prefix '发祥之' + 助词 (long phrase + 助词)
+地	geshide	各市地	2987	geshidi	UNCERTAIN	2-char prefix '各市' + 助词 (V+助词 or 2-char N+助词)
+地	gongyingde	供应地	2987	gongyingdi	UNCERTAIN	2-char prefix '供应' + 助词 (V+助词 or 2-char N+助词)
+地	huajide	滑稽地	2987	huajidi	UNCERTAIN	2-char prefix '滑稽' + 助词 (V+助词 or 2-char N+助词)
+地	qiaojude	侨居地	2987	qiaojudi	UNCERTAIN	2-char prefix '侨居' + 助词 (V+助词 or 2-char N+助词)
+地	songsande	松散地	2987	songsandi	UNCERTAIN	2-char prefix '松散' + 助词 (V+助词 or 2-char N+助词)
+地	suxide	苏悉地	2987	suxidi	UNCERTAIN	2-char prefix '苏悉' + 助词 (V+助词 or 2-char N+助词)
+地	xianmingde	贤明地	2987	xianmingdi	UNCERTAIN	2-char prefix '贤明' + 助词 (V+助词 or 2-char N+助词)
+地	detang	地趟	2367	ditang	UNCERTAIN	default
+地	dezhuanfeng	地转风	2367	dizhuanfeng	UNCERTAIN	default
+地	duanrande	断然地	2367	duanrandi	UNCERTAIN	2-char prefix '断然' + 助词 (V+助词 or 2-char N+助词)
+地	maicangde	埋藏地	2367	maicangdi	UNCERTAIN	2-char prefix '埋藏' + 助词 (V+助词 or 2-char N+助词)
+地	miaode	描地	2367	miaodi	UNCERTAIN	single-char prefix '描' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	nannande	喃喃地	2367	nannandi	SPURIOUS	重叠副词 '喃喃' + 助词
+地	qiangongde	谦恭地	2367	qiangongdi	UNCERTAIN	2-char prefix '谦恭' + 助词 (V+助词 or 2-char N+助词)
+地	taxiande	塌陷地	2367	taxiandi	UNCERTAIN	2-char prefix '塌陷' + 助词 (V+助词 or 2-char N+助词)
+地	weiyande	威严地	2367	weiyandi	UNCERTAIN	2-char prefix '威严' + 助词 (V+助词 or 2-char N+助词)
+地	xiuyangde	休养地	2367	xiuyangdi	UNCERTAIN	2-char prefix '休养' + 助词 (V+助词 or 2-char N+助词)
+地	yeyingde	野营地	2367	yeyingdi	UNCERTAIN	2-char prefix '野营' + 助词 (V+助词 or 2-char N+助词)
+地	zhuzhade	驻扎地	2367	zhuzhadi	UNCERTAIN	2-char prefix '驻扎' + 助词 (V+助词 or 2-char N+助词)
+地	chaonongde	嘲弄地	1493	chaonongdi	UNCERTAIN	2-char prefix '嘲弄' + 助词 (V+助词 or 2-char N+助词)
+地	defuzi	地肤子	1493	difuzi	UNCERTAIN	default
+地	deguangbing	地广兵	1493	diguangbing	UNCERTAIN	default
+地	dehuagu	地花鼓	1493	dihuagu	UNCERTAIN	default
+地	dejianchu	地检处	1493	dijianchu	UNCERTAIN	default
+地	dejiding	地计丁	1493	dijiding	UNCERTAIN	default
+地	deshenglan	地生兰	1493	dishenglan	UNCERTAIN	default
+地	deshengtaixue	地生态学	1493	dishengtaixue	UNCERTAIN	default
+地	dewenfeng	地闻风	1493	diwenfeng	UNCERTAIN	default
+地	feifande	非凡地	1493	feifandi	UNCERTAIN	2-char prefix '非凡' + 助词 (V+助词 or 2-char N+助词)
+地	hangde	夯地	1493	hangdi	UNCERTAIN	single-char prefix '夯' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	hehuande	和缓地	1493	hehuandi	UNCERTAIN	2-char prefix '和缓' + 助词 (V+助词 or 2-char N+助词)
+地	huixiede	诙谐地	1493	huixiedi	UNCERTAIN	2-char prefix '诙谐' + 助词 (V+助词 or 2-char N+助词)
+地	kaikende	开垦地	1493	kaikendi	UNCERTAIN	2-char prefix '开垦' + 助词 (V+助词 or 2-char N+助词)
+地	lade	蜡地	1493	ladi	UNCERTAIN	single-char prefix '蜡' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	laode	涝地	1493	laodi	UNCERTAIN	single-char prefix '涝' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	liuxiangde	流向地	1493	liuxiangdi	UNCERTAIN	2-char prefix '流向' + 助词 (V+助词 or 2-char N+助词)
+地	weihaizaode	围海造地	1493	weihaizaodi	LIKELY_SPURIOUS	>=3-char prefix '围海造' + 助词 (long phrase + 助词)
+地	yinbide	荫蔽地	1493	yinbidi	UNCERTAIN	2-char prefix '荫蔽' + 助词 (V+助词 or 2-char N+助词)
+地	youxichangde	游戏场地	1493	youxichangdi	LIKELY_SPURIOUS	>=3-char prefix '游戏场' + 助词 (long phrase + 助词)
+地	aidecha	矮地茶	0	aidicha	UNCERTAIN	default
+地	aiqiude	哀求地	0	aiqiudi	SPURIOUS	V/Adj '哀求' + 助词
+地	anxiande	安闲地	0	anxiandi	UNCERTAIN	2-char prefix '安闲' + 助词 (V+助词 or 2-char N+助词)
+地	baoshade	薄砂地	0	baoshadi	UNCERTAIN	2-char prefix '薄砂' + 助词 (V+助词 or 2-char N+助词)
+地	baoyuande	抱怨地	0	baoyuandi	UNCERTAIN	2-char prefix '抱怨' + 助词 (V+助词 or 2-char N+助词)
+地	beiliede	卑劣地	0	beiliedi	UNCERTAIN	2-char prefix '卑劣' + 助词 (V+助词 or 2-char N+助词)
+地	bingcuodexiao	兵挫地削	0	bingcuodixue	UNCERTAIN	default
+地	bingcuodexue	兵挫地削	0	bingcuodixue	UNCERTAIN	default
+地	bodehuan	卜地桓	0	bodihuan	UNCERTAIN	default
+地	bogende	伯根地	0	bogendi	UNCERTAIN	2-char prefix '伯根' + 助词 (V+助词 or 2-char N+助词)
+地	buende	布恩地	0	buendi	UNCERTAIN	2-char prefix '布恩' + 助词 (V+助词 or 2-char N+助词)
+地	bujingquede	不精确地	0	bujingquedi	LIKELY_SPURIOUS	>=3-char prefix '不精确' + 助词 (long phrase + 助词)
+地	bukejiede	不可解地	0	bukejiedi	LIKELY_SPURIOUS	>=3-char prefix '不可解' + 助词 (long phrase + 助词)
+地	buqiadangde	不恰当地	0	buqiadangdi	LIKELY_SPURIOUS	>=3-char prefix '不恰当' + 助词 (long phrase + 助词)
+地	butimiande	不体面地	0	butimiandi	LIKELY_SPURIOUS	>=3-char prefix '不体面' + 助词 (long phrase + 助词)
+地	buwendingde	不稳定地	0	buwendingdi	LIKELY_SPURIOUS	>=3-char prefix '不稳定' + 助词 (long phrase + 助词)
+地	buxiangchende	不相称地	0	buxiangchendi	LIKELY_SPURIOUS	>=3-char prefix '不相称' + 助词 (long phrase + 助词)
+地	buxiangdengde	不相等地	0	buxiangdengdi	LIKELY_SPURIOUS	>=3-char prefix '不相等' + 助词 (long phrase + 助词)
+地	caijinde	采金地	0	caijindi	UNCERTAIN	2-char prefix '采金' + 助词 (V+助词 or 2-char N+助词)
+地	caiyide	猜疑地	0	caiyidi	UNCERTAIN	2-char prefix '猜疑' + 助词 (V+助词 or 2-char N+助词)
+地	caoshuaidezuo	草率地做	0	caoshuaidizuo	UNCERTAIN	default
+地	cedeliu	测地流	0	cediliu	UNCERTAIN	default
+地	chanchade	产茶地	0	chanchadi	UNCERTAIN	2-char prefix '产茶' + 助词 (V+助词 or 2-char N+助词)
+地	chanmide	产米地	0	chanmidi	UNCERTAIN	2-char prefix '产米' + 助词 (V+助词 or 2-char N+助词)
+地	chanxiaode	产销地	0	chanxiaodi	UNCERTAIN	2-char prefix '产销' + 助词 (V+助词 or 2-char N+助词)
+地	chizede	斥责地	0	chizedi	UNCERTAIN	2-char prefix '斥责' + 助词 (V+助词 or 2-char N+助词)
+地	chubandeque	出版地缺	0	chubandique	UNCERTAIN	default
+地	chudeju	楚地居	0	chudiju	UNCERTAIN	default
+地	chupinde	出品地	0	chupindi	UNCERTAIN	2-char prefix '出品' + 助词 (V+助词 or 2-char N+助词)
+地	cuimiande	催眠地	0	cuimiandi	UNCERTAIN	2-char prefix '催眠' + 助词 (V+助词 or 2-char N+助词)
+地	danxiangjiede	单相接地	0	danxiangjiedi	LIKELY_SPURIOUS	>=3-char prefix '单相接' + 助词 (long phrase + 助词)
+地	daode	稻地	0	daodi	UNCERTAIN	single-char prefix '稻' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	debie	地鳖	0	dibie	UNCERTAIN	default
+地	debiechong	地鳖虫	0	dibiechong	UNCERTAIN	default
+地	decang	地仓	0	dicang	UNCERTAIN	default
+地	dedancao	地胆草	0	didancao	UNCERTAIN	default
+地	detanhuang	地弹簧	0	ditanhuang	UNCERTAIN	default
+地	dededaodan	地地导弹	0	dididaodan	UNCERTAIN	default
+地	dedidaodan	地地导弹	0	dididaodan	UNCERTAIN	default
+地	didedaodan	地地导弹	0	dididaodan	UNCERTAIN	default
+地	dedouyun	地斗韵	0	didouyun	UNCERTAIN	default
+地	deercao	地耳草	0	diercao	UNCERTAIN	default
+地	defengpi	地枫皮	0	difengpi	UNCERTAIN	default
+地	defukang	地福康	0	difukang	UNCERTAIN	default
+地	dejianyuan	地建园	0	dijianyuan	UNCERTAIN	default
+地	dejibu	地籍簿	0	dijibu	UNCERTAIN	default
+地	dejincao	地锦草	0	dijincao	UNCERTAIN	default
+地	dejingli	地静立	0	dijingli	UNCERTAIN	default
+地	dejinqili	地尽其力	0	dijinqili	UNCERTAIN	default
+地	dejinxi	地金喜	0	dijinxi	UNCERTAIN	default
+地	dejitu	地籍图	0	dijitu	UNCERTAIN	default
+地	dekaishi	地开石	0	dikaishi	UNCERTAIN	default
+地	delan	地缆	0	dilan	UNCERTAIN	default
+地	delieyundong	地裂运动	0	dilieyundong	UNCERTAIN	default
+地	delingxing	地灵星	0	dilingxing	UNCERTAIN	default
+地	demeisu	地霉素	0	dimeisu	UNCERTAIN	default
+地	demi	地蜜	0	dimi	UNCERTAIN	default
+地	demingqi	地明器	0	dimingqi	UNCERTAIN	default
+地	demuliang	地木梁	0	dimuliang	UNCERTAIN	default
+地	depiaosan	地飘散	0	dipiaosan	UNCERTAIN	default
+地	depulun	地普仑	0	dipulun	UNCERTAIN	default
+地	dequanding	地全顶	0	diquanding	UNCERTAIN	default
+地	deshixue	地史学	0	dishixue	UNCERTAIN	default
+地	deshujuan	地舒卷	0	dishujuan	UNCERTAIN	default
+地	detangquan	地躺拳	0	ditangquan	UNCERTAIN	default
+地	deweicheng	地微撑	0	diweicheng	UNCERTAIN	default
+地	dewenxing	地文星	0	diwenxing	UNCERTAIN	default
+地	dewoyi	地沃宜	0	diwoyi	UNCERTAIN	default
+地	dewuhui	地五会	0	diwuhui	UNCERTAIN	default
+地	dewukuai	地五会	0	diwuhui	UNCERTAIN	default
+地	dexiancheng	地仙城	0	dixiancheng	UNCERTAIN	default
+地	dexiancun	地仙村	0	dixiancun	UNCERTAIN	default
+地	dexianfeng	地仙封	0	dixianfeng	UNCERTAIN	default
+地	dexiangbo	地向波	0	dixiangbo	UNCERTAIN	default
+地	dexiangyi	地相异	0	dixiangyi	UNCERTAIN	default
+地	dexianmu	地仙幕	0	dixianmu	UNCERTAIN	default
+地	dexiaoding	地笑丁	0	dixiaoding	UNCERTAIN	default
+地	dexipan	地西泮	0	dixipan	UNCERTAIN	default
+地	dexuanzhu	地玄珠	0	dixuanzhu	UNCERTAIN	default
+地	deyicheng	地译成	0	diyicheng	UNCERTAIN	default
+地	deyingli	地应力	0	diyingli	UNCERTAIN	default
+地	deyiquan	地役权	0	diyiquan	UNCERTAIN	default
+地	deyixuan	地宜选	0	diyixuan	UNCERTAIN	default
+地	deyuanshanxian	地远山险	0	diyuanshanxian	UNCERTAIN	default
+地	deyunyi	地运仪	0	diyunyi	UNCERTAIN	default
+地	dezhaomeng	地照梦	0	dizhaomeng	UNCERTAIN	default
+地	dezhaomin	地召民	0	dizhaomin	UNCERTAIN	default
+地	dezhongheng	地中衡	0	dizhongheng	UNCERTAIN	default
+地	deziqian	地自谦	0	diziqian	UNCERTAIN	default
+地	dezixiong	地自雄	0	dizixiong	UNCERTAIN	default
+地	dianzhuanglvde	点状绿地	0	dianzhuanglvdi	LIKELY_SPURIOUS	>=3-char prefix '点状绿' + 助词 (long phrase + 助词)
+地	dingrude	丁入地	0	dingrudi	UNCERTAIN	2-char prefix '丁入' + 助词 (V+助词 or 2-char N+助词)
+地	dongyide	东益地	0	dongyidi	UNCERTAIN	2-char prefix '东益' + 助词 (V+助词 or 2-char N+助词)
+地	faande	发案地	0	faandi	UNCERTAIN	2-char prefix '发案' + 助词 (V+助词 or 2-char N+助词)
+地	fadaide	发呆地	0	fadaidi	UNCERTAIN	2-char prefix '发呆' + 助词 (V+助词 or 2-char N+助词)
+地	fahuode	发货地	0	fahuodi	UNCERTAIN	2-char prefix '发货' + 助词 (V+助词 or 2-char N+助词)
+地	fakuangde	发狂地	0	fakuangdi	UNCERTAIN	2-char prefix '发狂' + 助词 (V+助词 or 2-char N+助词)
+地	fandegang	梵地冈	0	fandigang	UNCERTAIN	default
+地	fangyinlvde	防音绿地	0	fangyinlvdi	LIKELY_SPURIOUS	>=3-char prefix '防音绿' + 助词 (long phrase + 助词)
+地	fantiannaode	烦天恼地	0	fantiannaodi	LIKELY_SPURIOUS	>=3-char prefix '烦天恼' + 助词 (long phrase + 助词)
+地	fanxiangde	反向地	0	fanxiangdi	UNCERTAIN	2-char prefix '反向' + 助词 (V+助词 or 2-char N+助词)
+地	feidianzide	非电子地	0	feidianzidi	LIKELY_SPURIOUS	>=3-char prefix '非电子' + 助词 (long phrase + 助词)
+地	feishehuide	非社会地	0	feishehuidi	LIKELY_SPURIOUS	>=3-char prefix '非社会' + 助词 (long phrase + 助词)
+地	feiyeshide	飞也似地	0	feiyeshidi	LIKELY_SPURIOUS	>=3-char prefix '飞也似' + 助词 (long phrase + 助词)
+地	fennude	忿怒地	0	fennudi	UNCERTAIN	2-char prefix '忿怒' + 助词 (V+助词 or 2-char N+助词)
+地	fushulvde	附属绿地	0	fushulvdi	LIKELY_SPURIOUS	>=3-char prefix '附属绿' + 助词 (long phrase + 助词)
+地	gancaode	干草地	0	gancaodi	UNCERTAIN	2-char prefix '干草' + 助词 (V+助词 or 2-char N+助词)
+地	gandena	甘地纳	0	gandina	UNCERTAIN	default
+地	ganliande	干练地	0	ganliandi	UNCERTAIN	2-char prefix '干练' + 助词 (V+助词 or 2-char N+助词)
+地	gantianqide	感天泣地	0	gantianqidi	LIKELY_SPURIOUS	>=3-char prefix '感天泣' + 助词 (long phrase + 助词)
+地	gongbupode	攻不破地	0	gongbupodi	LIKELY_SPURIOUS	>=3-char prefix '攻不破' + 助词 (long phrase + 助词)
+地	guademala	瓜地马拉	0	guadimala	UNCERTAIN	default
+地	guanchude	管楚地	0	guanchudi	UNCERTAIN	2-char prefix '管楚' + 助词 (V+助词 or 2-char N+助词)
+地	guiquande	规劝地	0	guiquandi	UNCERTAIN	2-char prefix '规劝' + 助词 (V+助词 or 2-char N+助词)
+地	hantiandongde	寒天冻地	0	hantiandongdi	LIKELY_SPURIOUS	>=3-char prefix '寒天冻' + 助词 (long phrase + 助词)
+地	helanshude	荷兰属地	0	helanshudi	LIKELY_SPURIOUS	>=3-char prefix '荷兰属' + 助词 (long phrase + 助词)
+地	huadezixian	划地自限	0	huadizixian	UNCERTAIN	default
+地	huadezixian	画地自限	0	huadizixian	UNCERTAIN	default
+地	jiadeyuntong	甲地孕酮	0	jiadiyuntong	UNCERTAIN	default
+地	jiandedaodan	舰地导弹	0	jiandidaodan	UNCERTAIN	default
+地	jiaobudiande	角不点地	0	jiaobudiandi	LIKELY_SPURIOUS	>=3-char prefix '角不点' + 助词 (long phrase + 助词)
+地	jiaoqulvde	郊区绿地	0	jiaoqulvdi	LIKELY_SPURIOUS	>=3-char prefix '郊区绿' + 助词 (long phrase + 助词)
+地	jiaozhande	胶粘地	0	jiaozhandi	UNCERTAIN	2-char prefix '胶粘' + 助词 (V+助词 or 2-char N+助词)
+地	jiedexitong	接地系统	0	jiedixitong	UNCERTAIN	default
+地	jiedelv	节地率	0	jiedilv	UNCERTAIN	default
+地	jiedeshuai	节地率	0	jiedilv	UNCERTAIN	default
+地	jijingde	寂静地	0	jijingdi	UNCERTAIN	2-char prefix '寂静' + 助词 (V+助词 or 2-char N+助词)
+地	jijingde	机警地	0	jijingdi	UNCERTAIN	2-char prefix '机警' + 助词 (V+助词 or 2-char N+助词)
+地	jinchengchide	金城池地	0	jinchengchidi	LIKELY_SPURIOUS	>=3-char prefix '金城池' + 助词 (long phrase + 助词)
+地	jinchengtangde	金城汤地	0	jinchengtangdi	LIKELY_SPURIOUS	>=3-char prefix '金城汤' + 助词 (long phrase + 助词)
+地	jingzhide	静止地	0	jingzhidi	UNCERTAIN	2-char prefix '静止' + 助词 (V+助词 or 2-char N+助词)
+地	jinhuangdeshu	金黄地鼠	0	jinhuangdishu	UNCERTAIN	default
+地	jinyaode	紧要地	0	jinyaodi	UNCERTAIN	2-char prefix '紧要' + 助词 (V+助词 or 2-char N+助词)
+地	jitianzhuade	击天抓地	0	jitianzhuadi	LIKELY_SPURIOUS	>=3-char prefix '击天抓' + 助词 (long phrase + 助词)
+地	kaideji	凯地系	0	kaidixi	UNCERTAIN	default
+地	kaidexi	凯地系	0	kaidixi	UNCERTAIN	default
+地	kedeman	克地曼	0	kediman	UNCERTAIN	default
+地	keguide	可贵地	0	keguidi	UNCERTAIN	2-char prefix '可贵' + 助词 (V+助词 or 2-char N+助词)
+地	keluodeyaminzhugongtongti	克罗地亚民主共同体	0	keluodiyaminzhugongtongti	UNCERTAIN	default
+地	keluodeyayihui	克罗地亚议会	0	keluodiyayihui	UNCERTAIN	default
+地	kenzhide	垦殖地	0	kenzhidi	UNCERTAIN	2-char prefix '垦殖' + 助词 (V+助词 or 2-char N+助词)
+地	keyide	可疑地	0	keyidi	UNCERTAIN	2-char prefix '可疑' + 助词 (V+助词 or 2-char N+助词)
+地	kongduidefei	空对地飞	0	kongduidifei	UNCERTAIN	default
+地	kongxiande	空闲地	0	kongxiandi	UNCERTAIN	2-char prefix '空闲' + 助词 (V+助词 or 2-char N+助词)
+地	koutoude	口头地	0	koutoudi	UNCERTAIN	2-char prefix '口头' + 助词 (V+助词 or 2-char N+助词)
+地	kuandade	宽大地	0	kuandadi	UNCERTAIN	2-char prefix '宽大' + 助词 (V+助词 or 2-char N+助词)
+地	kuangbaode	狂暴地	0	kuangbaodi	UNCERTAIN	2-char prefix '狂暴' + 助词 (V+助词 or 2-char N+助词)
+地	kuangtianshuode	狂天说地	0	kuangtianshuodi	LIKELY_SPURIOUS	>=3-char prefix '狂天说' + 助词 (long phrase + 助词)
+地	kuihanwude	愧汗无地	0	kuihanwudi	LIKELY_SPURIOUS	>=3-char prefix '愧汗无' + 助词 (long phrase + 助词)
+地	kutianhaode	哭天嚎地	0	kutianhaodi	LIKELY_SPURIOUS	>=3-char prefix '哭天嚎' + 助词 (long phrase + 助词)
+地	lenglengde	楞楞地	0	lenglengdi	SPURIOUS	重叠副词 '楞楞' + 助词
+地	liandexian	连地仙	0	liandixian	UNCERTAIN	default
+地	linjianxide	林间隙地	0	linjianxidi	LIKELY_SPURIOUS	>=3-char prefix '林间隙' + 助词 (long phrase + 助词)
+地	liuzhongde	留种地	0	liuzhongdi	UNCERTAIN	2-char prefix '留种' + 助词 (V+助词 or 2-char N+助词)
+地	lumangde	鲁莽地	0	lumangdi	UNCERTAIN	2-char prefix '鲁莽' + 助词 (V+助词 or 2-char N+助词)
+地	lunxiude	轮休地	0	lunxiudi	UNCERTAIN	2-char prefix '轮休' + 助词 (V+助词 or 2-char N+助词)
+地	luyuande	陆缘地	0	luyuandi	UNCERTAIN	2-char prefix '陆缘' + 助词 (V+助词 or 2-char N+助词)
+地	lvdexiaoguo	绿地效果	0	lvdixiaoguo	UNCERTAIN	default
+地	lvdeyuntong	氯地孕酮	0	lvdiyuntong	UNCERTAIN	default
+地	lvedefeixing	掠地飞行	0	lvedifeixing	UNCERTAIN	default
+地	lvxingde	履行地	0	lvxingdi	UNCERTAIN	2-char prefix '履行' + 助词 (V+助词 or 2-char N+助词)
+地	madechen	马地臣	0	madichen	UNCERTAIN	default
+地	maidedeng	埋地灯	0	maidideng	UNCERTAIN	default
+地	mandechou	满地瞅	0	mandichou	UNCERTAIN	default
+地	maside	马斯地	0	masidi	UNCERTAIN	2-char prefix '马斯' + 助词 (V+助词 or 2-char N+助词)
+地	menmende	闷闷地	0	menmendi	SPURIOUS	重叠副词 '闷闷' + 助词
+地	mianmiande	绵绵地	0	mianmiandi	SPURIOUS	重叠副词 '绵绵' + 助词
+地	mitiangaide	弥天盖地	0	mitiangaidi	LIKELY_SPURIOUS	>=3-char prefix '弥天盖' + 助词 (long phrase + 助词)
+地	moshizide	磨石子地	0	moshizidi	LIKELY_SPURIOUS	>=3-char prefix '磨石子' + 助词 (long phrase + 助词)
+地	nanjindejian	南金地箭	0	nanjindijian	UNCERTAIN	default
+地	niliude	逆流地	0	niliudi	UNCERTAIN	2-char prefix '逆流' + 助词 (V+助词 or 2-char N+助词)
+地	nongdechonghua	农地重划	0	nongdizhonghua	UNCERTAIN	default
+地	nongdezhonghua	农地重划	0	nongdizhonghua	UNCERTAIN	default
+地	pandeya	潘地亚	0	pandiya	UNCERTAIN	default
+地	pangde	耪地	0	pangdi	UNCERTAIN	single-char prefix '耪' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	pangenwende	盘根问地	0	pangenwendi	LIKELY_SPURIOUS	>=3-char prefix '盘根问' + 助词 (long phrase + 助词)
+地	paoxiaode	咆哮地	0	paoxiaodi	UNCERTAIN	2-char prefix '咆哮' + 助词 (V+助词 or 2-char N+助词)
+地	pudeyuan	铺地园	0	pudiyuan	UNCERTAIN	default
+地	qiandeweiliang	迁地为良	0	qiandiweiliang	UNCERTAIN	default
+地	qijinde	起劲地	0	qijindi	UNCERTAIN	2-char prefix '起劲' + 助词 (V+助词 or 2-char N+助词)
+地	qingdejing	青地境	0	qingdijing	UNCERTAIN	default
+地	qingshuaideshuo	轻率地说	0	qingshuaidishuo	UNCERTAIN	default
+地	rechende	热忱地	0	rechendi	UNCERTAIN	2-char prefix '热忱' + 助词 (V+助词 or 2-char N+助词)
+地	rendeguanxi	人地关系	0	rendiguanxi	UNCERTAIN	default
+地	rongqiade	融洽地	0	rongqiadi	UNCERTAIN	2-char prefix '融洽' + 助词 (V+助词 or 2-char N+助词)
+地	ruilide	锐利地	0	ruilidi	UNCERTAIN	2-char prefix '锐利' + 助词 (V+助词 or 2-char N+助词)
+地	saotianguade	扫田刮地	0	saotianguadi	LIKELY_SPURIOUS	>=3-char prefix '扫田刮' + 助词 (long phrase + 助词)
+地	shahuangde	沙荒地	0	shahuangdi	UNCERTAIN	2-char prefix '沙荒' + 助词 (V+助词 or 2-char N+助词)
+地	shanshande	讪讪地	0	shanshandi	SPURIOUS	重叠副词 '讪讪' + 助词
+地	shatuode	沙坨地	0	shatuodi	UNCERTAIN	2-char prefix '沙坨' + 助词 (V+助词 or 2-char N+助词)
+地	shawudea	沙乌地阿	0	shawudia	UNCERTAIN	default
+地	siwenweide	斯文委地	0	siwenweidi	LIKELY_SPURIOUS	>=3-char prefix '斯文委' + 助词 (long phrase + 助词)
+地	suosuode	索索地	0	suosuodi	SPURIOUS	重叠副词 '索索' + 助词
+地	tanwude	贪污地	0	tanwudi	UNCERTAIN	2-char prefix '贪污' + 助词 (V+助词 or 2-char N+助词)
+地	tianfudezhou	天覆地舟	0	tianfudizhou	UNCERTAIN	default
+地	tianhundecan	天昏地惨	0	tianhundican	UNCERTAIN	default
+地	tianhundezhuan	天昏地转	0	tianhundizhuan	UNCERTAIN	default
+地	tianlongdehu	天龙地虎	0	tianlongdihu	UNCERTAIN	default
+地	tiaodongde	跳动地	0	tiaodongdi	UNCERTAIN	2-char prefix '跳动' + 助词 (V+助词 or 2-char N+助词)
+地	tiedeerhang	贴地而行	0	tiedierxing	UNCERTAIN	default
+地	tiedeerxing	贴地而行	0	tiedierxing	UNCERTAIN	default
+地	tingbode	停泊地	0	tingbodi	UNCERTAIN	2-char prefix '停泊' + 助词 (V+助词 or 2-char N+助词)
+地	tuerde	吐尔地	0	tuerdi	UNCERTAIN	2-char prefix '吐尔' + 助词 (V+助词 or 2-char N+助词)
+地	weidejingtian	纬地经天	0	weidijingtian	UNCERTAIN	default
+地	weidemalazhengfu	危地马拉政府	0	weidimalazhengfu	UNCERTAIN	default
+地	weikende	围垦地	0	weikendi	UNCERTAIN	2-char prefix '围垦' + 助词 (V+助词 or 2-char N+助词)
+地	weiwade	魏瓦地	0	weiwadi	UNCERTAIN	2-char prefix '魏瓦' + 助词 (V+助词 or 2-char N+助词)
+地	weizhide	卫之地	0	weizhidi	UNCERTAIN	2-char prefix '卫之' + 助词 (V+助词 or 2-char N+助词)
+地	wenxude	温煦地	0	wenxudi	UNCERTAIN	2-char prefix '温煦' + 助词 (V+助词 or 2-char N+助词)
+地	wulide	无礼地	0	wulidi	UNCERTAIN	2-char prefix '无礼' + 助词 (V+助词 or 2-char N+助词)
+地	wumude	无目地	0	wumudi	UNCERTAIN	2-char prefix '无目' + 助词 (V+助词 or 2-char N+助词)
+地	wushiwude	无时无地	0	wushiwudi	LIKELY_SPURIOUS	>=3-char prefix '无时无' + 助词 (long phrase + 助词)
+地	wuxiaode	无效地	0	wuxiaodi	UNCERTAIN	2-char prefix '无效' + 助词 (V+助词 or 2-char N+助词)
+地	xiangdeershuaizheng	相地而衰征	0	xiangdiershuaizheng	UNCERTAIN	default
+地	xiansande	闲散地	0	xiansandi	UNCERTAIN	2-char prefix '闲散' + 助词 (V+助词 or 2-char N+助词)
+地	xianzhide	闲置地	0	xianzhidi	UNCERTAIN	2-char prefix '闲置' + 助词 (V+助词 or 2-char N+助词)
+地	xidehuantian	喜地欢天	0	xidihuantian	UNCERTAIN	default
+地	xidelan	西地兰	0	xidilan	UNCERTAIN	default
+地	xiezhuanglvde	楔状绿地	0	xiezhuanglvdi	LIKELY_SPURIOUS	>=3-char prefix '楔状绿' + 助词 (long phrase + 助词)
+地	xundexian	寻地仙	0	xundixian	UNCERTAIN	default
+地	xindeya	辛地亚	0	xindiya	UNCERTAIN	default
+地	xiongjiujiude	雄赳赳地	0	xiongjiujiudi	LIKELY_SPURIOUS	>=3-char prefix '雄赳赳' + 助词 (long phrase + 助词)
+地	xudeshan	许地山	0	xudishan	UNCERTAIN	default
+地	xuejiuqide	学究气地	0	xuejiuqidi	LIKELY_SPURIOUS	>=3-char prefix '学究气' + 助词 (long phrase + 助词)
+地	xuntianxiade	熏天吓地	0	xuntianxiadi	LIKELY_SPURIOUS	>=3-char prefix '熏天吓' + 助词 (long phrase + 助词)
+地	yangdezuowu	养地作物	0	yangdizuowu	UNCERTAIN	default
+地	yanjiande	盐硷地	0	yanjiandi	UNCERTAIN	2-char prefix '盐硷' + 助词 (V+助词 or 2-char N+助词)
+地	yedexunlian	野地训练	0	yedixunlian	UNCERTAIN	default
+地	yidesuanerna	依地酸二钠	0	yidisuanerna	UNCERTAIN	default
+地	yijiande	一箭地	0	yijiandi	UNCERTAIN	2-char prefix '一箭' + 助词 (V+助词 or 2-char N+助词)
+地	yindeanhua	印地安话	0	yindianhua	UNCERTAIN	default
+地	yindejue	阴地蕨	0	yindijue	UNCERTAIN	default
+地	yingchizhide	盈尺之地	0	yingchizhidi	LIKELY_SPURIOUS	>=3-char prefix '盈尺之' + 助词 (long phrase + 助词)
+地	yinshide	阴世地	0	yinshidi	UNCERTAIN	2-char prefix '阴世' + 助词 (V+助词 or 2-char N+助词)
+地	youxingde	油性地	0	youxingdi	UNCERTAIN	2-char prefix '油性' + 助词 (V+助词 or 2-char N+助词)
+地	yuantianyuande	冤天冤地	0	yuantianyuandi	LIKELY_SPURIOUS	>=3-char prefix '冤天冤' + 助词 (long phrase + 助词)
+地	yudeba	淤地坝	0	yudiba	UNCERTAIN	default
+地	yunde	耘地	0	yundi	UNCERTAIN	single-char prefix '耘' + 助词 (likely legitimate N+助词,但 ambiguous)
+地	zhuozhongde	着重地	0	zhuozhongdi	UNCERTAIN	2-char prefix '着重' + 助词 (V+助词 or 2-char N+助词)
+地	zhentianhaide	震天骇地	0	zhentianhaidi	LIKELY_SPURIOUS	>=3-char prefix '震天骇' + 助词 (long phrase + 助词)
+地	zhitianhuade	指天划地	0	zhitianhuadi	LIKELY_SPURIOUS	>=3-char prefix '指天划' + 助词 (long phrase + 助词)
+地	zhongshengde	中省地	0	zhongshengdi	UNCERTAIN	2-char prefix '中省' + 助词 (V+助词 or 2-char N+助词)
+地	zhuanhuanzhide	转圜之地	0	zhuanhuanzhidi	LIKELY_SPURIOUS	>=3-char prefix '转圜之' + 助词 (long phrase + 助词)
+地	zhunzhunde	谆谆地	0	zhunzhundi	SPURIOUS	重叠副词 '谆谆' + 助词
+地	zidezijian	自地自建	0	zidizijian	UNCERTAIN	default
+地	zikuade	自夸地	0	zikuadi	UNCERTAIN	2-char prefix '自夸' + 助词 (V+助词 or 2-char N+助词)
+地	zuandedan	钻地弹	0	zuandidan	UNCERTAIN	default
+地	zuandetan	钻地弹	0	zuandidan	UNCERTAIN	default
+地	zuantianrude	钻天入地	0	zuantianrudi	LIKELY_SPURIOUS	>=3-char prefix '钻天入' + 助词 (long phrase + 助词)
+地	zuiede	罪恶地	0	zuiedi	UNCERTAIN	2-char prefix '罪恶' + 助词 (V+助词 or 2-char N+助词)
+地	zuiezhide	罪恶之地	0	zuiezhidi	LIKELY_SPURIOUS	>=3-char prefix '罪恶之' + 助词 (long phrase + 助词)
+地	zuodefenzang	坐地分脏	0	zuodifenzang	UNCERTAIN	default
+得	deichu	得出	34036	dechu	UNCERTAIN	default
+得	deiyou	得有	31924	deyou	UNCERTAIN	default
+得	biandei	变得	31834	biande	UNCERTAIN	single-char prefix '变' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deiyi	得以	31620	deyi	UNCERTAIN	default
+得	kandei	看得	31253	kande	UNCERTAIN	single-char prefix '看' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deifen	得分	30053	defen	UNCERTAIN	default
+得	meidei	没得	29193	meide	UNCERTAIN	single-char prefix '没' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deibudao	得不到	29083	debudao	UNCERTAIN	default
+得	deilai	得来	28983	delai	UNCERTAIN	default
+得	bidei	彼得	28243	bide	UNCERTAIN	single-char prefix '彼' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	kandeichu	看得出	26996	kandechu	UNCERTAIN	default
+得	deizhu	得住	26878	dezhu	UNCERTAIN	default
+得	huodei	活得	26467	huode	UNCERTAIN	single-char prefix '活' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deixia	得下	26345	dexia	UNCERTAIN	default
+得	dadei	打得	26279	dade	UNCERTAIN	single-char prefix '打' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deizhu	得主	26026	dezhu	UNCERTAIN	default
+得	kandeijian	看得见	25849	kandejian	UNCERTAIN	default
+得	kandeixian	看得见	25849	kandejian	UNCERTAIN	default
+得	shuodeihao	说得好	25652	shuodehao	UNCERTAIN	default
+得	deishi	得失	25195	deshi	UNCERTAIN	default
+得	kedei	可得	24453	kede	UNCERTAIN	single-char prefix '可' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	yongdei	用得	24305	yongde	UNCERTAIN	single-char prefix '用' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deijiu	得救	23994	dejiu	UNCERTAIN	default
+得	shoudeile	受得了	23939	shoudele	UNCERTAIN	2-char prefix '受得' + 助词 (V+助词 or 2-char N+助词)
+得	shoudeiliao	受得了	23939	shoudele	UNCERTAIN	2-char prefix '受得' + 助词 (V+助词 or 2-char N+助词)
+得	jingdeiqi	经得起	23819	jingdeqi	UNCERTAIN	default
+得	deibing	得病	23645	debing	UNCERTAIN	default
+得	deiyong	得用	23552	deyong	UNCERTAIN	default
+得	deicheng	得成	23504	decheng	UNCERTAIN	default
+得	meidei	美得	23479	meide	UNCERTAIN	single-char prefix '美' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deiming	得名	23253	deming	UNCERTAIN	default
+得	paidei	拍得	23135	paide	UNCERTAIN	single-char prefix '拍' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xiadei	下得	23061	xiade	UNCERTAIN	single-char prefix '下' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shangdei	上得	23007	shangde	UNCERTAIN	single-char prefix '上' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	maidei	买得	22864	maide	UNCERTAIN	single-char prefix '买' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	kandeichulai	看得出来	22815	kandechulai	UNCERTAIN	default
+得	deixian	得闲	22797	dexian	UNCERTAIN	default
+得	deijiang	得奖	22771	dejiang	UNCERTAIN	default
+得	zhangdeishuai	长得帅	22690	zhangdeshuai	UNCERTAIN	default
+得	shuodeidui	说得对	22607	shuodedui	UNCERTAIN	default
+得	kaidei	开得	21582	kaide	UNCERTAIN	single-char prefix '开' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhendei	真得	21455	zhende	UNCERTAIN	single-char prefix '真' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	jiandei	兼得	21415	jiande	UNCERTAIN	single-char prefix '兼' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	peidei	配得	21327	peide	UNCERTAIN	single-char prefix '配' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	leidei	累得	21271	leide	UNCERTAIN	single-char prefix '累' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	lidei	理得	21210	lide	UNCERTAIN	single-char prefix '理' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zuodeihao	做得好	21168	zuodehao	UNCERTAIN	default
+得	deili	得利	21139	deli	UNCERTAIN	default
+得	dongdei	冻得	20969	dongde	UNCERTAIN	single-char prefix '冻' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	liaodei	聊得	20886	liaode	UNCERTAIN	single-char prefix '聊' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	fangdei	放得	20765	fangde	UNCERTAIN	single-char prefix '放' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	qiudei	求得	20739	qiude	LEGITIMATE	whitelist N+助词
+得	dengdei	等得	20702	dengde	UNCERTAIN	single-char prefix '等' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	yangdei	养得	20661	yangde	UNCERTAIN	single-char prefix '养' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	hedei	喝得	20610	hede	UNCERTAIN	single-char prefix '喝' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	haidei	害得	20548	haide	UNCERTAIN	single-char prefix '害' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deipiao	得票	20458	depiao	UNCERTAIN	default
+得	lidei	立得	20316	lide	UNCERTAIN	single-char prefix '立' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhengdei	整得	20316	zhengde	UNCERTAIN	single-char prefix '整' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shengdei	生得	20301	shengde	UNCERTAIN	single-char prefix '生' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xiangdeimei	想得美	20282	xiangdemei	UNCERTAIN	default
+得	yandei	演得	20254	yande	UNCERTAIN	single-char prefix '演' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	bingdei	病得	20229	bingde	UNCERTAIN	single-char prefix '病' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhuangdei	装得	20168	zhuangde	UNCERTAIN	single-char prefix '装' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	huidei	回得	20033	huide	UNCERTAIN	single-char prefix '回' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	feidei	飞得	19948	feide	UNCERTAIN	single-char prefix '飞' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	chengdei	撑得	19908	chengde	UNCERTAIN	single-char prefix '撑' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	dedei	得得	19641	dede	UNCERTAIN	single-char prefix '得' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deide	得得	19641	dede	UNCERTAIN	single-char prefix '得' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deidei	得得	19641	dede	UNCERTAIN	single-char prefix '得' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	bidei	比得	19486	bide	UNCERTAIN	single-char prefix '比' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	gandei	赶得	19453	gande	UNCERTAIN	single-char prefix '赶' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xingdeitong	行得通	19446	xingdetong	UNCERTAIN	default
+得	yidei	易得	19376	yide	UNCERTAIN	single-char prefix '易' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	hedei	合得	19337	hede	UNCERTAIN	single-char prefix '合' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	chudei	出得	19283	chude	UNCERTAIN	single-char prefix '出' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhaodei	照得	19225	zhaode	UNCERTAIN	single-char prefix '照' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deigai	得该	19100	degai	UNCERTAIN	default
+得	zhengdei	挣得	18860	zhengde	UNCERTAIN	single-char prefix '挣' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	naidei	耐得	18785	naide	UNCERTAIN	single-char prefix '耐' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	yongdeizhao	用得着	18714	yongdezhe	UNCERTAIN	default
+得	yongdeizhe	用得着	18714	yongdezhe	UNCERTAIN	default
+得	yongdeizhuo	用得着	18714	yongdezhe	UNCERTAIN	default
+得	jingdeizhu	经得住	18689	jingdezhu	UNCERTAIN	default
+得	liudei	留得	18630	liude	UNCERTAIN	single-char prefix '留' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	liandei	练得	18621	liande	UNCERTAIN	single-char prefix '练' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deifenshou	得分手	18618	defenshou	UNCERTAIN	default
+得	paodeikuai	跑得快	18510	paodekuai	UNCERTAIN	default
+得	fudei	复得	18486	fude	UNCERTAIN	single-char prefix '复' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zuodei	坐得	18316	zuode	UNCERTAIN	single-char prefix '坐' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhibuzhidei	值不值得	18209	zhibuzhide	LIKELY_SPURIOUS	>=3-char prefix '值不值' + 助词 (long phrase + 助词)
+得	shudei	输得	18071	shude	UNCERTAIN	single-char prefix '输' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	chideibao	吃得饱	18064	chidebao	UNCERTAIN	default
+得	xiudei	修得	17909	xiude	UNCERTAIN	single-char prefix '修' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhuadei	抓得	17762	zhuade	UNCERTAIN	single-char prefix '抓' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	hundei	混得	17553	hunde	UNCERTAIN	single-char prefix '混' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shengbidei	圣彼得	17491	shengbide	UNCERTAIN	2-char prefix '圣彼' + 助词 (V+助词 or 2-char N+助词)
+得	haodeiduo	好得多	17480	haodeduo	UNCERTAIN	default
+得	bandei	扮得	17470	bande	UNCERTAIN	single-char prefix '扮' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	diandei	点得	17465	diande	UNCERTAIN	single-char prefix '点' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xindei	信得	17462	xinde	UNCERTAIN	single-char prefix '信' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	meideishuo	没得说	17441	meideshuo	UNCERTAIN	default
+得	dangdei	当得	17385	dangde	UNCERTAIN	single-char prefix '当' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shengbideibao	圣彼得堡	17328	shengbidebao	UNCERTAIN	default
+得	deiqi	得气	17296	deqi	UNCERTAIN	default
+得	deichong	得宠	17271	dechong	UNCERTAIN	default
+得	shendeiwoxin	深得我心	17265	shendewoxin	UNCERTAIN	default
+得	deiling	得令	17240	deling	UNCERTAIN	default
+得	rendei	忍得	17194	rende	UNCERTAIN	single-char prefix '忍' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	duodeiduo	多得多	17144	duodeduo	UNCERTAIN	default
+得	qiangdei	抢得	17029	qiangde	UNCERTAIN	single-char prefix '抢' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xidei	洗得	17027	xide	UNCERTAIN	single-char prefix '洗' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	paidei	排得	17013	paide	UNCERTAIN	single-char prefix '排' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	fandei	烦得	16947	fande	UNCERTAIN	single-char prefix '烦' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xiangdeikai	想得开	16914	xiangdekai	UNCERTAIN	default
+得	fadei	发得	16815	fade	UNCERTAIN	single-char prefix '发' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deichujielun	得出结论	16798	dechujielun	UNCERTAIN	default
+得	caidei	猜得	16779	caide	UNCERTAIN	single-char prefix '猜' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deixi	得悉	16723	dexi	UNCERTAIN	default
+得	gendei	跟得	16716	gende	UNCERTAIN	single-char prefix '跟' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deishun	得顺	16706	deshun	UNCERTAIN	default
+得	yadei	压得	16639	yade	UNCERTAIN	single-char prefix '压' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	gaidei	改得	16604	gaide	UNCERTAIN	single-char prefix '改' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	chudei	处得	16514	chude	UNCERTAIN	single-char prefix '处' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	haodeikuai	好得快	16407	haodekuai	UNCERTAIN	default
+得	kuadei	夸得	16399	kuade	UNCERTAIN	single-char prefix '夸' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shaodei	烧得	16348	shaode	UNCERTAIN	single-char prefix '烧' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shoudei	收得	16287	shoude	UNCERTAIN	single-char prefix '收' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	jindei	进得	16285	jinde	UNCERTAIN	single-char prefix '进' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	tandei	谈得	16279	tande	UNCERTAIN	single-char prefix '谈' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shidei	识得	16198	shide	UNCERTAIN	single-char prefix '识' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	guaidei	乖得	16125	guaide	UNCERTAIN	single-char prefix '乖' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	guodei	裹得	16073	guode	UNCERTAIN	single-char prefix '裹' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	tidei	题得	16033	tide	UNCERTAIN	single-char prefix '题' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	duodei	躲得	16018	duode	UNCERTAIN	single-char prefix '躲' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	fudei	服得	16003	fude	UNCERTAIN	single-char prefix '服' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	gendeishang	跟得上	15896	gendeshang	UNCERTAIN	default
+得	jiedei	接得	15892	jiede	UNCERTAIN	single-char prefix '接' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	bideibao	彼得堡	15855	bidebao	UNCERTAIN	default
+得	deikesasi	得克萨斯	15819	dekesasi	UNCERTAIN	default
+得	jiedei	结得	15801	jiede	UNCERTAIN	single-char prefix '结' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	huideilai	回得来	15779	huidelai	UNCERTAIN	default
+得	ludei	录得	15773	lude	UNCERTAIN	single-char prefix '录' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	didei	抵得	15758	dide	UNCERTAIN	single-char prefix '抵' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	chendei	沉得	15749	chende	UNCERTAIN	single-char prefix '沉' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	duodeihen	多得很	15735	duodehen	UNCERTAIN	default
+得	tingdei	挺得	15728	tingde	UNCERTAIN	single-char prefix '挺' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shidei	始得	15725	shide	UNCERTAIN	single-char prefix '始' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	chideiqi	吃得起	15721	chideqi	UNCERTAIN	default
+得	andei	安得	15675	ande	UNCERTAIN	single-char prefix '安' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	feidei	肥得	15637	feide	UNCERTAIN	single-char prefix '肥' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xuandei	选得	15617	xuande	UNCERTAIN	single-char prefix '选' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xiudei	休得	15586	xiude	UNCERTAIN	single-char prefix '休' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	fandei	翻得	15555	fande	UNCERTAIN	single-char prefix '翻' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhengdei	征得	15494	zhengde	UNCERTAIN	single-char prefix '征' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deiyu	得愈	15462	deyu	UNCERTAIN	default
+得	duodeishi	多得是	15437	duodeshi	UNCERTAIN	default
+得	yidei	已得	15420	yide	UNCERTAIN	single-char prefix '已' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xiaodei	消得	15393	xiaode	UNCERTAIN	single-char prefix '消' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	dadeiduo	大得多	15391	dadeduo	UNCERTAIN	default
+得	zhongdei	种得	15348	zhongde	UNCERTAIN	single-char prefix '种' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	ganjuedeidao	感觉得到	15275	ganjuededao	UNCERTAIN	default
+得	chadei	查得	15263	chade	UNCERTAIN	single-char prefix '查' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zaodeihen	早得很	15187	zaodehen	UNCERTAIN	default
+得	tandei	贪得	15175	tande	UNCERTAIN	single-char prefix '贪' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	chengdeizhu	撑得住	15093	chengdezhu	UNCERTAIN	default
+得	chideiwan	吃得完	15051	chidewan	UNCERTAIN	default
+得	deipiaolv	得票率	14987	depiaolv	UNCERTAIN	default
+得	deipiaoshuai	得票率	14987	depiaolv	UNCERTAIN	default
+得	tuodei	拖得	14975	tuode	UNCERTAIN	single-char prefix '拖' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	langdeixuming	浪得虚名	14919	langdexuming	UNCERTAIN	default
+得	suhuashuodeihao	俗话说得好	14835	suhuashuodehao	UNCERTAIN	default
+得	fufudeizheng	负负得正	14783	fufudezheng	UNCERTAIN	default
+得	bandei	搬得	14775	bande	UNCERTAIN	single-char prefix '搬' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	caideidao	猜得到	14775	caidedao	UNCERTAIN	default
+得	zhuandei	转得	14773	zhuande	UNCERTAIN	single-char prefix '转' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deimian	得免	14772	demian	UNCERTAIN	default
+得	diaodei	调得	14736	diaode	UNCERTAIN	single-char prefix '调' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	ladei	辣得	14713	lade	UNCERTAIN	single-char prefix '辣' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shidei	拾得	14697	shide	UNCERTAIN	single-char prefix '拾' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xidei	喜得	14688	xide	UNCERTAIN	single-char prefix '喜' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	yongdeishang	用得上	14676	yongdeshang	UNCERTAIN	default
+得	randei	染得	14653	rande	UNCERTAIN	single-char prefix '染' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	mendei	闷得	14621	mende	UNCERTAIN	single-char prefix '闷' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	jiandei	减得	14526	jiande	UNCERTAIN	single-char prefix '减' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zenmedeile	怎么得了	14480	zenmedele	LIKELY_SPURIOUS	>=3-char prefix '怎么得' + 助词 (long phrase + 助词)
+得	zenmedeiliao	怎么得了	14480	zenmedele	LIKELY_SPURIOUS	>=3-char prefix '怎么得' + 助词 (long phrase + 助词)
+得	bideisen	彼得森	14455	bidesen	UNCERTAIN	default
+得	guadei	刮得	14392	guade	UNCERTAIN	single-char prefix '刮' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xiaodeiren	消得人	14291	xiaoderen	UNCERTAIN	default
+得	shedei	设得	14256	shede	UNCERTAIN	single-char prefix '设' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	biandeifuza	变得复杂	14237	biandefuza	UNCERTAIN	default
+得	bingdei	并得	14216	bingde	UNCERTAIN	single-char prefix '并' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	pengdei	捧得	14164	pengde	UNCERTAIN	single-char prefix '捧' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	chendeizhu	沉得住	14143	chendezhu	UNCERTAIN	default
+得	huideiqu	回得去	14134	huidequ	UNCERTAIN	default
+得	dudei	独得	14125	dude	UNCERTAIN	single-char prefix '独' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deiji	得计	14098	deji	UNCERTAIN	default
+得	chideile	吃得了	14083	chidele	UNCERTAIN	2-char prefix '吃得' + 助词 (V+助词 or 2-char N+助词)
+得	chideiliao	吃得了	14083	chidele	UNCERTAIN	2-char prefix '吃得' + 助词 (V+助词 or 2-char N+助词)
+得	shidei	试得	14083	shide	UNCERTAIN	single-char prefix '试' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	midei	觅得	14046	mide	UNCERTAIN	single-char prefix '觅' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	tidei	提得	14009	tide	UNCERTAIN	single-char prefix '提' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	chendeizhuqi	沉得住气	13997	chendezhuqi	UNCERTAIN	default
+得	jiangdei	降得	13954	jiangde	UNCERTAIN	single-char prefix '降' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhidei	直得	13951	zhide	UNCERTAIN	single-char prefix '直' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	dingdeizhu	顶得住	13920	dingdezhu	UNCERTAIN	default
+得	zoudeikuai	走得快	13920	zoudekuai	UNCERTAIN	default
+得	shoudeizhu	受得住	13882	shoudezhu	UNCERTAIN	default
+得	kandeiren	看得人	13880	kanderen	UNCERTAIN	default
+得	chuandei	传得	13837	chuande	UNCERTAIN	single-char prefix '传' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	taodei	逃得	13800	taode	UNCERTAIN	single-char prefix '逃' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deikesasizhou	得克萨斯州	13755	dekesasizhou	UNCERTAIN	default
+得	deishi	得势	13743	deshi	UNCERTAIN	default
+得	duidei	堆得	13678	duide	UNCERTAIN	single-char prefix '堆' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	nongdeihao	弄得好	13658	nongdehao	UNCERTAIN	default
+得	caidei	踩得	13651	caide	UNCERTAIN	single-char prefix '踩' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	pengdei	碰得	13650	pengde	UNCERTAIN	single-char prefix '碰' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	kedei	咳得	13630	kede	UNCERTAIN	single-char prefix '咳' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shudei	熟得	13532	shude	UNCERTAIN	single-char prefix '熟' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	tangdei	烫得	13508	tangde	UNCERTAIN	single-char prefix '烫' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deiminxin	得民心	13505	deminxin	UNCERTAIN	default
+得	cedei	测得	13490	cede	UNCERTAIN	single-char prefix '测' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	tingdeichu	听得出	13459	tingdechu	UNCERTAIN	default
+得	modeizhao	摸得着	13410	modezhe	UNCERTAIN	default
+得	modeizhe	摸得着	13410	modezhe	UNCERTAIN	default
+得	modeizhuo	摸得着	13410	modezhe	UNCERTAIN	default
+得	tuidei	推得	13396	tuide	UNCERTAIN	single-char prefix '推' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	taidei	抬得	13362	taide	UNCERTAIN	single-char prefix '抬' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deise	得色	13343	dese	UNCERTAIN	default
+得	bideiguo	比得过	13339	bideguo	UNCERTAIN	default
+得	deiyi	得宜	13268	deyi	UNCERTAIN	default
+得	deiliburao	得理不饶	13212	deliburao	UNCERTAIN	default
+得	haideiqi	还得起	13212	haideqi	UNCERTAIN	default
+得	kendei	啃得	13202	kende	UNCERTAIN	single-char prefix '啃' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	baidei	摆得	13180	baide	UNCERTAIN	single-char prefix '摆' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xundei	熏得	13165	xunde	UNCERTAIN	single-char prefix '熏' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deirong	得荣	13120	derong	UNCERTAIN	default
+得	jiangdeizhu	奖得主	13109	jiangdezhu	UNCERTAIN	default
+得	pindei	拼得	13087	pinde	UNCERTAIN	single-char prefix '拼' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xiandeiwuliao	闲得无聊	13079	xiandewuliao	UNCERTAIN	default
+得	deibiao	得标	13071	debiao	UNCERTAIN	default
+得	paodeiman	跑得慢	13056	paodeman	UNCERTAIN	default
+得	guangdei	逛得	13045	guangde	UNCERTAIN	single-char prefix '逛' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhadei	乍得	12954	zhade	UNCERTAIN	single-char prefix '乍' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	bodei	播得	12937	bode	UNCERTAIN	single-char prefix '播' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deipiaoshu	得票数	12903	depiaoshu	UNCERTAIN	default
+得	xidei	吸得	12871	xide	UNCERTAIN	single-char prefix '吸' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhaidei	摘得	12839	zhaide	UNCERTAIN	single-char prefix '摘' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	kandeiyuan	看得远	12825	kandeyuan	UNCERTAIN	default
+得	tuodei	脱得	12713	tuode	UNCERTAIN	single-char prefix '脱' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhandeizhu	站得住	12685	zhandezhu	UNCERTAIN	default
+得	caideichu	猜得出	12681	caidechu	UNCERTAIN	default
+得	toudei	投得	12677	toude	UNCERTAIN	single-char prefix '投' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	tongdei	通得	12592	tongde	UNCERTAIN	single-char prefix '通' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	liudei	流得	12587	liude	UNCERTAIN	single-char prefix '流' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	renrendeier	人人得而	12505	renrendeer	UNCERTAIN	default
+得	bideisi	彼得斯	12464	bidesi	UNCERTAIN	default
+得	lindei	淋得	12459	linde	UNCERTAIN	single-char prefix '淋' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	hudei	护得	12404	hude	UNCERTAIN	single-char prefix '护' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhedei	遮得	12375	zhede	UNCERTAIN	single-char prefix '遮' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	gedei	割得	12342	gede	UNCERTAIN	single-char prefix '割' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	liudeiqingshan	留得青山	12334	liudeqingshan	UNCERTAIN	default
+得	liaodei	料得	12327	liaode	UNCERTAIN	single-char prefix '料' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shengdei	升得	12320	shengde	UNCERTAIN	single-char prefix '升' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	sadei	洒得	12284	sade	UNCERTAIN	single-char prefix '洒' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	tiaodei	挑得	12215	tiaode	UNCERTAIN	single-char prefix '挑' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	biandei	编得	12189	biande	UNCERTAIN	single-char prefix '编' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deiraorenchu	得饶人处	12189	deraorenchu	UNCERTAIN	default
+得	goudeizhao	够得着	12189	goudezhe	UNCERTAIN	default
+得	goudeizhe	够得着	12189	goudezhe	UNCERTAIN	default
+得	goudeizhuo	够得着	12189	goudezhe	UNCERTAIN	default
+得	pideihen	皮得很	12189	pidehen	UNCERTAIN	default
+得	shuodeiyouli	说得有理	12164	shuodeyouli	UNCERTAIN	default
+得	yaodei	摇得	12154	yaode	UNCERTAIN	single-char prefix '摇' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	koudei	扣得	12092	koude	UNCERTAIN	single-char prefix '扣' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deiyu	得于	12090	deyu	UNCERTAIN	default
+得	tingdeichulai	听得出来	12039	tingdechulai	UNCERTAIN	default
+得	deikuan	得款	12009	dekuan	UNCERTAIN	default
+得	mangdeibuke	忙得不可	12008	mangdebuke	UNCERTAIN	default
+得	liudeiqingshanzai	留得青山在	11999	liudeqingshanzai	UNCERTAIN	default
+得	jidei	既得	11969	jide	UNCERTAIN	single-char prefix '既' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zangdei	脏得	11962	zangde	UNCERTAIN	single-char prefix '脏' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	mendeihuang	闷得慌	11934	mendehuang	UNCERTAIN	default
+得	sidei	撕得	11934	side	UNCERTAIN	single-char prefix '撕' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	luodeidao	罗得岛	11844	luodedao	UNCERTAIN	default
+得	deiyushi	得与失	11818	deyushi	UNCERTAIN	default
+得	fudeiliuyou	富得流油	11768	fudeliuyou	UNCERTAIN	default
+得	niudei	扭得	11768	niude	UNCERTAIN	single-char prefix '扭' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	maidei	埋得	11747	maide	UNCERTAIN	single-char prefix '埋' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	pingdei	评得	11691	pingde	UNCERTAIN	single-char prefix '评' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	dadeiying	打得赢	11681	dadeying	UNCERTAIN	default
+得	ludeiqing	露得清	11651	ludeqing	UNCERTAIN	default
+得	huadei	滑得	11644	huade	UNCERTAIN	single-char prefix '滑' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zoudeiman	走得慢	11444	zoudeman	UNCERTAIN	default
+得	deishixin	得失心	11374	deshixin	UNCERTAIN	default
+得	deimeiyin	得梅因	11301	demeiyin	UNCERTAIN	default
+得	kuaideiduo	快得多	11287	kuaideduo	UNCERTAIN	default
+得	jiedei	借得	11240	jiede	UNCERTAIN	single-char prefix '借' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xiaodeiduo	小得多	11225	xiaodeduo	UNCERTAIN	default
+得	moudei	谋得	11211	moude	UNCERTAIN	single-char prefix '谋' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shuideizhengxiang	睡得正香	11193	shuidezhengxiang	UNCERTAIN	default
+得	coudei	凑得	11151	coude	UNCERTAIN	single-char prefix '凑' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	fengdei	疯得	11120	fengde	UNCERTAIN	single-char prefix '疯' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	tingdei	停得	11120	tingde	UNCERTAIN	single-char prefix '停' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	weidei	围得	11115	weide	UNCERTAIN	single-char prefix '围' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	wadei	挖得	11045	wade	UNCERTAIN	single-char prefix '挖' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	lideikai	离得开	10888	lidekai	UNCERTAIN	default
+得	taodei	套得	10886	taode	UNCERTAIN	single-char prefix '套' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	guandei	惯得	10806	guande	UNCERTAIN	single-char prefix '惯' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	fangdei	防得	10775	fangde	UNCERTAIN	single-char prefix '防' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	gongdei	攻得	10765	gongde	UNCERTAIN	single-char prefix '攻' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	qiangdei	呛得	10695	qiangde	UNCERTAIN	single-char prefix '呛' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	dideizhu	抵得住	10686	didezhu	UNCERTAIN	default
+得	tuidei	退得	10659	tuide	UNCERTAIN	single-char prefix '退' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	hendei	狠得	10636	hende	UNCERTAIN	single-char prefix '狠' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shuodeishang	说得上	10583	shuodeshang	UNCERTAIN	default
+得	bodei	剥得	10543	bode	UNCERTAIN	single-char prefix '剥' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	dangdeiqi	当得起	10543	dangdeqi	UNCERTAIN	default
+得	dangdeizhu	挡得住	10539	dangdezhu	UNCERTAIN	default
+得	pidei	批得	10538	pide	UNCERTAIN	single-char prefix '批' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	podei	破得	10407	pode	UNCERTAIN	single-char prefix '破' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	bidei	逼得	10402	bide	UNCERTAIN	single-char prefix '逼' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	oujilidei	欧几里得	10386	oujilide	LIKELY_SPURIOUS	>=3-char prefix '欧几里' + 助词 (long phrase + 助词)
+得	quedei	缺得	10350	quede	UNCERTAIN	single-char prefix '缺' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deilaibuyi	得来不易	10344	delaibuyi	UNCERTAIN	default
+得	fudandeiqi	负担得起	10331	fudandeqi	UNCERTAIN	default
+得	hongdei	烘得	10296	hongde	UNCERTAIN	single-char prefix '烘' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhandeizhujiao	站得住脚	10284	zhandezhujiao	UNCERTAIN	default
+得	chadeiduo	差得多	10280	chadeduo	UNCERTAIN	default
+得	qiandei	签得	10224	qiande	UNCERTAIN	single-char prefix '签' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deizhou	得州	10217	dezhou	UNCERTAIN	default
+得	xiangdeiqilai	想得起来	10142	xiangdeqilai	UNCERTAIN	default
+得	zhedei	折得	10116	zhede	UNCERTAIN	single-char prefix '折' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	andei	暗得	10109	ande	UNCERTAIN	single-char prefix '暗' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deiwei	得伟	10070	dewei	UNCERTAIN	default
+得	peidei	赔得	9916	peide	UNCERTAIN	single-char prefix '赔' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	renshoudeile	忍受得了	9731	renshoudele	LIKELY_SPURIOUS	>=3-char prefix '忍受得' + 助词 (long phrase + 助词)
+得	renshoudeiliao	忍受得了	9731	renshoudele	LIKELY_SPURIOUS	>=3-char prefix '忍受得' + 助词 (long phrase + 助词)
+得	xiandei	咸得	9723	xiande	UNCERTAIN	single-char prefix '咸' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	guidei	跪得	9667	guide	UNCERTAIN	single-char prefix '跪' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deiji	得济	9592	deji	UNCERTAIN	default
+得	kedei	渴得	9592	kede	UNCERTAIN	single-char prefix '渴' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shengdei	剩得	9592	shengde	UNCERTAIN	single-char prefix '剩' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	hengdeili	亨得利	9567	hengdeli	UNCERTAIN	default
+得	shendei	渗得	9533	shende	UNCERTAIN	single-char prefix '渗' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	aidei	矮得	9531	aide	UNCERTAIN	single-char prefix '矮' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	mudei	募得	9450	mude	UNCERTAIN	single-char prefix '募' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	fudeijiao	佛得角	9416	fudejiao	UNCERTAIN	default
+得	fudeijue	佛得角	9416	fudejiao	UNCERTAIN	default
+得	xiedei	卸得	9392	xiede	UNCERTAIN	single-char prefix '卸' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	yijusandei	一举三得	9392	yijusande	LIKELY_SPURIOUS	>=3-char prefix '一举三' + 助词 (long phrase + 助词)
+得	deifenwang	得分王	9372	defenwang	UNCERTAIN	default
+得	xingbudei	行不得	9370	xingbude	UNCERTAIN	2-char prefix '行不' + 助词 (V+助词 or 2-char N+助词)
+得	yijuduodei	一举多得	9301	yijuduode	LIKELY_SPURIOUS	>=3-char prefix '一举多' + 助词 (long phrase + 助词)
+得	deidexin	得的心	9288	dedexin	UNCERTAIN	default
+得	deidixin	得的心	9288	dedexin	UNCERTAIN	default
+得	kandeiguan	看得惯	9264	kandeguan	UNCERTAIN	default
+得	taodei	讨得	9259	taode	UNCERTAIN	single-char prefix '讨' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	chudeilai	处得来	9242	chudelai	UNCERTAIN	default
+得	gandeidao	赶得到	9083	gandedao	UNCERTAIN	default
+得	zuandei	钻得	9064	zuande	UNCERTAIN	single-char prefix '钻' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	fandei	反得	8985	fande	UNCERTAIN	single-char prefix '反' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zuodeilai	做得来	8913	zuodelai	UNCERTAIN	default
+得	deizhibuyi	得之不易	8812	dezhibuyi	UNCERTAIN	default
+得	gudeiming	故得名	8807	gudeming	UNCERTAIN	default
+得	qiandei	潜得	8750	qiande	UNCERTAIN	single-char prefix '潜' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	chideichu	吃得出	8731	chidechu	UNCERTAIN	default
+得	qiaodeihen	巧得很	8731	qiaodehen	UNCERTAIN	default
+得	tidei	剃得	8731	tide	UNCERTAIN	single-char prefix '剃' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xudeixian	须得先	8731	xudexian	UNCERTAIN	default
+得	diaodei	钓得	8692	diaode	UNCERTAIN	single-char prefix '钓' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	caidei	采得	8615	caide	UNCERTAIN	single-char prefix '采' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	shidei	实得	8591	shide	UNCERTAIN	single-char prefix '实' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	jinpaideizhu	金牌得主	8586	jinpaidezhu	UNCERTAIN	default
+得	dideiguo	抵得过	8535	dideguo	UNCERTAIN	default
+得	kuadei	跨得	8535	kuade	UNCERTAIN	single-char prefix '跨' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	tiandei	填得	8535	tiande	UNCERTAIN	single-char prefix '填' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhaodeizhao	找得着	8535	zhaodezhe	UNCERTAIN	default
+得	zhaodeizhe	找得着	8535	zhaodezhe	UNCERTAIN	default
+得	zhaodeizhuo	找得着	8535	zhaodezhe	UNCERTAIN	default
+得	bideiluo	彼得罗	8355	bideluo	UNCERTAIN	default
+得	guodeilai	过得来	8323	guodelai	UNCERTAIN	default
+得	bandeihao	办得好	8220	bandehao	UNCERTAIN	default
+得	bideidadi	彼得大帝	8187	bidedadi	UNCERTAIN	default
+得	shendeiminxin	深得民心	8156	shendeminxin	UNCERTAIN	default
+得	bideigelei	彼得格勒	8154	bidegelei	UNCERTAIN	default
+得	xiaodei	销得	8067	xiaode	UNCERTAIN	single-char prefix '销' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	goudeishang	够得上	8058	goudeshang	UNCERTAIN	default
+得	yadeiliya	亚得里亚	7989	yadeliya	UNCERTAIN	default
+得	dideiguo	敌得过	7959	dideguo	UNCERTAIN	default
+得	jiandei	渐得	7877	jiande	UNCERTAIN	single-char prefix '渐' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deidaoxuke	得到许可	7852	dedaoxuke	UNCERTAIN	default
+得	peideiqi	赔得起	7836	peideqi	UNCERTAIN	default
+得	jiandei	溅得	7791	jiande	UNCERTAIN	single-char prefix '溅' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	daidei	逮得	7615	daide	UNCERTAIN	single-char prefix '逮' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	hudei	唬得	7576	hude	UNCERTAIN	single-char prefix '唬' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	budangdeili	不当得利	7552	budangdeli	UNCERTAIN	default
+得	deirenjing	得人惊	7552	derenjing	UNCERTAIN	default
+得	yimaidei	易买得	7552	yimaide	UNCERTAIN	2-char prefix '易买' + 助词 (V+助词 or 2-char N+助词)
+得	zaodei	糟得	7482	zaode	UNCERTAIN	single-char prefix '糟' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	yaofengdeifeng	要风得风	7351	yaofengdefeng	UNCERTAIN	default
+得	deifenlv	得分率	7320	defenlv	UNCERTAIN	default
+得	deifenshuai	得分率	7320	defenlv	UNCERTAIN	default
+得	deimoli	得莫利	7320	demoli	UNCERTAIN	default
+得	yandei	焉得	7273	yande	UNCERTAIN	single-char prefix '焉' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	hongdei	轰得	7233	hongde	UNCERTAIN	single-char prefix '轰' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	padeiyaoming	怕得要命	7233	padeyaoming	UNCERTAIN	default
+得	wandeizhuan	玩得转	7233	wandezhuan	UNCERTAIN	default
+得	chongxindeidao	重新得到	7157	chongxindedao	UNCERTAIN	default
+得	lichadei	理查得	7137	lichade	UNCERTAIN	2-char prefix '理查' + 助词 (V+助词 or 2-char N+助词)
+得	toudeifusheng	偷得浮生	7130	toudefusheng	UNCERTAIN	default
+得	kendei	肯得	7099	kende	UNCERTAIN	single-char prefix '肯' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deijiangzhe	得奖者	7061	dejiangzhe	UNCERTAIN	default
+得	haideilaba	海得拉巴	7060	haidelaba	UNCERTAIN	default
+得	yaoyudeiyu	要雨得雨	6907	yaoyudeyu	UNCERTAIN	default
+得	zhaidei	窄得	6903	zhaide	UNCERTAIN	single-char prefix '窄' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	diedei	嗲得	6868	diede	UNCERTAIN	single-char prefix '嗲' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	fudeiqi	负得起	6868	fudeqi	UNCERTAIN	default
+得	gandeichu	赶得出	6868	gandechu	UNCERTAIN	default
+得	padei	趴得	6868	pade	UNCERTAIN	single-char prefix '趴' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	bideiyishi	彼得一世	6848	bideyishi	UNCERTAIN	default
+得	gerendeishi	个人得失	6801	gerendeshi	UNCERTAIN	default
+得	mandeiguo	瞒得过	6528	mandeguo	UNCERTAIN	default
+得	beideiqi	背得起	6442	beideqi	UNCERTAIN	default
+得	fudei	敷得	6442	fude	UNCERTAIN	single-char prefix '敷' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	hudei	互得	6442	hude	UNCERTAIN	single-char prefix '互' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	kundei	捆得	6442	kunde	UNCERTAIN	single-char prefix '捆' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	nongdeiqing	弄得清	6442	nongdeqing	UNCERTAIN	default
+得	xiangxiangdeidao	想像得到	6442	xiangxiangdedao	UNCERTAIN	default
+得	xiedei	泄得	6442	xiede	UNCERTAIN	single-char prefix '泄' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xudeixue	须得学	6442	xudexue	UNCERTAIN	default
+得	quanhengdeishi	权衡得失	6369	quanhengdeshi	UNCERTAIN	default
+得	haoshidei	好事得	5930	haoshide	UNCERTAIN	2-char prefix '好事' + 助词 (V+助词 or 2-char N+助词)
+得	hengdei	横得	5930	hengde	UNCERTAIN	single-char prefix '横' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	niandei	黏得	5930	niande	UNCERTAIN	single-char prefix '黏' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	qiandei	牵得	5930	qiande	UNCERTAIN	single-char prefix '牵' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deifenshao	得分少	5895	defenshao	UNCERTAIN	default
+得	kuadei	垮得	5895	kuade	UNCERTAIN	single-char prefix '垮' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	tiandei	添得	5895	tiande	UNCERTAIN	single-char prefix '添' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	jingdei	竞得	5663	jingde	UNCERTAIN	single-char prefix '竞' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	jiedei	劫得	5633	jiede	UNCERTAIN	single-char prefix '劫' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	jiashidei	佳士得	5526	jiashide	UNCERTAIN	2-char prefix '佳士' + 助词 (V+助词 or 2-char N+助词)
+得	biyouyidei	必有一得	5286	biyouyide	LIKELY_SPURIOUS	>=3-char prefix '必有一' + 助词 (long phrase + 助词)
+得	paodei	抛得	5286	paode	UNCERTAIN	single-char prefix '抛' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	wodei	卧得	5286	wode	UNCERTAIN	single-char prefix '卧' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zhengtingdei	正听得	5286	zhengtingde	UNCERTAIN	2-char prefix '正听' + 助词 (V+助词 or 2-char N+助词)
+得	budei	捕得	5167	bude	UNCERTAIN	single-char prefix '捕' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	zandei	暂得	5167	zande	UNCERTAIN	single-char prefix '暂' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deidaiyushi	得大于失	4842	dedayushi	UNCERTAIN	default
+得	deidayushi	得大于失	4842	dedayushi	UNCERTAIN	default
+得	taidei	泰得	4842	taide	UNCERTAIN	single-char prefix '泰' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	nudei	努得	4804	nude	UNCERTAIN	single-char prefix '努' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	choudei	抽得	4640	choude	UNCERTAIN	single-char prefix '抽' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deikesasidaxue	得克萨斯大学	4640	dekesasidaxue	UNCERTAIN	default
+得	aodei	奥得	4495	aode	UNCERTAIN	single-char prefix '奥' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deijiangren	得奖人	4480	dejiangren	UNCERTAIN	default
+得	deirongxian	得荣县	4422	derongxian	UNCERTAIN	default
+得	xiedei	泻得	4422	xiede	UNCERTAIN	single-char prefix '泻' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	qiandei	迁得	4131	qiande	UNCERTAIN	single-char prefix '迁' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deidaoxiangshou	得到享受	3094	dedaoxiangshou	UNCERTAIN	default
+得	deifenduo	得分多	3094	defenduo	UNCERTAIN	default
+得	fudei	附得	3094	fude	UNCERTAIN	single-char prefix '附' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	pidei	披得	3094	pide	UNCERTAIN	single-char prefix '披' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	tidei	剔得	3094	tide	UNCERTAIN	single-char prefix '剔' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	deilika	得利卡	2367	delika	UNCERTAIN	default
+得	deichangsuyuan	得偿夙愿	1493	dechangsuyuan	UNCERTAIN	default
+得	niandei	碾得	1493	niande	UNCERTAIN	single-char prefix '碾' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	xiefangdei	谢枋得	1493	xiefangde	UNCERTAIN	2-char prefix '谢枋' + 助词 (V+助词 or 2-char N+助词)
+得	adeilai	阿得莱	0	adelai	UNCERTAIN	default
+得	adeilei	阿得雷	0	adelei	UNCERTAIN	default
+得	aideihua	爱得华	0	aidehua	UNCERTAIN	default
+得	aideile	爱得乐	0	aidele	UNCERTAIN	default
+得	aideiyue	爱得乐	0	aidele	UNCERTAIN	default
+得	ajimidei	阿基米得	0	ajimide	LIKELY_SPURIOUS	>=3-char prefix '阿基米' + 助词 (long phrase + 助词)
+得	andeiyi	安得倚	0	andeyi	UNCERTAIN	default
+得	baodeiling	保得灵	0	baodeling	UNCERTAIN	default
+得	bendeiermu	锛得儿木	0	bendeermu	UNCERTAIN	default
+得	biandeifengmei	变得丰美	0	biandefengmei	UNCERTAIN	default
+得	biandeijianren	变得坚韧	0	biandejianren	UNCERTAIN	default
+得	bideibaoluo	彼得保罗	0	bidebaoluo	UNCERTAIN	default
+得	bideiluofusiji	彼得罗夫斯基	0	bideluofusiji	UNCERTAIN	default
+得	bideisong	彼得松	0	bidesong	UNCERTAIN	default
+得	bideisongtu	彼得松图	0	bidesongtu	UNCERTAIN	default
+得	bulaidei	布莱得	0	bulaide	UNCERTAIN	2-char prefix '布莱' + 助词 (V+助词 or 2-char N+助词)
+得	bulaoerdei	不劳而得	0	bulaoerde	LIKELY_SPURIOUS	>=3-char prefix '不劳而' + 助词 (long phrase + 助词)
+得	cengdeiming	曾得明	0	cengdeming	UNCERTAIN	default
+得	cengdeiyi	曾得异	0	cengdeyi	UNCERTAIN	default
+得	cengxuedei	曾学得	0	cengxuede	UNCERTAIN	2-char prefix '曾学' + 助词 (V+助词 or 2-char N+助词)
+得	chadeidong	查得东	0	chadedong	UNCERTAIN	default
+得	zhangdeiyan	长得艳	0	zhangdeyan	UNCERTAIN	default
+得	chendeicai	陈得才	0	chendecai	UNCERTAIN	default
+得	shendeizhuqi	沈得住气	0	shendezhuqi	UNCERTAIN	default
+得	chuandeidanbo	穿得单薄	0	chuandedanbo	UNCERTAIN	default
+得	chudeifu	楚得复	0	chudefu	UNCERTAIN	default
+得	daideilao	戴得牢	0	daidelao	UNCERTAIN	default
+得	dangdeilai	当得来	0	dangdelai	UNCERTAIN	default
+得	deibianer	得便儿	0	debianer	UNCERTAIN	default
+得	deipianer	得便儿	0	debianer	UNCERTAIN	default
+得	deibiaoren	得标人	0	debiaoren	UNCERTAIN	default
+得	deidaizizai	得大自在	0	dedazizai	UNCERTAIN	default
+得	deidazizai	得大自在	0	dedazizai	UNCERTAIN	default
+得	dedeihuohuo	得得活活	0	dedehuohuo	UNCERTAIN	default
+得	deidehuohuo	得得活活	0	dedehuohuo	UNCERTAIN	default
+得	deideihuohuo	得得活活	0	dedehuohuo	UNCERTAIN	default
+得	deigaowangchong	得高望重	0	degaowangzhong	UNCERTAIN	default
+得	deigaowangzhong	得高望重	0	degaowangzhong	UNCERTAIN	default
+得	deikuimenjing	得窥门径	0	dekuimenjing	UNCERTAIN	default
+得	deiliyu	得利于	0	deliyu	UNCERTAIN	default
+得	deilongwangshu	得陇忘蜀	0	delongwangshu	UNCERTAIN	default
+得	deirenzhechang	得人者昌	0	derenzhechang	UNCERTAIN	default
+得	deishixiangdang	得失相当	0	deshixiangdang	UNCERTAIN	default
+得	deixianer	得闲儿	0	dexianer	UNCERTAIN	default
+得	dikangdeizhu	抵抗得住	0	dikangdezhu	UNCERTAIN	default
+得	dingdeisun	丁得孙	0	dingdesun	UNCERTAIN	default
+得	dinieboluobideiluofusike	第聂伯罗彼得罗夫斯克	0	dinieboluobideluofusike	UNCERTAIN	default
+得	doudeili	都得利	0	doudeli	UNCERTAIN	default
+得	dudeifengshou	独得丰收	0	dudefengshou	UNCERTAIN	default
+得	feideiluer	肥得鲁儿	0	feideluer	UNCERTAIN	default
+得	feideiqing	费得罄	0	feideqing	UNCERTAIN	default
+得	fengdeimi	封得密	0	fengdemi	UNCERTAIN	default
+得	fudeijiaogongheguo	佛得角共和国	0	fudejiaogongheguo	UNCERTAIN	default
+得	fudeijuegongheguo	佛得角共和国	0	fudejiaogongheguo	UNCERTAIN	default
+得	fudeiyi	富得溢	0	fudeyi	UNCERTAIN	default
+得	gainianxidei	概念习得	0	gainianxide	LIKELY_SPURIOUS	>=3-char prefix '概念习' + 助词 (long phrase + 助词)
+得	gandeile	干得了	0	gandele	UNCERTAIN	2-char prefix '干得' + 助词 (V+助词 or 2-char N+助词)
+得	gandeiliao	干得了	0	gandele	UNCERTAIN	2-char prefix '干得' + 助词 (V+助词 or 2-char N+助词)
+得	gaodeixing	高得幸	0	gaodexing	UNCERTAIN	default
+得	gongsunzhidei	公孙止得	0	gongsunzhide	LIKELY_SPURIOUS	>=3-char prefix '公孙止' + 助词 (long phrase + 助词)
+得	guadei	颳得	0	guade	UNCERTAIN	single-char prefix '颳' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	guandeicha	管得茶	0	guandecha	UNCERTAIN	default
+得	guandeimi	关得密	0	guandemi	UNCERTAIN	default
+得	gudeidong	顾得东	0	gudedong	UNCERTAIN	default
+得	gudeiqu	顾得取	0	gudequ	UNCERTAIN	default
+得	hadeisunwan	哈得孙湾	0	hadesunwan	UNCERTAIN	default
+得	haideier	海得尔	0	haideer	UNCERTAIN	default
+得	haixingdeitong	还行得通	0	haixingdetong	UNCERTAIN	default
+得	handei	焊得	0	hande	UNCERTAIN	single-char prefix '焊' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	handeishuo	汉得朔	0	handeshuo	UNCERTAIN	default
+得	xingbudeiye	行不得也	0	xingbudeye	UNCERTAIN	default
+得	hangdeicha	杭得茶	0	hangdecha	UNCERTAIN	default
+得	hangdeifang	杭得放	0	hangdefang	UNCERTAIN	default
+得	hedeixiang	何得相	0	hedexiang	UNCERTAIN	default
+得	huadeijingguang	花得精光	0	huadejingguang	UNCERTAIN	default
+得	huaideiduo	坏得多	0	huaideduo	UNCERTAIN	default
+得	hudeifu	胡得福	0	hudefu	UNCERTAIN	default
+得	hudeilu	胡得禄	0	hudelu	UNCERTAIN	default
+得	jiadeibao	家得宝	0	jiadebao	UNCERTAIN	default
+得	jianshengdei	减省得	0	jianshengde	UNCERTAIN	2-char prefix '减省' + 助词 (V+助词 or 2-char N+助词)
+得	jiansudei	简肃得	0	jiansude	UNCERTAIN	2-char prefix '简肃' + 助词 (V+助词 or 2-char N+助词)
+得	jiaodeibu	焦得布	0	jiaodebu	UNCERTAIN	default
+得	jiedeikai	解得开	0	jiedekai	UNCERTAIN	default
+得	jinjundei	晋军得	0	jinjunde	UNCERTAIN	2-char prefix '晋军' + 助词 (V+助词 or 2-char N+助词)
+得	jiongdei	窘得	0	jiongde	UNCERTAIN	single-char prefix '窘' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	keerdei	克尔得	0	keerde	UNCERTAIN	2-char prefix '克尔' + 助词 (V+助词 or 2-char N+助词)
+得	koudei	叩得	0	koude	UNCERTAIN	single-char prefix '叩' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	ladeilei	拉得雷	0	ladelei	UNCERTAIN	default
+得	laodeinuo	劳得诺	0	laodenuo	UNCERTAIN	default
+得	liandeihou	练得厚	0	liandehou	UNCERTAIN	default
+得	liandeiyang	连得杨	0	liandeyang	UNCERTAIN	default
+得	liangdeiqibian	两得其便	0	liangdeqibian	UNCERTAIN	default
+得	liangdeiqipian	两得其便	0	liangdeqibian	UNCERTAIN	default
+得	lideifang	黎得芳	0	lidefang	UNCERTAIN	default
+得	liudeifu	刘得富	0	liudefu	UNCERTAIN	default
+得	liudeifu	刘得福	0	liudefu	UNCERTAIN	default
+得	luoqidei	罗契得	0	luoqide	UNCERTAIN	2-char prefix '罗契' + 助词 (V+助词 or 2-char N+助词)
+得	luyandei	卢彦得	0	luyande	UNCERTAIN	2-char prefix '卢彦' + 助词 (V+助词 or 2-char N+助词)
+得	madeitai	马得泰	0	madetai	UNCERTAIN	default
+得	mandeila	曼得拉	0	mandela	UNCERTAIN	default
+得	mashidei	马识得	0	mashide	UNCERTAIN	2-char prefix '马识' + 助词 (V+助词 or 2-char N+助词)
+得	meideishuode	没得说的	0	meideshuode	LIKELY_SPURIOUS	>=3-char prefix '没得说' + 助词 (long phrase + 助词)
+得	meideishuodi	没得说的	0	meideshuode	LIKELY_SPURIOUS	>=3-char prefix '没得说' + 助词 (long phrase + 助词)
+得	mengdeien	蒙得恩	0	mengdeen	UNCERTAIN	default
+得	mideilan	密得兰	0	midelan	UNCERTAIN	default
+得	mingtingdei	明廷得	0	mingtingde	UNCERTAIN	2-char prefix '明廷' + 助词 (V+助词 or 2-char N+助词)
+得	nanluodeixi	南罗得西	0	nanluodexi	UNCERTAIN	default
+得	nengdeihong	能得洪	0	nengdehong	UNCERTAIN	default
+得	niandeita	尼安得塔	0	niandeta	UNCERTAIN	default
+得	niudeicao	牛得草	0	niudecao	UNCERTAIN	default
+得	paideili	拍得丽	0	paideli	UNCERTAIN	default
+得	panwendei	潘文得	0	panwende	UNCERTAIN	2-char prefix '潘文' + 助词 (V+助词 or 2-char N+助词)
+得	qianjunyidei	千军易得	0	qianjunyide	LIKELY_SPURIOUS	>=3-char prefix '千军易' + 助词 (long phrase + 助词)
+得	qiaozuerdei	跷足而得	0	qiaozuerde	LIKELY_SPURIOUS	>=3-char prefix '跷足而' + 助词 (long phrase + 助词)
+得	qiedei	窃得	0	qiede	UNCERTAIN	single-char prefix '窃' + 助词 (likely legitimate N+助词,但 ambiguous)
+得	qigedei	齐哥得	0	qigede	UNCERTAIN	2-char prefix '齐哥' + 助词 (V+助词 or 2-char N+助词)
+得	qinmingdei	秦明得	0	qinmingde	UNCERTAIN	2-char prefix '秦明' + 助词 (V+助词 or 2-char N+助词)
+得	qiudeiyong	邱得用	0	qiudeyong	UNCERTAIN	default
+得	rededei	热得得	0	redede	UNCERTAIN	2-char prefix '热得' + 助词 (V+助词 or 2-char N+助词)
+得	redeide	热得得	0	redede	UNCERTAIN	2-char prefix '热得' + 助词 (V+助词 or 2-char N+助词)
+得	redeidei	热得得	0	redede	UNCERTAIN	2-char prefix '热得' + 助词 (V+助词 or 2-char N+助词)
+得	rongnadeixia	容纳得下	0	rongnadexia	UNCERTAIN	default
+得	senbidei	森彼得	0	senbide	UNCERTAIN	2-char prefix '森彼' + 助词 (V+助词 or 2-char N+助词)
+得	shangdeifeng	上得峰	0	shangdefeng	UNCERTAIN	default
+得	shangguandei	上官得	0	shangguande	UNCERTAIN	2-char prefix '上官' + 助词 (V+助词 or 2-char N+助词)
+得	shaolaoshaodei	少劳少得	0	shaolaoshaode	LIKELY_SPURIOUS	>=3-char prefix '少劳少' + 助词 (long phrase + 助词)
+得	shelandeifen	射篮得分	0	shelandefen	UNCERTAIN	default
+得	shengdeijun	生得俊	0	shengdejun	UNCERTAIN	default
+得	shengdeiming	生得明	0	shengdeming	UNCERTAIN	default
+得	shengdeiwen	生得闻	0	shengdewen	UNCERTAIN	default
+得	shideifenshu	实得分数	0	shidefenshu	UNCERTAIN	default
+得	shuideizhengtian	睡得正甜	0	shuidezhengtian	UNCERTAIN	default
+得	songdeimin	宋得民	0	songdemin	UNCERTAIN	default
+得	souyidei	搜易得	0	souyide	UNCERTAIN	2-char prefix '搜易' + 助词 (V+助词 or 2-char N+助词)
+得	suyuandeichang	宿愿得偿	0	suyuandechang	UNCERTAIN	default
+得	tandeicheng	谈得成	0	tandecheng	UNCERTAIN	default
+得	taodeier	陶得二	0	taodeer	UNCERTAIN	default
+得	tudeihong	涂得红	0	tudehong	UNCERTAIN	default
+得	wangdeilu	王得禄	0	wangdelu	UNCERTAIN	default
+得	wangtingdei	王听得	0	wangtingde	UNCERTAIN	2-char prefix '王听' + 助词 (V+助词 or 2-char N+助词)
+得	weichaodei	魏朝得	0	weichaode	UNCERTAIN	2-char prefix '魏朝' + 助词 (V+助词 or 2-char N+助词)
+得	weideihuanhe	未得缓和	0	weidehuanhe	UNCERTAIN	default
+得	wendeibaoyu	闻得宝玉	0	wendebaoyu	UNCERTAIN	default
+得	wendeijin	闻得今	0	wendejin	UNCERTAIN	default
+得	wendeisun	闻得孙	0	wendesun	UNCERTAIN	default
+得	wendeiwang	闻得王	0	wendewang	UNCERTAIN	default
+得	wendeixian	闻得贤	0	wendexian	UNCERTAIN	default
+得	wendeixiang	闻得香	0	wendexiang	UNCERTAIN	default
+得	wendeiyan	闻得燕	0	wendeyan	UNCERTAIN	default
+得	wudeiquan	武得全	0	wudequan	UNCERTAIN	default
+得	wudeiwei	毋得违	0	wudewei	UNCERTAIN	default
+得	xianchideidian	先驰得点	0	xianchidedian	UNCERTAIN	default
+得	xideibai	习得白	0	xidebai	UNCERTAIN	default
+得	xideixingwei	习得行为	0	xidexingwei	UNCERTAIN	default
+得	xiongdeihen	凶得狠	0	xiongdehen	UNCERTAIN	default
+得	xudeihai	须得海	0	xudehai	UNCERTAIN	default
+得	xudeijing	须得静	0	xudejing	UNCERTAIN	default
+得	xudeilian	须得连	0	xudelian	UNCERTAIN	default
+得	xudeixin	须得寻	0	xudexun	UNCERTAIN	default
+得	xudeixun	须得寻	0	xudexun	UNCERTAIN	default
+得	xudeiyan	须得言	0	xudeyan	UNCERTAIN	default
+得	xudeiyi	须得依	0	xudeyi	UNCERTAIN	default
+得	xuxuedei	须学得	0	xuxuede	UNCERTAIN	2-char prefix '须学' + 助词 (V+助词 or 2-char N+助词)
+得	yanbidei	颜彼得	0	yanbide	UNCERTAIN	2-char prefix '颜彼' + 助词 (V+助词 or 2-char N+助词)
+得	yawendei	雅温得	0	yawende	UNCERTAIN	2-char prefix '雅温' + 助词 (V+助词 or 2-char N+助词)
+得	yazideimeng	哑子得梦	0	yazidemeng	UNCERTAIN	default
+得	yelvdei	耶律得	0	yelvde	UNCERTAIN	2-char prefix '耶律' + 助词 (V+助词 or 2-char N+助词)
+得	yijushudei	一举数得	0	yijushude	LIKELY_SPURIOUS	>=3-char prefix '一举数' + 助词 (long phrase + 助词)
+得	yijusidei	一举四得	0	yijuside	LIKELY_SPURIOUS	>=3-char prefix '一举四' + 助词 (long phrase + 助词)
+得	yingduideiyi	应对得宜	0	yingduideyi	UNCERTAIN	default
+得	yingfudeiyi	应付得宜	0	yingfudeyi	UNCERTAIN	default
+得	youyudeishui	犹鱼得水	0	youyudeshui	UNCERTAIN	default
+得	zhangdeiqin	张得勤	0	zhangdeqin	UNCERTAIN	default
+得	zhangdeixiang	张得象	0	zhangdexiang	UNCERTAIN	default
+得	zhangzhendei	掌震得	0	zhangzhende	UNCERTAIN	2-char prefix '掌震' + 助词 (V+助词 or 2-char N+助词)
+得	zhaoyundei	赵云得	0	zhaoyunde	UNCERTAIN	2-char prefix '赵云' + 助词 (V+助词 or 2-char N+助词)
+得	zhengfudeifu	正负得负	0	zhengfudefu	UNCERTAIN	default
+得	zhishoukedei	炙手可得	0	zhishoukede	LIKELY_SPURIOUS	>=3-char prefix '炙手可' + 助词 (long phrase + 助词)
+得	zhizaibidei	志在比得	0	zhizaibide	LIKELY_SPURIOUS	>=3-char prefix '志在比' + 助词 (long phrase + 助词)
+得	zhongdeifu	终得复	0	zhongdefu	UNCERTAIN	default
+得	zhumianxiandei	逐免先得	0	zhumianxiande	LIKELY_SPURIOUS	>=3-char prefix '逐免先' + 助词 (long phrase + 助词)
+了	duiliao	对了	35095	duile	LEGITIMATE	whitelist N+助词
+了	jiliao	极了	33555	jile	LEGITIMATE	whitelist N+助词
+了	baliao	罢了	32721	bale	LEGITIMATE	whitelist N+助词
+了	meiliao	没了	31107	meile	LEGITIMATE	whitelist N+助词
+了	jiuxingliao	就行了	29074	jiuxingle	UNCERTAIN	2-char prefix '就行' + 助词 (V+助词 or 2-char N+助词)
+了	shuoliaosuan	说了算	28132	shuolesuan	UNCERTAIN	default
+了	taihaoliao	太好了	27898	taihaole	UNCERTAIN	2-char prefix '太好' + 助词 (V+助词 or 2-char N+助词)
+了	guanliao	关了	26587	guanle	UNCERTAIN	single-char prefix '关' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	tongliao	通了	25969	tongle	UNCERTAIN	single-char prefix '通' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	shanliao	删了	25819	shanle	UNCERTAIN	single-char prefix '删' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	dangliao	当了	25007	dangle	UNCERTAIN	single-char prefix '当' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	taibangliao	太棒了	24759	taibangle	UNCERTAIN	2-char prefix '太棒' + 助词 (V+助词 or 2-char N+助词)
+了	biewangliao	别忘了	24542	biewangle	UNCERTAIN	2-char prefix '别忘' + 助词 (V+助词 or 2-char N+助词)
+了	shoudeliao	受得了	23939	shoudele	UNCERTAIN	2-char prefix '受得' + 助词 (V+助词 or 2-char N+助词)
+了	kuiliao	亏了	23513	kuile	UNCERTAIN	single-char prefix '亏' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	haoliaoma	好了吗	22809	haolema	UNCERTAIN	default
+了	haoliaoba	好了吧	21787	haoleba	UNCERTAIN	default
+了	qisiwoliao	气死我了	21535	qisiwole	LIKELY_SPURIOUS	>=3-char prefix '气死我' + 助词 (long phrase + 助词)
+了	shuobailiao	说白了	21467	shuobaile	UNCERTAIN	2-char prefix '说白' + 助词 (V+助词 or 2-char N+助词)
+了	jieliao	借了	21422	jiele	UNCERTAIN	single-char prefix '借' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	haoliaomei	好了没	21328	haolemei	UNCERTAIN	default
+了	haoliaomo	好了没	21328	haolemei	UNCERTAIN	default
+了	daliaoge	打了个	20955	dalege	UNCERTAIN	default
+了	buzaoliao	不早了	20830	buzaole	UNCERTAIN	2-char prefix '不早' + 助词 (V+助词 or 2-char N+助词)
+了	jieliaohun	结了婚	20562	jielehun	UNCERTAIN	default
+了	chongliao	冲了	19737	chongle	UNCERTAIN	single-char prefix '冲' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	chayuanliao	差远了	19566	chayuanle	UNCERTAIN	2-char prefix '差远' + 助词 (V+助词 or 2-char N+助词)
+了	qiangzouliao	抢走了	19507	qiangzoule	UNCERTAIN	2-char prefix '抢走' + 助词 (V+助词 or 2-char N+助词)
+了	chiliaofan	吃了饭	19495	chilefan	UNCERTAIN	default
+了	kailiaoge	开了个	19262	kailege	UNCERTAIN	default
+了	kuaihaoliao	快好了	19130	kuaihaole	UNCERTAIN	2-char prefix '快好' + 助词 (V+助词 or 2-char N+助词)
+了	chuliaoming	出了名	19018	chuleming	UNCERTAIN	default
+了	kehaoliao	可好了	18992	kehaole	UNCERTAIN	2-char prefix '可好' + 助词 (V+助词 or 2-char N+助词)
+了	zhangjianshiliao	长见识了	18547	zhangjianshile	LIKELY_SPURIOUS	>=3-char prefix '长见识' + 助词 (long phrase + 助词)
+了	bieshuiliao	别睡了	18361	bieshuile	UNCERTAIN	2-char prefix '别睡' + 助词 (V+助词 or 2-char N+助词)
+了	shuaidailiao	帅呆了	18243	shuaidaile	UNCERTAIN	2-char prefix '帅呆' + 助词 (V+助词 or 2-char N+助词)
+了	lianliao	连了	18191	lianle	UNCERTAIN	single-char prefix '连' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	xialiaoyitiao	吓了一跳	18103	xialeyitiao	UNCERTAIN	default
+了	biequliao	别去了	18068	biequle	UNCERTAIN	2-char prefix '别去' + 助词 (V+助词 or 2-char N+助词)
+了	heliaojiu	喝了酒	17788	helejiu	UNCERTAIN	default
+了	meijiliao	美极了	17733	meijile	UNCERTAIN	2-char prefix '美极' + 助词 (V+助词 or 2-char N+助词)
+了	shougouliao	受够了	17561	shougoule	UNCERTAIN	2-char prefix '受够' + 助词 (V+助词 or 2-char N+助词)
+了	shuodingliao	说定了	17502	shuodingle	UNCERTAIN	2-char prefix '说定' + 助词 (V+助词 or 2-char N+助词)
+了	kuaishengliao	快生了	17454	kuaishengle	UNCERTAIN	2-char prefix '快生' + 助词 (V+助词 or 2-char N+助词)
+了	baoliaoming	报了名	17389	baoleming	UNCERTAIN	default
+了	shuailiaoyijiao	摔了一跤	17313	shuaileyijiao	UNCERTAIN	default
+了	yiqubufufanliao	一去不复返了	17012	yiqubufufanle	LIKELY_SPURIOUS	>=3-char prefix '一去不复返' + 助词 (long phrase + 助词)
+了	kuaimeiliao	快没了	16962	kuaimeile	UNCERTAIN	2-char prefix '快没' + 助词 (V+助词 or 2-char N+助词)
+了	bieshaliao	别傻了	16932	bieshale	UNCERTAIN	2-char prefix '别傻' + 助词 (V+助词 or 2-char N+助词)
+了	xialiaoyan	瞎了眼	16893	xialeyan	UNCERTAIN	default
+了	bangjiliao	棒极了	16886	bangjile	UNCERTAIN	2-char prefix '棒极' + 助词 (V+助词 or 2-char N+助词)
+了	dengnilailiao	等你来了	16654	dengnilaile	LIKELY_SPURIOUS	>=3-char prefix '等你来' + 助词 (long phrase + 助词)
+了	nonghuailiao	弄坏了	16643	nonghuaile	UNCERTAIN	2-char prefix '弄坏' + 助词 (V+助词 or 2-char N+助词)
+了	fanliaocuo	犯了错	16532	fanlecuo	UNCERTAIN	default
+了	taixiongliao	太凶了	16530	taixiongle	UNCERTAIN	2-char prefix '太凶' + 助词 (V+助词 or 2-char N+助词)
+了	jianliaomian	见了面	16448	jianlemian	UNCERTAIN	default
+了	liaowang	了望	16416	lewang	UNCERTAIN	default
+了	moliaomo	摸了摸	16304	molemo	UNCERTAIN	default
+了	kubiliao	酷毙了	16226	kubile	UNCERTAIN	2-char prefix '酷毙' + 助词 (V+助词 or 2-char N+助词)
+了	yaoliaoyikou	咬了一口	16131	yaoleyikou	UNCERTAIN	default
+了	beipaoqiliao	被抛弃了	16115	beipaoqile	LIKELY_SPURIOUS	>=3-char prefix '被抛弃' + 助词 (long phrase + 助词)
+了	yaobuliao	要不了	16019	yaobule	UNCERTAIN	2-char prefix '要不' + 助词 (V+助词 or 2-char N+助词)
+了	zhuanliaoqian	赚了钱	15836	zhuanleqian	UNCERTAIN	default
+了	gaoliaoge	搞了个	15819	gaolege	UNCERTAIN	default
+了	bensiliao	笨死了	15771	bensile	UNCERTAIN	2-char prefix '笨死' + 助词 (V+助词 or 2-char N+助词)
+了	nongzangliao	弄脏了	15735	nongzangle	UNCERTAIN	2-char prefix '弄脏' + 助词 (V+助词 or 2-char N+助词)
+了	zhenfuliao	真服了	15674	zhenfule	UNCERTAIN	2-char prefix '真服' + 助词 (V+助词 or 2-char N+助词)
+了	fangxinhaoliao	放心好了	15624	fangxinhaole	LIKELY_SPURIOUS	>=3-char prefix '放心好' + 助词 (long phrase + 助词)
+了	dizouliao	地走了	15563	dizoule	UNCERTAIN	2-char prefix '地走' + 助词 (V+助词 or 2-char N+助词)
+了	xiuliao	锈了	15498	xiule	UNCERTAIN	single-char prefix '锈' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	pinliaoming	拼了命	15442	pinleming	UNCERTAIN	default
+了	shiliaoshi	试了试	15387	shileshi	UNCERTAIN	default
+了	xiaoliaoxiao	笑了笑	15200	xiaolexiao	UNCERTAIN	default
+了	huoniliao	活腻了	15080	huonile	UNCERTAIN	2-char prefix '活腻' + 助词 (V+助词 or 2-char N+助词)
+了	kailiaohua	开了花	14981	kailehua	UNCERTAIN	default
+了	shouliaoshang	受了伤	14974	shouleshang	UNCERTAIN	default
+了	langlailiao	狼来了	14892	langlaile	UNCERTAIN	2-char prefix '狼来' + 助词 (V+助词 or 2-char N+助词)
+了	bieheliao	别喝了	14801	biehele	UNCERTAIN	2-char prefix '别喝' + 助词 (V+助词 or 2-char N+助词)
+了	liaoyuan	了愿	14756	leyuan	UNCERTAIN	default
+了	youliaoqian	有了钱	14639	youleqian	UNCERTAIN	default
+了	biliaoye	毕了业	14621	bileye	UNCERTAIN	default
+了	zenmedeliao	怎么得了	14480	zenmedele	LIKELY_SPURIOUS	>=3-char prefix '怎么得' + 助词 (long phrase + 助词)
+了	youhuailiao	又坏了	14467	youhuaile	UNCERTAIN	2-char prefix '又坏' + 助词 (V+助词 or 2-char N+助词)
+了	guanliaodeng	关了灯	14386	guanledeng	UNCERTAIN	default
+了	shuoliaobantian	说了半天	14303	shuolebantian	UNCERTAIN	default
+了	jianliaoge	捡了个	14119	jianlege	UNCERTAIN	default
+了	shaliaoren	杀了人	14098	shaleren	UNCERTAIN	default
+了	chideliao	吃得了	14083	chidele	UNCERTAIN	2-char prefix '吃得' + 助词 (V+助词 or 2-char N+助词)
+了	kanhualiao	看花了	14013	kanhuale	UNCERTAIN	2-char prefix '看花' + 助词 (V+助词 or 2-char N+助词)
+了	touliaoxin	透了心	13816	toulexin	UNCERTAIN	default
+了	zaotouliao	糟透了	13751	zaotoule	UNCERTAIN	2-char prefix '糟透' + 助词 (V+助词 or 2-char N+助词)
+了	zhengliaoqian	挣了钱	13738	zhengleqian	UNCERTAIN	default
+了	liaoan	了案	13687	lean	UNCERTAIN	default
+了	meizhiliao	没治了	13630	meizhile	UNCERTAIN	2-char prefix '没治' + 助词 (V+助词 or 2-char N+助词)
+了	chuliaomen	出了门	13546	chulemen	UNCERTAIN	default
+了	yunlailiao	运来了	13423	yunlaile	UNCERTAIN	2-char prefix '运来' + 助词 (V+助词 or 2-char N+助词)
+了	miliaolu	迷了路	13377	milelu	UNCERTAIN	default
+了	tiliao	剔了	13339	tile	UNCERTAIN	single-char prefix '剔' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	lengliao	楞了	13317	lengle	UNCERTAIN	single-char prefix '楞' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	gaoliaobantian	搞了半天	13245	gaolebantian	UNCERTAIN	default
+了	xuetingliao	雪停了	13245	xuetingle	UNCERTAIN	2-char prefix '雪停' + 助词 (V+助词 or 2-char N+助词)
+了	yingdingliao	赢定了	13147	yingdingle	UNCERTAIN	2-char prefix '赢定' + 助词 (V+助词 or 2-char N+助词)
+了	hongliaoyan	红了眼	13079	hongleyan	UNCERTAIN	default
+了	zhenchengliao	真成了	13027	zhenchengle	UNCERTAIN	2-char prefix '真成' + 助词 (V+助词 or 2-char N+助词)
+了	dengliangliao	灯亮了	12790	dengliangle	UNCERTAIN	2-char prefix '灯亮' + 助词 (V+助词 or 2-char N+助词)
+了	beihulveliao	被忽略了	12763	beihulvele	LIKELY_SPURIOUS	>=3-char prefix '被忽略' + 助词 (long phrase + 助词)
+了	chengliao	乘了	12730	chengle	UNCERTAIN	single-char prefix '乘' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	xiaoliaoqilai	笑了起来	12658	xiaoleqilai	UNCERTAIN	default
+了	jiandeduoliao	见得多了	12599	jiandeduole	LIKELY_SPURIOUS	>=3-char prefix '见得多' + 助词 (long phrase + 助词)
+了	kuaishuliao	快熟了	12507	kuaishule	UNCERTAIN	2-char prefix '快熟' + 助词 (V+助词 or 2-char N+助词)
+了	kanliaoyoukan	看了又看	12500	kanleyoukan	UNCERTAIN	default
+了	fantouliao	烦透了	12375	fantoule	UNCERTAIN	2-char prefix '烦透' + 助词 (V+助词 or 2-char N+助词)
+了	hongliaolian	红了脸	12364	honglelian	UNCERTAIN	default
+了	chiliaokui	吃了亏	12351	chilekui	UNCERTAIN	default
+了	suandeliao	算得了	12351	suandele	UNCERTAIN	2-char prefix '算得' + 助词 (V+助词 or 2-char N+助词)
+了	lehuailiao	乐坏了	12237	lehuaile	UNCERTAIN	2-char prefix '乐坏' + 助词 (V+助词 or 2-char N+助词)
+了	pailiaopai	拍了拍	12120	pailepai	UNCERTAIN	default
+了	suiliaoxin	碎了心	11984	suilexin	UNCERTAIN	default
+了	dongliaoxin	动了心	11880	donglexin	UNCERTAIN	default
+了	shangliaozeichuan	上了贼船	11829	shanglezeichuan	UNCERTAIN	default
+了	shuigeiliao	谁给了	11754	shuigeile	UNCERTAIN	2-char prefix '谁给' + 助词 (V+助词 or 2-char N+助词)
+了	daliaoxie	大了些	11651	dalexie	UNCERTAIN	default
+了	xiliaoshui	洗了睡	11651	xileshui	UNCERTAIN	default
+了	shuaiduanliao	摔断了	11625	shuaiduanle	UNCERTAIN	2-char prefix '摔断' + 助词 (V+助词 or 2-char N+助词)
+了	kuaimanliao	快满了	11590	kuaimanle	UNCERTAIN	2-char prefix '快满' + 助词 (V+助词 or 2-char N+助词)
+了	kuaitingliao	快停了	11590	kuaitingle	UNCERTAIN	2-char prefix '快停' + 助词 (V+助词 or 2-char N+助词)
+了	suandeliaoshen	算得了什	11415	suandeleshen	UNCERTAIN	default
+了	miliaoyan	迷了眼	11365	mileyan	UNCERTAIN	default
+了	xiangliaoge	想了个	11365	xianglege	UNCERTAIN	default
+了	jialiaoren	嫁了人	11302	jialeren	UNCERTAIN	default
+了	zhuangliaoren	撞了人	11280	zhuangleren	UNCERTAIN	default
+了	shangzizunliao	伤自尊了	11263	shangzizunle	LIKELY_SPURIOUS	>=3-char prefix '伤自尊' + 助词 (long phrase + 助词)
+了	duanliaotui	断了腿	11195	duanletui	UNCERTAIN	default
+了	kailiaomen	开了门	11195	kailemen	UNCERTAIN	default
+了	kuaisiliao	快死了	11195	kuaisile	UNCERTAIN	2-char prefix '快死' + 助词 (V+助词 or 2-char N+助词)
+了	liliaohun	离了婚	11107	lilehun	UNCERTAIN	default
+了	duanliaoxian	断了线	11099	duanlexian	UNCERTAIN	default
+了	ziliao	自了	11097	zile	UNCERTAIN	single-char prefix '自' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	bianliaoyang	变了样	11094	bianleyang	UNCERTAIN	default
+了	xiadailiao	吓呆了	11045	xiadaile	UNCERTAIN	2-char prefix '吓呆' + 助词 (V+助词 or 2-char N+助词)
+了	pamanliao	爬满了	10905	pamanle	UNCERTAIN	2-char prefix '爬满' + 助词 (V+助词 or 2-char N+助词)
+了	caihuailiao	踩坏了	10893	caihuaile	UNCERTAIN	2-char prefix '踩坏' + 助词 (V+助词 or 2-char N+助词)
+了	taimiaoliao	太妙了	10806	taimiaole	UNCERTAIN	2-char prefix '太妙' + 助词 (V+助词 or 2-char N+助词)
+了	shanliaoyixia	闪了一下	10721	shanleyixia	UNCERTAIN	default
+了	dongliaodong	动了动	10634	dongledong	UNCERTAIN	default
+了	fengtingliao	风停了	10448	fengtingle	UNCERTAIN	2-char prefix '风停' + 助词 (V+助词 or 2-char N+助词)
+了	guanliaomen	关了门	10438	guanlemen	UNCERTAIN	default
+了	shengliaobing	生了病	10411	shenglebing	UNCERTAIN	default
+了	nianliao	黏了	10142	nianle	UNCERTAIN	single-char prefix '黏' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	xiangliaoyouxiang	想了又想	10142	xiangleyouxiang	UNCERTAIN	default
+了	maozuliaojin	卯足了劲	10082	maozulejin	UNCERTAIN	default
+了	hentouliao	恨透了	9962	hentoule	UNCERTAIN	2-char prefix '恨透' + 助词 (V+助词 or 2-char N+助词)
+了	wenshangliao	吻上了	9795	wenshangle	UNCERTAIN	2-char prefix '吻上' + 助词 (V+助词 or 2-char N+助词)
+了	renshoudeliao	忍受得了	9731	renshoudele	LIKELY_SPURIOUS	>=3-char prefix '忍受得' + 助词 (long phrase + 助词)
+了	shuliaoqian	输了钱	9667	shuleqian	UNCERTAIN	default
+了	luanliaozhenjiao	乱了阵脚	9657	luanlezhenjiao	UNCERTAIN	default
+了	siliaoxin	死了心	9592	silexin	UNCERTAIN	default
+了	xiaoshihualiao	小事化了	9533	xiaoshihuale	LIKELY_SPURIOUS	>=3-char prefix '小事化' + 助词 (long phrase + 助词)
+了	gailiaoyougai	改了又改	9444	gaileyougai	UNCERTAIN	default
+了	hualiaoyijiao	滑了一跤	9444	hualeyijiao	UNCERTAIN	default
+了	kaishidongliao	开始懂了	9392	kaishidongle	LIKELY_SPURIOUS	>=3-char prefix '开始懂' + 助词 (long phrase + 助词)
+了	peiliaofuren	赔了夫人	9259	peilefuren	UNCERTAIN	default
+了	xunheiliao	熏黑了	9242	xunheile	UNCERTAIN	2-char prefix '熏黑' + 助词 (V+助词 or 2-char N+助词)
+了	fanliaoyifan	翻了一番	9060	fanleyifan	UNCERTAIN	default
+了	doushouliao	都受了	9012	doushoule	UNCERTAIN	2-char prefix '都受' + 助词 (V+助词 or 2-char N+助词)
+了	dengmieliao	灯灭了	8913	dengmiele	UNCERTAIN	2-char prefix '灯灭' + 助词 (V+助词 or 2-char N+助词)
+了	miaojiliao	妙极了	8913	miaojile	UNCERTAIN	2-char prefix '妙极' + 助词 (V+助词 or 2-char N+助词)
+了	qiaoliao	跷了	8913	qiaole	UNCERTAIN	single-char prefix '跷' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	ejiliao	饿极了	8848	ejile	UNCERTAIN	2-char prefix '饿极' + 助词 (V+助词 or 2-char N+助词)
+了	luanliaotao	乱了套	8845	luanletao	UNCERTAIN	default
+了	shaliaoyan	傻了眼	8696	shaleyan	UNCERTAIN	default
+了	guanliaoji	关了机	8535	guanleji	UNCERTAIN	default
+了	nieliaoyibahan	捏了一把汗	8535	nieleyibahan	UNCERTAIN	default
+了	hanliao	焊了	8323	hanle	UNCERTAIN	single-char prefix '焊' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	qiaoliaobantian	敲了半天	8323	qiaolebantian	UNCERTAIN	default
+了	liaoaimei	了暧昧	8315	leaimei	UNCERTAIN	default
+了	kujiliao	酷极了	8091	kujile	UNCERTAIN	2-char prefix '酷极' + 助词 (V+助词 or 2-char N+助词)
+了	shuliaoqiu	输了球	8091	shuleqiu	UNCERTAIN	default
+了	wangliaowang	望了望	8058	wanglewang	UNCERTAIN	default
+了	shuiguoliaotou	睡过了头	7836	shuiguoletou	UNCERTAIN	default
+了	yingliaoqiu	赢了球	7836	yingleqiu	UNCERTAIN	default
+了	zhuanfengliao	赚疯了	7836	zhuanfengle	UNCERTAIN	2-char prefix '赚疯' + 助词 (V+助词 or 2-char N+助词)
+了	xialiaoyanjing	瞎了眼睛	7791	xialeyanjing	UNCERTAIN	default
+了	luobokuailiaobuxini	萝卜快了不洗泥	7677	luobokuailebuxini	UNCERTAIN	default
+了	jianliaozhima	捡了芝麻	7552	jianlezhima	UNCERTAIN	default
+了	kuaiyingliao	快赢了	7552	kuaiyingle	UNCERTAIN	2-char prefix '快赢' + 助词 (V+助词 or 2-char N+助词)
+了	shuaiduanliaotui	摔断了腿	7482	shuaiduanletui	UNCERTAIN	default
+了	kaoliao	靠了	7173	kaole	UNCERTAIN	single-char prefix '靠' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	sanliaojia	散了架	7107	sanlejia	UNCERTAIN	default
+了	feishangliao	飞上了	6868	feishangle	UNCERTAIN	2-char prefix '飞上' + 助词 (V+助词 or 2-char N+助词)
+了	gonghuannanliao	共患难了	6868	gonghuannanle	LIKELY_SPURIOUS	>=3-char prefix '共患难' + 助词 (long phrase + 助词)
+了	kanzouliaoyan	看走了眼	6868	kanzouleyan	UNCERTAIN	default
+了	yaoliaoyixia	摇了一下	6868	yaoleyixia	UNCERTAIN	default
+了	liaowangta	了望塔	6463	lewangta	UNCERTAIN	default
+了	manghunliaotou	忙昏了头	6442	manghunletou	UNCERTAIN	default
+了	haojiliao	好级了	5930	haojile	UNCERTAIN	2-char prefix '好级' + 助词 (V+助词 or 2-char N+助词)
+了	liaocicansheng	了此残生	5930	lecicansheng	UNCERTAIN	default
+了	xiangjiliao	象极了	5930	xiangjile	UNCERTAIN	2-char prefix '象极' + 助词 (V+助词 or 2-char N+助词)
+了	sidingliao	死定了	5663	sidingle	UNCERTAIN	2-char prefix '死定' + 助词 (V+助词 or 2-char N+助词)
+了	daoyebaliao	倒也罢了	5633	daoyebale	LIKELY_SPURIOUS	>=3-char prefix '倒也罢' + 助词 (long phrase + 助词)
+了	juzihongliao	桔子红了	5286	juzihongle	LIKELY_SPURIOUS	>=3-char prefix '桔子红' + 助词 (long phrase + 助词)
+了	zaimanliao	载满了	4422	zaimanle	UNCERTAIN	2-char prefix '载满' + 助词 (V+助词 or 2-char N+助词)
+了	jisiliao	急死了	3094	jisile	UNCERTAIN	2-char prefix '急死' + 助词 (V+助词 or 2-char N+助词)
+了	kubiliao	酷弊了	3094	kubile	UNCERTAIN	2-char prefix '酷弊' + 助词 (V+助词 or 2-char N+助词)
+了	liaogewang	了哥王	1493	legewang	UNCERTAIN	default
+了	ailiaoguolai	捱了过来	0	aileguolai	UNCERTAIN	default
+了	ailiaoguoqu	捱了过去	0	aileguoqu	UNCERTAIN	default
+了	bianchengliuliao	变成流了	0	bianchengliule	LIKELY_SPURIOUS	>=3-char prefix '变成流' + 助词 (long phrase + 助词)
+了	bianliaoyoubian	变了又变	0	bianleyoubian	UNCERTAIN	default
+了	chuiliaoxialai	垂了下来	0	chuilexialai	UNCERTAIN	default
+了	chuiliaoxiaqu	垂了下去	0	chuilexiaqu	UNCERTAIN	default
+了	daliaobufa	打了不罚	0	dalebufa	UNCERTAIN	default
+了	diuliaobang	丢了棒	0	diulebang	UNCERTAIN	default
+了	douliaoqilai	斗了起来	0	douleqilai	UNCERTAIN	default
+了	faliaobuda	罚了不打	0	falebuda	UNCERTAIN	default
+了	fengliaoguji	疯了呱几	0	fengleguji	UNCERTAIN	default
+了	gailiaoyougai	盖了又盖	0	gaileyougai	UNCERTAIN	default
+了	gandeliao	干得了	0	gandele	UNCERTAIN	2-char prefix '干得' + 助词 (V+助词 or 2-char N+助词)
+了	gualiao	颳了	0	guale	UNCERTAIN	single-char prefix '颳' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	haowuliao	好恶了	0	haowule	UNCERTAIN	2-char prefix '好恶' + 助词 (V+助词 or 2-char N+助词)
+了	jihunliaotou	挤昏了头	0	jihunletou	UNCERTAIN	default
+了	jueliaoshiyan	决了食言	0	jueleshiyan	UNCERTAIN	default
+了	kaoniliao	靠你了	0	kaonile	UNCERTAIN	2-char prefix '靠你' + 助词 (V+助词 or 2-char N+助词)
+了	kouliao	釦了	0	koule	UNCERTAIN	single-char prefix '釦' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	kusiliao	哭死了	0	kusile	UNCERTAIN	2-char prefix '哭死' + 助词 (V+助词 or 2-char N+助词)
+了	liaobuxiangshe	了不相涉	0	lebuxiangshe	UNCERTAIN	default
+了	liaocixinyuan	了此心愿	0	lecixinyuan	UNCERTAIN	default
+了	liaociyisheng	了此一生	0	leciyisheng	UNCERTAIN	default
+了	liaowangsuo	了望所	0	lewangsuo	UNCERTAIN	default
+了	naoliaoguiqi	闹了归齐	0	naoleguiqi	UNCERTAIN	default
+了	sakongliao	萨空了	0	sakongle	UNCERTAIN	2-char prefix '萨空' + 助词 (V+助词 or 2-char N+助词)
+了	saliaoniya	萨了尼亚	0	saleniya	UNCERTAIN	default
+了	shuangdailiao	爽呆了	0	shuangdaile	UNCERTAIN	2-char prefix '爽呆' + 助词 (V+助词 or 2-char N+助词)
+了	shuangsiwoliao	爽死我了	0	shuangsiwole	LIKELY_SPURIOUS	>=3-char prefix '爽死我' + 助词 (long phrase + 助词)
+了	songliaosong	耸了耸	0	songlesong	UNCERTAIN	default
+了	songliaosongjian	耸了耸肩	0	songlesongjian	UNCERTAIN	default
+了	taishuangliao	太爽了	0	taishuangle	UNCERTAIN	2-char prefix '太爽' + 助词 (V+助词 or 2-char N+助词)
+了	weiliaoweng	魏了翁	0	weileweng	UNCERTAIN	default
+了	xianliaokailai	掀了开来	0	xianlekailai	UNCERTAIN	default
+了	xieliaoen	谢了恩	0	xieleen	UNCERTAIN	default
+了	yinliao	喑了	0	yinle	UNCERTAIN	single-char prefix '喑' + 助词 (likely legitimate N+助词,但 ambiguous)
+了	yishuliaozhi	一树了之	0	yishulezhi	UNCERTAIN	default
+了	zhangguoliaotou	涨过了头	0	zhangguoletou	UNCERTAIN	default
+了	zhongliaoqiandu	中了铅毒	0	zhongleqiandu	UNCERTAIN	default
+的	zhendi	真的	47067	zhende	UNCERTAIN	single-char prefix '真' + 助词 (likely legitimate N+助词,但 ambiguous)
+的	dihua	的话	42138	dehua	UNCERTAIN	default
+的	biedi	别的	40280	biede	UNCERTAIN	single-char prefix '别' + 助词 (likely legitimate N+助词,但 ambiguous)
+的	meidi	美的	36637	meide	UNCERTAIN	single-char prefix '美' + 助词 (likely legitimate N+助词,但 ambiguous)
+的	xiaoxiaodi	小小的	30660	xiaoxiaode	SPURIOUS	重叠副词 '小小' + 助词
+的	bandi	般的	29819	bande	UNCERTAIN	single-char prefix '般' + 助词 (likely legitimate N+助词,但 ambiguous)
+的	tamadi	他妈的	26969	tamade	UNCERTAIN	2-char prefix '他妈' + 助词 (V+助词 or 2-char N+助词)
+的	manmandi	满满的	26652	manmande	SPURIOUS	重叠副词 '满满' + 助词
+的	jingjingdi	静静的	26086	jingjingde	SPURIOUS	重叠副词 '静静' + 助词
+的	changchangdi	长长的	25760	changchangde	SPURIOUS	重叠副词 '长长' + 助词
+的	duandi	端的	25419	duande	UNCERTAIN	single-char prefix '端' + 助词 (likely legitimate N+助词,但 ambiguous)
+的	zhendijia	真的假	24917	zhendejia	UNCERTAIN	default
+的	qiaoqiaodi	悄悄的	24824	qiaoqiaode	SPURIOUS	重叠副词 '悄悄' + 助词
+的	dandandi	淡淡的	24514	dandande	SPURIOUS	重叠副词 '淡淡' + 助词
+的	guaiguaidi	怪怪的	23764	guaiguaide	SPURIOUS	重叠副词 '怪怪' + 助词
+的	zheyangdihua	这样的话	23638	zheyangdehua	UNCERTAIN	default
+的	tiantiandi	甜甜的	23253	tiantiande	SPURIOUS	重叠副词 '甜甜' + 助词
+的	houhoudi	厚厚的	23142	houhoude	SPURIOUS	重叠副词 '厚厚' + 助词
+的	gaogaodi	高高的	22976	gaogaode	SPURIOUS	重叠副词 '高高' + 助词
+的	yuanyuandi	圆圆的	22521	yuanyuande	SPURIOUS	重叠副词 '圆圆' + 助词
+的	nuannuandi	暖暖的	22449	nuannuande	SPURIOUS	重叠副词 '暖暖' + 助词
+的	nongnongdi	浓浓的	22193	nongnongde	SPURIOUS	重叠副词 '浓浓' + 助词
+的	pangpangdi	胖胖的	21176	pangpangde	SPURIOUS	重叠副词 '胖胖' + 助词
+的	shengshengdi	生生的	21105	shengshengde	SPURIOUS	重叠副词 '生生' + 助词
+的	shoushoudi	瘦瘦的	20686	shoushoude	SPURIOUS	重叠副词 '瘦瘦' + 助词
+的	liangliangdi	亮亮的	20420	liangliangde	SPURIOUS	重叠副词 '亮亮' + 助词
+的	baibaidi	白白的	20176	baibaide	SPURIOUS	重叠副词 '白白' + 助词
+的	shashadi	傻傻的	20004	shashade	SPURIOUS	重叠副词 '傻傻' + 助词
+的	changdige	唱的歌	19815	changdege	UNCERTAIN	default
+的	lenglengdi	冷冷的	19772	lenglengde	SPURIOUS	重叠副词 '冷冷' + 助词
+的	tingdige	听的歌	19481	tingdege	UNCERTAIN	default
+的	honghongdi	红红的	19420	honghongde	SPURIOUS	重叠副词 '红红' + 助词
+的	gandishi	干的事	19344	gandeshi	UNCERTAIN	default
+的	suansuandi	酸酸的	19098	suansuande	SPURIOUS	重叠副词 '酸酸' + 助词
+的	jiehundiren	结婚的人	18957	jiehunderen	UNCERTAIN	default
+的	duocaidi	多彩的	18864	duocaide	UNCERTAIN	2-char prefix '多彩' + 助词 (V+助词 or 2-char N+助词)
+的	heiheidi	黑黑的	18848	heiheide	SPURIOUS	重叠副词 '黑黑' + 助词
+的	liangliangdi	凉凉的	18302	liangliangde	SPURIOUS	重叠副词 '凉凉' + 助词
+的	xuyaodihua	需要的话	18196	xuyaodehua	UNCERTAIN	default
+的	qiguaidishi	奇怪的是	17659	qiguaideshi	UNCERTAIN	default
+的	xiangxiangdi	香香的	17418	xiangxiangde	SPURIOUS	重叠副词 '香香' + 助词
+的	duanduandi	短短的	17151	duanduande	SPURIOUS	重叠副词 '短短' + 助词
+的	baerdimo	巴尔的摩	17147	baerdemo	UNCERTAIN	default
+的	yedihei	夜的黑	17042	yedehei	UNCERTAIN	default
+的	chenchendi	沉沉的	16667	chenchende	SPURIOUS	重叠副词 '沉沉' + 助词
+的	feifeidi	肥肥的	16663	feifeide	SPURIOUS	重叠副词 '肥肥' + 助词
+的	dangdilingdao	党的领导	16639	dangdelingdao	UNCERTAIN	default
+的	nayangdihua	那样的话	16574	nayangdehua	UNCERTAIN	default
+的	gugudi	鼓鼓的	16277	gugude	SPURIOUS	重叠副词 '鼓鼓' + 助词
+的	lanlandi	蓝蓝的	16265	lanlande	SPURIOUS	重叠副词 '蓝蓝' + 助词
+的	youyoudi	油油的	16235	youyoude	SPURIOUS	重叠副词 '油油' + 助词
+的	zhideyitidishi	值得一提的是	16045	zhideyitideshi	UNCERTAIN	default
+的	dangdijianshe	党的建设	15906	dangdejianshe	UNCERTAIN	default
+的	youyoudi	悠悠的	15710	youyoude	SPURIOUS	重叠副词 '悠悠' + 助词
+的	bobodi	勃勃的	15688	bobode	SPURIOUS	重叠副词 '勃勃' + 助词
+的	qinqindi	亲亲的	14545	qinqinde	SPURIOUS	重叠副词 '亲亲' + 助词
+的	zhangguidi	掌柜的	14539	zhangguide	UNCERTAIN	2-char prefix '掌柜' + 助词 (V+助词 or 2-char N+助词)
+的	dadadi	大大的	14234	dadade	SPURIOUS	重叠副词 '大大' + 助词
+的	haodikaishi	好的开始	13911	haodekaishi	UNCERTAIN	default
+的	xixidi	细细的	13676	xixide	SPURIOUS	重叠副词 '细细' + 助词
+的	wuqiongdi	无穷的	13626	wuqiongde	UNCERTAIN	2-char prefix '无穷' + 助词 (V+助词 or 2-char N+助词)
+的	lvlvdi	绿绿的	13600	lvlvde	SPURIOUS	重叠副词 '绿绿' + 助词
+的	sisidi	死死的	13453	siside	SPURIOUS	重叠副词 '死死' + 助词
+的	weidishi	为的是	12816	weideshi	UNCERTAIN	default
+的	sikandinaweiya	斯堪的纳维亚	12633	sikandenaweiya	UNCERTAIN	default
+的	chongchongdi	重重的	12478	chongchongde	SPURIOUS	重叠副词 '重重' + 助词
+的	laladi	辣辣的	12453	lalade	SPURIOUS	重叠副词 '辣辣' + 助词
+的	baobaodi	薄薄的	12254	baobaode	SPURIOUS	重叠副词 '薄薄' + 助词
+的	leileidi	累累的	12161	leileide	SPURIOUS	重叠副词 '累累' + 助词
+的	dangdiluxian	党的路线	11836	dangdeluxian	UNCERTAIN	default
+的	zhengzhengdi	铮铮的	10775	zhengzhengde	SPURIOUS	重叠副词 '铮铮' + 助词
+的	qingqingdi	清清的	10721	qingqingde	SPURIOUS	重叠副词 '清清' + 助词
+的	dangdijilv	党的纪律	10660	dangdejilv	UNCERTAIN	default
+的	rongrongdi	绒绒的	10448	rongrongde	SPURIOUS	重叠副词 '绒绒' + 助词
+的	suisuidi	碎碎的	10448	suisuide	SPURIOUS	重叠副词 '碎碎' + 助词
+的	sikandina	斯堪的纳	10152	sikandena	UNCERTAIN	default
+的	shaoshaodi	少少的	9932	shaoshaode	SPURIOUS	重叠副词 '少少' + 助词
+的	meishuodi	没说的	9888	meishuode	UNCERTAIN	2-char prefix '没说' + 助词 (V+助词 or 2-char N+助词)
+的	dangdijiben	党的基本	9333	dangdejiben	UNCERTAIN	default
+的	qianqiandi	浅浅的	9294	qianqiande	SPURIOUS	重叠副词 '浅浅' + 助词
+的	dedixin	得的心	9288	dedexin	UNCERTAIN	default
+的	dangdizhengce	党的政策	9183	dangdezhengce	UNCERTAIN	default
+的	diliboli	的黎波里	9124	deliboli	UNCERTAIN	default
+的	dudishu	读的书	9112	dudeshu	UNCERTAIN	default
+的	dangdifangzhen	党的方针	9098	dangdefangzhen	UNCERTAIN	default
+的	tiedijilv	铁的纪律	8710	tiedejilv	UNCERTAIN	default
+的	yadisiyabeiba	亚的斯亚贝巴	8612	yadesiyabeiba	UNCERTAIN	default
+的	dangdixingzhi	党的性质	8252	dangdexingzhi	UNCERTAIN	default
+的	qiangdisong	强的松	8233	qiangdesong	UNCERTAIN	default
+的	susudi	酥酥的	8091	susude	SPURIOUS	重叠副词 '酥酥' + 助词
+的	xiachangdi	狭长的	7877	xiachangde	UNCERTAIN	2-char prefix '狭长' + 助词 (V+助词 or 2-char N+助词)
+的	pingpingdi	平平的	7824	pingpingde	SPURIOUS	重叠副词 '平平' + 助词
+的	zhaizhaidi	窄窄的	7625	zhaizhaide	SPURIOUS	重叠副词 '窄窄' + 助词
+的	wanwandi	弯弯的	7303	wanwande	SPURIOUS	重叠副词 '弯弯' + 助词
+的	jiadisi	加的斯	7198	jiadesi	UNCERTAIN	default
+的	nennendi	嫩嫩的	7167	nennende	SPURIOUS	重叠副词 '嫩嫩' + 助词
+的	yonggandiren	勇敢的人	6920	yongganderen	UNCERTAIN	default
+的	huojindi	霍金的	6455	huojinde	UNCERTAIN	2-char prefix '霍金' + 助词 (V+助词 or 2-char N+助词)
+的	qiqifufudi	起起伏伏的	6451	qiqifufude	SPURIOUS	重叠副词 '起起' + 助词
+的	dangdigangling	党的纲领	6407	dangdegangling	UNCERTAIN	default
+的	xindiyiye	新的一页	6403	xindeyiye	UNCERTAIN	default
+的	dididi	低低的	6295	didide	SPURIOUS	重叠副词 '低低' + 助词
+的	houguodi	侯国的	5835	houguode	UNCERTAIN	2-char prefix '侯国' + 助词 (V+助词 or 2-char N+助词)
+的	gouqiaodi	够瞧的	5369	gouqiaode	UNCERTAIN	2-char prefix '够瞧' + 助词 (V+助词 or 2-char N+助词)
+的	diliyasite	的里雅斯特	4652	deliyasite	UNCERTAIN	default
+的	kuankuandi	宽宽的	4652	kuankuande	SPURIOUS	重叠副词 '宽宽' + 助词
+的	ququwanwandi	曲曲弯弯的	4652	ququwanwande	SPURIOUS	重叠副词 '曲曲' + 助词
+的	aiaidi	矮矮的	4640	aiaide	SPURIOUS	重叠副词 '矮矮' + 助词
+的	hehedi	赫赫的	4277	hehede	SPURIOUS	重叠副词 '赫赫' + 助词
+的	dihuahai	的花海	3686	dehuahai	UNCERTAIN	default
+的	honghonglvlvdi	红红绿绿的	3239	honghonglvlvde	SPURIOUS	重叠副词 '红红' + 助词
+的	shishidi	湿湿的	3239	shishide	SPURIOUS	重叠副词 '湿湿' + 助词
+的	zhizhidi	直直的	3239	zhizhide	SPURIOUS	重叠副词 '直直' + 助词
+的	mimidi	密密的	2987	mimide	SPURIOUS	重叠副词 '密密' + 助词
+的	rouroudi	柔柔的	2367	rouroude	SPURIOUS	重叠副词 '柔柔' + 助词
+的	bianbiandi	扁扁的	1493	bianbiande	SPURIOUS	重叠副词 '扁扁' + 助词
+的	gangandi	干干的	1493	gangande	SPURIOUS	重叠副词 '干干' + 助词
+的	huanhuandi	缓缓的	1493	huanhuande	SPURIOUS	重叠副词 '缓缓' + 助词
+的	wangxuedi	王学的	1493	wangxuede	UNCERTAIN	2-char prefix '王学' + 助词 (V+助词 or 2-char N+助词)
+的	yingbangbangdi	硬邦邦的	1493	yingbangbangde	LIKELY_SPURIOUS	>=3-char prefix '硬邦邦' + 助词 (long phrase + 助词)
+的	adijiang	阿的江	0	adejiang	UNCERTAIN	default
+的	bianzhedihua	编者的话	0	bianzhedehua	UNCERTAIN	default
+的	biaoshidiji	表示的级	0	biaoshideji	UNCERTAIN	default
+的	biebiedi	瘪瘪的	0	biebiede	SPURIOUS	重叠副词 '瘪瘪' + 助词
+的	chuandikuandu	船的宽度	0	chuandekuandu	UNCERTAIN	default
+的	cihuandi	慈焕的	0	cihuande	UNCERTAIN	2-char prefix '慈焕' + 助词 (V+助词 or 2-char N+助词)
+的	danxiaodima	胆小的马	0	danxiaodema	UNCERTAIN	default
+的	danxingdimian	单形的面	0	danxingdemian	UNCERTAIN	default
+的	didiqueque	的的确确	0	dediqueque	UNCERTAIN	default
+的	diliyasiteshi	的里雅斯特市	0	deliyasiteshi	UNCERTAIN	default
+的	diandilakai	点的拉开	0	diandelakai	UNCERTAIN	default
+的	dingdiandiquan	顶点的权	0	dingdiandequan	UNCERTAIN	default
+的	duandizhengshi	端的正士	0	duandezhengshi	UNCERTAIN	default
+的	eryudiren	耳语的人	0	eryuderen	UNCERTAIN	default
+的	fugaidijie	覆盖的阶	0	fugaidejie	UNCERTAIN	default
+的	fushudimo	复数的模	0	fushudemo	UNCERTAIN	default
+的	fushudimu	复数的模	0	fushudemo	UNCERTAIN	default
+的	ganludiren	赶路的人	0	ganluderen	UNCERTAIN	default
+的	gongdisheng	宫的圣	0	gongdesheng	UNCERTAIN	default
+的	gongqidibei	拱起的背	0	gongqidebei	UNCERTAIN	default
+的	hanhandi	憨憨的	0	hanhande	SPURIOUS	重叠副词 '憨憨' + 助词
+的	haodidaoren	郝的道人	0	haodedaoren	UNCERTAIN	default
+的	huanghuangdi	黄黄的	0	huanghuangde	SPURIOUS	重叠副词 '黄黄' + 助词
+的	jishizhidi	集矢之的	0	jishizhide	LIKELY_SPURIOUS	>=3-char prefix '集矢之' + 助词 (long phrase + 助词)
+的	juzhendiji	矩阵的迹	0	juzhendeji	UNCERTAIN	default
+的	kandishangyan	看的上眼	0	kandeshangyan	UNCERTAIN	default
+的	kekeerdi	可可儿的	0	kekeerde	SPURIOUS	重叠副词 '可可' + 助词
+的	kongkongluoluodi	空空落落的	0	kongkongluoluode	SPURIOUS	重叠副词 '空空' + 助词
+的	kuokuodi	阔阔的	0	kuokuode	SPURIOUS	重叠副词 '阔阔' + 助词
+的	langlangdi	琅琅的	0	langlangde	SPURIOUS	重叠副词 '琅琅' + 助词
+的	laodila	老的辣	0	laodela	UNCERTAIN	default
+的	laoshudierzihuidadong	老鼠的儿子会打洞	0	laoshudeerzihuidadong	UNCERTAIN	default
+的	laoshudierzikuaidadong	老鼠的儿子会打洞	0	laoshudeerzihuidadong	UNCERTAIN	default
+的	lixiangdiji	理想的积	0	lixiangdeji	UNCERTAIN	default
+的	luanluandi	乱乱的	0	luanluande	SPURIOUS	重叠副词 '乱乱' + 助词
+的	maodundipu	矛盾的普	0	maodundepu	UNCERTAIN	default
+的	meideshuodi	没得说的	0	meideshuode	LIKELY_SPURIOUS	>=3-char prefix '没得说' + 助词 (long phrase + 助词)
+的	modizhihe	模的直和	0	modezhihe	UNCERTAIN	default
+的	modizhihuo	模的直和	0	modezhihe	UNCERTAIN	default
+的	mumudi	木木的	0	mumude	SPURIOUS	重叠副词 '木木' + 助词
+的	nadichushou	拿的出手	0	nadechushou	UNCERTAIN	default
+的	paotangerdi	跑堂儿的	0	paotangerde	LIKELY_SPURIOUS	>=3-char prefix '跑堂儿' + 助词 (long phrase + 助词)
+的	penxiangdi	喷香的	0	penxiangde	UNCERTAIN	2-char prefix '喷香' + 助词 (V+助词 or 2-char N+助词)
+的	qiangdisonglong	强的松龙	0	qiangdesonglong	UNCERTAIN	default
+的	qundijie	群的阶	0	qundejie	UNCERTAIN	default
+的	shangguanfengdi	上官俸的	0	shangguanfengde	LIKELY_SPURIOUS	>=3-char prefix '上官俸' + 助词 (long phrase + 助词)
+的	shengyoudideng	省油的灯	0	shengyoudedeng	UNCERTAIN	default
+的	sidiming	斯的明	0	sideming	UNCERTAIN	default
+的	taishedihe	态射的核	0	taishedehe	UNCERTAIN	default
+的	tuiweidiren	推诿的人	0	tuiweideren	UNCERTAIN	default
+的	wangdiji	王的姬	0	wangdeji	UNCERTAIN	default
+的	weihongdi	卫红的	0	weihongde	UNCERTAIN	2-char prefix '卫红' + 助词 (V+助词 or 2-char N+助词)
+的	wenwendi	温温的	0	wenwende	SPURIOUS	重叠副词 '温温' + 助词
+的	wushudi	吴书的	0	wushude	UNCERTAIN	2-char prefix '吴书' + 助词 (V+助词 or 2-char N+助词)
+的	xianxiandi	咸咸的	0	xianxiande	SPURIOUS	重叠副词 '咸咸' + 助词
+的	xingjidiren	性急的人	0	xingjideren	UNCERTAIN	default
+的	yandiwu	燕的武	0	yandewu	UNCERTAIN	default
+的	yifapodi	一发破的	0	yifapode	LIKELY_SPURIOUS	>=3-char prefix '一发破' + 助词 (long phrase + 助词)
+的	yinyindi	阴阴的	0	yinyinde	SPURIOUS	重叠副词 '阴阴' + 助词
+的	yudifuhe	域的复合	0	yudefuhe	UNCERTAIN	default
+的	zhangpingdi	张平的	0	zhangpingde	UNCERTAIN	2-char prefix '张平' + 助词 (V+助词 or 2-char N+助词)
+的	zhaodidaoren	赵的道人	0	zhaodedaoren	UNCERTAIN	default
+的	zhaodijun	赵的郡	0	zhaodejun	UNCERTAIN	default
+的	zhaodizhuo	赵的卓	0	zhaodezhuo	UNCERTAIN	default
+的	zhendixiang	甄的香	0	zhendexiang	UNCERTAIN	default
+的	zhongyuanzhidi	众怨之的	0	zhongyuanzhide	LIKELY_SPURIOUS	>=3-char prefix '众怨之' + 助词 (long phrase + 助词)
+的	zhuizhuidi	惴惴的	0	zhuizhuide	SPURIOUS	重叠副词 '惴惴' + 助词
+的	zulongdi	祖龙的	0	zulongde	UNCERTAIN	2-char prefix '祖龙' + 助词 (V+助词 or 2-char N+助词)
+谁	sheizhi	谁知	29625	shuizhi	LEGITIMATE	whitelist
+谁	genshei	跟谁	24682	genshui	UNCERTAIN	谁/那 in non-末位
+谁	sheishei	谁谁	23072	shuishui	UNCERTAIN	谁/那 in non-末位
+谁	sheishui	谁谁	23072	shuishui	UNCERTAIN	谁/那 in non-末位
+谁	shuishei	谁谁	23072	shuishui	UNCERTAIN	谁/那 in non-末位
+谁	geishei	给谁	22754	geishui	UNCERTAIN	谁/那 in non-末位
+谁	sheigan	谁敢	22564	shuigan	LEGITIMATE	whitelist
+谁	sheixian	谁先	22160	shuixian	UNCERTAIN	谁/那 in non-末位
+谁	bishei	比谁	21601	bishui	UNCERTAIN	谁/那 in non-末位
+谁	sheisheishei	谁谁谁	19169	shuishuishui	UNCERTAIN	谁/那 in non-末位
+谁	sheisheishui	谁谁谁	19169	shuishuishui	UNCERTAIN	谁/那 in non-末位
+谁	sheishuishei	谁谁谁	19169	shuishuishui	UNCERTAIN	谁/那 in non-末位
+谁	sheishuishui	谁谁谁	19169	shuishuishui	UNCERTAIN	谁/那 in non-末位
+谁	shuisheishei	谁谁谁	19169	shuishuishui	UNCERTAIN	谁/那 in non-末位
+谁	shuisheishui	谁谁谁	19169	shuishuishui	UNCERTAIN	谁/那 in non-末位
+谁	shuishuishei	谁谁谁	19169	shuishuishui	UNCERTAIN	谁/那 in non-末位
+谁	mashei	骂谁	17821	mashui	UNCERTAIN	谁/那 in non-末位
+谁	sheigeiwo	谁给我	17460	shuigeiwo	UNCERTAIN	谁/那 in non-末位
+谁	sheijiwo	谁给我	17460	shuigeiwo	UNCERTAIN	谁/那 in non-末位
+谁	sheicuo	谁错	16837	shuicuo	UNCERTAIN	谁/那 in non-末位
+谁	sheiyouneng	谁又能	16169	shuiyouneng	UNCERTAIN	谁/那 in non-末位
+谁	sheinenggei	谁能给	15898	shuinenggei	UNCERTAIN	谁/那 in non-末位
+谁	sheinengji	谁能给	15898	shuinenggei	UNCERTAIN	谁/那 in non-末位
+谁	buguanshishei	不管是谁	15681	buguanshishui	UNCERTAIN	谁/那 in non-末位
+谁	sheilaiguan	谁来管	13682	shuilaiguan	UNCERTAIN	谁/那 in non-末位
+谁	sheiliao	谁料	13660	shuiliao	UNCERTAIN	谁/那 in non-末位
+谁	wulunshei	无论谁	13605	wulunshui	UNCERTAIN	谁/那 in non-末位
+谁	daishei	逮谁	12673	daishui	UNCERTAIN	谁/那 in non-末位
+谁	qushei	娶谁	12189	qushui	UNCERTAIN	谁/那 in non-末位
+谁	sheiyoukong	谁有空	11987	shuiyoukong	UNCERTAIN	谁/那 in non-末位
+谁	duishei	怼谁	11824	duishui	UNCERTAIN	谁/那 in non-末位
+谁	sheigeile	谁给了	11754	shuigeile	UNCERTAIN	2-char prefix '谁给' + 助词 (V+助词 or 2-char N+助词)
+谁	sheigeiliao	谁给了	11754	shuigeile	UNCERTAIN	2-char prefix '谁给' + 助词 (V+助词 or 2-char N+助词)
+谁	sheijile	谁给了	11754	shuigeile	UNCERTAIN	2-char prefix '谁给' + 助词 (V+助词 or 2-char N+助词)
+谁	sheijiliao	谁给了	11754	shuigeile	UNCERTAIN	2-char prefix '谁给' + 助词 (V+助词 or 2-char N+助词)
+谁	sheishisheifei	谁是谁非	11555	shuishishuifei	UNCERTAIN	谁/那 in non-末位
+谁	sheishishuifei	谁是谁非	11555	shuishishuifei	UNCERTAIN	谁/那 in non-末位
+谁	shuishisheifei	谁是谁非	11555	shuishishuifei	UNCERTAIN	谁/那 in non-末位
+谁	geshei	搁谁	11399	geshui	UNCERTAIN	谁/那 in non-末位
+谁	zoushei	揍谁	11263	zoushui	UNCERTAIN	谁/那 in non-末位
+谁	sheihuixiangdao	谁会想到	10650	shuihuixiangdao	UNCERTAIN	谁/那 in non-末位
+谁	sheikuaixiangdao	谁会想到	10650	shuihuixiangdao	UNCERTAIN	谁/那 in non-末位
+谁	sheiken	谁肯	10456	shuiken	UNCERTAIN	谁/那 in non-末位
+谁	sheidui	谁怼	10350	shuidui	UNCERTAIN	谁/那 in non-末位
+谁	guishei	归谁	10109	guishui	UNCERTAIN	谁/那 in non-末位
+谁	sheitao	谁掏	10032	shuitao	UNCERTAIN	谁/那 in non-末位
+谁	xingshenmingshei	姓甚名谁	10032	xingshenmingshui	UNCERTAIN	谁/那 in non-末位
+谁	sheipei	谁赔	9667	shuipei	UNCERTAIN	谁/那 in non-末位
+谁	bulunshishei	不论是谁	9533	bulunshishui	UNCERTAIN	谁/那 in non-末位
+谁	sheiweishei	谁为谁	9242	shuiweishui	UNCERTAIN	谁/那 in non-末位
+谁	sheiweishui	谁为谁	9242	shuiweishui	UNCERTAIN	谁/那 in non-末位
+谁	shuiweishei	谁为谁	9242	shuiweishui	UNCERTAIN	谁/那 in non-末位
+谁	sheijuzheng	谁举证	9083	shuijuzheng	UNCERTAIN	谁/那 in non-末位
+谁	sheizhuzhang	谁主张	8091	shuizhuzhang	UNCERTAIN	谁/那 in non-末位
+谁	sheizhipanzhongcan	谁知盘中餐	6818	shuizhipanzhongcan	UNCERTAIN	谁/那 in non-末位
+谁	yousheilai	由谁来	6514	youshuilai	UNCERTAIN	谁/那 in non-末位
+谁	sheitama	谁他妈	0	shuitama	UNCERTAIN	谁/那 in non-末位
+谁	sheiyancuncao	谁言寸草	0	shuiyancuncao	UNCERTAIN	谁/那 in non-末位
+谁	yusheiguizui	欲谁归罪	0	yushuiguizui	UNCERTAIN	谁/那 in non-末位
+那	neixie	那些	43646	naxie	LEGITIMATE	whitelist

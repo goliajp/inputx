@@ -1,0 +1,55 @@
+# Japanese sentence-final particles / copulas used by composite-style
+# composition (`<content_word> + <suffix>` patterns: 今日 + です →
+# 今日です, etc.).
+#
+# Closed-class Japanese grammar — not polish-tunable in the same sense
+# as wubi/pinyin overlays. Listed here as data (not Rust const) per
+# project policy `.claude/RANKING-MODEL-INVARIANTS.md` — anything
+# shaped as a `(reading, output)` list lives in TSV, period.
+#
+# Order matters: **longest reading first** so the greedy matcher in
+# `compose_one_segment` peels them in priority order (`dewanai`
+# before `dewa`, etc.). Preserve order when editing.
+#
+# Format:
+#   <reading>\t<output>[\t# comment]
+#
+# Loaded via `include_str!` from
+#   core/crates/inputx-core/src/japanese/compose.rs
+#   core/crates/inputx-nihongo/src/engine.rs
+# Cargo tracks the file as a build dependency.
+
+dewanaikatta	ではなかった
+dewaarimasen	ではありません
+dewanaiyou	ではないよう
+dewanakatta	ではなかった
+dewanai	ではない
+deshita	でした
+dewashita	ではした
+deshou	でしょう
+darou	だろう
+datta	だった
+desu	です
+dewa	では
+kara	から
+made	まで
+yori	より
+nado	など
+toka	とか
+nimo	にも
+demo	でも
+masu	ます
+masen	ません
+mashita	ました
+mashou	ましょう
+wa	は
+ga	が
+wo	を
+ni	に
+de	で
+to	と
+mo	も
+no	の
+ka	か
+e	へ
+ya	や

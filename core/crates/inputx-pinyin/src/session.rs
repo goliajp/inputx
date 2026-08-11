@@ -255,21 +255,25 @@ mod tests {
         assert_eq!(session.input(), "");
     }
 
-    /// Item 28 — committing through Session feeds the engine's L0. After
-    /// PROMOTE_THRESHOLD repeats, the picked candidate is auto-pinned.
+    /// Item 28 (rewritten 2026-07-20 when auto-pin was removed) —
+    /// committing through Session must NOT change candidate order. It
+    /// still feeds the engine's L0 pick counters, but those are usage
+    /// statistics; only an explicit `pin` reorders.
     /// Gated to default features: bootstrap dict has too few candidates
-    /// per input to make pin-vs-default observable.
+    /// per input to make ordering observable.
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
-    fn commit_feeds_l0_pin_promotion() {
-        use crate::ranking::PROMOTE_THRESHOLD;
+    fn commit_does_not_reorder_candidates() {
         let engine = PinyinEngine::new();
-
-        // Pick a non-default candidate for "shi" via a fresh session each time.
-        // 时 isn't first in v0.2 (是 dominates), so promoting it via picks
-        // visibly changes the lookup ordering.
         let target = "时";
-        for _ in 0..PROMOTE_THRESHOLD {
+
+        let mut probe = Session::new(&engine);
+        for c in "shi".chars() {
+            probe.input_char(c);
+        }
+        let before = probe.candidates().first().map(String::from);
+
+        for _ in 0..5 {
             let mut s = Session::new(&engine);
             for c in "shi".chars() {
                 s.input_char(c);
@@ -282,15 +286,14 @@ mod tests {
             assert_eq!(s.commit(idx).as_deref(), Some(target));
         }
 
-        // After threshold picks, 时 should now be at position 0 for "shi".
-        let mut probe = Session::new(&engine);
+        let mut after_probe = Session::new(&engine);
         for c in "shi".chars() {
-            probe.input_char(c);
+            after_probe.input_char(c);
         }
         assert_eq!(
-            probe.candidates().first().map(String::as_str),
-            Some(target),
-            "expected L0 to pin 时 after {PROMOTE_THRESHOLD} picks via Session::commit"
+            after_probe.candidates().first().map(String::from),
+            before,
+            "repeated commits must not reorder 'shi' candidates"
         );
     }
 }

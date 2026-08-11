@@ -1,0 +1,30 @@
+# Recapture from batches 1a (commit e0da0cb) + 2 (commit 41fe74f) —
+# Claude Code per-row audit 2026-06-22 found 21 more real / literary
+# AA-redups missed by my initial keep whitelists (37 for 1a, 88 for 2).
+# Re-enter as source=polish rows at original digested freq.
+# Schema: code\tword\tfreq\t# note
+
+# --- batch 1a recapture (6) ---
+caicai	采采	10939	# 《诗经》采采卷耳 文学
+chuichui	垂垂	11840	# 垂垂老矣 文学
+jiujiu	纠纠	12111	# 纠纠武夫 (= 赳赳 异写)
+jiujiu	赳赳	12900	# 赳赳武夫
+pengpeng	芃芃	13184	# 《诗经》芃芃黍苗 文学
+xianxian	纤纤	14310	# 纤纤玉指 文学
+
+# --- batch 2 recapture (15) ---
+chongchong	冲冲	19857	# 兴冲冲 真叠词
+daidai	代代	19807	# 代代相传
+feifei	非非	19083	# 想入非非
+guoguo	蝈蝈	18295	# 蝈蝈 (虫名,本字重叠不可分)
+huanhuan	环环	18254	# 环环相扣
+jinjin	斤斤	18790	# 斤斤计较
+lianlian	恋恋	18284	# 恋恋不舍
+linlin	林林	16107	# 林林总总
+nuonuo	诺诺	17699	# 唯唯诺诺
+saosao	嫂嫂	19967	# 亲属称谓 (与 哥哥/姐姐 同类)
+shishi	世世	19248	# 世世代代
+tangtang	汤汤	17054	# 河水汤汤 (shang-shang 古文)
+xuxu	许许	16082	# 许许多多
+zizi	子子	17388	# 子子孙孙
+zuzu	祖祖	15260	# 祖祖辈辈

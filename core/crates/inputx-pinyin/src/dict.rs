@@ -23,11 +23,90 @@
 //!   - `export_l0` / `import_l0` round-trip the L0 state for host-side
 //!     persistence (no `serde` dep on the lib).
 
-use std::sync::{OnceLock, RwLock};
+use std::borrow::Cow;
+use std::collections::HashMap;
+use std::sync::{Arc, OnceLock, RwLock};
 
 use inputx_fsa::{Dict, Fsa};
 
-use crate::ranking::{L0Inner, L0Snapshot, PROMOTE_THRESHOLD};
+/// Byte container for PinyinDict FSTs: either a `'static` borrow of a
+/// compile-time embedded blob or an `Owned` `Vec<u8>` freshly loaded
+/// from disk during a hot-reload (v1.15 polish-without-restart flow).
+/// `Cow` unifies the two under one `AsRef<[u8]>` impl so `Dict` / `Fsa`
+/// don't need to change their generic bounds.
+type DictBytes = Cow<'static, [u8]>;
+
+use crate::bigram_lm::LmBackend;
+#[cfg(feature = "cell-dict")]
+use crate::cell_dict::{CellDict, ParseError as CellDictParseError};
+use crate::ranking::{L0Inner, L0Snapshot};
+
+/// Phase-2 LM mixing weight read from env `PINYIN_LM_LAMBDA` on first
+/// call and cached. Default 1.0, picked at CP-2.6 sweet-spot sweep
+/// (gold-1000 MIU peaks at λ=1.0 with +0.90pp gold lift, full 50k
+/// confirms +0.76pp overall; λ=3.0 starts over-shooting the LM term
+/// vs raw_freq and degrades MIU). See
+/// `tools/eval/results/lm_lambda_sweep.tsv` for the full sweep data.
+/// Set to 0 to disable the LM contribution entirely while keeping
+/// the model loaded — useful for byte-equal regression testing /
+/// rollback without rebuilding the binary.
+fn lm_lambda() -> f64 {
+    const LM_LAMBDA_DEFAULT: f64 = 1.0;
+    static CACHED: OnceLock<f64> = OnceLock::new();
+    *CACHED.get_or_init(|| {
+        std::env::var("PINYIN_LM_LAMBDA")
+            .ok()
+            .and_then(|s| s.parse::<f64>().ok())
+            .unwrap_or(LM_LAMBDA_DEFAULT)
+    })
+}
+
+/// Phase-4 CP-4.3 user-LM mixing weight read from env
+/// `PINYIN_USER_LM_LAMBDA` on first call and cached. Default 0.2
+/// (climb-plan estimate; SunPinyin is the reference). Controls the
+/// `λ_u` in `(1 - λ_u) · log P_system + λ_u · log P_user`. The actual
+/// `bigram_lm_bonus` site applies a cold-start guard on top of this
+/// (CP-4.3 task: when total user_bigram count < 100, force λ_u = 0
+/// regardless of the env value), so this raw lambda only matters
+/// once the user has committed enough words.
+fn user_lm_lambda() -> f64 {
+    const USER_LM_LAMBDA_DEFAULT: f64 = 0.2;
+    static CACHED: OnceLock<f64> = OnceLock::new();
+    *CACHED.get_or_init(|| {
+        std::env::var("PINYIN_USER_LM_LAMBDA")
+            .ok()
+            .and_then(|s| s.parse::<f64>().ok())
+            .unwrap_or(USER_LM_LAMBDA_DEFAULT)
+    })
+}
+
+/// Phase-4 CP-4.3 cold-start threshold: number of user-bigram
+/// observations below which `λ_u` is forced to 0. Below the threshold
+/// the user model is too noisy to outweigh the system LM; above it,
+/// the climb-plan-tuned `user_lm_lambda` applies.
+const USER_LM_COLD_START_THRESHOLD: u64 = 100;
+
+/// Phase-5 CP-5.1 step-2 trigram LM mixing weight read from env
+/// `PINYIN_LM_TRIGRAM_LAMBDA` on first call and cached. Default 0.3,
+/// the climb-plan starting point — actual sweet spot lands in the
+/// CP-5.1 step-2 sweep on top of the trigram.binary model.
+///
+/// Like [`lm_lambda`], a value of 0 disables the trigram LM
+/// contribution entirely while keeping the model loaded; useful for
+/// byte-equal regression testing without rebuilding the binary.
+///
+/// Only consulted when `self.lm.order() >= 3` — bigram-only models
+/// stay on the Phase-2 λ knob.
+fn trigram_lm_lambda() -> f64 {
+    const TRIGRAM_LM_LAMBDA_DEFAULT: f64 = 0.3;
+    static CACHED: OnceLock<f64> = OnceLock::new();
+    *CACHED.get_or_init(|| {
+        std::env::var("PINYIN_LM_TRIGRAM_LAMBDA")
+            .ok()
+            .and_then(|s| s.parse::<f64>().ok())
+            .unwrap_or(TRIGRAM_LM_LAMBDA_DEFAULT)
+    })
+}
 
 // Default = full pinyin dict from the committed `data/pinyin.dict` (3.9 MB,
 // an `inputx-fsa` two-level Dict pre-built by `tools/build_dict.rs` from
@@ -39,8 +118,11 @@ use crate::ranking::{L0Inner, L0Snapshot, PROMOTE_THRESHOLD};
 // Why pre-built vs build.rs-generated: keeps the published crate under
 // crates.io's size cap by letting us exclude the heavy intermediate TSV
 // files (weights.tsv 23 MB, readings.tsv 13 MB, etc.) from the package.
+// v1.4.7 sub-phase B (Strategy C): the embedded dict blob moved out
+// of `../data/pinyin.dict` into the sibling `inputx-pinyin-data-core`
+// crate so the facade publishes light.
 #[cfg(not(feature = "bootstrap_only"))]
-const DICT_BYTES: &[u8] = include_bytes!("../data/pinyin.dict");
+const DICT_BYTES: &[u8] = inputx_pinyin_data_core::EMBEDDED_PINYIN_DICT;
 
 #[cfg(feature = "bootstrap_only")]
 const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/bootstrap.dict"));
@@ -51,10 +133,15 @@ const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/bootstrap.di
 /// next-word prediction — chains built from this set are real
 /// "what word followed what word" patterns, not character pairs from
 /// within a single phrase.
-#[cfg(not(feature = "bootstrap_only"))]
-const BIGRAMS_BYTES: &[u8] = include_bytes!("../data/bigrams.fsa");
+// v1.4.7 sub-phase B (Strategy C): the embedded bigrams moved out
+// of `../data/bigrams.fsa` into `inputx-pinyin-data-bigrams`, gated
+// behind the `bigrams` feature flag (default-on). With the flag off
+// the dict still loads — `PinyinDict::bigram_boost` returns 0 and
+// Viterbi falls back to corpus-freq-only composition ordering.
+#[cfg(all(not(feature = "bootstrap_only"), feature = "bigrams"))]
+const BIGRAMS_BYTES: &[u8] = inputx_pinyin_data_bigrams::EMBEDDED_BIGRAMS;
 
-#[cfg(feature = "bootstrap_only")]
+#[cfg(any(feature = "bootstrap_only", not(feature = "bigrams")))]
 const BIGRAMS_BYTES: &[u8] = &[];
 
 /// Intra-token char-bigram FST: keys = `<a>\0<b>` where `a` and `b`
@@ -65,21 +152,24 @@ const BIGRAMS_BYTES: &[u8] = &[];
 /// continuations and spawning predictions from them produces chains
 /// like 椒→粉→碎→机构 that look superficially plausible but are
 /// globally nonsense).
-#[cfg(not(feature = "bootstrap_only"))]
-const BIGRAMS_INTRA_BYTES: &[u8] = include_bytes!("../data/bigrams_intra.fsa");
+#[cfg(all(not(feature = "bootstrap_only"), feature = "bigrams"))]
+const BIGRAMS_INTRA_BYTES: &[u8] = inputx_pinyin_data_bigrams::EMBEDDED_BIGRAMS_INTRA;
 
-#[cfg(feature = "bootstrap_only")]
+#[cfg(any(feature = "bootstrap_only", not(feature = "bigrams")))]
 const BIGRAMS_INTRA_BYTES: &[u8] = &[];
 
 /// Inter-token word-trigram FST: keys = `<a>\0<b>\0<c>`, all three
 /// distinct jieba tokens. Used by `predict_next_words_context` for
 /// sentence-level coherent next-word prediction.
-#[cfg(not(feature = "bootstrap_only"))]
-const TRIGRAMS_BYTES: &[u8] = include_bytes!("../data/trigrams.dict");
+// v1.4.7 sub-phase B (Strategy C): trigrams moved into the
+// `inputx-pinyin-data-trigrams` stone, gated behind the `trigrams`
+// feature flag (default-on). With the flag off the dict still loads
+// — `PinyinDict::predict_next_words_context` returns an empty Vec.
+#[cfg(all(not(feature = "bootstrap_only"), feature = "trigrams"))]
+const TRIGRAMS_BYTES: &[u8] = inputx_pinyin_data_trigrams::EMBEDDED_TRIGRAMS;
 
-#[cfg(feature = "bootstrap_only")]
+#[cfg(any(feature = "bootstrap_only", not(feature = "trigrams")))]
 const TRIGRAMS_BYTES: &[u8] = &[];
-
 
 /// The pinyin dictionary: an embedded FST plus a mutable L0 layer for
 /// per-user preference learning.
@@ -89,17 +179,17 @@ const TRIGRAMS_BYTES: &[u8] = &[];
 /// `RwLock` lets a single shared instance feed every concurrent IME /
 /// WASM session without exposing the lock to the caller.
 pub struct PinyinDict {
-    map: Dict<&'static [u8]>,
+    map: Dict<DictBytes>,
     /// Inter-token bigram FST (truly adjacent jieba tokens). Source of
     /// next-word predictions. `None` in bootstrap_only.
-    bigrams: Option<Fsa<&'static [u8]>>,
+    bigrams: Option<Fsa<DictBytes>>,
     /// Intra-token char-bigram FST (chars inside one phrase). Helps
     /// Viterbi prefer known phrases. NEVER used for predictions.
-    bigrams_intra: Option<Fsa<&'static [u8]>>,
+    bigrams_intra: Option<Fsa<DictBytes>>,
     /// Inter-token trigram index. Two-level Dict (a\0b) → [(c, count)] —
     /// predict only scans (a\0b, *), so two-level is the natural + smaller
     /// fit (~2 MB under the flat Fsa). Source of context-aware predictions.
-    trigrams: Option<Dict<&'static [u8]>>,
+    trigrams: Option<Dict<DictBytes>>,
     l0: RwLock<L0Inner>,
     /// Per-char max freq across ALL its pinyin readings (lazy init).
     /// Built once on first access by scanning the entire FST. Used by
@@ -109,6 +199,18 @@ pub struct PinyinDict {
     /// pinyin top for rare-char simcodes, no hardcoded special-case
     /// lists in dispatch.
     char_max_freq: OnceLock<std::collections::HashMap<char, u64>>,
+    /// Phase-2 optional bigram LM backend. None = no LM (Phase 1
+    /// byte-equal behavior). When set, [`Self::bigram_lm_bonus`]
+    /// returns a non-zero contribution that the Viterbi composition
+    /// adds to per-step scores.
+    lm: Option<Arc<dyn LmBackend>>,
+    /// Phase-5 CP-5.2 step-1: per-instance L0.5 cell-dict layer.
+    /// Maps lowercase pinyin → list of `(word, freq)` entries loaded
+    /// via [`Self::load_cell_dict`]. Empty by default → byte-equal
+    /// pre-CP-5.2 behavior. Lives between L0 (user pins) and L1
+    /// (embedded FST): L0 pin still trumps, L0.5 entries merge into
+    /// the same freq-desc ordering as L1.
+    cell_dict_layer: RwLock<HashMap<String, Vec<(String, u64)>>>,
 }
 
 impl PinyinDict {
@@ -116,38 +218,44 @@ impl PinyinDict {
     /// and initializes an empty L0). Callers should still cache the
     /// instance and reuse it for the program lifetime.
     pub fn embedded() -> Self {
-        fn load_optional(bytes: &'static [u8], label: &str) -> Option<Fsa<&'static [u8]>> {
+        fn load_optional(bytes: &'static [u8], label: &str) -> Option<Fsa<DictBytes>> {
             if bytes.is_empty() {
                 None
             } else {
-                Some(Fsa::new(bytes).unwrap_or_else(|_| panic!("invalid embedded {label} fsa")))
+                Some(
+                    Fsa::new(Cow::Borrowed(bytes))
+                        .unwrap_or_else(|_| panic!("invalid embedded {label} fsa")),
+                )
             }
         }
-        fn load_optional_dict(bytes: &'static [u8], label: &str) -> Option<Dict<&'static [u8]>> {
+        fn load_optional_dict(bytes: &'static [u8], label: &str) -> Option<Dict<DictBytes>> {
             if bytes.is_empty() {
                 None
             } else {
-                Some(Dict::new(bytes).unwrap_or_else(|_| panic!("invalid embedded {label} dict")))
+                Some(
+                    Dict::new(Cow::Borrowed(bytes))
+                        .unwrap_or_else(|_| panic!("invalid embedded {label} dict")),
+                )
             }
         }
         // dev/test escape hatch: INPUTX_PINYIN_DICT points at a dict file to
         // load at runtime instead of the embedded bytes — lets gate1
         // (07_validate/gate1_regression_corpus.py) validate a pipeline-built
-        // dict without rebuilding the binary. Box::leak supplies the 'static
-        // lifetime Dict needs; harmless in a short-lived probe. Not compiled
-        // for wasm (no fs/env there) — env unset everywhere else keeps the
-        // embedded-bytes behavior byte-for-byte unchanged.
+        // dict without rebuilding the binary. Pre-v1.15 this used
+        // `Box::leak` for a `&'static [u8]`; the DictBytes Cow now
+        // carries the owned bytes directly so the map keeps the
+        // allocation alive with no leak.
         #[cfg(not(target_arch = "wasm32"))]
-        let dict_bytes: &'static [u8] = match std::env::var_os("INPUTX_PINYIN_DICT") {
+        let dict_bytes: DictBytes = match std::env::var_os("INPUTX_PINYIN_DICT") {
             Some(path) => {
                 let data = std::fs::read(&path)
                     .unwrap_or_else(|e| panic!("INPUTX_PINYIN_DICT {path:?}: {e}"));
-                Box::leak(data.into_boxed_slice())
+                Cow::Owned(data)
             }
-            None => DICT_BYTES,
+            None => Cow::Borrowed(DICT_BYTES),
         };
         #[cfg(target_arch = "wasm32")]
-        let dict_bytes: &'static [u8] = DICT_BYTES;
+        let dict_bytes: DictBytes = Cow::Borrowed(DICT_BYTES);
 
         Self {
             map: Dict::new(dict_bytes).expect("invalid pinyin dict"),
@@ -156,7 +264,189 @@ impl PinyinDict {
             trigrams: load_optional_dict(TRIGRAMS_BYTES, "trigrams"),
             l0: RwLock::new(L0Inner::new()),
             char_max_freq: OnceLock::new(),
+            lm: None,
+            cell_dict_layer: RwLock::new(HashMap::new()),
         }
+    }
+
+    /// Phase-5 CP-5.2 step-1: load a TOML cell-dict pack into the
+    /// L0.5 layer. Returns the number of entries accepted.
+    /// Subsequent `lookup_*` calls merge these entries with L1
+    /// candidates in freq-desc order (L0 pin still takes precedence).
+    ///
+    /// Multiple loads accumulate — call as many times as the user has
+    /// packs to install. Use [`Self::clear_cell_dict`] to wipe.
+    ///
+    /// Returns [`CellDictParseError`] on malformed TOML. The layer is
+    /// left unchanged in that case (parse fully, then commit).
+    #[cfg(feature = "cell-dict")]
+    pub fn load_cell_dict(&self, toml_str: &str) -> Result<usize, CellDictParseError> {
+        let parsed = CellDict::from_toml_str(toml_str)?;
+        let n = parsed.entries.len();
+        if n == 0 {
+            return Ok(0);
+        }
+        if let Ok(mut layer) = self.cell_dict_layer.write() {
+            for entry in parsed.entries {
+                let key = normalize_lookup_key(&entry.pinyin);
+                layer.entry(key).or_default().push((entry.word, entry.freq));
+            }
+        }
+        Ok(n)
+    }
+
+    /// Wipe the entire L0.5 cell-dict layer. After this call, lookups
+    /// behave byte-equal to the no-cell-dict path.
+    #[cfg(feature = "cell-dict")]
+    pub fn clear_cell_dict(&self) {
+        if let Ok(mut layer) = self.cell_dict_layer.write() {
+            layer.clear();
+        }
+    }
+
+    /// Number of `(pinyin, word)` pairs currently in the L0.5 layer.
+    /// Useful for hosts that want to surface "N entries from M packs
+    /// loaded" in their UI.
+    pub fn cell_dict_count(&self) -> usize {
+        self.cell_dict_layer
+            .read()
+            .map(|l| l.values().map(Vec::len).sum())
+            .unwrap_or(0)
+    }
+
+    /// Look up L0.5 hits for `lower_pinyin` (already normalized via
+    /// [`normalize_lookup_key`]). Hot-path helper for the four
+    /// `lookup_*` methods; returns an empty `Vec` whenever no pack is
+    /// loaded so the byte-equal fast path stays cheap (one rwlock
+    /// read + one hashmap probe).
+    fn cell_dict_hits(&self, lower_pinyin: &str) -> Vec<(String, u64)> {
+        match self.cell_dict_layer.read() {
+            Ok(layer) if !layer.is_empty() => layer.get(lower_pinyin).cloned().unwrap_or_default(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// Attach a Phase-2 bigram LM backend. Returns the same dict, now
+    /// with `lm` set, so callers can chain `PinyinDict::embedded().with_lm(...)`.
+    ///
+    /// Pass `None` (or simply skip this call) to keep Phase-1 byte-equal
+    /// behaviour. With Some(lm), Viterbi composition adds
+    /// `LM_SCALE * λ * log10 P(curr | prev)` to per-step scores; λ comes
+    /// from env `PINYIN_LM_LAMBDA` (default 0.3, climb-plan CP-2.5).
+    pub fn with_lm(mut self, lm: Option<Arc<dyn LmBackend>>) -> Self {
+        self.lm = lm;
+        self
+    }
+
+    /// v1.15 hot-reload constructor: build a fresh `PinyinDict` whose
+    /// `map` FST is loaded from the caller-supplied `Vec<u8>` (an
+    /// owned buffer, typically read from disk by the hot-reload
+    /// signal handler). The auxiliary FSTs (`bigrams`, `bigrams_intra`,
+    /// `trigrams`) stay on the embedded blobs — those don't change
+    /// with polish, so keeping them borrowed avoids a ~2 MB alloc per
+    /// session reload.
+    ///
+    /// L0 (user pins), cell-dict layer, and LM stay empty; use
+    /// [`Self::reload_map_preserving`] to reload while retaining
+    /// per-session user state.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn from_dict_bytes(map_bytes: Vec<u8>) -> Result<Self, inputx_fsa::FsaError> {
+        fn load_optional(bytes: &'static [u8], label: &str) -> Option<Fsa<DictBytes>> {
+            if bytes.is_empty() {
+                None
+            } else {
+                Some(
+                    Fsa::new(Cow::Borrowed(bytes))
+                        .unwrap_or_else(|_| panic!("invalid embedded {label} fsa")),
+                )
+            }
+        }
+        fn load_optional_dict(bytes: &'static [u8], label: &str) -> Option<Dict<DictBytes>> {
+            if bytes.is_empty() {
+                None
+            } else {
+                Some(
+                    Dict::new(Cow::Borrowed(bytes))
+                        .unwrap_or_else(|_| panic!("invalid embedded {label} dict")),
+                )
+            }
+        }
+        let map = Dict::new(Cow::<'static, [u8]>::Owned(map_bytes))?;
+        Ok(Self {
+            map,
+            bigrams: load_optional(BIGRAMS_BYTES, "bigrams"),
+            bigrams_intra: load_optional(BIGRAMS_INTRA_BYTES, "bigrams_intra"),
+            trigrams: load_optional_dict(TRIGRAMS_BYTES, "trigrams"),
+            l0: RwLock::new(L0Inner::new()),
+            char_max_freq: OnceLock::new(),
+            lm: None,
+            cell_dict_layer: RwLock::new(HashMap::new()),
+        })
+    }
+
+    /// v1.15 hot-reload: build a new `PinyinDict` from `map_bytes`
+    /// while carrying over the per-session L0 pins, cell-dict layer,
+    /// and LM backend from `self`. The freshly-built dict is
+    /// returned; the caller is responsible for atomically swapping it
+    /// into whatever holder (per-session `PinyinEngine::dict`) points
+    /// at the old one — that step lives one layer up so this crate
+    /// stays independent of the engine's storage decisions.
+    ///
+    /// Errors bubble the FST parse failure; on error the caller MUST
+    /// keep the old dict in place (this fn hands ownership only on
+    /// success).
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn reload_map_preserving(&self, map_bytes: Vec<u8>) -> Result<Self, inputx_fsa::FsaError> {
+        let mut fresh = Self::from_dict_bytes(map_bytes)?;
+        // Preserve L0 (user pins + pick counters). export_l0/import_l0
+        // marshal through a serializable Snapshot, so the words don't
+        // need to still exist in the new FST — phantom pins survive
+        // as "user-declared preference" even if a polish round dropped
+        // the entry from the corpus.
+        let snap = self.export_l0();
+        fresh.import_l0(snap);
+        // Preserve LM backend (Arc; cheap clone).
+        fresh.lm = self.lm.clone();
+        // Preserve cell-dict layer.
+        if let Ok(old_cells) = self.cell_dict_layer.read()
+            && let Ok(mut new_cells) = fresh.cell_dict_layer.write()
+        {
+            *new_cells = old_cells.clone();
+        }
+        // char_max_freq is intentionally NOT preserved — it caches
+        // per-char maxes over the old FST; the new FST computes its
+        // own on first demand.
+        Ok(fresh)
+    }
+
+    /// Try to attach the Phase-2 KenLM bigram model from the file path
+    /// in env `PINYIN_LM_BINARY`. No-op (returns self unchanged) when:
+    ///   - the crate is built without the `kenlm` feature
+    ///   - PINYIN_LM_BINARY is unset
+    ///   - loading the file fails (a warning goes to stderr)
+    ///
+    /// `PinyinEngine::new` calls this so that the env-var conversion
+    /// happens exactly once at engine construction, and downstream
+    /// callers (sessions, adapters, etc.) just inherit the dict.
+    pub fn with_lm_from_env(self) -> Self {
+        #[cfg(feature = "kenlm")]
+        {
+            let Ok(path) = std::env::var("PINYIN_LM_BINARY") else {
+                return self;
+            };
+            match crate::bigram_lm::kenlm_backend::KenLmBackend::load(&path) {
+                Ok(lm) => {
+                    let arc: Arc<dyn LmBackend> = Arc::new(lm);
+                    return self.with_lm(Some(arc));
+                }
+                Err(e) => {
+                    eprintln!("[pinyin] failed to load PINYIN_LM_BINARY={path:?}: {e:?}");
+                    return self;
+                }
+            }
+        }
+        #[cfg(not(feature = "kenlm"))]
+        self
     }
 
     /// Max freq across all pinyin readings of single-char `c`. Returns
@@ -181,15 +471,21 @@ impl PinyinDict {
             // Item bytes ARE the word (two-level Dict keeps words out of the
             // automaton), so no \0-split needed.
             self.map.prefix_for_each(b"", |_code, word_bytes, freq| {
-                let Ok(word) = core::str::from_utf8(word_bytes) else { return };
+                let Ok(word) = core::str::from_utf8(word_bytes) else {
+                    return;
+                };
                 // Only track single-char entries — multi-char phrases'
                 // own freq doesn't tell us how common the constituent
                 // chars are individually.
                 let mut chars = word.chars();
                 let Some(c) = chars.next() else { return };
-                if chars.next().is_some() { return; }
+                if chars.next().is_some() {
+                    return;
+                }
                 let entry = cache.entry(c).or_insert(0);
-                if freq > *entry { *entry = freq; }
+                if freq > *entry {
+                    *entry = freq;
+                }
             });
             cache
         })
@@ -239,19 +535,47 @@ impl PinyinDict {
     pub fn lookup_into(&self, pinyin: &str, out: &mut Vec<String>) {
         out.clear();
 
-        let lower = pinyin.to_ascii_lowercase();
-        // Dict items come freq-desc (then item-asc), matching the old
-        // `sort_by_key(Reverse(freq))` stable order — no re-sort. Streamed
-        // (no intermediate Vec / per-item copy).
-        self.map.get_for_each(lower.as_bytes(), |word, _freq| {
-            if let Ok(s) = core::str::from_utf8(word) {
-                out.push(s.to_string());
+        // Use `lower_str` (not raw `to_ascii_lowercase`) so the lue↔lve /
+        // nue↔nve alias collapse fires here too — `celue` queries the
+        // same FST key as `celve`.
+        let lower = lower_str(pinyin);
+        let cell_hits = self.cell_dict_hits(&lower);
+        if cell_hits.is_empty() {
+            // Byte-equal pre-CP-5.2 fast path: dict items come freq-desc
+            // (then item-asc), matching the old
+            // `sort_by_key(Reverse(freq))` stable order — no re-sort.
+            // Streamed (no intermediate Vec / per-item copy).
+            self.map.get_for_each(lower.as_bytes(), |word, _freq| {
+                if let Ok(s) = core::str::from_utf8(word) {
+                    out.push(s.to_string());
+                }
+            });
+        } else {
+            // Merge L0.5 cell-dict hits with L1 in freq-desc order.
+            // Dedup by word taking max freq so a pack entry that
+            // shadows an existing L1 entry uses whichever freq is
+            // higher (usually the pack's, when authored to dominate).
+            let mut merged: Vec<(String, u64)> = cell_hits;
+            self.map.get_for_each(lower.as_bytes(), |word, freq| {
+                if let Ok(s) = core::str::from_utf8(word) {
+                    if let Some(existing) = merged.iter_mut().find(|(w, _)| w == s) {
+                        if existing.1 < freq {
+                            existing.1 = freq;
+                        }
+                    } else {
+                        merged.push((s.to_string(), freq));
+                    }
+                }
+            });
+            merged.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+            for (w, _) in merged {
+                out.push(w);
             }
-        });
+        }
 
         // L0 pin: pull to position 0 if present.
         if let Ok(l0) = self.l0.read()
-            && let Some(pref) = l0.pins.get(&lower_str(pinyin))
+            && let Some(pref) = l0.pins.get(&lower)
             && let Some(idx) = out.iter().position(|w| w == pref)
             && idx > 0
         {
@@ -267,22 +591,25 @@ impl PinyinDict {
     /// otherwise allocate tens of thousands of `(String, String)` pairs
     /// only to throw them away.
     pub fn prefix_exists(&self, prefix: &str) -> bool {
-        self.map
-            .contains_prefix(prefix.to_ascii_lowercase().as_bytes())
+        // Normalize via `lower_str` so lue/nue alias collapses to lve/nve
+        // for prefix checks too (otherwise `prefix_exists("celue")`
+        // misses the `celve…` family of entries).
+        self.map.contains_prefix(lower_str(prefix).as_bytes())
     }
 
     /// All `(pinyin, word)` pairs with pinyin starting with `prefix`. Ordered
     /// by (pinyin asc, word asc) — useful for prefix completion suggestions.
     pub fn prefix(&self, prefix: &str) -> Vec<(String, String)> {
-        let lower = prefix.to_ascii_lowercase();
+        let lower = lower_str(prefix);
         let mut results: Vec<(String, String)> = Vec::new();
-        self.map.prefix_for_each(lower.as_bytes(), |code, word, _freq| {
-            if let (Ok(pinyin), Ok(word)) =
-                (core::str::from_utf8(code), core::str::from_utf8(word))
-            {
-                results.push((pinyin.to_string(), word.to_string()));
-            }
-        });
+        self.map
+            .prefix_for_each(lower.as_bytes(), |code, word, _freq| {
+                if let (Ok(pinyin), Ok(word)) =
+                    (core::str::from_utf8(code), core::str::from_utf8(word))
+                {
+                    results.push((pinyin.to_string(), word.to_string()));
+                }
+            });
         results.sort();
         results
     }
@@ -322,7 +649,7 @@ impl PinyinDict {
     where
         F: FnMut(&[u8], &[u8], u64),
     {
-        let lower = prefix.to_ascii_lowercase();
+        let lower = lower_str(prefix);
         self.map
             .prefix_for_each(lower.as_bytes(), |code, word, value| {
                 visit(code, word, value);
@@ -340,15 +667,16 @@ impl PinyinDict {
     /// allocates a `Vec<(String, String, u64)>` plus 2 `String`s per entry,
     /// which is ~5MB / ~50ms on short prefixes like `"z"`.
     pub fn prefix_with_freq(&self, prefix: &str) -> Vec<(String, String, u64)> {
-        let lower = prefix.to_ascii_lowercase();
+        let lower = lower_str(prefix);
         let mut results: Vec<(String, String, u64)> = Vec::new();
-        self.map.prefix_for_each(lower.as_bytes(), |code, word, value| {
-            if let (Ok(pinyin), Ok(word)) =
-                (core::str::from_utf8(code), core::str::from_utf8(word))
-            {
-                results.push((pinyin.to_string(), word.to_string(), value));
-            }
-        });
+        self.map
+            .prefix_for_each(lower.as_bytes(), |code, word, value| {
+                if let (Ok(pinyin), Ok(word)) =
+                    (core::str::from_utf8(code), core::str::from_utf8(word))
+                {
+                    results.push((pinyin.to_string(), word.to_string(), value));
+                }
+            });
         results
     }
 
@@ -356,31 +684,22 @@ impl PinyinDict {
     // L0 mutation
     // -------------------------------------------------------------------
 
-    /// Record that the user picked `word` for `pinyin`. If this is the
-    /// `PROMOTE_THRESHOLD`-th consecutive pick, the word is auto-pinned
-    /// and all counters for `pinyin` are cleared. Returns `true` iff this
-    /// call caused a promotion.
+    /// Record that the user picked `word` for `pinyin`, incrementing that
+    /// pair's usage counter. Ranking is NOT affected — counters are
+    /// statistics. Only [`Self::pin`] changes candidate order.
     ///
     /// Silently no-ops if `(pinyin, word)` isn't in L1 (defends against
     /// the host accidentally feeding us things the user couldn't actually
     /// have selected).
-    pub fn record_pick(&self, pinyin: &str, word: &str) -> bool {
+    pub fn record_pick(&self, pinyin: &str, word: &str) {
         if !self.exists_in_l1(pinyin, word) {
-            return false;
+            return;
         }
         let lower = lower_str(pinyin);
         let Ok(mut l0) = self.l0.write() else {
-            return false;
+            return;
         };
-        let key = (lower.clone(), word.to_string());
-        let count = l0.pick_counts.entry(key).or_insert(0);
-        *count += 1;
-        if *count >= PROMOTE_THRESHOLD {
-            l0.pins.insert(lower.clone(), word.to_string());
-            l0.pick_counts.retain(|(p, _), _| p != &lower);
-            return true;
-        }
-        false
+        *l0.pick_counts.entry((lower, word.to_string())).or_insert(0) += 1;
     }
 
     /// Force-pin a word without going through the pick counter. Validates
@@ -396,6 +715,34 @@ impl PinyinDict {
         l0.pins.insert(lower.clone(), word.to_string());
         l0.pick_counts.retain(|(p, _), _| p != &lower);
         true
+    }
+
+    /// Per-code lookup exposing raw `freq` directly — companion to
+    /// [`Self::lookup_with_scores_into`] which fuses `PINYIN_PHRASE_BASE
+    /// + freq` plus L0 pin promote into a single f64 score. v1.4.7
+    /// composite hot path needs the unfused freq for orthodox Q4 log
+    /// decomposition (log_prior_q4 = Q4·ln(1+freq); log_likelihood_q4
+    /// = Q4·ln(PINYIN_PHRASE_BASE) + per-path multiplicative log
+    /// factors). No L0 pin promote applied here — that's a cement-
+    /// level business rule the composite layer re-applies.
+    pub fn lookup_with_freq_into(&self, pinyin: &str, out: &mut Vec<(String, u64)>) {
+        out.clear();
+        let lower = lower_str(pinyin);
+        let cell_hits = self.cell_dict_hits(&lower);
+        if !cell_hits.is_empty() {
+            out.extend(cell_hits);
+        }
+        self.map.get_for_each(lower.as_bytes(), |word, freq| {
+            if let Ok(s) = core::str::from_utf8(word) {
+                if let Some(existing) = out.iter_mut().find(|(w, _)| w == s) {
+                    if existing.1 < freq {
+                        existing.1 = freq;
+                    }
+                } else {
+                    out.push((s.to_string(), freq));
+                }
+            }
+        });
     }
 
     /// Scored variant of `lookup_into`. Same ordering rules (freq desc,
@@ -418,14 +765,32 @@ impl PinyinDict {
         const PINYIN_PHRASE_BASE: f64 = 400_000.0;
 
         let mut scratch: Vec<(String, f64)> = Vec::with_capacity(8);
+        // L0.5 cell-dict hits get the same PHRASE_BASE-shifted score as
+        // L1 entries (cell-dict `freq` is on the same numeric scale as
+        // FST freq_score). Pushed first so the dedup loop below sees
+        // them as the in-place version when L1 has the same word.
+        for (word, freq) in self.cell_dict_hits(&lower) {
+            scratch.push((word, PINYIN_PHRASE_BASE + freq as f64));
+        }
         self.map.get_for_each(lower.as_bytes(), |word, freq| {
             if let Ok(s) = core::str::from_utf8(word) {
-                scratch.push((s.to_string(), PINYIN_PHRASE_BASE + freq as f64));
+                let score = PINYIN_PHRASE_BASE + freq as f64;
+                if let Some(existing) = scratch.iter_mut().find(|(w, _)| w == s) {
+                    if existing.1 < score {
+                        existing.1 = score;
+                    }
+                } else {
+                    scratch.push((s.to_string(), score));
+                }
             }
         });
         // L0 pin: multiply pinned candidate's score so it tops the
         // engine-internal sort AND the cross-engine merge layer.
-        let pinned: Option<String> = self.l0.read().ok().and_then(|g| g.pins.get(&lower).cloned());
+        let pinned: Option<String> = self
+            .l0
+            .read()
+            .ok()
+            .and_then(|g| g.pins.get(&lower).cloned());
         if let Some(p) = &pinned {
             for e in scratch.iter_mut() {
                 if &e.0 == p {
@@ -433,9 +798,7 @@ impl PinyinDict {
                 }
             }
         }
-        scratch.sort_by(|a, b| {
-            b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
-        });
+        scratch.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         out.reserve(scratch.len());
         for (w, score) in scratch.drain(..) {
             out.push((w, score));
@@ -469,6 +832,98 @@ impl PinyinDict {
     ///   * Buffer is longer than `MAX_LEN` (30) — bail out, user is
     ///     probably mashing keys, not typing a coherent sentence.
     ///   * No path covers the full buffer (some segment had no dict hits).
+    /// Like [`best_composition`] but also returns the per-segment chain
+    /// (Vec of dict-word strings in left-to-right order). Caller can audit
+    /// cross-segment bigram strength using [`bigram_boost`] over consecutive
+    /// pairs — used by the Path 0b quality gate (user polish-log 2026-05-27:
+    /// `houxuanqu` → 候选+去 where (候选, 去) bigram is 0, so the
+    /// composition is a mechanical join with no corpus backing).
+    pub fn best_composition_chain(&self, buffer: &str) -> Option<(f64, String, Vec<String>)> {
+        const MIN_LEN: usize = 4;
+        const MAX_LEN: usize = 30;
+        const MAX_SYL: usize = 24;
+        const STEP_PENALTY: f64 = 100_000.0;
+        let buf = buffer.as_bytes();
+        let n = buf.len();
+        if !(MIN_LEN..=MAX_LEN).contains(&n) {
+            return None;
+        }
+        // Phase-5 CP-5.1 step-2: when an order-3 LM is attached, the DP
+        // step asks for grandparent context too. We don't widen the DP
+        // tuple — `dp[j].1` already records the position we came from
+        // when choosing dp[j].2; `dp[dp[j].1].2` is the grandparent
+        // word. One extra hop, no extra state.
+        let use_trigram = self.lm_order() >= 3;
+        let mut dp: Vec<Option<(f64, usize, String)>> = vec![None; n + 1];
+        dp[0] = Some((0.0, 0, String::new()));
+        let mut scratch: Vec<(String, u64)> = Vec::new();
+        for i in 1..=n {
+            let lo = i.saturating_sub(MAX_SYL);
+            for j in lo..i {
+                let prev_entry = match dp[j].as_ref() {
+                    Some(p) => p.clone(),
+                    None => continue,
+                };
+                let seg = match core::str::from_utf8(&buf[j..i]) {
+                    Ok(s) => s,
+                    Err(_) => continue,
+                };
+                self.lookup_raw_into(seg, &mut scratch);
+                if scratch.is_empty() {
+                    continue;
+                }
+                // Resolve grandparent word once per (i, j) — it only
+                // depends on dp[prev_entry.1] and doesn't change across
+                // candidates of this segment.
+                let prev_prev_word_opt: Option<String> = if use_trigram && prev_entry.1 != 0 {
+                    dp[prev_entry.1].as_ref().and_then(|e| {
+                        if e.2.is_empty() {
+                            None
+                        } else {
+                            Some(e.2.clone())
+                        }
+                    })
+                } else {
+                    None
+                };
+                for (word, raw_freq) in scratch.iter() {
+                    let prev_word_opt = if prev_entry.2.is_empty() {
+                        None
+                    } else {
+                        Some(prev_entry.2.as_str())
+                    };
+                    let bonus = self.bigram_boost(prev_word_opt, word)
+                        + self.lm_bonus(prev_prev_word_opt.as_deref(), prev_word_opt, word);
+                    let step_score = (*raw_freq as f64) + bonus - STEP_PENALTY;
+                    let total = prev_entry.0 + step_score;
+                    let dp_better = match dp[i].as_ref() {
+                        None => true,
+                        Some(cur) => total > cur.0,
+                    };
+                    if dp_better {
+                        dp[i] = Some((total, j, word.clone()));
+                    }
+                }
+            }
+        }
+        let final_entry = dp[n].as_ref()?;
+        let final_score = final_entry.0;
+        let mut chain: Vec<String> = Vec::new();
+        let mut pos = n;
+        while pos > 0 {
+            let entry = dp[pos].as_ref()?;
+            chain.push(entry.2.clone());
+            pos = entry.1;
+        }
+        chain.reverse();
+        let sentence = chain.concat();
+        Some((final_score, sentence, chain))
+    }
+
+    /// Best Viterbi composition for `buffer`, score and concatenated
+    /// sentence only. See [`best_composition_chain`] for the same result
+    /// with the per-segment chain exposed (needed by Path 0b's bigram-
+    /// support audit).
     pub fn best_composition(&self, buffer: &str) -> Option<(f64, String)> {
         const MIN_LEN: usize = 4;
         const MAX_LEN: usize = 30;
@@ -499,6 +954,11 @@ impl PinyinDict {
         if !(MIN_LEN..=MAX_LEN).contains(&n) {
             return None;
         }
+        // Phase-5 CP-5.1 step-2: same trigram extension as
+        // [`Self::best_composition_chain`] — read grandparent word from
+        // dp[prev_entry.1] without widening the DP tuple. Falls back to
+        // bigram path when no order-3 LM is attached.
+        let use_trigram = self.lm_order() >= 3;
         // Pinyin is always ASCII, so byte indexing is safe.
         // dp[i] = (best_cumulative_score, prev_position, chosen_word_at_this_step)
         // dp[0] is the start sentinel with empty chosen word.
@@ -521,13 +981,25 @@ impl PinyinDict {
                 if scratch.is_empty() {
                     continue;
                 }
+                let prev_prev_word_opt: Option<String> = if use_trigram && prev_entry.1 != 0 {
+                    dp[prev_entry.1].as_ref().and_then(|e| {
+                        if e.2.is_empty() {
+                            None
+                        } else {
+                            Some(e.2.clone())
+                        }
+                    })
+                } else {
+                    None
+                };
                 for (word, raw_freq) in scratch.iter() {
                     let prev_word_opt = if prev_entry.2.is_empty() {
                         None
                     } else {
                         Some(prev_entry.2.as_str())
                     };
-                    let bonus = self.bigram_boost(prev_word_opt, word);
+                    let bonus = self.bigram_boost(prev_word_opt, word)
+                        + self.lm_bonus(prev_prev_word_opt.as_deref(), prev_word_opt, word);
                     let step_score = (*raw_freq as f64) + bonus - STEP_PENALTY;
                     let total = prev_entry.0 + step_score;
                     let dp_better = match dp[i].as_ref() {
@@ -555,6 +1027,476 @@ impl PinyinDict {
         Some((final_score, chain.concat()))
     }
 
+    /// Phase-5 CP-3.6 step-2 — multi-syllable composition routed
+    /// through the lattice viterbi engine. Mirrors [`Self::best_composition`]'s
+    /// DP exactly so for any LM order ≤ 2 the returned sentence equals
+    /// `self.best_composition(buffer).map(|(_, s)| s)`. This is the
+    /// byte-equal proof point pinned by
+    /// `lattice::tests::multi_syllable_lattice_top1_matches_legacy_best_composition`.
+    ///
+    /// LM order ≥ 3 returns None — the lattice viterbi closure is
+    /// `(prev, curr) -> f32` and can't express trigram grandparent
+    /// scoring. Callers should fall back to [`Self::best_composition`]
+    /// in that case until the viterbi closure interface is extended (or
+    /// we accept the bigram-equivalent approximation for the trigram
+    /// path; sprint step #5 turn 2 decision).
+    ///
+    /// Out-of-range buffers (length outside [MIN_LEN, MAX_LEN]) return
+    /// None matching `best_composition`.
+    ///
+    /// Edge weight encoding: `Edge::exact(j, i, word, raw_freq − STEP_PENALTY)`
+    /// — raw-domain, not log10. The lattice library treats `Edge::exact`'s
+    /// f32 slot as a generic edge weight; the "log_prob" name on the
+    /// API is a hint from the original Path 1a single-span use, not a
+    /// contract. Using raw-domain here is what makes the additive viterbi
+    /// score equal best_composition's additive DP score exactly. The LM
+    /// closure adds `bigram_boost + lm_bonus(prev_prev=None, prev, curr)`,
+    /// matching best_composition's per-step bonus (dict.rs lines 807-810).
+    pub fn best_composition_via_lattice(&self, buffer: &str) -> Option<String> {
+        self.compose_via_lattice_paths(buffer, 1, true, true, None)?
+            .into_iter()
+            .next()
+            .map(|p| p.sentence())
+    }
+
+    /// Phase-5 CP-3.6 step-2 turn 2 — `best_composition_chain`'s lattice
+    /// counterpart. Returns `(score, sentence, chain)`, matching the
+    /// legacy method's signature so it can be swapped at production call
+    /// sites without changing caller logic. Sentence is byte-equal with
+    /// `best_composition_chain(buf).map(|(_, s, _)| s)` for LM order ≤ 2
+    /// on clean (typo-free) inputs; `score` may differ by an f32-vs-f64
+    /// quantum (the lattice viterbi accumulates f32 weights) but the
+    /// magnitude (~1e6) is far larger than any quality-floor tolerance
+    /// the caller checks against. `chain` is the winning lattice path's
+    /// per-segment word sequence, matching `best_composition_chain`'s
+    /// chain shape. CP-5.3 step-2 added keyboard-adjacent typo edges
+    /// on top of the exact edges, so for typo inputs the winning path
+    /// can resolve a typo (e.g. `bi hao` → 你好 via n↔b adjacency) —
+    /// that's the whole point of CP-5.3.
+    pub fn best_composition_chain_via_lattice(
+        &self,
+        buffer: &str,
+    ) -> Option<(f64, String, Vec<String>)> {
+        let mut paths = self.compose_via_lattice_paths(buffer, 1, true, true, None)?;
+        let top = paths.drain(..).next()?;
+        let sentence = top.sentence();
+        Some((top.score as f64, sentence, top.words))
+    }
+
+    /// CP-5.4 step-2 — production variant of
+    /// [`Self::best_composition_chain_via_lattice`] that also accepts
+    /// an `abbrev_resolver` closure. The closure is invoked per
+    /// candidate `(j, i)` segment to resolve a 简拼 / initials
+    /// abbreviation key (e.g. `"zhrm"` → `[("中华人民", score), …]`).
+    /// Each match becomes an `Edge::abbrev` in the lattice with
+    /// `channel = abbrev_channel_log_prob(n_syllables)` — the
+    /// length-aware ladder from `crate::abbrev_channel`, replacing
+    /// `Path2Abbrev::DEFAULT_CHANNEL_LOG_PROB`'s fixed −1.699.
+    ///
+    /// The `u64` slot in the resolver's return tuple is a raw-domain
+    /// score (same shape as `lookup_raw_into`'s freq field) so the
+    /// lattice edge weight encoding stays uniform:
+    /// `weight = score − STEP_PENALTY`.
+    pub fn best_composition_chain_via_lattice_with_abbrev(
+        &self,
+        buffer: &str,
+        abbrev_resolver: &dyn Fn(&str) -> Vec<(String, u64)>,
+    ) -> Option<(f64, String, Vec<String>)> {
+        // CP-5.4 step-2 follow-up (user report 2026-06-16 `shdx`):
+        // abbreviation inputs are unambiguous user intent — keyboard
+        // typo edges should NOT be considered here. With typo enabled,
+        // `shdx`'s typo s→a → 啊 (raw freq ~500k) + abbrev hdx → 坏东西
+        // composed to "啊坏东西" at score +329k, beating 上海+大学
+        // (abbrev+abbrev at ~-158k) for K-best top-1. The user typed
+        // abbrev, so we resolve as abbrev only — no mixed typo/abbrev
+        // hybrid paths.
+        // Fuzzy edges DO apply here — abbrev intent doesn't preclude
+        // fuzzy alternates on individual segments (vowel-free abbrev
+        // segments produce empty fuzzy variant sets so this is a
+        // no-op for typical abbrev input; for the rare abbrev that
+        // contains a fuzzy-eligible segment, harmless extra edges).
+        let mut paths =
+            self.compose_via_lattice_paths(buffer, 1, false, true, Some(abbrev_resolver))?;
+        let top = paths.drain(..).next()?;
+        let sentence = top.sentence();
+        Some((top.score as f64, sentence, top.words))
+    }
+
+    /// Phase-5 CP-3.6 step-2 turn 2 — `top_k_compositions`'s lattice
+    /// counterpart. Returns `Vec<(score, sentence)>` ranked by score
+    /// desc, deduped by sentence. For LM order ≤ 2 top-1 is byte-equal
+    /// with `top_k_compositions(buf, k)`'s top-1 for clean inputs
+    /// (proven by
+    /// `multi_syllable_lattice_top1_matches_legacy_best_composition`);
+    /// the k+1th-rank results may permute when scores tie within the
+    /// beam since lattice viterbi prunes per-node, not per-final. CP-5.3
+    /// step-2 added typo edges so K-best now includes typo-rescued
+    /// alternates for typo inputs.
+    pub fn top_k_compositions_via_lattice(&self, buffer: &str, k: usize) -> Vec<(f64, String)> {
+        let paths = match self.compose_via_lattice_paths(buffer, k, true, true, None) {
+            Some(p) => p,
+            None => return Vec::new(),
+        };
+        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut out: Vec<(f64, String)> = Vec::with_capacity(paths.len());
+        for p in paths {
+            let s = p.sentence();
+            if seen.insert(s.clone()) {
+                out.push((p.score as f64, s));
+            }
+        }
+        out
+    }
+
+    /// CP-5.4 step-2 — production variant of
+    /// [`Self::top_k_compositions_via_lattice`] with 简拼 abbreviation
+    /// resolver support. See
+    /// [`Self::best_composition_chain_via_lattice_with_abbrev`] for the
+    /// resolver contract.
+    pub fn top_k_compositions_via_lattice_with_abbrev(
+        &self,
+        buffer: &str,
+        k: usize,
+        abbrev_resolver: &dyn Fn(&str) -> Vec<(String, u64)>,
+    ) -> Vec<(f64, String)> {
+        // CP-5.4 step-2 follow-up: same typo-disable as the chain
+        // variant above. Abbreviation input is unambiguous — no typo
+        // hybrid composition.
+        let paths =
+            match self.compose_via_lattice_paths(buffer, k, false, true, Some(abbrev_resolver)) {
+                Some(p) => p,
+                None => return Vec::new(),
+            };
+        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut out: Vec<(f64, String)> = Vec::with_capacity(paths.len());
+        for p in paths {
+            let s = p.sentence();
+            if seen.insert(s.clone()) {
+                out.push((p.score as f64, s));
+            }
+        }
+        out
+    }
+
+    /// Phase-5 CP-3.6 step-2 + CP-5.3 step-2 — shared graph builder
+    /// for the three `*_via_lattice` public helpers above. Builds a
+    /// lattice from segmenting `buffer` into all valid `(j, i)` spans
+    /// where `i - j ≤ MAX_SYL`, then runs `Graph::viterbi(k, lm_closure)`
+    /// over it.
+    ///
+    /// Returns `None` for buffers outside `[MIN_LEN, MAX_LEN]`, for
+    /// `k == 0`, or when LM order ≥ 3 — the lattice viterbi closure is
+    /// 2-arg `(prev, curr)` and can't express trigram grandparent
+    /// scoring, so callers must fall back to the legacy DP in that case.
+    ///
+    /// # Edge types added
+    ///
+    /// - **Exact edges** (always): every dict hit for `buf[j..i]`
+    ///   becomes one `Edge::exact(j, i, word, raw_freq − STEP_PENALTY)`.
+    ///   Raw-domain weight encoding so the additive viterbi score
+    ///   equals legacy `best_composition`'s additive DP score exactly
+    ///   on clean inputs.
+    ///
+    /// - **Typo edges** (when `include_typo_edges = true` and the
+    ///   segment is syllable-shaped — `seg.len() ≤ TYPO_MAX_SEG_LEN`):
+    ///   for each single-letter adjacent-key substitution variant of
+    ///   the segment (per
+    ///   [`crate::keyboard_adjacency::single_edit_neighbors`] with
+    ///   `max_distance = 1.05` — strict horizontal-or-vertical
+    ///   adjacency only, no diagonals, to keep the per-segment variant
+    ///   count manageable in the per-keystroke hot path), every dict
+    ///   hit for the variant becomes one
+    ///   `Edge::typo(j, i, word, raw_freq − STEP_PENALTY, channel)`.
+    ///   Channel is the variant's `adjacency_log_prob` (~ −1.3, matching
+    ///   `Path1cTypo`'s legacy uniform default at d ≤ 1.05). On clean
+    ///   inputs the typo edges all lose to the matching exact edge for
+    ///   the same word (channel is negative, exact's is 0); on typo
+    ///   inputs the typo edge resolves to the intended word at the cost
+    ///   of the channel penalty.
+    ///
+    /// - **Abbrev edges** (CP-5.4 step-2, when `abbrev_resolver` is
+    ///   `Some(_)` and the segment is vowel-free + ≥ 2 bytes): the
+    ///   resolver maps a 简拼 key like `"zhrm"` to candidate phrases
+    ///   like `[("中华人民", score)]`. Each match becomes one
+    ///   `Edge::abbrev(j, i, word, score − STEP_PENALTY, channel)`
+    ///   where channel is the length-aware
+    ///   `abbrev_channel_log_prob(n_syllables)` from
+    ///   [`crate::abbrev_channel`] (n_syllables computed via
+    ///   `split_initials(seg)`). The host wires the resolver to its
+    ///   `INITIALS_INDEX` so long abbreviations like `"zhrmghg"` can
+    ///   compose via lattice viterbi from shorter abbrev segments
+    ///   (e.g. `"zhrm"` + `"ghg"`) even when no whole-buffer dict
+    ///   entry exists.
+    ///
+    /// # Cost
+    ///
+    /// Exact lookups: ~MAX_SYL × n per call (≈ n × 24 lookups).
+    /// Typo lookups: up to ~25 variants × syllable-shaped segments
+    /// (≈ n × 4 × 12 ≈ 50n at typical short adjacency-counts), each a
+    /// fast FST walk. Abbrev lookups: one resolver call per
+    /// vowel-free ≥ 2-byte segment (≤ n²/2 calls for vowel-free
+    /// buffers, far fewer for typical mixed inputs). For n = 13
+    /// (typical buffer length) the wall-clock stays under a few
+    /// milliseconds on the per-keystroke path.
+    fn compose_via_lattice_paths(
+        &self,
+        buffer: &str,
+        k: usize,
+        include_typo_edges: bool,
+        include_fuzzy_edges: bool,
+        abbrev_resolver: Option<&dyn Fn(&str) -> Vec<(String, u64)>>,
+    ) -> Option<Vec<crate::lattice::Path>> {
+        use crate::abbrev_channel::{abbrev_channel_log_prob, split_initials};
+        use crate::fuzzy::FuzzyConfig;
+        use crate::keyboard_adjacency::single_edit_neighbors;
+        use crate::lattice::{Edge, Graph, fuzzy_channel_log_prob};
+
+        const MIN_LEN: usize = 4;
+        const MAX_LEN: usize = 30;
+        const MAX_SYL: usize = 24;
+        const STEP_PENALTY: f64 = 100_000.0;
+        // Pinyin syllables are 1-7 bytes (`a` / `ni` / `zhong` /
+        // `zhuang`). Restricting typo enumeration to ≤ TYPO_MAX_SEG_LEN
+        // keeps the variant count manageable — multi-syllable phrase
+        // segments (e.g. `zhongguo` 8 bytes) would otherwise generate
+        // 25× variants × 8 positions = 200 lookups apiece.
+        const TYPO_MAX_SEG_LEN: usize = 7;
+        // Strict horizontal-/-vertical adjacency only (no diagonals).
+        // Matches the d ≤ 1.05 band of `keyboard_adjacency`'s ladder
+        // (channel ≈ -1.301, the legacy `Path1cTypo` uniform default).
+        // Tighter than 1.5 (which includes diagonals) so the per-segment
+        // variant count stays ≈ 4 instead of ≈ 8, keeping the
+        // per-keystroke wall-clock under a few ms for typical buffers.
+        const TYPO_MAX_DISTANCE: f32 = 1.05;
+
+        let buf = buffer.as_bytes();
+        let n = buf.len();
+        if !(MIN_LEN..=MAX_LEN).contains(&n) || k == 0 {
+            return None;
+        }
+        if self.lm_order() >= 3 {
+            return None;
+        }
+
+        let mut graph = Graph::for_buffer(n);
+        let mut scratch: Vec<(String, u64)> = Vec::new();
+        for i in 1..=n {
+            let lo = i.saturating_sub(MAX_SYL);
+            for j in lo..i {
+                let seg = match core::str::from_utf8(&buf[j..i]) {
+                    Ok(s) => s,
+                    Err(_) => continue,
+                };
+                // Exact edges — always added.
+                scratch.clear();
+                self.lookup_raw_into(seg, &mut scratch);
+                for (word, raw_freq) in scratch.iter() {
+                    let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
+                    graph.add_edge(Edge::exact(j, i, word.clone(), weight));
+                }
+                // Fuzzy edges (CP-3.6 step-2 fuzzy follow-up · 2026-06-16)
+                // — gated by flag + syllable shape. FuzzyConfig::permissive
+                // enables all 9 fuzzy pairs (z↔zh / c↔ch / s↔sh / n↔l /
+                // f↔h / r↔l / in↔ing / en↔eng / an↔ang), matching the
+                // southern-dialect tolerance the engine's legacy Path 1b
+                // path uses. Edge channel = fuzzy_channel_log_prob (per-
+                // pair, ~ -1.0 to -2.0).
+                if include_fuzzy_edges && seg.len() <= TYPO_MAX_SEG_LEN {
+                    let fuzzy = FuzzyConfig::permissive();
+                    let variants = fuzzy.expand(seg);
+                    // variants[0] is `seg` itself — already covered by the
+                    // exact-edge branch above. Skip to fuzzy alternates.
+                    for variant in variants.iter().skip(1) {
+                        let channel = fuzzy_channel_log_prob(seg, variant);
+                        scratch.clear();
+                        self.lookup_raw_into(variant, &mut scratch);
+                        for (word, raw_freq) in scratch.iter() {
+                            let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
+                            graph.add_edge(Edge::fuzzy(j, i, word.clone(), weight, channel));
+                        }
+                    }
+                }
+                // Typo edges — gated by flag + syllable shape.
+                if include_typo_edges && seg.len() <= TYPO_MAX_SEG_LEN {
+                    for (variant, channel) in single_edit_neighbors(seg, TYPO_MAX_DISTANCE) {
+                        scratch.clear();
+                        self.lookup_raw_into(&variant, &mut scratch);
+                        for (word, raw_freq) in scratch.iter() {
+                            let weight = (*raw_freq as f64 - STEP_PENALTY) as f32;
+                            graph.add_edge(Edge::typo(j, i, word.clone(), weight, channel));
+                        }
+                    }
+                }
+                // Abbrev edges (CP-5.4 step-2) — gated by resolver
+                // presence + vowel-free + ≥ 2 bytes (the standard
+                // initials-abbreviation shape).
+                if let Some(resolver) = abbrev_resolver {
+                    if seg.len() >= 2
+                        && seg
+                            .bytes()
+                            .all(|b| !matches!(b, b'a' | b'e' | b'i' | b'o' | b'u' | b'v'))
+                    {
+                        let initials = split_initials(seg);
+                        if !initials.is_empty() {
+                            let channel = abbrev_channel_log_prob(initials.len());
+                            // INFINITY guards against caller-error
+                            // (0-syllable input). Defensive but should
+                            // never fire because split_initials returned
+                            // non-empty Vec.
+                            if channel.is_finite() {
+                                for (word, score) in resolver(seg) {
+                                    let weight = (score as f64 - STEP_PENALTY) as f32;
+                                    graph.add_edge(Edge::abbrev(j, i, word, weight, channel));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let lm_closure = |prev: &str, curr: &str| -> f32 {
+            let prev_opt = if prev.is_empty() { None } else { Some(prev) };
+            (self.bigram_boost(prev_opt, curr) + self.lm_bonus(None, prev_opt, curr)) as f32
+        };
+
+        let mut paths = graph.viterbi(k, lm_closure);
+        // Anchor invariant — every K-best path must have at least one
+        // Exact (real pinyin reading) or Abbrev (real initials shorthand)
+        // edge to anchor it. All-Typo + all-Fuzzy paths are pure
+        // speculation: each typo/fuzzy edge accepts a single-letter or
+        // single-pair substitution, and N such edges across N segments
+        // compose a buffer that corresponds to no real pinyin reading.
+        // User report 2026-06-26 (`zoue` → 字也/子也/子叶): buffer has no
+        // exact segmentation, lattice stacks [zo→zi typo | ue→ye typo]
+        // and the (字, 也) / (子, 也) / (子, 叶) corpus bigrams (古汉语
+        // 残留) let the resulting 2-edit-distance composition pass
+        // downstream `alternate_bigrams_ok`. The fix is structural:
+        // reject the composition at lattice level when no segment was
+        // matched on its real reading.
+        paths.retain(|p| {
+            p.edges.iter().any(|e| {
+                matches!(
+                    e.kind,
+                    crate::lattice::EdgeKind::Exact | crate::lattice::EdgeKind::Abbrev(_)
+                )
+            })
+        });
+        Some(paths)
+    }
+
+    /// K-best Viterbi composition: like [`Self::best_composition`] but
+    /// retains the top-`k` paths to every position instead of just the
+    /// single best, so the top-K full-buffer paths are recovered. Returns
+    /// `(score, sentence)` tuples in score-desc order, deduped by sentence.
+    ///
+    /// Why it matters even when 1-best looks "right":
+    ///   1-best DP commits irrevocably to dp[j]'s top word and only looks
+    ///   forward from there. For `pianni` → 片(highest freq at 'pian') →
+    ///   (片, *) bigram is weak so any 'ni' word fits → 你 (highest freq)
+    ///   → "片你". The strong (骗, 你) bigram never gets to apply because
+    ///   骗 was never the prev word. K-best keeps 骗 alive in dp[4] and
+    ///   the (骗, 你) bonus (~50k from the bigram FST) pushes "骗你" above
+    ///   "片你" globally. User-reported 2026-05-26: pianni should give
+    ///   骗你, not 片你.
+    ///
+    /// Cost: O(n × MAX_SYL × k × avg_lookup_size × k_resort). For typical
+    /// short buffers (≤8 chars, k=5) on the order of a few hundred
+    /// `cmp::partial_cmp` calls per call. Safe to invoke from the per-
+    /// keystroke composition path (Path 5 in pinyin_adapter).
+    ///
+    /// Returns `None`-equivalent (empty `Vec`) when `buffer` is outside
+    /// the [MIN_LEN, MAX_LEN] window or no path covers the full buffer.
+    pub fn top_k_compositions(&self, buffer: &str, k: usize) -> Vec<(f64, String)> {
+        const MIN_LEN: usize = 4;
+        const MAX_LEN: usize = 30;
+        const MAX_SYL: usize = 24;
+        const STEP_PENALTY: f64 = 100_000.0;
+        let buf = buffer.as_bytes();
+        let n = buf.len();
+        if k == 0 || !(MIN_LEN..=MAX_LEN).contains(&n) {
+            return Vec::new();
+        }
+        // dp[i] = top-k partial paths reaching position i:
+        //   (cum_score, prev_pos, prev_idx_in_dp, chosen_word_at_step)
+        // dp[0] is the start sentinel with one empty-word entry.
+        let mut dp: Vec<Vec<(f64, usize, usize, String)>> = vec![Vec::new(); n + 1];
+        dp[0].push((0.0, 0, 0, String::new()));
+
+        let mut scratch: Vec<(String, u64)> = Vec::new();
+        for i in 1..=n {
+            let lo = i.saturating_sub(MAX_SYL);
+            let mut candidates: Vec<(f64, usize, usize, String)> = Vec::new();
+            for j in lo..i {
+                if dp[j].is_empty() {
+                    continue;
+                }
+                let seg = match core::str::from_utf8(&buf[j..i]) {
+                    Ok(s) => s,
+                    Err(_) => continue,
+                };
+                self.lookup_raw_into(seg, &mut scratch);
+                if scratch.is_empty() {
+                    continue;
+                }
+                for (prev_idx, prev_path) in dp[j].iter().enumerate() {
+                    let prev_word_opt = if prev_path.3.is_empty() {
+                        None
+                    } else {
+                        Some(prev_path.3.as_str())
+                    };
+                    for (word, raw_freq) in scratch.iter() {
+                        let bonus = self.bigram_boost(prev_word_opt, word);
+                        let step_score = (*raw_freq as f64) + bonus - STEP_PENALTY;
+                        let total = prev_path.0 + step_score;
+                        candidates.push((total, j, prev_idx, word.clone()));
+                    }
+                }
+            }
+            candidates.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+            candidates.truncate(k);
+            dp[i] = candidates;
+        }
+
+        // Trace back each top-K path at dp[n].
+        let mut out: Vec<(f64, String)> = Vec::with_capacity(dp[n].len());
+        let mut seen: std::collections::HashSet<String> =
+            std::collections::HashSet::with_capacity(dp[n].len());
+        let end_paths: Vec<(f64, usize, usize)> = dp[n].iter().map(|p| (p.0, p.1, p.2)).collect();
+        for (end_score, end_prev_pos, end_prev_idx) in end_paths {
+            let mut chain: Vec<String> = Vec::new();
+            // Start from the dp[n] entry's own word (need the entry itself
+            // for the word, but the entry's prev is what we follow next).
+            // We look up entries by walking (pos, idx) backward — the END
+            // entry's word is dp[n][rank_at_end], so first pull it.
+            // Reconstruct by tracking (pos, idx).
+            let mut pos = n;
+            // Find the rank of (end_score, end_prev_pos, end_prev_idx)
+            // within dp[n]: since the loop iterates dp[n] in order, the
+            // corresponding rank is implicit — we know its prev_pos/idx,
+            // we just need its own word, accessed by re-indexing via these.
+            // Simpler: walk by storing the cur position+idx; on each step
+            // grab the entry's word then jump to its prev_pos/prev_idx.
+            // Bootstrap: locate cur_idx for `pos == n` by matching prev.
+            let mut cur_idx = dp[pos]
+                .iter()
+                .position(|p| (p.1, p.2) == (end_prev_pos, end_prev_idx))
+                .expect("dp[n] contains the end path we just enumerated");
+            while pos > 0 {
+                let entry = &dp[pos][cur_idx];
+                chain.push(entry.3.clone());
+                pos = entry.1;
+                cur_idx = entry.2;
+            }
+            chain.reverse();
+            let sentence = chain.concat();
+            if seen.insert(sentence.clone()) {
+                out.push((end_score, sentence));
+            }
+        }
+        out
+    }
+
     /// Raw (word, freq) lookup — like `lookup_with_scores_into` but
     /// returns the FST's raw u64 freq value instead of the
     /// PINYIN_PHRASE_BASE-shifted f64 score. Used by Viterbi
@@ -563,12 +1505,63 @@ impl PinyinDict {
     /// own 400k base inflates many-segment paths).
     fn lookup_raw_into(&self, pinyin: &str, out: &mut Vec<(String, u64)>) {
         out.clear();
-        let lower = pinyin.to_ascii_lowercase();
+        let lower = lower_str(pinyin);
+        let cell_hits = self.cell_dict_hits(&lower);
+        if !cell_hits.is_empty() {
+            out.extend(cell_hits);
+        }
         self.map.get_for_each(lower.as_bytes(), |word, freq| {
             if let Ok(s) = core::str::from_utf8(word) {
-                out.push((s.to_string(), freq));
+                if let Some(existing) = out.iter_mut().find(|(w, _)| w == s) {
+                    if existing.1 < freq {
+                        existing.1 = freq;
+                    }
+                } else {
+                    out.push((s.to_string(), freq));
+                }
             }
         });
+    }
+
+    /// Iterate every `(prev, next, count)` entry in the bigram FST.
+    /// Tools-only API (v1.4.4 `idf-from-pinyin-bigrams` snapshot
+    /// binary uses this); NOT a runtime hot-path call — full scan
+    /// allocates one `(String, String)` pair per bigram (~500k for
+    /// the embedded table). Returns an empty Vec under `bootstrap_only`.
+    ///
+    /// Layout: keys in the underlying FST are `prev_bytes + \0 +
+    /// next_bytes` → `count u64`. We parse the key shape back into a
+    /// `(prev, next)` pair on each emit.
+    pub fn iter_bigrams(&self) -> Vec<(String, String, u64)> {
+        // v1.4.4 (initial): only iterated `self.bigrams.as_ref()` (the
+        // inter FST). v1.4.6 sub-phase C2 widened to sum inter + intra,
+        // mirroring the live `bigram_boost` (which also sums both —
+        // intra captures within-phrase co-occurrences like (你, 好) from
+        // the curated 你好 phrase entry, inter captures cross-sentence
+        // adjacency). Without summing, snapshot consumers (the NGMv1
+        // .ngm file in particular) would under-count and break the
+        // baseline fixture invariant during the v1.4.6 engine cutover.
+        use std::collections::HashMap;
+        let mut counts: HashMap<(String, String), u64> = HashMap::new();
+        for src in [self.bigrams.as_ref(), self.bigrams_intra.as_ref()]
+            .iter()
+            .flatten()
+        {
+            src.prefix_for_each(b"", |key, count| {
+                let Some(sep) = key.iter().position(|&b| b == 0) else {
+                    return;
+                };
+                let prev = &key[..sep];
+                let next = &key[sep + 1..];
+                if next.is_empty() {
+                    return;
+                }
+                if let (Ok(p), Ok(n)) = (core::str::from_utf8(prev), core::str::from_utf8(next)) {
+                    *counts.entry((p.to_string(), n.to_string())).or_insert(0) += count;
+                }
+            });
+        }
+        counts.into_iter().map(|((p, n), c)| (p, n, c)).collect()
     }
 
     /// Predict the most likely next words given a just-committed `prev`
@@ -667,7 +1660,9 @@ impl PinyinDict {
             return Vec::new();
         }
         // Strict: need BOTH prev_prev AND trigram FST.
-        let Some(prev_prev) = prev_prev else { return Vec::new() };
+        let Some(prev_prev) = prev_prev else {
+            return Vec::new();
+        };
         if prev_prev.is_empty() {
             return Vec::new();
         }
@@ -726,16 +1721,216 @@ impl PinyinDict {
         // Without summing, Viterbi would lose the intra signal entirely
         // after the split — which is precisely what v0.4 Phase A added
         // to make 你好 win as one segment.
-        let count_inter = self.bigrams.as_ref()
-            .and_then(|m| m.get(&key)).unwrap_or(0);
-        let count_intra = self.bigrams_intra.as_ref()
-            .and_then(|m| m.get(&key)).unwrap_or(0);
+        let count_inter = self.bigrams.as_ref().and_then(|m| m.get(&key)).unwrap_or(0);
+        let count_intra = self
+            .bigrams_intra
+            .as_ref()
+            .and_then(|m| m.get(&key))
+            .unwrap_or(0);
         let count = count_inter + count_intra;
         if count == 0 {
             return 0.0;
         }
         let scaled = ((count as f64) + 1.0).ln() / (BIGRAM_REF + 1.0).ln();
         BIGRAM_BOOST_MAX * scaled.min(1.0)
+    }
+
+    /// Phase-2 KenLM bigram bonus. Adds to Viterbi step_score on top of
+    /// [`Self::bigram_boost`] (which uses the legacy bigram support FST).
+    ///
+    /// Returns 0.0 when:
+    ///   - `prev` is None (start of buffer; no bigram yet)
+    ///   - `self.lm` is unset (Phase-1 byte-equal behaviour)
+    ///   - the LM reports `enabled() == false`
+    ///   - PINYIN_LM_LAMBDA env var is 0 or unset and the default fall-
+    ///     through resolves to 0
+    ///
+    /// Otherwise returns `LM_SCALE * λ * log10 P(curr | prev)`.
+    /// log10 P is negative (more probable bigrams → less negative),
+    /// so the per-step contribution is negative; Viterbi compares
+    /// relative totals so the absolute sign does not matter. The
+    /// LM_SCALE factor brings the value to the same order of magnitude
+    /// as `bigram_boost` (which caps at 50 000), so a "good" bigram
+    /// (log10 P ≈ -2) at λ=0.3 contributes about -6 000.
+    pub fn bigram_lm_bonus(&self, prev: Option<&str>, curr: &str) -> f64 {
+        const LM_SCALE: f64 = 10_000.0;
+        let Some(prev) = prev else { return 0.0 };
+        if prev.is_empty() || curr.is_empty() {
+            return 0.0;
+        }
+        let lambda_system = lm_lambda();
+        if lambda_system == 0.0 {
+            return 0.0;
+        }
+
+        // ── Phase-4 CP-4.3 cold-start guard ─────────────────────────
+        // Total user_bigram count below the threshold → force λ_u = 0
+        // so the interpolation collapses to the Phase-2 system LM.
+        // This makes the early-cold-start case byte-equal Phase 2 末
+        // and lets the rest of the engine warm up before the user
+        // model influences anything.
+        let user_total: u64 = self
+            .l0
+            .read()
+            .map(|l0| l0.user_bigram.values().map(|c| *c as u64).sum())
+            .unwrap_or(0);
+        let lambda_u_raw = user_lm_lambda();
+        let lambda_u = if user_total < USER_LM_COLD_START_THRESHOLD {
+            0.0
+        } else {
+            lambda_u_raw.clamp(0.0, 1.0)
+        };
+
+        // ── System component ───────────────────────────────────────
+        let log_p_system = match self.lm.as_ref() {
+            Some(lm) if lm.enabled() => {
+                let p = lm.log_prob(prev, curr);
+                if p.is_finite() {
+                    p as f64
+                } else {
+                    return 0.0;
+                }
+            }
+            _ => 0.0,
+        };
+
+        // ── User component ─────────────────────────────────────────
+        let log_p_user = if lambda_u == 0.0 {
+            0.0
+        } else {
+            let p = self
+                .l0
+                .read()
+                .map(|l0| l0.log_p_user(prev, curr) as f64)
+                .unwrap_or(0.0);
+            // log_p_user returns the -99.0 sentinel when cold; we've
+            // already forced λ_u = 0 in that case, but defensively
+            // clamp anyway so a single rogue read doesn't tank the
+            // interpolation.
+            if p < -50.0 { 0.0 } else { p }
+        };
+
+        // ── Linear interpolation ───────────────────────────────────
+        // (1 - λ_u) · log P_system + λ_u · log P_user, scaled by
+        // LM_SCALE × λ_system (so Phase-2's λ sweep stays the global
+        // gain knob and CP-4.3 just shifts mass between system and
+        // user inside that envelope).
+        let mixed = (1.0 - lambda_u) * log_p_system + lambda_u * log_p_user;
+        LM_SCALE * lambda_system * mixed
+    }
+
+    /// Phase-5 CP-5.1 step-2 unified LM scoring entry point. Routes by
+    /// the attached LM's reported order:
+    ///   - no LM, order ≤ 2, or `prev_prev` unknown → delegates to
+    ///     [`Self::bigram_lm_bonus`] verbatim (bigram path stays
+    ///     byte-equal for production rollback).
+    ///   - order ≥ 3 with both `prev_prev` and `prev` available →
+    ///     computes the trigram score using
+    ///     [`crate::bigram_lm::LmBackend::log_prob_trigram`], scaled by
+    ///     [`trigram_lm_lambda`], interpolated against the user bigram
+    ///     (same `λ_u` mass-shift as the bigram path — there is no
+    ///     user trigram in Phase 4/5; the user contribution stays a
+    ///     bigram conditioned on `prev`).
+    ///
+    /// First-edge / second-edge transitions where `prev_prev` is
+    /// `None` always fall back to the bigram bonus — there is no
+    /// grandparent context to condition on. The DP that drives this
+    /// only starts producing trigram contexts at step 3, matching the
+    /// climb-plan O(N×V²) → O(N×V³) state extension.
+    pub fn lm_bonus(&self, prev_prev: Option<&str>, prev: Option<&str>, curr: &str) -> f64 {
+        // ── Order-2 path: keep Phase-2's λ_system × log_prob bigram bonus
+        // verbatim, including the prev_prev signal being silently
+        // discarded (a bigram model has no use for it). This preserves
+        // byte-equal behavior for any bigram-only PINYIN_LM_BINARY.
+        let order = self.lm_order();
+        if order < 3 {
+            return self.bigram_lm_bonus(prev, curr);
+        }
+        // ── Order-3 path: SCORE THE WHOLE DP WITH λ_3 × trigram (with
+        // bigram back-off when no grandparent yet). Avoiding the λ
+        // mix-and-match the previous draft had — first edges would
+        // have been scored by λ_system × log_prob(prev,curr), middle
+        // edges by λ_3 × log_prob_trigram, giving two scoring
+        // regimes inside one DP path.
+        let Some(p) = prev else {
+            // First edge of a path has no LM context regardless of order.
+            return 0.0;
+        };
+        if p.is_empty() || curr.is_empty() {
+            return 0.0;
+        }
+
+        const LM_SCALE: f64 = 10_000.0;
+        let lambda_3 = trigram_lm_lambda();
+        if lambda_3 == 0.0 {
+            return 0.0;
+        }
+
+        // ── Cold-start guard for the user-bigram interpolation ────
+        // Same threshold as bigram_lm_bonus: until the user has
+        // committed ≥USER_LM_COLD_START_THRESHOLD bigram observations
+        // the user term is held at 0 so the system trigram speaks alone.
+        let user_total: u64 = self
+            .l0
+            .read()
+            .map(|l0| l0.user_bigram.values().map(|c| *c as u64).sum())
+            .unwrap_or(0);
+        let lambda_u_raw = user_lm_lambda();
+        let lambda_u = if user_total < USER_LM_COLD_START_THRESHOLD {
+            0.0
+        } else {
+            lambda_u_raw.clamp(0.0, 1.0)
+        };
+
+        // ── System component ──────────────────────────────────────
+        // With grandparent: full trigram via log_prob_trigram. Without
+        // grandparent (path's 2nd edge): bigram back-off from the
+        // SAME trigram binary — that's what the trigram model's
+        // Kneser-Ney back-off returns for an order-1 context.
+        let log_p_system = match self.lm.as_ref() {
+            Some(lm) if lm.enabled() => {
+                let p_score = match prev_prev {
+                    Some(pp) if !pp.is_empty() => lm.log_prob_trigram(pp, p, curr),
+                    _ => lm.log_prob(p, curr),
+                };
+                if p_score.is_finite() {
+                    p_score as f64
+                } else {
+                    // OOV: skip the LM contribution rather than
+                    // tanking the path. The path still pays the
+                    // bigram_boost / freq components from the DP step.
+                    return 0.0;
+                }
+            }
+            _ => 0.0,
+        };
+
+        // ── User component (still bigram — Phase 4 only has user-bigram) ──
+        let log_p_user = if lambda_u == 0.0 {
+            0.0
+        } else {
+            let u = self
+                .l0
+                .read()
+                .map(|l0| l0.log_p_user(p, curr) as f64)
+                .unwrap_or(0.0);
+            if u < -50.0 { 0.0 } else { u }
+        };
+
+        let mixed = (1.0 - lambda_u) * log_p_system + lambda_u * log_p_user;
+        LM_SCALE * lambda_3 * mixed
+    }
+
+    /// Cached LM order from the attached backend. Returns 0 when no
+    /// LM is attached or it reports `enabled() == false`. Callers
+    /// (Viterbi DP) use this to decide whether to extend the per-cell
+    /// state with a `prev_prev` slot.
+    pub fn lm_order(&self) -> u8 {
+        self.lm
+            .as_ref()
+            .filter(|lm| lm.enabled())
+            .map(|lm| lm.order())
+            .unwrap_or(0)
     }
 
     /// Look up the user-pinned word for a given pinyin code, if any.
@@ -746,7 +1941,10 @@ impl PinyinDict {
     /// candidates structurally lead in the merge order.
     pub fn pinned_word(&self, pinyin: &str) -> Option<String> {
         let lower = lower_str(pinyin);
-        self.l0.read().ok().and_then(|l0| l0.pins.get(&lower).cloned())
+        self.l0
+            .read()
+            .ok()
+            .and_then(|l0| l0.pins.get(&lower).cloned())
     }
 
     /// Drop the pin for `pinyin` (if any) AND any pick counters for it.
@@ -762,8 +1960,11 @@ impl PinyinDict {
         had_pin || l0.pick_counts.len() != len_before
     }
 
-    /// Snapshot the entire L0 layer (pins + pick counts) for host-side
-    /// persistence. Pair with [`Self::import_l0`] on app startup.
+    /// Snapshot the entire L0 layer (pins + pick counts + user_bigram)
+    /// for host-side persistence. Pair with [`Self::import_l0`] on app
+    /// startup. The schema is forward-compatible: v1 hosts that don't
+    /// understand `user_bigram` can drop it; the next round-trip
+    /// through a v2-aware host repopulates it from the commit hook.
     pub fn export_l0(&self) -> L0Snapshot {
         let Ok(l0) = self.l0.read() else {
             return L0Snapshot::default();
@@ -779,12 +1980,19 @@ impl PinyinDict {
                 .iter()
                 .map(|((p, w), n)| (p.clone(), w.clone(), *n))
                 .collect(),
+            user_bigram: l0
+                .user_bigram
+                .iter()
+                .map(|((prev, curr), n)| ((prev.clone(), curr.clone()), *n))
+                .collect(),
         }
     }
 
     /// Replace the entire L0 layer with `snap`. Pins / pick_counts whose
     /// `(pinyin, word)` isn't in L1 are silently dropped (lexicon may have
-    /// evolved between versions). Returns the count of *accepted* pins.
+    /// evolved between versions). `user_bigram` is loaded as-is — it
+    /// records the user's commit history, not the dict — so its entries
+    /// don't need L1 validation. Returns the count of *accepted* pins.
     pub fn import_l0(&self, snap: L0Snapshot) -> usize {
         let valid_pins: Vec<(String, String)> = snap
             .pins
@@ -802,13 +2010,40 @@ impl PinyinDict {
                 }
             })
             .collect();
+        let user_bigram_entries: Vec<((String, String), u32)> = snap.user_bigram;
         let accepted = valid_pins.len();
         let Ok(mut l0) = self.l0.write() else {
             return 0;
         };
         l0.pins = valid_pins.into_iter().collect();
         l0.pick_counts = valid_counts.into_iter().collect();
+        l0.user_bigram = user_bigram_entries.into_iter().collect();
         accepted
+    }
+
+    /// Phase-4 CP-4.1: Laplace-smoothed log10 P(curr | prev) over the
+    /// user-bigram counts collected by the (still-pending) CP-4.2
+    /// commit hook. Returns `-99.0` when nothing has been learned yet
+    /// (the integration site in CP-4.3 applies a `λ_u = 0` cold-start
+    /// guard, so this sentinel never reaches scoring).
+    pub fn log_p_user(&self, prev: &str, curr: &str) -> f32 {
+        match self.l0.read() {
+            Ok(l0) => l0.log_p_user(prev, curr),
+            Err(_) => -99.0,
+        }
+    }
+
+    /// Phase-4 CP-4.2 commit hook helper. Bumps the user-bigram count
+    /// of `(prev, curr)` by 1. No-op when either side is empty
+    /// (session boundaries don't form bigrams). The actual call site
+    /// lands in CP-4.2; this entry point is the public-API contract.
+    pub fn bump_user_bigram(&self, prev: &str, curr: &str) {
+        if prev.is_empty() || curr.is_empty() {
+            return;
+        }
+        if let Ok(mut l0) = self.l0.write() {
+            l0.bump_user_bigram(prev, curr);
+        }
     }
 
     fn exists_in_l1(&self, pinyin: &str, word: &str) -> bool {
@@ -816,8 +2051,41 @@ impl PinyinDict {
     }
 }
 
+/// Canonicalize a pinyin lookup key.
+///
+/// 1. Lowercase ASCII letters (engine convention — dict stores lowercase).
+/// 2. Collapse `lüe`/`nüe` alias spellings `lue`/`nue` to the canonical
+///    `lve`/`nve` used by the dict. Sogou/Google Pinyin both accept the
+///    `u`-spelling for these two syllables; users typing `celue` expect
+///    the same candidates as `celve` (策略). The dict + L0 pin map both
+///    use this key, so write-side (`pin`, `record_pick`) and read-side
+///    (`lookup_*`) flow through the same normalization — no asymmetry.
+///
+/// The `j/q/x/y + ü` cases are already canonical-`u` (jue/que/xue/yue),
+/// so they need no alias. The `l/n + ü` carve-out is the only spot
+/// where Mandarin pinyin disambiguates `u` vs `ü` (lu/lü, nu/nü) — and
+/// the IME-vs-strict-orthography mismatch lives entirely there.
+///
+/// Exposed publicly as `inputx_pinyin::normalize_lookup_key` so cement /
+/// composite-layer call sites (which query the embedded IDF directly,
+/// bypassing `PinyinDict::lookup_into`) can normalize uniformly.
+pub fn normalize_lookup_key(s: &str) -> String {
+    let mut out = s.to_ascii_lowercase();
+    // Apply alias normalization only when the trigger substring is
+    // present (avoids the allocation/scan on the 99%+ of buffers
+    // that contain neither). Order matters only if `lue` and `nue`
+    // could overlap, which they can't.
+    if out.contains("lue") {
+        out = out.replace("lue", "lve");
+    }
+    if out.contains("nue") {
+        out = out.replace("nue", "nve");
+    }
+    out
+}
+
 fn lower_str(s: &str) -> String {
-    s.to_ascii_lowercase()
+    normalize_lookup_key(s)
 }
 
 #[cfg(test)]
@@ -830,6 +2098,54 @@ mod tests {
         assert!(d.len() >= 50, "bootstrap should have at least 50 entries");
     }
 
+    /// CP-5.1 step-2 sanity: with `PINYIN_LM_BINARY` pointing at
+    /// `trigram.binary`, `lm_order()` reports 3 and `lm_bonus` produces
+    /// a numerically different result from `bigram_lm_bonus` when a
+    /// grandparent is supplied. Skipped by default (needs the 2.7 GB
+    /// trigram model on disk + the `kenlm` feature).
+    #[cfg(all(not(feature = "bootstrap_only"), feature = "kenlm"))]
+    #[test]
+    #[ignore = "needs trigram.binary + PINYIN_LM_BINARY env; run with --ignored"]
+    fn trigram_path_fires_in_dp_state() {
+        // SAFETY: setting an env var inside a single-threaded test
+        // before the dict reads it. Acceptable for an ignored manual
+        // probe — not the kind of thing we'd ever leave on by default.
+        let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../tools/scoring/09_bigram_lm/data/trigram.binary");
+        let path_str = path.to_str().unwrap();
+        unsafe {
+            std::env::set_var("PINYIN_LM_BINARY", path_str);
+            std::env::set_var("PINYIN_LM_TRIGRAM_LAMBDA", "1.0");
+        }
+        let dict = PinyinDict::embedded().with_lm_from_env();
+        assert_eq!(dict.lm_order(), 3, "trigram.binary should report order=3");
+
+        // Bigram contribution: P(中国 | 是) ~ -2 ish, scaled.
+        let bonus_bigram = dict.lm_bonus(None, Some("是"), "中国");
+        // Trigram contribution: P(中国 | 我, 是) — different number.
+        let bonus_trigram = dict.lm_bonus(Some("我"), Some("是"), "中国");
+
+        assert!(
+            bonus_bigram.is_finite() && bonus_trigram.is_finite(),
+            "both LM bonuses must be finite: bigram={bonus_bigram}, trigram={bonus_trigram}"
+        );
+        // Numeric reference from one good local probe (2026-06-15,
+        // trigram.binary post-CP-5.1 step-1):
+        //   bigram  log P(中国 | 是)    × LM_SCALE × λ_3 ≈ -24862
+        //   trigram log P(中国 | 我, 是) × LM_SCALE × λ_3 ≈ -25470
+        // The trigram is slightly less likely than the bigram in this
+        // chain ("我是" usually leads to "中国人" not just "中国"),
+        // so the trigram bonus is MORE negative. The point of this
+        // probe is just to assert the DP is actually consuming the
+        // grandparent — if `lm_bonus` silently dropped prev_prev, the
+        // two numbers would be byte-equal.
+        assert!(
+            bonus_bigram != bonus_trigram,
+            "trigram bonus ({bonus_trigram}) must differ from bigram bonus ({bonus_bigram}); \
+             if equal, the DP is silently dropping the prev_prev arg"
+        );
+    }
+
     /// Standing sanity gate on the SHIPPED data (full-dict builds only):
     /// every embedded index parses and is at the expected scale, so a
     /// corrupt / truncated / stale `.dict` / `.fsa` fails loudly here rather
@@ -840,12 +2156,18 @@ mod tests {
     fn shipped_data_at_expected_scale() {
         let d = PinyinDict::embedded();
         // pinyin.dict: ~156k distinct codes shipped; floor well below that.
-        assert!(d.len() >= 140_000, "pinyin.dict too small: {} codes", d.len());
+        assert!(
+            d.len() >= 140_000,
+            "pinyin.dict too small: {} codes",
+            d.len()
+        );
         // n-gram indexes must be present (not None) and non-trivially sized.
         // bigram_boost reads bigrams/bigrams_intra; predict reads trigrams.
-        assert!(d.bigram_boost(Some("中国"), "人民") > 0.0
-            || d.bigram_boost(Some("我们"), "一起") > 0.0,
-            "bigrams index looks empty");
+        assert!(
+            d.bigram_boost(Some("中国"), "人民") > 0.0
+                || d.bigram_boost(Some("我们"), "一起") > 0.0,
+            "bigrams index looks empty"
+        );
         // A high-frequency 3-gram context should yield predictions; if the
         // trigram dict is truncated/empty this returns nothing.
         let ctx = d.predict_next_words_context(Some("我们"), "一起", 10);
@@ -929,46 +2251,34 @@ mod tests {
         assert_eq!(d.l0_pending_count(), 0);
     }
 
+    /// Auto-pin removal (user 2026-07-20 "整个自动置顶都关了吧"): picking
+    /// the same candidate any number of times must NEVER reorder
+    /// candidates. Previously the 3rd pick auto-pinned it, silently
+    /// rewriting the user's candidate order.
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
-    fn record_pick_promotes_after_threshold() {
+    fn record_pick_never_pins_however_many_times() {
         let d = PinyinDict::embedded();
-        // shi has many candidates; pick a non-default one and pin it via
-        // 3 picks. 时 is a real shi-reading entry.
-        let target = "时";
-        for _ in 0..(PROMOTE_THRESHOLD - 1) {
-            assert!(!d.record_pick("shi", target));
-        }
-        assert!(d.record_pick("shi", target), "should promote on Nth pick");
-        assert_eq!(d.lookup("shi").first().map(String::as_str), Some(target));
-        assert_eq!(d.l0_pin_count(), 1);
-        // Counters reset on promotion.
-        assert_eq!(d.l0_pending_count(), 0);
-    }
-
-    #[cfg(not(feature = "bootstrap_only"))]
-    #[test]
-    fn record_pick_resets_on_promotion_so_others_must_earn_3_again() {
-        let d = PinyinDict::embedded();
-        for _ in 0..PROMOTE_THRESHOLD {
+        let before = d.lookup("shi").first().cloned();
+        for _ in 0..10 {
             d.record_pick("shi", "时");
         }
-        // Now picking 事 once shouldn't auto-flip.
-        assert!(!d.record_pick("shi", "事"));
-        assert_eq!(d.lookup("shi").first().map(String::as_str), Some("时"));
-        // But three picks of 事 will dethrone 时.
-        for _ in 0..(PROMOTE_THRESHOLD - 1) {
-            d.record_pick("shi", "事");
-        }
-        assert_eq!(d.lookup("shi").first().map(String::as_str), Some("事"));
+        assert_eq!(
+            d.lookup("shi").first().cloned(),
+            before,
+            "record_pick must not reorder candidates"
+        );
+        assert_eq!(d.l0_pin_count(), 0, "record_pick must not create pins");
+        // The counter itself still accrues — it is usage statistics.
+        assert_eq!(d.l0_pending_count(), 1);
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
     fn record_pick_rejects_unknown_word() {
         let d = PinyinDict::embedded();
-        for _ in 0..PROMOTE_THRESHOLD {
-            assert!(!d.record_pick("shi", "this_is_not_a_real_word"));
+        for _ in 0..5 {
+            d.record_pick("shi", "this_is_not_a_real_word");
         }
         assert_eq!(d.l0_pin_count(), 0);
         assert_eq!(d.l0_pending_count(), 0);
@@ -1014,6 +2324,86 @@ mod tests {
         assert_eq!(d.lookup("shi").first().map(String::as_str), Some("时"));
     }
 
+    /// Phase-4 CP-4.3 acceptance: cold-start guard. With user_bigram
+    /// total count < USER_LM_COLD_START_THRESHOLD, λ_u is forced to
+    /// 0 → the bonus collapses to the Phase-2 system path. Without an
+    /// LM attached the system path is 0 too, so the function returns
+    /// exactly 0 on a fresh dict.
+    #[test]
+    fn cp4_3_cold_start_returns_zero() {
+        let d = PinyinDict::embedded();
+        // No LM attached, no user_bigram seeded → fresh / cold start.
+        assert_eq!(d.bigram_lm_bonus(Some("北京"), "大学"), 0.0);
+        // A handful of bumps stays under the threshold (100) → still cold.
+        for _ in 0..10 {
+            d.bump_user_bigram("北京", "大学");
+        }
+        assert_eq!(
+            d.bigram_lm_bonus(Some("北京"), "大学"),
+            0.0,
+            "10 bumps must still be under the cold-start threshold"
+        );
+    }
+
+    /// Phase-4 CP-4.3 acceptance: once the user_bigram total clears
+    /// the threshold, the user term enters the score. Build a fixture
+    /// where two equally-frequent bigrams produce a measurable
+    /// asymmetry through Laplace smoothing.
+    ///
+    /// 50 bumps of (北京, 大学) and 50 bumps of (北京, 公园) → vocab
+    /// size = 2, prev_total(北京) = 100. log_p_user("北京", "大学") =
+    /// log10((50+1)/(100+2)) = log10(0.5) ≈ -0.301. bigram_lm_bonus =
+    /// LM_SCALE × λ_sys × ((1-λ_u) × 0 + λ_u × log_p_user) =
+    /// 10_000 × 1.0 × 0.2 × -0.301 ≈ -601.
+    #[test]
+    fn cp4_3_warm_user_term_engages_after_threshold() {
+        let d = PinyinDict::embedded();
+        for _ in 0..50 {
+            d.bump_user_bigram("北京", "大学");
+            d.bump_user_bigram("北京", "公园");
+        }
+        let bonus = d.bigram_lm_bonus(Some("北京"), "大学");
+        // Expected ≈ -601. Tolerance generous to avoid binding the
+        // test to exact LM_SCALE constants if they ever get tuned.
+        assert!(
+            (bonus - (-600.0)).abs() < 20.0,
+            "warm-up user term should produce ≈ -600, got {bonus}"
+        );
+
+        // Unobserved bigram (北京, 火星) gets the Laplace cold-start
+        // probability: log10((0 + 1) / (100 + 2)) ≈ -2.01.
+        // bonus ≈ 10000 × 1.0 × 0.2 × -2.01 = -4020.
+        let unseen = d.bigram_lm_bonus(Some("北京"), "火星");
+        assert!(
+            (unseen - (-4020.0)).abs() < 200.0,
+            "unobserved bigram should get smoothed bonus ≈ -4020, got {unseen}"
+        );
+
+        // The seen pair must score strictly higher (less negative)
+        // than the unseen pair.
+        assert!(
+            bonus > unseen,
+            "seen pair {bonus} must outscore unseen pair {unseen}"
+        );
+    }
+
+    /// Phase-4 CP-4.3 acceptance: empty/None prev short-circuits to 0
+    /// regardless of how warmed-up the user model is — first commit
+    /// in any session has no prev word.
+    #[test]
+    fn cp4_3_none_or_empty_prev_returns_zero() {
+        let d = PinyinDict::embedded();
+        for _ in 0..200 {
+            d.bump_user_bigram("北京", "大学");
+        }
+        // None prev.
+        assert_eq!(d.bigram_lm_bonus(None, "大学"), 0.0);
+        // Empty prev.
+        assert_eq!(d.bigram_lm_bonus(Some(""), "大学"), 0.0);
+        // Empty curr.
+        assert_eq!(d.bigram_lm_bonus(Some("北京"), ""), 0.0);
+    }
+
     #[cfg(not(feature = "bootstrap_only"))]
     #[test]
     fn import_drops_invalid_entries() {
@@ -1024,6 +2414,7 @@ mod tests {
                 ("shi".into(), "bogus_word".into()),
             ],
             pick_counts: vec![("shi".into(), "ghost_word".into(), 2)],
+            ..Default::default()
         };
         let accepted = d.import_l0(snap);
         assert_eq!(accepted, 1);
@@ -1060,14 +2451,17 @@ mod tests {
         // modern_vocab assigning blanket 50k to 立项 despite its base
         // 17687 being well below 理想's 35168). Fixes:
         //   1. build_fst.rs overlay now uses MAX semantics.
-        //   2. pinyin_modern_v1.tsv purged of words already covered by
+        //   2. modern_vocab_v1.tsv purged of words already covered by
         //      base (purge_modern_overlap.py removed 立项).
         // After rebuild: 理想 (base 35168) should lead lixiang lookups.
         let d = PinyinDict::embedded();
         let cands = d.lookup("lixiang");
-        assert_eq!(cands.first().map(String::as_str), Some("理想"),
+        assert_eq!(
+            cands.first().map(String::as_str),
+            Some("理想"),
             "expected 理想 #1 for lixiang; got {:?}",
-            cands.iter().take(5).collect::<Vec<_>>());
+            cands.iter().take(5).collect::<Vec<_>>()
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1079,9 +2473,12 @@ mod tests {
         // top peer + MARGIN → 缺失 should now lead at queshi.
         let d = PinyinDict::embedded();
         let cands = d.lookup("queshi");
-        assert_eq!(cands.first().map(String::as_str), Some("缺失"),
+        assert_eq!(
+            cands.first().map(String::as_str),
+            Some("缺失"),
             "expected 缺失 #1 (was 确实 before polish-log auto-tune); top5={:?}",
-            cands.iter().take(5).collect::<Vec<_>>());
+            cands.iter().take(5).collect::<Vec<_>>()
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1098,12 +2495,18 @@ mod tests {
         // 'yu' previously had 於 (49376) > 于 (49010); after strip,
         // 於 row is gone so 于 has no competition from traditional.
         let yu_cands = d.lookup("yu");
-        assert!(!yu_cands.iter().take(5).any(|w| w == "於"),
-            "於 should be stripped; got top5={:?}", &yu_cands[..yu_cands.len().min(5)]);
+        assert!(
+            !yu_cands.iter().take(5).any(|w| w == "於"),
+            "於 should be stripped; got top5={:?}",
+            &yu_cands[..yu_cands.len().min(5)]
+        );
         // 'guo' previously had 國 (49746) competing with 国 (50333).
         let guo_cands = d.lookup("guo");
-        assert!(!guo_cands.iter().take(5).any(|w| w == "國"),
-            "國 should be stripped; got top5={:?}", &guo_cands[..guo_cands.len().min(5)]);
+        assert!(
+            !guo_cands.iter().take(5).any(|w| w == "國"),
+            "國 should be stripped; got top5={:?}",
+            &guo_cands[..guo_cands.len().min(5)]
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1119,8 +2522,10 @@ mod tests {
         let has_common_followers = ["的", "在", "是", "我", "我们"]
             .iter()
             .any(|w| words.contains(w));
-        assert!(has_common_followers,
-            "expected at least one of 的/在/是/我/我们 in 今天 predictions; got {words:?}");
+        assert!(
+            has_common_followers,
+            "expected at least one of 的/在/是/我/我们 in 今天 predictions; got {words:?}"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1133,13 +2538,14 @@ mod tests {
         // per the conservative-mode rule "联想是附加的好处，没有足够
         // 的证据就不要联想".
         let d = PinyinDict::embedded();
-        let with_context = d.predict_next_words_context(
-            Some("今天"), "的", 10);
+        let with_context = d.predict_next_words_context(Some("今天"), "的", 10);
         // Either empty (trigram count below threshold) OR all hits
         // sorted desc by count — both valid.
         for w in with_context.windows(2) {
-            assert!(w[0].1 >= w[1].1,
-                "trigram results must be sorted desc; got {w:?}");
+            assert!(
+                w[0].1 >= w[1].1,
+                "trigram results must be sorted desc; got {w:?}"
+            );
         }
     }
 
@@ -1157,11 +2563,12 @@ mod tests {
         let d = PinyinDict::embedded();
         // 锟斤拷 is mojibake — won't appear as prev_prev in any
         // real trigram, so (锟斤拷, 我们, *) trigram lookup is empty.
-        let chained = d.predict_next_words_context(
-            Some("锟斤拷"), "我们", 5);
-        assert!(chained.is_empty(),
+        let chained = d.predict_next_words_context(Some("锟斤拷"), "我们", 5);
+        assert!(
+            chained.is_empty(),
             "chained prediction with empty trigram must NOT backoff to bigram; \
-             got {chained:?}");
+             got {chained:?}"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1174,10 +2581,14 @@ mod tests {
         // every returned count must still be >= 15 (sub-15 noise stays cut).
         let d = PinyinDict::embedded();
         let r = d.predict_next_words_context(Some("我们"), "的", 10);
-        assert!(!r.is_empty(),
-            "我们的 should predict at threshold 15 (counts 40/30/19); got empty");
-        assert!(r.iter().all(|(_, c)| *c >= 15),
-            "every prediction must clear the 15 threshold; got {r:?}");
+        assert!(
+            !r.is_empty(),
+            "我们的 should predict at threshold 15 (counts 40/30/19); got empty"
+        );
+        assert!(
+            r.iter().all(|(_, c)| *c >= 15),
+            "every prediction must clear the 15 threshold; got {r:?}"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1189,9 +2600,11 @@ mod tests {
         // Single bigram signal is too noisy to predict from.
         let d = PinyinDict::embedded();
         let cold = d.predict_next_words_context(None, "我们", 5);
-        assert!(cold.is_empty(),
+        assert!(
+            cold.is_empty(),
             "cold start (no prev_prev) must return empty under v1.4 strict; \
-             got {cold:?}");
+             got {cold:?}"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1199,11 +2612,16 @@ mod tests {
     fn predict_next_words_sorted_desc() {
         let d = PinyinDict::embedded();
         let preds = d.predict_next_words("我们", 5);
-        if preds.len() < 2 { return; }  // bail if data too sparse
+        if preds.len() < 2 {
+            return;
+        } // bail if data too sparse
         for w in preds.windows(2) {
-            assert!(w[0].1 >= w[1].1,
+            assert!(
+                w[0].1 >= w[1].1,
                 "predictions must be sorted by count desc; got {:?} then {:?}",
-                w[0], w[1]);
+                w[0],
+                w[1]
+            );
         }
     }
 
@@ -1267,11 +2685,17 @@ mod tests {
             panic!("expected some segmentation for nihaomawojiao");
         };
         eprintln!("nihaomawojiao → {chain:?} (score {score})");
-        assert!(chain.chars().all(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)),
-            "expected pure-CJK segmentation, got {chain:?}");
+        assert!(
+            chain
+                .chars()
+                .all(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)),
+            "expected pure-CJK segmentation, got {chain:?}"
+        );
         let char_count = chain.chars().count();
-        assert!((4..=7).contains(&char_count),
-            "expected 4-7 CJK chars, got {char_count} in {chain:?}");
+        assert!(
+            (4..=7).contains(&char_count),
+            "expected 4-7 CJK chars, got {char_count} in {chain:?}"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1328,19 +2752,27 @@ mod tests {
             );
             if !cfg!(debug_assertions) {
                 if min > MIN_BUDGET_NS {
-                    eprintln!("  ^^ FAIL: min {:.2}ms exceeds {}ms uncontended budget",
-                        min as f64 / 1_000_000.0, MIN_BUDGET_NS / 1_000_000);
+                    eprintln!(
+                        "  ^^ FAIL: min {:.2}ms exceeds {}ms uncontended budget",
+                        min as f64 / 1_000_000.0,
+                        MIN_BUDGET_NS / 1_000_000
+                    );
                     all_passed = false;
                 }
                 if p95 > MAX_BUDGET_NS {
-                    eprintln!("  ^^ FAIL: p95 {:.2}ms exceeds {}ms",
-                        p95 as f64 / 1_000_000.0, MAX_BUDGET_NS / 1_000_000);
+                    eprintln!(
+                        "  ^^ FAIL: p95 {:.2}ms exceeds {}ms",
+                        p95 as f64 / 1_000_000.0,
+                        MAX_BUDGET_NS / 1_000_000
+                    );
                     all_passed = false;
                 }
             }
         }
-        assert!(all_passed || cfg!(debug_assertions),
-            "perfgate-predict failed — see eprintln above");
+        assert!(
+            all_passed || cfg!(debug_assertions),
+            "perfgate-predict failed — see eprintln above"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1356,5 +2788,140 @@ mod tests {
             boost_de > 0.0 || boost_shi > 0.0,
             "expected positive bigram boost for 今天→的/是, got de={boost_de} shi={boost_shi}"
         );
+    }
+
+    // ------------------------------------------------------------------
+    // CP-5.2 step-1 · cell-dict L0.5 layer
+    // ------------------------------------------------------------------
+
+    /// CP-5.2 acceptance gate "回退·默认不启用任何包,主路径不受影响":
+    /// an empty cell-dict layer means lookup is byte-equal to the
+    /// pre-CP-5.2 fast path. Compare the lookup output before and
+    /// after constructing a fresh dict — they must be identical
+    /// element-for-element.
+    #[cfg(all(feature = "cell-dict", not(feature = "bootstrap_only")))]
+    #[test]
+    fn cell_dict_no_load_byte_equal_lookup() {
+        let a = PinyinDict::embedded();
+        let b = PinyinDict::embedded();
+        // Two independently-constructed dicts with no cell-dict
+        // loaded must produce the same lookup output on a non-trivial
+        // pinyin. Ensures the L0.5 init isn't perturbing the order.
+        assert_eq!(a.lookup("nihao"), b.lookup("nihao"));
+        assert_eq!(
+            a.lookup_with_freq_into_test("ni"),
+            b.lookup_with_freq_into_test("ni")
+        );
+        assert_eq!(a.cell_dict_count(), 0);
+    }
+
+    /// CP-5.2 acceptance gate "启用后,领域专词排序明显提升": load a
+    /// cell-dict, look up its pinyin, the cell-dict word must be at
+    /// position 0 (top of candidates). Uses a deliberately
+    /// non-standard pinyin (`zzzzcelltest`) plus an existing pinyin
+    /// (`rgb`) to cover both the "new vocab" case and the "outrank
+    /// existing L1" case.
+    #[cfg(all(feature = "cell-dict", not(feature = "bootstrap_only")))]
+    #[test]
+    fn cell_dict_load_promotes_word_to_top() {
+        let dict = PinyinDict::embedded();
+
+        // Probe: capture rgb's top BEFORE loading. May or may not
+        // already be "RGB" depending on the corpus; either way we'll
+        // be able to detect a delta after the load.
+        let rgb_before = dict.lookup("rgb").first().cloned();
+
+        let toml = r#"
+[meta]
+name = "cell-dict-promote-test"
+
+[[entry]]
+pinyin = "zzzzcelltest"
+word = "细胞测试词"
+freq = 750000
+
+[[entry]]
+pinyin = "rgb"
+word = "RGB"
+freq = 999999
+"#;
+        let n = dict.load_cell_dict(toml).expect("load_cell_dict");
+        assert_eq!(n, 2);
+        assert_eq!(dict.cell_dict_count(), 2);
+
+        // (a) Brand-new vocab the embedded dict doesn't have should
+        // appear as the only candidate at the cell-dict pinyin.
+        let novel = dict.lookup("zzzzcelltest");
+        assert_eq!(
+            novel.first().map(String::as_str),
+            Some("细胞测试词"),
+            "expected novel cell-dict word at top of lookup, got {novel:?}"
+        );
+
+        // (b) `rgb` should now lead with "RGB" (cell-dict freq
+        // 999_999 beats anything L1 has at that key).
+        let rgb_after = dict.lookup("rgb").first().cloned();
+        assert_eq!(
+            rgb_after.as_deref(),
+            Some("RGB"),
+            "expected cell-dict RGB at top of rgb lookup after load, got {rgb_after:?} (was {rgb_before:?} before load)"
+        );
+    }
+
+    /// CP-5.2: clear_cell_dict wipes the layer; subsequent lookup
+    /// reverts to byte-equal pre-load behavior. Confirms there's no
+    /// stuck state hanging around.
+    #[cfg(all(feature = "cell-dict", not(feature = "bootstrap_only")))]
+    #[test]
+    fn cell_dict_clear_restores_byte_equal_lookup() {
+        let dict = PinyinDict::embedded();
+        let before = dict.lookup("ni");
+
+        dict.load_cell_dict(
+            r#"
+[meta]
+name = "tmp"
+
+[[entry]]
+pinyin = "ni"
+word = "Ni"
+freq = 999999
+"#,
+        )
+        .unwrap();
+        assert_eq!(dict.lookup("ni").first().map(String::as_str), Some("Ni"));
+
+        dict.clear_cell_dict();
+        assert_eq!(dict.cell_dict_count(), 0);
+        assert_eq!(dict.lookup("ni"), before);
+    }
+
+    /// CP-5.2: malformed TOML returns a clean ParseError without
+    /// disturbing existing L0.5 state. Confirms the parse-then-commit
+    /// contract documented on load_cell_dict.
+    #[cfg(feature = "cell-dict")]
+    #[test]
+    fn cell_dict_invalid_toml_returns_err_without_state_change() {
+        let dict = PinyinDict::embedded();
+        let pre_count = dict.cell_dict_count();
+        let res = dict.load_cell_dict("this is = not [valid toml");
+        assert!(res.is_err(), "invalid TOML should return Err");
+        assert_eq!(
+            dict.cell_dict_count(),
+            pre_count,
+            "failed parse must leave layer unchanged"
+        );
+    }
+
+    // Tiny test-only wrapper because lookup_with_freq_into is &mut-self
+    // in signature even though it's logically pure; this lets the
+    // byte-equal test compare two snapshots.
+    impl PinyinDict {
+        #[cfg(feature = "cell-dict")]
+        fn lookup_with_freq_into_test(&self, pinyin: &str) -> Vec<(String, u64)> {
+            let mut out = Vec::new();
+            self.lookup_with_freq_into(pinyin, &mut out);
+            out
+        }
     }
 }

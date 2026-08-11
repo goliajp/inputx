@@ -75,6 +75,27 @@ fn decode_target(rel: u32, delta: u64) -> Option<u32> {
 }
 
 impl<D: AsRef<[u8]>> Fsa<D> {
+    /// Load an FSA from a serialized byte buffer. Accepts anything that
+    /// implements `AsRef<[u8]>` (`&[u8]`, `Vec<u8>`, `mmap::Mmap`, etc.).
+    /// The buffer is parsed header-only — no allocation per entry.
+    ///
+    /// Returns [`FsaError::BadMagic`] / [`FsaError::BadVersion`] /
+    /// [`FsaError::Truncated`] on invalid input; never panics.
+    ///
+    /// ```
+    /// use inputx_fsa::{Builder, Fsa, FsaError};
+    /// let mut b = Builder::new();
+    /// b.insert(b"hello", 42);
+    /// let bytes = b.finish();
+    ///
+    /// let fsa = Fsa::new(&bytes[..]).unwrap();
+    /// assert_eq!(fsa.len(), 1);
+    ///
+    /// // Corrupt magic → graceful error, no panic.
+    /// let mut bad = bytes.clone();
+    /// bad[0] = 0;
+    /// assert!(matches!(Fsa::new(&bad[..]), Err(FsaError::BadMagic)));
+    /// ```
     pub fn new(data: D) -> Result<Self, FsaError> {
         let b = data.as_ref();
         if b.len() < HEADER_LEN {
@@ -182,7 +203,20 @@ impl<D: AsRef<[u8]>> Fsa<D> {
         None
     }
 
-    /// Look up `key`.
+    /// Look up `key` — `Some(value)` for an exact match, `None` otherwise.
+    /// Constant cost per byte; the buffer is never copied.
+    ///
+    /// ```
+    /// use inputx_fsa::{Builder, Fsa};
+    /// let mut b = Builder::new();
+    /// b.insert(b"ni", 1);
+    /// b.insert(b"nihao", 100);
+    /// let fsa = Fsa::new(b.finish()).unwrap();
+    /// assert_eq!(fsa.get(b"ni"), Some(1));
+    /// assert_eq!(fsa.get(b"nihao"), Some(100));
+    /// assert_eq!(fsa.get(b"niha"), None);  // prefix-only, not a key
+    /// assert_eq!(fsa.get(b"absent"), None);
+    /// ```
     pub fn get(&self, key: &[u8]) -> Option<u64> {
         if self.value_count == 0 {
             return None;
@@ -216,6 +250,24 @@ impl<D: AsRef<[u8]>> Fsa<D> {
     /// result vector. The `key` slice is valid only for the call. This is the
     /// hot-path entry — a bare-letter prefix can match tens of thousands of
     /// keys, and materializing them all would dominate cost.
+    ///
+    /// ```
+    /// use inputx_fsa::{Builder, Fsa};
+    /// let mut b = Builder::new();
+    /// for (k, v) in [(&b"apple"[..], 1u64), (b"apply", 2), (b"banana", 3)] {
+    ///     b.insert(k, v);
+    /// }
+    /// let fsa = Fsa::new(b.finish()).unwrap();
+    ///
+    /// let mut count = 0;
+    /// let mut last_value = 0;
+    /// fsa.prefix_for_each(b"app", |_key, value| {
+    ///     count += 1;
+    ///     last_value = value;
+    /// });
+    /// assert_eq!(count, 2);          // apple + apply
+    /// assert_eq!(last_value, 2);     // "apply" sorts last
+    /// ```
     pub fn prefix_for_each<F: FnMut(&[u8], u64)>(&self, prefix: &[u8], mut visit: F) {
         if let Some((rel, ord)) = self.walk_to(prefix) {
             let mut cur = prefix.to_vec();
@@ -283,7 +335,9 @@ impl<D: AsRef<[u8]>> Fsa<D> {
             // single-transition form: [flags, label, delta], no count.
             let Some(&label) = b.get(p) else { return };
             p += 1;
-            let Some(delta) = rd_uvarint(b, &mut p) else { return };
+            let Some(delta) = rd_uvarint(b, &mut p) else {
+                return;
+            };
             if let Some(target) = decode_target(rel, delta) {
                 cur.push(label);
                 self.visit_subtree(target, cur, ord, visit);
@@ -291,12 +345,18 @@ impl<D: AsRef<[u8]>> Fsa<D> {
             }
             return;
         }
-        let Some(ntrans) = rd_uvarint(b, &mut p) else { return };
+        let Some(ntrans) = rd_uvarint(b, &mut p) else {
+            return;
+        };
         for _ in 0..ntrans {
             let Some(&label) = b.get(p) else { return };
             p += 1;
-            let Some(delta) = rd_uvarint(b, &mut p) else { return };
-            let Some(_num) = rd_uvarint(b, &mut p) else { return };
+            let Some(delta) = rd_uvarint(b, &mut p) else {
+                return;
+            };
+            let Some(_num) = rd_uvarint(b, &mut p) else {
+                return;
+            };
             if let Some(target) = decode_target(rel, delta) {
                 cur.push(label);
                 self.visit_subtree(target, cur, ord, visit);

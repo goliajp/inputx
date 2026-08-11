@@ -147,13 +147,27 @@ pub unsafe extern "C" fn inputx_session_candidate(
 /// # Safety
 /// `session` must be valid (or NULL).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn inputx_session_prediction_count(
-    session: *const InputxSession,
-) -> usize {
+pub unsafe extern "C" fn inputx_session_prediction_count(session: *const InputxSession) -> usize {
     let Some(s) = (unsafe { session.as_ref() }) else {
         return 0;
     };
     s.inner.prediction_count()
+}
+
+/// Drop pending 联想 candidates so the host can re-sync its candidate
+/// panel after a key event that bypassed `inputx_session_handle_key`
+/// (e.g. IMK-controller-side punct routing). After this call,
+/// `inputx_session_prediction_count` returns 0 until the next commit
+/// repopulates predictions.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_cancel_predictions(session: *mut InputxSession) {
+    let Some(s) = (unsafe { session.as_mut() }) else {
+        return;
+    };
+    s.inner.cancel_predictions();
 }
 
 /// Returns the prediction at `index` as a heap-allocated UTF-8 C string.
@@ -273,6 +287,97 @@ pub unsafe extern "C" fn inputx_session_set_auto_commit_policy(
     }
 }
 
+// ─── Segment mode (拼音手动分段, user 2026-06-07) ──────────────────────
+// ← stop points + first-segment candidates + partial commit. Pinyin-only
+// (a prefix is a 表音 concept); wubi is absent by construction.
+
+/// Number of ← stop points (anchors) for the current pinyin buffer.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_segment_anchor_count(
+    session: *const InputxSession,
+) -> usize {
+    let Some(s) = (unsafe { session.as_ref() }) else {
+        return 0;
+    };
+    s.inner.segment_anchors().len()
+}
+
+/// The `i`-th anchor (a prefix length), in DESCENDING order. 0 if out of
+/// range. The largest anchor (`i = 0`) is where the first ← lands.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_segment_anchor(
+    session: *const InputxSession,
+    i: usize,
+) -> usize {
+    let Some(s) = (unsafe { session.as_ref() }) else {
+        return 0;
+    };
+    s.inner.segment_anchors().get(i).copied().unwrap_or(0)
+}
+
+/// Number of candidates for the first segment `buffer[0..k]`.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_segment_candidate_count(
+    session: *const InputxSession,
+    k: usize,
+) -> usize {
+    let Some(s) = (unsafe { session.as_ref() }) else {
+        return 0;
+    };
+    s.inner.segment_candidates(k).len()
+}
+
+/// Candidate `#index` for the first segment `buffer[0..k]`, as a heap C
+/// string (free via `inputx_string_free`). NULL if out of range.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_segment_candidate(
+    session: *const InputxSession,
+    k: usize,
+    index: usize,
+) -> *mut c_char {
+    let Some(s) = (unsafe { session.as_ref() }) else {
+        return core::ptr::null_mut();
+    };
+    match s.inner.segment_candidates(k).get(index) {
+        Some(text) => dup_to_cstring(text),
+        None => core::ptr::null_mut(),
+    }
+}
+
+/// Commit the first segment `buffer[0..k]`'s candidate `#index`; the
+/// remainder `buffer[k..]` is kept and re-composed. Returns the committed
+/// word as a heap C string (free via `inputx_string_free`), or NULL if
+/// `k`/`index` is out of range.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_commit_segment(
+    session: *mut InputxSession,
+    k: usize,
+    index: usize,
+) -> *mut c_char {
+    let Some(s) = (unsafe { session.as_mut() }) else {
+        return core::ptr::null_mut();
+    };
+    match s.inner.commit_segment(k, index) {
+        Some(word) => dup_to_cstring(&word),
+        None => core::ptr::null_mut(),
+    }
+}
+
 /// Free a string previously returned by a `inputx_*` function. Safe with NULL.
 ///
 /// # Safety
@@ -304,6 +409,180 @@ pub extern "C" fn inputx_get_show_rare_chars() -> u8 {
     if inputx_core::wubi::show_rare() { 1 } else { 0 }
 }
 
+// ---------------------------------------------------------------------------
+// v1.15 hot-reload FFI ------------------------------------------------------
+// ---------------------------------------------------------------------------
+
+/// Process-global remembered pinyin data directory, set once by
+/// [`inputx_set_pinyin_data_dir`] at Inputx.app startup (or by tests /
+/// probe binaries). [`inputx_session_new`] pre-warms per-session
+/// PinyinDict from these bytes so every session picks up whatever
+/// polish shipped with the current bundle. [`inputx_reload_pinyin_data`]
+/// updates it to a caller-supplied `dir` for the current signal event.
+static PROCESS_PINYIN_DATA_DIR: std::sync::OnceLock<std::sync::RwLock<Option<std::path::PathBuf>>> =
+    std::sync::OnceLock::new();
+
+fn pinyin_data_dir_slot() -> &'static std::sync::RwLock<Option<std::path::PathBuf>> {
+    PROCESS_PINYIN_DATA_DIR.get_or_init(|| std::sync::RwLock::new(None))
+}
+
+/// Point the process-global "pinyin data source" at `dir`. Called once
+/// by mac/Sources/main.swift right before `IMKServer(name:…)` builds
+/// so subsequent `inputx_session_new` calls initialise from disk bytes
+/// rather than the embedded blobs.
+///
+/// Returns 0 on success (and eager-reloads all process-global slots
+/// from disk immediately so tests / probe binaries pick up the new
+/// bytes without spinning a session). Returns a negative errno-style
+/// code on failure:
+///   -1 : `dir` was NULL or not valid UTF-8
+///   -2 : reading / parsing one of the four data files failed
+///
+/// # Safety
+/// `dir` must be NUL-terminated UTF-8.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_set_engine_data_dir(dir: *const c_char) -> i32 {
+    let Some(path) = (unsafe { cstr_to_pathbuf(dir) }) else {
+        return -1;
+    };
+    // Remember for future sessions so process-global slots stay in
+    // sync with per-session dicts.
+    if let Ok(mut slot) = pinyin_data_dir_slot().write() {
+        *slot = Some(path.clone());
+    }
+    // Eager-load process-global slots so the very first
+    // `inputx_session_new` sees consistent state. Per-session
+    // PinyinDict is populated inside session ctor from the same
+    // path.
+    match std::fs::read(path.join("words.idf"))
+        .map_err(|e| format!("read words.idf: {e}"))
+        .and_then(|bytes| {
+            inputx_core::hot_reload::set_pinyin_idf_bytes(bytes).map_err(|e| format!("{e}"))
+        }) {
+        Ok(_) => {}
+        Err(_) => return -2,
+    }
+    if let Ok(bytes) = std::fs::read(path.join("bigrams.ngm"))
+        && inputx_core::hot_reload::set_bigrams_ngm_bytes(bytes).is_err()
+    {
+        return -2;
+    }
+    if let Ok(bytes) = std::fs::read(path.join("bigrams_inter.ngm"))
+        && inputx_core::hot_reload::set_inter_bigrams_ngm_bytes(bytes).is_err()
+    {
+        return -2;
+    }
+    // v1.17: the wubi + nihongo IDF slots. Absent file = older bundle,
+    // fall through on the embedded blob; present-but-unparseable = hard
+    // error, because a stale table that looks fresh is the exact failure
+    // this path exists to prevent.
+    if let Ok(bytes) = std::fs::read(path.join("wubi.idf"))
+        && inputx_core::hot_reload::set_wubi_idf_bytes(bytes).is_err()
+    {
+        return -2;
+    }
+    if let Ok(bytes) = std::fs::read(path.join("wubi86.dict"))
+        && inputx_core::hot_reload::set_wubi_dict_bytes(bytes).is_err()
+    {
+        return -2;
+    }
+    if let Ok(bytes) = std::fs::read(path.join("kanji.idf"))
+        && inputx_core::hot_reload::set_nihongo_kanji_idf_bytes(bytes).is_err()
+    {
+        return -2;
+    }
+    if let Ok(bytes) = std::fs::read(path.join("jukugo.idf"))
+        && inputx_core::hot_reload::set_nihongo_jukugo_idf_bytes(bytes).is_err()
+    {
+        return -2;
+    }
+    // v1.16: if a `polish/` subdir exists next to the pinyin dict
+    // artifacts, prime v2's polish overlay slots from it so the
+    // first session sees the bundle's shipped polish TSVs — not
+    // whatever was baked into the crate at compile time. Missing
+    // dir is fine (older bundles that predate v1.16 just stay on
+    // embedded constants).
+    let polish_dir = path.join("polish");
+    if polish_dir.is_dir() {
+        inputx_core::hot_reload::set_v2_polish_data_dir(&polish_dir);
+    }
+    0
+}
+
+/// Reload the pinyin data for a single running session (typically fired
+/// from Swift's SIGUSR1 DispatchSource, once per InputxController).
+/// The caller passes the same `dir` that was set at startup — usually
+/// the running bundle's `Contents/Resources/data/`, atomically replaced
+/// by `reinstall.py`'s data-only fast path just before the signal.
+///
+/// Process-global slots (IdfReader, NgramTables) are ALSO re-read
+/// here; that's a small redundancy across N sessions but keeps a
+/// session's own view consistent even if it's the first to fire.
+///
+/// Returns 0 on success. On failure returns a negative errno-style
+/// code and leaves both the session dict and the process-global
+/// slots in their pre-call state:
+///   -1 : NULL / bad UTF-8 in `dir`, or NULL `session`
+///   -2 : IO / parse failure — see stderr for details
+///
+/// # Safety
+/// `session` must come from `inputx_session_new`; `dir` must be a
+/// NUL-terminated UTF-8 string.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_reload_engine_data(
+    session: *mut InputxSession,
+    dir: *const c_char,
+) -> i32 {
+    let Some(s) = (unsafe { session.as_mut() }) else {
+        return -1;
+    };
+    let Some(path) = (unsafe { cstr_to_pathbuf(dir) }) else {
+        return -1;
+    };
+    match s.inner.reload_engine_data(&path) {
+        Ok(()) => 0,
+        Err(e) => {
+            eprintln!("[inputx_reload_engine_data] {e}");
+            -2
+        }
+    }
+}
+
+// Pre-v1.17 symbol names, from when the reload covered only the pinyin
+// engine. Kept as ABI-compatible aliases so a Swift layer built against
+// an older header still links and behaves identically.
+//
+/// # Safety
+/// Same contract as [`inputx_set_engine_data_dir`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_set_pinyin_data_dir(dir: *const c_char) -> i32 {
+    unsafe { inputx_set_engine_data_dir(dir) }
+}
+
+/// # Safety
+/// Same contract as [`inputx_reload_engine_data`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_reload_pinyin_data(
+    session: *mut InputxSession,
+    dir: *const c_char,
+) -> i32 {
+    unsafe { inputx_reload_engine_data(session, dir) }
+}
+
+/// Small helper: `*const c_char` → `Option<PathBuf>`. Returns `None`
+/// for NULL / non-UTF-8. Keeps the FFI shims focused.
+///
+/// # Safety
+/// `p` must be NULL or point at a NUL-terminated C string.
+unsafe fn cstr_to_pathbuf(p: *const c_char) -> Option<std::path::PathBuf> {
+    if p.is_null() {
+        return None;
+    }
+    let cstr = unsafe { CStr::from_ptr(p) };
+    let s = cstr.to_str().ok()?;
+    Some(std::path::PathBuf::from(s))
+}
+
 // ----------------------------------------------------------------------
 // Phase 4 dual-engine FFI (items 44 + 45)
 // ----------------------------------------------------------------------
@@ -319,7 +598,10 @@ pub extern "C" fn inputx_get_show_rare_chars() -> u8 {
 /// # Safety
 /// `session` must be valid (or NULL).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn inputx_session_set_engine_mode(session: *mut InputxSession, mode: u8) -> u8 {
+pub unsafe extern "C" fn inputx_session_set_engine_mode(
+    session: *mut InputxSession,
+    mode: u8,
+) -> u8 {
     let Some(s) = (unsafe { session.as_mut() }) else {
         return 0;
     };
@@ -359,7 +641,10 @@ pub unsafe extern "C" fn inputx_session_get_engine_mode(session: *const InputxSe
 /// # Safety
 /// `session` must be valid (or NULL).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn inputx_session_set_input_mode(session: *mut InputxSession, mode: u8) -> u8 {
+pub unsafe extern "C" fn inputx_session_set_input_mode(
+    session: *mut InputxSession,
+    mode: u8,
+) -> u8 {
     let Some(s) = (unsafe { session.as_mut() }) else {
         return 0;
     };
@@ -417,12 +702,26 @@ pub unsafe extern "C" fn inputx_session_set_japanese_enabled(
 /// # Safety
 /// `session` must be valid (or NULL).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn inputx_session_get_japanese_enabled(
-    session: *const InputxSession,
-) -> u8 {
+pub unsafe extern "C" fn inputx_session_get_japanese_enabled(session: *const InputxSession) -> u8 {
     match unsafe { session.as_ref() } {
-        Some(s) => if s.inner.japanese_enabled() { 1 } else { 0 },
-        None => 0,
+        Some(s) if s.inner.japanese_enabled() => 1,
+        _ => 0,
+    }
+}
+
+/// `1` iff the JP sub-engine has a non-empty buffer (i.e. the user is
+/// mid-romaji-composition). Hosts use this to decide whether `-` should
+/// be forwarded to the engine as chōonpu (when JP composing) or passed
+/// through as ASCII / locale-mapped punct (otherwise). Returns `0` when
+/// the session is NULL.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_is_composing_japanese(session: *const InputxSession) -> u8 {
+    match unsafe { session.as_ref() } {
+        Some(s) if s.inner.japanese_is_composing() => 1,
+        _ => 0,
     }
 }
 
@@ -565,6 +864,48 @@ pub unsafe extern "C" fn inputx_session_smart_quote(
         .unwrap_or(codepoint)
 }
 
+/// Context-based smart quote. Decides the CJK curly form of `codepoint`
+/// (`"` or `'`) from the document text before the caret rather than an
+/// in-memory toggle, so it survives IME switches, mouse clicks, and
+/// mid-text edits (and handles Chinese `他说“…”`, no space before the
+/// opener). Nesting-aware: it counts unclosed quotes of this type on the
+/// current line.
+///
+/// `ctx_before_utf8` is a NUL-terminated UTF-8 string of the document
+/// text up to the caret (a bounded window is fine; only the current line
+/// is counted). NULL / empty is treated as no context → the quote opens.
+/// A host that cannot read context at all should instead call
+/// [`inputx_session_smart_quote`] (the toggle fallback). Non-quote
+/// codepoints pass through unchanged.
+///
+/// # Safety
+/// `session` must be valid (or NULL); `ctx_before_utf8` must be NULL or a
+/// valid NUL-terminated pointer.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_smart_quote_ctx(
+    session: *mut InputxSession,
+    codepoint: u32,
+    ctx_before_utf8: *const c_char,
+) -> u32 {
+    let Some(s) = (unsafe { session.as_mut() }) else {
+        return codepoint;
+    };
+    let Some(c) = char::from_u32(codepoint) else {
+        return codepoint;
+    };
+    let ctx = if ctx_before_utf8.is_null() {
+        ""
+    } else {
+        unsafe { CStr::from_ptr(ctx_before_utf8) }
+            .to_str()
+            .unwrap_or("")
+    };
+    s.inner
+        .smart_quote_ctx(c, ctx)
+        .map(|m| m as u32)
+        .unwrap_or(codepoint)
+}
+
 /// Reset the session's smart-quote alternator (next quote will be opening).
 ///
 /// # Safety
@@ -573,6 +914,69 @@ pub unsafe extern "C" fn inputx_session_smart_quote(
 pub unsafe extern "C" fn inputx_session_smart_quote_reset(session: *mut InputxSession) {
     if let Some(s) = unsafe { session.as_mut() } {
         s.inner.smart_quote_reset();
+    }
+}
+
+// ----------------------------------------------------------------------
+// CP-5.2 step-3: cell-dict L0.5 layer FFI. Hosts load TOML packs at
+// app launch / on user toggle so domain vocab (IT terms, scientific
+// names, etc.) outranks corpus on lookups without touching the
+// embedded dict. Layer is per-session: each call accumulates into the
+// session's PinyinDict; `clear` wipes; `count` is "N entries loaded".
+// ----------------------------------------------------------------------
+
+/// Load a TOML cell-dict pack into the session's L0.5 layer. `toml` is
+/// a NUL-terminated UTF-8 string. Returns the number of entries
+/// accepted on success, or a negative error code:
+///   -1 = NULL session or NULL `toml`
+///   -2 = `toml` is not valid UTF-8
+///   -3 = parse error (malformed TOML / wrong schema)
+///
+/// Multiple loads accumulate. Use `inputx_session_clear_cell_dict` to wipe.
+///
+/// # Safety
+/// `session` must be a valid pointer from `inputx_session_new` (or NULL);
+/// `toml` must point to a NUL-terminated C string (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_load_cell_dict(
+    session: *mut InputxSession,
+    toml: *const c_char,
+) -> i64 {
+    let Some(s) = (unsafe { session.as_ref() }) else {
+        return -1;
+    };
+    if toml.is_null() {
+        return -1;
+    }
+    let cstr = unsafe { CStr::from_ptr(toml) };
+    let Ok(text) = cstr.to_str() else { return -2 };
+    match s.inner.load_cell_dict(text) {
+        Ok(n) => n as i64,
+        Err(_) => -3,
+    }
+}
+
+/// Wipe the session's L0.5 cell-dict layer.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_clear_cell_dict(session: *mut InputxSession) {
+    if let Some(s) = unsafe { session.as_ref() } {
+        s.inner.clear_cell_dict();
+    }
+}
+
+/// Return the number of `(pinyin, word)` entries currently in the
+/// session's L0.5 layer. Returns 0 for NULL session.
+///
+/// # Safety
+/// `session` must be valid (or NULL).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inputx_session_cell_dict_count(session: *mut InputxSession) -> usize {
+    match unsafe { session.as_ref() } {
+        Some(s) => s.inner.cell_dict_count(),
+        None => 0,
     }
 }
 
@@ -590,6 +994,44 @@ mod tests {
     use super::*;
     use proptest::prelude::*;
 
+    /// CP-5.2 step-3 smoke: cell-dict load → count → clear round-trip
+    /// via the C ABI. Verifies the host-facing surface accepts a
+    /// minimal TOML pack and exposes the entry count.
+    #[test]
+    fn ffi_cell_dict_round_trip() {
+        let toml = CString::new(concat!(
+            "[meta]\n",
+            "name = \"smoke\"\n",
+            "version = 1\n",
+            "author = \"t\"\n",
+            "description = \"\"\n",
+            "license = \"CC0-1.0\"\n",
+            "[[entry]]\n",
+            "pinyin = \"shdx\"\n",
+            "word = \"上海大学\"\n",
+            "freq = 999\n",
+            "[[entry]]\n",
+            "pinyin = \"yjs\"\n",
+            "word = \"研究生\"\n",
+            "freq = 888\n",
+        ))
+        .unwrap();
+        let s = inputx_session_new();
+        unsafe {
+            let n = inputx_session_load_cell_dict(s, toml.as_ptr());
+            assert_eq!(n, 2, "two entries should load");
+            assert_eq!(inputx_session_cell_dict_count(s), 2);
+            inputx_session_clear_cell_dict(s);
+            assert_eq!(inputx_session_cell_dict_count(s), 0);
+            assert_eq!(inputx_session_load_cell_dict(s, core::ptr::null()), -1);
+            let bad = CString::new("not toml at all").unwrap();
+            assert_eq!(inputx_session_load_cell_dict(s, bad.as_ptr()), -3);
+            inputx_session_free(s);
+            assert_eq!(inputx_session_cell_dict_count(core::ptr::null_mut()), 0);
+            inputx_session_clear_cell_dict(core::ptr::null_mut());
+        }
+    }
+
     /// Random FFI ops generated by proptest.
     #[derive(Debug, Clone)]
     enum FfiOp {
@@ -606,6 +1048,7 @@ mod tests {
         SetMode(u8),
         GetMode,
         SmartQuote(u32),
+        SmartQuoteCtx(u32, String),
         SmartQuoteReset,
         PunctAsciiToCjk(u32),
         PunctFullWidth(u32),
@@ -630,6 +1073,8 @@ mod tests {
             1 => any::<u8>().prop_map(FfiOp::SetMode),
             1 => Just(FfiOp::GetMode),
             1 => any::<u32>().prop_map(FfiOp::SmartQuote),
+            1 => (any::<u32>(), ".*")
+                    .prop_map(|(c, ctx)| FfiOp::SmartQuoteCtx(c, ctx)),
             1 => Just(FfiOp::SmartQuoteReset),
             1 => any::<u32>().prop_map(FfiOp::PunctAsciiToCjk),
             1 => any::<u32>().prop_map(FfiOp::PunctFullWidth),
@@ -705,6 +1150,11 @@ mod tests {
                         FfiOp::SmartQuote(cp) => {
                             let _ = inputx_session_smart_quote(s, *cp);
                         }
+                        FfiOp::SmartQuoteCtx(cp, ctx) => {
+                            if let Ok(cs) = CString::new(ctx.clone()) {
+                                let _ = inputx_session_smart_quote_ctx(s, *cp, cs.as_ptr());
+                            }
+                        }
                         FfiOp::SmartQuoteReset => inputx_session_smart_quote_reset(s),
                         FfiOp::PunctAsciiToCjk(cp) => {
                             let _ = inputx_punct_ascii_to_cjk(*cp);
@@ -775,6 +1225,15 @@ mod tests {
                         FfiOp::SmartQuote(cp) => {
                             // NULL session: pass-through (returns input).
                             prop_assert_eq!(inputx_session_smart_quote(null_s, *cp), *cp);
+                        }
+                        FfiOp::SmartQuoteCtx(cp, ctx) => {
+                            // NULL session: pass-through (returns input).
+                            if let Ok(cs) = CString::new(ctx.clone()) {
+                                prop_assert_eq!(
+                                    inputx_session_smart_quote_ctx(null_s, *cp, cs.as_ptr()),
+                                    *cp
+                                );
+                            }
                         }
                         FfiOp::SmartQuoteReset => inputx_session_smart_quote_reset(null_s),
                         FfiOp::L0Export(eng) => {

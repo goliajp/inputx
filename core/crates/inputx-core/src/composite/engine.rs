@@ -194,8 +194,18 @@ impl CompositeEngine {
         }
         (self.mode.allows_wubi() && self.wubi.is_composing())
             || (self.mode.allows_pinyin() && self.pinyin.is_composing())
-            || (self.enable_japanese
-                && self.japanese.as_ref().is_some_and(|j| j.is_composing()))
+            || (self.enable_japanese && self.japanese.as_ref().is_some_and(|j| j.is_composing()))
+    }
+
+    /// `true` iff the JP sub-engine is in the middle of a composition.
+    /// Used by `Session::handle_key_cjk` to gate the `-` chōonpu input —
+    /// only when JP is actively composing should `-` be routed through
+    /// the engine (otherwise it stays a punct char). Independent of mode
+    /// gating: in JapaneseOnly always returns the JP buffer state; in
+    /// Mixed it follows the JP adapter (only Some when enable_japanese
+    /// is on).
+    pub fn japanese_is_composing(&self) -> bool {
+        self.japanese.as_ref().is_some_and(|j| j.is_composing())
     }
 
     /// The active preedit string. In Mixed mode prefers pinyin's longer
@@ -238,11 +248,19 @@ impl CompositeEngine {
         }
         // Mixed — prefer pinyin (it captures the full input across
         // wubi force-commits). But fall back to wubi if pinyin's buffer
-        // happens to be empty (e.g., entered Mixed from WubiOnly after
-        // some keystrokes — wubi has state, pinyin does not). JP buffer
-        // mirrors pinyin (same letter-by-letter feed) so it doesn't
-        // need a separate fallback here.
+        // happens to be empty, and (user 2026-05-27 chōonpu polish) also
+        // fall through to JP whenever JP holds a *longer* buffer than
+        // pinyin: this happens when `-` (chōonpu) extends the JP buffer
+        // — pinyin rejects `-`, JP accepts it, so showing the pinyin
+        // buffer would hide the `-` the user just typed and confuse the
+        // preedit display vs the kana candidates.
         let p = self.pinyin.buffer_str();
+        if let Some(j) = self.japanese.as_ref() {
+            let jp = j.buffer_str();
+            if jp.len() > p.len() {
+                return jp;
+            }
+        }
         if !p.is_empty() {
             p
         } else {
@@ -258,24 +276,37 @@ impl CompositeEngine {
         self.pinyin.buffer_str()
     }
 
+    /// CP-5.2 step-3: forward TOML cell-dict bytes to the pinyin
+    /// adapter's PinyinDict L0.5 layer. See [`PinyinAdapter::load_cell_dict`].
+    pub fn load_cell_dict(&self, toml: &str) -> Result<usize, String> {
+        self.pinyin.load_cell_dict(toml)
+    }
+
+    pub fn clear_cell_dict(&self) {
+        self.pinyin.clear_cell_dict();
+    }
+
+    pub fn cell_dict_count(&self) -> usize {
+        self.pinyin.cell_dict_count()
+    }
+
     /// Recompute and return the merged candidate list. Slice borrows
     /// internal storage; subsequent calls invalidate.
     ///
     /// Returns the merged candidate list, sorted purely by score
     /// (descending). L0 pins surface at #0 via the score multiplier
     /// applied inside the engine adapter's `lookup_with_scores_into`
-    /// (see `scoring::L0_PIN_MULTIPLIER` = 1000×) — no post-pass
+    /// (see `scoring::PRIOR_L0_PIN_MULT` = 1000×) — no post-pass
     /// re-ordering exists or is needed.
     pub fn candidates(&mut self) -> &[Candidate] {
         self.cand_buf.clear();
-        self.cand_buf
-            .extend(dispatch(
-                self.mode,
-                &self.wubi,
-                &self.pinyin,
-                self.japanese.as_ref(),
-                self.last_committed_word.as_deref(),
-            ));
+        self.cand_buf.extend(dispatch(
+            self.mode,
+            &self.wubi,
+            &self.pinyin,
+            self.japanese.as_ref(),
+            self.last_committed_word.as_deref(),
+        ));
         &self.cand_buf
     }
 
@@ -308,10 +339,10 @@ impl CompositeEngine {
         }
 
         // JP attaches in parallel as an enhancement source.
-        if self.enable_japanese {
-            if let Some(j) = self.japanese.as_mut() {
-                j.handle_letter(byte);
-            }
+        if self.enable_japanese
+            && let Some(j) = self.japanese.as_mut()
+        {
+            j.handle_letter(byte);
         }
 
         if self.mode.allows_wubi() {
@@ -333,8 +364,10 @@ impl CompositeEngine {
             } else if let Some(text) = self.wubi.handle_letter(byte) {
                 // WubiOnly defuse path or pre-4-char auto-commit fired.
                 self.pinyin.clear_all();
-                if let Some(j) = self.japanese.as_mut() { j.clear_all(); }
-                self.consecutive_predictions = 0;  // typed → break chain
+                if let Some(j) = self.japanese.as_mut() {
+                    j.clear_all();
+                }
+                self.consecutive_predictions = 0; // typed → break chain
                 self.update_bigram_context(&text);
                 return Some(text);
             }
@@ -347,8 +380,10 @@ impl CompositeEngine {
                 let idx = self.wubi_index_for(&text).unwrap_or(0);
                 self.wubi.commit_index(idx);
                 self.pinyin.clear_all();
-                if let Some(j) = self.japanese.as_mut() { j.clear_all(); }
-                self.consecutive_predictions = 0;  // typed → break chain
+                if let Some(j) = self.japanese.as_mut() {
+                    j.clear_all();
+                }
+                self.consecutive_predictions = 0; // typed → break chain
                 self.update_bigram_context(&text);
                 return Some(text);
             }
@@ -369,13 +404,13 @@ impl CompositeEngine {
         // "not a Chinese word" signal. JP intentionally does NOT veto
         // the fallback — the user typing in romaji that doesn't form
         // CJK is the same English-intent signal whether JP is on or off.
-        if self.preedit().len() >= Self::ASCII_FALLBACK_THRESHOLD
-            && self.is_pure_garbage()
-        {
+        if self.preedit().len() >= Self::ASCII_FALLBACK_THRESHOLD && self.is_pure_garbage() {
             let raw = self.preedit().to_string();
             self.wubi.clear_all();
             self.pinyin.clear_all();
-            if let Some(j) = self.japanese.as_mut() { j.clear_all(); }
+            if let Some(j) = self.japanese.as_mut() {
+                j.clear_all();
+            }
             // ASCII raw fallback isn't a Chinese word — drop the full
             // bigram / trigram context. Whatever Chinese was committed
             // before no longer informs the next CJK input across this
@@ -416,7 +451,49 @@ impl CompositeEngine {
             // word that's longer than the 5-char ASCII-fallback budget.
             return false;
         }
-        !self.pinyin.has_future_match()
+        if self.pinyin.has_future_match() {
+            return false;
+        }
+        // Path 1c (initials-fallback typo rescue) gate: when the
+        // buffer is a 4-5 char missing-vowel-typo shape (2-consonant
+        // prefix + ≥2-char suffix) we let Path 1c produce its
+        // initials-based candidates instead of wiping the buffer.
+        // Without this, single letters that can't start any pinyin
+        // syllable (`v`, plus `i`/`u`) trigger ASCII-fallback at
+        // exactly length 5 even though the buffer is the same shape
+        // Path 1c was designed to rescue.
+        //
+        // Verified 2026-06-05: `shehv` at JP-off used to wipe via
+        // ASCII fallback (preedit='' / 0 candidates) while `shehb`
+        // / `shehz` correctly fell through to Path 1c (50 candidates
+        // topped by 时候/生活/说话/...). JP-on already masked this
+        // via the early-return above, so the bug only surfaced when
+        // a user disabled JP — but the asymmetry was real and
+        // unprincipled.
+        if self.pinyin.path1c_would_fire() {
+            return false;
+        }
+        // 音节意识细化 (2026-06-06): if the buffer has a clean ≥3-char
+        // syllable prefix, Path 3b trim-retry (in pinyin_adapter) will
+        // produce candidates. The user committed to that syllable; don't
+        // wipe the buffer even though `has_future_match` and Path 1c
+        // both said no. `shehv` / `xianv` route through this.
+        if self.pinyin.has_clean_syllable_prefix() {
+            return false;
+        }
+        // CP-3.6 step-2 follow-up (2026-06-16, user report `zhrmghg`):
+        // long abbreviation intent (5+ char vowel-free buffer) is an
+        // unambiguous "user means abbrev" signal. The lattice K-best
+        // composition with abbrev resolver can compose e.g.
+        // `zhrm + ghg → 中华人民 + 共和国 → 中华人民共和国` even though
+        // none of the above escape valves fire (no pinyin prefix,
+        // no 2-consonant typo shape, no clean syllable prefix). Don't
+        // let ASCII-fallback wipe the buffer before lattice gets a
+        // chance to deliver.
+        if self.pinyin.is_long_abbrev_intent() {
+            return false;
+        }
+        true
     }
 
     /// Sogou-style auto-ASCII threshold. At this many input letters,
@@ -506,10 +583,10 @@ impl CompositeEngine {
             } else {
                 consumed |= self.wubi.backspace();
             }
-            if self.enable_japanese {
-                if let Some(j) = self.japanese.as_mut() {
-                    consumed |= j.backspace();
-                }
+            if self.enable_japanese
+                && let Some(j) = self.japanese.as_mut()
+            {
+                consumed |= j.backspace();
             }
             return consumed;
         }
@@ -519,10 +596,10 @@ impl CompositeEngine {
         if self.mode.allows_pinyin() {
             consumed |= self.pinyin.backspace();
         }
-        if self.enable_japanese {
-            if let Some(j) = self.japanese.as_mut() {
-                consumed |= j.backspace();
-            }
+        if self.enable_japanese
+            && let Some(j) = self.japanese.as_mut()
+        {
+            consumed |= j.backspace();
         }
         consumed
     }
@@ -551,6 +628,10 @@ impl CompositeEngine {
             if let Some(j) = self.japanese.as_mut() {
                 consumed |= j.escape();
             }
+            // JP-only mode has no Chinese 联想 to clear, but cancel
+            // anyway to stay state-clean — predictions are gated to
+            // pinyin mode and never populate here, so this is a no-op.
+            self.cancel_predictions();
             return consumed;
         }
         if self.mode.allows_wubi() {
@@ -559,12 +640,59 @@ impl CompositeEngine {
         if self.mode.allows_pinyin() {
             consumed |= self.pinyin.escape();
         }
-        if self.enable_japanese {
-            if let Some(j) = self.japanese.as_mut() {
-                consumed |= j.escape();
-            }
+        if self.enable_japanese
+            && let Some(j) = self.japanese.as_mut()
+        {
+            consumed |= j.escape();
         }
+        // 联想 cancellation: escape semantically ends the current
+        // composing flow, so any pending next-word predictions from a
+        // prior commit are stale and must go. Without this the host UI
+        // keeps showing ghost predictions after the user dismisses
+        // composing via Escape / Enter / punctuation force-commit.
+        self.cancel_predictions();
         consumed
+    }
+
+    /// Whether `prediction_buf` currently holds 联想 (next-word)
+    /// candidates that the host's UI would render. Cheap O(1) field
+    /// check; intended for the session layer's "cancel predictions
+    /// on non-continuation input" guard.
+    pub fn has_predictions(&self) -> bool {
+        !self.prediction_buf.is_empty()
+    }
+
+    /// Drop pending 联想 candidates and reset the consecutive-prediction
+    /// chain counter. Use when the input flow is interrupted by something
+    /// other than a continuation keystroke (digit / punct / Tab / Space /
+    /// Enter / Backspace / Escape / etc.) so the next round of
+    /// predictions starts fresh and the host's UI doesn't carry ghost
+    /// candidates forward.
+    ///
+    /// Note: `last_committed_word` / `second_last_committed_word` are
+    /// intentionally kept — they only feed *next* commit's bigram /
+    /// trigram LM scoring, not the current visible predictions, and
+    /// clearing them would weaken the LM signal on the user's next
+    /// pinyin commit. If a future use case truly needs a discourse
+    /// boundary, use [`Self::clear_all`] instead.
+    pub fn cancel_predictions(&mut self) {
+        self.prediction_buf.clear();
+        self.consecutive_predictions = 0;
+    }
+
+    /// Test-only helper that seeds `prediction_buf` with a single
+    /// candidate so callers (notably `session::tests`) can verify the
+    /// 联想 cancellation guard without standing up real bigram /
+    /// trigram corpus state.
+    #[cfg(test)]
+    pub(crate) fn test_seed_prediction(&mut self, word: &str) {
+        use super::merge::{Candidate, Source};
+        self.prediction_buf.push(Candidate {
+            word: word.to_string(),
+            source: Source::Pinyin,
+            score: 0.0,
+            components: None,
+        });
     }
 
     /// Eagerly run every cold-init path in the composite stack: wubi dict
@@ -610,7 +738,10 @@ impl CompositeEngine {
     /// computation so the host can show next-word predictions in the
     /// candidate panel immediately after commit.
     fn update_bigram_context(&mut self, committed: &str) {
-        if committed.chars().any(|c| ('\u{4e00}'..='\u{9fff}').contains(&c)) {
+        if committed
+            .chars()
+            .any(|c| ('\u{4e00}'..='\u{9fff}').contains(&c))
+        {
             self.second_last_committed_word = self.last_committed_word.take();
             self.last_committed_word = Some(committed.to_string());
             // Track recent committed words for cycle-prevention in
@@ -635,6 +766,9 @@ impl CompositeEngine {
     /// would be off-channel.
     fn refresh_predictions(&mut self) {
         self.prediction_buf.clear();
+        if super::pinyin_adapter::PINYIN_DISABLE_PREDICTION {
+            return;
+        }
         if !self.mode.allows_pinyin() {
             return;
         }
@@ -646,7 +780,9 @@ impl CompositeEngine {
         if self.consecutive_predictions >= PREDICTION_CHAIN_LIMIT {
             return;
         }
-        let Some(prev) = self.last_committed_word.as_deref() else { return };
+        let Some(prev) = self.last_committed_word.as_deref() else {
+            return;
+        };
         const PREDICTION_LIMIT: usize = 10;
         // v1.4 strict (2026-05-24): trigram only, no bigram fallback.
         // User rule: "联想是附加的好处，没有足够的证据就不要联想".
@@ -658,7 +794,7 @@ impl CompositeEngine {
         let raw = self.pinyin.engine().dict().predict_next_words_context(
             self.second_last_committed_word.as_deref(),
             prev,
-            PREDICTION_LIMIT * 2,  // over-fetch then cycle-filter
+            PREDICTION_LIMIT * 2, // over-fetch then cycle-filter
         );
         // Cycle-filter: drop any predicted word that's already in the
         // recent_committed deque. Breaks the 在→年→月→日→年→… loop
@@ -673,9 +809,14 @@ impl CompositeEngine {
                 word,
                 source: super::merge::Source::Pinyin,
                 score: 200_000.0 - (count as f64) * 5_000.0,
+                // Next-word predictions (post-commit 联想) use a synthetic
+                // ranking-only score; no probability decomposition yet.
+                components: None,
             });
             count += 1;
-            if count >= PREDICTION_LIMIT { break }
+            if count >= PREDICTION_LIMIT {
+                break;
+            }
         }
     }
 
@@ -718,19 +859,32 @@ impl CompositeEngine {
     pub fn commit_index(&mut self, index: usize) -> Option<String> {
         if self.cand_buf.is_empty() {
             // Refresh once — caller may not have invoked candidates() yet.
-            self.cand_buf
-                .extend(dispatch(
-                    self.mode,
-                    &self.wubi,
-                    &self.pinyin,
-                    self.japanese.as_ref(),
-                    self.last_committed_word.as_deref(),
-                ));
+            self.cand_buf.extend(dispatch(
+                self.mode,
+                &self.wubi,
+                &self.pinyin,
+                self.japanese.as_ref(),
+                self.last_committed_word.as_deref(),
+            ));
         }
         let cand = self.cand_buf.get(index).cloned()?;
         match cand.source {
             super::merge::Source::Wubi => {
-                self.wubi.commit_index(self.wubi_index_for(&cand.word)?);
+                if let Some(idx) = self.wubi_index_for(&cand.word) {
+                    self.wubi.commit_index(idx);
+                }
+                // else: prediction commit — `word` came from wubi prefix
+                // prediction (e.g. `jeg → 明天` mid-typing), so it isn't
+                // in `WubiEngine.candidates()` (which only holds exact
+                // dict entries for the current buffer). The unconditional
+                // `wubi.clear_all()` below handles buffer reset; the
+                // L0 per-code advance is skipped because we don't have
+                // the prediction's full code here yet — adding prediction
+                // L0 records via `WubiDict::find_by_word` is on the
+                // v1.4.7+ prefix-prediction backlog (per [[prefix-prediction-backlog]]).
+                // The merge layer's returned `cand.word` still bubbles
+                // back as the commit text below — same UX as exact-path
+                // commit, just without per-code L0 reinforcement.
             }
             super::merge::Source::Pinyin => {
                 self.pinyin.commit_index(self.pinyin_index_for(&cand.word)?);
@@ -780,12 +934,40 @@ impl CompositeEngine {
 
     /// Snapshot the pinyin sub-engine's L0 layer, or `None` if pinyin is
     /// dormant (WubiOnly mode and pinyin was never used).
-    pub fn pinyin_export_l0(&self) -> Option<golia_pinyin::L0Snapshot> {
+    pub fn pinyin_export_l0(&self) -> Option<inputx_pinyin::L0Snapshot> {
         Some(self.pinyin.export_l0())
     }
 
-    pub fn pinyin_import_l0(&self, snap: golia_pinyin::L0Snapshot) -> usize {
+    pub fn pinyin_import_l0(&self, snap: inputx_pinyin::L0Snapshot) -> usize {
         self.pinyin.import_l0(snap)
+    }
+
+    // ─── Segment mode (拼音手动分段) — pinyin-only passthroughs ────────
+    pub fn segment_anchors(&self) -> Vec<usize> {
+        self.pinyin.segment_anchors()
+    }
+
+    pub fn segment_candidates(&self, k: usize) -> Vec<String> {
+        self.pinyin.segment_candidates(k)
+    }
+
+    pub fn commit_segment(&mut self, k: usize, idx: usize) -> Option<String> {
+        self.pinyin.commit_segment(k, idx)
+    }
+
+    /// v1.15 hot-reload for the pinyin sub-engine: swap the underlying
+    /// `PinyinDict.map` with a fresh FST built from `map_bytes`. The
+    /// per-session L0 pins / cell-dict layer / LM survive. See
+    /// [`super::pinyin_adapter::PinyinAdapter::reload_pinyin_dict`].
+    ///
+    /// Process-global helpers ([`inputx_pinyin_helpers::pinyin_idf_reader`]
+    /// / the two `NgramTable` slots) are reloaded from the same signal
+    /// handler at a different layer — do NOT drive them from here so
+    /// per-session Rust code stays out of the process-global slot's
+    /// swap contract.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn reload_pinyin_dict(&mut self, map_bytes: Vec<u8>) -> Result<(), inputx_fsa::FsaError> {
+        self.pinyin.reload_pinyin_dict(map_bytes)
     }
 }
 
@@ -851,11 +1033,20 @@ mod tests {
         // list, so it yielded to pinyin top 一).
         typed(&mut e, b"wo");
         let cands = e.candidates().to_vec();
-        assert_eq!(cands[0].source, Source::Wubi,
+        assert_eq!(
+            cands[0].source,
+            Source::Wubi,
             "expected wubi #0 for 'wo' (protected simcode 伙); got cands={:?}",
-            cands.iter().take(5).map(|c| (&c.word, c.source)).collect::<Vec<_>>());
-        assert!(cands.iter().any(|c| c.source == Source::Pinyin),
-            "expected at least one Pinyin candidate in the list");
+            cands
+                .iter()
+                .take(5)
+                .map(|c| (&c.word, c.source))
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            cands.iter().any(|c| c.source == Source::Pinyin),
+            "expected at least one Pinyin candidate in the list"
+        );
     }
 
     #[test]
@@ -881,18 +1072,26 @@ mod tests {
         assert_eq!(e.pinyin_buffer_str(), "pinyinggg");
         assert_eq!(e.wubi_buffer_str(), "piny", "wubi frozen at first 4 chars");
 
-        for _ in 0..3 { e.backspace(); }
+        for _ in 0..3 {
+            e.backspace();
+        }
         assert_eq!(e.pinyin_buffer_str(), "pinyin");
-        assert_eq!(e.wubi_buffer_str(), "piny",
-            "after backspace wubi must re-derive to first-4 of pinyin (bug left it 'p')");
+        assert_eq!(
+            e.wubi_buffer_str(),
+            "piny",
+            "after backspace wubi must re-derive to first-4 of pinyin (bug left it 'p')"
+        );
 
         // Edit-then-retype must converge to the same state as typing fresh.
         typed(&mut e, b"ggg");
         let mut fresh = CompositeEngine::new();
         typed(&mut fresh, b"pinyinggg");
         assert_eq!(e.pinyin_buffer_str(), fresh.pinyin_buffer_str());
-        assert_eq!(e.wubi_buffer_str(), fresh.wubi_buffer_str(),
-            "backspace+retype must match fresh-typed state (no desync, no '清零')");
+        assert_eq!(
+            e.wubi_buffer_str(),
+            fresh.wubi_buffer_str(),
+            "backspace+retype must match fresh-typed state (no desync, no '清零')"
+        );
     }
 
     #[test]
@@ -908,7 +1107,7 @@ mod tests {
     #[test]
     fn composed_fallback_outranks_jp_kana() {
         // user-report 2026-05-25: in Mixed+JP, `kaopu` ranked the mechanical
-        // kana かおぷ (JP_HIRAGANA_SCORE 150k) ABOVE 靠谱 (Path 5 composition,
+        // kana かおぷ (LIKELIHOOD_JP_HIRAGANA_BASE 150k) ABOVE 靠谱 (Path 5 composition,
         // was NON_EXACT_FLOOR ~1k). A word composed from real single chars
         // must outrank a kana transliteration. COMPOSED_FALLBACK_SCORE (250k)
         // now sits above kana but below real dict words.
@@ -917,13 +1116,25 @@ mod tests {
         typed(&mut e, b"kaopu");
         let cands = e.candidates().to_vec();
         let kao = cands.iter().position(|c| c.word == "靠谱");
-        assert!(kao.is_some(), "靠谱 should be present in Mixed+JP; got {:?}",
-            cands.iter().map(|c| (&c.word, c.source)).collect::<Vec<_>>());
+        assert!(
+            kao.is_some(),
+            "靠谱 should be present in Mixed+JP; got {:?}",
+            cands
+                .iter()
+                .map(|c| (&c.word, c.source))
+                .collect::<Vec<_>>()
+        );
         if let Some(jp) = cands.iter().position(|c| c.source == Source::Japanese) {
-            assert!(kao.unwrap() < jp,
+            assert!(
+                kao.unwrap() < jp,
                 "靠谱(#{}) must outrank mechanical JP kana(#{}); got {:?}",
-                kao.unwrap(), jp,
-                cands.iter().map(|c| (&c.word, c.source)).collect::<Vec<_>>());
+                kao.unwrap(),
+                jp,
+                cands
+                    .iter()
+                    .map(|c| (&c.word, c.source))
+                    .collect::<Vec<_>>()
+            );
         }
     }
 
@@ -959,7 +1170,8 @@ mod tests {
         let cands = e.candidates().to_vec();
         assert!(
             cands.iter().all(|c| c.source != Source::Japanese),
-            "expected no JP candidates with toggle off, got {:?}", cands
+            "expected no JP candidates with toggle off, got {:?}",
+            cands
         );
     }
 
@@ -972,16 +1184,25 @@ mod tests {
         let cands = e.candidates().to_vec();
         // か (hiragana) must appear with Source::Japanese.
         assert!(
-            cands.iter().any(|c| c.word == "か" && c.source == Source::Japanese),
-            "expected か as JP candidate, got {:?}", cands
+            cands
+                .iter()
+                .any(|c| c.word == "か" && c.source == Source::Japanese),
+            "expected か as JP candidate, got {:?}",
+            cands
         );
         // Wubi/pinyin candidates (if any) must precede JP — strict ranking.
-        let first_jp = cands.iter().position(|c| c.source == Source::Japanese)
+        let first_jp = cands
+            .iter()
+            .position(|c| c.source == Source::Japanese)
             .expect("expected at least one JP candidate");
         for (i, c) in cands.iter().enumerate() {
             if i < first_jp {
-                assert_ne!(c.source, Source::Japanese,
-                    "JP candidate appeared before non-JP at index {}", i);
+                assert_ne!(
+                    c.source,
+                    Source::Japanese,
+                    "JP candidate appeared before non-JP at index {}",
+                    i
+                );
             }
         }
     }
@@ -992,10 +1213,14 @@ mod tests {
         e.set_mode(Mode::JapaneseOnly);
         typed(&mut e, b"ka");
         let cands = e.candidates().to_vec();
-        assert!(!cands.is_empty(), "expected JP candidates in JapaneseOnly mode");
+        assert!(
+            !cands.is_empty(),
+            "expected JP candidates in JapaneseOnly mode"
+        );
         assert!(
             cands.iter().all(|c| c.source == Source::Japanese),
-            "JapaneseOnly mode should yield only JP candidates, got {:?}", cands
+            "JapaneseOnly mode should yield only JP candidates, got {:?}",
+            cands
         );
     }
 
@@ -1003,14 +1228,17 @@ mod tests {
     fn japanese_only_high_kou_finds_kanji() {
         // The user's framing example: typing "kou" should surface 高 in
         // JapaneseOnly mode (kanji subset is codepoint-identical with CN
-        // simplified per the inputx-jp curation).
+        // simplified per the inputx-nihongo curation).
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::JapaneseOnly);
         typed(&mut e, b"kou");
         let cands = e.candidates().to_vec();
         assert!(
-            cands.iter().any(|c| c.word == "高" && c.source == Source::Japanese),
-            "expected 高 in JapaneseOnly candidates for 'kou', got {:?}", cands
+            cands
+                .iter()
+                .any(|c| c.word == "高" && c.source == Source::Japanese),
+            "expected 高 in JapaneseOnly candidates for 'kou', got {:?}",
+            cands
         );
     }
 
@@ -1033,8 +1261,10 @@ mod tests {
         assert!(e.is_composing());
         e.set_mode(Mode::JapaneseOnly);
         // Chinese buffers cleared by set_mode; JP buffer fresh.
-        assert!(!e.is_composing(),
-            "JapaneseOnly transition should clear Chinese composing state");
+        assert!(
+            !e.is_composing(),
+            "JapaneseOnly transition should clear Chinese composing state"
+        );
     }
 
     #[test]
@@ -1054,9 +1284,11 @@ mod tests {
         assert_eq!(e.preedit(), "beijing");
         // 北京 in the candidate list
         let cands = e.candidates().to_vec();
-        assert!(cands.iter().any(|c| c.word == "北京"),
-                "candidates for beijing: {:?}",
-                cands.iter().map(|c| c.word.as_str()).collect::<Vec<_>>());
+        assert!(
+            cands.iter().any(|c| c.word == "北京"),
+            "candidates for beijing: {:?}",
+            cands.iter().map(|c| c.word.as_str()).collect::<Vec<_>>()
+        );
     }
 
     #[test]
@@ -1113,7 +1345,8 @@ mod tests {
         // INV-1: is_composing() iff preedit is non-empty. Used by the
         // host UI to decide whether to render the candidate bar.
         assert_eq!(
-            composing, !preedit_empty,
+            composing,
+            !preedit_empty,
             "INV-1 violated after {after}: is_composing={composing} preedit={:?}",
             e.preedit()
         );
@@ -1397,7 +1630,9 @@ mod tests {
         assert!(
             s < f * 4.0,
             "second-half avg {:.0}ns vs first-half {:.0}ns ({}x) — looks quadratic",
-            s, f, s / f
+            s,
+            f,
+            s / f
         );
     }
 
@@ -1433,18 +1668,34 @@ mod tests {
     #[test]
     fn ascii_fallback_at_5_chars_no_match() {
         let mut e = CompositeEngine::new();
-        // 'qwxz' at 4 chars produces no candidates either (from the probe),
-        // but 4 isn't long enough for the fallback. Add a 5th letter.
-        for &b in b"qwxz" {
+        // Use `vvvvv` as guaranteed garbage. CP-3.6 step-2 long-abbrev
+        // wire (2026-06-16) made vowel-free buffers ≥ 5 char an
+        // explicit abbreviation-intent signal — buffers like `qwxzy`
+        // (formerly assumed garbage) actually resolve to a legitimate
+        // 5-char Chinese phrase via INITIALS_INDEX (q+w+x+z+y =
+        // 请问下周一), so the test must pick a buffer that's
+        // unambiguously garbage. `v` is in `looks_like_initials`'s
+        // vowel-exclusion list — it's never a valid pinyin initial,
+        // so `vvvvv` short-circuits the long-abbrev escape valve and
+        // routes to the original ASCII fallback path as designed.
+        for &b in b"vvvv" {
             let r = e.handle_letter(b);
-            assert!(r.is_none(), "premature fallback at {}: {:?}",
-                std::str::from_utf8(&[b]).unwrap(), r);
+            assert!(
+                r.is_none(),
+                "premature fallback at {}: {:?}",
+                std::str::from_utf8(&[b]).unwrap(),
+                r
+            );
         }
         // 5th letter — fallback fires.
-        let committed = e.handle_letter(b'y');
-        assert_eq!(committed.as_deref(), Some("qwxzy"),
+        let committed = e.handle_letter(b'v');
+        assert_eq!(
+            committed.as_deref(),
+            Some("vvvvv"),
             "expected ASCII fallback at 5 chars, got {:?} (preedit={:?})",
-            committed, e.preedit());
+            committed,
+            e.preedit()
+        );
         // Engine returns to idle.
         assert!(!e.is_composing());
         assert!(e.preedit().is_empty());
@@ -1456,8 +1707,13 @@ mod tests {
         // 'qwxz' at 4 chars has 0 candidates but the fallback threshold
         // is 5 — engine should still be composing.
         let mut e = CompositeEngine::new();
-        for &b in b"qwxz" { let _ = e.handle_letter(b); }
-        assert!(e.is_composing(), "should still compose at 4 unrecognized chars");
+        for &b in b"qwxz" {
+            let _ = e.handle_letter(b);
+        }
+        assert!(
+            e.is_composing(),
+            "should still compose at 4 unrecognized chars"
+        );
         assert_eq!(e.preedit(), "qwxz");
     }
 
@@ -1468,12 +1724,22 @@ mod tests {
         let mut e = CompositeEngine::new();
         for &b in b"beijing" {
             let r = e.handle_letter(b);
-            assert!(r.is_none(), "wrongful fallback while pinyin matches: {:?}", r);
+            assert!(
+                r.is_none(),
+                "wrongful fallback while pinyin matches: {:?}",
+                r
+            );
         }
-        assert!(e.is_composing(), "composing should still be true after beijing");
+        assert!(
+            e.is_composing(),
+            "composing should still be true after beijing"
+        );
         let cands: Vec<String> = e.candidates().iter().map(|c| c.word.clone()).collect();
-        assert!(cands.iter().any(|s| s == "北京"),
-            "expected 北京 in candidates, got {:?}", cands);
+        assert!(
+            cands.iter().any(|s| s == "北京"),
+            "expected 北京 in candidates, got {:?}",
+            cands
+        );
     }
 
     #[test]
@@ -1505,14 +1771,77 @@ mod tests {
             }
         }
         // At least one ASCII commit should have happened.
-        assert!(!commits.is_empty(),
-            "no ASCII commit fired for garbage input (preedit={:?})", e.preedit());
+        assert!(
+            !commits.is_empty(),
+            "no ASCII commit fired for garbage input (preedit={:?})",
+            e.preedit()
+        );
         // Concatenation should match (modulo any residual preedit).
         let mut out = commits.join("");
         out.push_str(e.preedit());
         let expected = std::str::from_utf8(garbage).unwrap();
-        assert_eq!(out, expected,
-            "lost characters: committed+preedit={:?} expected={:?}", out, expected);
+        assert_eq!(
+            out, expected,
+            "lost characters: committed+preedit={:?} expected={:?}",
+            out, expected
+        );
+    }
+
+    /// Regression 2026-06-05 → updated 2026-06-06 for 音节意识细化.
+    ///
+    /// Original symptom (2026-06-05): `shehv` (5 chars ending in 'v')
+    /// at JP-off tripped ASCII fallback because:
+    ///   - has_future_match("shehv") = false ('v' isn't a syllable
+    ///     starter, the trailing-trim loop fails every suffix)
+    ///   - JP-on early-return masked the symptom; the moment JP was
+    ///     disabled, `shehv` wiped the buffer entirely (preedit='',
+    ///     0 candidates) — output dependent on a setting unrelated
+    ///     to the input
+    /// Original fix (2026-06-05): is_pure_garbage gated on
+    /// `path1c_would_fire`, so shehv kept the buffer and Path 1c
+    /// surfaced sh+h initials (时候/生活/...).
+    ///
+    /// 音节意识细化 (2026-06-06, docs/PLAN-syllable-aware-pinyin.md):
+    /// the Path 1c interpretation was wrong — `she` is a clean
+    /// syllable, so trailing junk should route to Path 3b trim-retry
+    /// (= sheh's prefix completions: 社会/奢华/设好/...), NOT Path 1c
+    /// initials lookup. is_pure_garbage now ALSO gates on
+    /// `has_clean_syllable_prefix`, and Path 3b in pinyin_adapter
+    /// runs as the last-resort completion source for these buffers.
+    ///
+    /// This test pins the new behavior: shehv → preedit kept, candidates
+    /// non-empty, top should match `sheh`'s top (社会).
+    #[test]
+    fn ascii_fallback_yields_to_path3b_trim_retry() {
+        if super::super::pinyin_adapter::PINYIN_DISABLE_FUZZY {
+            return;
+        }
+        let mut e = CompositeEngine::new();
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        // JP intentionally LEFT OFF — Phase J behavior must be
+        // independent of the JP toggle, same as the 2026-06-05 fix.
+        for &b in b"shehv" {
+            let r = e.handle_letter(b);
+            assert!(
+                r.is_none(),
+                "ASCII fallback fired at {:?}, wiped buffer — preedit={:?}",
+                std::str::from_utf8(&[b]).unwrap(),
+                e.preedit()
+            );
+        }
+        assert_eq!(
+            e.preedit(),
+            "shehv",
+            "音节意识细化: shehv must keep its buffer; got preedit={:?}",
+            e.preedit()
+        );
+        let words: Vec<&str> = e.candidates().iter().map(|c| c.word.as_str()).collect();
+        // Path 3b trim-retry on `shehv` → `sheh` prefix → 社会 / 奢华
+        // / 设好 / 射核 / … (same candidates as typing `sheh`).
+        assert!(
+            words.contains(&"社会"),
+            "音节意识细化: expected 社会 (sheh trim-retry top); got {words:?}"
+        );
     }
 
     /// Backspace from empty repeatedly is a no-op and stays no-op
@@ -1536,8 +1865,10 @@ mod tests {
     #[test]
     fn predictions_empty_before_any_commit() {
         let e = CompositeEngine::new();
-        assert!(e.predicted_candidates().is_empty(),
-            "no predictions until first CJK commit");
+        assert!(
+            e.predicted_candidates().is_empty(),
+            "no predictions until first CJK commit"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1547,15 +1878,22 @@ mod tests {
         // consecutive prediction-commits with no manual typing in
         // between, refresh_predictions returns empty. Prevents the
         // user-reported "在年月日年月日年月日…" runaway chain.
+        if super::super::pinyin_adapter::PINYIN_DISABLE_PREDICTION {
+            return;
+        }
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::PinyinOnly);
         // Seed with two manual commits to build (prev_prev, prev) context.
-        for b in b"jintian" { let _ = e.handle_letter(*b); }
+        for b in b"jintian" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         if let Some(idx) = cands.iter().position(|c| c.word == "今天") {
             let _ = e.commit_index(idx);
         }
-        for b in b"de" { let _ = e.handle_letter(*b); }
+        for b in b"de" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         if let Some(idx) = cands.iter().position(|c| c.word == "的") {
             let _ = e.commit_index(idx);
@@ -1564,16 +1902,23 @@ mod tests {
         // context. Simulate 3 successive prediction commits.
         // After commit #1 + #2 of predictions (=> counter at 2),
         // the THIRD refresh should yield empty per chain-limit.
-        let _ = e.commit_prediction_word("某词");  // counter 0→1
-        let _ = e.commit_prediction_word("另词");  // counter 1→2
+        let _ = e.commit_prediction_word("某词"); // counter 0→1
+        let _ = e.commit_prediction_word("另词"); // counter 1→2
         // Now consecutive_predictions = 2 = PREDICTION_CHAIN_LIMIT.
         // Next refresh (already happened inside #2's commit) returned
         // empty because counter == limit.
-        assert!(e.predicted_candidates().is_empty(),
+        assert!(
+            e.predicted_candidates().is_empty(),
             "predictions must stop at chain-limit; got {:?}",
-            e.predicted_candidates().iter().map(|c| &c.word).collect::<Vec<_>>());
+            e.predicted_candidates()
+                .iter()
+                .map(|c| &c.word)
+                .collect::<Vec<_>>()
+        );
         // Manual typing resets the counter — predictions resume eligible.
-        for b in b"de" { let _ = e.handle_letter(*b); }
+        for b in b"de" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         if let Some(idx) = cands.iter().position(|c| c.word == "的") {
             let _ = e.commit_index(idx);
@@ -1595,14 +1940,19 @@ mod tests {
         // is empty — the user types the next word manually.
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::PinyinOnly);
-        for b in b"jintian" { let _ = e.handle_letter(*b); }
+        for b in b"jintian" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
-        let jintian_idx = cands.iter()
+        let jintian_idx = cands
+            .iter()
             .position(|c| c.word == "今天")
             .expect("expected 今天 in jintian candidates");
         let _ = e.commit_index(jintian_idx);
-        assert!(e.predicted_candidates().is_empty(),
-            "v1.4 strict: predictions must be empty after single commit");
+        assert!(
+            e.predicted_candidates().is_empty(),
+            "v1.4 strict: predictions must be empty after single commit"
+        );
     }
 
     #[cfg(not(feature = "bootstrap_only"))]
@@ -1610,18 +1960,27 @@ mod tests {
     fn predictions_populated_after_two_cjk_commits_with_strong_trigram() {
         // Two-word context is the minimum for predictions to fire.
         // Use 我们 → 一起 → ? — both common words with corpus trigrams.
+        if super::super::pinyin_adapter::PINYIN_DISABLE_PREDICTION {
+            return;
+        }
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::PinyinOnly);
         // First commit: 我们
-        for b in b"women" { let _ = e.handle_letter(*b); }
+        for b in b"women" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         if let Some(idx) = cands.iter().position(|c| c.word == "我们") {
             let _ = e.commit_index(idx);
         }
-        assert!(e.predicted_candidates().is_empty(),
-            "no predictions after single commit");
+        assert!(
+            e.predicted_candidates().is_empty(),
+            "no predictions after single commit"
+        );
         // Second commit: 一起
-        for b in b"yiqi" { let _ = e.handle_letter(*b); }
+        for b in b"yiqi" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         if let Some(idx) = cands.iter().position(|c| c.word == "一起") {
             let _ = e.commit_index(idx);
@@ -1631,24 +1990,150 @@ mod tests {
             // too (corpus may just lack this specific trigram) — test
             // doesn't fail.
             let preds = e.predicted_candidates();
-            eprintln!("(我们, 一起, *) predictions: {:?}",
-                preds.iter().map(|c| &c.word).collect::<Vec<_>>());
+            eprintln!(
+                "(我们, 一起, *) predictions: {:?}",
+                preds.iter().map(|c| &c.word).collect::<Vec<_>>()
+            );
         }
+    }
+
+    #[cfg(not(feature = "bootstrap_only"))]
+    #[test]
+    fn predictions_stay_empty_while_prediction_gate_up() {
+        // Inverse of predictions_populated_after_two_cjk_commits_…:
+        // while PINYIN_DISABLE_PREDICTION is true, even a full
+        // two-word trigram context must NOT produce a 联想 panel.
+        // Auto-retires when the const flips to false.
+        if !super::super::pinyin_adapter::PINYIN_DISABLE_PREDICTION {
+            return;
+        }
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::PinyinOnly);
+        for b in b"women" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        if let Some(idx) = cands.iter().position(|c| c.word == "我们") {
+            let _ = e.commit_index(idx);
+        }
+        for b in b"yiqi" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        if let Some(idx) = cands.iter().position(|c| c.word == "一起") {
+            let _ = e.commit_index(idx);
+        }
+        assert!(
+            e.predicted_candidates().is_empty(),
+            "PINYIN_DISABLE_PREDICTION is true — predictions must stay empty; got {:?}",
+            e.predicted_candidates()
+                .iter()
+                .map(|c| &c.word)
+                .collect::<Vec<_>>()
+        );
+    }
+
+    // ---- 联想 cancellation (bugfix 2026-06-16) ----
+    //
+    // Bug report: "联想候选如果在中间间隔输入了任何别的东西都要取消，
+    // 比如无候选的数字、符号、功能按键等". Root cause was that
+    // `escape()` only cleaned wubi/pinyin/jp buffers and left
+    // `prediction_buf` intact, so any non-letter input that drained the
+    // composing buffer (Escape / Return / punctuation force-commit, plus
+    // every "no composing → return false" path in session.rs) left
+    // ghost predictions visible. Fix: escape() now also calls
+    // cancel_predictions(), and session-level guard cancels on any
+    // non-letter input while in a pure-prediction state.
+
+    #[test]
+    fn cancel_predictions_clears_buffer_and_counter() {
+        let mut e = CompositeEngine::new();
+        e.test_seed_prediction("嗨");
+        e.test_seed_prediction("吗");
+        e.consecutive_predictions = 3;
+        assert!(e.has_predictions());
+        e.cancel_predictions();
+        assert!(!e.has_predictions(), "buffer not cleared");
+        assert!(
+            e.predicted_candidates().is_empty(),
+            "predicted_candidates surface still non-empty after cancel"
+        );
+        assert_eq!(
+            e.consecutive_predictions, 0,
+            "consecutive_predictions counter not reset"
+        );
+    }
+
+    #[test]
+    fn cancel_predictions_keeps_bigram_context_for_next_commit() {
+        // cancel_predictions wipes the visible prediction state but
+        // leaves last_committed_word alone so the NEXT pinyin commit
+        // still gets a bigram-aware LM score. clear_all is what kills
+        // the discourse boundary (see clear_all docs); cancel is
+        // narrower.
+        let mut e = CompositeEngine::new();
+        e.last_committed_word = Some("你好".to_string());
+        e.second_last_committed_word = Some("说".to_string());
+        e.test_seed_prediction("吗");
+        e.cancel_predictions();
+        assert_eq!(
+            e.last_committed_word.as_deref(),
+            Some("你好"),
+            "cancel_predictions must keep last_committed_word"
+        );
+        assert_eq!(
+            e.second_last_committed_word.as_deref(),
+            Some("说"),
+            "cancel_predictions must keep second_last_committed_word"
+        );
+    }
+
+    #[test]
+    fn escape_cancels_predictions() {
+        // The core fix. After this regression test exists, removing
+        // the cancel_predictions call from escape() would surface as
+        // ghost candidates in the user's panel, NOT as a silent state
+        // bug.
+        let mut e = CompositeEngine::new();
+        e.test_seed_prediction("嗨");
+        assert!(e.has_predictions());
+        let _ = e.escape();
+        assert!(
+            !e.has_predictions(),
+            "escape() must cancel pending 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn has_predictions_reflects_buffer_state() {
+        let mut e = CompositeEngine::new();
+        assert!(
+            !e.has_predictions(),
+            "fresh engine reports has_predictions=true"
+        );
+        e.test_seed_prediction("吗");
+        assert!(e.has_predictions(), "seeded prediction not reflected");
+        e.cancel_predictions();
+        assert!(!e.has_predictions(), "cancel did not clear has_predictions");
     }
 
     #[test]
     fn predictions_cleared_on_clear_all() {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::PinyinOnly);
-        for b in b"wo" { let _ = e.handle_letter(*b); }
+        for b in b"wo" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         if let Some(idx) = cands.iter().position(|c| c.word == "我") {
             let _ = e.commit_index(idx);
             // After CJK commit (when bigrams available) predictions may
             // be non-empty. Then clear_all should wipe them.
             e.clear_all();
-            assert!(e.predicted_candidates().is_empty(),
-                "clear_all should wipe predictions");
+            assert!(
+                e.predicted_candidates().is_empty(),
+                "clear_all should wipe predictions"
+            );
         }
     }
 
@@ -1672,11 +2157,19 @@ mod tests {
     }
 
     impl EngineModel {
-        fn new() -> Self { Self { mode: Mode::Mixed, wubi_buf: String::new(), pinyin_buf: String::new() } }
+        fn new() -> Self {
+            Self {
+                mode: Mode::Mixed,
+                wubi_buf: String::new(),
+                pinyin_buf: String::new(),
+            }
+        }
 
         fn handle_letter(&mut self, b: u8) {
             // ASCII a-z only (matches real engine contract).
-            if !b.is_ascii_lowercase() { return; }
+            if !b.is_ascii_lowercase() {
+                return;
+            }
             let c = b as char;
             if self.mode.allows_pinyin() && self.pinyin_buf.len() < 4 {
                 self.pinyin_buf.push(c);
@@ -1700,21 +2193,29 @@ mod tests {
         }
 
         fn escape(&mut self) {
-            if self.mode.allows_wubi() { self.wubi_buf.clear(); }
-            if self.mode.allows_pinyin() { self.pinyin_buf.clear(); }
+            if self.mode.allows_wubi() {
+                self.wubi_buf.clear();
+            }
+            if self.mode.allows_pinyin() {
+                self.pinyin_buf.clear();
+            }
         }
 
         fn set_mode(&mut self, m: Mode) {
             // Mirror the real engine's behavior of clearing disallowed
             // engines on mode change (the bug-fix path).
-            if !m.allows_wubi() { self.wubi_buf.clear(); }
-            if !m.allows_pinyin() { self.pinyin_buf.clear(); }
+            if !m.allows_wubi() {
+                self.wubi_buf.clear();
+            }
+            if !m.allows_pinyin() {
+                self.pinyin_buf.clear();
+            }
             self.mode = m;
         }
 
         fn is_composing(&self) -> bool {
             (self.mode.allows_wubi() && !self.wubi_buf.is_empty())
-            || (self.mode.allows_pinyin() && !self.pinyin_buf.is_empty())
+                || (self.mode.allows_pinyin() && !self.pinyin_buf.is_empty())
         }
 
         /// Mirror real engine's `preedit()` selection rule.

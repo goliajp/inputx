@@ -19,6 +19,11 @@
 /// lowercase, ü → `v` for n/l). Plain slice + linear membership (zero-dep,
 /// replaces the former `phf::Set`). 403 entries, probed a few dozen times
 /// per keystroke — negligible vs the perfgate budget.
+//
+// rustfmt::skip — the table is hand-grouped by initial (// b / // p / // m …)
+// for readability; rustfmt's greedy reflow both destroys that grouping and is
+// non-idempotent here (format ≠ --check), which would make a fmt gate unstable.
+#[rustfmt::skip]
 pub static VALID_SYLLABLES: &[&str] = &[
     // null-initial vowel-only
     "a", "ai", "an", "ang", "ao",
@@ -54,12 +59,12 @@ pub static VALID_SYLLABLES: &[&str] = &[
     // n
     "na", "ne", "nai", "nei", "nao", "nou", "nan", "nen", "nang", "neng", "nong",
     "ni", "nie", "niao", "niu", "nian", "nin", "niang", "ning",
-    "nu", "nuo", "nuan",
+    "nu", "nue", "nuo", "nuan",
     "nv", "nve",
     // l
     "la", "le", "lai", "lei", "lao", "lou", "lan", "lang", "leng", "long",
     "li", "lia", "lie", "liao", "liu", "lian", "lin", "liang", "ling",
-    "lu", "luo", "luan", "lun",
+    "lu", "lue", "luo", "luan", "lun",
     "lv", "lve",
     // g
     "ga", "ge", "gai", "gei", "gao", "gou", "gan", "gen", "gang", "geng", "gong",
@@ -116,15 +121,67 @@ pub fn count() -> usize {
     VALID_SYLLABLES.len()
 }
 
+/// Longest prefix of `s` that is a complete valid syllable, or `None`
+/// if no prefix of length 1..=min(6, s.len()) is a valid syllable.
+///
+/// Greedy left-to-right scan up to length 6 (the longest Mandarin
+/// syllables — `zhuang`/`chuang`/`shuang` — are 6 ASCII letters).
+/// Going further would be wasted work.
+///
+/// Used by the composite Mixed-mode pinyin dispatch (cf.
+/// `docs/PLAN-syllable-aware-pinyin.md`) to detect "the user already
+/// committed to a clean syllable" — gates the initials-fallback typo
+/// rescue away from buffers like `shehv` / `shehb` / `xianv` where
+/// the leading 3+ chars are a clean syllable and the trailing chars
+/// are mid-2nd-syllable typing, not a missing-vowel typo.
+///
+/// Examples:
+///   - `""`        → None
+///   - `"a"`       → Some("a")        — valid 1-letter syllable
+///   - `"shehv"`   → Some("she")      — `she` is valid, `sheh` is not
+///   - `"xian"`    → Some("xian")     — whole input is a syllable
+///   - `"xianv"`   → Some("xian")     — first 4 letters valid
+///   - `"hello"`   → Some("he")       — `he` is valid; `hel`/`hell`/`hello` are not
+///   - `"pyin"`    → None             — no prefix of pyin is a valid syllable
+///   - `"shuang"`  → Some("shuang")   — 6-letter max syllable
+///   - `"shuangxx"`→ Some("shuang")   — stops at the 6-char cap
+pub fn longest_valid_syllable_prefix(s: &str) -> Option<&str> {
+    // Cap the scan at 6 bytes (= 6 ASCII letters since pinyin
+    // syllables are pure ASCII). is_char_boundary holds at every
+    // index in 0..=cap for ASCII input; defensive check would be
+    // needed if non-ASCII pinyin input ever became a thing.
+    let cap = s.len().min(6);
+    if cap == 0 {
+        return None;
+    }
+    let mut best: Option<&str> = None;
+    for end in 1..=cap {
+        let candidate = &s[..end];
+        if is_valid(candidate) {
+            best = Some(candidate);
+        }
+    }
+    best
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn count_is_403() {
-        // 403 = strict standard inventory; marginal forms (zhei, lo, kei, rua)
-        // tracked for v0.2 once corpus data shows real-world usage.
-        assert_eq!(count(), 403, "expected 403 canonical Mandarin syllables");
+    fn count_is_405() {
+        // 405 = 403 strict standard inventory + 2 alias forms (lue, nue)
+        // for `lüe`/`nüe` so users typing `celue`/`nuedai` get the same
+        // candidates as `celve`/`nvedai`. The dict still stores under
+        // `lve`/`nve` only; `lower_str` normalizes `lue→lve`, `nue→nve`
+        // at lookup so the two spellings collapse to one storage key.
+        // Marginal forms (zhei, lo, kei, rua) tracked for v0.2 once
+        // corpus data shows real-world usage.
+        assert_eq!(
+            count(),
+            405,
+            "expected 405 syllables (403 canonical + lue/nue aliases)"
+        );
     }
 
     #[test]
@@ -169,11 +226,54 @@ mod tests {
     }
 
     #[test]
+    fn lue_nue_alias_form_recognized() {
+        // User-friendly aliases for `lüe` / `nüe` — most modern IMEs
+        // (Sogou, Google Pinyin) accept both `lue/lve` and `nue/nve`.
+        // Dict lookup normalizes back to lve/nve, but segmenter MUST
+        // accept the lue/nue spelling here or buffers like `celue`
+        // can't be split into `ce + lue`.
+        assert!(is_valid("lue"));
+        assert!(is_valid("nue"));
+    }
+
+    #[test]
     fn jqx_use_u_not_v() {
         // ü-after-j/q/x/y is canonically written `u`.
         assert!(is_valid("ju"));
         assert!(is_valid("qu"));
         assert!(is_valid("xu"));
         assert!(is_valid("yu"));
+    }
+
+    // 音节意识细化 (2026-06-06): greedy left-to-right syllable
+    // prefix lookup used by the Mixed-mode dispatch to gate the
+    // initials-fallback typo rescue. See
+    // docs/PLAN-syllable-aware-pinyin.md.
+    #[test]
+    fn longest_valid_syllable_prefix_basics() {
+        assert_eq!(longest_valid_syllable_prefix(""), None);
+        assert_eq!(longest_valid_syllable_prefix("a"), Some("a"));
+        assert_eq!(longest_valid_syllable_prefix("e"), Some("e"));
+        // Whole input is a valid syllable.
+        assert_eq!(longest_valid_syllable_prefix("she"), Some("she"));
+        assert_eq!(longest_valid_syllable_prefix("xian"), Some("xian"));
+        assert_eq!(longest_valid_syllable_prefix("shuang"), Some("shuang"));
+        // First N letters valid, remainder junk.
+        assert_eq!(longest_valid_syllable_prefix("shehv"), Some("she"));
+        assert_eq!(longest_valid_syllable_prefix("shehb"), Some("she"));
+        assert_eq!(longest_valid_syllable_prefix("xianv"), Some("xian"));
+        assert_eq!(longest_valid_syllable_prefix("shuangxx"), Some("shuang"));
+        // 2-letter syllable but no 3+ prefix valid — used by
+        // syllable-aware refinement to distinguish from English-shape.
+        assert_eq!(longest_valid_syllable_prefix("hello"), Some("he"));
+        // No valid syllable prefix at all.
+        assert_eq!(longest_valid_syllable_prefix("pyin"), None);
+        assert_eq!(longest_valid_syllable_prefix("pnyin"), None);
+        assert_eq!(longest_valid_syllable_prefix("qwxzy"), None);
+        // Greedy: returns the LONGEST match, not the first.
+        // `xia` is valid AND `xian` is valid AND `xiang` is valid
+        // → all extensions should be honored up to the longest one.
+        assert_eq!(longest_valid_syllable_prefix("xiang"), Some("xiang"));
+        assert_eq!(longest_valid_syllable_prefix("xiangzi"), Some("xiang"));
     }
 }

@@ -1,0 +1,60 @@
+JavaScript引擎
+
+JavaScript引擎是一个专门处理JavaScript脚本的虚拟机，一般会附带在网页浏览器之中。
+
+
+== 历史 ==
+在2008年到2009年的第二次浏览器大战之前，JavaScript引擎仅简单地被当作能阅读执行JavaScript源代码的直译器。
+
+SpiderMonkey：第一个JavaScript引擎，由布兰登·艾克在网景公司开发，用于Netscape Navigator网页浏览器中，由C++实现。自JavaScript 1.5升级以符合ECMA-262版本3。
+Rhino：由网景公司的诺里斯·博伊德（Norris Boyd）开发，由Java实现。像SpiderMonkey一样，Rhino符合ECMA-262版本3。
+Nitro：Apple Safari 4开始支援
+V8：Google Chrome制作
+TraceMonkey：Mozilla Firefox 3.5开始支援
+目前为止，最通用的JavaScript宿主环境是网页浏览器。网页浏览器一般使用公共的API创建“宿主对象”以便于在JavaScript中支持DOM。
+
+
+== 性能演进 ==
+一个典型的浏览器有一个图形引擎和一个独立的JavaScript引擎。这样JavaScript引擎能够被更方便的测试、重新生成或者在另一些项目中使用。例如：Carakan被用在Presto中，Nitro被用在WebKit中，SpiderMonkey被用在Gecko中，KJS被用在KHTML中，Rhino默认不包含任何布局引擎。但还有其他组合，例如：V8与WebKit被用于Google Chrome中。JavaScript引擎能为程序员提供部分操作浏览器的功能（网络、DOM、外部事件、HTML5视频、canvas和存储）。
+Sunspider是一个JavaScript实用基准测试通过一系列关于JavaScript语言的脚本测试JavaScript引擎的速度。Sunspider不测试无关于JavaScript的特性（不使用HTML、CSS和无网络情况下）。
+近几年来，在浏览器开发者之间展开了一场开发更快的JavaScript引擎的竞赛。2008年，Google Chrome因它的JavaScript性能而倍受称赞，但是其它浏览器马上使用了更快的JavaScript引擎。之后，Google Chrome在性能上获得领先，其长处在于它高速的性能和JavaScript的处理速度，这些都由许多网站在主要的浏览器之间的速度测试中得到验证。随着WebKit的Squirrelfish Extreme和Mozilla的TraceMonkey JavaScript虚拟机出现，Chrome的JavaScript执行速度就被超越了。Google丹麦在Chrome 2中开发了更快速的V8引擎。
+2008年6月2日，WebKit开发团队发布了SquirrelFish——一个能极大地提升Safari解释脚本速度的新的JavaScript引擎。该引擎是Safari 4其中一个新特性，在2008年6月11日发布给程序员使用；最终此JavaScript引擎被称为Nitro。2009年6月30日，在Firefox 3.5发布的最新技术能“使某些情况下的速度提升20到40倍”。
+
+
+== 著名的引擎 ==
+
+
+=== 开发中 ===
+Rhino，由Mozilla基金会管理，开放源代码，完全以Java编写。
+SpiderMonkey，第一款JavaScript引擎，早期用于Netscape Navigator，现时用于Mozilla Firefox。
+V8，开放源代码，由Google丹麦开发，是Google Chrome的一部分。
+JavaScriptCore，开放源代码，用于Safari。
+Chakra (JScript引擎)，用于Internet Explorer。
+Chakra (JavaScript引擎)，用于Microsoft Edge。
+KJS，KDE的ECMAScript／JavaScript引擎，最初由哈里·波顿开发，用于KDE项目的Konqueror网页浏览器中。
+
+
+=== 停止开发 ===
+Linear A，用于Opera 4.0至6.1版本。
+Linear B，用于Opera 7.0至9.2版本。
+Futhark，用于Opera 9.5至10.2版本。
+Carakan，用于Opera 10.5至12.1版本。
+Nashorn，Oracle于JDK 1.8发布，内嵌于 Java 的 javascript 引擎。于Java 11改为弃用并于Java 15正式移除。
+Narcissus，开放源代码，由布兰登·艾克编写（他也编写了SpiderMonkey）。
+Tamarin，由Adobe Labs编写。
+
+
+== 实现 ==
+
+JavaScript是一种ECMAScript方言，在许多程序中得以实现，特别是在网页浏览器。这些方言通常扩展了语言，或者标准库和相关API，例如W3C定义的DOM。这意味着以一种方言实现的程序不兼容于另一种方言的实现，除非程序使用了方言中的公共子集所具有的特性和API。
+在实现和方言中存在着一些差别。一种语言的方言有一些与语言不同的地方。实现能够执行该语言或方言编写的程序。
+
+
+== 参考来源 ==
+
+
+== 外部链接 ==
+Kraken JavaScript Benchmark （页面存档备份，存于互联网档案馆）  - 浏览器效能测试
+Peacekeeper （页面存档备份，存于互联网档案馆）  - 浏览器效能测试
+Speed-Battle （页面存档备份，存于互联网档案馆）  - 浏览器效能测试
+SunSpide （页面存档备份，存于互联网档案馆）   - 浏览器效能测试

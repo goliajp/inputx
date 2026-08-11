@@ -1,0 +1,58 @@
+[
+{
+  "run": 1,
+  "head": "3df0cb9",
+  "phys_before_mb": 14.5,
+  "phys_after_mb": 36.1,
+  "phys_peak_mb": 62.5,
+  "heap_bytes_after": 23595952,
+  "non_object_count": 18911,
+  "non_object_bytes": 19454736,
+  "handle_p50_ms": 4.02,
+  "handle_p95_ms": 7.85,
+  "refresh_p50_ms": 1.42,
+  "refresh_p95_ms": 4.19,
+  "rebuildRows_p50_ms": 1.21,
+  "rebuildRows_p95_ms": 4.18,
+  "imk_dispatch_p50_ms": 0.26,
+  "imk_dispatch_p95_ms": 0.49
+}
+,
+{
+  "run": 2,
+  "head": "3df0cb9",
+  "phys_before_mb": 36.1,
+  "phys_after_mb": 37.1,
+  "phys_peak_mb": 62.5,
+  "heap_bytes_after": 24237536,
+  "non_object_count": 20668,
+  "non_object_bytes": 19716496,
+  "handle_p50_ms": 3.87,
+  "handle_p95_ms": 8.91,
+  "refresh_p50_ms": 1.39,
+  "refresh_p95_ms": 4.64,
+  "rebuildRows_p50_ms": 1.07,
+  "rebuildRows_p95_ms": 3.63,
+  "imk_dispatch_p50_ms": 0.26,
+  "imk_dispatch_p95_ms": 0.51
+}
+,
+{
+  "run": 3,
+  "head": "3df0cb9",
+  "phys_before_mb": 37.1,
+  "phys_after_mb": 37.8,
+  "phys_peak_mb": 62.5,
+  "heap_bytes_after": 24911040,
+  "non_object_count": 22793,
+  "non_object_bytes": 20003200,
+  "handle_p50_ms": 3.79,
+  "handle_p95_ms": 7.05,
+  "refresh_p50_ms": 1.35,
+  "refresh_p95_ms": 3.84,
+  "rebuildRows_p50_ms": 1.08,
+  "rebuildRows_p95_ms": 3.43,
+  "imk_dispatch_p50_ms": 0.25,
+  "imk_dispatch_p95_ms": 0.43
+}
+]

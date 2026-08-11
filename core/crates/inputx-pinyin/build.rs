@@ -1,14 +1,12 @@
-//! Build-time codegen for golia-pinyin:
+//! Build-time codegen for inputx-pinyin:
 //! - `bootstrap.fst` — tiny FST built from `data/bootstrap.tsv` (~125
 //!   hand-curated entries, MIT-clean). Available behind the
 //!   `bootstrap_only` feature for fast tests / minimal builds.
 //!
-//! The full `pinyin.fst` (15 MB, ~919k entries) is NOT regenerated at
-//! consumer build time — it lives committed at `data/pinyin.fst` and is
-//! `include_bytes!()`'d directly by `src/dict.rs`. Maintainers regenerate
-//! it via `cargo run --features tools --release --bin pinyin-build-fst`
-//! after `data/weights/weights.tsv` changes; CI's `weights-verify` job
-//! catches drift in the upstream weights pipeline.
+//! The full pinyin.dict (~4 MB, ~237k entries) is shipped via the
+//! sibling `inputx-pinyin-data-core` crate. Maintainers regenerate it
+//! via `cargo run --features tools --release --bin pinyin-build-dict`
+//! after `data/library.tsv` changes.
 
 use std::env;
 use std::fs;

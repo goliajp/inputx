@@ -1,0 +1,231 @@
+# Cell-dict pack · IT 术语(示范 · CP-5.2 step-1)
+#
+# Schema reference: docs/cell-dict-schema-2026-06-16.md
+#
+# Scope: a representative slice of common IT / cloud / DevOps terms
+# typical for an engineering workstation. Step-1 ships a minimum pack
+# (~35 entries) so the loader + production wiring can be validated
+# end-to-end; the full ~500-entry pack lands in step-2.
+#
+# All entries use freq = 500_000 — a comfortable "lead the list" tier
+# that beats most embedded L1 freq values for these multi-syllable
+# terms while staying well below the 1_000_000 dominate-everything
+# threshold.
+
+[meta]
+name = "IT 术语 · 示范包"
+version = 1
+author = "Inputx team"
+description = "Common IT / cloud / DevOps Chinese terms — minimum step-1 pack"
+license = "CC0-1.0"
+
+# ── 云 / 平台 / 架构 ─────────────────────────────────────────────
+[[entry]]
+pinyin = "yunjisuan"
+word = "云计算"
+freq = 500000
+
+[[entry]]
+pinyin = "bianyuanjisuan"
+word = "边缘计算"
+freq = 500000
+
+[[entry]]
+pinyin = "weifuwu"
+word = "微服务"
+freq = 500000
+
+[[entry]]
+pinyin = "yunyuansheng"
+word = "云原生"
+freq = 500000
+
+[[entry]]
+pinyin = "fuwuwangge"
+word = "服务网格"
+freq = 500000
+
+[[entry]]
+pinyin = "rongqi"
+word = "容器"
+freq = 500000
+
+[[entry]]
+pinyin = "rongqibianpai"
+word = "容器编排"
+freq = 500000
+
+[[entry]]
+pinyin = "jingxiang"
+word = "镜像"
+freq = 500000
+
+[[entry]]
+pinyin = "wuyongqi"
+word = "无服务器"
+freq = 500000
+
+# ── 开发 / 工程 ─────────────────────────────────────────────────
+[[entry]]
+pinyin = "chixujicheng"
+word = "持续集成"
+freq = 500000
+
+[[entry]]
+pinyin = "chixujiaofu"
+word = "持续交付"
+freq = 500000
+
+[[entry]]
+pinyin = "danyuanceshi"
+word = "单元测试"
+freq = 500000
+
+[[entry]]
+pinyin = "jichengceshi"
+word = "集成测试"
+freq = 500000
+
+[[entry]]
+pinyin = "duanduanceshi"
+word = "端到端测试"
+freq = 500000
+
+[[entry]]
+pinyin = "daimashencha"
+word = "代码审查"
+freq = 500000
+
+[[entry]]
+pinyin = "fenzhicelve"
+word = "分支策略"
+freq = 500000
+
+[[entry]]
+pinyin = "huitui"
+word = "回退"
+freq = 500000
+
+[[entry]]
+pinyin = "guoduxinghuanjing"
+word = "过渡性环境"
+freq = 500000
+
+# ── 数据 / 算法 ─────────────────────────────────────────────────
+[[entry]]
+pinyin = "shujujiegou"
+word = "数据结构"
+freq = 500000
+
+[[entry]]
+pinyin = "suanfa"
+word = "算法"
+freq = 500000
+
+[[entry]]
+pinyin = "shenduxuexi"
+word = "深度学习"
+freq = 500000
+
+[[entry]]
+pinyin = "jiqixuexi"
+word = "机器学习"
+freq = 500000
+
+[[entry]]
+pinyin = "qianghuaxuexi"
+word = "强化学习"
+freq = 500000
+
+[[entry]]
+pinyin = "ziranyuyanchuli"
+word = "自然语言处理"
+freq = 500000
+
+[[entry]]
+pinyin = "dashuju"
+word = "大数据"
+freq = 500000
+
+# ── 性能 / 可靠 ─────────────────────────────────────────────────
+[[entry]]
+pinyin = "xingnengyouhua"
+word = "性能优化"
+freq = 500000
+
+[[entry]]
+pinyin = "gaobingfa"
+word = "高并发"
+freq = 500000
+
+[[entry]]
+pinyin = "duoxiancheng"
+word = "多线程"
+freq = 500000
+
+[[entry]]
+pinyin = "yibubianxie"
+word = "异步编写"
+freq = 500000
+
+[[entry]]
+pinyin = "kekuozhanxing"
+word = "可扩展性"
+freq = 500000
+
+[[entry]]
+pinyin = "kekaoxing"
+word = "可靠性"
+freq = 500000
+
+[[entry]]
+pinyin = "kekanchaxing"
+word = "可观察性"
+freq = 500000
+
+# ── 安全 ────────────────────────────────────────────────────────
+[[entry]]
+pinyin = "wanglaoanquan"
+word = "网络安全"
+freq = 500000
+
+[[entry]]
+pinyin = "shenfenrenzheng"
+word = "身份认证"
+freq = 500000
+
+[[entry]]
+pinyin = "shouquan"
+word = "授权"
+freq = 500000
+
+[[entry]]
+pinyin = "lianyuxinren"
+word = "零信任"
+freq = 500000
+
+# ── 缩写直出 ────────────────────────────────────────────────────
+[[entry]]
+pinyin = "rgb"
+word = "RGB"
+freq = 500000
+
+[[entry]]
+pinyin = "api"
+word = "API"
+freq = 500000
+
+[[entry]]
+pinyin = "sdk"
+word = "SDK"
+freq = 500000
+
+[[entry]]
+pinyin = "url"
+word = "URL"
+freq = 500000
+
+[[entry]]
+pinyin = "json"
+word = "JSON"
+freq = 500000

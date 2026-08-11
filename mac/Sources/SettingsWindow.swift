@@ -2,22 +2,17 @@ import AppKit
 import SwiftUI
 import InputxKit
 
-/// First-class macOS settings window for Inputx — opened from the
-/// menubar status item's "设置…" entry. Mirrors the iOS container app's
-/// SettingsView surface so users get the same toggles on both platforms.
+/// First-class macOS settings window for Inputx — opened from
+/// `InputxController.menu()`'s "Inputx 设置…" entry (the dropdown that
+/// drops from the system input-source title in the menu bar). Mirrors
+/// the iOS container app's SettingsView surface so users get the same
+/// toggles on both platforms.
 ///
-/// Why a real window and not just the dropdown? Two pain points
-/// observed during JP-plugin landing:
-///   - macOS's *system* input-source switcher in the menu bar uses the
-///     same "入" glyph as Inputx's own NSStatusItem. Users click the
-///     wrong one and never find our config.
-///   - Auto-hidden menu bars (a common ergonomics choice) bury both
-///     icons until the cursor approaches the top of the screen. Even
-///     with the right click, the discoverability is poor.
-///
-/// A proper Settings window solves both: the user opens it once from
-/// menubar (or future Cmd+, in a keyboard window), then has every
-/// toggle on screen at the same time.
+/// Why a real window in addition to the dropdown? The dropdown is
+/// fine for single-toggle flips, but a real window lets the user see
+/// every setting at once and lays groundwork for richer UI (per-mode
+/// settings sub-pages, candidate-panel skin picker, etc.) without
+/// expanding the dropdown into a long scrollable list.
 ///
 /// The window broadcasts `inputxSettingsChanged` whenever a value
 /// changes so the live IMEController re-applies without waiting for
@@ -60,8 +55,12 @@ private struct SettingsRootView: View {
     @State private var useCjkPunct: Bool = inputxSettings.useCjkPunct
     @State private var useFullWidth: Bool = inputxSettings.useFullWidth
     @State private var showRareChars: Bool = inputxSettings.showRareChars
+    @State private var userLearningEnabled: Bool = inputxSettings.userLearningEnabled
+    @State private var enabledPackIds: Set<String> = inputxSettings.enabledCellDictPackIds
     @State private var showResetConfirm: Bool = false
     @State private var infoBanner: String?
+
+    private let availablePacks = InputxCellDictPacksCache.shared.all
 
     var body: some View {
         Form {
@@ -122,11 +121,16 @@ private struct SettingsRootView: View {
                         inputxSettings.useCjkPunct = newValue
                         broadcastChanged()
                     }
-                Toggle("英文 / 数字全宽", isOn: $useFullWidth)
+                Toggle("英文数字全角（⇧空格）", isOn: $useFullWidth)
                     .onChange(of: useFullWidth) { newValue in
                         inputxSettings.useFullWidth = newValue
                         broadcastChanged()
                     }
+                Text("开启后字母、数字与空格直接以全角上屏"
+                     + "（ｎｉｈａｏ／１２３／　），期间不进入中文 / 日语组字。"
+                     + "打字时用 ⇧空格 随时切换，屏幕中央会闪一下「全角」/「半角」。")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
                 Toggle("显示罕用扩展字（CJK Ext B+）", isOn: $showRareChars)
                     .onChange(of: showRareChars) { newValue in
                         inputxSettings.showRareChars = newValue
@@ -138,8 +142,46 @@ private struct SettingsRootView: View {
                     .font(.headline)
             }
 
+            // ---- 词库扩展（cell-dict 包）----
+            if !availablePacks.isEmpty {
+                Section {
+                    ForEach(availablePacks) { pack in
+                        Toggle(isOn: Binding(
+                            get: { enabledPackIds.contains(pack.id) },
+                            set: { on in
+                                if on { enabledPackIds.insert(pack.id) }
+                                else  { enabledPackIds.remove(pack.id) }
+                                inputxSettings.enabledCellDictPackIds = enabledPackIds
+                                broadcastChanged()
+                            }
+                        )) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(pack.displayName)
+                                if !pack.description.isEmpty {
+                                    Text(pack.description)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                } header: {
+                    Text("词库扩展")
+                        .font(.headline)
+                } footer: {
+                    Text("勾选要启用的细胞词库（domain vocab pack）。每次勾选 / 取消后立即生效——下一次输入对应拼音会带上包内词条。L0 个人学习不受影响。")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             // ---- 学习与个性化 ----
             Section {
+                Toggle("用户学习（自动学习常用词组的相邻关系）", isOn: $userLearningEnabled)
+                    .onChange(of: userLearningEnabled) { newValue in
+                        inputxSettings.userLearningEnabled = newValue
+                        NotificationCenter.default.post(name: .inputxSettingsChanged, object: nil)
+                    }
                 Button("重置全部 L0 学习记录") {
                     showResetConfirm = true
                 }
@@ -154,9 +196,12 @@ private struct SettingsRootView: View {
                 Text("学习与个性化")
                     .font(.headline)
             } footer: {
-                Text("Polish 日志：你每次用数字键或鼠标点了**不是首位**的候选，Inputx 都会记一行到日志。Dev 周期看这个日志反推哪些 input 排序不合理 → 修 + 加 regression test。")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("用户学习：你每次上屏，Inputx 都会把 (上一个词, 这个词) 这一对记一次。当观察到 ≥ 100 对后，排序里会逐步带上你常用的相邻习惯（如 北京→大学、机器→学习）。关掉这个开关只是停止继续学习，已经学到的不会丢。")
+                    Text("Polish 日志：你每次用数字键或鼠标点了**不是首位**的候选，Inputx 都会记一行到日志。Dev 周期看这个日志反推哪些 input 排序不合理 → 修 + 加 regression test。")
+                }
+                .font(.callout)
+                .foregroundStyle(.secondary)
             }
 
             // ---- 关于 ----
@@ -239,9 +284,17 @@ private struct SettingsRootView: View {
 }
 
 extension Notification.Name {
-    /// Posted by SettingsWindow / MenubarSettings whenever any inputx
-    /// setting changes. Subscribed by `InputxController` instances so
-    /// the live session re-applies without waiting for the next
-    /// `activateServer` boundary.
+    /// Posted by SettingsWindow and by `InputxController.menu()` actions
+    /// whenever any inputx setting changes. Subscribed by every live
+    /// `InputxController` instance so the running session re-applies
+    /// without waiting for the next `activateServer` boundary.
     static let inputxSettingsChanged = Notification.Name("InputxSettingsChanged")
+
+    /// v1.15 hot-reload: posted by the AppDelegate SIGUSR1 handler
+    /// (`reinstall.py` data-only fast path) after it swaps
+    /// pinyin.dict / words.idf / bigrams*.ngm in
+    /// Contents/Resources/data/. Every live `InputxController`
+    /// observes it and calls `session.reloadEngineData(from:)` so
+    /// active preedit stays alive across a polish round.
+    static let inputxDictReloaded = Notification.Name("InputxDictReloaded")
 }

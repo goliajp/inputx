@@ -15,10 +15,10 @@ use alloc::vec::Vec;
 
 // Hash-cons register for state minimization. HashMap (O(1)) when `std` is
 // on; a BTreeMap keeps the builder available in no_std builds.
-#[cfg(feature = "std")]
-use std::collections::HashMap as Register;
 #[cfg(not(feature = "std"))]
 use alloc::collections::BTreeMap as Register;
+#[cfg(feature = "std")]
+use std::collections::HashMap as Register;
 
 /// Accumulates (key, value) pairs and serializes a minimal FSA.
 #[derive(Default)]
@@ -27,17 +27,44 @@ pub struct Builder {
 }
 
 impl Builder {
+    /// Construct an empty builder. Call [`insert`](Self::insert) to add
+    /// entries, then [`finish`](Self::finish) to serialize.
     pub fn new() -> Self {
         Self { pairs: Vec::new() }
     }
 
     /// Add a key→value entry. Duplicate keys: last insert wins. Keys may be
     /// inserted in any order (the builder sorts).
+    ///
+    /// ```
+    /// use inputx_fsa::{Builder, Fsa};
+    /// let mut b = Builder::new();
+    /// b.insert(b"banana", 4);
+    /// b.insert(b"apple", 1);   // arbitrary order is fine
+    /// b.insert(b"apple", 99);  // last-write-wins on duplicates
+    /// let fsa = Fsa::new(b.finish()).unwrap();
+    /// assert_eq!(fsa.get(b"apple"), Some(99));
+    /// ```
     pub fn insert(&mut self, key: &[u8], value: u64) {
         self.pairs.push((key.to_vec(), value));
     }
 
     /// Consume the builder and return the serialized FSA bytes.
+    ///
+    /// The output is a self-contained byte buffer — embed via
+    /// `include_bytes!`, `mmap`, or load from disk; either way pass it
+    /// directly to [`Fsa::new`](crate::Fsa::new).
+    ///
+    /// ```
+    /// use inputx_fsa::{Builder, Fsa};
+    /// let mut b = Builder::new();
+    /// for (k, v) in [(&b"a"[..], 1u64), (b"b", 2), (b"c", 3)] {
+    ///     b.insert(k, v);
+    /// }
+    /// let bytes: Vec<u8> = b.finish();
+    /// let fsa = Fsa::new(&bytes[..]).unwrap();
+    /// assert_eq!(fsa.len(), 3);
+    /// ```
     pub fn finish(mut self) -> Vec<u8> {
         // Sort by key; on duplicates keep the LAST inserted value.
         self.pairs.sort_by(|a, b| a.0.cmp(&b.0));
@@ -95,16 +122,12 @@ struct TrieNode {
 /// Compact trie children. Most trie nodes (deep suffix chains over unique
 /// words) have 0 or 1 child — `None`/`One` keep those heap-allocation-free,
 /// which is the bulk of the build-time memory win over a per-node B-tree map.
+#[derive(Default)]
 enum Children {
+    #[default]
     None,
     One(u8, u32),
     Many(Vec<(u8, u32)>), // sorted by label
-}
-
-impl Default for Children {
-    fn default() -> Self {
-        Children::None
-    }
 }
 
 impl Children {

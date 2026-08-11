@@ -6,15 +6,36 @@ members = [
     "crates/inputx-wubi",
     "crates/inputx-wubi-wasm",
     "crates/inputx-pinyin",
+    "crates/inputx-pinyin-v2",
     "crates/inputx-pinyin-wasm",
-    "crates/inputx-jp",
+    "crates/inputx-nihongo",
     "crates/inputx-fsa",
+    "crates/inputx-phonetic-edit",
+    "crates/inputx-scoring",
+    "crates/inputx-dict-format",
+    "crates/inputx-ngram",
+    "crates/inputx-l0",
+    "crates/inputx-pinyin-data-core",
+    "crates/inputx-pinyin-data-bigrams",
+    "crates/inputx-pinyin-data-trigrams",
+    "crates/inputx-nihongo-wasm",
+    "crates/inputx-wubi-data",
+    "crates/inputx-nihongo-data-jukugo",
+    "crates/inputx-nihongo-data-kanji",
+    "crates/inputx-pinyin-helpers",
+    "crates/inputx-corpus-digest",
+    # Phase-0 eval harness (CP-0.5). Lives outside core/ under tools/eval/
+    # so it sits next to its gold/silver TSV data, but joins this workspace
+    # as a member so `cargo run -p inputx-eval-runner` resolves the shared
+    # inputx-pinyin / inputx-core members directly. Read-only tool; never
+    # shipped — excluded from any release artifact.
+    "../tools/eval/runner",
 ]
 
 [workspace.package]
-version = "1.2.0"
+version = "1.4.0"
 edition = "2024"
-rust-version = "1.95"
+rust-version = "1.97"
 
 # wubi/pinyin engines live inside this monorepo as workspace members
 # (`crates/inputx-wubi`, `crates/inputx-pinyin`). They're also published
@@ -23,11 +44,21 @@ rust-version = "1.95"
 # external consumer can pull them on their own. Dual `version = "X.Y"` +
 # `path = "..."` syntax: cargo uses the path inside the workspace; downstream
 # crates.io builds without the path see the version constraint and resolve
-# from the registry. `package = "inputx-X"` rename keeps the historical
-# `use wubi::...` / `use golia_pinyin::...` import paths stable.
+# from the registry. Consumers import via canonical `use inputx_wubi::...` /
+# `use inputx_pinyin::...` (PLAN.md D8: lib name 完全 inputx_* default).
 [workspace.dependencies]
-wubi = { package = "inputx-wubi", version = "1.2", path = "crates/inputx-wubi" }
-golia-pinyin = { package = "inputx-pinyin", version = "1.2", path = "crates/inputx-pinyin" }
+inputx-wubi = { version = "1.2", path = "crates/inputx-wubi" }
+inputx-pinyin = { version = "1.2", path = "crates/inputx-pinyin" }
+
+# Project clippy lint policy, enforced by the CI `-D warnings` gate.
+# Only doc_lazy_continuation is globally allowed: it mis-fires on the many
+# doc comments here whose prose contains math formulae with `=` / parens
+# (e.g. "log_prior_q4 = Q4·ln(1+freq)"), which the markdown parser reads as
+# list-item continuations. Forcing indentation there would corrupt the
+# docs for no benefit. Every other clippy lint stays at its default level
+# and is denied by the gate. Member crates opt in via `[lints] workspace = true`.
+[workspace.lints.clippy]
+doc_lazy_continuation = "allow"
 
 [profile.release]
 # Was `lto = true` (fat LTO). Switched to "off" because fat LTO embeds

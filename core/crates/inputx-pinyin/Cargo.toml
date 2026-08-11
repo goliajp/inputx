@@ -1,6 +1,6 @@
 [package]
 name = "inputx-pinyin"
-version = "1.2.0"
+version = "1.4.0"
 edition = "2024"
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
@@ -12,25 +12,17 @@ documentation = "https://docs.rs/inputx-pinyin"
 readme = "README.md"
 keywords = ["pinyin", "ime", "chinese", "input-method", "fst"]
 categories = ["text-processing", "internationalization", "encoding"]
-# Heavy intermediate data files: regeneratable from
-# tools/{fetch_unihan,fetch_jieba_dict,fetch_corpus,build_weights,build_fst}.
-# Excluding them keeps the published crate under crates.io's size cap.
-# Maintainers regenerate locally; the canonical FST `data/pinyin.fst` IS
-# included (15 MB) and is the single source of truth for the published dict.
+# 2026-06-03 治理: heavy intermediate corpus files retired. The pinyin
+# crate now publishes only the post-digest library + engine internals;
+# library.tsv (13 MB) excluded from crates.io publish (consumers get
+# the built pinyin.dict via inputx-pinyin-data-core stone).
 exclude = [
-    "data/unihan/",
-    "data/jieba/",
-    "data/corpus/cache/",
-    "data/readings_unihan.tsv",
-    "data/phrases_jieba.tsv",
-    "data/phrases_composed.tsv",
-    "data/heteronyms_candidates.tsv",
-    "data/readings.tsv",
-    "data/weights/weights.tsv",
+    "data/library.tsv",
+    # data/bootstrap.tsv stays IN the package — build.rs reads it
+    # under the `bootstrap_only` feature to generate the tiny FST.
 ]
 
 [lib]
-name = "golia_pinyin"
 crate-type = ["rlib", "cdylib", "staticlib"]
 
 [dependencies]
@@ -38,91 +30,85 @@ crate-type = ["rlib", "cdylib", "staticlib"]
 # path (main dict = Dict, n-grams = Fsa). See .claude/PLAN-self-built-fsa.md.
 inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 
-# tools-only deps (gated behind `tools` feature)
-ureq = { version = "2", optional = true }
-aho-corasick = { version = "1", optional = true }
-toml = { version = "0.8", optional = true }
-sha2 = { version = "0.10", optional = true }
+# Embedded core pinyin.dict — split out of this crate's `data/` in
+# v1.4.7 sub-phase B (Strategy C) so the facade stays under crates.io's
+# per-crate upload limit. Required; not gated by a feature.
+inputx-pinyin-data-core = { path = "../inputx-pinyin-data-core", version = "1.4" }
+
+# Optional embedded bigram FSAs — `default-on` via the `bigrams`
+# feature. Drop the dep entirely with `default-features = false` to
+# publish-ship without the ~6 MB bigram blob (the facade still
+# compiles: PinyinDict::bigram_boost returns 0 and Viterbi falls
+# back to corpus-freq-only ordering).
+inputx-pinyin-data-bigrams = { path = "../inputx-pinyin-data-bigrams", version = "1.4", optional = true }
+
+# Optional embedded word-trigram dict — `default-on` via the
+# `trigrams` feature. Drop with `default-features = false` to
+# publish-ship without the ~13 MB trigram blob (the facade still
+# compiles: PinyinDict::predict_next_words_context returns an empty
+# Vec).
+inputx-pinyin-data-trigrams = { path = "../inputx-pinyin-data-trigrams", version = "1.4", optional = true }
+
+# Phase-2 bigram LM backend — `default-off`. LGPL-3.0-or-later because
+# kenlm-rs builds KenLM's query-only C++ sources in-tree; we keep the
+# whole thing behind a feature so downstream MIT/Apache consumers of
+# inputx-pinyin aren't tainted. The Inputx mac bundle flips this on
+# at build time. The runtime model file (bigram.binary) ships
+# separately and is loaded by path, not compiled in.
+kenlm-rs = { version = "0.1", optional = true }
+
+# tools-only deps (gated behind `tools` feature). Trimmed 2026-06-03
+# 治理: the old corpus-ingest pipeline retired, so the fetch/decode
+# crate of deps (ureq/aho-corasick/flate2/bzip2-rs/tar/encoding_rs/
+# serde_json) is gone too. The remaining `pinyin-build-dict` +
+# `pinyin-build-ngrams-fsa` only need toml/serde for read paths.
+toml = { version = "1.1", optional = true }
 serde = { version = "1", optional = true, features = ["derive"] }
-# JSON parser — used by compose_phrase_readings to read pypinyin's
-# phrases_dict.json (MIT-licensed per-char phrase readings, ~47k phrases).
-serde_json = { version = "1", optional = true }
-# Pure-Rust gzip (rust_backend = no zlib system dep). Used by build_weights.
-flate2 = { version = "1", optional = true, default-features = false, features = [
-    "rust_backend",
-] }
-# Pure-Rust bzip2 decompressor — no libbz2 system dep.
-bzip2-rs = { version = "0.1", optional = true }
-# Pure-Rust tar archive reader (Leipzig corpora ship as `.tar.gz`).
-tar = { version = "0.4", optional = true, default-features = false }
-# WHATWG-spec encoding decoder (handles GB18030 / GBK / Big5 for pre-2015
-# corpora that aren't UTF-8). Used by build_weights.
-encoding_rs = { version = "0.8", optional = true }
 
 [build-dependencies]
 inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 
 [dev-dependencies]
 proptest = "1"
-criterion = "0.5"
+criterion = "0.8"
 
 [[bench]]
 name = "lookup"
 harness = false
 
 [features]
-default = []
-# Pulls in the maintainer-only tool binaries (`unihan-extract-readings`,
-# `pinyin-fetch-corpus`, `pinyin-build-weights`, etc.) and their heavyweight
-# deps. Library consumers don't need this; only data pipeline runs
-# (ROADMAP items 14-22) do.
+default = ["bigrams", "trigrams", "cell-dict"]
+# v1.4.7 sub-phase B: opt-in feature flags for the bigrams / trigrams
+# data stones. Both default-on so consumers writing `inputx-pinyin =
+# "1.4"` get the full historical engine surface (bigram boost +
+# context-aware next-word prediction) unchanged. Disable with
+# `default-features = false` to shrink the dependency closure to just
+# inputx-pinyin-data-core (the required ~4 MB exact-syllable dict).
+bigrams = ["dep:inputx-pinyin-data-bigrams"]
+trigrams = ["dep:inputx-pinyin-data-trigrams"]
+# Phase-2 real bigram LM. Pulls in kenlm-rs (LGPL); leave off for
+# crates.io publish, flip on in the Inputx mac bundle.
+kenlm = ["dep:kenlm-rs"]
+# Maintainer-only tools (`pinyin-build-dict`, `pinyin-build-ngrams-fsa`).
+# Library consumers don't need this.
 tools = [
-    "dep:ureq",
-    "dep:aho-corasick",
     "dep:toml",
-    "dep:sha2",
     "dep:serde",
-    "dep:serde_json",
-    "dep:flate2",
-    "dep:bzip2-rs",
-    "dep:tar",
-    "dep:encoding_rs",
+]
+# Phase-5 CP-5.2: user-installable cell-dict packs (domain vocab —
+# IT, finance, medical, etc.). Pulls in toml + serde for the runtime
+# loader. Default-on so the typical Inputx host build accepts
+# `pinyin.load_cell_dict(toml_bytes)` out of the box; turn off via
+# `default-features = false` for size-sensitive WASM / bootstrap builds.
+cell-dict = [
+    "dep:toml",
+    "dep:serde",
 ]
 # Embed the small ~125-entry bootstrap FST instead of the full ~919k-entry
 # corpus-derived dict. Reduces compile time + binary size by ~15-20MB.
 # Use for fast unit tests and size-sensitive targets (wasm32 lands proper
 # treatment in item 33 of workspace ROADMAP).
 bootstrap_only = []
-
-[[bin]]
-name = "unihan-extract-readings"
-path = "tools/build_readings_unihan.rs"
-required-features = ["tools"]
-
-[[bin]]
-name = "compose-phrase-readings"
-path = "tools/compose_phrase_readings.rs"
-required-features = ["tools"]
-
-[[bin]]
-name = "find-heteronym-candidates"
-path = "tools/find_heteronym_candidates.rs"
-required-features = ["tools"]
-
-[[bin]]
-name = "merge-readings"
-path = "tools/merge_readings.rs"
-required-features = ["tools"]
-
-[[bin]]
-name = "pinyin-fetch-corpus"
-path = "tools/fetch_corpus.rs"
-required-features = ["tools"]
-
-[[bin]]
-name = "pinyin-build-weights"
-path = "tools/build_weights.rs"
-required-features = ["tools"]
 
 [[bin]]
 name = "pinyin-build-dict"
@@ -135,3 +121,6 @@ path = "tools/build_ngrams_fsa.rs"
 required-features = ["tools"]
 
 # `[[bench]]` blocks land in v0.2 once data is dense enough to bench.
+
+[lints]
+workspace = true

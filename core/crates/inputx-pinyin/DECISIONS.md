@@ -1,4 +1,4 @@
-# golia-pinyin · key decisions
+# inputx-pinyin · key decisions
 
 Append-only log of consequential design / data / license decisions. Each
 entry: what was chosen, what was rejected, why. New entries go at the top.

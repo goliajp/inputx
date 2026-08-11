@@ -11,9 +11,11 @@
 //!   - **Pinned candidates** — `code → preferred_word`. A pin moves that word
 //!     to position 0 in `lookup`'s output, regardless of L1+ weight.
 //!   - **Pick counters** — `(code, word) → u32`. [`WubiDict::record_pick`] increments
-//!     the counter; once it hits [`PROMOTE_THRESHOLD`], the word is auto-
-//!     pinned and all counters for that code are reset (so a later, different
-//!     pick has to earn its 3 votes from scratch — prevents thrashing).
+//!     the counter. Counters are usage statistics ONLY: they never change
+//!     ranking. Auto-pin was removed 2026-07-20 (user: "整个自动置顶都关了
+//!     吧，没必要这个功能") — repeatedly picking a non-top candidate used to
+//!     silently pin it at position 0, which made candidate order drift under
+//!     the user instead of staying at the dictionary's ruling.
 //!   - **Layer preferences** — `Layer → f64` multiplier (default 1.0, with
 //!     `Auto = 0.7` so extension characters don't dominate). Applied to the
 //!     L1 nominal weight at sort time. Settable via API; **not** auto-tuned.
@@ -22,61 +24,34 @@
 //! position 0. So in steady state most codes have empty L0 and the layer
 //! base ordering wins (hence "L0 default ≈ L1 default").
 
+use std::borrow::Cow;
 use std::collections::HashMap;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
+use arc_swap::ArcSwap;
 use inputx_fsa::Dict;
 
 use crate::layer::{DEFAULT_LAYER_PREFS, LAYER_COUNT, Layer, unpack};
 
-const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/wubi86.dict"));
+/// The wubi86 table as `build.rs` compiled it from `data/library.tsv` +
+/// the structural tables. Also re-emitted verbatim to a shippable file
+/// by the `wubi-emit-dict` bin — see its docs for why.
+pub const DICT_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/wubi86.dict"));
 
-/// Number of consecutive picks of the same `(code, word)` required before
-/// L0 auto-pins it. Defaults to 3; can be overridden at build time via the
-/// `WUBI_PROMOTE_THRESHOLD` env var (developer escape hatch — not exposed
-/// to end users).
-pub const PROMOTE_THRESHOLD: u32 = parse_threshold_const();
-
-const fn parse_threshold_const() -> u32 {
-    match option_env!("WUBI_PROMOTE_THRESHOLD") {
-        Some(s) => parse_u32_const(s),
-        None => 3,
-    }
-}
-
-const fn parse_u32_const(s: &str) -> u32 {
-    let bytes = s.as_bytes();
-    if bytes.is_empty() {
-        panic!("WUBI_PROMOTE_THRESHOLD must not be empty");
-    }
-    let mut i = 0;
-    let mut n: u32 = 0;
-    while i < bytes.len() {
-        let b = bytes[i];
-        if b < b'0' || b > b'9' {
-            panic!("WUBI_PROMOTE_THRESHOLD must be ASCII digits");
-        }
-        n = n * 10 + (b - b'0') as u32;
-        i += 1;
-    }
-    if n == 0 {
-        panic!("WUBI_PROMOTE_THRESHOLD must be >= 1");
-    }
-    n
-}
+/// Byte container for the code→candidates map: borrowed from
+/// [`DICT_BYTES`] at startup, owned after a hot-reload.
+type DictBytes = Cow<'static, [u8]>;
 
 /// Persistent state of the L0 layer. Caller serializes / deserializes this
 /// however it likes (TOML, MessagePack, sqlite, …) — the crate intentionally
 /// has no `serde` dependency.
 #[derive(Debug, Clone)]
 pub struct L0Snapshot {
-    /// `(code, word)` pairs the user has pinned (manually or via `record_pick`
-    /// reaching threshold).
+    /// `(code, word)` pairs the user has pinned. Only `pin` creates these —
+    /// picking a candidate never does (auto-pin removed 2026-07-20).
     pub pins: Vec<(String, String)>,
-    /// `(code, word, count)` — pending pick counts that haven't yet reached
-    /// `PROMOTE_THRESHOLD`. Snapshot semantics are best-effort; a count of
-    /// `threshold - 1` restored after restart needs only one more pick to
-    /// promote.
+    /// `(code, word, count)` — how often the user picked each candidate.
+    /// Usage statistics only; does not affect ranking.
     pub pick_counts: Vec<(String, String, u32)>,
     /// Layer multipliers, indexed by `Layer as usize`.
     pub layer_prefs: [f64; LAYER_COUNT],
@@ -107,7 +82,12 @@ impl L0Inner {
 /// mutability via `RwLock` lets a single shared instance feed every
 /// concurrent IME / WASM session without exposing the lock to the caller.
 pub struct WubiDict {
-    map: Dict<&'static [u8]>,
+    /// Code → candidates index. Behind an [`ArcSwap`] so
+    /// [`WubiDict::reload_map_from_bytes`] can replace the whole table
+    /// under a running IME — taking `&self`, exactly like the `l0`
+    /// mutations below, so the L0 layer beside it (user pins, pick
+    /// counts, layer prefs) survives a dict swap untouched.
+    map: ArcSwap<Dict<DictBytes>>,
     l0: RwLock<L0Inner>,
 }
 
@@ -117,20 +97,40 @@ impl WubiDict {
     /// the instance and reuse it for the program lifetime.
     pub fn embedded() -> Self {
         Self {
-            map: Dict::new(DICT_BYTES).expect("invalid embedded wubi dict"),
+            map: ArcSwap::from_pointee(
+                Dict::new(Cow::Borrowed(DICT_BYTES)).expect("invalid embedded wubi dict"),
+            ),
             l0: RwLock::new(L0Inner::new()),
         }
+    }
+
+    /// Replace the code→candidates map with one parsed from `bytes`
+    /// (owned), leaving the L0 layer — pins, pick counts, layer prefs —
+    /// exactly as it was. Takes `&self` so a process-global
+    /// `&'static WubiDict` can be reloaded in place.
+    ///
+    /// On parse failure the old map stays installed and the error is
+    /// returned; a half-swapped dict is never observable. Readers that
+    /// already called `self.map.load()` keep their snapshot until they
+    /// drop it, which is what makes a mid-keystroke reload safe.
+    ///
+    /// Fed by `Session::reload_engine_data` from the running bundle's
+    /// `Contents/Resources/data/wubi86.dict`.
+    pub fn reload_map_from_bytes(&self, bytes: Vec<u8>) -> Result<(), inputx_fsa::FsaError> {
+        let parsed = Dict::new(Cow::Owned(bytes))?;
+        self.map.store(Arc::new(parsed));
+        Ok(())
     }
 
     /// Number of distinct codes in the dictionary. (The two-level `Dict`
     /// counts codes, not total (code, word) pairs.)
     pub fn len(&self) -> usize {
-        self.map.len() as usize
+        self.map.load().len() as usize
     }
 
     /// `true` iff the dictionary has zero codes.
     pub fn is_empty(&self) -> bool {
-        self.map.is_empty()
+        self.map.load().is_empty()
     }
 
     /// Number of L0 pinned codes.
@@ -168,9 +168,9 @@ impl WubiDict {
     ///   * layer.base() × layer_prefs   (jianma1 = 1e6, …)
     ///   * + freq                       (corpus weight)
     ///   * × 100.0                      if full-code single-char promotion fires
-    ///                                  (see lookup_into doc for the rule)
+    ///     (see lookup_into doc for the rule)
     ///   * × 1000.0                     if the candidate is L0-pinned
-    ///                                  (must dominate any natural score)
+    ///     (must dominate any natural score)
     ///
     /// The post-multipliers keep wubi simcodes and L0 pins on top across
     /// the cross-engine merge.
@@ -192,11 +192,7 @@ impl WubiDict {
     /// Zigen simcodes at full strength (the 伙 vs 嶙 distinction —
     /// 伙 is Jianma2 wubi-simcode and must lead at #0 for its code,
     /// 嶙 is typically Auto-layer and should not displace pinyin top).
-    pub fn lookup_with_layer_into(
-        &self,
-        code: &str,
-        out: &mut Vec<(String, f64, Layer)>,
-    ) {
+    pub fn lookup_with_layer_into(&self, code: &str, out: &mut Vec<(String, f64, Layer)>) {
         out.clear();
         let lower = code.to_ascii_lowercase();
 
@@ -210,23 +206,35 @@ impl WubiDict {
         // Tuple: (word, score, is_single, freq, layer).
         let mut scratch: Vec<(String, f64, bool, u64, Layer)> = Vec::with_capacity(8);
         let mut max_phrase_freq: u64 = 0;
-        self.map.get_for_each(lower.as_bytes(), |word, value| {
-            if let Ok(s) = core::str::from_utf8(word) {
-                let (layer, freq) = unpack(value);
-                let base = layer.base() as f64;
-                let pref = prefs[layer.as_index()];
-                let is_single = s.chars().count() == 1;
-                if !is_single && freq > max_phrase_freq {
-                    max_phrase_freq = freq;
+        self.map
+            .load()
+            .get_for_each(lower.as_bytes(), |word, value| {
+                if let Ok(s) = core::str::from_utf8(word) {
+                    let (layer, freq) = unpack(value);
+                    let base = layer.base() as f64;
+                    let pref = prefs[layer.as_index()];
+                    let is_single = s.chars().count() == 1;
+                    if !is_single && freq > max_phrase_freq {
+                        max_phrase_freq = freq;
+                    }
+                    scratch.push((
+                        s.to_string(),
+                        base * pref + freq as f64,
+                        is_single,
+                        freq,
+                        layer,
+                    ));
                 }
-                scratch.push((s.to_string(), base * pref + freq as f64, is_single, freq, layer));
-            }
-        });
+            });
 
         // Apply full-code single-char promote (lifts qualifying single
         // chars above the same-code phrases) and L0 pin (lifts the pinned
         // word above natural sort).
-        let pinned: Option<String> = self.l0.read().ok().and_then(|g| g.pins.get(&lower).cloned());
+        let pinned: Option<String> = self
+            .l0
+            .read()
+            .ok()
+            .and_then(|g| g.pins.get(&lower).cloned());
         for e in scratch.iter_mut() {
             let promote = full_code && e.2 && e.3 > max_phrase_freq;
             if promote {
@@ -238,9 +246,7 @@ impl WubiDict {
                 e.1 *= 1000.0;
             }
         }
-        scratch.sort_by(|a, b| {
-            b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
-        });
+        scratch.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         out.reserve(scratch.len());
         for (w, score, _, _, layer) in scratch.drain(..) {
@@ -298,23 +304,20 @@ impl WubiDict {
         // Track the highest phrase frequency at this code so the
         // promote decision can be made after the scan.
         let mut max_phrase_freq: u64 = 0;
-        self.map.get_for_each(lower.as_bytes(), |word, value| {
-            if let Ok(s) = core::str::from_utf8(word) {
-                let (layer, freq) = unpack(value);
-                let base = layer.base() as f64;
-                let pref = prefs[layer.as_index()];
-                let is_single = s.chars().count() == 1;
-                if !is_single && freq > max_phrase_freq {
-                    max_phrase_freq = freq;
+        self.map
+            .load()
+            .get_for_each(lower.as_bytes(), |word, value| {
+                if let Ok(s) = core::str::from_utf8(word) {
+                    let (layer, freq) = unpack(value);
+                    let base = layer.base() as f64;
+                    let pref = prefs[layer.as_index()];
+                    let is_single = s.chars().count() == 1;
+                    if !is_single && freq > max_phrase_freq {
+                        max_phrase_freq = freq;
+                    }
+                    scratch.push((s.to_string(), base * pref + freq as f64, is_single, freq));
                 }
-                scratch.push((
-                    s.to_string(),
-                    base * pref + freq as f64,
-                    is_single,
-                    freq,
-                ));
-            }
-        });
+            });
         scratch.sort_by(|a, b| {
             let a_promote = full_code && a.2 && a.3 > max_phrase_freq;
             let b_promote = full_code && b.2 && b.3 > max_phrase_freq;
@@ -334,15 +337,13 @@ impl WubiDict {
         }
 
         // L0 pin: pull to position 0.
-        if let Ok(l0) = self.l0.read() {
-            if let Some(pref) = l0.pins.get(code) {
-                if let Some(idx) = out.iter().position(|w| w == pref) {
-                    if idx > 0 {
-                        let p = out.remove(idx);
-                        out.insert(0, p);
-                    }
-                }
-            }
+        if let Ok(l0) = self.l0.read()
+            && let Some(pref) = l0.pins.get(code)
+            && let Some(idx) = out.iter().position(|w| w == pref)
+            && idx > 0
+        {
+            let p = out.remove(idx);
+            out.insert(0, p);
         }
     }
 
@@ -352,12 +353,99 @@ impl WubiDict {
     pub fn lookup_with_meta(&self, code: &str) -> Vec<(String, Layer, u64)> {
         let lower = code.to_ascii_lowercase();
         let mut results = Vec::new();
-        self.map.get_for_each(lower.as_bytes(), |word, value| {
-            if let Ok(s) = core::str::from_utf8(word) {
-                let (layer, freq) = unpack(value);
-                results.push((s.to_string(), layer, freq));
-            }
-        });
+        self.map
+            .load()
+            .get_for_each(lower.as_bytes(), |word, value| {
+                if let Ok(s) = core::str::from_utf8(word) {
+                    let (layer, freq) = unpack(value);
+                    results.push((s.to_string(), layer, freq));
+                }
+            });
+        results
+    }
+
+    /// Prefix-prediction lookups: all `(word, freq, code_len)` triples where
+    /// `code` strictly extends `prefix` (i.e., `code_len > prefix.len()`).
+    /// Exact-code matches are excluded — those are not predictions.
+    ///
+    /// Returned tuples are ordered by `freq` descending, then `word` ascending
+    /// (FST byte order tiebreaker). Pins are NOT applied (per-code; prefix
+    /// scan can't generalize). Used by the composite dispatch to attach Wubi
+    /// prediction candidates in Mixed mode (e.g., `jj` → 日, 时, 旧 as
+    /// predictions in addition to exact 是/我).
+    ///
+    /// Raw frequency is returned (not score) so the caller can compose the
+    /// final score via `scoring::predict_score(base, freq, freq_mult,
+    /// proximity)` where `proximity = typed_len / code_len`.
+    pub fn prefix_predictions(&self, prefix: &str) -> Vec<(String, u64, usize)> {
+        let lower = prefix.to_ascii_lowercase();
+        let prefix_len = lower.len();
+        let mut results: Vec<(String, u64, usize)> = Vec::new();
+        self.map
+            .load()
+            .prefix_for_each(lower.as_bytes(), |code_bytes, word_bytes, value| {
+                if code_bytes.len() <= prefix_len {
+                    return;
+                }
+                if let (Ok(_code), Ok(word)) = (
+                    core::str::from_utf8(code_bytes),
+                    core::str::from_utf8(word_bytes),
+                ) {
+                    let (_layer, freq) = unpack(value);
+                    results.push((word.to_string(), freq, code_bytes.len()));
+                }
+            });
+        results.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        results
+    }
+
+    /// Per-code lookup exposing raw `freq` alongside [`Layer`] — used by
+    /// the v1.4.7 composite hot path for the orthodox score
+    /// decomposition (split log_prior_q4 = Q4·ln(1+freq) from
+    /// log_likelihood_q4 = Q4·ln(layer.base()·pref·demotes)). The
+    /// existing [`Self::lookup_with_layer_into`] returns the combined
+    /// `layer.base()·pref + freq` score; for Q4 log-space additive
+    /// sort key (PLAN.md L1 probability-native ranking) we need the
+    /// two terms unfused.
+    ///
+    /// Rare-CJK filter NOT applied here (caller decides; consistent
+    /// with `lookup_with_layer_into`).
+    pub fn lookup_with_freq_layer_into(&self, code: &str, out: &mut Vec<(String, Layer, u64)>) {
+        out.clear();
+        let lower = code.to_ascii_lowercase();
+        self.map
+            .load()
+            .get_for_each(lower.as_bytes(), |word, value| {
+                if let Ok(s) = core::str::from_utf8(word) {
+                    let (layer, freq) = unpack(value);
+                    out.push((s.to_string(), layer, freq));
+                }
+            });
+    }
+
+    /// Iterate every entry in the embedded dict, in FST traversal order
+    /// (canonical lexicographic by `code` bytes; for a given code the
+    /// internal layout sees `(code, word, packed_value)` triples). Used
+    /// by tools / snapshot binaries (e.g. v1.4.3 `idf-from-wubi-tables`)
+    /// that need to re-emit the full dict in another format. NOT a
+    /// runtime hot-path API — allocates one `(String, String)` pair per
+    /// entry (~135k for the embedded dict, ~5 MB allocation total).
+    ///
+    /// `layer` is the layered confidence band ([`Layer`]), `freq` is the
+    /// per-entry frequency score (post-`pack` / pre-`unpack`).
+    pub fn all_entries(&self) -> Vec<(String, String, Layer, u64)> {
+        let mut results: Vec<(String, String, Layer, u64)> = Vec::new();
+        self.map
+            .load()
+            .prefix_for_each(b"", |code_bytes, word_bytes, value| {
+                if let (Ok(code), Ok(word)) = (
+                    core::str::from_utf8(code_bytes),
+                    core::str::from_utf8(word_bytes),
+                ) {
+                    let (layer, freq) = unpack(value);
+                    results.push((code.to_string(), word.to_string(), layer, freq));
+                }
+            });
         results
     }
 
@@ -374,16 +462,18 @@ impl WubiDict {
             .unwrap_or(DEFAULT_LAYER_PREFS);
 
         let mut results: Vec<(String, String, f64)> = Vec::new();
-        self.map.prefix_for_each(lower.as_bytes(), |code_bytes, word_bytes, value| {
-            if let (Ok(code), Ok(word)) = (
-                core::str::from_utf8(code_bytes),
-                core::str::from_utf8(word_bytes),
-            ) {
-                let (layer, freq) = unpack(value);
-                let score = layer.base() as f64 * prefs[layer.as_index()] + freq as f64;
-                results.push((code.to_string(), word.to_string(), score));
-            }
-        });
+        self.map
+            .load()
+            .prefix_for_each(lower.as_bytes(), |code_bytes, word_bytes, value| {
+                if let (Ok(code), Ok(word)) = (
+                    core::str::from_utf8(code_bytes),
+                    core::str::from_utf8(word_bytes),
+                ) {
+                    let (layer, freq) = unpack(value);
+                    let score = layer.base() as f64 * prefs[layer.as_index()] + freq as f64;
+                    results.push((code.to_string(), word.to_string(), score));
+                }
+            });
         results.sort_by(|a, b| {
             b.2.partial_cmp(&a.2)
                 .unwrap_or(std::cmp::Ordering::Equal)
@@ -397,30 +487,35 @@ impl WubiDict {
     // L0 mutation
     // -------------------------------------------------------------------
 
-    /// Record that the user picked `word` for `code`. If this is the
-    /// `PROMOTE_THRESHOLD`-th consecutive pick, the word is auto-pinned and
-    /// all counters for `code` are cleared. Returns `true` iff this call
-    /// caused a promotion.
+    /// Record that the user picked `word` for `code`, incrementing that
+    /// pair's usage counter. Ranking is NOT affected — counters are
+    /// statistics. Only [`Self::pin`] changes candidate order.
     ///
     /// Silently no-ops if `(code, word)` isn't in L1 (defends against the
     /// host accidentally feeding us things the user couldn't actually have
     /// selected from candidates).
-    pub fn record_pick(&self, code: &str, word: &str) -> bool {
+    pub fn record_pick(&self, code: &str, word: &str) {
         if !self.exists_in_l1(code, word) {
-            return false;
+            return;
         }
         let Ok(mut l0) = self.l0.write() else {
-            return false;
+            return;
         };
-        let key = (code.to_string(), word.to_string());
-        let count = l0.pick_counts.entry(key).or_insert(0);
-        *count += 1;
-        if *count >= PROMOTE_THRESHOLD {
-            l0.pins.insert(code.to_string(), word.to_string());
-            l0.pick_counts.retain(|(c, _), _| c != code);
-            return true;
-        }
-        false
+        *l0.pick_counts
+            .entry((code.to_string(), word.to_string()))
+            .or_insert(0) += 1;
+    }
+
+    /// User-pinned word for `code`, if any. Used by the composite
+    /// dispatch layer to re-apply the L0 pin promotion when wubi
+    /// candidates are sourced from the `lookup_with_freq_layer` path
+    /// (raw per-entry data, no pin baked in).
+    pub fn pinned_word(&self, code: &str) -> Option<String> {
+        let lower = code.to_ascii_lowercase();
+        self.l0
+            .read()
+            .ok()
+            .and_then(|g| g.pins.get(&lower).cloned())
     }
 
     /// Force-pin a word without going through the pick counter. Validates
@@ -575,40 +670,33 @@ mod tests {
         }
     }
 
+    /// Auto-pin removal (user 2026-07-20 "整个自动置顶都关了吧"): picking
+    /// the same candidate any number of times must NEVER reorder
+    /// candidates. Previously the 3rd pick auto-pinned it, which silently
+    /// rewrote the user's candidate order (fcu: 3 picks of 云 moved it
+    /// above 去 and it stayed there).
     #[test]
-    fn record_pick_promotes_after_threshold() {
+    fn record_pick_never_pins_however_many_times() {
         let d = WubiDict::embedded();
-        // Three picks → promoted.
-        assert!(!d.record_pick("khlg", "跑车"));
-        assert!(!d.record_pick("khlg", "跑车"));
-        assert!(d.record_pick("khlg", "跑车"));
-        assert_eq!(d.lookup("khlg").first().map(String::as_str), Some("跑车"));
-        assert_eq!(d.l0_pin_count(), 1);
-        // Counters reset on promotion.
-        assert_eq!(d.l0_pending_count(), 0);
-    }
-
-    #[test]
-    fn record_pick_resets_on_promotion_so_others_must_earn_3_again() {
-        let d = WubiDict::embedded();
-        // Promote 跑车 first.
-        for _ in 0..3 {
+        let before = d.lookup("khlg").first().cloned();
+        for _ in 0..10 {
             d.record_pick("khlg", "跑车");
         }
-        // Now picking 中国 once shouldn't auto-flip.
-        assert!(!d.record_pick("khlg", "中国"));
-        assert_eq!(d.lookup("khlg").first().map(String::as_str), Some("跑车"));
-        // But three picks of 中国 will dethrone 跑车.
-        assert!(!d.record_pick("khlg", "中国"));
-        assert!(d.record_pick("khlg", "中国"));
-        assert_eq!(d.lookup("khlg").first().map(String::as_str), Some("中国"));
+        assert_eq!(
+            d.lookup("khlg").first().cloned(),
+            before,
+            "record_pick must not reorder candidates"
+        );
+        assert_eq!(d.l0_pin_count(), 0, "record_pick must not create pins");
+        // The counter itself still accrues — it is usage statistics.
+        assert_eq!(d.l0_pending_count(), 1);
     }
 
     #[test]
     fn record_pick_rejects_unknown_word() {
         let d = WubiDict::embedded();
-        for _ in 0..PROMOTE_THRESHOLD {
-            assert!(!d.record_pick("khlg", "this_is_not_a_real_word"));
+        for _ in 0..5 {
+            d.record_pick("khlg", "this_is_not_a_real_word");
         }
         assert_eq!(d.l0_pin_count(), 0);
         assert_eq!(d.l0_pending_count(), 0);
@@ -698,9 +786,4 @@ mod tests {
         d.set_layer_pref(Layer::Phrase, f64::NAN);
         assert_eq!(d.layer_pref(Layer::Phrase), 0.0);
     }
-
-    // Compile-time check — `PROMOTE_THRESHOLD` is a `const`, so a runtime
-    // assertion would be trivially true (and clippy flags it). A `const _`
-    // assertion fails at compile time if anyone ever sets it to 0.
-    const _: () = assert!(PROMOTE_THRESHOLD >= 1);
 }

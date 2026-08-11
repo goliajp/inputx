@@ -1,0 +1,31 @@
+lambda	gold_top1	gold_top5	gold_top10	overall_top1	overall_top5	overall_top10	notes
+0.0	3.40	3.50	3.50	2.81	2.89	2.89	Phase 1 ｜末 / KenLM contribution disabled — byte-equal baseline (post_compose)
+0.3	4.00	4.00	4.00	3.30	3.37	3.37	first attempt at climb plan's recommended start; lift +0.48pp overall, +0.60pp gold (full 50k)
+0.5	4.10	NA	NA	NA	NA	NA	gold-only sweep · +0.70pp gold
+1.0	4.30	4.40	4.40	3.57	3.68	3.68	** sweet spot ** · full 50k verified · +0.76pp overall, +0.90pp gold (vs post_compose)
+3.0	2.90	3.00	3.00	NA	NA	NA	gold-only sweep · -0.50pp gold — LM term begins to swamp raw_freq, picks wrong-pinyin high-prob continuations
+10.0	2.40	2.50	2.50	NA	NA	NA	gold-only sweep · -1.00pp gold — pathological over-shoot
+30.0	2.30	2.50	2.50	NA	NA	NA	gold-only sweep · -1.10pp gold — confirms monotonic degradation past the sweet spot
+
+# CP-2.6 selection notes (2026-06-15)
+#   λ* = 1.0 picked.
+#   - gold sweet spot at λ=1.0 (4.30% gold top1), and full 50k confirms
+#     the same shape (overall 3.57%, +0.76pp vs Phase 1 末 / post_compose).
+#   - λ=3.0 and beyond pathologically over-shoot — the LM term ends up
+#     larger than raw_freq + bigram_boost combined and Viterbi starts
+#     committing to wrong-pinyin high-probability continuations.
+#   - λ=0.3 (climb plan's suggested start) is too small with the
+#     LM_SCALE=10_000 we used; raising LM_SCALE while lowering λ is
+#     algebraically equivalent and was not separately swept.
+# Honesty:
+#   - climb plan original gate: "λ=0.3 MIU must lift ≥ 3%"
+#   - errata softens it to "≥ 2pp"
+#   - sweet spot λ=1.0 lift is +0.76pp overall / +0.90pp gold — below
+#     both bars. The direction is right (LM term is doing real work,
+#     identifiable monotone optimum) but the magnitude is half the
+#     errata floor.
+#   - Phase 2 acceptance gate ("累计 Top-1 MIU 升 ≥ 5%"): we are at
+#     +2.84pp cumulative (0.73% → 3.57%). CP-2.7 short-buffer Viterbi
+#     unlock may add another 0.5-1pp; Phase 2 末 still likely below 5%.
+#     Climb plan triggers retrain in that case (回 CP-2.2 reclean);
+#     decision deferred to Phase 2 末.

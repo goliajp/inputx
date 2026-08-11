@@ -1,6 +1,6 @@
 [package]
 name = "inputx-wubi"
-version = "1.2.0"
+version = "1.4.0"
 edition = "2024"
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
@@ -14,48 +14,33 @@ keywords = ["wubi", "ime", "chinese", "input-method", "fst"]
 categories = ["text-processing", "internationalization", "encoding"]
 
 [lib]
-name = "wubi"
 crate-type = ["rlib", "cdylib", "staticlib"]
 
 [features]
 default = []
-# Pulls in the corpus pipeline binaries (`wubi-fetch-corpus`,
-# `wubi-build-weights`) and their heavyweight deps. Library consumers don't
-# need this; only maintainers regenerating `data/weights/weights.tsv` do.
-tools = [
-    "dep:ureq", "dep:aho-corasick", "dep:toml", "dep:sha2",
-    "dep:serde", "dep:flate2", "dep:bzip2-rs", "dep:tar",
-    "dep:encoding_rs",
-]
+# 2026-06-03 治理: `tools` feature retired since fetch_corpus/build_weights
+# pipeline binaries are gone. Remaining wubi tools (gen-dict / verify /
+# auto-decomp / import-*) are zero-dep.
 
 [dependencies]
 # Self-built zero-dependency index — replaces fst (two-level Dict: code →
 # [(word, packed layer|freq)]). See .claude/PLAN-self-built-fsa.md.
 inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
-
-# tools-only deps (gated behind `tools` feature)
-ureq = { version = "2", optional = true }
-aho-corasick = { version = "1", optional = true }
-toml = { version = "0.8", optional = true }
-sha2 = { version = "0.10", optional = true }
-serde = { version = "1", optional = true, features = ["derive"] }
-# Pure-Rust gzip (rust_backend = no zlib system dep). Used by build_weights
-# to read .gz corpora.
-flate2 = { version = "1", optional = true, default-features = false, features = ["rust_backend"] }
-# Pure-Rust bzip2 decompressor — no libbz2 system dep.
-bzip2-rs = { version = "0.1", optional = true }
-# Pure-Rust tar archive reader (Leipzig corpora ship as `.tar.gz`).
-tar = { version = "0.4", optional = true, default-features = false }
-# WHATWG-spec encoding decoder (handles GB18030 / GBK / Big5 / Shift_JIS for
-# pre-2015 corpora that aren't UTF-8). Used by build_weights.rs.
-encoding_rs = { version = "0.8", optional = true }
+# Lock-free swap of the code→candidates map, so a polish rebuild can
+# replace the table under a running IME without exiting — and without
+# disturbing the L0 layer (pins / prefs) sitting beside it.
+arc-swap = "1"
 
 [build-dependencies]
 inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 
 [dev-dependencies]
-criterion = "0.5"
+criterion = "0.8"
 proptest = "1"
+
+[[bin]]
+name = "wubi-emit-dict"
+path = "tools/emit_dict.rs"
 
 [[bin]]
 name = "wubi-gen-dict"
@@ -77,16 +62,9 @@ path = "tools/import_simplified.rs"
 name = "wubi-import-phrases"
 path = "tools/import_phrases.rs"
 
-[[bin]]
-name = "wubi-fetch-corpus"
-path = "tools/fetch_corpus.rs"
-required-features = ["tools"]
-
-[[bin]]
-name = "wubi-build-weights"
-path = "tools/build_weights.rs"
-required-features = ["tools"]
-
 [[bench]]
 name = "lookup"
 harness = false
+
+[lints]
+workspace = true

@@ -27,7 +27,7 @@ the full attribution chain.
 - **Segmenter** — DP all-splits enumeration of a pinyin buffer
 - **Fuzzy syllables** — 9 toggleable consonant/vowel-pair tolerances
   (`z⇄zh`, `n⇄l`, `en⇄eng`, …) for non-standard typists
-- **L0 user-learning** — 3-pick auto-pin per `(input, word)` pair, with
+- **L0 user overrides** — explicit per-`(input, word)` pins, with
   JSON-serializable snapshot for cross-session persistence
 - **Streaming prefix scan** (`prefix_for_each`) — zero-allocation visitor
   over FST entries matching a prefix, used by Inputx's per-keystroke
@@ -38,11 +38,11 @@ the full attribution chain.
 ```toml
 # Cargo.toml
 [dependencies]
-inputx-pinyin = "1.0"
+inputx-pinyin = "1.4"
 ```
 
 ```rust
-use golia_pinyin::{PinyinEngine, PinyinDict};
+use inputx_pinyin::{PinyinEngine, PinyinDict};
 
 let eng = PinyinEngine::new();
 let dict = eng.dict();
@@ -58,14 +58,12 @@ dict.prefix_for_each("zho", |pinyin, word, freq| {
     println!("{pinyin} {word} (freq={freq})");
 });
 
-// Tell the engine the user picked a word. After 3 picks of the same
-// (input, word), it's auto-pinned to L0 for that input.
+// Tell the engine the user picked a word. This bumps a usage counter
+// only — candidate order never changes as a result. Use `pin` to override
+// ordering explicitly.
 dict.record_pick("zhongguo", "中国");
 ```
 
-> The crate name on crates.io is `inputx-pinyin`, but the lib name is
-> `golia_pinyin` for ergonomic imports — `use golia_pinyin::...` works
-> directly.
 
 ## Performance
 

@@ -1,0 +1,49 @@
+# strict mode polish action log (append-only)
+# date	article_id	seg_idx	buffer	expected	got	action	polish_file	notes
+2026-06-30	SEED	-	fenci	分词	粉刺	quickfix 30000	quickfix_boost	user message inline example
+2026-06-30	SEED	-	neihe	内核	内河	quickfix 30000	quickfix_boost	user message inline example
+2026-06-30	SEED	-	lunci	轮次	(empty)	quickfix 30000 (un-exclude)	quickfix_boost	un-exclude from corpus_garbage_filter
+2026-06-30	0001	18	anzhuangyuan	安装源	(empty)	modern_vocab 35000	modern_vocab_v1	HARD missing
+2026-06-30	0001	19	chushi	初始	出使	quickfix 30000	quickfix_boost	SOFT rank 1
+2026-06-30	0001	22	bianyi	编译	便宜	quickfix 30000	quickfix_boost	SOFT rank 3 (programming term)
+2026-06-30	0001	29	faxingban	发行版	(empty)	modern_vocab 35000	modern_vocab_v1	HARD missing
+2026-06-30	USER	-	yanghao	养好	(empty)	modern_vocab 35000	modern_vocab_v1	user inline polish
+2026-06-30	0001	01	damei	大美	大媒	modern_vocab 35000	modern_vocab_v1	HARD missing
+2026-06-30	0001	04	ruhua	如画	乳化	quickfix 30000	quickfix_boost	SOFT
+2026-06-30	0001	05	dang	党	当	quickfix 30000	quickfix_boost	SOFT 政治术语
+2026-06-30	0001	06	shibada	十八大	(empty)	modern_vocab 60000	modern_vocab_v1	HARD 政治
+2026-06-30	0001	07	yilai	以来	依赖	quickfix 50000	quickfix_boost	bump over old 依赖 42992
+2026-06-30	0001	08	xijinping	习近平	(empty)	modern_vocab 70000	modern_vocab_v1	HARD 人名
+2026-06-30	0001	12	bianji	遍及	编辑	quickfix 30000	quickfix_boost	SOFT
+2026-06-30	0001	13	shenzhou	神州	(empty)	modern_vocab 35000	modern_vocab_v1	HARD literary
+2026-06-30	0001	15	qilianshan	祁连山	(empty)	modern_vocab 35000	modern_vocab_v1	HARD mountain
+2026-06-30	0001	16	qinling	秦岭	(empty)	modern_vocab 50000	modern_vocab_v1	HARD mountain
+2026-06-30	0001	17	shenchu	深处	伸出	quickfix 30000	quickfix_boost	SOFT
+2026-06-30	0001	18	huanghe	黄河	黄褐色	modern_vocab 70000	modern_vocab_v1	HARD river!
+2026-06-30	0001	21	qianqiudaji	千秋大计	千秋打击	modern_vocab 30000	modern_vocab_v1	HARD idiom
+2026-06-30	0001	23	jinxiu	锦绣	进修	quickfix 30000	quickfix_boost	SOFT
+2026-06-30	0001	38	xinxi	心系	信息	quickfix 30000	quickfix_boost	SOFT vs HSK 4 信息
+2026-06-30	0001	40	yanjiang	沿江	演讲	quickfix 30000	quickfix_boost	SOFT
+2026-06-30	0001	42	jingjidai	经济带	(empty)	modern_vocab 50000	modern_vocab_v1	HARD political
+2026-06-30	0001	44	sanxia	三峡	伞下	modern_vocab 60000	modern_vocab_v1	HARD place
+2026-06-30	0001	45	kuqu	库区	苦趣	modern_vocab 30000	modern_vocab_v1	HARD geo
+2026-06-30	0001	46	dongtinghu	洞庭湖	(empty)	modern_vocab 50000	modern_vocab_v1	HARD lake
+2026-06-30	USER	-	jiangsu	江苏	(empty)	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	hubei	湖北	护贝	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	hebei	河北	褐背地山雀	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	shanxi	山西	陕西	quickfix 50000	quickfix_boost	province batch (vs shaanxi 陕西)
+2026-06-30	USER	-	jilin	吉林	机灵	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	liaoning	辽宁	(empty)	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	heilongjiang	黑龙江	(empty)	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	shandong	山东	山洞	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	yunnan	云南	(empty)	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	guizhou	贵州	贵胄	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	hainan	海南	海难	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	ningxia	宁夏	狞笑	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	xinjiang	新疆	(empty)	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	xizang	西藏	(empty)	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	anhui	安徽	(empty)	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	shaanxi	陕西	(empty)	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	neimenggu	内蒙古	(empty)	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	guangdong	广东	广东省	quickfix 50000	quickfix_boost	province batch
+2026-06-30	USER	-	chengzhu	撑住	承转	quickfix 30000	quickfix_boost	verb hold-on

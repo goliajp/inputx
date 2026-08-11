@@ -57,8 +57,7 @@ fn main() {
          # publicly published; rime tabulation used as one reference).\n\
          # Counts: see footer."
     );
-    let mut by_len: std::collections::HashMap<usize, usize> =
-        std::collections::HashMap::new();
+    let mut by_len: std::collections::HashMap<usize, usize> = std::collections::HashMap::new();
     for (code, word) in &entries {
         *by_len.entry(word.chars().count()).or_insert(0) += 1;
         println!("{code}\t{word}");

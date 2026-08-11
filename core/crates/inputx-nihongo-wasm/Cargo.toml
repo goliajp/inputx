@@ -1,0 +1,36 @@
+[package]
+name = "inputx-nihongo-wasm"
+version = "1.5.0"
+edition = "2024"
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "WASM bindings for inputx-nihongo — Japanese romaji → hiragana/katakana + on-yomi kanji + jukugo, browser/Node ready. Powers the Inputx IME web surface."
+authors = ["GOLIA K.K."]
+repository = "https://github.com/goliajp/inputx"
+homepage = "https://github.com/goliajp/inputx"
+readme = "README.md"
+keywords = ["japanese", "ime", "romaji", "wasm", "wasm-bindgen"]
+categories = ["text-processing", "internationalization", "wasm"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Path dep for local-dev edit cycle; version constraint kicks in for
+# crates.io consumers. Consumer imports via canonical
+# `use inputx_nihongo::...` (lib name = inputx_nihongo per default,
+# no override).
+inputx-nihongo = { version = "1.4", path = "../inputx-nihongo" }
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+
+# `[profile.release]` lives at the workspace root. wasm-pack tunes its
+# own profile via `[package.metadata.wasm-pack.*]` below.
+
+# Skip `wasm-opt` — pinned to the version that doesn't accept the
+# bulk-memory instructions emitted by current Rust toolchains.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lints]
+workspace = true

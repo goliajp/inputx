@@ -2,7 +2,7 @@
 //!
 //! Phase 4 of the iOS commercial-grade roadmap. Wraps the two sub-engines
 //! (`WubiEngine` from `wubi/` + `PinyinAdapter` over the published
-//! `golia_pinyin` crate) with a `Mode` switch (Mixed / WubiOnly /
+//! `inputx_pinyin` crate) with a `Mode` switch (Mixed / WubiOnly /
 //! PinyinOnly) and a merged candidate list with `Source` attribution.
 //!
 //! Public API mirrors `WubiEngine` so the eventual transition in
@@ -10,7 +10,6 @@
 //! adds `set_engine_mode` / `get_engine_mode` / `candidate_source`
 //! getters.
 
-mod blacklist;
 mod dispatch;
 mod engine;
 mod japanese_adapter;
@@ -31,6 +30,15 @@ pub use engine::CompositeEngine;
 // JapaneseAdapter is internal to composite; sub-modules import via
 // `super::japanese_adapter::JapaneseAdapter` directly. No external
 // caller needs it via composite:: path.
-pub use merge::{Candidate, Source};
+pub use merge::{Candidate, ScoreComponents, Source};
 pub use mode::Mode;
 pub use pinyin_adapter::PinyinAdapter;
+pub use pinyin_adapter::{
+    PINYIN_DISABLE_ASSOCIATION, PINYIN_DISABLE_COMPOSE, PINYIN_DISABLE_FUZZY,
+    PINYIN_DISABLE_PREDICTION,
+};
+// v1.15 hot-reload wire points — the Session-level reload driver
+// (`Session::reload_pinyin_data`) needs to touch the process-global
+// NgramTable slots living inside pinyin_adapter.rs. Rest of the module
+// still hides the adapter internals.
+pub use pinyin_adapter::{set_bigrams_ngm_bytes, set_inter_bigrams_ngm_bytes};

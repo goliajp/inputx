@@ -18,7 +18,7 @@
 
 use wasm_bindgen::prelude::*;
 
-use wubi::{L0Snapshot, LAYER_COUNT, Layer as CoreLayer, WubiDict};
+use inputx_wubi::{L0Snapshot, LAYER_COUNT, Layer as CoreLayer, WubiDict};
 
 /// Layer enum mirrored for JS. Use as `Layer.Phrase` etc.
 #[wasm_bindgen]
@@ -99,10 +99,11 @@ impl WubiEngine {
     // -------------------------------------------------------------------
 
     /// Tell the dictionary that the user just committed `word` for `code`.
-    /// Returns `true` if this call caused an auto-promotion to L0.
+    /// Bumps the usage counter only — candidate order never changes as a
+    /// result (auto-pin removed 2026-07-20). Use `pin` to change order.
     #[wasm_bindgen(js_name = recordPick)]
-    pub fn record_pick(&self, code: &str, word: &str) -> bool {
-        self.dict.record_pick(code, word)
+    pub fn record_pick(&self, code: &str, word: &str) {
+        self.dict.record_pick(code, word);
     }
 
     /// Force-pin a word as L0 default for `code` without going through the
@@ -228,7 +229,7 @@ fn parse_snapshot(obj: &js_sys::Object) -> L0Snapshot {
         })
         .unwrap_or_default();
 
-    let mut layer_prefs = wubi::DEFAULT_LAYER_PREFS;
+    let mut layer_prefs = inputx_wubi::DEFAULT_LAYER_PREFS;
     if let Ok(arr) = js_sys::Reflect::get(obj, &"layerPrefs".into())
         && let Ok(arr) = arr.dyn_into::<js_sys::Array>()
     {

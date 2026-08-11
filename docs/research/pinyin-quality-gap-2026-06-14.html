@@ -1,0 +1,1671 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>拼音引擎质量差距研究 · inputx ↔ 主流 · 2026-06-14</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f4ecd8;
+  --paper-2:#ebe1c8;
+  --paper-3:#e0d4b6;
+  --ink:#1a2540;
+  --ink-2:#2a3556;
+  --ink-soft:#4a5474;
+  --vermillion:#c43a3a;
+  --vermillion-deep:#962b2b;
+  --gold:#a87f2c;
+  --moss:#5e6d3f;
+  --rule:#c8b886;
+  --rule-soft:#dccfa6;
+  --shadow:rgba(26,37,64,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--paper);color:var(--ink);font-family:"Crimson Pro","Noto Serif SC",Georgia,serif;font-size:18px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{
+  background-image:
+    radial-gradient(circle at 18% 12%, rgba(196,58,58,.04), transparent 35%),
+    radial-gradient(circle at 82% 88%, rgba(26,37,64,.06), transparent 40%),
+    repeating-linear-gradient(0deg, rgba(168,127,44,.02) 0 1px, transparent 1px 4px);
+}
+::selection{background:var(--ink);color:var(--paper)}
+
+/* ===== global ===== */
+.page{width:100%;padding:0;margin:0}
+section{padding:64px clamp(28px,4vw,80px);position:relative}
+section + section{border-top:1px solid var(--rule-soft)}
+
+h1,h2,h3,h4{font-family:"Noto Serif SC","Crimson Pro",serif;font-weight:700;letter-spacing:-.01em;line-height:1.15;color:var(--ink)}
+h2{font-size:clamp(38px,4.4vw,64px);font-weight:800}
+h3{font-size:clamp(24px,2vw,32px);margin-top:48px;margin-bottom:18px;border-bottom:1px solid var(--rule-soft);padding-bottom:8px}
+h4{font-size:clamp(18px,1.2vw,22px);margin-top:24px;margin-bottom:10px;color:var(--vermillion-deep)}
+p{margin-bottom:14px}
+p + p{text-indent:0}
+em{color:var(--vermillion-deep);font-style:italic}
+strong{color:var(--ink);font-weight:700}
+code,kbd{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.86em;background:rgba(26,37,64,.06);padding:1px 6px;border-radius:3px;color:var(--ink)}
+a{color:var(--vermillion-deep);text-decoration:none;border-bottom:1px solid rgba(150,43,43,.35)}
+a:hover{border-bottom-color:var(--vermillion-deep)}
+
+.meta-row{display:flex;gap:24px;flex-wrap:wrap;font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+.meta-row span{display:inline-flex;align-items:center;gap:6px}
+.meta-row span::before{content:"";display:inline-block;width:6px;height:6px;background:var(--vermillion);border-radius:50%}
+
+.chapno{font-family:"Bebas Neue","JetBrains Mono",monospace;font-size:clamp(80px,9vw,140px);line-height:.85;color:var(--vermillion);letter-spacing:-.02em;display:block}
+.chap-tag{font-family:"JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.2em;font-size:11px;color:var(--ink-soft);margin-top:6px}
+.section-head{margin-bottom:42px}
+.section-head .lede{font-size:clamp(20px,1.5vw,24px);max-width:1100px;color:var(--ink-2);font-weight:400;font-family:"Crimson Pro",serif;font-style:italic;line-height:1.5;margin-top:18px}
+
+.rule{height:1px;background:linear-gradient(90deg,var(--rule),transparent);margin:32px 0}
+.rule-double{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);height:5px;margin:24px 0}
+
+/* ===== hero ===== */
+.hero{padding:80px clamp(28px,4vw,80px) 60px;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:
+  linear-gradient(180deg,transparent 60%,rgba(196,58,58,.04));
+  pointer-events:none}
+.hero-frame{border:2px solid var(--ink);padding:clamp(28px,3vw,52px);position:relative;background:rgba(244,236,216,.4)}
+.hero-frame::before,.hero-frame::after{content:"";position:absolute;width:18px;height:18px;border:2px solid var(--vermillion);background:var(--paper)}
+.hero-frame::before{top:-10px;left:-10px}
+.hero-frame::after{bottom:-10px;right:-10px}
+.brand{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--vermillion-deep);margin-bottom:18px}
+.hero h1{font-family:"Noto Serif SC",serif;font-size:clamp(56px,7.5vw,128px);font-weight:900;letter-spacing:-.02em;line-height:.96;color:var(--ink)}
+.hero h1 .red{color:var(--vermillion);font-style:italic;font-weight:700}
+.hero-sub{margin-top:28px;font-size:clamp(20px,1.7vw,28px);font-style:italic;color:var(--ink-2);max-width:1200px;line-height:1.5}
+.hero-meta{margin-top:36px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px 32px;padding-top:24px;border-top:1px solid var(--rule)}
+.hero-meta dl{display:flex;flex-direction:column;gap:4px}
+.hero-meta dt{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft)}
+.hero-meta dd{font-family:"Noto Serif SC",serif;font-weight:500;font-size:16px;color:var(--ink)}
+
+/* ===== executive summary ===== */
+.summary-grid{display:grid;grid-template-columns:1fr;gap:32px}
+@media(min-width:900px){.summary-grid{grid-template-columns:1.4fr .9fr}}
+.tldr{background:var(--ink);color:var(--paper);padding:clamp(28px,3vw,48px);position:relative}
+.tldr::before{content:"TL;DR";position:absolute;top:18px;right:24px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.3em;color:var(--vermillion)}
+.tldr h3{color:var(--paper);border-color:rgba(244,236,216,.2);font-size:24px;margin-top:0}
+.tldr p{font-size:18px;line-height:1.65;color:var(--paper-2)}
+.tldr p strong{color:var(--paper)}
+.tldr p em{color:#e6a370}
+.verdict-card{border:1px solid var(--rule);padding:24px 28px;background:var(--paper-2)}
+.verdict-card .label{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--vermillion-deep);margin-bottom:10px}
+.verdict-card .big{font-family:"Bebas Neue",sans-serif;font-size:84px;line-height:1;color:var(--ink);letter-spacing:-.02em}
+.verdict-card .desc{margin-top:8px;font-size:14px;font-style:italic;color:var(--ink-soft)}
+
+.verdicts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-top:28px}
+
+/* ===== big tables ===== */
+.full-table{width:100%;border-collapse:collapse;font-size:15px;background:rgba(244,236,216,.4)}
+.full-table thead th{background:var(--ink);color:var(--paper);font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;padding:14px 12px;text-align:left;vertical-align:bottom}
+.full-table thead th:first-child{width:18%}
+.full-table tbody td{padding:14px 12px;border-bottom:1px solid var(--rule-soft);vertical-align:top;line-height:1.5}
+.full-table tbody tr:hover td{background:rgba(196,58,58,.04)}
+.full-table .dim{font-family:"Noto Serif SC",serif;font-weight:700;color:var(--ink)}
+.full-table .ix{background:rgba(196,58,58,.06)}
+.tag{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.tag-have{background:#dde7d5;color:#3d5325}
+.tag-gate{background:#f3d9b8;color:#8a5a14}
+.tag-miss{background:#f0c7c2;color:#7e2222}
+.tag-cloud{background:#cfd9e8;color:#2a3556}
+
+/* ===== two/three-col text ===== */
+.cols-2{column-count:2;column-gap:48px;column-rule:1px solid var(--rule-soft)}
+.cols-3{column-count:3;column-gap:40px;column-rule:1px solid var(--rule-soft)}
+@media(max-width:1100px){.cols-3{column-count:2}}
+@media(max-width:700px){.cols-2,.cols-3{column-count:1}}
+
+/* ===== marginalia layout ===== */
+.lay-with-margin{display:grid;grid-template-columns:1fr;gap:24px}
+@media(min-width:1000px){.lay-with-margin{grid-template-columns:1fr 320px;gap:60px}}
+.aside{font-size:14px;line-height:1.6;color:var(--ink-soft);font-style:italic;border-left:2px solid var(--vermillion);padding:14px 0 14px 18px;background:linear-gradient(90deg,rgba(196,58,58,.05),transparent)}
+.aside b{font-style:normal;color:var(--ink);display:block;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:6px}
+
+/* ===== formula block ===== */
+.formula{font-family:"JetBrains Mono",monospace;background:#fff8e7;border:1px solid var(--rule);padding:20px 24px;margin:18px 0;font-size:15px;line-height:1.85;overflow-x:auto;white-space:pre;color:var(--ink)}
+.formula .c{color:var(--vermillion-deep)}
+.formula .k{color:var(--gold)}
+.formula .m{color:var(--moss)}
+
+/* ===== pull-quote ===== */
+.pull{font-family:"Noto Serif SC",serif;font-size:clamp(28px,3vw,46px);line-height:1.25;font-weight:300;color:var(--ink);font-style:italic;padding:32px 0;border-top:3px double var(--rule);border-bottom:3px double var(--rule);margin:36px 0;max-width:1400px;text-indent:-.4em}
+.pull::first-letter{color:var(--vermillion);font-size:1.4em;font-weight:700}
+.pull cite{display:block;margin-top:12px;font-size:14px;font-style:normal;font-family:"JetBrains Mono",monospace;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-soft);text-indent:0}
+
+/* ===== diagram - flow ===== */
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin:24px 0;align-items:stretch}
+.flow .step{background:var(--paper-2);padding:18px 18px;border:1px solid var(--rule);position:relative}
+.flow .step .n{font-family:"Bebas Neue",sans-serif;font-size:32px;line-height:1;color:var(--vermillion);display:block;margin-bottom:8px}
+.flow .step .t{font-family:"Noto Serif SC",serif;font-weight:700;font-size:14px;margin-bottom:6px;color:var(--ink)}
+.flow .step .d{font-size:13px;color:var(--ink-soft);line-height:1.5}
+.flow .arr{display:none}
+
+/* ===== gap deepdive cards ===== */
+.gap-grid{display:grid;grid-template-columns:1fr;gap:32px;margin-top:24px}
+.gap{display:grid;grid-template-columns:1fr;gap:24px;border-top:3px solid var(--ink);padding-top:24px}
+@media(min-width:1100px){.gap{grid-template-columns:1fr 1.6fr 1.6fr;gap:42px}}
+.gap-head .num{font-family:"Bebas Neue",sans-serif;font-size:64px;line-height:1;color:var(--vermillion)}
+.gap-head .title{font-family:"Noto Serif SC",serif;font-weight:700;font-size:22px;color:var(--ink);margin-top:6px}
+.gap-head .kind{margin-top:12px;display:inline-block}
+.gap-sub{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;display:block}
+.gap h4{margin-top:0;color:var(--ink);font-size:18px;border-bottom:1px solid var(--rule-soft);padding-bottom:6px}
+
+/* ===== roadmap ===== */
+.roadmap{display:grid;grid-template-columns:1fr;gap:24px;margin-top:36px}
+@media(min-width:1100px){.roadmap{grid-template-columns:repeat(3,1fr)}}
+.phase{border:1px solid var(--ink);background:var(--paper-2);padding:28px;position:relative}
+.phase::before{content:attr(data-ph);position:absolute;top:-14px;left:24px;background:var(--paper);padding:0 12px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:var(--vermillion-deep)}
+.phase h4{font-family:"Noto Serif SC",serif;font-size:22px;margin:0 0 4px;color:var(--ink)}
+.phase .est{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.15em;margin-bottom:14px;display:block}
+.phase ol{margin:14px 0 0 18px;font-size:15px;line-height:1.65}
+.phase ol li{margin-bottom:10px}
+.phase ol li strong{display:block;color:var(--vermillion-deep);font-family:"Noto Serif SC",serif}
+
+/* ===== learning ladder ===== */
+.ladder{counter-reset:rung;display:flex;flex-direction:column;gap:0;margin-top:24px}
+.rung{counter-increment:rung;display:grid;grid-template-columns:80px 1fr;gap:24px;padding:24px 0;border-top:1px solid var(--rule-soft)}
+.rung::before{content:"R" counter(rung,decimal-leading-zero);font-family:"Bebas Neue",sans-serif;font-size:48px;color:var(--vermillion);line-height:1}
+.rung h4{margin:0 0 4px;font-size:20px;color:var(--ink);border:none;padding:0}
+.rung .what{font-size:14px;color:var(--ink-soft);font-style:italic;margin-bottom:8px}
+.rung .links{display:flex;flex-wrap:wrap;gap:14px 24px;font-size:14px}
+.rung .links a{font-family:"JetBrains Mono",monospace;font-size:12px}
+
+/* ===== resource map (§06 v2) ===== */
+.week-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:24px 0 8px}
+@media(max-width:1100px){.week-cal{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}}
+.day{border:1px solid var(--ink);background:var(--paper-2);padding:18px 16px;position:relative;min-height:200px;display:flex;flex-direction:column}
+.day .dh{font-family:"Bebas Neue",sans-serif;font-size:14px;letter-spacing:.2em;color:var(--vermillion);border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline}
+.day .dh .hrs{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-soft);letter-spacing:.05em}
+.day h5{font-family:"Noto Serif SC",serif;font-size:14px;font-weight:700;color:var(--ink);margin:0 0 6px;line-height:1.3}
+.day .tag-mini{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--vermillion-deep);margin-bottom:6px;display:block}
+.day p{font-size:13px;color:var(--ink-soft);line-height:1.5;font-style:italic;margin:0;flex:1}
+.day a{font-size:12px;font-family:"JetBrains Mono",monospace;display:block;margin-top:8px;word-break:break-word}
+
+.track-head{margin:48px 0 18px;padding-top:24px;border-top:3px solid var(--ink);display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+.track-head .tno{font-family:"Bebas Neue",sans-serif;font-size:52px;color:var(--vermillion);line-height:1;letter-spacing:-.02em}
+.track-head h3{margin:0;border:none;padding:0;font-size:28px}
+.track-head .tsub{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);margin-left:auto}
+
+.subtrack{margin:24px 0 8px;font-family:"Noto Serif SC",serif;font-size:18px;font-weight:600;color:var(--vermillion-deep);padding-left:14px;border-left:3px solid var(--vermillion)}
+
+.res-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;margin:14px 0 8px}
+.res{background:rgba(244,236,216,.4);border:1px solid var(--rule-soft);padding:16px 18px;font-size:14px;display:flex;flex-direction:column;gap:8px;transition:background .15s;position:relative}
+.res:hover{background:rgba(196,58,58,.05);border-color:var(--vermillion)}
+.res .title{font-family:"Noto Serif SC",serif;font-weight:700;font-size:15px;color:var(--ink);line-height:1.35}
+.res .title a{color:var(--ink);border-bottom:1px solid rgba(26,37,64,.2)}
+.res .title a:hover{color:var(--vermillion-deep);border-bottom-color:var(--vermillion-deep)}
+.res .meta{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.08em;color:var(--ink-soft);text-transform:uppercase}
+.res .why{font-size:13px;line-height:1.55;color:var(--ink-2)}
+.res .why::before{content:"why · ";font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;color:var(--vermillion);text-transform:uppercase}
+.res .caveat{font-size:12px;line-height:1.5;color:var(--ink-soft);font-style:italic;border-top:1px dashed var(--rule-soft);padding-top:6px}
+.res .caveat::before{content:"caveat · ";font-style:normal;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;color:var(--gold);text-transform:uppercase}
+
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:24px}
+.pick{background:var(--ink);color:var(--paper);padding:24px 26px;position:relative;display:flex;flex-direction:column;gap:10px}
+.pick::before{content:"";position:absolute;top:0;left:0;width:6px;height:100%;background:var(--vermillion)}
+.pick .rank{font-family:"Bebas Neue",sans-serif;font-size:44px;color:var(--vermillion);line-height:1}
+.pick .title{font-family:"Noto Serif SC",serif;font-weight:700;font-size:18px;color:var(--paper)}
+.pick .title a{color:#e6a370;border-bottom-color:rgba(230,163,112,.3)}
+.pick .why{font-size:14px;line-height:1.6;color:var(--paper-2)}
+
+.notice{background:#fff8e7;border-left:4px solid var(--gold);padding:16px 22px;margin:24px 0;font-size:14px;line-height:1.6}
+.notice b{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:6px}
+
+.gap-list{background:rgba(196,58,58,.04);border:1px dashed var(--vermillion);padding:20px 26px;margin-top:24px}
+.gap-list h4{color:var(--vermillion-deep);font-size:16px;border:none;padding:0;margin:0 0 12px}
+.gap-list ul{list-style:none;padding:0;margin:0;font-size:14px;line-height:1.7;color:var(--ink-2)}
+.gap-list li{padding-left:18px;position:relative}
+.gap-list li::before{content:"⊘";position:absolute;left:0;color:var(--vermillion);font-weight:bold}
+
+/* ===== footer ===== */
+.foot{background:var(--ink);color:var(--paper);padding:56px clamp(28px,4vw,80px);margin-top:0}
+.foot h3{color:var(--paper);border-color:rgba(244,236,216,.15);font-family:"JetBrains Mono",monospace;font-size:14px;letter-spacing:.2em;text-transform:uppercase}
+.foot a{color:#e6a370;border-bottom-color:rgba(230,163,112,.35)}
+.foot .credit{margin-top:32px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,236,216,.5);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:24px;border-top:1px solid rgba(244,236,216,.15)}
+
+/* ===== small print utilities ===== */
+.small{font-size:13px;color:var(--ink-soft)}
+.kbd{font-family:"JetBrains Mono",monospace;font-size:12px;background:var(--paper-3);padding:2px 8px;border:1px solid var(--rule);border-bottom-width:2px;border-radius:3px}
+.divider-mark{text-align:center;font-family:"Noto Serif SC",serif;font-size:24px;color:var(--vermillion);letter-spacing:1em;padding:24px 0}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ====================== HERO ====================== -->
+<section class="hero">
+  <div class="hero-frame">
+    <div class="brand">research notebook · inputx pinyin · 2026.06.14</div>
+    <h1>从 <span class="red">能用</span><br>到 <span class="red">好用</span>。</h1>
+    <p class="hero-sub">一份诚实的差距盘点 —— 把 inputx 当前拼音引擎,与搜狗、libpinyin、librime 一线水平,放在同一张桌上量一量;并指出从这里抵达"主流可用"所需的每一块零件。</p>
+    <div class="hero-meta">
+      <dl><dt>主题</dt><dd>拼音 IME 引擎质量差距与改进路径</dd></dl>
+      <dl><dt>对象</dt><dd>inputx · core/crates/inputx-pinyin</dd></dl>
+      <dl><dt>对照</dt><dd>Sogou · libpinyin · SunPinyin · librime</dd></dl>
+      <dl><dt>语料</dt><dd>library.tsv 416,598 行 · pinyin.dict 3.9 MB</dd></dl>
+      <dl><dt>立场</dt><dd>承认差距 / 给路径 / 不粉饰</dd></dl>
+      <dl><dt>读者</dt><dd>引擎作者 · 不是用户文档</dd></dl>
+      <dl><dt>上位约束</dt><dd><a href="./inputx-engine-constitution-2026-06-14.html" style="color:var(--vermillion-deep)">引擎宪法 · 七律</a></dd></dl>
+      <dl><dt>执行手册</dt><dd><a href="./pinyin-climb-plan-2026-06-14.html" style="color:var(--vermillion-deep)">爬升执行表 · 38 CP</a></dd></dl>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== EXEC SUMMARY ====================== -->
+<section>
+  <div class="section-head">
+    <span class="chapno">00</span>
+    <div class="chap-tag">Executive · 一页结论</div>
+    <h2>开门见山。</h2>
+    <p class="lede">如果只读一节,读这一节。</p>
+  </div>
+
+  <div class="summary-grid">
+    <div class="tldr">
+      <h3>诚实的判断</h3>
+      <p>inputx 当前拼音<strong>不是"差一点点"</strong>,而是<strong>差一整代工业级 IME 应有的底盘能力</strong>。</p>
+      <p>具体来说有<em>三件根本性的事</em>:第一,没有真正意义上的<strong>语言模型</strong>(只有 unigram 频率 + 一个二阶 bigram support 的二元判定),没有真正的 trigram 概率 + 平滑;第二,没有<strong>联合切分 + 解码</strong>的 lattice,长句拼音<code>woshibeijingren</code>不能整句出"我是北京人";第三,大量已经实现的零件(联想、模糊、简拼、Viterbi 组合)<em>当前全部被 gate 关闭</em>,处于"等用户逐个 polish 才能打开"的极小化调试状态。</p>
+      <p>底盘缺,所以再多 polish 都在搬砖;上层关,所以已有的工程能力都没在为用户产生价值。</p>
+      <p><strong>但有好消息</strong>:词库、评分公式、L0 用户学习、Viterbi 框架、模糊表 —— 这些都<em>已经存在</em>,代码质量也不差。差距更多是<strong>"系统性的缺一块 + 选择性的关掉一块"</strong>,不是"全部从零做"。</p>
+      <p style="margin-top:24px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#e6a370;">→ 见 §04 差距矩阵 / §05 改进路径</p>
+    </div>
+
+    <div>
+      <div class="verdicts">
+        <div class="verdict-card">
+          <div class="label">structural gaps</div>
+          <div class="big">7</div>
+          <div class="desc">缺零件,需要新做</div>
+        </div>
+        <div class="verdict-card">
+          <div class="label">gated features</div>
+          <div class="big">4</div>
+          <div class="desc">代码已有,gate 关闭</div>
+        </div>
+        <div class="verdict-card">
+          <div class="label">dict size</div>
+          <div class="big">416k</div>
+          <div class="desc">library.tsv 行数</div>
+        </div>
+        <div class="verdict-card">
+          <div class="label">est. effort</div>
+          <div class="big">~6m</div>
+          <div class="desc">到主流可用的工程量级</div>
+        </div>
+      </div>
+
+      <div class="aside" style="margin-top:28px">
+        <b>读法建议</b>
+        把这份报告当"对照阅读" —— 左眼看 §01 (现状) , 右眼看 §02 (标杆) , 然后看 §03 表格 知道哪一格亮红, 再翻 §05 路径 知道下一步动手做什么。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== §00.5 我们已经领先的设计 ====================== -->
+<section style="background:rgba(196,58,58,.04)">
+  <div class="section-head">
+    <span class="chapno" style="color:var(--ink)">00½</span>
+    <div class="chap-tag" style="color:var(--vermillion-deep)">balance · 我们已经领先的设计</div>
+    <h2>金身 · 别为追主流破了。</h2>
+    <p class="lede">§00 讲"差一代",这一节讲"哪些设计已领先 / 不能动"。读差距报告时别把这俩搞混 —— <strong>差距是单引擎排序能力 vs 主流;金身是多引擎共存的解耦机制 vs 主流根本没做</strong>。</p>
+  </div>
+
+  <div class="summary-grid">
+    <div class="tldr" style="background:var(--vermillion-deep)">
+      <h3>已经领先的三件事</h3>
+      <p><strong>1. 三引擎共存的正交矩阵</strong> · 10-tier × {wubi, pinyin, nihongo} 的格子,严格 lexicographic sort。这是 inputx <em>解耦三种输入方式的唯一方法</em> —— 主流单引擎 IME 根本不需要,也根本没做。</p>
+      <p><strong>2. wx > px > nx 五笔优先</strong> · 由 <code>engine_gap_q4 = 110 > within_tier_max_q4 = 100</code> 物理保证,任何 within-tier 分数都翻不过 engine 偏序。Wubi 一级简码 floor = <code>1,000,000</code>,是 Inputx 五笔的<em>品牌技术承诺</em>(肌肉记忆不被高频拼音夺走)。搜狗不做"五笔优先"—— 你要五笔得装独立软件。</p>
+      <p><strong>3. 公式驱动 + 数据通道严控</strong> · 排序逻辑里<em>不存在</em> per-entry hardcoded list / if-branch。系统性问题改公式(z-score 分布 / tier 阈值),per-case 才进六张约定 TSV。这是 inputx 不变成"补丁堆"的关键自律。</p>
+      <p style="margin-top:24px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#e6a370;">→ 完整七律见 <a href="./inputx-engine-constitution-2026-06-14.html" style="color:#e6a370;border-bottom-color:rgba(230,163,112,.4)">《引擎宪法》</a> · 权威源 <code>.claude/RANKING-MODEL-INVARIANTS.md</code></p>
+    </div>
+
+    <div>
+      <div class="aside" style="margin-bottom:20px">
+        <b>"差距"vs"金身"分轨</b>
+        <strong style="display:block;margin-bottom:8px;font-style:normal;color:var(--ink)">差距(§01-04)</strong>
+        单引擎 inside 的 ranking 能力 vs 主流。LM 阶数、联合 lattice、用户 bigram、整句解码 —— 这些是 within-engine 升级,补起来即可。<br><br>
+        <strong style="display:block;margin-bottom:8px;font-style:normal;color:var(--ink)">金身(§00.5 + 宪法)</strong>
+        跨引擎 between 的解耦机制。正交矩阵、wx>px>nx、tier 0 留 user pin、禁特殊列表 —— 这些是 architecture-level invariants,<em>主流没做也学不来</em>。
+      </div>
+
+      <div class="verdict-card" style="background:rgba(196,58,58,.08);border-color:var(--vermillion)">
+        <div class="label" style="color:var(--vermillion-deep)">立场</div>
+        <div class="big" style="font-size:36px;line-height:1.15;font-family:'Noto Serif SC',serif;font-weight:700;color:var(--vermillion-deep)">不为追主流<br>破金身</div>
+        <div class="desc">学搜狗 LM 是为了让 pinyin engine within-tier 排得更准 · 不是为了把三引擎熔成一个 · 不是为了拿掉 wx>px>nx · 不是为了在 Rust 加 carveout 压主流一头。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notice" style="margin-top:32px">
+    <b>读法纠正</b>
+    后面 §01-04 的"差距"叙事<strong>仅适用于 within-engine 排序能力</strong>。任何提到"补差距"的改动方案,都<em>预设了不破矩阵 / 不破 wx>px>nx / 不破公式驱动</em>这三条金身。如果改动方案要破其中任何一条,走 <a href="./inputx-engine-constitution-2026-06-14.html">宪法律七</a> 修宪程序,不是 polish 流程。
+  </div>
+</section>
+
+<!-- ====================== §01 现状 ====================== -->
+<section>
+  <div class="section-head">
+    <span class="chapno">01</span>
+    <div class="chap-tag">As-is · inputx 拼音引擎全链路解剖</div>
+    <h2>我们现在长什么样。</h2>
+    <p class="lede">基于代码事实(不是印象)的现状报告。每段都对应到具体文件、函数和路径名,可追溯、可验证。</p>
+  </div>
+
+  <h3>1.1 全链路:从一次按键到候选浮现</h3>
+  <div class="lay-with-margin">
+    <div>
+      <p>用户按下一个字母 → <code>CompositeEngine::handle_letter()</code> (<code>core/crates/inputx-core/src/composite/engine.rs</code>) → 并行分发到 <code>WubiEngine</code> + <code>PinyinAdapter</code> + 可选的 <code>JapaneseAdapter</code> → 各引擎独立产生候选 → <code>dispatch()</code> (<code>composite/dispatch.rs:64</code>) 执行跨引擎合并规则 → <code>merge()</code> (<code>composite/merge.rs</code>) 统一排序 → 返回给 UI。</p>
+      <p>拼音侧的核心是 <code>PinyinAdapter</code>,包装了 <code>inputx-pinyin</code> 库,维护输入 buffer 和候选缓存。每次 <code>handle_letter()</code> 触发 <code>refresh_candidates()</code> (<code>pinyin_adapter.rs:1184</code>),它按一个固定顺序执行 <strong>七条路径</strong>(Path 0a → 3b),把每条路径产生的候选拼起来,再走合并。</p>
+      <p>这是一个<em>"多路径并联 + 后置融合排序"</em>的形态,而不是经典 IME 教科书里的"统一 lattice + Viterbi 一次解码"。这个差异在 §04.3 会展开。</p>
+    </div>
+    <div class="aside">
+      <b>关键观察</b>
+      "多路径并联"的好处是模块化、易调试;代价是每条路径的得分要靠手工 scale 才能比较,容易出现某一路径"压制"另一路径的失衡。这恰好是 polish 工作的主要内容。
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="step"><span class="n">0a</span><div class="t">重复字母词</div><div class="d">hhhh → 哈哈哈哈;迁至规则引擎</div></div>
+    <div class="step"><span class="n">0b</span><div class="t">长 buffer Viterbi</div><div class="d">≥ 8 字节才触发,bigram 质量门;受 COMPOSE gate</div></div>
+    <div class="step"><span class="n">1a</span><div class="t">精确音节查询</div><div class="d">字典 lookup,声调可选 + 繁简 + 异音</div></div>
+    <div class="step"><span class="n">1b</span><div class="t">模糊音展开</div><div class="d">9 对方言融合(zh/z 等);单规则无级联</div></div>
+    <div class="step"><span class="n">1c</span><div class="t">2 辅音 typo 救援</div><div class="d">pyin → 拼音;有"≥3 字节干净音节"门槛</div></div>
+    <div class="step"><span class="n">2</span><div class="t">简拼 / 缩写</div><div class="d">zg → 中国;受 ASSOCIATION gate</div></div>
+    <div class="step"><span class="n">3a</span><div class="t">FST prefix 完成</div><div class="d">用户没打完时的前缀模糊匹配</div></div>
+    <div class="step"><span class="n">3b</span><div class="t">音节感知 trim-retry</div><div class="d">v1.13.0 新加,递进 trim 直到匹配</div></div>
+  </div>
+
+  <h3>1.2 评分模型:三轴 log-space 加法</h3>
+  <p>核心评分公式(见 <code>docs/SCORING.md §2</code> 与 <code>composite/merge.rs</code>),v1.4.2 起进入三轴 log-space 加法:</p>
+
+<div class="formula"><span class="c">score_q4(c)</span> = <span class="k">log_prior_q4</span>(c)        <span class="m">// Q4 定点 (×16) 的 log 频率, 语料先验</span>
+            + <span class="k">log_likelihood_q4</span>(c)   <span class="m">// Q4 定点 的 log 似然: Exact / Prefix / Fuzzy 分级</span>
+
+  <span class="m">// Bayesian 解读: P(W|i) ∝ P(i|W) · P(W)</span>
+  <span class="m">// = likelihood · prior  →  加在 log 空间</span>
+
+<span class="c">tier(c)</span>     ∈ {0..9}  <span class="m">// 低 tier 候选无条件压住高 tier (无视频率)</span>
+                       <span class="m">// Wubi 简码 = tier 0 floor 1e6 → 保证五笔品牌</span>
+                       <span class="m">// Pinyin 短 phrase = tier 4 (default)</span>
+
+<span class="c">L0 promote</span>: pin/freq override 由 user pick 驱动, 3 次相同 (pinyin, word) 自动 pin
+            <span class="m">// PROMOTE_THRESHOLD=3 (ranking.rs:28)</span></div>
+
+  <p>这套打分本身是干净的;问题不在"算得对不对",而在<em>能拿来算的特征太少</em> —— 没有 bigram 概率(只有 binary support)、没有 trigram、没有 char-level fallback。所以排序失误一旦发生,你能调整的旋钮就只有"加 polish、动 freq",久而久之就变成一份手工词频表。</p>
+
+  <h3>1.3 词库:量与源</h3>
+  <div class="cols-3">
+    <p><strong>规模</strong>。<code>library.tsv</code> 416,598 行;编译后的 <code>pinyin.dict</code>(FST)3.9 MB;另有 1.7 KB 的 <code>bootstrap-only</code> 引导 dict。FST 的 key 编排为 <code>{pinyin}\x00{word}</code>,value 是 u64 频率分。</p>
+    <p><strong>来源(<code>SCORING.md §1.1</code>)</strong>。Wikipedia zh / ja(unigram + bigram baseline)、jieba(分词)、Leipzig zh corpus、LCCC-base(口语 / 微博)、Unihan(读音 + 异字)、KANJIDIC2(日文)、OpenCC(繁简映射)、用户 polish 上报(opt-in)、LLM 标注(ambiguous codes)。</p>
+    <p><strong>处理 pipeline(<code>SCORING.md §1.2</code>)</strong>。<code>tools/scoring/</code> 下 8 步:fetch → extract → normalize(log-rank 跨源)→ layer_assign → merge → llm_annotate(Claude API 批处理)→ validate(QA 门)→ pack(.dict)。每步 resumable + cacheable。</p>
+    <p><strong>QA 门</strong>。回归 70+ baseline 100% 通过;稳定预算 ≥ 95% polish wins 不翻转;覆盖容差 -1% max;LLM judge 采样 200 条均值 ≥ 2.3。</p>
+    <p><strong>个性化 L0</strong>。<code>pins: HashMap&lt;String, String&gt;</code> + <code>pick_counts: HashMap&lt;(String,String), u32&gt;</code> 两张表,3 次 pick 自动 promote。export/import L0Snapshot 由宿主序列化。</p>
+    <p><strong>结构性缺口</strong>。词频固定在 build-time FST 二级结构内,<em>runtime 无法对单条 entry 改 freq</em>;只能靠 L0 层 override,不能让"上周才出现的热词"在不重建 FST 的前提下提升。</p>
+  </div>
+
+  <h3>1.4 当前开关状态(2026-06-14)</h3>
+  <table class="full-table">
+    <thead><tr><th>Gate</th><th>Current</th><th>关闭的能力族群</th><th>背后的零件</th><th>何时打开</th></tr></thead>
+    <tbody>
+      <tr><td><code>PINYIN_DISABLE_COMPOSE</code></td><td><span class="tag tag-miss">true</span></td><td>Viterbi 整句 + K-best 短 buffer 组合 + 机械 fallback</td><td>Path 0b 完整 + best_composition_chain</td><td>等 user polish 报告收敛</td></tr>
+      <tr><td><code>PINYIN_DISABLE_ASSOCIATION</code></td><td><span class="tag tag-miss">true</span></td><td>重复字母词 + 简拼缩写</td><td>Path 0a + Path 2</td><td>同上</td></tr>
+      <tr><td><code>PINYIN_DISABLE_FUZZY</code></td><td><span class="tag tag-miss">true</span></td><td>方言 swap + 2 辅音 typo + 音节 trim-retry</td><td>Path 1b + 1c + 3b</td><td>同上</td></tr>
+      <tr><td><code>PINYIN_DISABLE_PREDICTION</code></td><td><span class="tag tag-miss">true</span></td><td>post-commit trigram 联想 + 链式 pick</td><td>predict_next_words_context()</td><td>同上</td></tr>
+    </tbody>
+  </table>
+  <p class="small" style="margin-top:14px"><em>现在用户实际体验到的拼音 = 七条路径里只剩 1a (精确) + 3a (FST prefix) + rare-CJK filter 在工作。</em>这是有意为之的极小化调试模式 —— 但意味着用户对"拼音是否好用"的判断,实际上只看到了引擎能力的不到三分之一。</p>
+</section>
+
+<!-- ====================== §02 标杆 ====================== -->
+<section>
+  <div class="section-head">
+    <span class="chapno">02</span>
+    <div class="chap-tag">Benchmark · 主流拼音的关键能力</div>
+    <h2>他们做到了什么。</h2>
+    <p class="lede">不是"用了 NLP"的废话总结;是具体算法、具体论文、具体能跑的开源对照。</p>
+  </div>
+
+  <h3>2.1 语言模型:trigram + 平滑(本地标准答案)</h3>
+  <div class="lay-with-margin">
+    <div>
+      <p>主流本地路线一致是 <strong>trigram + Kneser–Ney / Witten–Bell / Backoff 平滑</strong>。微软 IME 的 <a href="https://dl.acm.org/doi/10.1145/595576.595578" target="_blank">Gao et al. 2002 (ACM TALIP)</a> 是公认起点:trigram + 从 web 自动抓语料 + 最大似然分词训练。开源代表 <a href="https://github.com/sunpinyin/sunpinyin" target="_blank">SunPinyin</a> 明确写 "backoff bigram and trigram language model";训练语料是新浪 / 人民日报数百 MB ~ GB 级。</p>
+      <p>2015 年起学术界把 NN 引入(<a href="https://aclanthology.org/Y15-1052.pdf" target="_blank">Y15-1052</a>),做法是<em>把 NN 的概率"压回 backoff n-gram"</em>喂给 IME —— 保持本地实时性,不上 GPU。再后来 <a href="https://arxiv.org/pdf/2203.00249" target="_blank">PinyinGPT (ACL 2022)</a> 把 GPT 微调用于 P2C。</p>
+      <p>商业 IME 的工程结论一致:<strong>本地 n-gram(快、小),云端可走 NN/LLM</strong>。</p>
+    </div>
+    <div class="aside">
+      <b>对我们的意味</b>
+      "trigram + 平滑"在 inputx 现状里完全没有 —— 我们只有 unigram + 二阶 bigram 的 binary support 判定(<code>bigrams.ngm</code> 表 MAX 是否 > 0)。这是从"频率表"过渡到"语言模型"之前的最后一站。
+    </div>
+  </div>
+
+  <h3>2.2 整句解码:Viterbi + Beam(教科书答案)</h3>
+  <p><a href="https://aclanthology.org/P00-1031.pdf" target="_blank">Chen & Lee 2000 (ACL)</a> 把 <strong>HMM + Viterbi</strong> 定为 baseline:trigram + 统计分词 + Viterbi。现代实现普遍是 <strong>Viterbi + beam search</strong>(beam 宽度 16~64)。神经路线把它换成 seq2seq + attention(<a href="https://arxiv.org/pdf/1811.04352" target="_blank">Moon IME, arXiv:1811.04352</a>);Joint Graph Model(<a href="https://aclanthology.org/P14-1142/" target="_blank">ACL 2014 P14-1142</a>)进一步把 typo 也塞进同一张 lattice。</p>
+  <p>关键工程结论:<em>不要把"拼音切分"和"汉字解码"分两阶段</em>。把所有合法切分(包括 typo 修正后的)塞进同一张 lattice,让 Viterbi 一起选 —— <code>xianjin → 现金/先进</code>靠的就是上下文 trigram 压倒切分歧义。</p>
+
+  <h3>2.3 词典与切分歧义</h3>
+  <div class="cols-2">
+    <p><strong>词典量级</strong>。主流 IME 核心词库 <em>10~30 万词</em>,核心高频 5~10 万;搜狗细胞词库另有约 3 万领域词库、累计 5000 万词条(2015 数据)。inputx 的 416k 词条<em>规模上不输</em>,但缺少分领域的"细胞"机制。</p>
+    <p><strong>组织</strong>。普遍 trie / DAWG / FST 做前缀检索 + 一张 bigram/trigram 哈希做概率。libpinyin 的 <code>model.bin</code> 就是 zhuyin→word 映射 + n-gram。inputx 的 FST 是同一形态,但"n-gram 那张表"还没成型(只有 bigram support 的 binary 表)。</p>
+  </div>
+
+  <h3>2.4 模糊音 / 容错 / typo</h3>
+  <p><strong>模糊音独立于 LM</strong>,典型是单独的 fuzzy-table(<a href="https://github.com/rime/librime" target="_blank">librime spelling algebra</a> 是范本):<code>zh↔z / ch↔c / sh↔s / n↔l / h↔f / r↔l / in↔ing / en↔eng / an↔ang</code>。实现是在输入阶段把每个音节展开成等价集合,可带概率(如 <code>p(zhong|zong)=0.15</code>)。</p>
+  <p><strong>键盘临近键纠错</strong>走 edit-distance ≤ 1 + 键盘邻接图(qw / as 等)。<a href="https://arxiv.org/pdf/1805.00741" target="_blank">KNPTC (arXiv:1805.00741)</a> 用 NMT 做 typo correction,但工业实现仍是规则 + edit-distance + Viterbi 联合。</p>
+
+  <h3>2.5 个性化:三件套</h3>
+  <div class="cols-3">
+    <p><strong>动态词频</strong>。每次上屏 +1,带指数衰减避免老词卡死。"动态频率"是默认 on 的开关,搜狗等都可关闭(让你看到的排序更可预测)。</p>
+    <p><strong>自造词收录</strong>。连续 2~3 次上屏同一组合 → 自动入个人词库。inputx 的 L0 PROMOTE_THRESHOLD=3 就是同一思路。</p>
+    <p><strong>多端同步</strong>。云端账户同步个人词库 + 用户 n-gram。SunPinyin 把 user n-gram 和系统 n-gram 做<em>线性插值</em>(λ·user + (1-λ)·system),λ 动态。</p>
+  </div>
+
+  <h3>2.6 联想 · 云输入 · 评测</h3>
+  <p><strong>联想</strong>本质就是 trigram LM 的子集 —— 给定 w_{i-2}, w_{i-1} 找 argmax P(w_i | ·),<em>共用同一份 LM 即可</em>。神经路线见 <a href="https://www.researchgate.net/publication/334114912" target="_blank">Moon IME</a>、<a href="https://openreview.net/pdf?id=KdYsPwavXr" target="_blank">AttnInput</a>。</p>
+  <p><strong>云输入</strong>把同一句拼音同时发到云端,云端用更大 LM + 实时语料(热搜、人名、地名)算 top-1,150~500ms 回插。是搜狗 / 百度的差异化来源。注意安全代价(<a href="https://thehackernews.com/2024/04/major-security-flaws-expose-keystrokes.html" target="_blank">2024 Citizen Lab 报告</a>明文传输 keystroke)。</p>
+  <p><strong>评测</strong>事实标准两个:<em>MIU Accuracy</em>(Maximum Input Unit 句内最长连续汉字段,top-1/5/10 命中率)+ <em>KySS</em>(KeyStroke Score 按键经济性)。测试集 People's Daily(新闻易)+ chat(口语难)。Top-1 MIU 在 People's Daily 上 SOTA 神经模型 70%+,trigram baseline 在 50% 一线。</p>
+
+  <div class="pull">
+    最小可走通的主流 MVP 五件套:trigram + Viterbi + 10 万词 trie + 模糊音表 + 用户词频衰减。<cite>—— 综合自 SunPinyin / libpinyin / Chen & Lee 2000</cite>
+  </div>
+</section>
+
+<!-- ====================== §03 差距矩阵 ====================== -->
+<section>
+  <div class="section-head">
+    <span class="chapno">03</span>
+    <div class="chap-tag">Gap Matrix · 同一张桌上摆出来</div>
+    <h2>差距,逐格量。</h2>
+    <p class="lede">把"有 / 关 / 缺"三态画清楚 —— "实现存在但被 gate 关闭"和"根本没做"是两件完全不同的事,改进路径不一样。</p>
+  </div>
+
+  <div style="margin-top:14px;margin-bottom:14px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-soft)">
+    图例 ·
+    <span class="tag tag-have">have</span> 已具备
+    <span class="tag tag-gate">gated</span> 实现存在 / 已 gate
+    <span class="tag tag-miss">missing</span> 结构性缺
+    <span class="tag tag-cloud">cloud</span> 仅云端方案
+  </div>
+
+  <table class="full-table">
+    <thead>
+      <tr>
+        <th>维度</th>
+        <th>inputx (当前)</th>
+        <th>libpinyin (开源工业级)</th>
+        <th>SunPinyin (经典开源)</th>
+        <th>Sogou (商业一线)</th>
+        <th>判定</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="dim">语言模型</td>
+        <td class="ix">unigram (FST) + bigram <em>binary support</em></td>
+        <td>bigram + trigram + 平滑</td>
+        <td>backoff bigram/trigram</td>
+        <td>本地 trigram + 云端 NN</td>
+        <td><span class="tag tag-miss">missing</span> 真正的 trigram 与概率平滑</td>
+      </tr>
+      <tr>
+        <td class="dim">整句解码</td>
+        <td class="ix">仅 buffer ≥ 8 字节才 Viterbi;无<em>无约束</em>重切分</td>
+        <td>统一 Viterbi + beam</td>
+        <td>Viterbi + beam</td>
+        <td>Viterbi + beam + 神经 rerank</td>
+        <td><span class="tag tag-miss">missing</span> 短/长 buffer 统一 lattice</td>
+      </tr>
+      <tr>
+        <td class="dim">联合切分 + 解码</td>
+        <td class="ix">先 DP 切分 → 再分别查 → 后置融合</td>
+        <td>同一 lattice 内</td>
+        <td>同一 lattice 内</td>
+        <td>同一 lattice + typo 同图</td>
+        <td><span class="tag tag-miss">missing</span> 形态级缺失</td>
+      </tr>
+      <tr>
+        <td class="dim">模糊音</td>
+        <td class="ix">9 对方言,代码完整 / <strong>gate 关闭</strong></td>
+        <td>fuzzy table,带概率</td>
+        <td>fuzzy table</td>
+        <td>fuzzy + 用户可勾选</td>
+        <td><span class="tag tag-gate">gated</span> 开关即得</td>
+      </tr>
+      <tr>
+        <td class="dim">typo / 临近键</td>
+        <td class="ix">Path 1c (2 辅音救援) / <strong>gate 关闭</strong></td>
+        <td>edit-distance + 邻接图</td>
+        <td>有限 typo</td>
+        <td>完整 typo + NMT 路线</td>
+        <td><span class="tag tag-gate">gated</span>+<span class="tag tag-miss">missing</span> 通用 typo</td>
+      </tr>
+      <tr>
+        <td class="dim">首字母简拼</td>
+        <td class="ix">Path 2 zg→中国 / <strong>gate 关闭</strong></td>
+        <td>abbrev 边入 lattice</td>
+        <td>abbrev 边入 lattice</td>
+        <td>zhrmghg → 中华人民共和国</td>
+        <td><span class="tag tag-gate">gated</span> + <span class="tag tag-miss">missing</span> 长简拼</td>
+      </tr>
+      <tr>
+        <td class="dim">用户学习</td>
+        <td class="ix">L0 pin (3 pick) + snapshot 持久化</td>
+        <td>user n-gram + 衰减</td>
+        <td>user n-gram + 线性插值</td>
+        <td>user n-gram + 多端同步</td>
+        <td><span class="tag tag-have">have</span>(频次级)+<span class="tag tag-miss">missing</span>(n-gram 级)</td>
+      </tr>
+      <tr>
+        <td class="dim">联想 / Prediction</td>
+        <td class="ix">trigram FST 已实现 / <strong>gate 关闭</strong></td>
+        <td>共用主 LM</td>
+        <td>共用主 LM</td>
+        <td>主 LM + 神经 rerank</td>
+        <td><span class="tag tag-gate">gated</span> 开关即得</td>
+      </tr>
+      <tr>
+        <td class="dim">词库规模</td>
+        <td class="ix"><strong>416k</strong> 词条;FST 3.9 MB</td>
+        <td>~30 万</td>
+        <td>~20 万</td>
+        <td>~30 万 + 数万细胞词库</td>
+        <td><span class="tag tag-have">have</span> 量级 OK / 缺细胞</td>
+      </tr>
+      <tr>
+        <td class="dim">细胞词库</td>
+        <td class="ix">无领域分包</td>
+        <td>有限</td>
+        <td>无</td>
+        <td>3 万+ 领域包,用户安装</td>
+        <td><span class="tag tag-miss">missing</span> 结构性</td>
+      </tr>
+      <tr>
+        <td class="dim">中英混输</td>
+        <td class="ix">英文 fallback 在 IME 层 (Enter)</td>
+        <td>lattice 内英文段</td>
+        <td>有限</td>
+        <td>完整</td>
+        <td><span class="tag tag-have">have</span> 最基本款</td>
+      </tr>
+      <tr>
+        <td class="dim">云输入</td>
+        <td class="ix">无</td>
+        <td>无</td>
+        <td>无</td>
+        <td><em>核心差异化</em></td>
+        <td><span class="tag tag-cloud">cloud</span> 设计取舍,可不做</td>
+      </tr>
+      <tr>
+        <td class="dim">评测体系</td>
+        <td class="ix">70+ baseline 回归 + LLM judge 200 条</td>
+        <td>MIU + KySS</td>
+        <td>MIU + KySS</td>
+        <td>MIU + KySS + AB</td>
+        <td><span class="tag tag-miss">missing</span> 行业可比基准</td>
+      </tr>
+      <tr>
+        <td class="dim">运行时 freq 自适应</td>
+        <td class="ix">无 (FST embed @ build)</td>
+        <td>有限</td>
+        <td>用户层有</td>
+        <td>有</td>
+        <td><span class="tag tag-miss">missing</span> 结构性</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ====================== §04 关键差距 deep-dive ====================== -->
+<section>
+  <div class="section-head">
+    <span class="chapno">04</span>
+    <div class="chap-tag">Deep dive · 关键差距逐条挖</div>
+    <h2>这些差距,具体是什么。</h2>
+    <p class="lede">每条差距给三栏:症状(用户能感知到什么)/ 根因(代码层在缺什么)/ 修法(具体怎么做)。</p>
+  </div>
+
+  <div class="gap-grid">
+
+    <div class="gap">
+      <div class="gap-head">
+        <div class="num">01</div>
+        <div class="title">整句拼音输入</div>
+        <span class="gap-sub">structural</span>
+        <span class="tag tag-miss">missing</span>
+      </div>
+      <div>
+        <h4>症状</h4>
+        <p>用户敲 <code>woshibeijingren</code> 想出"我是北京人",我们出不出来。Path 0b 虽然在 buffer ≥ 8 字节时会跑 Viterbi,但它走的是"先 DP 切分 → 各段独立查 → 拼起来"的形态,而不是<em>把所有候选词作为 lattice 的边一次解码</em>。短 buffer(4~6 字)更是干脆不走 Viterbi。</p>
+        <p>典型 case:<code>nihaomawojiao</code>(你好吗我叫)、<code>nibuyaozhe</code>(你不要这)在我们这里都不会自然组合。</p>
+      </div>
+      <div>
+        <h4>根因 / 修法</h4>
+        <p>根因是 §1.1 描述的"多路径并联 + 后置融合"形态本身 —— 没有一个统一的解码器把所有候选放到同一张图里争。</p>
+        <p>修法分两步:<br>(1)把现有 <code>best_composition_chain()</code> 扩为<em>无约束</em>多词重新分割,不限 buffer 长度;<br>(2)把分割路径里的"相邻 token bigram 概率"从现在的 binary support 升级为真正的 log-prob(下一条)。</p>
+        <p>这就是 <code>PLAN-syllable-aware-pinyin.md §4</code> 里被推迟的 Option C。</p>
+      </div>
+    </div>
+
+    <div class="gap">
+      <div class="gap-head">
+        <div class="num">02</div>
+        <div class="title">真正的二阶 / 三阶语言模型</div>
+        <span class="gap-sub">structural</span>
+        <span class="tag tag-miss">missing</span>
+      </div>
+      <div>
+        <h4>症状</h4>
+        <p>用户敲 <code>xianjin</code>,我们出"先进"还是"现金"取决于<em>单独看哪个词的 freq 更高</em>。但人写"现金交易"和"先进经验"是不同语境;trigram LM 能利用左右 token 算条件概率,unigram 不能。</p>
+        <p>所有"为什么这个词排错位"的 polish 工单,根本上都在补这一课 —— 因为我们没有 LM,只能靠手工调 freq。</p>
+      </div>
+      <div>
+        <h4>根因 / 修法</h4>
+        <p>根因:<code>bigrams.ngm</code> 和 <code>bigrams_inter.ngm</code> 只存"有没有共现",不存"共现的对数概率"。</p>
+        <p>修法分三步:<br>(1)在 <code>tools/scoring/</code> 的 pipeline 里加 <code>bigram_lm.tsv</code>,存归一化后的 log P(w_i | w_{i-1}),带 Kneser–Ney 平滑;<br>(2)新 FST 单独编译,运行时 mmap;<br>(3)Viterbi 评分项里加 <code>λ · log P(w_i | w_{i-1})</code>,λ 起始 ~0.5,baseline 上调。</p>
+        <p>评测先用 People's Daily 拼音回译子集,跑通 top-1 MIU。</p>
+      </div>
+    </div>
+
+    <div class="gap">
+      <div class="gap-head">
+        <div class="num">03</div>
+        <div class="title">联合 lattice(切分 + 模糊 + typo 同图)</div>
+        <span class="gap-sub">structural</span>
+        <span class="tag tag-miss">missing</span>
+      </div>
+      <div>
+        <h4>症状</h4>
+        <p>同一句话里如果既需要切分歧义判定(<code>xianjin</code>),又需要模糊音(<code>shichuan</code>→四川),又需要 typo 容错(<code>woshibijing</code> 漏 n)—— 我们的多路径形态会让这三种能力<em>互相争抢同一个候选位</em>,且各路径的得分没有可比的概率语义,只能靠手工调常数。</p>
+      </div>
+      <div>
+        <h4>根因 / 修法</h4>
+        <p>根因:七路径每条都在独立产生候选 + 各自打分,然后才合并;模糊与 typo 在打分上加 discount(× 0.3),无法跟其他路径的得分做真正"P(W|i) ∝ P(i|W)·P(W)"的对账。</p>
+        <p>修法是把这些路径转成<em>同一个 lattice 的不同边</em>:模糊边带 <code>log p(fuzzy_pinyin | true_pinyin)</code>、typo 边带 <code>log p(typo | true)</code>、abbrev 边带常数 penalty。Viterbi 一次出 top-K。</p>
+        <p>这是上一条 LM 的自然延伸 —— 一旦有了真概率,把多路径融合成 lattice 几乎是自动的。</p>
+      </div>
+    </div>
+
+    <div class="gap">
+      <div class="gap-head">
+        <div class="num">04</div>
+        <div class="title">联想 / 模糊 / 简拼 / Viterbi 组合</div>
+        <span class="gap-sub">gated</span>
+        <span class="tag tag-gate">gated</span>
+      </div>
+      <div>
+        <h4>症状</h4>
+        <p>用户体验到的"拼音功能很基础" —— 实际上是因为四大 gate 全开着 <code>true</code>。代码完整,功能存在,但<em>用户看不到</em>。这是"工程已做、体验未交付"的典型断层。</p>
+      </div>
+      <div>
+        <h4>根因 / 修法</h4>
+        <p>根因:2026-06-06 起的 minimal-debug 模式,等用户逐个 polish 才允许打开(见 <code>docs/pinyin-pipeline-gates.md</code> 和 memory <code>pinyin_minimal_debug_state.md</code>)。本身是好做法 —— 不让噪声污染调试信号。</p>
+        <p>修法不是技术,是<strong>流程节奏</strong>:每周开一个 gate,2~3 周内全部回归启用,期间用 polish-log + baseline 双向校验。打开一个 gate = 一组 baseline 测试自动 revive,不需要新写测试。</p>
+      </div>
+    </div>
+
+    <div class="gap">
+      <div class="gap-head">
+        <div class="num">05</div>
+        <div class="title">用户 n-gram 学习</div>
+        <span class="gap-sub">structural</span>
+        <span class="tag tag-miss">missing</span>
+      </div>
+      <div>
+        <h4>症状</h4>
+        <p>L0 学到的是"用户在 buffer=X 偏好 word=Y";学不到"用户写过 <code>北京 → 大学</code> 的 bigram"。所以用户的语言习惯只能在<em>整词被选中时</em>表达,不能影响同一句子里下一词的概率。</p>
+      </div>
+      <div>
+        <h4>根因 / 修法</h4>
+        <p>根因:L0 表 schema 是 <code>(pinyin, word) → freq/pin</code>,没有 (prev_word, word) → count 这张表。</p>
+        <p>修法:加 <code>user_bigram: HashMap&lt;(String, String), u32&gt;</code>,每次 commit 链上 +1。LM 评分时用<em>线性插值</em>:<code>P̂ = (1-λ)·P_system + λ·P_user</code>,λ 起始 0.2,随 user data 累积上调到 0.4。SunPinyin 是参考实现。</p>
+        <p>持久化和 L0 snapshot 同一通道,宿主决定 serde。</p>
+      </div>
+    </div>
+
+    <div class="gap">
+      <div class="gap-head">
+        <div class="num">06</div>
+        <div class="title">运行时词频自适应</div>
+        <span class="gap-sub">structural</span>
+        <span class="tag tag-miss">missing</span>
+      </div>
+      <div>
+        <h4>症状</h4>
+        <p>"昨天才出现的人名 / 热搜"我们无法 surface,除非重打 dict 包并发版。</p>
+      </div>
+      <div>
+        <h4>根因 / 修法</h4>
+        <p>根因:freq 固定在 FST 二级 value 里。修法两条路:<br>(1)<em>side-loadable override</em>:一张可热加载的 TSV/JSON,运行时 merge 到查询结果之上,作为"频率补丁"通道;<br>(2)远端 deliverable(月度 / 季度 dict drop)+ 校验和签名。</p>
+        <p>不必走云输入(隐私代价高),但需要一个"轻补丁"通道。</p>
+      </div>
+    </div>
+
+    <div class="gap">
+      <div class="gap-head">
+        <div class="num">07</div>
+        <div class="title">行业可比的评测脚手架</div>
+        <span class="gap-sub">structural</span>
+        <span class="tag tag-miss">missing</span>
+      </div>
+      <div>
+        <h4>症状</h4>
+        <p>"我们离搜狗多远"这个问题<em>无法量化回答</em>。现有的 70+ baseline 是回归测试,不是质量基准;LLM judge 200 条采样信号弱;两者都不能对外引用。</p>
+      </div>
+      <div>
+        <h4>根因 / 修法</h4>
+        <p>修法:实现 <strong>MIU + KySS</strong> 评测脚手架:<br>(1)挑选评测语料 —— People's Daily 子集 + 一份开源 chat corpus(LCCC 抽样即可);<br>(2)拼音回译(汉字→拼音,可用 pypinyin)生成 input;<br>(3)灌入 engine,取 top-1/5/10,匹配原句计算 MIU accuracy;<br>(4)同样语料跑一份 SunPinyin / libpinyin 作对照线。</p>
+        <p>有这个数字才能跟"主流"对话,而不是凭印象。</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ====================== §05 改进路径 ====================== -->
+<section>
+  <div class="section-head">
+    <span class="chapno">05</span>
+    <div class="chap-tag">Roadmap · 改进路径(三阶段)</div>
+    <h2>从这里去那里。</h2>
+    <p class="lede">不画一张"理想终态架构图"。给一条<em>可走、可中断、可回退</em>的三阶段路径,每阶段的产出独立有价值。</p>
+  </div>
+
+  <div class="roadmap">
+
+    <div class="phase" data-ph="phase 01">
+      <h4>底盘清理</h4>
+      <span class="est">est. ~ 4 weeks · 不动数据 · 只翻 gate / 加评测</span>
+      <ol>
+        <li><strong>逐周翻 gate</strong>。每周打开一个 gate(顺序建议:FUZZY → ASSOCIATION → COMPOSE → PREDICTION),让 baseline 自动 revive,用 polish-log 校验。完成后用户体验立刻接近"已有工程能力的全量"。</li>
+        <li><strong>MIU 评测脚手架</strong>。tools/eval/ 新建,People's Daily 子集 + LCCC 抽样;拼音回译用 pypinyin;实现 top-1/5/10 MIU accuracy + KySS。同步跑 SunPinyin / libpinyin 对照线。</li>
+        <li><strong>side-loadable freq override</strong>。一张可热加载的 polish-overlay 表,把"昨天才需要 polish 的词"从重建 dict 解耦。</li>
+      </ol>
+    </div>
+
+    <div class="phase" data-ph="phase 02">
+      <h4>底盘升级</h4>
+      <span class="est">est. ~ 8 weeks · 加 LM / 改解码器</span>
+      <ol>
+        <li><strong>真 bigram LM</strong>。在 tools/scoring/ 加 <code>09_bigram_lm</code>,产 <code>bigram_lm.dict</code>(Kneser–Ney 平滑后的 log-prob FST)。运行时 mmap。</li>
+        <li><strong>Viterbi 全长统一</strong>。打通无约束长句重切分(Option C),把 Path 0b 的 ≥ 8 字节阈值降到全 buffer。短 buffer 走简化版 lattice,长 buffer 走 beam search。</li>
+        <li><strong>联合 lattice</strong>。模糊 / typo / abbrev 转为 lattice 边,带 log-prob;打分项统一为 prior + likelihood + LM。</li>
+        <li><strong>用户 bigram</strong>。L0 加 <code>user_bigram</code> 表,LM 评分线性插值。</li>
+      </ol>
+    </div>
+
+    <div class="phase" data-ph="phase 03">
+      <h4>顶盖打磨</h4>
+      <span class="est">est. ~ ongoing · 朝行业水平细节</span>
+      <ol>
+        <li><strong>Trigram</strong>。当 bigram 上线稳定后,加 trigram(更大语料 + 更多内存代价)。MIU 跑分应能从 50% baseline 攀到 60%+。</li>
+        <li><strong>细胞词库</strong>。schema 设计 + 一两个示范包(IT / 金融),先用 polish 上报数据自孵化。</li>
+        <li><strong>键盘临近键 typo</strong>。在 lattice 内加 typo 边(edit-distance ≤ 1,带 keyboard adjacency penalty)。</li>
+        <li><strong>长简拼</strong>。zhrmghg → 中华人民共和国;在 lattice 加 abbrev 边,penalty 由频度调。</li>
+        <li><strong>(可选)神经 rerank</strong>。本地 trigram 出 top-K,小型 NN 模型(< 50 MB)rerank top-N;可选,不强求。</li>
+      </ol>
+    </div>
+
+  </div>
+
+  <div class="divider-mark">· · ·</div>
+
+  <div class="lay-with-margin">
+    <div>
+      <h3>关键取舍</h3>
+      <p><strong>云输入暂不做</strong>。隐私代价高(2024 Citizen Lab 报告披露搜狗等明文传输 keystroke),且 inputx 的项目定位偏"本地、可信、可审计"。我们不靠云,但要把本地能做的做到位 —— 这才是差异化。</p>
+      <p><strong>不上 GPU、不要求联网</strong>。Phase 02 的 LM 仍是 n-gram,本地 FST,无 runtime 神经依赖。Phase 03 的神经 rerank 是可选项,且要严格控模型体积(< 50 MB)与延迟(< 10ms)。</p>
+      <p><strong>polish 流程不变</strong>。Phase 01-03 的所有改动都在保留<em>逐字 polish 工作流</em>的前提下做。LM 不是替代 polish,是给 polish 一个更高质量的起点。</p>
+    </div>
+    <div class="aside">
+      <b>风险预警</b>
+      Phase 02 的 LM 上线是一次"语义层换装",不可避免会引发现有 polish 表的部分翻转。建议在切换前后跑双轨 baseline,保留旧打分作 fallback 一段时间。这是和 polish 用户的契约问题,要提前沟通。
+    </div>
+  </div>
+</section>
+
+<!-- ====================== §06 资源地图 v2 ====================== -->
+<section>
+  <div class="section-head">
+    <span class="chapno">06</span>
+    <div class="chap-tag">Resource map · 五轨学习地图</div>
+    <h2>读什么 · 跑什么 · 学什么。</h2>
+    <p class="lede">"我们一起学习它能达到搜狗水平" —— 这一节是配套的资源地图。<strong>v2 扩充版:四组研究 agent 并行挖回的 60+ 项资源</strong>,按论文 / 开源 / 工程笔记 / 数据集 / 评测 五轨分门别类,每条都标注"为什么值得读"。</p>
+  </div>
+
+  <div class="notice">
+    <b>关键勘误 · MIU 出处</b>
+    本报告 §04.07 原写 "MIU + KySS 见 Moon IME paper §4" —— 经查证,<strong>MIU 指标定义实际出自 Jia & Zhao 2013《KySS 1.0: a Framework for Automatic Evaluation of Chinese IME》</strong>(IJCNLP)。Moon IME 是使用方,不是定义方。后续引用以 KySS 1.0 为准。
+  </div>
+
+  <!-- ===== 一周精读路径 ===== -->
+  <h3>06.1 一周精读路径(6 篇,~30h)</h3>
+  <p style="margin-bottom:6px">按"先建直觉 → 再吃数学 → 最后看现代落地"的顺序。每条都点击直达。</p>
+
+  <div class="week-cal">
+    <div class="day">
+      <div class="dh">Day 1 <span class="hrs">2h</span></div>
+      <span class="tag-mini">why · 建直觉</span>
+      <h5>The Chinese Computer · Ch.2 (open access)</h5>
+      <p>理解"为什么 IME 是符号中介,不是 bug"。所有后续设计选择有了根。</p>
+      <a href="https://direct.mit.edu/books/book/5788/The-Chinese-ComputerA-Global-History-of-the" target="_blank">Mullaney 2024 · MIT Press →</a>
+    </div>
+    <div class="day">
+      <div class="dh">Day 2 <span class="hrs">2h</span></div>
+      <span class="tag-mini">how · 解码数学</span>
+      <h5>The Viterbi Algorithm: A Personal History</h5>
+      <p>发明人亲述。Viterbi/trellis/DP 直觉打通,整个 IME 解码器都是这一套。</p>
+      <a href="https://arxiv.org/pdf/cs/0504020" target="_blank">Forney 2005 · arXiv →</a>
+    </div>
+    <div class="day">
+      <div class="dh">Day 3 <span class="hrs">6h</span></div>
+      <span class="tag-mini">core · 后端 LM</span>
+      <h5>SLP3 Ch.3 + Appendix C</h5>
+      <p>N-gram + Kneser-Ney 一口气吃透。直接对应 PinyinEngine 候选打分逻辑。</p>
+      <a href="https://web.stanford.edu/~jurafsky/slp3/3.pdf" target="_blank">Jurafsky & Martin · Stanford →</a>
+    </div>
+    <div class="day">
+      <div class="dh">Day 4 <span class="hrs">4h</span></div>
+      <span class="tag-mini">范式 · 经典工业</span>
+      <h5>Joint Graph Model for PTC</h5>
+      <p>PTC + typo correction 合到同一张图、一次 Viterbi —— 跟 inputx 当前心智最贴。</p>
+      <a href="https://aclanthology.org/P14-1142/" target="_blank">Jia & Zhao 2014 · ACL →</a>
+    </div>
+    <div class="day">
+      <div class="dh">Day 5 <span class="hrs">3h</span></div>
+      <span class="tag-mini">eval · 评测正典</span>
+      <h5>KySS 1.0 · MIU 出处</h5>
+      <p>MIU / MKPC metric 怎么定义、回归测试怎么搭。不读它没法量化 polish 效果。</p>
+      <a href="https://aclanthology.org/I13-1170/" target="_blank">Jia & Zhao 2013 · IJCNLP →</a>
+    </div>
+    <div class="day">
+      <div class="dh">Day 6-7 <span class="hrs">8h+</span></div>
+      <span class="tag-mini">future · 神经基线</span>
+      <h5>PinyinGPT</h5>
+      <p>字符级 GPT + pinyin embedding,带公开 270K 评测集 —— LLM IME 起点。</p>
+      <a href="https://arxiv.org/abs/2203.00249" target="_blank">Tan et al. 2022 · ACL →</a>
+    </div>
+    <div class="day" style="background:#fff8e7">
+      <div class="dh" style="color:var(--gold)">+1 选修 <span class="hrs">3h</span></div>
+      <span class="tag-mini" style="color:var(--gold)">bonus · 21 行打通</span>
+      <h5>Norvig 拼写纠错</h5>
+      <p>21 行 Python 讲清"先验 × 似然 × 编辑距离"。拼音纠错心智的直球迁移。</p>
+      <a href="https://norvig.com/spell-correct.html" target="_blank">Peter Norvig · 2007 →</a>
+    </div>
+  </div>
+
+
+  <!-- ===== TRACK A 论文阵地 ===== -->
+  <div class="track-head">
+    <span class="tno">A</span>
+    <h3>论文阵地</h3>
+    <span class="tsub">papers · 28 项 / 4 子轨</span>
+  </div>
+  <p>已默认你读过 Chen & Lee 2000(ACL)和 Gao et al. 2002(TALIP) —— 不在此列。</p>
+
+  <div class="subtrack">A.1 · 经典统计 IME(2000-2015)</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title"><a href="https://aclanthology.org/P14-1142/" target="_blank">A Joint Graph Model for Pinyin-to-Chinese Conversion with Typo Correction</a></div>
+      <div class="meta">Jia & Zhao · 2014 · ACL</div>
+      <div class="why">PTC + 错拼纠正合到一张图上一次 Viterbi —— "候选图 + 单次搜索"心智的标准参考。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://aclanthology.org/D12-1056/" target="_blank">A Unified Approach to Transliteration-based Text Input with Online Spelling Correction</a></div>
+      <div class="meta">Suzuki & Gao · 2012 · EMNLP</div>
+      <div class="why">微软把 IME 解码 + on-the-fly 拼写纠错统一为 log-linear 模型 —— "边打边纠"在解码层怎么落地。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://aclanthology.org/I11-1014/" target="_blank">Japanese Pronunciation Prediction as Phrasal SMT</a></div>
+      <div class="meta">Hatori & Suzuki · 2011 · IJCNLP</div>
+      <div class="why">把 kana→hanzi 当短语 SMT 解 —— 反向就是 pinyin→hanzi 的 Moses pipeline,可直接搬。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://aclanthology.org/W11-3502/" target="_blank">Discriminative Method for Japanese Kana-Kanji Input Method</a></div>
+      <div class="meta">Tokunaga et al. · 2011 · WTIM</div>
+      <div class="why">从生成式 n-gram 切到 structured perceptron / 判别式打分 —— reranker 的对照原型。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://aclanthology.org/W12-4802/" target="_blank">Ensemble Model of Word-based and Character-based Models for IME</a></div>
+      <div class="meta">Okuno & Mori · 2012 · WTIM</div>
+      <div class="why">词级 LM + 字级 LM 插值;对应 PinyinEngine 里 word vs char fallback 的设计点。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://aclanthology.org/I13-1170/" target="_blank">KySS 1.0: a Framework for Automatic Evaluation of Chinese IME</a></div>
+      <div class="meta">Jia & Zhao · 2013 · IJCNLP · <em>MIU 出处</em></div>
+      <div class="why">把"用户击键到出字"建模成 metric,给自家 IME 做回归评测 + 跟商业 IME 横评必备。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://aclanthology.org/Y15-1052.pdf" target="_blank">Neural Network Language Model for Chinese Pinyin IME</a></div>
+      <div class="meta">Chen, Wang, Zhao · 2015 · PACLIC</div>
+      <div class="why">trigram + KN(SRILM)基线 + NNLM rescoring —— 经典与神经的过渡桥,顺便给 KN 在 IME 的配方。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">A.2 · 神经 IME(2015 - 今)</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title"><a href="https://aclanthology.org/P18-4024/" target="_blank">Moon IME · Neural Pinyin Aided IME</a></div>
+      <div class="meta">Huang, Li, Zhang, Zhao · 2018 · ACL Demos</div>
+      <div class="why">attention-based NMT 把 P→C 当翻译做的开山 demo;神经 IME 最小起步样板。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://arxiv.org/abs/1809.00329" target="_blank">Input What You Have Not Keystroked Yet</a></div>
+      <div class="meta">Huang & Zhao · 2018 · EMNLP</div>
+      <div class="why">seq2seq + gated attention,利用上下文预测"还没敲完"的拼音 —— "上下文条件 + 提前预测"的范式。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://arxiv.org/abs/1811.04352" target="_blank">Open Vocabulary Learning for Neural Chinese Pinyin IME</a></div>
+      <div class="meta">Zhang, Huang, Zhao · 2019 · ACL</div>
+      <div class="why">在线更新词表 + sampling 解决神经 IME 的 OOV/新词问题 —— 落地必踩坑。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://arxiv.org/abs/2203.00249" target="_blank">PinyinGPT · Adapting Chinese GPT to Pinyin Input Method</a></div>
+      <div class="meta">Tan, Dai, Tang · 2022 · ACL</div>
+      <div class="why">字符级 GPT 拼接 pinyin embedding,系统对比 perfect / abbreviated,放出 15-domain / 270K 评测集 —— 当代神经 IME 基线。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://aclanthology.org/2024.findings-acl.218/" target="_blank">GeneInput · Generative Input: Towards Next-Generation IME Paradigm</a></div>
+      <div class="meta">Ding, Wang, Xu · 2024 · ACL Findings</div>
+      <div class="why">prompt 化的 LLM IME,统一 P2C / 容错 / 联想 / 对话辅助 + reward model + 在线反馈 —— LLM 时代 IME 范式化提案。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://arxiv.org/abs/2409.13262" target="_blank">LLM Should Understand Pinyin for Chinese ASR Error Correction</a></div>
+      <div class="meta">Li, Qiao, Zhao · 2024 · arXiv</div>
+      <div class="why">把 pinyin 当辅助模态喂 LLM,multitask 对齐 pinyin↔text 隐层 —— 拼音纠错可直接迁移到 IME 端。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">A.3 · 周边支撑技术</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title"><a href="https://dash.harvard.edu/bitstreams/7312037d-c1da-6bd4-e053-0100007fdf3b/download" target="_blank">An Empirical Study of Smoothing Techniques for LM</a></div>
+      <div class="meta">Chen & Goodman · 1998 · Harvard TR-10-98</div>
+      <div class="why"><strong>n-gram 平滑的圣经</strong>。Kneser-Ney / Modified KN 的权威推导与实证;IME 候选打分直接用。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="http://www.speech.sri.com/projects/srilm/papers/icslp2002-srilm.pdf" target="_blank">SRILM · An Extensible Language Modeling Toolkit</a></div>
+      <div class="meta">Stolcke · 2002 · ICSLP</div>
+      <div class="why">工业级 LM 训练工具栈;造 IME 词频模型直接拿来训。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://aclanthology.org/W11-2123.pdf" target="_blank">KenLM · Faster and Smaller LM Queries</a></div>
+      <div class="meta">Heafield · 2011 · WMT</div>
+      <div class="why">把训练好的 LM 落到 IME 进程查询的紧凑存储与查询设计 —— 延迟敏感场景必读。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://aclanthology.org/P00-1037.pdf" target="_blank">An Improved Error Model for Noisy Channel Spelling Correction</a></div>
+      <div class="meta">Brill & Moore · 2000 · ACL</div>
+      <div class="why">generic string-to-string edit 的 noisy channel 模型 —— 拼音模糊音(zh↔z, n↔l, ing↔in)纠正的理论原型。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://aclanthology.org/O03-4002.pdf" target="_blank">Chinese Word Segmentation as Character Tagging</a></div>
+      <div class="meta">Nianwen Xue · 2003 · IJCLCLP</div>
+      <div class="why">把中文分词转成字位 BIES 标注的奠基论文;jieba HMM 与所有现代分词器的思想源头。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://arxiv.org/pdf/cs/0504020" target="_blank">The Viterbi Algorithm · A Personal History</a></div>
+      <div class="meta">G. David Forney Jr. · 2005 · arXiv</div>
+      <div class="why">Viterbi 发明人亲述 —— DP / 最优路径 / trellis 直觉,拼音 lattice 最佳路径解码就这套。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">A.4 · 综述 / 教科书 / 历史</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title"><a href="https://web.stanford.edu/~jurafsky/slp3/" target="_blank">SLP3 · Speech and Language Processing (3rd ed.)</a></div>
+      <div class="meta">Jurafsky & Martin · 2026 draft</div>
+      <div class="why"><strong>NLP 圣经免费章节</strong>。Ch.3 N-gram LM + Appendix C KN + Ch.17 序列标注 + Ch.8 Transformers + Ch.13 RNN/LSTM。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://research.polyu.edu.hk/en/publications/chinese-input-methods-overview-and-comparisons/" target="_blank">Chinese Input Methods · Overview and Comparisons</a></div>
+      <div class="meta">Fong & Minett · 2012 · J. of Chinese Linguistics</div>
+      <div class="why">罕见的英文 IME 系统综述,横向对比 root/stroke/sound 三类码 + 编码效率指标。</div>
+      <div class="caveat">全文需机构访问,摘要 + 引用网络仍值钱。中文圈过去十年没出过同级别 survey。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://direct.mit.edu/books/book/5788/The-Chinese-ComputerA-Global-History-of-the" target="_blank">The Chinese Computer · A Global History of the Information Age</a></div>
+      <div class="meta">Thomas S. Mullaney · 2024 · MIT Press</div>
+      <div class="why">直接回答"为什么拼音 IME 长成今天这样" —— hypography 论点:用户敲的≠拿到的,这种"符号中介"模型是让英语之外的语言进入 PC 的必经之路。autocomplete/候选词/预测文本的源头在打字机时代就埋下了。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://archive.org/details/cjkvinformationp00lund" target="_blank">CJKV Information Processing (2nd ed.)</a></div>
+      <div class="meta">Ken Lunde · 2009 · O'Reilly</div>
+      <div class="why">CJKV 编码与输入处理的 reference 圣经 —— GB/Big5/Unicode/IME 协议、字形 vs 编码、IME 在 OS 层怎么挂钩。</div>
+    </div>
+  </div>
+
+
+  <!-- ===== TRACK B 开源项目 ===== -->
+  <div class="track-head">
+    <span class="tno">B</span>
+    <h3>开源项目深读</h3>
+    <span class="tsub">code · 25+ 项 / 5 子轨</span>
+  </div>
+  <p>已知五项不在此列:libpinyin / SunPinyin / librime / jieba / pypinyin —— 它们是必读。</p>
+
+  <div class="subtrack">B.1 · IME 实现(读源码的主力)</div>
+  <div class="res-grid">
+    <div class="res" style="border-color:var(--vermillion);background:rgba(196,58,58,.04)">
+      <div class="title"><a href="https://github.com/google/mozc" target="_blank">google/mozc · Google Japanese Input</a></div>
+      <div class="meta">C++ · 2.9k★ · 跨四平台 · BSD-3</div>
+      <div class="why"><strong>最值得读的工业级 IME 源码,没有之一</strong>。Converter / Dictionary / Session / Transliteration 全部模块化分层;假名↔汉字 ≈ 拼音↔汉字,架构、词典格式、用户学习几乎可照搬。</div>
+      <div class="caveat">代码巨,不要硬啃 —— 按"输入一个字符到输出候选"的调用链跟读。</div>
+    </div>
+    <div class="res" style="border-color:var(--vermillion);background:rgba(196,58,58,.04)">
+      <div class="title"><a href="https://github.com/vChewing/vChewing-macOS" target="_blank">vChewing-macOS</a></div>
+      <div class="meta">Swift + C · 524★ · 2026 活跃</div>
+      <div class="why"><strong>macOS IMK 上唯一活跃维护到 2026 的产品级中文 IME</strong>。沙箱、用户词、设置窗口、菜单 —— 你项目用 IMK,工程结构直接抄。</div>
+      <div class="caveat">注音引擎不是拼音,但 IMK 集成部分完全通用。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/vChewing/IMKSwift" target="_blank">vChewing/IMKSwift</a></div>
+      <div class="meta">Obj-C/Swift · 21★ · MIT</div>
+      <div class="why">解决 Apple InputMethodKit 在 Swift 6 strict concurrency 下没 @MainActor、无法 build 的问题 —— 你项目迟早撞这堵墙。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/fcitx/fcitx5" target="_blank">fcitx5</a> + <a href="https://github.com/fcitx/fcitx5-chinese-addons" target="_blank">fcitx5-chinese-addons</a></div>
+      <div class="meta">C++ · 2.4k★ · 活跃 · LGPL-2.1+</div>
+      <div class="why">Linux 端新一代 IME 框架 —— InputContext / Event 抽象是最干净的参照;chinese-addons 是"如何把 libpinyin 接到真实 IME 框架"的完整粘合代码。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/chewing/libchewing" target="_blank">chewing/libchewing</a></div>
+      <div class="meta">Rust 62% · 420★ · 活跃</div>
+      <div class="why">注音 IME 引擎 <strong>Rust 实现</strong> —— 你做 Rust IME 时同语言架构参照(trie + 历史/用户词 + ibus/TSF 多端集成)。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/IME" target="_blank">Windows TSF IME Sample</a></div>
+      <div class="meta">C++ · 微软官方</div>
+      <div class="why">Windows TSF IME 官方样例,扩到 Windows 唯一参考起点(systray + touch keyboard + Search contract)。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/ensan-hcl/macOS_IMKitSample_2021" target="_blank">macOS IMKit Sample 2021</a></div>
+      <div class="meta">Swift · 57★ · MIT</div>
+      <div class="why">最小可运行的 IMK Swift 样例。读 vChewing 太重时拿它当 hello-world。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">B.2 · Rime 生态(配置 schema 与词频范本)</div>
+  <div class="res-grid">
+    <div class="res" style="border-color:var(--vermillion);background:rgba(196,58,58,.04)">
+      <div class="title"><a href="https://github.com/iDvel/rime-ice" target="_blank">iDvel/rime-ice · 雾凇拼音</a></div>
+      <div class="meta">Lua · 17.9k★ · GPL-3.0</div>
+      <div class="why"><strong>Rime schema 工业级范本</strong> —— "模糊音 14 套 + 简拼 + 双拼 8 种 + emoji + 反查 + 候选过滤"全部规范化。<em>当 polish 需求清单的开源镜像看</em>。</div>
+      <div class="caveat">GPL-3.0 传染 —— 抄 schema 设计 OK,直接 import 词库要慎。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/gaboolic/rime-frost" target="_blank">gaboolic/rime-frost · 白霜拼音</a></div>
+      <div class="meta">Lua · 3.4k★ · 2026-05 活跃</div>
+      <div class="why">基于雾凇,<strong>用 7.45 亿字语料重做了字频/词频统计 + 归一化</strong> —— 开源词频天花板,你做语料 pipeline 时的参照样本。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/ayaka14732/awesome-rime" target="_blank">awesome-rime</a></div>
+      <div class="meta">索引 · 社区维护</div>
+      <div class="why">Rime 生态全景图 —— 挑参照项目时第一个开的页。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">B.3 · 语言模型 / FST 工具</div>
+  <div class="res-grid">
+    <div class="res" style="border-color:var(--vermillion);background:rgba(196,58,58,.04)">
+      <div class="title"><a href="https://github.com/kpu/kenlm" target="_blank">kpu/kenlm</a></div>
+      <div class="meta">C++ · 2.8k★ · 活跃</div>
+      <div class="why"><strong>IME 统计语言模型事实标准</strong>。lmplz 训 n-gram,build_binary 出 mmap 二进制,运行时只读 mmap;整句拼音→汉字 Viterbi 解码的转移概率直接来自 KenLM 查询。</div>
+      <div class="caveat">许可多许多;Kneser-Ney 需要中频以上语料,千万词级以下效果差。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/google-research/openfst" target="_blank">openfst</a> + <a href="https://www.opengrm.org/" target="_blank">OpenGrm NGram + Thrax</a></div>
+      <div class="meta">C++ · Google mirror</div>
+      <div class="why">把"拼音串→汉字串"建模成 WFST 解码:状态 = 候选词左上下文,边权 = 词频/n-gram 概率;Thrax 把"上下文相关重写规则"(模糊音、繁简、键盘容错)编译为 FST。</div>
+      <div class="caveat">C++ 模板地狱,学习曲线陡。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/mitlm/mitlm" target="_blank">mitlm</a></div>
+      <div class="meta">C++ · 118★ · 半死</div>
+      <div class="why">支持插值/优化的 n-gram toolkit —— 用作 KenLM 对比工具,不要建在它上面。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">B.4 · 神经 rerank 与本地小模型</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title"><a href="https://github.com/ggml-org/llama.cpp" target="_blank">llama.cpp</a></div>
+      <div class="meta">C++ · 116k★ · 高度活跃 · MIT</div>
+      <div class="why">本地推理引擎,支持 Qwen 系列 + /embedding /reranking 端点直接当 rerank 服务。Rust 走 FFI/IPC。</div>
+      <div class="caveat">Qwen3-Reranker 当前在 llama.cpp 有正确性 issue(#16407 等),上生产前先验证。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/huggingface/candle" target="_blank">huggingface/candle</a></div>
+      <div class="meta">Rust · 20.5k★ · 活跃 · Apache/MIT</div>
+      <div class="why"><strong>Rust IME 内置小模型的最干净路径</strong> —— 支持 BERT/Qwen 1.5/Phi/Gemma 2b,可直接 link 进 Rust IME 进程,不用走 IPC。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/QwenLM/Qwen3" target="_blank">Qwen3 系列</a></div>
+      <div class="meta">Python · 27.3k★ · Apache-2.0</div>
+      <div class="why">Qwen 系列最小 0.6B,可量化到 ~400MB 跑 rerank;Embedding/Reranker 子模型在 HF。</div>
+      <div class="caveat">不要轻信"50MB 内能拿到搜狗水平 rerank" —— 这是产业未解决的事,不是工具选型问题。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">B.5 · 中文 NLP 周边零件</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title"><a href="https://github.com/hankcs/HanLP" target="_blank">hankcs/HanLP</a></div>
+      <div class="meta">Python · 36.4k★ · Apache-2.0</div>
+      <div class="why">语料预处理流水线 —— 分词 / POS / NER / 依存。做训练语料清洗 + 实体保护时首选。</div>
+      <div class="caveat">v2 是 PyTorch 重写,需要模型权重下载;不适合放进 IME 进程。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/BYVoid/OpenCC" target="_blank">BYVoid/OpenCC</a></div>
+      <div class="meta">C++ · 9.8k★ · Apache-2.0</div>
+      <div class="why">已在用。中日韩繁简(含台/港/日变体)。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://www.mdbg.net/chinese/dictionary?page=cedict" target="_blank">CC-CEDICT</a></div>
+      <div class="meta">125k 条 · 2026-06 · CC BY-SA 4.0</div>
+      <div class="why">中英词典带拼音和翻译 —— 词条候选种子 + OOV 检测。</div>
+      <div class="caveat">SA 病毒条款,衍生数据集必须同 license。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/lancopku/pkuseg-python" target="_blank">pkuseg</a></div>
+      <div class="meta">Python · 6.7k★ · MIT · 半停</div>
+      <div class="why">领域适配分词(新闻/医疗/网络多领域),corpus 按领域分桶切词时比 jieba 更准。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/baidu/lac" target="_blank">百度 LAC</a></div>
+      <div class="meta">Python · 联合 WS+POS+NER</div>
+      <div class="why">Bi-GRU 联合 WS+POS+NER · F1>0.91 —— 要 POS+NER(实体保护)时上。</div>
+      <div class="caveat">绑 PaddlePaddle。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/attardi/wikiextractor" target="_blank">wikiextractor</a></div>
+      <div class="meta">Python · 4k★ · AGPL-3.0</div>
+      <div class="why">从 zhwiki XML 提纯文本作为 KenLM 训练语料源头。</div>
+      <div class="caveat"><strong>AGPL-3.0</strong> —— 只用它产生的 *.txt 没问题,但不要把代码 link 进闭源产品。</div>
+    </div>
+  </div>
+
+
+  <!-- ===== TRACK C 工程笔记 ===== -->
+  <div class="track-head">
+    <span class="tno">C</span>
+    <h3>工程笔记 / 设计文档 / 社区</h3>
+    <span class="tsub">notes · 30+ 项 / 5 子轨</span>
+  </div>
+
+  <div class="subtrack">C.1 · 一手工程师手记(优先级最高)</div>
+  <div class="res-grid">
+    <div class="res" style="border-color:var(--vermillion);background:rgba(196,58,58,.04)">
+      <div class="title"><a href="https://www.slideshare.net/pengewu/libpinyin" target="_blank">libpinyin slides · Peng Wu</a></div>
+      <div class="meta">作者本人 · 约 2011 · 36 页</div>
+      <div class="why"><strong>Track C 核心一份</strong>。36 页对比 Maximum-Forward-Match / unigram / n-gram 三家,讲为什么要合并成 libpinyin —— 理解中文拼音 IME 二十年算法演进史的最短路径。</div>
+    </div>
+    <div class="res" style="border-color:var(--vermillion);background:rgba(196,58,58,.04)">
+      <div class="title"><a href="https://rimeinn.github.io/rime/schema-design.html" target="_blank">Rime 输入方案设计书 · 佛振</a></div>
+      <div class="meta">Rime 作者 · 持续修订 · 中</div>
+      <div class="why">把引擎拆成 Processor / Translator / Filter / 拼写运算 / 词典格式 系统讲清 —— 看完就懂"一套引擎为什么能同时跑拼音/双拼/五笔/方言"。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://segmentfault.com/a/1190000002424698" target="_blank">一位匠人的中州韵 · 专访 Rime 作者佛振</a></div>
+      <div class="meta">图灵访谈 · 2015 · 中</div>
+      <div class="why">佛振谈"通用引擎"、拼写运算、前后端分离 —— 一个被推到极致的个人 IME 项目的心智模型。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://www.csslayer.info/wordpress/fcitx-dev/fcitx5-dev-keyevent-from-app-to-fcitx/" target="_blank">Fcitx 5 开发(一)按键事件的前半生</a></div>
+      <div class="meta">CSSlayer (Fcitx 作者) · 2020+ · 中</div>
+      <div class="why">XIM / DBus / IBus 模拟 / Wayland 五种前端通路一次讲清 —— 搞 IME 前最容易被忽略也最难自学的协议层。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://www.csslayer.info/wordpress/fcitx-dev/fcitx-5-key-event-handling/" target="_blank">Fcitx 5 开发(二)按键事件的后半生</a></div>
+      <div class="meta">CSSlayer · 2020+ · 中</div>
+      <div class="why">输入法内部 Code/State/Symbol 三层抽象 + pre/in/post 三阶段回调 —— 直接对应"设计 KeyHandler 接口"的决策点。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://www.csslayer.info/wordpress/diary/%E5%BC%80%E5%8F%91%E8%BE%93%E5%85%A5%E6%B3%95%E6%98%AF%E4%B8%80%E7%A7%8D%E5%A6%A5%E5%8D%8F%E7%9A%84%E8%89%BA%E6%9C%AF/" target="_blank">开发输入法是一种妥协的艺术</a></div>
+      <div class="meta">CSSlayer · 中</div>
+      <div class="why">8 个 LibreOffice / GTK / Wayland / Chrome / Firefox 实战兼容性 bug。做 IME 真正吃精力的不是 Viterbi。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://blog.csdn.net/goodcope/article/details/39063643" target="_blank">SunPinyin 代码导读 · SLM 部分</a></div>
+      <div class="meta">goodcope · 2014 · 中</div>
+      <div class="why">配合 SunPinyin 代码读 slmbuild / 熵剪枝 / back-off trigram —— 中文圈少有的"工业级 SLM 怎么落到引擎"导读。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">C.2 · 开源项目官方设计文档</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title"><a href="https://github.com/rime/home/wiki/RimeWithTheDesign" target="_blank">RimeWithTheDesign · 官方</a></div>
+      <div class="meta">RIME wiki · 中</div>
+      <div class="why">短篇架构总览,组件注册(抽象工厂)+ 三类框架级组件。读 Schemata 之前先读。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/rime/home/wiki/RimeWithSchemata" target="_blank">RimeWithSchemata · 官方</a></div>
+      <div class="meta">RIME wiki · 中</div>
+      <div class="why">Rime 输入方案设计的入门正典。从 Hello-Rime 到双拼方案四步演练。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/rime/home/wiki/SpellingAlgebra" target="_blank">SpellingAlgebra · 拼写代数</a></div>
+      <div class="meta">RIME wiki · 中</div>
+      <div class="why">xlit/xform/erase/derive/fuzz 五个算子代数化处理双拼变体、模糊音、简拼 —— Rime 最原创的设计。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/libpinyin/libpinyin/wiki/libpinyin-Internal" target="_blank">libpinyin Internal</a></div>
+      <div class="meta">作者团队 · 英</div>
+      <div class="why">拼音表 / 短语表 / 短语索引 / Bigram 四个核心数据结构讲到字段层面 —— 读完能动手实现简化版。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/libpinyin/libpinyin/wiki/Pinyin-Parser-Survey" target="_blank">Pinyin Parser Survey · libpinyin</a></div>
+      <div class="meta">libpinyin wiki · 英</div>
+      <div class="why">横向对比 5 个开源拼音解析器算法 / 模糊音 / 纠错能力。当"立项调研模板"看。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/rime/librime/blob/master/CHANGELOG.md" target="_blank">librime CHANGELOG</a></div>
+      <div class="meta">2013-2026 · 英</div>
+      <div class="why">把版本号当时间轴读 —— 弃 Kyoto Cabinet 改 LevelDB、加 Cap'n Proto、引入 sentence-over-prediction 等真发生过的工程决定。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/google/mozc/blob/master/docs/design_doc/mozc_ipc.md" target="_blank">Mozc IPC Design Doc</a></div>
+      <div class="meta">Google · 英</div>
+      <div class="why">"converter/renderer 分进程,每次按键 IPC,one-shot 无连接" —— 对 macOS IMK 实现是直接参考。同目录还有 surrounding_text.md / input_scope.md。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">C.3 · 拼音标准 / 异读 / 多音字</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title"><a href="https://pinyin.info/rules/GBT16159-2012.html" target="_blank">GB/T 16159-2012《汉语拼音正词法基本规则》</a></div>
+      <div class="meta">国家标准 · 2012 · 中</div>
+      <div class="why">IME 分词、连写、儿化、人名地名大小写的唯一中文国标 —— 决定"输出该带空格还是连写"。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://zh.wikisource.org/wiki/%E6%B1%89%E8%AF%AD%E6%8B%BC%E9%9F%B3%E6%96%B9%E6%A1%88" target="_blank">汉语拼音方案(1958 原文)</a></div>
+      <div class="meta">国务院 · 1958 · 维基文库</div>
+      <div class="why">字母表 / 声母 / 韵母 / 声调符号 / 隔音符号的源头文档 —— 后续标准的根。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://zh.wikipedia.org/zh-hans/%E6%99%AE%E9%80%9A%E8%AF%9D%E5%BC%82%E8%AF%BB%E8%AF%8D%E5%AE%A1%E9%9F%B3%E8%A1%A8" target="_blank">普通话异读词审音表(维基)</a></div>
+      <div class="meta">1985 法定 + 2016 征求意见 · 中</div>
+      <div class="why">1985 vs 2016 讲得最干净。<strong>法定基准仍是 1985 版</strong>,IME 默认读音必须按 1985 走。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://www.zdic.net/" target="_blank">汉典 zdic.net</a></div>
+      <div class="meta">民间项目 · 中</div>
+      <div class="why">单字异读、古今音、康熙字典释义查询主力站 —— 用户报某字读音可疑,先来 cross-check。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://www.unicode.org/reports/tr38/" target="_blank">UAX #38: Unihan Database</a></div>
+      <div class="meta">Unicode Consortium · 2025 · 英</div>
+      <div class="why">kMandarin / kHanyuPinyin / kHanyuPinlu / kTGHZ2013 字段规范定义 —— IME 灌字典种子时必读。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://zh.wikipedia.org/zh-cn/%E5%85%92%E5%8C%96" target="_blank">儿化(维基)</a> + <a href="https://zh.wikipedia.org/zh-hans/%E8%BC%95%E8%81%B2" target="_blank">轻声(维基)</a></div>
+      <div class="meta">维基 · 中</div>
+      <div class="why">儿化什么时候是构词、什么时候只是口语 —— 直接影响 IME 是否该收 "huār/huar/huaer" 候选。轻声不标调、调值随前字 —— "了/着/的/们"为何不能按四声候选处理的依据。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">C.4 · NLP 教学(中文友好)</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title"><a href="https://speech.ee.ntu.edu.tw/~hylee/ml/2025-spring.php" target="_blank">李宏毅 ML 课程(NTU)</a></div>
+      <div class="meta">2020/2025 · 中</div>
+      <div class="why">入门口味好。<strong>经典 HMM/CRF/RNN 要回看 2020 版</strong>(2023/25 已转 LLM)。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://huggingface.co/learn/nlp-course/zh-CN/chapter1/1" target="_blank">HuggingFace NLP Course(中文版)</a></div>
+      <div class="meta">HF 官方 · 中</div>
+      <div class="why">现代 NLP 工程入门。<strong>tokenizer 章(第 6 章)</strong>对拼音切分/词表设计直接迁移。完全跳过 HMM/n-gram,不替代 SLP3。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://zhuanlan.zhihu.com/p/40208596" target="_blank">通俗易懂理解 Viterbi 算法</a></div>
+      <div class="meta">知乎 · 2018 · 中</div>
+      <div class="why">Viterbi 教程里图最干净的一篇 —— <strong>先看这篇再看 SLP3 附录 A,事半功倍</strong>。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://zhuanlan.zhihu.com/p/40502333" target="_blank">通俗易懂理解 jieba 中的 HMM 中文分词原理</a></div>
+      <div class="meta">知乎 · 2018 · 中</div>
+      <div class="why">jieba 的 BEMS 标注 + DAG + Viterbi 三层串清楚 —— 跟拼音 IME 解码同构,<strong>最值得对照阅读</strong>。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://zhuanlan.zhihu.com/p/406029473" target="_blank">KenLM 中 Modified Kneser-Ney 平滑计算过程推演</a></div>
+      <div class="meta">知乎 · 2021 · 中</div>
+      <div class="why">KN 平滑在中文圈讲清楚的少,结合 kenlm 算实例 —— 自己训 LM 直接有用。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://www.hankcs.com/ml/conditional-random-field.html" target="_blank">条件随机场 · 何晗(HanLP 作者)</a></div>
+      <div class="meta">2017 · 中</div>
+      <div class="why">从无向图模型推到线性链 CRF + 前向后向 + Viterbi 预测 —— 《统计学习方法》高质量学习笔记。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://desh2608.github.io/2018-04-23-intro-speech-recognition-wfst/" target="_blank">An Introduction to Speech Recognition using WFSTs</a></div>
+      <div class="meta">Desh Raj · 2018 · 英</div>
+      <div class="why">WFST 工程导读 —— compose/determinize/minimize 三大算法 + H∘C∘L∘G 流水线。<strong>中文圈这种工程级 WFST 文章基本空白,直接读英文</strong>。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://norvig.com/spell-correct.html" target="_blank">How to Write a Spelling Corrector</a></div>
+      <div class="meta">Peter Norvig · 2007/2016 · 英</div>
+      <div class="why"><strong>不读不行的入门券</strong>。21 行 Python 讲清"先验 × 似然 × 编辑距离" —— 把这个心智搬到拼音纠错是直球迁移。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">C.5 · 隐私 / 安全 / 设计哲学</div>
+  <div class="res-grid">
+    <div class="res" style="border-color:var(--vermillion);background:rgba(196,58,58,.04)">
+      <div class="title"><a href="https://citizenlab.ca/research/vulnerabilities-across-keyboard-apps-reveal-keystrokes-to-network-eavesdroppers/" target="_blank">The Not-So-Silent Type · Citizen Lab #175</a></div>
+      <div class="meta">Knockel et al. · 2024-04 · 英</div>
+      <div class="why"><strong>Track C 核心文献</strong>。Baidu/iFlytek/Tencent/OPPO/Vivo/Honor/Xiaomi/Samsung 九家逐个解剖,九中八烂,受害面接近 10 亿用户 —— 给云输入法这一整个产品形态判了死刑。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://citizenlab.ca/2023/08/vulnerabilities-in-sogou-keyboard-encryption/" target="_blank">Vulnerabilities in Sogou Keyboard Encryption</a></div>
+      <div class="meta">Citizen Lab · 2023-08 · 英</div>
+      <div class="why">搜狗(月活 4.5 亿+)自造 EncryptWall 有 CBC padding oracle —— 每个键击可被链路上窃听者实时解出。"不能信自造密码学" + "键击根本不该上传"。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://www.technologyreview.com/2024/04/24/1091740/chinese-keyboard-app-security-encryption/" target="_blank">Almost every Chinese keyboard app has a security flaw</a></div>
+      <div class="meta">MIT Tech Review · 2024-04 · 英</div>
+      <div class="why">上面 Citizen Lab 报告的科普化复述 + 产业背景。先读这篇热身,再啃原报告会舒服很多。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://shikisuen.medium.com/macos-input-method-development-guidelines-for-2026-5123461fa53b" target="_blank">macOS IME Development Guidelines for 2026</a></div>
+      <div class="meta">Shiki Suen (vChewing) · 2026-03 · 英</div>
+      <div class="why">把 macOS Sandbox 列为 IME"非妥协的伦理底线" —— 解释 IMKInputController 为何应做成纯 pass-through,业务逻辑全部模块化。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">C.6 · 历史与产品(看历史看出方向)</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title"><a href="https://www.amazon.com/Chinese-Typewriter-History-MIT-Press/dp/0262036363" target="_blank">The Chinese Typewriter: A History</a></div>
+      <div class="meta">Mullaney · 2017 · MIT Press</div>
+      <div class="why">《Chinese Computer》前传。电报/打字机/卡片机时代汉字的"前 IME 编码战争" —— 直接看到形码/声码/部首检字之争的思想源头。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://www.woshipm.com/chuangye/849748.html" target="_blank">搜狗输入法的成长之路 · 王小川自述</a></div>
+      <div class="meta">王小川 · 2017 · 中</div>
+      <div class="why">搜狗早期最接近一手的产品视角 —— "互联网词库"杀招怎么从马占凯一句话长成 4 亿用户产品。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://research.google/blog/the-machine-intelligence-behind-gboard/" target="_blank">The Machine Intelligence Behind Gboard</a></div>
+      <div class="meta">Beaufays & Riley · 2017 · 英</div>
+      <div class="why">Gboard 三件套:神经空间模型 + FST 解码器 + QWERTY → 印度文字转写 —— <strong>第三件几乎就是"QWERTY→汉字"</strong>。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://arxiv.org/pdf/1811.03604" target="_blank">Federated Learning for Mobile Keyboard Prediction</a></div>
+      <div class="meta">Google AI · 2018 · 英</div>
+      <div class="why">不上传用户语料也能让模型变聪明的工程经典 —— 搜狗水平 IME 必碰"个人词库私密 vs 全局模型变强"张力。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://research.google/blog/googler-shumin-zhai-awarded-with-the-acm-uist-lasting-impact-award/" target="_blank">SHARK² · Shumin Zhai 获 UIST Lasting Impact Award</a></div>
+      <div class="meta">Google · 2014 · 英</div>
+      <div class="why">Swype/Gboard 手势输入祖师 —— "用户输入是带噪轨迹、词典+LM 联合解码"跟拼音 IME 完全同构。</div>
+    </div>
+  </div>
+
+
+  <!-- ===== TRACK D 数据集 ===== -->
+  <div class="track-head">
+    <span class="tno">D</span>
+    <h3>数据集 / 评测语料 / 多音字</h3>
+    <span class="tsub">data · 25+ 项 / 5 子轨</span>
+  </div>
+
+  <div class="subtrack">D.1 · LM 训练语料(从小到大)</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title"><a href="https://dumps.wikimedia.org/zhwiki/" target="_blank">zhwiki dumps</a></div>
+      <div class="meta">≈3 GB 压缩 / 解压 15-18 GB · CC BY-SA 3.0 + GFDL</div>
+      <div class="why">trigram LM 的"严肃书面语"底盘,百科句式干净、词汇覆盖广。</div>
+      <div class="caveat">繁简混杂(OpenCC 必做);wiki markup 重(用 wikiextractor);消歧义页要过滤。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://corpora.uni-leipzig.de/" target="_blank">Leipzig Chinese Corpora</a></div>
+      <div class="meta">zho_news_2020 / cmn-cn_web_2019 · CC BY</div>
+      <div class="why">干净分句的"新闻/网页"小型平衡 corpus,适合 trigram baseline 或 dev/test。</div>
+      <div class="caveat">规模偏小,不能单训搜狗级 LM。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/thu-coai/CDial-GPT" target="_blank">LCCC (thu-coai)</a></div>
+      <div class="meta">base 671 万 / large 1454 万 utterances · MIT(代码) / 数据 research-only</div>
+      <div class="why"><strong>唯一开源大头补"口语/对话句式"</strong> —— 搜狗级 LM 必须有这块,否则聊天场景词序硬。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://data.statmt.org/cc-100/" target="_blank">CC-100 zh</a></div>
+      <div class="meta">14 GB 压缩 / 60-80 GB 解压 · 弃权式 license</div>
+      <div class="why"><strong>trigram LM 训练主力之一</strong> —— 清洗已做(去 boilerplate + lid + LM perplexity 过滤)。</div>
+      <div class="caveat">2018 snapshot,新词差;行=段落,trigram 前再按 。!? 切。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://huggingface.co/datasets/allenai/c4" target="_blank">mC4 zh</a></div>
+      <div class="meta">~5460 万 docs · ODC-BY + CC ToU</div>
+      <div class="why">比 CC-100 更新更大,适合大规模 trigram / 小神经 LM。</div>
+      <div class="caveat">繁简混要 OpenCC;HF 上有非 zh 误判,需 fasttext lid 二次过滤。</div>
+    </div>
+    <div class="res" style="border-color:var(--vermillion);background:rgba(196,58,58,.04)">
+      <div class="title"><a href="https://huggingface.co/datasets/Skywork/SkyPile-150B" target="_blank">SkyPile-150B</a></div>
+      <div class="meta">150B tokens / 620 GB · Skywork Community License (显式商用)</div>
+      <div class="why"><strong>训中文神经 LM 当前首选大型开源池</strong>(规模/license/清洗质量平衡最好)。</div>
+      <div class="caveat">解压后需 1.5 TB SSD;trigram .arpa 不在协议受限范围内。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/esbatmop/MNBVC" target="_blank">MNBVC</a></div>
+      <div class="meta">~60.7 TB(目标 253 TB 的 24%) · MIT</div>
+      <div class="why"><strong>最适合 IME 多域覆盖</strong>(聊天/商品/台词这种 IME 高频)。按子集挑,别想全量。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">D.2 · 多音字 / 字词读音(IME ranking 直接吃)</div>
+  <div class="res-grid">
+    <div class="res" style="border-color:var(--vermillion);background:rgba(196,58,58,.04)">
+      <div class="title"><a href="https://github.com/mozillazg/pinyin-data" target="_blank">mozillazg/pinyin-data</a> + <a href="https://github.com/mozillazg/phrase-pinyin-data" target="_blank">phrase-pinyin-data</a></div>
+      <div class="meta">MIT · 已合并 Unihan + cc-cedict + zdic + 人工 overwrite</div>
+      <div class="why"><strong>修多音字 ROI 最高 —— 开箱即用 MIT 可商用</strong>;跟你的 polish overlay TSV 模式天然同构。</div>
+      <div class="caveat">phrase 总量约 10w,冷僻成语/新词覆盖差。</div>
+    </div>
+    <div class="res">
+      <div class="title">Unihan kHanyuPinlu / kMandarin / kHanyuPinyin</div>
+      <div class="meta">Unicode · 全 CJK ~9w 字 · Unicode license</div>
+      <div class="why">字级 polyphone 权威库。<strong>kHanyuPinlu 带《现代汉语频率词典》频次,最适合做主读音</strong>。</div>
+      <div class="caveat">只到单字层;kHanyuPinyin 卷页索引混读音格式新手易解错。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/studyzy/imewlconverter" target="_blank">imewlconverter</a> · 细胞词库工具</div>
+      <div class="meta">GPL-3.0(工具)· 词库本身版权专有</div>
+      <div class="why">工具合法。<strong>词库别动 —— 产品分发有发函先例,只能借鉴思路自己重排数据</strong>。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">D.3 · IME 评测 / pinyin→hanzi benchmark</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title"><a href="https://huggingface.co/datasets/Duyu/Pinyin-Hanzi" target="_blank">Duyu/Pinyin-Hanzi</a></div>
+      <div class="meta">164 万行 / 78 MB · Apache-2.0</div>
+      <div class="why">配套 HMM/Transformer 模型,可做 quickstart baseline。</div>
+      <div class="caveat">多音字默认取 1,<strong>只能当弱监督,不能做金标</strong>。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/letiantian/Pinyin2Hanzi" target="_blank">letiantian/Pinyin2Hanzi</a></div>
+      <div class="meta">Viterbi 实现 + 内置 corpus</div>
+      <div class="why">不是 dataset,是参考实现 —— 可做 quickstart baseline 对照。</div>
+    </div>
+    <div class="res">
+      <div class="title">PD(People's Daily 1992-98 PKU 切分)</div>
+      <div class="meta">Yang 2012 报 train 4M MIUs / test 390K MIUs</div>
+      <div class="why">学术界 IME 评测的事实金标,但<strong>没找到合法公开直链</strong>(SIGHAN-2 当年有 share)。实操替代:用 THUOCL 或 brightmart/nlp_chinese_corpus 自切。</div>
+    </div>
+    <div class="res">
+      <div class="title">公开 IME evaluation harness</div>
+      <div class="meta">未找到</div>
+      <div class="why"><strong>诚实标注:产业内没有共用 benchmark</strong>。要自造 —— 参考 librime/tests/ 或 fcitx5-chinese-addons/test/ 的输入回放方式。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">D.4 · typo / 拼写纠错</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title"><a href="https://github.com/NYCU-NLP/SIGHAN-CSC" target="_blank">SIGHAN CSC 2013/14/15</a></div>
+      <div class="meta">research-only · 附 confusion set</div>
+      <div class="why">字级错误金标 + confusion set 做候选裁剪(IME polish 尤其有用)。</div>
+      <div class="caveat">错误来源是"写字/OCR",跟"键盘打错拼音"分布有 gap。</div>
+    </div>
+    <div class="res">
+      <div class="title">拼音 typo(IME 本命)</div>
+      <div class="meta">未找到公开真实日志</div>
+      <div class="why"><strong>诚实标注:没有公开的"真实用户打错拼音"数据集</strong>。KNPTC 用的 Sogou 日志未公开。实操替代:RIME fcitx5 fuzzy_pinyin schema 当 noise generator 种子。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://www.sinosplice.com/life/archives/2009/09/08/fuzzy-pinyin" target="_blank">Sinosplice · fuzzy pinyin 综述</a></div>
+      <div class="meta">2009 · 英</div>
+      <div class="why">了解模糊音的语言学/方言学根源。</div>
+    </div>
+  </div>
+
+  <div class="subtrack">D.5 · 工具与脚手架</div>
+  <div class="res-grid">
+    <div class="res">
+      <div class="title">分词金标排序(放进 IME polish pipeline)</div>
+      <div class="meta">推荐组合</div>
+      <div class="why"><strong>1. jieba</strong> (default baseline) → <strong>2. pkuseg</strong> (要新词/域适配) → <strong>3. LAC</strong> (要 POS+NER) → <strong>4. HanLP 1.x</strong> (要拼音/简繁/全家桶)。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/deepcs233/jieba_fast" target="_blank">jieba_fast</a></div>
+      <div class="meta">C+SWIG drop-in · ~2x speedup</div>
+      <div class="why">jieba 性能瓶颈时切换;新 Python 用 snapADDY/jieba-pyfast。</div>
+    </div>
+    <div class="res">
+      <div class="title"><a href="https://github.com/ckiplab/ckiptagger" target="_blank">CKIPTagger</a></div>
+      <div class="meta">神经 WS+POS+NER · ASBC F1 97.33%</div>
+      <div class="why">繁体训练为主,神经分词金标。</div>
+      <div class="caveat">TF 依赖重,~2GB 模型。</div>
+    </div>
+  </div>
+
+
+  <!-- ===== Top picks ===== -->
+  <h3 style="margin-top:60px">06.6 · 5 条精选(取自全 60+ 项)</h3>
+  <p>按"先读 → 后读"的顺序。这五条覆盖完毕,就有了独立分辨好坏的能力,后面可以自己挑。</p>
+
+  <div class="pick-grid">
+    <div class="pick">
+      <div class="rank">01</div>
+      <div class="title"><a href="https://www.slideshare.net/pengewu/libpinyin" target="_blank">libpinyin slides · Peng Wu</a></div>
+      <div class="why">36 页吃下中文拼音 IME 二十年算法演进史(Max-Forward-Match → unigram → bigram/trigram → HMM)。所有后续阅读都用这张坐标系定位。</div>
+    </div>
+    <div class="pick">
+      <div class="rank">02</div>
+      <div class="title"><a href="https://rimeinn.github.io/rime/schema-design.html" target="_blank">Rime 输入方案设计书 · 佛振</a></div>
+      <div class="why">工程组织的字典:Processor / Translator / Filter / 拼写运算的抽象。先建立这套词汇表,再看任何博客都能对得上号。</div>
+    </div>
+    <div class="pick">
+      <div class="rank">03</div>
+      <div class="title"><a href="https://norvig.com/spell-correct.html" target="_blank">Norvig · How to Write a Spelling Corrector</a></div>
+      <div class="why">21 行 Python 让你彻底懂"信道解码"。拼音纠错、模糊音、整句解码用的都是这个心智 —— <strong>不读不行</strong>。</div>
+    </div>
+    <div class="pick">
+      <div class="rank">04</div>
+      <div class="title"><a href="https://zhuanlan.zhihu.com/p/40502333" target="_blank">通俗易懂理解 jieba HMM 中文分词原理</a></div>
+      <div class="why">拼音 IME 解码层和 jieba HMM 分词是同一个 Viterbi、同类 BEMS,只是观测序列从汉字换成拼音 —— 一篇打通"NLP 教材里的 HMM"与"我要写的 IME"。</div>
+    </div>
+    <div class="pick">
+      <div class="rank">05</div>
+      <div class="title"><a href="https://citizenlab.ca/research/vulnerabilities-across-keyboard-apps-reveal-keystrokes-to-network-eavesdroppers/" target="_blank">The Not-So-Silent Type · Citizen Lab #175</a></div>
+      <div class="why">九大云输入法被逐个解剖、八家中招。读完彻底坚定"本地优先"是工程伦理底线,不是技术洁癖 —— <strong>这一条决定你的产品价值主张</strong>。</div>
+    </div>
+  </div>
+
+
+  <!-- ===== 实操配方 ===== -->
+  <h3 style="margin-top:60px">06.7 · 两份实操配方(可立刻动手)</h3>
+
+  <div class="lay-with-margin">
+    <div>
+      <h4>配方一 · 立刻搭 MIU 评测脚手架</h4>
+      <p><strong>需要 3 份数据:</strong></p>
+      <p>① <em>黄金 hanzi corpus(句级)</em> — 抓 People's Daily online 近一年 或用 brightmart/nlp_chinese_corpus 的 news2016zh;jieba/THULAC 切句 → 按 MIU 定义(非汉字分隔的最长汉字串)再切 → 目标 ~5 万 MIU,做 dev/test split。</p>
+      <p>② <em>平行 pinyin 序列</em> — pypinyin.lazy_pinyin(miu, Style.NORMAL) 一过;多音字策略:train/dev 用 default;<strong>test 单独人审 1000 条做高质量 MIU</strong> —— 否则 metric 会把 pypinyin 选错的多音字算成 IME 的错。</p>
+      <p>③ <em>typo 噪声集(可选)</em> — 用 RIME fuzzy_pinyin 按 1%-5% 注 noise;SIGHAN-2015 confusion-set 倒推到 pinyin level。</p>
+      <p><strong>第一个 metric:Top-K MIU accuracy(Top-1 / 5 / 10)</strong>。Top-1 ≈ "用户不翻页能否打出来"。第二步加 KSR 才能跟 KySS 系对齐。</p>
+    </div>
+    <div>
+      <h4>配方二 · 训像样 trigram LM</h4>
+      <p><strong>底盘三档:</strong></p>
+      <p>· <em>最小</em> · Wikipedia + LCCC-base + THUCNews ≈ 5 GB · 1-2 天验证 pipeline</p>
+      <p>· <em>中等推荐</em> · 上 + CC-100 zh ≈ 70 GB · 第一版可用 trigram</p>
+      <p>· <em>大</em> · 上 + SkyPile-150B 子采样 + MNBVC 聊天/小说子集 ≈ 200 GB · 接近搜狗级</p>
+      <p><strong>清洗 pipeline 顺序(顺序很重要):</strong> wikiextractor → 去 boilerplate → fasttext lid (0.7 阈值) → OpenCC t2s.json → 按 。!?… 切句 → 句长 4-120 字 + 汉字占比 ≥0.6 过滤 → MinHash 句级去重 → jieba.cut(HMM=False) + 自定义词典 → KenLM lmplz -o 3 + modified Kneser-Ney → .arpa → .binary → IME 端 mmap。</p>
+      <p><strong>license 安全配方(避开灰色):</strong>用 Wikipedia + CC-100 + LCCC + SkyPile;避开 THUCNews/PFR 1998/WuDao。</p>
+    </div>
+  </div>
+
+
+  <!-- ===== 已知缺口 ===== -->
+  <div class="gap-list">
+    <h4>06.8 · 已知缺口与诚实声明</h4>
+    <ul>
+      <li><strong>没有公开的"真实用户打错拼音"数据集</strong> —— KNPTC 用的 Sogou 日志未公开,只能 RIME fuzzy + 自合成</li>
+      <li><strong>没有公开的中文 IME keystroke log</strong> —— Dhakal 2018 CHI 136M 击键是英文</li>
+      <li><strong>PD 切分语料无合法公开直链</strong> —— 要复现得自切</li>
+      <li><strong>搜狗/百度细胞词库</strong> —— 工具 imewlconverter 合法(GPL),词库分发有法律风险</li>
+      <li><strong>《现代汉语词典》</strong> —— 全版权专有,无 API,商务印书馆维权积极。仅供人工 polish 金标对照,禁止批量提取</li>
+      <li><strong>50MB 以内、专为中文 IME rerank 蒸馏的现成小模型</strong> —— 不存在,产业未解决,只能泛用 LM 截尾 + 量化</li>
+      <li><strong>英文 IME systematic survey</strong>(过去 5 年) —— 没有,Fong & Minett 2012 是目前最接近的</li>
+      <li><strong>知乎反爬 403</strong> —— 表中知乎条目 URL 浏览器可访问,但未能用工具 cross-check 内容</li>
+    </ul>
+  </div>
+
+  <div class="divider-mark">· 完 ·</div>
+</section>
+
+<!-- ====================== FOOTER ====================== -->
+<section class="foot">
+  <h3>Reading notes · 作者按</h3>
+  <p style="max-width:1200px;font-style:italic;color:var(--paper-2)">这份报告写给"未来要动手改进 inputx 拼音的人"看,不是说给用户的功能介绍。如果你只能从这份报告记走一句话,记这句 ——</p>
+  <p style="font-family:'Noto Serif SC',serif;font-size:24px;color:#e6a370;max-width:1200px;margin-top:18px;line-height:1.4">"<em>差距 = 缺三件结构性零件(LM、联合 lattice、用户 n-gram)+ 关四道 gate;不是差一点,是差一代;但底盘干净,改造可行</em>。"</p>
+
+  <div style="margin-top:36px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px">
+    <div>
+      <h3>本报告引用的代码位置</h3>
+      <ul style="list-style:none;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--paper-2);line-height:2">
+        <li>core/crates/inputx-core/src/composite/engine.rs</li>
+        <li>core/crates/inputx-core/src/composite/dispatch.rs:64</li>
+        <li>core/crates/inputx-core/src/composite/merge.rs</li>
+        <li>core/crates/inputx-pinyin/src/segmenter.rs:46</li>
+        <li>core/crates/inputx-pinyin/src/dict.rs</li>
+        <li>core/crates/inputx-pinyin/src/fuzzy.rs:72</li>
+        <li>core/crates/inputx-pinyin/src/ranking.rs:28</li>
+        <li>core/.../pinyin_adapter.rs:1184 (refresh_candidates)</li>
+        <li>docs/SCORING.md / docs/PLAN-syllable-aware-pinyin.md</li>
+        <li>docs/pinyin-pipeline-gates.md</li>
+      </ul>
+    </div>
+    <div>
+      <h3>内部 memory 引用</h3>
+      <ul style="list-style:none;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--paper-2);line-height:2">
+        <li>pinyin_minimal_debug_state.md</li>
+        <li>pinyin_segment_mode_wip.md</li>
+        <li>polish_ordering_quickfix_vs_libraryfreq.md</li>
+        <li>ranking_orthogonal_table_model.md</li>
+        <li>polyphone_dup_sweep_2026-06-13.md</li>
+      </ul>
+    </div>
+    <div>
+      <h3>下一步</h3>
+      <ul style="list-style:none;font-family:'Noto Serif SC',serif;font-size:14px;color:var(--paper-2);line-height:1.7">
+        <li>· 与作者讨论 §05 路径优先级</li>
+        <li>· 决定是否本季度启动 Phase 01</li>
+        <li>· 选 1 篇论文先一起精读(建议 Chen & Lee 2000)</li>
+        <li>· 实现 tools/eval/ MIU 脚手架(2 周可出 v0)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="credit">
+    <span>research · inputx pinyin quality gap</span>
+    <span>2026.06.14 · zh-hans</span>
+    <span>opus 4.7 · for 玩家 doracawl</span>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

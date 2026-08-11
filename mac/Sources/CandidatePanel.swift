@@ -14,7 +14,18 @@ import InputxKit
 ///
 /// The window is borderless and a key panel that doesn't steal focus from
 /// the host app. It's positioned via the IMK client's caret rect.
+///
+/// Process-wide SINGLETON. IMKit churns `InputxController` instances at
+/// every input-context activation (~19/hour measured 2026-08-02); a
+/// per-controller panel leaks its `NSPanel` on controller dealloc,
+/// because `preWarmRows` orders the window front (resident-but-invisible
+/// perf design below) and an ordered-in window stays registered with
+/// AppKit past the last Swift reference — 1,341 live window clusters /
+/// 1.2 GB RSS after 3 days. One shared panel also pays the pre-warm
+/// cost (row build, glyph cache, AL calibration, compositor setup)
+/// once per process instead of once per context.
 final class CandidatePanel {
+    static let shared = CandidatePanel()
     /// All candidates from the engine (not just current page).
     private(set) var current: [String] = []
     /// `true` when the panel is showing 联想 (next-word predictions)
@@ -27,6 +38,14 @@ final class CandidatePanel {
     private var pageIndex: Int = 0
     /// 0-based selected index within the current page (0…pageSize-1).
     private var selectedInPage: Int = 0
+    /// Whether the user has actively moved selection / paged this round
+    /// (since the last `refresh(words:)` / `hide()` / `showPredictions`).
+    /// True iff `moveSelectionUp` / `moveSelectionDown` / `prevPage` /
+    /// `nextPage` actually mutated state. Read by `IMEController` so
+    /// Enter can split: untouched → 上屏 raw preedit (英文 passthrough);
+    /// touched → commit the highlighted candidate. Per user 2026-06-16
+    /// directive "如果没有上下或 [] 调整过选择的话，回车是英文上屏".
+    private(set) var selectionTouched: Bool = false
 
     /// Per-page candidate count. User-requested 10.
     static let pageSize = 10
@@ -35,7 +54,58 @@ final class CandidatePanel {
     private let stack: NSStackView
     private let footer: NSTextField
 
+    /// Whether the panel is currently visually hidden (alpha = 0).
+    /// We use alpha toggling instead of orderOut/orderFront because
+    /// orderFront has a ~3-9ms compositor / backing-store setup cost
+    /// that the user perceives as "switch-to-Inputx 第一次卡". Keeping
+    /// the window resident in the window list at alpha 0 collapses the
+    /// show cost to a single CALayer property write.
+    private var visualHidden: Bool = true
     private var rowViews: [CandidateRow] = []
+    /// Last-rendered `(pageIndex, current.count, current[pageStart..<pageEnd])`
+    /// fingerprint. Lets `_rebuildRows` early-out when nothing the user
+    /// would see changed (a same-page, same-content refresh, e.g.
+    /// keystroke that didn't change candidates). Cleared by `hide()` so
+    /// re-show always rebuilds.
+    private var lastRenderedFingerprint: String = ""
+    /// Render-width of the widest visible word at the last layout pass.
+    /// Used to skip `layoutSubtreeIfNeeded` + `fittingSize` + `setFrame`
+    /// when the new page's widest word still fits — non-shrinking panel
+    /// behaviour matches Apple/搜狗/微信 IMEs and keeps the window
+    /// from jittering as candidate sets vary. Reset by `hide()`.
+    private var cachedMaxWordRenderWidth: CGFloat = 0
+    /// Cached attributes for the `NSString.size(withAttributes:)`
+    /// measure pass below — building the dict on every refresh would
+    /// itself eat a few µs × pageSize.
+    private static let wordMeasureAttrs: [NSAttributedString.Key: Any] = [
+        .font: NSFont.systemFont(ofSize: 15)
+    ]
+    /// Per-word render-width cache. Each unique candidate word is
+    /// measured exactly once across the IME's lifetime — subsequent
+    /// refreshes look up O(1). PerfTimer showed the raw measure pass
+    /// at ~1.2ms p50 (10× NSString.size per refresh); the cache
+    /// collapses that to a single dict lookup on the common case
+    /// where most page words have already been seen.
+    private var wordWidthCache: [String: CGFloat] = [:]
+    /// One-time AL-calibrated overhead between the widest word's
+    /// render width and the panel's content-view width:
+    /// `contentWidth - widestWordRenderWidth`. Hand-rolled vs. the
+    /// existing constraint stack the overhead comes out to:
+    ///   stack edgeInsets.left (8) + row leading-padding (6) +
+    ///   numberLabel width (14) + gap (8) + wordLabel trailing-pad (8)
+    ///   + stack edgeInsets.right (8) = 52pt.
+    /// We measure it empirically on first refresh (one AL pass) to
+    /// survive any future constraint tweak without recomputing the
+    /// constant by hand. After calibration the layout block becomes
+    /// pure arithmetic — no `layoutSubtreeIfNeeded`, no `fittingSize`.
+    private var calibratedWidthOverhead: CGFloat?
+    /// One-time AL-calibrated panel height. With 10 fixed-height rows
+    /// (22pt each), 9× 1pt stack spacing, 6+4 stack edgeInsets, a
+    /// stack→footer gap of 2pt, footer intrinsic (~13pt for a
+    /// 10pt-font label), and footer bottom-inset of 4pt, the total
+    /// settles around 258pt. Always populated together with
+    /// `calibratedWidthOverhead`.
+    private var calibratedFrameHeight: CGFloat?
     private weak var lastClient: AnyObject?
 
     /// Which edge of the panel stays put when the row count changes
@@ -64,7 +134,10 @@ final class CandidatePanel {
     /// `anchorY` is set by `positionNear` and never touched by AL.
     private var anchorY: CGFloat = 0
 
-    init() {
+    // `private` — the singleton above is the only construction point.
+    // Every extra instance is a permanent window-server leak (see class
+    // doc); the compiler enforces what the 2026-08-02 audit found.
+    private init() {
         // Borderless floating panel — doesn't steal focus, sits above host.
         // Compact width (user-tuned 2x narrower than original 220pt) —
         // numbered rows + word + page indicator only.
@@ -134,6 +207,87 @@ final class CandidatePanel {
         self.window = w
         self.stack = stack
         self.footer = footer
+        // Eager pre-warm everything that would otherwise be paid on
+        // the first keystroke's `_rebuildRows`. User-reported "打第
+        // 一个字眼皮跳一下" 2026-05-31: cold first refresh took ~20ms
+        // (vs warm ~2ms) because three one-time costs all landed on
+        // a single keystroke — 10× CandidateRow construction, the AL
+        // calibrate pass, and the initial fittingSize measure.
+        // Moving them to init() (before the user has typed a thing)
+        // makes the first real refresh take the warm path.
+        preWarmRows()
+    }
+
+    private func preWarmRows() {
+        // 1. Build the 10 CandidateRow instances now so the first
+        //    refresh's recycling-fast-path can update them in place.
+        for _ in 0..<Self.pageSize {
+            let row = CandidateRow(numberLabel: "", word: "")
+            stack.addArrangedSubview(row)
+            rowViews.append(row)
+        }
+
+        // 1b. Force CoreText / NSFont glyph cache to populate now by
+        //     setting realistic Chinese content on the rows. User
+        //     reported "刚安装完的时候明显卡顿" 2026-05-31 — first
+        //     text render after a fresh process pays the system-font
+        //     glyph-loading cost (~10-30ms), causing the first few
+        //     keystrokes to feel laggy. Pre-seeding common characters
+        //     warms the font cache.
+        let warmupChars = ["我", "你", "他", "的", "是", "在", "了", "中", "国", "人"]
+        for (i, row) in rowViews.enumerated() {
+            row.update(numberLabel: String(i + 1), word: warmupChars[i])
+        }
+        // Force render + measure cycle so CoreText actually loads
+        // the glyphs and populates the layout caches.
+        for w in warmupChars {
+            _ = (w as NSString).size(withAttributes: Self.wordMeasureAttrs)
+        }
+        // 2. Bake the hand-rolled-layout constants. Empirical AL
+        //    calibration at first refresh was unreliable (newMaxWidth
+        //    depended on whatever the first page words happened to
+        //    be → widthOverhead could be over- or under-estimated),
+        //    so hardcode the geometry directly from the row + stack
+        //    constraints. If the row constraints ever change, both
+        //    constants need to be re-derived by hand.
+        //
+        //    widthOverhead = stack edgeInsets (left 8 + right 8 = 16)
+        //                  + row chrome (numberLabel leading 6 + width 14
+        //                                + gap 8 + wordLabel trailing 8 = 36)
+        //                  = 52pt
+        //    frameHeight   = 10× 22pt rows + 9× 1pt stack spacing
+        //                  + stack edgeInsets (top 6 + bottom 4 = 10)
+        //                  + stack→footer gap 2pt
+        //                  + footer intrinsic (~13pt for 10pt-font)
+        //                  + footer bottom-inset 4pt
+        //                  ≈ 258pt
+        calibratedWidthOverhead = 52
+        calibratedFrameHeight = 258
+        // 3. Force one AL constraint-engine pass to wake the row
+        //    layout machinery now. Without it, the first stringValue
+        //    update on a row pays the cold constraint-resolution
+        //    cost; with it, every refresh runs on warm constraint
+        //    state.
+        window.contentView?.layoutSubtreeIfNeeded()
+
+        // 4. Pre-warm the window-server's panel setup AND leave the
+        //    window resident-but-invisible (alpha 0) so subsequent
+        //    show/hide cycles are cheap CALayer alpha writes instead
+        //    of the ~3-9ms orderFront compositor setup cost. Set the
+        //    frame off-screen first so even a brief alpha glitch
+        //    doesn't leak pixels to the user.
+        let offScreen = NSRect(x: -10000, y: -10000, width: 110, height: 258)
+        window.setFrame(offScreen, display: true)
+        window.alphaValue = 0
+        window.ignoresMouseEvents = true
+        window.orderFront(nil)
+        visualHidden = true
+
+        // 5. Clear the warmup content from rows so the first real
+        //    refresh sees a known baseline (empty) state.
+        for row in rowViews {
+            row.update(numberLabel: "", word: "")
+        }
     }
 
     /// Update content from the session's current candidate list. Hides
@@ -148,6 +302,12 @@ final class CandidatePanel {
     /// IMK's `attributes(forCharacterIndex:)` reported subtly different
     /// caret rects each call. Sticky positioning per session = stable.
     func refresh(session: InputxSession, client: AnyObject?) {
+        PerfTimer.measure("CandidatePanel.refresh") {
+            self._refresh(session: session, client: client)
+        }
+    }
+
+    private func _refresh(session: InputxSession, client: AnyObject?) {
         lastClient = client
         // Refresh always exits prediction mode — predictions only show
         // when there's NO buffer; a normal refresh means buffer changed
@@ -158,36 +318,66 @@ final class CandidatePanel {
         // anchor at the FRESH caret, not the stale prediction anchor.
         let wasPrediction = isPredictionMode
         isPredictionMode = false
-        let count = session.candidateCount
-        guard count > 0, let preedit = session.preedit, !preedit.isEmpty else {
+        let (count, preeditOpt): (Int, String?) = PerfTimer.measure("session.count+preedit") {
+            (session.candidateCount, session.preedit)
+        }
+        guard count > 0, let preedit = preeditOpt, !preedit.isEmpty else {
             hide()
             return
         }
 
-        var words: [String] = []
-        words.reserveCapacity(count)
-        for i in 0..<count {
-            if let w = session.candidate(at: i) {
-                words.append(w)
-            }
-        }
         let cap = 50
-        if words.count > cap { words.removeLast(words.count - cap) }
+        let words: [String] = PerfTimer.measure("session.candidate(at:)×N") {
+            var ws: [String] = []
+            let n = min(count, cap)
+            ws.reserveCapacity(n)
+            for i in 0..<n {
+                if let w = session.candidate(at: i) {
+                    ws.append(w)
+                }
+            }
+            return ws
+        }
         if words != current {
             current = words
             pageIndex = 0
             selectedInPage = 0
+            // Fresh candidate set = a fresh selection round, even if the
+            // user paged/arrowed in the previous round. Enter on the new
+            // round defaults back to 英文 passthrough until they touch
+            // selection again.
+            selectionTouched = false
         }
         // Reposition when transitioning out of prediction mode — the
         // caret moved while predictions were on (commit advanced it),
         // so the new typing session must anchor at the fresh caret.
-        let firstShow = !window.isVisible
+        let firstShow = visualHidden
         let needsReposition = firstShow || wasPrediction
         rebuildRows()
         if needsReposition {
-            positionNear(client: client)
-            if !window.isVisible { window.orderFront(nil) }
+            PerfTimer.measure("refresh.positionNear") {
+                positionNear(client: client)
+            }
         }
+        if visualHidden {
+            PerfTimer.measure("refresh.show") {
+                showVisually()
+            }
+        }
+    }
+
+    private func showVisually() {
+        if !visualHidden { return }
+        window.alphaValue = 1
+        window.ignoresMouseEvents = false
+        visualHidden = false
+    }
+
+    private func hideVisually() {
+        if visualHidden { return }
+        window.alphaValue = 0
+        window.ignoresMouseEvents = true
+        visualHidden = true
     }
 
     func hide() {
@@ -195,7 +385,10 @@ final class CandidatePanel {
         isPredictionMode = false
         pageIndex = 0
         selectedInPage = 0
-        if window.isVisible { window.orderOut(nil) }
+        selectionTouched = false
+        lastRenderedFingerprint = ""
+        cachedMaxWordRenderWidth = 0
+        hideVisually()
     }
 
     /// Show the panel populated with 联想 (next-word) predictions
@@ -220,6 +413,7 @@ final class CandidatePanel {
         isPredictionMode = true
         pageIndex = 0
         selectedInPage = 0
+        selectionTouched = false
         rebuildRows()
         // ALWAYS reposition for predictions — each commit advances the
         // host's caret (the just-committed word shifts everything right),
@@ -227,7 +421,7 @@ final class CandidatePanel {
         // sticking at the original anchor. This is the
         // post-commit equivalent of "fresh session = fresh position".
         positionNear(client: client)
-        if !window.isVisible { window.orderFront(nil) }
+        showVisually()
     }
 
     var isVisible: Bool { !current.isEmpty }
@@ -255,10 +449,12 @@ final class CandidatePanel {
         guard isVisible else { return false }
         if selectedInPage > 0 {
             selectedInPage -= 1
+            selectionTouched = true
             updateRowHighlight()
             return true
         }
-        // At top of page — try previous page.
+        // At top of page — try previous page. prevPage() owns its own
+        // selectionTouched flip (no-op at first page).
         return prevPage()
     }
 
@@ -268,10 +464,12 @@ final class CandidatePanel {
         let lastOnPage = min(Self.pageSize, current.count - pageIndex * Self.pageSize) - 1
         if selectedInPage < lastOnPage {
             selectedInPage += 1
+            selectionTouched = true
             updateRowHighlight()
             return true
         }
-        // At bottom of page — try next page.
+        // At bottom of page — try next page. nextPage() owns its own
+        // selectionTouched flip (no-op at last page).
         return nextPage()
     }
 
@@ -281,6 +479,7 @@ final class CandidatePanel {
         guard isVisible, pageIndex > 0 else { return false }
         pageIndex -= 1
         selectedInPage = 0
+        selectionTouched = true
         rebuildRows()
         return true
     }
@@ -293,6 +492,7 @@ final class CandidatePanel {
         guard pageIndex + 1 < totalPages else { return false }
         pageIndex += 1
         selectedInPage = 0
+        selectionTouched = true
         rebuildRows()
         return true
     }
@@ -307,9 +507,12 @@ final class CandidatePanel {
     // ------------------------------------------------------------- UI build
 
     private func rebuildRows() {
-        for v in rowViews { stack.removeArrangedSubview(v); v.removeFromSuperview() }
-        rowViews.removeAll()
+        PerfTimer.measure("CandidatePanel.rebuildRows") {
+            self._rebuildRows()
+        }
+    }
 
+    private func _rebuildRows() {
         // Always populate ALL 10 slots, even when the current page has
         // fewer candidates (last page, short candidate set). Empty slots
         // get empty label + empty word — they still occupy a standard-
@@ -321,18 +524,125 @@ final class CandidatePanel {
         // candidates flex across pages or keystrokes. The empty label
         // ("" not "5"/"0"/etc.) also keeps the unused 1-9/0 numerals from
         // showing in slots that have no candidate.
+        //
+        // Recycling: the 10 row views are created once (first refresh)
+        // and reused across every subsequent refresh. Per-call work is
+        // `update(numberLabel:word:)` on each row — a couple of
+        // `stringValue` setters that no-op on equal strings — plus the
+        // highlight + footer updates + AL sizing pass below. Pre-recycle
+        // this function was the dominant per-keystroke cost (p50 ~16ms,
+        // p95 ~22ms per /tmp/inputx.err.log PerfTimer dumps, 2026-05-31);
+        // each refresh tore down 10 rows × (3 subviews + 12 constraints)
+        // and rebuilt them. Recycling collapses that to ~10 string
+        // compares + a single subtree layout.
         let start = pageIndex * Self.pageSize
-        for i in 0..<Self.pageSize {
-            let absIdx = start + i
-            let hasWord = absIdx < current.count
-            let label = hasWord ? ((i == Self.pageSize - 1) ? "0" : String(i + 1)) : ""
-            let word = hasWord ? current[absIdx] : ""
-            let row = CandidateRow(numberLabel: label, word: word)
-            stack.addArrangedSubview(row)
-            rowViews.append(row)
+
+        let fingerprint: String = PerfTimer.measure("rR.fingerprint") {
+            var fp = "\(pageIndex)|"
+            for i in 0..<Self.pageSize {
+                let absIdx = start + i
+                if absIdx < current.count {
+                    fp.append(current[absIdx])
+                }
+                fp.append("|")
+            }
+            return fp
         }
-        updateRowHighlight()
-        updateFooter()
+        if fingerprint == lastRenderedFingerprint && rowViews.count == Self.pageSize {
+            updateRowHighlight()
+            updateFooter()
+            return
+        }
+        lastRenderedFingerprint = fingerprint
+
+        // Lazy first-time row creation. Defensive — `preWarmRows` in
+        // `init()` already builds the 10 rows, so this branch
+        // shouldn't fire post-init. Kept for the safety net case
+        // where rowViews got detached somehow.
+        if rowViews.count != Self.pageSize {
+            for v in rowViews { stack.removeArrangedSubview(v); v.removeFromSuperview() }
+            rowViews.removeAll()
+            for _ in 0..<Self.pageSize {
+                let row = CandidateRow(numberLabel: "", word: "")
+                stack.addArrangedSubview(row)
+                rowViews.append(row)
+            }
+        }
+
+        // Two-phase measurement (L2 optimization, 2026-05-31). The
+        // typical case is "all page words fit the cached max width"
+        // (widthFitHit fires → early-out). For that case we don't
+        // need the *exact* new max — we only need to verify that no
+        // word exceeds the cached threshold. So:
+        //   Phase 1: scan words in order, short-circuit the moment
+        //            any one exceeds `cachedMaxWordRenderWidth`.
+        //            On full sweep without breach → widthFitHit
+        //            fires below; we never compute the exact max.
+        //   Phase 2: only when phase 1 found a breach do we measure
+        //            ALL words to determine the new max for setFrame.
+        //
+        // Pre-L2: ~1.12 ms p50 measuring all 10 words upfront on
+        // every refresh. Post-L2: phase 1 typically short-circuits
+        // on hit or stops at first miss; phase 2 only runs on the
+        // ~40% of refreshes where width actually needs to grow.
+        var newMaxWidth: CGFloat = 0
+        var phase1Breach = false
+        PerfTimer.measure("rR.measurePhase1") {
+            let threshold = cachedMaxWordRenderWidth
+            for i in 0..<Self.pageSize {
+                let absIdx = start + i
+                guard absIdx < current.count else { continue }
+                let word = current[absIdx]
+                let ww: CGFloat
+                if let cached = wordWidthCache[word] {
+                    ww = cached
+                } else {
+                    ww = (word as NSString)
+                        .size(withAttributes: Self.wordMeasureAttrs).width
+                    wordWidthCache[word] = ww
+                }
+                if ww > threshold {
+                    phase1Breach = true
+                    if ww > newMaxWidth { newMaxWidth = ww }
+                    break
+                }
+                if ww > newMaxWidth { newMaxWidth = ww }
+            }
+        }
+        if phase1Breach {
+            PerfTimer.measure("rR.measurePhase2") {
+                for i in 0..<Self.pageSize {
+                    let absIdx = start + i
+                    guard absIdx < current.count else { continue }
+                    let word = current[absIdx]
+                    let ww = wordWidthCache[word] ?? {
+                        let m = (word as NSString)
+                            .size(withAttributes: Self.wordMeasureAttrs).width
+                        wordWidthCache[word] = m
+                        return m
+                    }()
+                    if ww > newMaxWidth { newMaxWidth = ww }
+                }
+            }
+        }
+
+        PerfTimer.measure("rR.updateRowContent") {
+            for i in 0..<Self.pageSize {
+                let absIdx = start + i
+                let hasWord = absIdx < current.count
+                let label = hasWord ? ((i == Self.pageSize - 1) ? "0" : String(i + 1)) : ""
+                let word = hasWord ? current[absIdx] : ""
+                rowViews[i].update(numberLabel: label, word: word)
+            }
+        }
+        PerfTimer.measure("rR.highlight") { updateRowHighlight() }
+        PerfTimer.measure("rR.footer") { updateFooter() }
+
+        if !visualHidden && newMaxWidth <= cachedMaxWordRenderWidth {
+            FileHandle.standardError.write(Data("[perf] rR.widthFitHit\n".utf8))
+            return
+        }
+        cachedMaxWordRenderWidth = newMaxWidth
 
         // Window sizing + positioning. With 10 slots always populated,
         // the *AL-intrinsic* height of the content is constant — but it
@@ -350,32 +660,72 @@ final class CandidatePanel {
         // shift origin.y to keep the panel's TOP edge in place — drifting
         // the anchored BOTTOM down by the inflation delta on every
         // refresh. User-reported "第二个字符输入还是会下偏" 2026-05-23.
-        window.contentView?.layoutSubtreeIfNeeded()
-        let fitting = window.contentView?.fittingSize
-            ?? NSSize(width: 110, height: 22 * CGFloat(Self.pageSize) + 10 + 16)
+        // First-refresh calibration: do exactly one AL fittingSize pass
+        // to lock down `widthOverhead` (panel width − widest-word
+        // render width) and `frameHeight` (constant for 10 fixed-
+        // height rows). All subsequent refreshes compute width from
+        // the formula and skip AL entirely — measured ~3ms p50 cost
+        // (layoutSubtreeIfNeeded ~1.4ms + fittingSize ~1.6ms) on
+        // post-recycling baseline, this drops it to a few µs of arith.
+        if calibratedWidthOverhead == nil || calibratedFrameHeight == nil {
+            PerfTimer.measure("rR.calibrate") {
+                window.contentView?.layoutSubtreeIfNeeded()
+                let fitting = window.contentView?.fittingSize
+                    ?? NSSize(width: 110, height: 258)
+                calibratedWidthOverhead = max(0, fitting.width - newMaxWidth)
+                calibratedFrameHeight = fitting.height
+            }
+        }
+        let widthOverhead = calibratedWidthOverhead ?? 52
+        let frameHeight = calibratedFrameHeight ?? 258
+
         // v1.5 width-aware (user 2026-05-24: "字数超过 3 个，候选列表
         // 应该要变宽"). NSTextField .byTruncatingTail was hiding long
         // candidates at fixed 110pt width. Now panel auto-widens to fit
         // the longest candidate, clamped [110, MAX_PANEL_WIDTH] to keep
         // it from spanning the screen.
-        let MIN_WIDTH: CGFloat = 110
-        let MAX_WIDTH: CGFloat = 360
-        let actualW = max(MIN_WIDTH, min(MAX_WIDTH, fitting.width))
-        let actualH = fitting.height
-        var f = window.frame
-        let widthChanged = abs(f.size.width - actualW) > 0.5
-        f.size.width = actualW
-        f.size.height = actualH
-        switch anchorEdge {
-        case .top:    f.origin.y = anchorY - actualH
-        case .bottom: f.origin.y = anchorY
+        PerfTimer.measure("rR.frameBlock") {
+            let MIN_WIDTH: CGFloat = 110
+            let MAX_WIDTH: CGFloat = 360
+            let actualW = max(MIN_WIDTH, min(MAX_WIDTH, newMaxWidth + widthOverhead))
+            let actualH = frameHeight
+            let currentFrame = window.frame
+            var f = currentFrame
+            let widthChanged = abs(f.size.width - actualW) > 0.5
+            f.size.width = actualW
+            f.size.height = actualH
+            switch anchorEdge {
+            case .top:    f.origin.y = anchorY - actualH
+            case .bottom: f.origin.y = anchorY
+            }
+            // Width changed → re-clamp originX so the panel doesn't fall
+            // off the screen right edge (extends leftward when needed).
+            if widthChanged, let s = NSScreen.screens.first(where: { $0.frame.contains(NSPoint(x: f.origin.x, y: f.origin.y)) })?.visibleFrame {
+                f.origin.x = min(max(s.minX, f.origin.x), s.maxX - f.size.width)
+            }
+            // Skip the AppKit call entirely if nothing actually moved.
+            // `setFrame(_:display:false)` still walks AppKit's window-
+            // server bookkeeping (size class updates, sibling notify,
+            // shadow recompute) — measured as the dominant residual
+            // cost in `rR.frameBlock` once display: was deferred.
+            // The fingerprint early-out already handles the common
+            // case (same words → no rebuild), so this guard catches
+            // the rarer case of "rebuilt content, same dimensions".
+            if currentFrame == f { return }
+            PerfTimer.measure("rR.setFrame") {
+                // `display: false` — window resizes immediately, the
+                // panel's subviews (NSVisualEffectView, 10 rows, footer)
+                // redraw lazily on the next runloop display pass.
+                // Measured `display: true` cost: 2.68ms p50 of the
+                // frameBlock 2.75ms (97% of the cost). For an IME panel
+                // that's only growing in width by a few pt to fit a
+                // longer candidate, deferring display is visually
+                // imperceptible (next runloop turn flushes the redraw
+                // queue within one frame), saves ~2.5ms per width-
+                // fit-miss refresh. User confirmed "其实还行" 2026-05-31.
+                window.setFrame(f, display: false)
+            }
         }
-        // Width changed → re-clamp originX so the panel doesn't fall
-        // off the screen right edge (extends leftward when needed).
-        if widthChanged, let s = NSScreen.screens.first(where: { $0.frame.contains(NSPoint(x: f.origin.x, y: f.origin.y)) })?.visibleFrame {
-            f.origin.x = min(max(s.minX, f.origin.x), s.maxX - f.size.width)
-        }
-        window.setFrame(f, display: true)
     }
 
     private func updateRowHighlight() {
@@ -493,6 +843,15 @@ private final class CandidateRow: NSView {
     private let numberLabel: NSTextField
     private let wordLabel: NSTextField
     private let bg: NSView
+    /// Cached highlight state. `setHighlighted` short-circuits when
+    /// called with the same value — AppKit's `NSTextField.textColor`
+    /// + `CALayer.backgroundColor` setters trigger invalidation /
+    /// redraw even when the value is identical, so the no-op call
+    /// path was costing ~1.8ms per refresh across the 10 rows
+    /// (`/tmp/inputx.err.log` PerfTimer dumps showed
+    /// `rebuildRows min=1.81ms` even on fingerprint-early-out
+    /// paths where only the highlight pass ran).
+    private var isHighlightedState: Bool = false
 
     init(numberLabel num: String, word: String) {
         // Background highlight layer.
@@ -525,6 +884,16 @@ private final class CandidateRow: NSView {
         bgView.translatesAutoresizingMaskIntoConstraints = false
         n.translatesAutoresizingMaskIntoConstraints = false
         w.translatesAutoresizingMaskIntoConstraints = false
+        // L1 reverted 2026-05-31: the manual `layout()` override +
+        // `intrinsicContentSize=noIntrinsicMetric` approach didn't
+        // give NSStackView a clean width-propagation path. Even with
+        // an explicit `row.widthAnchor == stack.widthAnchor - 16`
+        // pin, the row's bounds.width didn't track the resized
+        // window (user reported long-word truncation post-L1). The
+        // perf gain (~0.7 ms p50 on rebuildRows) wasn't worth the
+        // visual regression. Restoring the 12-constraint internal
+        // chain that lets wordLabel.intrinsicContentSize push the
+        // row to the right width.
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 22),
             widthAnchor.constraint(greaterThanOrEqualToConstant: 90),
@@ -549,6 +918,8 @@ private final class CandidateRow: NSView {
     }
 
     func setHighlighted(_ on: Bool) {
+        if isHighlightedState == on { return }
+        isHighlightedState = on
         bg.layer?.backgroundColor = on
             ? NSColor.selectedContentBackgroundColor.cgColor
             : NSColor.clear.cgColor
@@ -556,5 +927,19 @@ private final class CandidateRow: NSView {
         numberLabel.textColor = on
             ? .selectedMenuItemTextColor.withAlphaComponent(0.8)
             : .secondaryLabelColor
+    }
+
+    /// Repoint an already-laid-out row at new content. Avoids the
+    /// teardown+reconstruction cost of building a fresh `CandidateRow`
+    /// (3 subviews + 12 constraints) on every keystroke. Used by
+    /// `_rebuildRows`'s recycling fast path. No-ops on identical
+    /// strings to skip the AppKit textStorage invalidate / redraw.
+    func update(numberLabel num: String, word: String) {
+        if numberLabel.stringValue != num {
+            numberLabel.stringValue = num
+        }
+        if wordLabel.stringValue != word {
+            wordLabel.stringValue = word
+        }
     }
 }

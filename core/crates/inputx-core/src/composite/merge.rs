@@ -26,20 +26,151 @@ impl Source {
     }
 }
 
+/// Per-candidate score decomposition. Carries two parallel views:
+///
+/// 1. **v1.3 (base, prior, likelihood)** — the original linear-space
+///    decomposition for the `predict_score` chain. `score == base +
+///    prior · likelihood` holds bit-for-bit when filled. Populated by
+///    candidates that flow through `scoring::predict_score` (CP-A JP /
+///    CP-B pinyin / CP-C wubi prediction). Exact-dict / Viterbi-
+///    composed / fuzzy candidates may leave these zeroed (they have no
+///    natural (base, prior, likelihood) split pre-v1.4 architecture).
+///
+/// 2. **v1.4.2 (log_prior_q4, log_likelihood_q4, match_type)** — the
+///    probability-native log-space schema per `inputx-scoring`.
+///    `log_prior_q4 + log_likelihood_q4 = score_q4` (Bayesian
+///    `P(W|i) ∝ P(i|W) · P(W)` rendered in log space). Q4 fixed-point
+///    (`inputx_scoring::Q4 = 16`). Populated by ALL fill points in
+///    composite/{dispatch,pinyin_adapter,japanese_adapter}.rs (the
+///    v1.4.2 WU-γ retrofit, per PLAN.md L4 trigger b).
+///
+/// The legacy f64 `score` in [`Scored`] stays the merge sort key for
+/// v1.4.2 — the (log_prior_q4, log_likelihood_q4) pair travels as
+/// metadata that the probe + future cement layer can consume. v1.4.5+
+/// flips sort key to `score_q4` (additive in log space).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ScoreComponents {
+    // v1.3 linear-space decomposition
+    pub base: f64,
+    pub prior: f64,
+    pub likelihood: f64,
+    // v1.4.2 WU-γ log-space three-axis schema (inputx-scoring)
+    pub log_prior_q4: i32,
+    pub log_likelihood_q4: i32,
+    pub match_type: inputx_scoring::MatchType,
+    /// WU-ψ tier assignment (0..=9). See
+    /// [`inputx_scoring::CandidateData::tier`].
+    ///
+    /// Drives the primary axis of the cross-engine merge sort:
+    /// candidates in a lower-numbered tier always outrank those in a
+    /// higher-numbered tier, regardless of engine or within-tier
+    /// freq / likelihood differences.
+    pub tier: u8,
+}
+
+impl ScoreComponents {
+    /// Build a v1.4.2 three-axis-only ScoreComponents (v1.3 axes
+    /// zeroed). Used by fill points that don't have a natural (base,
+    /// prior, likelihood) chain but DO have a Bayesian (log_prior,
+    /// log_likelihood, match_type) classification — exact dict hits,
+    /// Viterbi compositions, fuzzy hits, JP per-kind bases.
+    pub fn three_axis(
+        log_prior_q4: i32,
+        log_likelihood_q4: i32,
+        match_type: inputx_scoring::MatchType,
+    ) -> Self {
+        Self {
+            base: 0.0,
+            prior: 0.0,
+            likelihood: 0.0,
+            log_prior_q4,
+            log_likelihood_q4,
+            match_type,
+            tier: 4,
+        }
+    }
+
+    /// WU-ψ (v1.11) tiered constructor — same shape as [`three_axis`]
+    /// but assigns the candidate to a specific tier. Preferred by
+    /// post-phase-2 adapters; `three_axis` defaults to tier 4 when
+    /// the call site doesn't have a natural tier to assign.
+    pub fn three_axis_tiered(
+        log_prior_q4: i32,
+        log_likelihood_q4: i32,
+        match_type: inputx_scoring::MatchType,
+        tier: u8,
+    ) -> Self {
+        Self {
+            base: 0.0,
+            prior: 0.0,
+            likelihood: 0.0,
+            log_prior_q4,
+            log_likelihood_q4,
+            match_type,
+            tier,
+        }
+    }
+
+    /// Build a v1.3 + v1.4.2 ScoreComponents from a (base, prior,
+    /// likelihood) linear chain plus the matching three-axis log-space
+    /// derivation. Used by the `predict_score_with_components` callers
+    /// — they have both views naturally because the chain is already
+    /// `base + (freq · freq_mult) · proximity^K` in linear space.
+    pub fn from_predict(
+        base: f64,
+        prior: f64,
+        likelihood: f64,
+        log_prior_q4: i32,
+        log_likelihood_q4: i32,
+        match_type: inputx_scoring::MatchType,
+    ) -> Self {
+        Self {
+            base,
+            prior,
+            likelihood,
+            log_prior_q4,
+            log_likelihood_q4,
+            match_type,
+            tier: 4,
+        }
+    }
+
+    /// WU-ψ (v1.11) tier setter — modifies in place. Useful when the
+    /// natural constructor produces a ScoreComponents already (e.g.
+    /// `from_predict`) and the adapter needs to opt the result into
+    /// tier-based scoring after the fact.
+    pub fn with_tier(mut self, tier: u8) -> Self {
+        self.tier = tier;
+        self
+    }
+
+    /// Q4 log-space additive sort key (v1.4.5+ cement-layer cutover
+    /// target). Returns `log_prior_q4 + log_likelihood_q4` — the
+    /// Bayesian `score(W|i)` under the inputx-scoring schema.
+    pub fn score_q4(&self) -> i32 {
+        self.log_prior_q4.saturating_add(self.log_likelihood_q4)
+    }
+}
+
 /// One candidate with its source engine + unified score. The score is
 /// produced by the engine's `*_with_scores` API and is comparable
 /// across sources after the engine has applied its `engine_mult` /
 /// `layer_floor` calibration. The composite merge sorts by score
 /// desc; ties keep the first-seen source.
 ///
-/// Equality intentionally ignores `score` so legacy tests that
-/// compare `Candidate { word, source }` literals still match — score
-/// is a sort key, not part of identity.
+/// `components` carries the (base, prior, likelihood) decomposition
+/// when the score was produced by `scoring::predict_score`; `None`
+/// for paths that don't yet emit the decomposition.
+///
+/// Equality intentionally ignores `score` and `components` so legacy
+/// tests that compare `Candidate { word, source }` literals still match
+/// — score is a sort key, not part of identity.
 #[derive(Clone, Debug)]
 pub struct Candidate {
     pub word: String,
     pub source: Source,
     pub score: f64,
+    pub components: Option<ScoreComponents>,
 }
 
 impl PartialEq for Candidate {
@@ -140,176 +271,176 @@ const TC_DEMOTE_FULL: &str = include_str!("../../data/tc_chars_demote.txt");
 /// the OpenCC file is ever stripped. The full check uses TC_DEMOTE_FULL.
 #[allow(dead_code)]
 const TC_DEMOTE_CHARS: &str = concat!(
-    "頁",  // 页
-    "國",  // 国
-    "經",  // 经
-    "學",  // 学
-    "體",  // 体
-    "後",  // 后
-    "個",  // 个
-    "樣",  // 样
-    "變",  // 变
-    "風",  // 风
-    "種",  // 种
-    "點",  // 点
-    "達",  // 达
-    "過",  // 过
-    "還",  // 还
-    "進",  // 进
-    "這",  // 这
-    "麼",  // 么
-    "開",  // 开
-    "關",  // 关
-    "問",  // 问
-    "題",  // 题
-    "們",  // 们
-    "發",  // 发
-    "說",  // 说
-    "讓",  // 让
-    "給",  // 给
-    "話",  // 话
-    "寫",  // 写
-    "聽",  // 听
-    "當",  // 当
-    "際",  // 际
-    "樂",  // 乐
-    "業",  // 业
-    "師",  // 师
-    "參",  // 参
-    "與",  // 与
-    "資",  // 资
-    "產",  // 产
-    "務",  // 务
-    "員",  // 员
-    "應",  // 应
-    "該",  // 该
-    "總",  // 总
-    "統",  // 统
-    "舉",  // 举
-    "辦",  // 办
-    "會",  // 会
-    "議",  // 议
-    "圖",  // 图
-    "書",  // 书
-    "畫",  // 画
-    "媽",  // 妈
-    "親",  // 亲
-    "愛",  // 爱
-    "聲",  // 声
-    "響",  // 响
-    "繪",  // 绘
-    "認",  // 认
-    "識",  // 识
-    "記",  // 记
-    "憶",  // 忆
-    "夢",  // 梦
-    "覺",  // 觉
-    "鐵",  // 铁
-    "車",  // 车
-    "場",  // 场
-    "馬",  // 马
-    "電",  // 电
-    "腦",  // 脑
-    "軟",  // 软
-    "網",  // 网
-    "絡",  // 络
-    "線",  // 线
-    "灣",  // 湾
-    "島",  // 岛
-    "嶼",  // 屿
-    "鄉",  // 乡
-    "莊",  // 庄
-    "頭",  // 头
-    "淚",  // 泪
-    "錢",  // 钱
-    "價",  // 价
-    "買",  // 买
-    "賣",  // 卖
-    "質",  // 质
-    "傳",  // 传
-    "節",  // 节
-    "氣",  // 气
-    "養",  // 养
-    "緒",  // 绪
-    "醫",  // 医
-    "療",  // 疗
-    "藥",  // 药
-    "處",  // 处
-    "劑",  // 剂
-    "戶",  // 户
-    "裡",  // 里
-    "裏",  // 里
-    "內",  // 内
-    "飯",  // 饭
-    "館",  // 馆
-    "飲",  // 饮
-    "鋪",  // 铺
-    "舖",  // 铺
-    "營",  // 营
-    "歡",  // 欢
-    "臨",  // 临
-    "鎮",  // 镇
-    "縣",  // 县
-    "結",  // 结
-    "構",  // 构
-    "協",  // 协
-    "權",  // 权
-    "藝",  // 艺
-    "術",  // 术
-    "劇",  // 剧
-    "戲",  // 戏
-    "詞",  // 词
-    "詩",  // 诗
-    "廳",  // 厅
-    "緊",  // 紧
-    "張",  // 张
-    "壓",  // 压
-    "釋",  // 释
-    "鬆",  // 松
-    "寢",  // 寝
-    "導",  // 导
-    "輔",  // 辅
-    "練",  // 练
-    "習",  // 习
-    "慣",  // 惯
-    "貨",  // 货
-    "幣",  // 币
-    "銀",  // 银
-    "儲",  // 储
-    "黃",  // 黄
-    "鈔",  // 钞
-    "賬",  // 账
-    "碼",  // 码
-    "編",  // 编
-    "輯",  // 辑
-    "華",  // 华
-    "麗",  // 丽
-    "從",  // 从
-    "標",  // 标
-    "準",  // 准
-    "確",  // 确
-    "實",  // 实
-    "見",  // 见
-    "東",  // 东
-    "區",  // 区
-    "兒",  // 儿
-    "兩",  // 两
-    "幾",  // 几
-    "報",  // 报
-    "紙",  // 纸
-    "選",  // 选
-    "擇",  // 择
-    "顯",  // 显
-    "對",  // 对
-    "錯",  // 错
-    "覽",  // 览
-    "視",  // 视
-    "覺",  // 觉
-    "聞",  // 闻
-    "聲",  // 声
-    "驚",  // 惊
-    "嚇",  // 吓
-    "懼",  // 惧
+    "頁", // 页
+    "國", // 国
+    "經", // 经
+    "學", // 学
+    "體", // 体
+    "後", // 后
+    "個", // 个
+    "樣", // 样
+    "變", // 变
+    "風", // 风
+    "種", // 种
+    "點", // 点
+    "達", // 达
+    "過", // 过
+    "還", // 还
+    "進", // 进
+    "這", // 这
+    "麼", // 么
+    "開", // 开
+    "關", // 关
+    "問", // 问
+    "題", // 题
+    "們", // 们
+    "發", // 发
+    "說", // 说
+    "讓", // 让
+    "給", // 给
+    "話", // 话
+    "寫", // 写
+    "聽", // 听
+    "當", // 当
+    "際", // 际
+    "樂", // 乐
+    "業", // 业
+    "師", // 师
+    "參", // 参
+    "與", // 与
+    "資", // 资
+    "產", // 产
+    "務", // 务
+    "員", // 员
+    "應", // 应
+    "該", // 该
+    "總", // 总
+    "統", // 统
+    "舉", // 举
+    "辦", // 办
+    "會", // 会
+    "議", // 议
+    "圖", // 图
+    "書", // 书
+    "畫", // 画
+    "媽", // 妈
+    "親", // 亲
+    "愛", // 爱
+    "聲", // 声
+    "響", // 响
+    "繪", // 绘
+    "認", // 认
+    "識", // 识
+    "記", // 记
+    "憶", // 忆
+    "夢", // 梦
+    "覺", // 觉
+    "鐵", // 铁
+    "車", // 车
+    "場", // 场
+    "馬", // 马
+    "電", // 电
+    "腦", // 脑
+    "軟", // 软
+    "網", // 网
+    "絡", // 络
+    "線", // 线
+    "灣", // 湾
+    "島", // 岛
+    "嶼", // 屿
+    "鄉", // 乡
+    "莊", // 庄
+    "頭", // 头
+    "淚", // 泪
+    "錢", // 钱
+    "價", // 价
+    "買", // 买
+    "賣", // 卖
+    "質", // 质
+    "傳", // 传
+    "節", // 节
+    "氣", // 气
+    "養", // 养
+    "緒", // 绪
+    "醫", // 医
+    "療", // 疗
+    "藥", // 药
+    "處", // 处
+    "劑", // 剂
+    "戶", // 户
+    "裡", // 里
+    "裏", // 里
+    "內", // 内
+    "飯", // 饭
+    "館", // 馆
+    "飲", // 饮
+    "鋪", // 铺
+    "舖", // 铺
+    "營", // 营
+    "歡", // 欢
+    "臨", // 临
+    "鎮", // 镇
+    "縣", // 县
+    "結", // 结
+    "構", // 构
+    "協", // 协
+    "權", // 权
+    "藝", // 艺
+    "術", // 术
+    "劇", // 剧
+    "戲", // 戏
+    "詞", // 词
+    "詩", // 诗
+    "廳", // 厅
+    "緊", // 紧
+    "張", // 张
+    "壓", // 压
+    "釋", // 释
+    "鬆", // 松
+    "寢", // 寝
+    "導", // 导
+    "輔", // 辅
+    "練", // 练
+    "習", // 习
+    "慣", // 惯
+    "貨", // 货
+    "幣", // 币
+    "銀", // 银
+    "儲", // 储
+    "黃", // 黄
+    "鈔", // 钞
+    "賬", // 账
+    "碼", // 码
+    "編", // 编
+    "輯", // 辑
+    "華", // 华
+    "麗", // 丽
+    "從", // 从
+    "標", // 标
+    "準", // 准
+    "確", // 确
+    "實", // 实
+    "見", // 见
+    "東", // 东
+    "區", // 区
+    "兒", // 儿
+    "兩", // 两
+    "幾", // 几
+    "報", // 报
+    "紙", // 纸
+    "選", // 选
+    "擇", // 择
+    "顯", // 显
+    "對", // 对
+    "錯", // 错
+    "覽", // 览
+    "視", // 视
+    "覺", // 觉
+    "聞", // 闻
+    "聲", // 声
+    "驚", // 惊
+    "嚇", // 吓
+    "懼", // 惧
 );
 
 /// HashSet-backed TC check. Built once on first use from the 3549-char
@@ -330,44 +461,180 @@ fn contains_demote_tc(word: &str) -> bool {
     word.chars().any(|c| set.contains(&c))
 }
 
+/// Per-source scored candidate as passed to [`merge`]: `(word, score,
+/// components)`. Components carry the (base, prior, likelihood) two-axis
+/// decomposition when the candidate flowed through
+/// `scoring::predict_score`; otherwise `None` (the score is still valid
+/// for sorting, just not yet decomposed).
+pub type Scored = (String, f64, Option<ScoreComponents>);
+
 pub fn merge(
-    wubi: Vec<(String, f64)>,
-    pinyin: Vec<(String, f64)>,
-    jp_kanji: Vec<(String, f64)>,
-    jp_kana: Vec<(String, f64)>,
+    wubi: Vec<Scored>,
+    pinyin: Vec<Scored>,
+    jp_kanji: Vec<Scored>,
+    jp_kana: Vec<Scored>,
 ) -> Vec<Candidate> {
     let total_hint = wubi.len() + pinyin.len() + jp_kanji.len() + jp_kana.len();
     let mut all: Vec<Candidate> = Vec::with_capacity(total_hint);
-    use crate::composite::scoring::TC_DEMOTE_MULTIPLIER;
+    use crate::composite::scoring::LIKELIHOOD_TC_DEMOTE_MULT;
     let demote = |w: &str, s: f64| -> f64 {
-        if contains_demote_tc(w) { s * TC_DEMOTE_MULTIPLIER } else { s }
+        if contains_demote_tc(w) {
+            s * LIKELIHOOD_TC_DEMOTE_MULT
+        } else {
+            s
+        }
     };
-    for (w, s) in wubi {
+    // v1.4.7 A5: prior_correction Q4 boosts now baked into the pinyin
+    // .idf at snapshot build time (see idf_from_pinyin_dict.rs
+    // PRIOR_CORRECTIONS). The runtime `correct` lambda + composite/
+    // prior_correction.rs module retired in the same commit — the
+    // cement IdfReader fill reads log_prior_q4 already boosted, and
+    // raw_freq stays the un-boosted lossless tiebreaker. Legacy f64
+    // `score` field is reconstructed from raw_freq +
+    // PINYIN_PHRASE_BASE in the pinyin adapter, so the boost
+    // intentionally NEVER shows up in the f64 score field — it only
+    // affects the Bayesian Q4 sort key, which is now the primary
+    // sort. PLAN.md L4 v1.4.6→v1.4.7 trigger (d) satisfied.
+    //
+    // v1.7.4 megachange: cross-engine merge sorts by
+    // `inputx_scoring::compute_score(data, &EngineWeights::inputx_default())`.
+    // The pre-v1.7.4 hardcoded `WUBI_ENGINE_PRIOR_BOOST_Q4 = 15` is now
+    // expressed as `EngineWeights::engine_boost_q4[Wubi]`, calibrated
+    // jointly with the corpus-total shift that moved every log_prior
+    // into real `log P(W)` space.
+    //
+    // The per-engine boost compensates for two effects bundled together:
+    //   1. The legacy +15 Q4 "Inputx wubi-first" intent prior.
+    //   2. The differential `-Q4·ln(1+T_engine)` shift introduced by
+    //      `log_prob_corpus_from_freq` — each engine's corpus_total
+    //      yields a different uniform shift, so engines with smaller
+    //      corpora come out systematically higher in log-prob space.
+    // Calibration is hand-tuned against the 24 baseline tests; see the
+    // weight values in `EngineWeights::inputx_default()` for the
+    // precise mapping.
+    //
+    // The legacy f64 `score` field stays untouched and continues to
+    // serve as the secondary tiebreaker — the post-v1.7.4 sort key is
+    // `compute_score` desc, then f64 score desc, then word lex asc.
+    let weights = inputx_scoring::EngineWeights::inputx_default();
+    for (w, s, c) in wubi {
         let s = demote(&w, s);
-        all.push(Candidate { word: w, source: Source::Wubi, score: s });
+        all.push(Candidate {
+            word: w,
+            source: Source::Wubi,
+            score: s,
+            components: c,
+        });
     }
-    for (w, s) in pinyin {
+    for (w, s, c) in pinyin {
         let s = demote(&w, s);
-        all.push(Candidate { word: w, source: Source::Pinyin, score: s });
+        all.push(Candidate {
+            word: w,
+            source: Source::Pinyin,
+            score: s,
+            components: c,
+        });
     }
-    for (w, s) in jp_kanji {
+    for (w, s, c) in jp_kanji {
         // JP candidates are explicitly JP — TC demote doesn't apply
         // (whether a JP kanji happens to share form with TC is fine).
-        all.push(Candidate { word: w, source: Source::Japanese, score: s });
+        // A5 retired prior_correction from runtime; nihongo polish-log
+        // entries would need to be baked into nihongo .idf at the
+        // build-time level (same shape as pinyin A5), tracked under
+        // the v1.4.8 nihongo facade refactor backlog.
+        all.push(Candidate {
+            word: w,
+            source: Source::Japanese,
+            score: s,
+            components: c,
+        });
     }
-    for (w, s) in jp_kana {
-        all.push(Candidate { word: w, source: Source::Japanese, score: s });
+    for (w, s, c) in jp_kana {
+        all.push(Candidate {
+            word: w,
+            source: Source::Japanese,
+            score: s,
+            components: c,
+        });
     }
-    // Stable sort by score desc — ties keep input order (wubi first).
-    all.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    // v1.7.4 sort key — `compute_score(data, &weights)` folds:
+    //   * log_prob_corpus_q4 (real log-probability, cross-engine
+    //     comparable)
+    //   * log_likelihood_q4 (match-shape / per-engine likelihood)
+    //   * engine_boost_q4[source] (per-engine preference)
+    // (WU-ψ phase 6: simcode_boost_q4 retired; wubi simcodes opt
+    // into tier 0 directly via dispatch.rs natural rule.)
+    //   * bootstrap_floor_q4 override for is_bootstrap entries
+    //     (currently 0; freq=0 entries get an explicit floor below)
+    // Defensive i32::MIN keeps None-components candidates (e.g. the
+    // legacy prediction_buf path) at the bottom of the merge.
+    let compose = |c: &Candidate| -> i32 {
+        let Some(comp) = c.components else {
+            return i32::MIN;
+        };
+        let source = match c.source {
+            Source::Wubi => inputx_scoring::Source::Wubi,
+            Source::Pinyin => inputx_scoring::Source::Pinyin,
+            Source::Japanese => inputx_scoring::Source::Japanese,
+        };
+        // is_bootstrap retained on CandidateData for the bootstrap_floor_q4
+        // override path; compose-time default is false (字根 / Zigen
+        // entries route through tier 1 in dispatch.rs naturally).
+        // v1.7.5 WU-τ: word_char_count drives `char_boost_q4` /
+        // `word_len_bonus_q4`. Computed inline from `c.word` rather
+        // than threaded through every ScoreComponents fill site —
+        // the candidate's word is right here in `Candidate`. Saturate
+        // to u8 (pathological 256+ char words pin to MAX; production
+        // words are ≤ ~10 chars). Counts UTF-8 chars not bytes —
+        // multi-byte CJK characters count as one each.
+        let word_char_count: u8 = c.word.chars().count().min(u8::MAX as usize) as u8;
+        // Phase F (2026-06-03): MatchType::Composed → within-tier lower
+        // half cap.  Detect via match_type so any compose path —
+        // pinyin Path 5 Viterbi (bigram_links ≥ 1) / Path 5b fallback
+        // (bigram_links = 0) / JP compose_sentence — gets the same
+        // treatment without per-site producer changes.
+        let is_composed = matches!(comp.match_type, inputx_scoring::MatchType::Composed { .. });
+        let data = inputx_scoring::CandidateData {
+            log_prob_corpus_q4: comp.log_prior_q4,
+            log_likelihood_q4: comp.log_likelihood_q4,
+            source,
+            is_bootstrap: false,
+            word_char_count,
+            tier: comp.tier,
+            is_composed,
+        };
+        inputx_scoring::compute_score(&data, &weights)
+    };
+    use std::cmp::Ordering;
+    all.sort_by(|a, b| {
+        let a_q4 = compose(a);
+        let b_q4 = compose(b);
+        match b_q4.cmp(&a_q4) {
+            Ordering::Equal => {}
+            ord => return ord,
+        }
+        match b.score.partial_cmp(&a.score).unwrap_or(Ordering::Equal) {
+            Ordering::Equal => {}
+            ord => return ord,
+        }
+        a.word.cmp(&b.word)
+    });
     // Dedupe by word — first-seen wins (higher score after sort).
     let mut seen = std::collections::HashSet::with_capacity(total_hint.min(MAX_PER_INPUT));
     let mut out: Vec<Candidate> = Vec::with_capacity(total_hint.min(MAX_PER_INPUT));
     for c in all {
-        if out.len() >= MAX_PER_INPUT { break; }
-        // Pollution blacklist — scoring-independent backstop. Specific known-
-        // bad strings never surface no matter what any engine scored them.
-        if super::blacklist::is_blacklisted(&c.word) { continue; }
+        if out.len() >= MAX_PER_INPUT {
+            break;
+        }
+        // v1.6 cleanup: the runtime `is_blacklisted` drop-list was
+        // retired. With T0-locked private-dict + composition quality
+        // gates (foreign-romaji ratio cap in pinyin Path-5 K-best /
+        // pinyin facade now surfaces 便你 / 骗你 / 偏你 / 篇你 for
+        // `pianni` natively without 片你), historical pollution
+        // entries (是嗯据库 / 片你) no longer generate at all.
+        // Future quality issues land as dict-build-time corrections
+        // (prior_correction-A5 pattern) or composition-layer quality
+        // gates — not as runtime drop lists.
         if seen.insert(c.word.clone()) {
             out.push(c);
         }
@@ -379,8 +646,8 @@ pub fn merge(
 mod tests {
     use super::*;
 
-    fn s(word: &str, score: f64) -> (String, f64) {
-        (word.into(), score)
+    fn s(word: &str, score: f64) -> Scored {
+        (word.into(), score, None)
     }
 
     #[test]
@@ -461,8 +728,8 @@ mod tests {
 
     #[test]
     fn cap_at_max_per_input() {
-        let many: Vec<(String, f64)> = (0..MAX_PER_INPUT * 2)
-            .map(|i| (i.to_string(), 100.0))
+        let many: Vec<Scored> = (0..MAX_PER_INPUT * 2)
+            .map(|i| (i.to_string(), 100.0, None))
             .collect();
         let m = merge(many.clone(), many.clone(), many.clone(), many);
         assert_eq!(m.len(), MAX_PER_INPUT);

@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>Pinyin Library Audit · 高密度审计台</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel2: #1b2029;
+    --row: #1b2029;
+    --row-alt: #1e242f;
+    --row-hover: #2a3142;
+    --row-cursor: #3a4a6b;
+    --fg: #e5e8ee;
+    --fg-dim: #9aa3b3;
+    --accent: #6db7ff;
+    --del: #ff6b6b;
+    --keep: #5dd47a;
+    --tier: #f0c860;
+    --flag: #c08fff;
+    --border: #232a36;
+    --progress: #2c4068;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font: 13px/1.35 -apple-system, system-ui, "Helvetica Neue", sans-serif; height: 100%; overflow: hidden; }
+  body { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
+  header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 8px 12px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 13px; margin: 0; font-weight: 600; color: var(--accent); letter-spacing: 0.4px; }
+  header .group { display: flex; gap: 8px; align-items: center; }
+  header label { color: var(--fg-dim); font-size: 12px; }
+  header input[type=search] { background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 12px; font-family: var(--mono); width: 200px; }
+  header button { background: var(--row); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+  header button:hover { background: var(--row-hover); }
+  header .badge { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 3px; background: var(--row); color: var(--fg-dim); border: 1px solid var(--border); }
+  header .badge.del { color: var(--del); }
+  header .badge.keep { color: var(--keep); }
+  header .badge.tier { color: var(--tier); }
+  header .badge.flag { color: var(--flag); }
+  header .badge.undecided { color: var(--fg-dim); }
+  header input[type=file] { color: var(--fg-dim); font-size: 11px; }
+
+  main { display: grid; grid-template-columns: 220px 1fr 300px; min-height: 0; }
+
+  /* Phase sidebar */
+  nav#phases { background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; }
+  nav#phases h2 { font-size: 11px; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.5px; margin: 0; padding: 10px 12px 6px; }
+  nav#phases ul { list-style: none; margin: 0; padding: 0; }
+  nav#phases li { cursor: pointer; padding: 8px 12px; border-bottom: 1px solid var(--border); position: relative; font-family: var(--mono); font-size: 12px; }
+  nav#phases li:hover { background: var(--row-hover); }
+  nav#phases li.active { background: var(--row-cursor); }
+  nav#phases li .pl { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+  nav#phases li .pid { color: var(--accent); font-weight: 600; }
+  nav#phases li .pcount { color: var(--fg-dim); font-size: 11px; }
+  nav#phases li .plabel { color: var(--fg-dim); font-size: 10.5px; margin-top: 2px; }
+  nav#phases li .bar { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--progress); }
+  nav#phases li.done .bar { background: var(--keep); }
+  nav#phases .summary { padding: 10px 12px; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 11px; color: var(--fg-dim); }
+
+  /* Table area */
+  #tablewrap { overflow: auto; background: var(--bg); position: relative; }
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; table-layout: fixed; }
+  thead { position: sticky; top: 0; z-index: 5; background: var(--panel); }
+  th { text-align: left; padding: 6px 8px; font-weight: 600; color: var(--fg-dim); border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 2px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; }
+  tbody tr { background: var(--row); }
+  tbody tr:nth-child(even) { background: var(--row-alt); }
+  tbody tr.cursor { background: var(--row-cursor) !important; }
+  tbody tr td.word { font-size: 14px; font-family: -apple-system, system-ui, "PingFang SC", "Hiragino Sans GB", sans-serif; }
+  td.code { color: var(--accent); }
+  td.freq { color: var(--fg-dim); text-align: right; }
+  td.rank { color: var(--fg-dim); text-align: right; }
+  td.dec { text-align: center; font-weight: 700; }
+  td.dec.del { color: var(--del); }
+  td.dec.keep { color: var(--keep); }
+  td.dec.tier { color: var(--tier); }
+  td.dec.flag { color: var(--flag); }
+  td.note { color: var(--fg-dim); font-style: italic; }
+  td.flags { color: var(--fg-dim); font-size: 10px; font-family: var(--mono); }
+  td.flags .sip { background: #5a2a2a; color: #ffb0b0; padding: 1px 4px; border-radius: 2px; }
+  td.flags .codepoints { color: var(--fg-dim); font-size: 9.5px; margin-left: 4px; }
+  tbody tr.has-sip td.word { color: #ff9090; }
+
+  /* Column widths */
+  col.cRank { width: 50px; }
+  col.cCode { width: 100px; }
+  col.cWord { width: 22%; }
+  col.cFreq { width: 75px; }
+  col.cDec  { width: 38px; }
+  col.cSug  { width: 38px; }
+  col.cFlags { width: 110px; }
+  col.cNote { width: auto; }
+
+  td.sug { text-align: center; font-weight: 600; opacity: 0.65; }
+  td.sug.del { color: var(--del); }
+  td.sug.keep { color: var(--keep); }
+  td.sug.tier { color: var(--tier); }
+  td.sug.flag { color: var(--flag); }
+  td.sug.match-decision { opacity: 1; text-decoration: underline; }
+  nav#phases li.phase-group { background: var(--panel2); font-size: 11px; color: var(--fg-dim); cursor: default; padding: 4px 12px; border-bottom: 1px solid var(--border); }
+  nav#phases li.phase-group:hover { background: var(--panel2); }
+
+  /* Focus side */
+  aside { background: var(--panel); border-left: 1px solid var(--border); padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+  aside h2 { margin: 0 0 6px 0; font-size: 11px; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
+  aside .focus-word { font-size: 28px; font-family: -apple-system, system-ui, "PingFang SC", sans-serif; padding: 8px 0; line-height: 1; }
+  aside .kv { font-family: var(--mono); font-size: 12px; }
+  aside .kv div { padding: 2px 0; }
+  aside .kv span.k { color: var(--fg-dim); display: inline-block; width: 70px; }
+  aside .helptable { font-size: 11px; font-family: var(--mono); color: var(--fg-dim); border-top: 1px solid var(--border); padding-top: 10px; }
+  aside .helptable b { color: var(--fg); }
+  aside .related { font-family: var(--mono); font-size: 12px; line-height: 1.6; max-height: 220px; overflow-y: auto; }
+  aside .related .row { display: flex; gap: 8px; justify-content: space-between; padding: 2px 4px; border-bottom: 1px dotted var(--border); }
+  aside .related .row .w { font-family: -apple-system, system-ui, "PingFang SC", sans-serif; font-size: 14px; }
+  aside textarea { background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 4px; padding: 6px; font-family: var(--mono); font-size: 12px; width: 100%; min-height: 50px; }
+
+  .empty { padding: 40px; color: var(--fg-dim); text-align: center; }
+  .hint { color: var(--fg-dim); font-size: 11px; }
+  .render-cap { background: var(--panel2); color: var(--fg-dim); padding: 8px 12px; font-size: 11px; border-top: 1px dashed var(--border); font-family: var(--mono); }
+
+  /* compact density */
+  .density-tight td { padding: 1px 6px; font-size: 11px; }
+  .density-tight tbody tr td.word { font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PINYIN AUDIT</h1>
+  <span class="group">
+    <label>filter</label>
+    <input type="search" id="filter" placeholder="code / word substring" />
+    <label><input type="checkbox" id="onlyUndecided" /> only undecided</label>
+    <label><input type="checkbox" id="onlySIP" title="只显示含 SIP 罕字 (U+20000+,CJK Ext-B/C/D+,字体大概率无字形)" /> only SIP</label>
+    <label><input type="checkbox" id="tight" /> tight</label>
+  </span>
+  <span class="group">
+    <button id="exportBtn">Export decisions</button>
+    <button id="exportAllBtn" title="export all phases combined">Export all</button>
+    <button id="acceptAllBtn" title="press 'A' / button: apply suggestions to ALL undecided rows in current sub-phase">Accept all suggestions</button>
+    <label style="font-size:11px;color:var(--fg-dim);cursor:pointer">
+      Import <input type="file" id="loadDecisions" accept=".tsv,.txt" style="display:none" />
+    </label>
+  </span>
+  <span class="group" style="margin-left:auto">
+    <span class="badge" id="cTotal">0 / 0</span>
+    <span class="badge undecided" id="cUndecided">U 0</span>
+    <span class="badge del" id="cDel">D 0</span>
+    <span class="badge keep" id="cKeep">K 0</span>
+    <span class="badge tier" id="cTier">T 0</span>
+    <span class="badge flag" id="cFlag">F 0</span>
+  </span>
+</header>
+
+<main>
+  <nav id="phases">
+    <h2>phases</h2>
+    <ul id="phaseList"></ul>
+    <div class="summary" id="phasesSummary">—</div>
+  </nav>
+
+  <div id="tablewrap">
+    <table>
+      <colgroup>
+        <col class="cRank" />
+        <col class="cCode" />
+        <col class="cWord" />
+        <col class="cFreq" />
+        <col class="cDec" />
+        <col class="cSug" />
+        <col class="cFlags" />
+        <col class="cNote" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="rank">#</th>
+          <th>code</th>
+          <th>word</th>
+          <th class="freq">freq</th>
+          <th class="dec">dec</th>
+          <th class="dec" title="suggested decision — press 'a' to accept">sug</th>
+          <th>flags</th>
+          <th>note</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="renderCap" class="render-cap" style="display:none"></div>
+    <div class="empty" id="emptyMsg">未注入数据。运行 <code>python3 tools/audit-ui/gen-candidates.py</code> 生成 audit.html 然后从浏览器打开。</div>
+  </div>
+
+  <aside>
+    <div>
+      <h2>focus</h2>
+      <div class="focus-word" id="fWord">—</div>
+      <div class="kv" id="fKv"></div>
+    </div>
+    <div>
+      <h2>note (per-row)</h2>
+      <textarea id="fNote" placeholder="optional reason"></textarea>
+    </div>
+    <div>
+      <h2>same word, other codes</h2>
+      <div class="related" id="fRelatedByWord"><span class="hint">—</span></div>
+    </div>
+    <div>
+      <h2>same code, other words</h2>
+      <div class="related" id="fRelatedByCode"><span class="hint">—</span></div>
+    </div>
+    <div class="helptable">
+      <b>键盘</b><br>
+      <b>j / ↓</b> next · <b>k / ↑</b> prev · <b>g</b> top · <b>G</b> bottom<br>
+      <b>d</b> delete · <b>s</b> keep · <b>t</b> tier-demote · <b>f</b> flag · <b>u</b> undecide<br>
+      <b>a</b> 采纳本行 sug · <b>A</b> (shift+a) 采纳当前 sub-phase 所有 undecided 的 sug<br>
+      <b>n</b> next undecided · <b>N</b> prev undecided<br>
+      <b>[ / ]</b> prev / next sub-phase · <b>/</b> focus filter · <b>Esc</b> blur<br>
+      <b>e</b> edit note · <b>x</b> tight density · <b>?</b> help
+    </div>
+  </aside>
+</main>
+
+<script>
+"use strict";
+// gen-candidates.py replaces the next line with `window.AUDIT_DATA = {...};`
+// __INJECTED_DATA__
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+
+const RENDER_CAP = 3000;  // safety: cap rendered DOM rows; use filter / `n` to navigate beyond
+const DEC_LABEL = { d: "D", s: "K", t: "T", f: "F", u: "" };
+const DEC_ORDER = ["d", "s", "t", "f", "u"];
+
+const state = {
+  phases: [],          // [{id, label, rows:[{code,word,freq}]}]
+  byWord: new Map(),   // global: word -> [row...] across ALL phases (cross-phase polyphone-dup signal)
+  byCode: new Map(),   // global: code -> [row...] across ALL phases
+  decisions: new Map(),// key -> {dec, note} ; key = code+"\t"+word
+  storageKey: "audit:pinyin:v1",
+  activeIdx: 0,
+  cursor: 0,
+  filtered: [],        // current visible rows (subset of state.phases[active].rows)
+};
+
+function key(r) { return r.code + "\t" + r.word; }
+function getDec(r) { return state.decisions.get(key(r)) || { dec: "u", note: "" }; }
+function setDec(r, dec) {
+  const k = key(r);
+  const cur = state.decisions.get(k) || { dec: "u", note: "" };
+  cur.dec = dec;
+  state.decisions.set(k, cur);
+  persist();
+}
+function setNote(r, note) {
+  const k = key(r);
+  const cur = state.decisions.get(k) || { dec: "u", note: "" };
+  cur.note = note;
+  state.decisions.set(k, cur);
+  persist();
+}
+
+let persistPending = false;
+function persist() {
+  if (persistPending) return;
+  persistPending = true;
+  requestIdleCallback ? requestIdleCallback(flushPersist) : setTimeout(flushPersist, 100);
+}
+function flushPersist() {
+  const obj = {};
+  for (const [k, v] of state.decisions) obj[k] = v;
+  localStorage.setItem(state.storageKey, JSON.stringify(obj));
+  persistPending = false;
+}
+function restoreLocal() {
+  const raw = localStorage.getItem(state.storageKey);
+  if (!raw) return;
+  try {
+    const obj = JSON.parse(raw);
+    for (const [k, v] of Object.entries(obj)) state.decisions.set(k, v);
+  } catch (e) {}
+}
+
+function activePhase() { return state.phases[state.activeIdx]; }
+
+function setActivePhase(idx) {
+  state.activeIdx = idx;
+  state.cursor = 0;
+  applyFilter();
+  renderPhaseList();
+}
+
+function hasSIP(word) {
+  for (const ch of word) if (ch.codePointAt(0) >= 0x20000) return true;
+  return false;
+}
+function isCJKUnified(cp) {
+  return (cp >= 0x4E00 && cp <= 0x9FFF)        // CJK Unified
+      || (cp >= 0x3400 && cp <= 0x4DBF)        // CJK Ext-A
+      || (cp >= 0x20000 && cp <= 0x2FFFF)      // CJK Ext-B..F (SIP)
+      || (cp >= 0x30000 && cp <= 0x3134F);     // CJK Ext-G..H
+}
+function nonCJKChars(word) {
+  const bad = [];
+  for (const ch of word) {
+    const cp = ch.codePointAt(0);
+    if (!isCJKUnified(cp) && cp >= 0x80) bad.push(ch);
+  }
+  return bad;
+}
+function rowFlags(r) {
+  const flags = [];
+  if (hasSIP(r.word)) flags.push("SIP");
+  const nc = nonCJKChars(r.word);
+  if (nc.length) flags.push("nonCJK");
+  return flags;
+}
+
+function applyFilter() {
+  const ph = activePhase(); if (!ph) { state.filtered = []; renderAll(); return; }
+  const q = $("#filter").value.trim().toLowerCase();
+  const onlyU = $("#onlyUndecided").checked;
+  const onlySIP = $("#onlySIP").checked;
+  state.filtered = ph.rows.filter((r) => {
+    if (onlyU && getDec(r).dec !== "u") return false;
+    if (onlySIP && !hasSIP(r.word)) return false;
+    if (!q) return true;
+    return r.code.toLowerCase().includes(q) || r.word.toLowerCase().includes(q);
+  });
+  if (state.cursor >= state.filtered.length) state.cursor = Math.max(0, state.filtered.length - 1);
+  renderAll();
+}
+
+function phaseCounts(ph) {
+  const c = { u: 0, d: 0, s: 0, t: 0, f: 0 };
+  for (const r of ph.rows) c[getDec(r).dec]++;
+  return c;
+}
+
+function phaseGroupKey(ph) {
+  // "B3-001" → "B3"; "D" → "D"
+  return ph.id.split("-")[0];
+}
+
+function renderPhaseList() {
+  const ul = $("#phaseList");
+  ul.innerHTML = "";
+  let grandTotal = 0, grandDecided = 0;
+  let curGroup = null, groupTotal = 0, groupDecided = 0;
+  let groupHeaderLi = null;
+
+  const flushGroupHeader = () => {
+    if (groupHeaderLi && curGroup) {
+      const pct = groupTotal ? Math.round((groupDecided / groupTotal) * 100) : 0;
+      groupHeaderLi.innerHTML = `<span>${esc(curGroup)}</span><span style="float:right">${groupDecided.toLocaleString()}/${groupTotal.toLocaleString()} · ${pct}%</span>`;
+    }
+  };
+
+  state.phases.forEach((ph, idx) => {
+    const grp = phaseGroupKey(ph);
+    if (grp !== curGroup) {
+      flushGroupHeader();
+      curGroup = grp;
+      groupTotal = 0; groupDecided = 0;
+      groupHeaderLi = document.createElement("li");
+      groupHeaderLi.className = "phase-group";
+      ul.appendChild(groupHeaderLi);
+    }
+    const c = phaseCounts(ph);
+    const total = ph.rows.length;
+    const decided = total - c.u;
+    grandTotal += total; grandDecided += decided;
+    groupTotal += total; groupDecided += decided;
+    const pct = total ? Math.round((decided / total) * 100) : 0;
+    const li = document.createElement("li");
+    if (idx === state.activeIdx) li.classList.add("active");
+    if (decided === total && total > 0) li.classList.add("done");
+    li.innerHTML = `
+      <div class="pl">
+        <span class="pid">${esc(ph.id)}</span>
+        <span class="pcount">${decided.toLocaleString()} / ${total.toLocaleString()} · ${pct}%</span>
+      </div>
+      <div class="bar" style="width: ${pct}%"></div>`;
+    li.addEventListener("click", () => setActivePhase(idx));
+    ul.appendChild(li);
+  });
+  flushGroupHeader();
+  const pct = grandTotal ? Math.round((grandDecided / grandTotal) * 100) : 0;
+  $("#phasesSummary").textContent = `Σ  ${grandDecided.toLocaleString()} / ${grandTotal.toLocaleString()} · ${pct}%`;
+}
+
+function renderAll() { renderRows(); renderCounts(); renderFocus(); renderPhaseList(); }
+
+function renderRows() {
+  const tbody = $("#rows");
+  tbody.innerHTML = "";
+  const cap = $("#renderCap");
+  const ph = activePhase();
+  $("#emptyMsg").style.display = (!ph || ph.rows.length === 0) ? "" : "none";
+  if (!ph) { cap.style.display = "none"; return; }
+
+  // Window around cursor: render at most RENDER_CAP rows, centered on cursor.
+  const total = state.filtered.length;
+  let start = 0, end = total;
+  if (total > RENDER_CAP) {
+    start = Math.max(0, state.cursor - Math.floor(RENDER_CAP / 2));
+    end = Math.min(total, start + RENDER_CAP);
+    start = Math.max(0, end - RENDER_CAP);
+    cap.style.display = "";
+    cap.textContent = `rendering rows ${start + 1}–${end} of ${total.toLocaleString()} (cap=${RENDER_CAP}). Filter or 'n' to navigate beyond.`;
+  } else {
+    cap.style.display = "none";
+  }
+
+  const frag = document.createDocumentFragment();
+  for (let i = start; i < end; i++) {
+    const r = state.filtered[i];
+    const d = getDec(r);
+    const tr = document.createElement("tr");
+    if (i === state.cursor) tr.classList.add("cursor");
+    const flags = (r.signals || []).slice();
+    const visualFlags = rowFlags(r);  // SIP / nonCJK from UI-side detector (cross-check)
+    for (const v of visualFlags) if (!flags.includes(v)) flags.push(v);
+    if (flags.includes("SIP")) tr.classList.add("has-sip");
+    tr.dataset.idx = i;
+    const flagHTML = flags.map((f) => {
+      if (f === "SIP") return '<span class="sip">SIP</span>';
+      return `<span>${esc(f)}</span>`;
+    }).join(" ");
+    const sug = r.sug || "u";
+    const sugMatch = d.dec === sug;
+    tr.innerHTML = `
+      <td class="rank">${i + 1}</td>
+      <td class="code">${esc(r.code)}</td>
+      <td class="word">${esc(r.word)}</td>
+      <td class="freq">${r.freq.toLocaleString()}</td>
+      <td class="dec ${decClass(d.dec)}">${DEC_LABEL[d.dec] || ""}</td>
+      <td class="sug ${decClass(sug)} ${sugMatch ? "match-decision" : ""}">${DEC_LABEL[sug] || "·"}</td>
+      <td class="flags">${flagHTML}</td>
+      <td class="note">${esc(d.note || "")}</td>`;
+    tr.addEventListener("click", () => { state.cursor = i; renderAll(); scrollCursorIntoView(); });
+    frag.appendChild(tr);
+  }
+  tbody.appendChild(frag);
+  scrollCursorIntoView();
+}
+
+function decClass(d) { return ({ d: "del", s: "keep", t: "tier", f: "flag" })[d] || ""; }
+
+function renderCounts() {
+  const ph = activePhase();
+  if (!ph) { $("#cTotal").textContent = "0 / 0"; return; }
+  const c = phaseCounts(ph);
+  $("#cTotal").textContent = state.filtered.length.toLocaleString() + " / " + ph.rows.length.toLocaleString();
+  $("#cUndecided").textContent = "U " + c.u.toLocaleString();
+  $("#cDel").textContent = "D " + c.d.toLocaleString();
+  $("#cKeep").textContent = "K " + c.s.toLocaleString();
+  $("#cTier").textContent = "T " + c.t.toLocaleString();
+  $("#cFlag").textContent = "F " + c.f.toLocaleString();
+}
+
+function renderFocus() {
+  const r = state.filtered[state.cursor];
+  if (!r) { $("#fWord").textContent = "—"; $("#fKv").innerHTML = ""; $("#fNote").value = ""; $("#fRelatedByWord").innerHTML = '<span class="hint">—</span>'; $("#fRelatedByCode").innerHTML = '<span class="hint">—</span>'; return; }
+  const d = getDec(r);
+  $("#fWord").textContent = r.word;
+  const cps = [...r.word].map((c) => "U+" + c.codePointAt(0).toString(16).toUpperCase()).join(" ");
+  const flags = rowFlags(r);
+  const sipNote = flags.includes("SIP") ? '<div style="color:#ff9090;font-size:11px;margin-top:4px">⚠ SIP (U+20000+) — 系统字体大概率无字形</div>' : "";
+  const sigsHTML = (r.signals && r.signals.length) ? r.signals.map((s) => esc(s)).join(", ") : "—";
+  $("#fKv").innerHTML = `
+    <div><span class="k">code</span> ${esc(r.code)}</div>
+    <div><span class="k">freq</span> ${r.freq.toLocaleString()}</div>
+    <div><span class="k">chars</span> ${[...r.word].length}</div>
+    <div><span class="k">codepoints</span> ${cps}</div>
+    <div><span class="k">decision</span> ${d.dec.toUpperCase()}</div>
+    <div><span class="k">sug</span> <b style="color:var(--accent)">${(r.sug || "u").toUpperCase()}</b> <span class="hint">(a 采纳)</span></div>
+    <div><span class="k">signals</span> ${sigsHTML}</div>
+    <div><span class="k">phase</span> ${esc(activePhase().id)}</div>
+    ${sipNote}`;
+  $("#fNote").value = d.note || "";
+  const byWord = (state.byWord.get(r.word) || []).filter((x) => x !== r);
+  $("#fRelatedByWord").innerHTML = byWord.length
+    ? byWord.map((x) => `<div class="row"><span><span class="w">${esc(x.word)}</span> <span style="color:var(--accent)">${esc(x.code)}</span></span><span style="color:var(--fg-dim)">${x.freq.toLocaleString()} · ${DEC_LABEL[getDec(x).dec] || "·"}</span></div>`).join("")
+    : '<span class="hint">single-code (no polyphone-dup signal across loaded phases)</span>';
+  const byCode = (state.byCode.get(r.code) || []).filter((x) => x !== r);
+  $("#fRelatedByCode").innerHTML = byCode.length
+    ? byCode.slice(0, 30).map((x) => `<div class="row"><span><span class="w">${esc(x.word)}</span></span><span style="color:var(--fg-dim)">${x.freq.toLocaleString()} · ${DEC_LABEL[getDec(x).dec] || "·"}</span></div>`).join("") + (byCode.length > 30 ? `<div class="hint">… +${byCode.length - 30} more</div>` : "")
+    : '<span class="hint">unique-code (across loaded phases)</span>';
+}
+
+function scrollCursorIntoView() {
+  const tr = $("tbody tr.cursor");
+  if (!tr) return;
+  const wrap = $("#tablewrap");
+  const r = tr.getBoundingClientRect();
+  const wr = wrap.getBoundingClientRect();
+  if (r.top < wr.top + 40) wrap.scrollTop -= (wr.top + 40 - r.top);
+  else if (r.bottom > wr.bottom - 20) wrap.scrollTop += (r.bottom - wr.bottom + 20);
+}
+
+function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+function moveCursor(delta) {
+  const newCursor = Math.max(0, Math.min(state.filtered.length - 1, state.cursor + delta));
+  if (newCursor === state.cursor) return;
+  state.cursor = newCursor;
+  // re-render if we cross window boundary
+  renderRows(); renderFocus();
+}
+
+function jumpUndecided(dir) {
+  const total = state.filtered.length;
+  for (let i = 1; i <= total; i++) {
+    const idx = (state.cursor + dir * i + total) % total;
+    if (getDec(state.filtered[idx]).dec === "u") {
+      state.cursor = idx; renderRows(); renderFocus(); return;
+    }
+  }
+}
+
+function decide(dec) {
+  const r = state.filtered[state.cursor];
+  if (!r) return;
+  setDec(r, dec);
+  // re-render row cell + counts; cheaper than full rebuild
+  const tr = document.querySelector("tbody tr.cursor");
+  if (tr) {
+    const c = tr.children;
+    c[4].className = "dec " + decClass(dec);
+    c[4].textContent = DEC_LABEL[dec] || "";
+    // sug-match underline
+    const sug = r.sug || "u";
+    c[5].className = "sug " + decClass(sug) + (dec === sug ? " match-decision" : "");
+  }
+  moveCursor(1);
+  renderCounts(); renderPhaseList();
+}
+
+function acceptSuggestion() {
+  const r = state.filtered[state.cursor];
+  if (!r || !r.sug || r.sug === "u") return;
+  decide(r.sug);
+}
+
+function acceptAllSuggestionsInPhase() {
+  const ph = activePhase(); if (!ph) return;
+  let n = 0;
+  for (const r of ph.rows) {
+    if (getDec(r).dec !== "u") continue;       // don't overwrite human-set decisions
+    if (!r.sug || r.sug === "u") continue;     // no usable suggestion
+    setDec(r, r.sug);
+    n++;
+  }
+  renderAll();
+  alert(`Applied ${n} suggestions in ${ph.id}.`);
+}
+
+function switchPhase(delta) {
+  const n = state.phases.length;
+  if (!n) return;
+  setActivePhase((state.activeIdx + delta + n) % n);
+}
+
+function exportDecisions(allPhases = false) {
+  const out = [
+    "# audit decisions — exported by tools/audit-ui",
+    "# format: phase\\tcode\\tword\\tdecision\\tnote",
+    "# decision: d=delete, s=keep, t=tier-demote, f=flag-uncertain, u=undecided",
+  ];
+  const phases = allPhases ? state.phases : [activePhase()].filter(Boolean);
+  for (const ph of phases) {
+    for (const r of ph.rows) {
+      const d = getDec(r);
+      if (d.dec === "u" && !d.note) continue;
+      out.push([ph.id, r.code, r.word, d.dec, (d.note || "").replace(/\t/g, " ")].join("\t"));
+    }
+  }
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const name = allPhases ? `decisions-ALL-${stamp}.tsv` : `decisions-${activePhase()?.id || "x"}-${stamp}.tsv`;
+  const blob = new Blob([out.join("\n") + "\n"], { type: "text/tab-separated-values" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+function loadDecisionsTSV(text) {
+  const lines = text.split(/\r?\n/);
+  let n = 0;
+  for (const ln of lines) {
+    if (!ln || ln.startsWith("#")) continue;
+    const parts = ln.split("\t");
+    // accept both 4-col (code\tword\tdec\tnote) and 5-col (phase\tcode\tword\tdec\tnote)
+    let code, word, dec, note;
+    if (parts.length >= 5) { code = parts[1]; word = parts[2]; dec = parts[3]; note = parts[4] || ""; }
+    else if (parts.length >= 3) { code = parts[0]; word = parts[1]; dec = parts[2]; note = parts[3] || ""; }
+    else continue;
+    if (!code || !word || !"dstfu".includes(dec)) continue;
+    state.decisions.set(code + "\t" + word, { dec, note });
+    n++;
+  }
+  persist();
+  renderAll();
+  return n;
+}
+
+// ─── boot ──────────────────────────────────────────────────────────
+function boot() {
+  const data = window.AUDIT_DATA;
+  if (!data || !Array.isArray(data.phases)) { $("#emptyMsg").style.display = ""; return; }
+  state.phases = data.phases.map((p) => ({
+    id: p.id,
+    label: p.label || p.id,
+    rows: p.rows.map((r) => ({
+      code: r[0], word: r[1], freq: r[2] || 0,
+      sug: r[3] || "u", signals: r[4] || []
+    })),
+  }));
+  // global cross-phase index for polyphone-dup / peer-reading hover
+  for (const ph of state.phases) {
+    for (const r of ph.rows) {
+      if (!state.byWord.has(r.word)) state.byWord.set(r.word, []);
+      state.byWord.get(r.word).push(r);
+      if (!state.byCode.has(r.code)) state.byCode.set(r.code, []);
+      state.byCode.get(r.code).push(r);
+    }
+  }
+  restoreLocal();
+  setActivePhase(0);
+  document.title = "Pinyin Audit · " + state.phases.length + " sub-phases · " + (data.lib_total || "?").toLocaleString() + " lib rows";
+}
+
+// Wire UI
+$("#filter").addEventListener("input", applyFilter);
+$("#onlyUndecided").addEventListener("change", applyFilter);
+$("#onlySIP").addEventListener("change", applyFilter);
+$("#tight").addEventListener("change", (e) => document.body.classList.toggle("density-tight", e.target.checked));
+$("#exportBtn").addEventListener("click", () => exportDecisions(false));
+$("#exportAllBtn").addEventListener("click", () => exportDecisions(true));
+$("#acceptAllBtn").addEventListener("click", acceptAllSuggestionsInPhase);
+$("#loadDecisions").addEventListener("change", async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  const n = loadDecisionsTSV(await f.text());
+  alert("Loaded " + n + " decisions.");
+});
+$("#fNote").addEventListener("input", (e) => {
+  const r = state.filtered[state.cursor]; if (!r) return;
+  setNote(r, e.target.value);
+  // refresh just the cursor row's note cell
+  const tr = document.querySelector("tbody tr.cursor");
+  if (tr) tr.children[5].textContent = e.target.value;
+});
+
+document.addEventListener("keydown", (ev) => {
+  const tag = (ev.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "textarea") {
+    if (ev.key === "Escape") ev.target.blur();
+    return;
+  }
+  const k = ev.key;
+  if (k === "j" || k === "ArrowDown") { moveCursor(1); ev.preventDefault(); }
+  else if (k === "k" || k === "ArrowUp") { moveCursor(-1); ev.preventDefault(); }
+  else if (k === "g") { state.cursor = 0; renderRows(); renderFocus(); }
+  else if (k === "G") { state.cursor = state.filtered.length - 1; renderRows(); renderFocus(); }
+  else if (k === "d") decide("d");
+  else if (k === "s") decide("s");
+  else if (k === "t") decide("t");
+  else if (k === "f") decide("f");
+  else if (k === "u") { const r = state.filtered[state.cursor]; if (r) { setDec(r, "u"); renderAll(); } }
+  else if (k === "n") jumpUndecided(1);
+  else if (k === "N") jumpUndecided(-1);
+  else if (k === "a") acceptSuggestion();
+  else if (k === "A") acceptAllSuggestionsInPhase();
+  else if (k === "[") { switchPhase(-1); ev.preventDefault(); }
+  else if (k === "]") { switchPhase(+1); ev.preventDefault(); }
+  else if (k === "/") { $("#filter").focus(); ev.preventDefault(); }
+  else if (k === "e") { $("#fNote").focus(); ev.preventDefault(); }
+  else if (k === "x") { $("#tight").checked = !$("#tight").checked; document.body.classList.toggle("density-tight", $("#tight").checked); }
+});
+
+boot();
+</script>
+</body>
+</html>

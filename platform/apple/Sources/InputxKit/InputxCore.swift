@@ -103,6 +103,14 @@ public final class InputxSession {
         return !pre.isEmpty
     }
 
+    /// `true` iff the JP sub-engine specifically has a non-empty buffer.
+    /// Used by the IME controller to route `-` (chōonpu) into the engine
+    /// only when JP is mid-composition; outside JP composing, `-` falls
+    /// to locale punctuation.
+    public var isComposingJapanese: Bool {
+        inputx_session_is_composing_japanese(handle) != 0
+    }
+
     public var candidateCount: Int {
         return Int(inputx_session_candidate_count(handle))
     }
@@ -151,6 +159,16 @@ public final class InputxSession {
         guard let cstr = inputx_session_commit_prediction(handle, UInt(index)) else { return nil }
         defer { inputx_string_free(cstr) }
         return String(cString: cstr)
+    }
+
+    /// Drop pending 联想 candidates. The host calls this from keyDown
+    /// paths that bypass `handleKey` (Path B in IMEController — ASCII
+    /// punct routed through locale-mapping before reaching the engine).
+    /// After this call, `predictionCount` returns 0 until the next CJK
+    /// commit repopulates predictions, so a subsequent
+    /// `showPredictionsOrHide` will hide the panel.
+    public func cancelPredictions() {
+        inputx_session_cancel_predictions(handle)
     }
 
     /// Drop the composition without committing (Escape).
@@ -219,6 +237,63 @@ public final class InputxSession {
         return next
     }
 
+    // MARK: - Segment mode (拼音手动分段)
+    //
+    // ← stop points (anchors, descending prefix lengths that have
+    // candidates) + first-segment candidates + partial commit. Pinyin-only
+    // by construction — wubi never participates in segment mode.
+
+    /// The ← stop points: descending prefix lengths where `buffer[0..k]`
+    /// has candidates. Empty when not pinyin-composing. The first element
+    /// (largest) is where the first ← lands.
+    public func segmentAnchors() -> [Int] {
+        let n = Int(inputx_session_segment_anchor_count(handle))
+        return (0..<n).map { Int(inputx_session_segment_anchor(handle, UInt($0))) }
+    }
+
+    /// Number of candidates for the first segment `buffer[0..k]`.
+    public func segmentCandidateCount(prefixLen k: Int) -> Int {
+        Int(inputx_session_segment_candidate_count(handle, UInt(k)))
+    }
+
+    /// Candidate at `index` for the first segment `buffer[0..k]`.
+    public func segmentCandidate(prefixLen k: Int, at index: Int) -> String? {
+        guard let cstr = inputx_session_segment_candidate(handle, UInt(k), UInt(index))
+        else { return nil }
+        defer { inputx_string_free(cstr) }
+        return String(cString: cstr)
+    }
+
+    /// Commit the first segment `buffer[0..k]`'s candidate at `index`; the
+    /// remainder is kept and re-composed. Returns committed text or `nil`.
+    public func commitSegment(prefixLen k: Int, at index: Int) -> String? {
+        guard let cstr = inputx_session_commit_segment(handle, UInt(k), UInt(index))
+        else { return nil }
+        defer { inputx_string_free(cstr) }
+        return String(cString: cstr)
+    }
+
+    // MARK: - v1.15 hot-reload ----------------------------------------------
+
+    /// Reload this session's dicts from `path` (typically the running
+    /// bundle's `Contents/Resources/data/`, atomically replaced by
+    /// `reinstall.py`'s data-only fast path). Covers all three engines
+    /// as of v1.17 — pinyin dict + IDF, wubi IDF, nihongo kanji/jukugo
+    /// IDFs. Preserves L0 pins / cell-dict / LM; leaves any in-flight
+    /// preedit alone. Returns `true` on success; on failure the
+    /// session's dicts are left in their prior state.
+    @discardableResult
+    public func reloadEngineData(from path: String) -> Bool {
+        return path.withCString { inputx_reload_engine_data(handle, $0) == 0 }
+    }
+
+    /// Pre-v1.17 name, when the reload covered only the pinyin engine.
+    @available(*, deprecated, renamed: "reloadEngineData(from:)")
+    @discardableResult
+    public func reloadPinyinData(from path: String) -> Bool {
+        return reloadEngineData(from: path)
+    }
+
     // MARK: - L0 persistence -------------------------------------------------
 
     /// Serialize one engine's L0 (pins + pending counters) as JSON.
@@ -246,8 +321,60 @@ public final class InputxSession {
         return inputx_session_smart_quote(handle, codepoint)
     }
 
+    /// Context-based smart quote. Decides the curly form of `codepoint`
+    /// (`"` / `'`) from the document text before the caret rather than an
+    /// in-memory toggle, so it survives IME switches, mouse clicks, and
+    /// mid-text edits (and handles Chinese `他说“…”`, no space before the
+    /// opener). Nesting-aware: counts unclosed quotes of this type on the
+    /// current line. `contextBefore` is the text up to the caret (a
+    /// bounded window is fine; empty = opens). When the host cannot read
+    /// context at all, call `smartQuote(_:)` (the toggle fallback)
+    /// instead. Non-quote codepoints pass through unchanged.
+    public func smartQuoteCtx(_ codepoint: UInt32, contextBefore: String) -> UInt32 {
+        return contextBefore.withCString { ctx in
+            inputx_session_smart_quote_ctx(handle, codepoint, ctx)
+        }
+    }
+
     public func smartQuoteReset() {
         inputx_session_smart_quote_reset(handle)
+    }
+
+    // MARK: - Cell-dict L0.5 (CP-5.2 step-3) --------------------------------
+
+    /// Result of `loadCellDict`. Distinguishes "successfully loaded N
+    /// entries" from the three negative error paths the FFI reports.
+    public enum CellDictLoadResult: Equatable {
+        case ok(Int)
+        case nullInput
+        case nonUtf8
+        case parseError
+    }
+
+    /// Load a TOML cell-dict pack into the session's L0.5 layer.
+    /// Multiple calls accumulate; use `clearCellDict` to wipe.
+    @discardableResult
+    public func loadCellDict(toml: String) -> CellDictLoadResult {
+        let raw = toml.withCString { ptr -> Int64 in
+            inputx_session_load_cell_dict(handle, ptr)
+        }
+        switch raw {
+        case let n where n >= 0: return .ok(Int(n))
+        case -1: return .nullInput
+        case -2: return .nonUtf8
+        case -3: return .parseError
+        default: return .parseError
+        }
+    }
+
+    /// Wipe the session's L0.5 cell-dict layer.
+    public func clearCellDict() {
+        inputx_session_clear_cell_dict(handle)
+    }
+
+    /// Number of `(pinyin, word)` entries currently in the L0.5 layer.
+    public var cellDictCount: Int {
+        Int(inputx_session_cell_dict_count(handle))
     }
 }
 
@@ -275,3 +402,26 @@ public enum InputxRareChars {
         set { inputx_set_show_rare_chars(newValue ? 1 : 0) }
     }
 }
+
+// MARK: - v1.15 hot-reload bootstrap + signal-driven refresh ---------------
+
+/// Process-global entry points for the hot-reload flow. `setDirectory`
+/// is called once at app startup (before `IMKServer` is built) so
+/// [`inputx_session_new`] loads dict data from disk instead of the
+/// embedded blobs. `reload` is called per-session from the SIGUSR1
+/// DispatchSource after `reinstall.py` swaps the on-disk files.
+public enum InputxEngineData {
+    /// Point the Rust core at the bundle's engine-data directory.
+    /// Returns `true` on success; a failure here is fatal at startup —
+    /// downstream sessions would fall back to embedded, silently
+    /// masking the polish flow — so callers typically `preconditionFailure`
+    /// on `false`.
+    @discardableResult
+    public static func setDirectory(_ path: String) -> Bool {
+        return path.withCString { inputx_set_engine_data_dir($0) == 0 }
+    }
+}
+
+/// Pre-v1.17 name, when the hot-reload covered only the pinyin engine.
+@available(*, deprecated, renamed: "InputxEngineData")
+public typealias InputxPinyinData = InputxEngineData

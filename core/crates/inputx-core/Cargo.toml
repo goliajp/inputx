@@ -11,15 +11,61 @@ rust-version.workspace = true
 crate-type = ["rlib"]
 
 [dependencies]
-wubi = { workspace = true }
-golia-pinyin = { workspace = true }
+inputx-wubi = { workspace = true }
+inputx-pinyin = { workspace = true }
+# v2 char-centric pinyin engine — wires via `INPUTX_PINYIN_VERSION` env
+# var. Phase 0 stub returns no candidates; v1 stays default.
+inputx-pinyin-v2 = { path = "../inputx-pinyin-v2", version = "0.1" }
 # Pluggable Japanese plugin — adapter lives in composite/japanese_adapter.rs.
 # This dep is unconditional (no Cargo feature) because Inputx ships one
 # binary that handles the toggle at runtime via Session.enable_japanese;
 # size impact is small (≈few hundred KB of romaji + kanji static tables).
-inputx-jp = { path = "../inputx-jp", version = "1.1" }
+inputx-nihongo = { path = "../inputx-nihongo", version = "1.1" }
+# Probability-native scoring schema (v1.4.2 WU-γ): Candidate / MatchType /
+# Q4 / score / log_prior_from_freq / derive_log_likelihood. composite/merge.rs
+# ScoreComponents embeds (log_prior_q4, log_likelihood_q4, match_type) per
+# this schema; probe surfaces them; cement layer (v1.4.5+) will switch sort
+# key from legacy f64 to log-space additive.
+inputx-scoring = { path = "../inputx-scoring", version = "1.4" }
+# IDFv1 binary dict format (v1.4.3 WU-δ): used by the snapshot binaries
+# `idf-from-{pinyin,wubi,nihongo-jukugo,nihongo-kanji}` to write
+# `data/private-dict/v0.0.1/*.idf`. composite engine still reads legacy
+# .dict/.fsa at runtime — IDFv1 cutover is v1.4.6 cement carve-out work.
+inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
+# N-gram log-probability table (v1.4.4 WU-ε): used by the snapshot
+# binary `idf-from-pinyin-bigrams` to write
+# `data/private-dict/v0.0.1/pinyin/bigrams.ngm`. composite engine still
+# reads inputx-pinyin's embedded bigrams.fsa at runtime — IDFv1 cement
+# cutover is v1.4.6.
+inputx-ngram = { path = "../inputx-ngram", version = "1.4" }
+# Used by composite/pinyin_adapter.rs's compact `InitialsIndex` (v1.6.x
+# heap reduction; replaces a ~20 MB `HashMap<String, Vec<String>>`
+# with a flat byte pool + FSA per `malloc_history --callTree` audit).
+inputx-fsa = { path = "../inputx-fsa", version = "1.3" }
+# v1.7 cement cleanup (user 2026-05-28 directive): inputx-core deps
+# go directly to the new stones, skipping the deprecated -cement
+# re-export shims. crates.io history (cement 1.4.0..2.0.1) stays
+# immutable; this monorepo no longer references the -cement crates.
+inputx-pinyin-helpers = { path = "../inputx-pinyin-helpers", version = "1.6" }
+inputx-wubi-data = { path = "../inputx-wubi-data", version = "1.6" }
+# Embedded pinyin.dict bytes — used by the reload round-trip test to
+# stage a data dir without shelling out to the repo layout.
+inputx-pinyin-data-core = { path = "../inputx-pinyin-data-core", version = "1.4" }
+inputx-nihongo-data-jukugo = { path = "../inputx-nihongo-data-jukugo", version = "1.6" }
+inputx-nihongo-data-kanji = { path = "../inputx-nihongo-data-kanji", version = "1.6" }
+# v1.8.0 WU-ν: real weighted phonetic edit-distance for the pinyin fuzzy
+# path. Pre-v1.8 the fuzzy candidates all shared a flat `FUZZY_BASE *
+# 0.3 = 105k` score regardless of how far the typo strayed
+# from the dict spelling; now each fuzzy candidate carries the true
+# `edit_distance(typed_buf, variant)` so closer typos rank higher than
+# distant ones.
+inputx-phonetic-edit = { path = "../inputx-phonetic-edit", version = "1.4" }
 # L0 export/import JSON is hand-rolled in composite/l0_json.rs (zero-dep
 # milestone, Stage A — see .claude/PLAN-self-built-fsa.md). No serde.
+# v1.15 hot-reload: process-global NgramTable slots hold ArcSwap so
+# polish can replace bytes without process restart. See
+# `composite/pinyin_adapter.rs::bigrams_table_slot`.
+arc-swap = "1"
 
 [dev-dependencies]
 # Property-based fuzz testing — generates randomized op sequences and
@@ -28,7 +74,7 @@ proptest = "1"
 # Criterion — fine-grained perf measurement for the composite engine hot
 # path. Complements (doesn't replace) the perfgate unit test, which gates
 # regressions; criterion is for tuning + reporting.
-criterion = "0.5"
+criterion = "0.8"
 
 [features]
 # Force perfgate tests to run even under parallel `cargo test --release`.
@@ -36,12 +82,17 @@ criterion = "0.5"
 # enables it AND adds `--test-threads=1` so CPU contention doesn't
 # poison single-sample timing.
 perfgate = []
-# Forward golia-pinyin's tiny ~125-entry bootstrap dict. Several tests here
+# Forward inputx-pinyin's tiny ~125-entry bootstrap dict. Several tests here
 # (baselines, fuzzy/prediction quality) need the FULL pinyin dict and are
 # `#[cfg(not(feature = "bootstrap_only"))]` so they skip under it. Without
 # this declaration that cfg referenced an undeclared feature — always-false,
 # so the gates were dead and `--features bootstrap_only` errored.
-bootstrap_only = ["golia-pinyin/bootstrap_only"]
+bootstrap_only = ["inputx-pinyin/bootstrap_only"]
+# Phase-2 LM transit: forward inputx-pinyin's `kenlm` feature so binaries
+# in this crate (inputx-probe, eval-runner via inputx-core) can opt into
+# the real KenLM bigram LM. Off by default; the Inputx mac bundle / the
+# Phase-2 CP-2.5+ eval runs flip this on.
+kenlm = ["inputx-pinyin/kenlm"]
 
 [[bench]]
 name = "composite"
@@ -54,3 +105,42 @@ path = "src/bin/inputx_probe.rs"
 [[bin]]
 name = "inputx-trace"
 path = "src/bin/inputx_trace.rs"
+
+[[bin]]
+name = "inputx-dogfood"
+path = "src/bin/inputx_dogfood.rs"
+
+# v1.4.3 WU-δ snapshot binaries: read existing dict sources (pinyin.dict
+# FST / wubi text tables / nihongo const tables) and write IDFv1 .idf
+# files into data/private-dict/v0.0.1/. NOT engine-cutover — runtime
+# still reads legacy .dict/.fsa until v1.4.6.
+[[bin]]
+name = "idf-from-pinyin-dict"
+path = "src/bin/idf_from_pinyin_dict.rs"
+
+[[bin]]
+name = "idf-from-wubi-tables"
+path = "src/bin/idf_from_wubi_tables.rs"
+
+[[bin]]
+name = "idf-from-nihongo-jukugo"
+path = "src/bin/idf_from_nihongo_jukugo.rs"
+
+[[bin]]
+name = "idf-from-nihongo-kanji"
+path = "src/bin/idf_from_nihongo_kanji.rs"
+
+[[bin]]
+name = "idf-dual-path-verify"
+path = "src/bin/idf_dual_path_verify.rs"
+
+[[bin]]
+name = "idf-from-pinyin-bigrams"
+path = "src/bin/idf_from_pinyin_bigrams.rs"
+
+[[bin]]
+name = "build-inter-bigrams-ngm"
+path = "src/bin/build_inter_bigrams_ngm.rs"
+
+[lints]
+workspace = true

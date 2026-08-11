@@ -20,8 +20,8 @@ npm に単独公開している。寛容なライセンスの五筆スタック�
 
 - Wubi 86 エンコーダ — 4 つの正規分解ルールに対応
 - 135,822 件の辞書を有限状態トランスデューサ (FST) としてバイナリに埋め込み
-- 二層ランキング — コーパス由来のエントリ別頻度 (L1+) と、3 picks で
-  自動昇格するユーザーオーバーライド層 (L0)
+- 二層ランキング — コーパス由来のエントリ別頻度 (L1+) と、明示的な
+  ピンのみで駆動するユーザーオーバーライド層 (L0)
 - Layer prefs — ホスト側でレイヤごとの倍率を調整可能
 - 再現性のあるウェイト生成パイプライン、CI でバイト差分を検証
 - 純粋な Rust、ライブラリコードに `unsafe` なし、`no_std + alloc` 互換
@@ -47,20 +47,17 @@ npm install @goliapkg/wubi
 ### Rust
 
 ```rust
-use wubi::WubiDict;
+use inputx_wubi::WubiDict;
 
 let dict = WubiDict::embedded();
 
 let candidates = dict.lookup("khlg");
 // ["中国", "跨国", "跑车", ...]
 
-// ユーザーが候補を選んだことを辞書に通知する。同じ (code, word) が
-// 3 回選ばれると、自動的にその code の L0 デフォルトとしてピンされる。
+// ユーザーが候補を選んだことを辞書に通知する。利用カウンタが増えるだけで、
+// 候補の並び順は変わらない。
 dict.record_pick("khlg", "跑车");
 ```
-
-> crates.io のパッケージ名は `inputx-wubi` だが、lib 名は `wubi` の
-> ままなので、コード中では `use wubi::...` でそのままインポートできる。
 
 ### JavaScript
 
@@ -94,11 +91,10 @@ displayed_score = LAYER_BASE[layer] × layer_prefs[layer] + freq_score
 **レイヤ** (優先度の昇順): Auto、Phrase、Zigen、Jianma3、Jianma2、
 Jianma1。
 
-**L0 昇格ルール**: `record_pick(code, word)` は `(code, word)` のカウンタ
-を 1 ずつ増やす。閾値 (デフォルト 3、ビルド時に
-`WUBI_PROMOTE_THRESHOLD` で上書き可能) に達すると、その語がその code
-の L0 ピンとなり、その code のすべてのカウンタがリセットされる。
-別の語があとから取って代わるには、改めて 3 票を集める必要がある。
+**L0 カウンタ**: `record_pick(code, word)` は `(code, word)` のカウンタ
+を 1 ずつ増やす。カウンタは利用統計にすぎず、**並び順には影響しない**。
+候補順は辞書の判断で決まり、明示的な `pin` だけがそれを変更できる。
+(自動ピン留めは 2026-07-20 に削除。)
 
 ## 性能
 

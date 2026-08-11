@@ -1,0 +1,417 @@
+# Inputx ranking formula — single source of truth (v1.10).
+#
+# Every value here directly affects candidate ranking. Edit, then
+# run `make polish-rebuild` (or the equivalent
+# `cargo run --bin pinyin-build-dict && cargo run --bin
+#  idf-from-pinyin-dict && cargo run --bin idf-from-wubi-tables &&
+#  cargo test -p inputx-core --lib baseline`). Baseline tests are the
+# gate — drift here without a paired baseline-test update is a
+# regression by definition.
+#
+# Schema is consumed by `inputx-scoring/build.rs` which emits a
+# `$OUT_DIR/engine_weights_generated.rs` module of const literals.
+# Consumers (composite/*, idf-from-*, etc.) read through that module
+# rather than redefining their own constants.
+#
+# This file holds the v1.7-v1.8-shipped 9 EngineWeights knobs verbatim
+# from `inputx_default()`'s pre-v1.10 in-source defaults — v1.10's WU-α
+# scaffold reflects current behavior byte-identically. Subsequent WUs
+# (β/γ/δ/ε) add the per-formula constants from composite/scoring.rs,
+# composite/pinyin_adapter.rs, composite/dispatch.rs, and
+# composite/merge.rs — see `docs/POLISH-ARCHITECTURE.md` for the full
+# polish-workflow design.
+
+# ─── Tier × Engine base score table (v1.11 WU-ψ) ──────────────────
+#
+# Two-axis score authority: every candidate's primary sort key is
+#   final_q4 = tier_base[tier][engine] + within_tier_q4
+# where `within_tier_q4 ∈ [0, within_tier_max_q4]` is a clamped
+# function of (log_prior_q4, log_likelihood_q4) — i.e. WITHIN a tier,
+# the engine's own commonness signal still distinguishes candidates,
+# but it cannot CROSS tier boundaries because `tier_gap_q4` ≫
+# `within_tier_max_q4`.
+#
+# Engine offset within a tier expresses the base hierarchy
+# w > p > n (五笔 > 拼音 > 日语 in Mixed mode). It is small relative
+# to the tier gap — same-tier candidates from different engines stay
+# close, but the order is deterministic.
+#
+# Adjustment paths:
+#   A. Move a (buffer, word) to a different tier  → adapter logic OR
+#                                                   tier_overlay.tsv
+#   B. Reorder within a tier                       → adjust freq /
+#                                                   quickfix overlays
+#
+# No per-engine carve-outs (no engine_boost_q4 "lift wubi"; no
+# simcode_boost_q4 "lift simcodes"). All of those reduce to a tier
+# assignment — wubi prominent simcode = tier 1, JP basic kana =
+# tier 1, etc. — and the table here.
+
+[tier_engine_base]
+# Distance between adjacent tiers, in Q4 log-space.
+#
+# Constraint: `tier_gap_q4 > engine_gap_q4 × 3 + within_tier_max_q4`
+# so all 3 engines × the within-tier band of a higher tier still fit
+# strictly above the next-lower tier's top. 400 Q4 ≈ ×4.4M linear.
+tier_gap_q4 = 400
+
+# Distance between engines within a tier, in Q4 log-space.
+#
+# 2026-06-03 (user "no special list, never"): raised from 30 to 110
+# so engine ordering (w > p > n) is STRICTLY enforced within a tier
+# — i.e. `engine_gap_q4 > within_tier_max_q4`. Pre-fix gap 30 < cap
+# 100, so a pinyin bigram boost (~30-80 Q4) inside tier 1 could
+# beat wubi tier 1 in raw within-axes — breaking the "wubi-first
+# IME" promise from inside the matrix model rather than via per-
+# entry carve-out. With gap=110 > cap=100, ANY tier-N wubi entry
+# beats ANY tier-N pinyin entry by ≥10 Q4 regardless of likelihood
+# variance — engine priority is now a hard sort key, second only
+# to tier_id.
+#
+# Total spread: wubi (+2·offset = 220), pinyin (+1·offset = 110),
+# nihongo (+0).
+engine_gap_q4 = 110
+
+# Hard ceiling on within-tier score variance. Must satisfy
+# `within_tier_max_q4 < engine_gap_q4` (so engine offset wins over
+# any within-axes likelihood spread).
+within_tier_max_q4 = 100
+
+# Tier count (0 .. tier_count). 10 tiers gives fine-grained control
+# without becoming unmanageable. Semantic naming below.
+tier_count = 10
+
+# Semantic names for each tier (purely documentation; tier IDs are
+# what code references). Listed top → bottom (tier 0 = highest).
+tier_names = [
+    "absolute",        # 0  pin / structural top
+    "top",             # 1  buffer-best common: wubi 简码 prominent / pinyin top single char / JP basic kana
+    "phrase",          # 2  full-buffer phrase match
+    "common",          # 3  mid-freq character / common kanji
+    "standard",        # 4  standard dict entries
+    "less_common",     # 5  lower-freq / rare-CJK simcode yields here
+    "rare",            # 6  rare characters
+    "specialty",       # 7  prefix predictions
+    "predict",         # 8  speculative / longer-tail prediction
+    "longtail",        # 9  fuzzy / initials / last-resort
+]
+
+# ─── EngineWeights — v1.7-v1.8 calibration knobs ──────────────────
+# Indexed-by-Source values list as `[wubi, pinyin, japanese]`.
+
+[engine_weights]
+# WU-ψ phase 6: engine_boost_q4 + simcode_boost_q4 retired. The
+# tier × engine table (see [tier_engine_base] above) now expresses
+# both "wubi-first in mixed mode" (engine_offset within tier) and
+# "wubi simcode 常用字必须 lead" (natural tier 0 assignment in
+# composite/dispatch.rs).
+
+# Replacement log-prob for bootstrap entries (字根表 etc., freq=0).
+# Without this floor `log_prob_corpus(0, total)` would give them the
+# worst possible probability. 0 = use the corpus floor unchanged.
+bootstrap_floor_q4 = 0
+
+# WU-τ char vs word length weighting (v1.7.5). Both default 0 —
+# polish-log telemetry calibrates these post-v1.12.
+char_boost_q4 = 0
+word_len_bonus_q4 = 0
+
+# WU-ν fuzzy / edit-distance floor (v1.8.0). 205 ≈ Q4·ln(FUZZY_BASE
+# = 350k). Paired with MatchType::Fuzzy(cost_milli ≈ 700) at the
+# canonical southern-dialect swap distance to reproduce pre-v1.8 flat
+# discount.
+fuzzy_likelihood_floor_q4 = 205
+
+# WU-ξ initials shorthand base (v1.8.1). 221 ≈ Q4·ln(450k). Paired
+# with MatchType::Initials(typed_len=2, full_len=8) yields ~199,
+# matching the v1.8.0-inadvertent initials ranking.
+initials_likelihood_base_q4 = 221
+
+# WU-ο Viterbi link decay (v1.8.2). -6 ≈ round(ln(0.7)·Q4).
+# Per-extra-bigram-link composition penalty.
+viterbi_link_decay_q4 = -6
+
+# ─── WU-δ: composite/dispatch.rs per-buffer + per-layer policy ────
+# These constants drive the wubi candidate-synthesis pipeline: which
+# layer demotes when (auto/phrase/rare-char), what counts as a
+# "prominent" char by pinyin freq, when full-code single-char hint
+# fires. Pre-v1.10 they lived as `const`s inside `dispatch.rs` —
+# moved here so polish can tune them without code edits.
+
+[dispatch.wubi]
+# Pinyin freq threshold below which a Jianma2/3 single-char simcode
+# is considered "rare". Prominent simcodes (char's max pinyin freq
+# ≥ floor) natural-tier to `top` (1); rare ones to `less_common` (5).
+# 2026-06-03 cleanup retired the legacy `rare_char_demote ×0.3`
+# likelihood multiplier — was redundant once rare chars started
+# landing in tier 5 by structural assignment (`dispatch.rs` natural_
+# tier match). Pure threshold rule now; no per-entry multiplier.
+char_prominent_floor_freq = 20_000
+# Per-pinyin-len Auto-layer demote, indexed by pinyin_len 1..4.
+# Shorter buffers = more ambiguity = stronger demote.
+auto_layer_demote = [0.01, 0.05, 0.10, 0.20]
+# Speculative-buffer Phrase demote: under pinyin_intent + buffer < 4
+# codes, Phrase candidates get ×0.5 to avoid crowding out pinyin.
+phrase_speculative_demote = 0.5
+# Single-char Jianma1 hint promote: at full code (buffer.len() == 4)
+# a single-char Auto entry gets this multiplier so it leads the
+# coincidental phrases at the same code (wubi-86 "full-code IS the
+# single char's address" muscle memory). The only exception is the
+# `phrase_extreme_freq_floor` below — when a competing phrase has
+# overwhelming corpus presence (公司 类), the phrase still wins.
+full_code_single_char_promote = 100.0
+# 2026-06-10 user "四码如果有单字除非极其生僻或词组顺序极高，否则
+# 都应该在词组前". This is the "词组顺序极高" floor — when a 4-code
+# buffer has a phrase whose corpus freq ≥ this floor, the single-char
+# promote does NOT fire (and Phrase keeps its default tier-1 placement).
+# Picked from a survey of all 4-code phrase/single collisions in
+# library.tsv: phrases ≥ 25000 form the decisively-common tier (公司
+# 42817, 集团 38604, …); phrases below are run-of-the-mill compounds
+# (水滴 20391, 汗流浃背 16776) where single chars still lead.
+phrase_extreme_freq_floor = 25_000
+
+# ─── WU-β: composite/scoring.rs ranking-formula constants ─────────
+# Per-engine + per-match-shape + per-cross-engine policy values.
+# Pre-v1.10 these lived as `pub const FOO: f64` blocks in
+# `core/crates/inputx-core/src/composite/scoring.rs`; v1.10 routes
+# them through this TOML.
+
+[scoring.jp]
+# Per-tier likelihood floors (linear-space) for JP candidate paths.
+jukugo_base = 200_000.0
+single_kanji_base = 100_000.0
+hiragana_base = 150_000.0
+katakana_base = 110_000.0
+composed_base = 130_000.0
+composed_kanji_base = 280_000.0
+# Multiplier applied to the dict-entry base when typed buffer EXACTLY
+# spells a dict reading (proximity = 1.0).
+full_match_promote = 1.3
+# Conversion factor for the JP per-candidate freq (small integers from
+# the const tables) → prior contribution. Tuned to put 88-freq jukugo
+# at ~ 200k + 88 × 3000 = 464k linear total.
+prior_freq_mult = 3000.0
+
+[scoring.match_shape]
+# Prefix-completion decay exponent: `decay = proximity^K`. K=3 makes
+# distant prefixes (proximity=0.5) drop ~×0.125 vs an exact (×1.0).
+predict_proximity_k = 3.0
+# Prediction-tier bases (linear) per engine.
+predict_base_pinyin = 180_000.0
+predict_base_wubi = 50_000.0
+
+# ─── Tier落点 — Phase D (2026-06-03): nihongo z-score quantile ─────
+# Same shape as pinyin Phase B. μ/σ measured on freq>0 nihongo library
+# rows (jukugo + kanji combined: 29046 rows, jukugo n=27380 + kanji
+# n=1666). Phase A spike at .claude/PLAN-tier-by-quantile-spike-data.md.
+#
+# Applies to JP candidate tier assignment in composite/japanese_adapter:
+#   - multi-char real jukugo (新宿 大学 自主) → nihongo_tier_from_freq
+#   - single kanji (気 起 記)                → nihongo_tier_from_freq
+#   - multi-char pure_kana (えっ ありがとう)  → stays at fixed tier 2
+#                                              (user 2026-05-26 attestation)
+#   - single basic kana from dict (も で を) → stays at fixed tier 1
+#                                              (Phase C basic-kana rule)
+#   - mechanical kana (3-band by buffer len) → Phase C-2 unchanged
+[scoring.tier_quantile_nihongo]
+log_freq_mu    = 3.574
+log_freq_sigma = 0.482
+# 整体偏低 + 张得开 + 基础假名在很高级 (user directives 2026-06-03):
+#
+# Three-engine global tier spread design (user 2026-06-03):
+#   wubi:    t0-t2 (tail to t6)   — most candidates clustered top
+#   pinyin:  t0-t6 (tail to t9)   — moderate spread
+#   nihongo: t0-t9 full span      — widest spread, integrated 偏低
+#
+# Standard normal 1.0σ steps map nihongo's z range [-1.42, +2.19] to
+# tiers 2-5 with the median (z=0) landing at tier 4.  Tier 1 needs
+# z ≥ 2.5 which no jukugo/kanji reaches naturally (max=2.19) — that
+# space is reserved for basic kana via the Phase C single+pure_kana
+# exempt path.  Below tier 6 (z < -2.5) is longtail (tier 9).
+#
+# Per-word check:
+#   自主 freq=26 z=-0.65 → tier 5  ← well below pinyin 技术 z=2.15 → t2
+#   技術 freq=85 z=1.84 → tier 2  ← tops out at jukugo's strongest
+#   大学 freq=100 z=2.19 → tier 2
+#   ありがとう freq=100 z=2.19 → tier 2 (but Phase C overrides to t2 via
+#                                       multi-char pure_kana fixed rule)
+#   気    freq=84 z=1.28 → tier 3
+#   起    freq=75 z=1.08 → tier 3
+#   記    freq=47 z=0.25 → tier 4
+#   其    freq=59 z=0.65 → tier 3
+#
+# 2026-07-29 ceiling-first re-band (user: "日语怎么可能会超过常见拼音的
+# 100% 命中，任何时候这都不应该" + "日语真正的高分档还是应该不低，但再高
+# 几乎也不应该超过 100% 命中的拼音常见词，更不可能超过五笔").
+#
+# The JP ceiling is now a hard tier 4 — see JP_TIER_CEILING in
+# composite/japanese_adapter.rs for the full band table and rationale.
+# Tiers 1-3 are unreachable from this quantile; the top three bands
+# (old 2/3/4) collapse onto the ceiling, and the tail keeps its own
+# spread (5 / 6 / 9). Collapsing rather than shifting is deliberate:
+# 明石 (akashi, freq=35) already sat at tier 4 and beats its mechanical
+# kana on within-tier score, so ANY downward shift of the dict band
+# loses that — the ceiling has to pull the band UP into 4, not push
+# it down.
+#
+# Within-tier ordering still separates these rows: JP candidates carry
+# a real freq-driven (log_prior_q4, log_likelihood_q4) pair, unlike the
+# pinyin v2 word path.
+#
+# Resulting distribution: t4 = 17,159 / t5 = 11,711 / t6 = 154 /
+# t9 = 6,148 (the z < -2.5 longtail cutoff is preserved — without it
+# those 6,148 rare kanji would be PROMOTED into the dict band).
+#
+# (build.rs enforces strictly-descending thresholds, hence 11.0/10.0/
+# 9.0 rather than a repeated sentinel. Max observed z is 2.19.)
+tier_1_above = 11.0     # unreachable — JP ceiling is tier 4
+tier_2_above = 10.0
+tier_3_above = 9.0
+tier_4_above = -0.5
+tier_5_above = -1.5
+tier_6_above = -2.5
+
+# ─── Phrase quality — Phase E (2026-06-03): bigram quality gate ────
+# Pinyin 2-char phrase candidates get a one-tier demote when the
+# (char1, char2) intra-bigram boost falls below the floor.  This
+# catches jieba over-segmentation noise like 馆里 / 局里 / 剧里 where
+# the phrase freq is artificially inflated but the two chars rarely
+# co-occur in real text.
+#
+# Spike (2026-06-03 PinyinDict::bigram_boost):
+#   real "X里" phrases (这里/哪里/家里/公里/心里): bigram_boost 43k-50k
+#   real (mid-tier) 屋里 / 城里:                    32k-37k
+#   real but specialized 居里 (Marie Curie / 居里温度): 33.5k  ← keeps tier
+#   jieba sub-word 馆里 / 局里 / 剧里:               14k-21k  ← demoted
+#   other real phrases (管理/距离/技术/举例/持久):    42k-50k
+#
+# Floor = 25000 cleanly separates noise (≤22k) from real (≥32k).
+#
+# Inflation guard: only demote when freq ≥ inflation_floor.  Real but
+# RARE phrases (靠谱 freq=10k bigram=21k, low+low consistent signal)
+# keep their natural tier — they're rare not noise.  jieba over-
+# segmentation noise is detected by the COMBO of mid-high corpus freq
+# (jieba inflated 20k+) + low bigram (rare in real text).
+[scoring.phrase_quality]
+bigram_signal_floor = 25000.0
+# Inflation band — bigram + freq combo gate.  Only demote when freq is
+# in this band ("jieba over-segment sweet spot"); above the ceil treat
+# as legitimate (high real freq OR user-attested quickfix), below the
+# floor treat as real-rare with consistent low-low signal.
+#   < 22k    : keep (real-rare, e.g. 臃肿 20k, 铆钉 15k, 靠谱 10k)
+#   22k–30k  : DEMOTE if bigram < signal_floor (馆里 24k, 局里 24k,
+#              剧里 22k — jieba inflated mid-band)
+#   > 30k    : keep (real-common e.g. 屋里 32k / 这里 45k, OR user
+#              quickfix-boosted like 锚定 40k)
+inflation_floor_freq = 22000
+inflation_ceil_freq  = 30000
+
+# ─── Tier落点 — Phase B (2026-06-03): z-score quantile ────────────
+# Replaces the legacy `raw_freq >= 20000 → tier 1` hard cutoff for
+# pinyin single-char candidates. Score the candidate by its position
+# in the per-engine log-freq distribution and map z-score to tier.
+#
+# Per .claude/PLAN-tier-by-quantile.md (architecture) +
+# .claude/PLAN-tier-by-quantile-spike-data.md (实测 μ/σ from
+# 261,923 pinyin nonzero rows).
+#
+# Apply to pinyin SINGLE-CHAR exact-match candidates only.  Multi-char
+# phrases stay at tier 1 (unchanged).  freq == 0 → tier 9 (longtail).
+[scoring.tier_quantile_pinyin]
+# μ, σ of ln(freq) over freq>0 pinyin library rows.  Recompute via
+# `/tmp/spike_freq.py` after each large ingest; drift < 0.05 is fine.
+log_freq_mu    = 9.030
+log_freq_sigma = 0.726
+# Per-tier z thresholds. Phase A spike defaulted "tighter ±1.5σ/±2.5σ"
+# (1-3 顶字 per buffer), but baseline cases like (ne, 呢=50929, z=2.34)
+# and (le, 了, ma, 吗, ba, 吧) need their common-buffer top single
+# char in tier 1, not tier 2.  Tier 1 阈值 = 2.3 + tier 2 = 1.3 keeps
+# the "顶字 5-8 per common buffer" semantics + still drops shi/yi/mo
+# tier 1 size from 48/58/21 to <10.
+tier_1_above = 2.3      # ~ top 1.1%
+tier_2_above = 1.3      # ~ top 10%
+tier_3_above = 0.3      # ~ top 38%
+tier_4_above = -0.5     # ~ top 69%
+tier_5_above = -1.5     # ~ top 93%
+tier_6_above = -2.5     # ~ top 99.4%
+# z < tier_6_above → tier 9 (longtail bucket)
+
+# ─── Tier落点 — wubi by its OWN corpus freq (2026-06-07) ───────────
+# Orthogonal-table design (user directive "五笔的内容本身就应该根据字频
+# 有等级"): wubi candidates tier by wubi-library freq alone — NO cross-
+# engine dependency on pinyin char_max_freq. Wubi is encoding-stable with
+# few candidates, so it converges high and never needs z-score spread;
+# plain freq floors suffice. Five tiers with explicit semantics:
+#   t1 常用 / t2 中低频 / t3 低频 / t4 难检 / t5 生僻.
+# Floors from the jianma1/2/3 wubi-freq spike: t1=20000 keeps the common
+# simcodes (碰28577 虎32382 拉40356 东39354 谍21582 庶24637) at t1 → wx>px
+# puts them #0. within-tier order is intentionally NOT modeled (wubi 不关心
+# t1 内谁高谁低 — that's a pinyin concern; a future background task can
+# refine intra-tier scoring).
+[scoring.tier_wubi]
+tier_1_floor = 20000
+tier_2_floor = 18000
+tier_3_floor = 5000
+tier_4_floor = 1000
+# below tier_4_floor (incl freq 0) → tier 5 (生僻)
+# t1/t2 boundary is deliberately tight (20000 vs 18000): common simcodes
+# (碰28577 谍21582 虎32382) sit at t1 and win their buffer via wx>px, while
+# rare jianma2 like 骈(17935) drop to t3 — below common pinyin (which sits
+# at t2 for most buffers), so 促/粗 lead `cu` and 骈 yields. "退一点点".
+
+[scoring.zh]
+# Pinyin / wubi prior freq multiplier. Default 1.0 — corpus freq IS
+# the prior, no extra scaling. Reserved for future per-engine
+# normalization if needed.
+prior_freq_mult_pinyin = 1.0
+prior_freq_mult_wubi = 1.0
+
+# ─── WU-γ: composite/pinyin_adapter.rs per-path tier floors ───────
+# These set how high each tier (exact / composed / fallback / fuzzy /
+# floor) starts in linear space before per-engine multipliers run.
+
+[pinyin_path]
+# Path 1 (exact dict match) base — every pinyin exact-match candidate's
+# legacy f64 score = phrase_base + raw_freq * pin_mult.
+phrase_base = 400_000.0
+# L0 user-pin multiplier — when a candidate has been manually pinned
+# for the typed buffer, its score is multiplied by this.
+l0_pin_multiplier = 1000.0
+# Degenerate-tier floor — for candidates that don't fit any other
+# path. Decays per i (`* 0.99^i`). Effectively "show last".
+non_exact_floor = 1000.0
+# Long-buffer Viterbi composition (real sentence-shaped input).
+composed_score = 500_000.0
+# Short-buffer last-resort Path 5 composition (e.g. kaopu → 靠谱
+# when no exact). Sits above mechanical JP kana but below real dict.
+composed_fallback_score = 250_000.0
+# Linear-space `score` field for fuzzy-tier candidates: a fixed
+# `FUZZY_BASE * 0.3 = 105k` used only as the merge f64-tiebreaker
+# (primary sort is the Q4 log-likelihood derived from real phonetic
+# edit-distance via `fuzzy_likelihood_floor_q4` + `MatchType::Fuzzy`).
+fuzzy_base = 350_000.0
+# Composition-quality cutoff: Viterbi paths whose log_quality falls
+# below this drop entirely (never shown). Negative since quality is
+# a log-prob.
+composed_quality_floor = -15_000.0
+
+[scoring.cross_engine]
+# Wubi full-code (4-letter buffer) promote — small boost for users
+# completing a real wubi code vs mid-typing.
+wubi_full_code_promote = 1.1
+# Wubi single-char Jianma1 promote multiplier under full-code: a
+# single-char entry whose freq exceeds the per-code max phrase freq
+# gets ×100 to reinforce the "g→一" mapping in mixed mode.
+wubi_single_char_promote_mult = 100.0
+# Traditional-Chinese demote: when a candidate contains any TC marker
+# char (per `core/crates/inputx-core/data/tc_chars_demote.txt`), its
+# score is multiplied by this. 1e-3 = essentially banished to the
+# bottom, kept only as last-resort fallback.
+tc_demote_mult = 1.0e-3
+# Per-engine legacy multipliers, all 1.0 in production. Reserved for
+# future calibration if any engine's overall confidence needs shifting
+# independently of engine_boost_q4 (these are linear-space, the
+# Q4 boost is log-space).
+engine_mult_wubi = 1.0
+engine_mult_pinyin = 1.0
+engine_mult_jp = 1.0

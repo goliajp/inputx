@@ -1,0 +1,24 @@
+{
+  "date": "2026-07-03",
+  "engine_version": "1.4.0",
+  "note": "Baseline refreshed 2026-07-03 to reflect gold_top +5.9pp lift from 500+ dogfood article vocab additions (K001-K141) between 2026-06-15 and 2026-07-03. gold_top1: 0.034 \u2192 0.093, gold_top5: 0.035 \u2192 0.093, gold_top10: 0.035 \u2192 0.093. Fuzzy/typo/abbrev fixture gates remain independent per baseline_regression.rs floors.",
+  "elapsed_secs": 1282.507,
+  "counts": {
+    "total": 51000,
+    "gold": 1000,
+    "silver": 50000,
+    "polyphone": 48340
+  },
+  "top1": 0.02811764705882353,
+  "top5": 0.028941176470588234,
+  "top10": 0.028941176470588234,
+  "gold_top1": 0.093,
+  "gold_top5": 0.093,
+  "gold_top10": 0.093,
+  "silver_top1": 0.028,
+  "silver_top5": 0.02882,
+  "silver_top10": 0.02882,
+  "per_polyphone_top1": 0.02556888705006206,
+  "per_polyphone_top5": 0.026313611915597848,
+  "per_polyphone_top10": 0.026313611915597848
+}

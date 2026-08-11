@@ -1,0 +1,42 @@
+# Recapture from batch 1b (commit ccffde4) — Claude Code per-row audit
+# 2026-06-22 found 36 literary / real AA-redups that were swept by the
+# blanket "freq<10k all delete" strategy. These re-enter as source=polish
+# rows at their original digested freq (preserved by reading library.tsv
+# at commit ccffde4^). Schema: code\tword\tfreq\t# note
+# freq=0 cases bumped to 100 to clear the build-dict cutoff threshold.
+jiejie	桀桀	9989	# 桀桀大笑 文学拟声
+gugu	汩汩	9950	# 汩汩流水 真叠词
+huanghuang	煌煌	9904	# 煌煌大业 真叠词
+xingxing	悻悻	9305	# 悻悻而去 文学
+chichi	哧哧	9083	# 哧哧笑 拟声
+yanyan	恹恹	9083	# 病恹恹 真叠词
+cencen	涔涔	8884	# 汗涔涔 真叠词
+congcong	淙淙	8662	# 泉水淙淙 真叠词
+aiai	哀哀	8398	# 哀哀欲绝/哀哀父母
+liangliang	踉踉	8325	# 踉踉跄跄
+dudu	笃笃	8313	# 笃笃响 拟声+笃笃实实
+xuxu	吁吁	8228	# 气喘吁吁
+zhengzheng	怔怔	7552	# 怔怔出神
+zhenzhen	蓁蓁	7552	# 《诗经》其叶蓁蓁
+gaogao	杲杲	7320	# 杲杲日出 文学
+juju	踽踽	7320	# 踽踽独行
+xuxu	煦煦	7320	# 春风煦煦
+jiji	汲汲	7273	# 汲汲于名利
+xiaoxiao	哓哓	7099	# 哓哓不休
+erer	尔尔	5922	# 不过尔尔 文学
+jingjing	井井	5922	# 井井有条
+aiai	艾艾	5375	# 期期艾艾
+kengkeng	铿铿	5286	# 铿铿有力 拟声
+sisi	咝咝	5163	# 咝咝声 拟声
+zhuozhuo	濯濯	5163	# 童山濯濯
+linlin	鳞鳞	4747	# 鳞鳞屋宇 文学
+yiyi	悒悒	4193	# 悒悒不乐 文学
+lili	呖呖	3135	# 莺声呖呖 文学
+linlin	辚辚	3094	# 车辚辚 古文
+zhengzheng	诤诤	3094	# 铁骨诤诤
+aiai	霭霭	2987	# 云霭霭 文学
+shanshan	潸潸	2987	# 泪潸潸/潸然泪下
+changchang	怅怅	2367	# 怅怅不已
+gungun	衮衮	2367	# 衮衮诸公
+shanshan	讪讪	2367	# 讪讪而去
+luoluo	荦荦	100	# 荦荦大端 文学 (orig freq=0, bumped to 100 for dict cutoff)

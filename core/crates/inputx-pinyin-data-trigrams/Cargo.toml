@@ -1,0 +1,21 @@
+[package]
+name = "inputx-pinyin-data-trigrams"
+version = "1.4.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+description = "Embedded word-trigram dict (inputx-fsa Dict format) for the inputx-pinyin engine — single byte slice, zero deps, include_bytes-loaded. Optional dependency of inputx-pinyin (default-on via the `trigrams` feature)."
+authors = ["GOLIA K.K."]
+repository = "https://github.com/goliajp/inputx"
+homepage = "https://github.com/goliajp/inputx"
+keywords = ["pinyin", "ime", "chinese", "trigram", "data"]
+categories = ["text-processing", "internationalization"]
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+
+[lints]
+workspace = true
