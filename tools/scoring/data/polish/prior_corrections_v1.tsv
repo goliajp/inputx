@@ -1,0 +1,29 @@
+# Pinyin dict build-time Q4 log-prior boosts — `(word, boost_q4)`
+# pairs added to log_prior_q4 at IDF snapshot build time. Applied per-
+# word (regardless of code) so e.g. boosting 继续 lifts every
+# (code, 继续) entry uniformly.
+#
+# Calibration: each boost is the Q4 amount needed to clear the canon
+# competitor under the Q4-log additive sort key
+# (`score_q4 = log_prior + log_likelihood`) plus a small safety margin.
+# Q4=16, so +11 ≈ ×2.0 linear, +17 ≈ ×2.9. Prefer small boosts (≤17);
+# anything larger suggests the upstream corpus is fundamentally wrong
+# about the word and the dict-pipeline source should be fixed instead.
+#
+# Format:
+#   <word>\t<boost_q4>[\t# comment]
+#
+# Loaded by `idf_from_pinyin_dict.rs` via `include_str!` so the file is
+# tracked as a cargo build dependency. New entries MUST add a
+# regression test in `dispatch.rs` / `session.rs` pinning the expected
+# ranking and cite the user polish-log case in the same commit.
+
+# Sort alphabetically by Chinese for human review.
+具体	7
+加载	7
+理想	11
+继续	17
+统一	13
+设计	11
+的	6	# 2026-07-10 vocab-audit P1: 删1477条灌水长词后 de 单字prior聚合翻盘(的<得);恢复 的#0,baseline pin 已存在
+目	2	# 2026-07-10 vocab-audit P1: 同上 mu 翻盘(目<木/姆);恢复 目#0

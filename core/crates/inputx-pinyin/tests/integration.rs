@@ -4,7 +4,7 @@
 //! > `let mut buf = vec![]; session.lookup_into("zhongguo", &mut buf)`
 //! > returns `["中国", ...]` from bootstrap dict.
 
-use golia_pinyin::{PinyinEngine, Session};
+use inputx_pinyin::{PinyinEngine, Session};
 
 #[test]
 fn gate_zhongguo_via_session() {

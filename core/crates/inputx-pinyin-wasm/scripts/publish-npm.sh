@@ -19,7 +19,7 @@ echo "[publish-npm] wasm-pack build --target $TARGET --release $FEATURES"
 wasm-pack build --target "$TARGET" --release -- $FEATURES
 
 # wasm-pack defaults the package name to the Cargo crate name
-# (`golia-pinyin-wasm`). Rewrite pkg/package.json to publish under the
+# (`inputx-pinyin-wasm`). Rewrite pkg/package.json to publish under the
 # desired scoped name.
 echo "[publish-npm] rewriting pkg/package.json name → $NPM_NAME"
 /usr/bin/python3 - <<PY

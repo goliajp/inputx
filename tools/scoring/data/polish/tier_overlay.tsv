@@ -1,0 +1,58 @@
+# WU-ψ phase 5 — tier overlay.
+#
+# Override the per-engine adapter's natural tier assignment for a
+# specific (buffer, word) pair. Use this when the candidate's
+# observable commonness (corpus freq, polish-log boost, ...) doesn't
+# match the engine's structural rules — e.g., a pinyin candidate
+# whose polish-log boost can't overcome the wubi engine_offset
+# within its natural tier, or a rare-CJK wubi simcode whose pinyin
+# char-freq narrowly passes CHAR_PROMINENT_FLOOR but the user
+# treats as a yielder anyway.
+#
+# Format:
+#   <buffer>\t<word>\t<tier>\t# <reason>
+#
+# `buffer` is the typed input (pinyin or wubi shape — the buffer the
+# user actually typed). `word` is the candidate string. `tier` is
+# 0..=9 (0 = absolute top, 9 = longtail).
+#
+# Lookup is exact-match on (buffer, word). Buffer is lowercased
+# before comparison. Empty values / comments (`#`) are skipped.
+#
+# Sort order within this file is alphabetical by buffer for diff
+# friendliness — DO NOT rely on file order at lookup time.
+
+juti	具体	0	# polish-log prior_correction × 1.5 was lost in tier-1 within-tier sort; promote to absolute. Phase 5 introduced.
+mi	峭	5	# 峭's pinyin char-freq ≥ CHAR_PROMINENT_FLOOR but user 2026-06-02 reports `mi` should give 米 #0, not 峭. Demote to rare-CJK tier so pinyin top wins.
+
+# 2026-06-03 sweep — wubi simcodes/phrases hijacking pinyin-shape
+# buffers where the wubi candidate's pinyin reading ≠ the buffer.
+# Drop to tier 5 (less_common) so pinyin top wins; wubi simcode
+# still retrievable at deeper rank for power-user lookup.
+bang	陈情	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+duan	雄姿英发	5	# 2026-06-29 user: "雄姿英发 在很多超高频拼音结果前" — wubi 4-char phrase code (D=雄 U=姿 A=英 N=发) collides with pinyin "duan"; bury so 端/段/短/断 lead.
+gang	开怀	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+suan	西装革履	5	# 2026-06-03 sweep — wubi simcode pollution; pinyin freq=0 at this buffer
+jiaozhu	胶住	8	# 2026-06-06 user: "胶住 可以有但肯定是要最后的" — borderline real (口语), keep dict for K-best but bury in display
+shi	椒	5	# 2026-06-03 user: "shi 肯定不能是 椒，要是 '是'" — retired from protect list
+quanquan	拳拳	5	# 2026-06-10 user: "quanquan 拳拳 劝劝 要放在最后" — 拳拳之心 idiom-only; bury below 全权/圈圈.
+quanquan	劝劝	5	# 2026-06-10 user: same — 劝一劝 colloquial reduplication; bury below daily-use peers.
+queshi	却是	5	# 2026-06-27 user: "却是 不像正常词，为什么分这么高" — literary/wuxia-corpus inflation; bury below 确实/缺失.
+thgf	处于	5	# 2026-06-27 user: "thgf 牌 > 处于" — wubi convention: 4-letter single-char-full-code 牌 should beat 2-char phrase 处于(处=th, 于=gf).
+thgf	牉	9	# 2026-06-27 user: "其他的结果我没看懂" — rare CJK freq=0 noise; longtail.
+thgf	牔	9	# 2026-06-27 user: same — rare CJK freq=0 noise; longtail.
+sai	嘥	5
+sai	簺	5
+sai	僿	5
+sai	鳃	5
+lianxu	怜恤	5	# 2026-06-30 user: 文言/古汉语,降 less_common
+liucheng	柳橙	5	# 2026-06-30 user: 柳橙 是 Taiwan-style orange, 降 less_common
+shi	是	1	# 2026-07-03 tier 1 pin for shi_pinyin_是 test
+shi	十	5	# 2026-07-03 tier 5 demote to un-preempt 是
+wugu	假痴不癫	8	# 2026-07-06 user polish: /polish wugu 假痴不癫 肯定要放很后面, T 级低; wubi 3-jianma phrase 抢 pinyin (无辜/五谷/无故/巫蛊) top
+khuq	中将	6	# 2026-07-06 user polish: 中将 phrase demoted deeper than 中奖
+khuq	中奖	5	# 2026-07-06 user polish: 中奖 phrase demoted below 跤 (single-char)
+weibo	微博	2	# user 2026-07-08: v2 cedict has 微博 @ tier 4, modern_vocab dedup skips my tier-2 add; direct tier override to unstick
+lian	立案	5	# 2026-07-14 gf-recall: ambiguous li-an segmentation must not beat 脸/连 muscle memory
+jiang	激昂	5	# 2026-07-14 gf-recall: ambiguous ji-ang segmentation must not beat 江/将 muscle memory
+jianlou	检漏	5	# user 2026-08-02: "检漏好像不是词?" — real but technical (检漏仪/真空检漏), lib freq 3094 yet outranked 捡漏 15033; demote to less_common so 简陋/捡漏/箭楼 lead

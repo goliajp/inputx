@@ -11,7 +11,7 @@
 //!
 //! Index values pack `(layer << FREQ_BITS) | freq_score` so the runtime can
 //! read both in one stream pass. `freq_score` is the corpus-derived frequency
-//! from `data/weights/weights.tsv` (capped at [`MAX_FREQ_SCORE`]; real data
+//! from `data/library.tsv` (capped at [`MAX_FREQ_SCORE`]; real data
 //! tops out around 50k), normalized within layer.
 
 /// Discriminants are **ascending priority**: `Auto = 0` is lowest, `Jianma1`
@@ -115,6 +115,7 @@ const FREQ_MASK: u64 = (1 << FREQ_BITS) - 1;
 /// that needs to clamp/validate import this rather than hardcoding a copy
 /// (a stale copy in the proptest survived the E1 `FREQ_BITS` 56→20 change and
 /// silently broke the invariants until proptest caught it).
+#[allow(dead_code)] // single source of truth for the freq domain — used by tests / external callers
 pub const MAX_FREQ_SCORE: u64 = FREQ_MASK;
 
 /// Pack `(layer, freq_score)` into a single u64 index value. `freq_score` is
@@ -125,7 +126,11 @@ pub const MAX_FREQ_SCORE: u64 = FREQ_MASK;
 /// inside the field, so this only matters as a defensive guarantee.
 #[allow(dead_code)] // used by build.rs and at runtime; build_weights.rs doesn't pack
 pub const fn pack(layer: Layer, freq_score: u64) -> u64 {
-    let freq = if freq_score > FREQ_MASK { FREQ_MASK } else { freq_score };
+    let freq = if freq_score > FREQ_MASK {
+        FREQ_MASK
+    } else {
+        freq_score
+    };
     ((layer as u64) << FREQ_BITS) | freq
 }
 
@@ -178,13 +183,19 @@ mod tests {
         }
         // Saturated value must equal packing the exact max, and never spill
         // into the layer bits.
-        assert_eq!(pack(Layer::Phrase, u64::MAX), pack(Layer::Phrase, FREQ_MASK));
+        assert_eq!(
+            pack(Layer::Phrase, u64::MAX),
+            pack(Layer::Phrase, FREQ_MASK)
+        );
     }
 
     #[test]
     fn layer_base_strict_ascending() {
         for w in LAYER_BASE.windows(2) {
-            assert!(w[0] < w[1], "LAYER_BASE must be strictly ascending (Auto = lowest priority)");
+            assert!(
+                w[0] < w[1],
+                "LAYER_BASE must be strictly ascending (Auto = lowest priority)"
+            );
         }
     }
 

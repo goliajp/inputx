@@ -48,9 +48,9 @@ eng.importL0(JSON.parse(localStorage.getItem("pinyin-l0") ?? "{}"));
 
 ## 含まれるもの
 
-- `golia_pinyin_wasm_bg.wasm` — エンジン + bootstrap FST (約 100 KB)
-- `golia_pinyin_wasm.js` — ES module ラッパー
-- `golia_pinyin_wasm.d.ts` — TypeScript 型定義
+- `inputx_pinyin_wasm_bg.wasm` — エンジン + bootstrap FST (約 100 KB)
+- `inputx_pinyin_wasm.js` — ES module ラッパー
+- `inputx_pinyin_wasm.d.ts` — TypeScript 型定義
 
 完全な 41.4 万件辞書 (9 MB) は `bootstrap_only` feature を外して
 リビルドする必要がある。下記の Build セクション参照。

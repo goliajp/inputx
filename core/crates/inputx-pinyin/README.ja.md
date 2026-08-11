@@ -29,7 +29,7 @@ npm に単独公開している。寛容なライセンスの普通話拼音ス�
 - **セグメンタ** — 拼音バッファのすべての合法分割を DP で列挙
 - **ファジー音節** — 9 組の切替可能な子音/母音の許容 (`z⇄zh`、`n⇄l`、
   `en⇄eng` など)
-- **L0 ユーザー学習** — 同じ `(input, word)` を 3 回選ぶと自動 pin、
+- **L0 ユーザー上書き** — 明示的な `(input, word)` ピン、
   JSON シリアライズ可能なスナップショットでセッション横断永続化
 - **ストリーミング前方一致スキャン** (`prefix_for_each`) — 与えた
   prefix にマッチするすべての FST エントリをアロケーションなしで
@@ -56,7 +56,7 @@ npm install @goliapkg/pinyin
 ### Rust
 
 ```rust
-use golia_pinyin::{PinyinEngine, PinyinDict};
+use inputx_pinyin::{PinyinEngine, PinyinDict};
 
 let eng = PinyinEngine::new();
 let dict = eng.dict();
@@ -72,14 +72,10 @@ dict.prefix_for_each("zho", |pinyin, word, freq| {
     println!("{pinyin} {word} (freq={freq})");
 });
 
-// ユーザーが候補を選んだことをエンジンに通知。同じ (input, word) が
-// 3 回選ばれると、その input の L0 ピンに自動昇格する。
+// ユーザーが候補を選んだことをエンジンに通知。利用カウンタが増えるだけで、
+// 候補の並び順は変わらない。
 dict.record_pick("zhongguo", "中国");
 ```
-
-> crates.io のパッケージ名は `inputx-pinyin` だが、lib 名は
-> `golia_pinyin` のままなので、コード中では `use golia_pinyin::...`
-> でそのままインポートできる。
 
 ## 性能
 

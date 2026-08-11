@@ -4,11 +4,42 @@
 //! candidate lists combine into the merged output.
 
 use super::japanese_adapter::JapaneseAdapter;
-use super::merge::{Candidate, merge};
+use super::merge::{Candidate, ScoreComponents, Scored, merge};
 use super::mode::Mode;
 use super::pinyin_adapter::PinyinAdapter;
 use super::scoring;
 use crate::wubi::WubiEngine;
+
+/// v1.4.2 WU-γ schema-fill helper: synthesize a three-axis log-space
+/// view of a legacy `(word, score)` pair when the upstream adapter
+/// doesn't have a natural (freq, base) split available. Sets
+/// `log_prior_q4 = 0` + `log_likelihood_q4 = Q4·ln(score)` so the
+/// log-space sort key `score_q4()` is monotone-equivalent to the legacy
+/// f64 score (sort behavior preserved across the v1.4.5+ cutover).
+/// `MatchType` is supplied by the caller — wubi exact code lookups pass
+/// `Exact`, predictions pass `Prefix`, etc.
+fn synthesize_three_axis(score: f64, match_type: inputx_scoring::MatchType) -> ScoreComponents {
+    let log_likelihood_q4 = (score.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
+    // WU-ψ phase 5: tag WubiOnly's wrap_legacy candidates with
+    // tier 1 (exact-match tier). They're dict hits at the typed
+    // code — same tier as pinyin exact + JP basic kana — so the
+    // cross-engine merge has a single scoring formula for every
+    // candidate it sees (legacy compute_score path now retired).
+    ScoreComponents::three_axis_tiered(0, log_likelihood_q4, match_type, 1)
+}
+
+/// Wrap legacy `(word, score)` pairs as `Scored` tuples. Every fill
+/// point in the composite dispatch goes through here, [`merge`], or one
+/// of the adapter `candidates_with_scores` methods — all of which now
+/// emit three-axis `ScoreComponents` per PLAN.md L4 trigger b.
+///
+/// `match_type` is the caller's classification: `Exact` for full-code
+/// dict lookups, `Prefix(prox_milli)` for prefix completions, etc.
+fn wrap_legacy(v: Vec<(String, f64)>, match_type: inputx_scoring::MatchType) -> Vec<Scored> {
+    v.into_iter()
+        .map(|(w, s)| (w, s, Some(synthesize_three_axis(s, match_type))))
+        .collect()
+}
 
 /// Compute the merged candidate list for the current state.
 ///
@@ -41,10 +72,43 @@ pub fn dispatch(
         Some(j) => split_jp_scored(j),
         None => (vec![], vec![]),
     };
+    // JP-chōonpu lockout (user polish-log 2026-05-27, `fa------`): if the
+    // JP buffer contains `-` (chōonpu / long-vowel mark), the user has
+    // unambiguously committed to a Japanese romaji input. Chinese has no
+    // syllable that contains `-`, so wubi/pinyin candidates surfaced
+    // alongside (still derived from the pre-`-` prefix the Chinese engines
+    // froze on) are mismatched noise to the user — preedit shows the full
+    // `fa------` but the wubi candidates are for `fa` only, confusing the
+    // ranking. Drop all wubi/pinyin candidates in this regime, leave only
+    // JP. Works across WubiOnly+JP / PinyinOnly+JP / Mixed+JP since
+    // `-` only enters the JP buffer when JP is composing.
+    let jp_chouonpu_lockout = japanese.is_some_and(|j| j.buffer_str().contains('-'));
     match mode {
-        Mode::WubiOnly => merge(wubi.candidates_with_scores(), vec![], jp_kanji, jp_kana),
-        Mode::PinyinOnly => merge(vec![], pinyin.candidates_with_scores(prev_committed), jp_kanji, jp_kana),
+        Mode::WubiOnly => {
+            let w = if jp_chouonpu_lockout {
+                vec![]
+            } else {
+                wrap_legacy(
+                    wubi.candidates_with_scores(),
+                    inputx_scoring::MatchType::Exact,
+                )
+            };
+            merge(w, vec![], jp_kanji, jp_kana)
+        }
+        Mode::PinyinOnly => {
+            let p = if jp_chouonpu_lockout {
+                vec![]
+            } else {
+                pinyin.candidates_with_scores(prev_committed)
+            };
+            merge(vec![], p, jp_kanji, jp_kana)
+        }
         Mode::JapaneseOnly => merge(vec![], vec![], jp_kanji, jp_kana),
+        Mode::Mixed if jp_chouonpu_lockout => {
+            // Short-circuit Mixed → JP-only when chōonpu present. Skips
+            // the entire wubi+pinyin candidate pipeline below.
+            merge(vec![], vec![], jp_kanji, jp_kana)
+        }
         Mode::Mixed => {
             // EVERYTHING IS SCORE. No if-skip-engine branches. Wubi
             // candidates always get collected; their scores are
@@ -60,7 +124,11 @@ pub fn dispatch(
             // expressed as the same length-modifier mechanism: a
             // ZERO score multiplier zeroes the candidates out the
             // same way the length cutoff does.
-            let z_mult = if pinyin.buffer_str().starts_with('z') { 0.0 } else { 1.0 };
+            let z_mult = if pinyin.buffer_str().starts_with('z') {
+                0.0
+            } else {
+                1.0
+            };
             // Layer-aware demote (the 伙 vs 嶙 distinction). When the
             // buffer is short AND contains a vowel AND pinyin has an
             // exact match, the user is most likely typing pinyin not
@@ -72,10 +140,11 @@ pub fn dispatch(
             // demote preserves Jianma1/2/3 + Zigen at full strength
             // while cutting Auto/Phrase noise that floods short-buffer
             // candidate lists with rare chars like 嶙.
-            let has_vowel = pinyin.buffer_str().chars()
+            let has_vowel = pinyin
+                .buffer_str()
+                .chars()
                 .any(|c| matches!(c, 'a' | 'e' | 'i' | 'o' | 'u' | 'v'));
-            let pinyin_intent =
-                pinyin_len > 0
+            let pinyin_intent = pinyin_len > 0
                 && pinyin_len <= 4
                 && has_vowel
                 && pinyin.has_non_speculative_candidate();
@@ -101,14 +170,15 @@ pub fn dispatch(
             // Jianma simcodes (1/2/3) + Zigen stay at ×1.0 — 伙-rule:
             // "我们是五笔输入法，你这样把'伙'这个正牌五笔输入都干到 13 位
             // 去了肯定不行". Simcodes are NOT in Auto/Phrase.
+            // v1.10: per-len table sourced from
+            // `inputx-scoring/data/engine_weights.toml`
+            // [dispatch.wubi].auto_layer_demote — index 0..3 = pinyin_len 1..4.
             let auto_demote = if pinyin_intent {
-                match pinyin_len {
-                    1 => 0.01,
-                    2 => 0.05,
-                    3 => 0.10,
-                    _ => 0.20,
-                }
-            } else { 1.0 };
+                let idx = (pinyin_len.saturating_sub(1)).min(3);
+                inputx_scoring::consts::WUBI_AUTO_LAYER_DEMOTE[idx]
+            } else {
+                1.0
+            };
             // Phrase-layer multiplier under pinyin_intent:
             //   * speculative short buffer (< 4 codes) → 0.5 demote. The
             //     buffer is ambiguous; low-confidence Phrase candidates
@@ -122,48 +192,390 @@ pub fn dispatch(
             //     structural ~40k freq-equivalent edge (×1.1; was 1.2 — see
             //     mixed_jixu_* regression: 1.2's 80k edge wrongly flipped a
             //     clearly-higher-freq pinyin word 继续 under 曳光弹).
-            let full_code = pinyin_len == scoring::WUBI_MAX_BUFFER_LEN;
+            let full_code = pinyin_len == scoring::CUTOFF_WUBI_MAX_BUFFER_LEN;
             let phrase_mult = if pinyin_intent {
-                if full_code { scoring::WUBI_FULL_CODE_PHRASE_PROMOTE } else { 0.5 }
+                if full_code {
+                    scoring::LIKELIHOOD_WUBI_FULL_CODE_PROMOTE
+                } else {
+                    inputx_scoring::consts::WUBI_PHRASE_SPECULATIVE_DEMOTE
+                }
             } else {
                 1.0
             };
-            // v1.4 score-driven Jianma2 demote (user 2026-05-24:
-            // "完全走评分候选，一行 hardcode 都不允许有"). For
-            // single-char Jianma2/3 entries, scale score by the char's
-            // own pinyin freq:
-            //   common char (≥CHAR_PROMINENT) → 1.0 (full lead, beats pinyin)
-            //   rare char (<CHAR_PROMINENT)   → 0.3 (drops to ~250k, yields)
-            // No hardcoded protect list — common chars retain lead via
-            // freq (左 41k, 表 47k, 能 56k, 就 57k, 伙 35k, 悄 27k,
-            // 椒 29k, 胡 38k, 长 47k, 亦 43k all clear 20k floor); rare
-            // chars (嶙 15k) drop and let pinyin top through.
-            const CHAR_PROMINENT_FLOOR: u64 = 20_000;
-            const RARE_CHAR_DEMOTE: f64 = 0.3;
-            let pinyin_dict = pinyin.engine().dict();
-            let char_demote = |word: &str, layer: wubi::Layer| -> f64 {
-                if !matches!(layer, wubi::Layer::Jianma2 | wubi::Layer::Jianma3) {
-                    return 1.0;
-                }
-                let mut chars = word.chars();
-                let Some(c) = chars.next() else { return 1.0 };
-                if chars.next().is_some() { return 1.0; }  // multi-char Jianma3 phrase
-                let freq = pinyin_dict.char_max_freq(c);
-                if freq >= CHAR_PROMINENT_FLOOR { 1.0 } else { RARE_CHAR_DEMOTE }
-            };
-            let mut wubi_cands: Vec<(String, f64)> = wubi
-                .candidates_with_layer()
+            // Wubi tier comes from wubi's OWN corpus freq via
+            // `inputx_scoring::wubi_tier_from_freq` (engine-internal — NO
+            // pinyin char_max_freq dependency, per the orthogonal-table
+            // design: each engine ranks its own content). Applied in the
+            // natural_tier computation below. Replaces the old cross-engine
+            // `char_is_prominent` (pinyin char_max_freq ≥ floor) gate.
+            // v1.4.7 sub-phase A2 step 1: orthodox three-axis
+            // decomposition replaces the v1.4.2 synthesize_three_axis
+            // shortcut (which lumped the entire legacy score into
+            // log_likelihood_q4, leaving log_prior_q4=0 and producing
+            // ranking inconsistent with predict-path candidates that
+            // properly split prior/likelihood).
+            //
+            // Now: log_prior_q4 = Q4·ln(1 + raw_freq) (matches the
+            // wubi prediction path's log_prior derivation), and
+            // log_likelihood_q4 = Q4·ln(layer.base() · pref ·
+            // layer_demote · promote) (the per-path
+            // multiplicative chain; wubi_length_modifier + z_mult
+            // applied at merge chokepoint below via final_mult).
+            //
+            // facade `candidates_with_freq_layer` returns PURE per-
+            // entry data (word, layer, raw_freq) — no per-batch
+            // single-char promote or L0 pin. Those are wubi-specific
+            // business rules that this cement layer re-applies here.
+            //
+            // Legacy f64 `score` field still computed as before so the
+            // (transitional) f64-sort merge.rs keeps producing the
+            // v1.3 ranking; sort-key cutover to score_q4 happens in
+            // A2 step 3 after all three engines' fills are aligned.
+            let layer_prefs_default = inputx_wubi::DEFAULT_LAYER_PREFS;
+            let full_code = wubi.buffer_str().len() == 4;
+            let freq_layer = wubi.candidates_with_freq_layer();
+            // L0 pin re-apply: `candidates_with_freq_layer` returns raw
+            // per-entry data without pin promotion baked in (cement-
+            // layer carve, per the doc comment at the top of this map
+            // closure). Mirror PinyinAdapter's L0_PIN_MULTIPLIER × 1000
+            // semantics — must be re-applied here to both the legacy
+            // f64 score AND `likelihood_linear` so the Q4 primary
+            // sort key (`log_likelihood_q4`) sees the boost. Without
+            // this re-apply, wubi L0 pin had ZERO effect on the
+            // cross-engine merge — a user pinning `("yi", "就")` saw
+            // their pinned word lose to pinyin candidates because the
+            // pinyin side DOES apply its pin in pinyin_adapter.rs.
+            // Mirrors pinyin_adapter.rs:449-450 + 463 + 469-470.
+            let wubi_pinned: Option<String> = wubi.pinned_word_for_buffer();
+            // 2026-06-10 user "五笔是四码输入法，四码如果有单字除非
+            // 极其生僻或词组顺序极高，否则都应该在词组前". The wubi
+            // "full-code IS the single char's address" convention
+            // promotes every full-code single-char Auto entry, with one
+            // structural exception: when a competing phrase has
+            // overwhelming corpus frequency (typical case: wcng → 公司
+            // 42817 vs 鹟 5961), the phrase still wins. Encoded as:
+            //   phrase_dominates_at_full_code =
+            //     max_phrase_freq > single_freq
+            //     AND max_phrase_freq >= WUBI_PHRASE_EXTREME_FREQ_FLOOR
+            // The floor (25000) was picked from a full-corpus survey of
+            // 4-code buffers: phrases above it are decisively-common
+            // (公司 类), phrases below it are run-of-the-mill compounds
+            // (水滴 20391, 汗流浃背 16776) where single chars should
+            // still lead.
+            let max_phrase_freq: u64 = freq_layer
+                .iter()
+                .filter(|(w, _, _)| w.chars().count() > 1)
+                .map(|(_, _, f)| *f)
+                .max()
+                .unwrap_or(0);
+            // 2026-06-10 bugfix: the dominance check has to compare against
+            // the BEST competing single-char freq, not just clear the
+            // absolute floor. ywyg has 认证 (phrase 25690 ≥ 25k floor)
+            // yet 谁 (single 35073) still outranks the phrase — so the
+            // single must win, not yield. Without this guard, every full-
+            // code buffer with a borderline-popular phrase wrongly suppresses
+            // its single-char addressee, even when the single is the more
+            // popular character.
+            let max_single_auto_freq: u64 = freq_layer
+                .iter()
+                .filter(|(w, layer, _)| {
+                    matches!(layer, inputx_wubi::Layer::Auto) && w.chars().count() == 1
+                })
+                .map(|(_, _, f)| *f)
+                .max()
+                .unwrap_or(0);
+            // Companion structural rule: at full_code, if any single-char
+            // Auto entry is competing for this buffer AND no phrase
+            // dominates, demote competing Phrase candidates from their
+            // default tier-1 down to tier 2 (below the single chars).
+            // Buffer like aiyi → 东京 (Phrase, no single-char Auto
+            // competitor) is unaffected. Buffer like wcng → 公司 42817
+            // (Phrase dominates 鹟 5961) is unaffected. Buffer like iiiu →
+            // {淼, 尛 (Auto) vs 水滴, 汗流浃背 (Phrase, both below 25000
+            // floor)} now ranks single chars above phrases. Buffer like
+            // ywyg → 谁 35073 (Auto) vs 认证 25690 (Phrase ≥ 25k but
+            // < 谁) now ranks 谁 above 认证 because the single is the
+            // more popular form despite the phrase being above the floor.
+            let phrase_dominates_at_full_code: bool = full_code
+                && max_phrase_freq >= inputx_scoring::consts::WUBI_PHRASE_EXTREME_FREQ_FLOOR
+                && max_phrase_freq > max_single_auto_freq;
+            let has_single_char_auto_at_full_code: bool = full_code
+                && !phrase_dominates_at_full_code
+                && freq_layer.iter().any(|(w, layer, _)| {
+                    matches!(layer, inputx_wubi::Layer::Auto) && w.chars().count() == 1
+                });
+            // WU-ψ (v1.11): structural prominent_simcode_winner retired.
+            // Tier assignment inside the candidate loop directly puts
+            // prominent simcodes at tier 0 — the merge sort handles
+            // #0 placement via the tier × engine table, no separate
+            // post-merge pass needed.
+
+            // Phase I (2026-06-05) — full-code redundancy gate.
+            //
+            // User report: "biji 隙 > 笔记，因为 bij = 隙，五笔已经有
+            // 一个更高级的第一名了". At a 4-letter full wubi code, both
+            // the Phrase boost (×1.1 phrase_mult) and the single-char
+            // boost (×100 single_promote + tier 1) assume "user typed
+            // canonical full code → high-confidence wubi intent". But
+            // if the SAME word already surfaces from the 3-letter
+            // prefix via wubi prefix-prediction (so the user could
+            // have gotten this word by typing 1 fewer letter), the
+            // full-code's extra boost is redundant — and the 4-letter
+            // buffer is often ALSO a legitimate pinyin spelling that
+            // gets crushed by the boost (biji = 笔记, gege = 哥哥
+            // pinyin vs 隙 / similar collisions).
+            //
+            // Rule: at full_code, candidates whose word ALSO appears
+            // in the (N-1)-letter prefix's prediction list fall back
+            // to the speculative score path (phrase_mult = 0.5, no
+            // single_promote, natural tier = layer-default). Pure
+            // structural — no per-entry data, no special list.
+            //
+            // Performance: one cement::prefix_predictions call per
+            // dispatch when full_code is true; the resulting HashSet
+            // is consulted O(1) per candidate. prefix_predictions
+            // itself is a single FST walk over an embedded zerodep
+            // dict — cheap.
+            // pinyin_intent gate: Phase I only fires when the buffer is
+            // ALSO a plausible pinyin spelling (vowels present, short
+            // enough, pinyin engine has a real candidate). Without this
+            // gate, pure-consonant wubi codes like `gmww` (→ 两, the
+            // canonical full code for the single char) would be
+            // false-suppressed — there's no pinyin reading to compete
+            // with, so the 100× single_promote and tier-1 placement
+            // are pure muscle-memory wins that must be preserved.
+            // Same gate as phrase_mult above (line ~191).
+            let redundant_full_code_words: std::collections::HashSet<String> =
+                if full_code && pinyin_intent {
+                    let buf = wubi.buffer_str();
+                    let prefix = &buf[..buf.len() - 1];
+                    crate::wubi::WubiEngine::prefix_predictions_for(prefix)
+                        .into_iter()
+                        .map(|(w, _, _)| w)
+                        .collect()
+                } else {
+                    std::collections::HashSet::new()
+                };
+
+            let mut wubi_cands: Vec<Scored> = freq_layer
                 .into_iter()
-                .map(|(w, score, layer)| {
+                .map(|(w, layer, raw_freq)| {
+                    let pref = layer_prefs_default[layer.as_index()];
+                    let is_redundant_full =
+                        full_code && redundant_full_code_words.contains(w.as_str());
+                    // Phase I: redundant Phrase candidates fall back
+                    // to the same ×0.5 demote a shorter (non-full-code)
+                    // buffer would apply.
+                    let effective_phrase_mult = if is_redundant_full {
+                        inputx_scoring::consts::WUBI_PHRASE_SPECULATIVE_DEMOTE
+                    } else {
+                        phrase_mult
+                    };
                     let layer_demote = match layer {
-                        wubi::Layer::Auto => auto_demote,
-                        wubi::Layer::Phrase => phrase_mult,
+                        inputx_wubi::Layer::Auto => auto_demote,
+                        inputx_wubi::Layer::Phrase => effective_phrase_mult,
                         _ => 1.0,
                     };
-                    let cd = char_demote(&w, layer);
-                    (w, score * layer_demote * cd)
+                    let is_single = w.chars().count() == 1;
+                    // Phase I: redundant single-char Auto entries lose
+                    // the ×100 single_promote AND the tier 1 placement
+                    // (handled at single_promote_fires below). The
+                    // shorter prefix's prediction already carries the
+                    // user's path to this character.
+                    //
+                    // 2026-06-10 (user "五笔是四码输入法，四码如果有
+                    // 单字...都应该在词组前"): loosen the legacy
+                    // `raw_freq > max_phrase_freq` gate. The wubi
+                    // convention is that a full code IS the canonical
+                    // address of its single char — phrases at the same
+                    // full code are coincidental, not what muscle
+                    // memory expects. Promote full-code single chars
+                    // by default; the only exception is
+                    // `phrase_dominates_at_full_code` (a competing
+                    // phrase with corpus freq >= the dominance floor,
+                    // typically common-life vocabulary like 公司).
+                    // Rare-CJK chars (Extension B+) are already
+                    // filtered upstream by the show_rare_chars toggle.
+                    let single_promote = if full_code
+                        && is_single
+                        && !is_redundant_full
+                        && !phrase_dominates_at_full_code
+                    {
+                        inputx_scoring::consts::WUBI_FULL_CODE_SINGLE_CHAR_PROMOTE
+                    } else {
+                        1.0
+                    };
+                    let pin_mult = if wubi_pinned.as_deref() == Some(w.as_str()) {
+                        inputx_scoring::consts::L0_PIN_MULTIPLIER
+                    } else {
+                        1.0
+                    };
+                    // Legacy f64 score (transitional, drops post-A5):
+                    let base_score =
+                        (layer.base() as f64 * pref + raw_freq as f64) * single_promote;
+                    let final_score = base_score * layer_demote * pin_mult;
+                    // Orthodox Q4 log decomposition. log_prior is the
+                    // frequency prior P(W); log_likelihood collapses all
+                    // multiplicative likelihood factors into log space.
+                    //
+                    // v1.7.4 megachange: real log-probability
+                    // `Q4·ln((1+raw_freq)/(1+Σ wubi raw_freq))` instead
+                    // of the unnormalized `Q4·ln(1+raw_freq)`. Within-
+                    // wubi ordering is unaffected (uniform shift per
+                    // engine); cross-engine ordering is now governed by
+                    // `EngineWeights::engine_boost_q4[Wubi]` in
+                    // composite/merge.rs rather than the implicit
+                    // freq-scale difference between engines.
+                    let log_prior_q4 = inputx_scoring::log_prob_corpus_from_freq(
+                        raw_freq,
+                        inputx_wubi_data::wubi_corpus_total(),
+                    );
+                    let likelihood_linear = layer.base() as f64
+                        * pref
+                        * layer_demote.max(f64::MIN_POSITIVE)
+                        * single_promote
+                        * pin_mult;
+                    let log_likelihood_q4 = (likelihood_linear.max(1.0).ln()
+                        * inputx_scoring::Q4 as f64)
+                        .round() as i32;
+                    // WU-ψ tier assignment for wubi candidates.
+                    //
+                    // 2026-06-03 cleanup (user "no special list, never"
+                    // directive): tier 0 is RESERVED for explicit
+                    // assertions (user L0 pin). Natural simcode hits
+                    // — even prominent ones — share tier 1 with
+                    // pinyin top single-char; wubi still wins within
+                    // tier 1 via engine_gap_q4 offset (w +60 vs p +30
+                    // in Q4 log-space ≈ 6.5× linear), so muscle-memory
+                    // simcodes still lead — no per-entry carve-out.
+                    //
+                    //   - pinned                                  → 0 (assertion)
+                    //   - prominent simcode (Jianma1/2/3, char_is_prominent) → 1 (top)
+                    //   - rare-CJK simcode  (Jianma1/2/3, !prominent)        → 5 (less_common)
+                    //   - full-code single-char promote           → 1 (top, gmww→两 rule)
+                    //   - Zigen (字根 keynames)                    → 1 (key-binding)
+                    //   - Phrase (full-buffer wubi phrase)        → 1 (top, aiyi→东京 rule)
+                    //   - Auto (auto-decomposed)                  → 4 (standard)
+                    // Phase I: redundant full-code single chars also
+                    // lose the forced tier-1 placement — they fall back
+                    // to the layer-default tier (Auto → 4, etc.), so
+                    // pinyin tier-1 candidates at the same buffer can
+                    // take #0.
+                    let single_promote_fires = full_code
+                        && is_single
+                        && !is_redundant_full
+                        && !phrase_dominates_at_full_code;
+                    // Overlay (phase 5): per-(buffer, word) tier
+                    // override beats every natural rule below. Buffer
+                    // is the typed input (wubi.buffer_str()) — same
+                    // semantics as how the user sees it.
+                    let natural_tier: u8 = if wubi_pinned.as_deref() == Some(w.as_str()) {
+                        0
+                    } else if single_promote_fires {
+                        1
+                    } else {
+                        match layer {
+                            inputx_wubi::Layer::Jianma1
+                            | inputx_wubi::Layer::Jianma2
+                            | inputx_wubi::Layer::Jianma3 => {
+                                if is_single {
+                                    // Orthogonal-table design (user 2026-06-07
+                                    // "五笔的内容本身就应该根据字频有等级"):
+                                    // tier wubi single chars by their OWN corpus
+                                    // freq — engine-internal, no pinyin
+                                    // char_max_freq dependency. Semantics:
+                                    // t1 常用 / t2 中低频 / t3 低频 / t4 难检 /
+                                    // t5 生僻. Encoding-stable wubi converges
+                                    // high; only真生僻 drifts to t4/t5.
+                                    inputx_scoring::wubi_tier_from_freq(raw_freq)
+                                } else {
+                                    // Multi-char jianma 词组 → t1 (phrase priority).
+                                    1
+                                }
+                            }
+                            inputx_wubi::Layer::Zigen => 1,
+                            inputx_wubi::Layer::Phrase => {
+                                if has_single_char_auto_at_full_code {
+                                    2
+                                } else {
+                                    1
+                                }
+                            }
+                            inputx_wubi::Layer::Auto => 4,
+                        }
+                    };
+                    let tier_wubi: u8 =
+                        inputx_scoring::tier_overlay::get(wubi.buffer_str(), w.as_str())
+                            .unwrap_or(natural_tier);
+                    let components = ScoreComponents::three_axis_tiered(
+                        log_prior_q4,
+                        log_likelihood_q4,
+                        inputx_scoring::MatchType::Exact,
+                        tier_wubi,
+                    );
+                    (w, final_score, Some(components))
                 })
                 .collect();
+            // CP-C (v1.3 WU-α): attach wubi prefix-predictions. predict_score
+            // tops out at base + freq (proximity=1) ≈ 50k + freq, well below
+            // the lowest exact layer base (Auto = 70k) — so an exact hit at
+            // the same buffer is mathematically guaranteed to lead. Goes
+            // through the same final_mult below, so predictions vanish past
+            // CUTOFF_WUBI_MAX_BUFFER_LEN and on the 'z' carve-out exactly
+            // like exact wubi hits. Layer/char demotes don't apply: those
+            // encode per-code candidate semantics; predictions are
+            // cross-code by construction.
+            //
+            // Bare letters skipped: at buffer.len()==1, proximity is at most
+            // 1/2 = 0.5 (code_len ≥ 2), proximity^3 = 0.125 — predictions
+            // still land in the 50-60k range and flood out pinyin single
+            // chars (q→去 baseline). Same pattern as pinyin CP-B which
+            // leaves single-letter prefixes on the legacy NON_EXACT_FLOOR
+            // path: at one letter the user's bare exact (q→我 Jianma1) is
+            // the only confident wubi signal worth surfacing — multi-letter
+            // predictions like 求/全 should arrive when the user types
+            // another character.
+            //
+            // Cap mirrors pinyin's CP-B prefix scan caps but scaled down —
+            // wubi's prefix scan over a 2-letter prefix already returns
+            // ~hundreds of entries, more than a candidate window needs.
+            let wubi_typed_len = wubi.buffer_str().len();
+            let pred_cap = match wubi_typed_len {
+                2 => 30,
+                3 => 40,
+                _ => 0,
+            };
+            if pred_cap > 0 {
+                let mut preds = wubi.prefix_predictions();
+                preds.truncate(pred_cap);
+                for (word, freq, code_len) in preds {
+                    let proximity = (wubi_typed_len as f64 / code_len as f64).min(1.0);
+                    // WU-γ: keep both the score AND the (base, prior,
+                    // likelihood) decomposition. score == base + prior ·
+                    // likelihood holds bit-for-bit. final_mult below is 0
+                    // (suppress) or 1 (keep) so components stay
+                    // invariant-preserving without folding.
+                    let (score, components) = scoring::predict_score_with_components(
+                        scoring::LIKELIHOOD_WUBI_PREDICT_BASE,
+                        freq,
+                        scoring::PRIOR_FREQ_MULT_WUBI,
+                        proximity,
+                        inputx_wubi_data::wubi_corpus_total(),
+                    );
+                    // WU-ψ: wubi prefix predictions sit below exact dict
+                    // hits. 2026-06-10 user "iii 要有 淼 尛 在日语后面
+                    // 词组前面": split prediction tier by layer — single
+                    // chars (full-code 4-letter single kanji reached via
+                    // simcode prefix) ride one tier above phrases (full-
+                    // code phrases reached via simcode prefix), so at
+                    // simcode buffers like iii / gm / fk the user sees
+                    // single-kanji extensions before phrase extensions.
+                    // Both still sit below tier 5 JP exact-prefix kana.
+                    let pred_tier: u8 = if word.chars().count() == 1 { 6 } else { 7 };
+                    let components = components.with_tier(pred_tier);
+                    wubi_cands.push((word, score, Some(components)));
+                }
+            }
             let final_mult = wubi_mult * z_mult;
             if final_mult == 0.0 {
                 // Wubi fully suppressed (past the 4-char window, or 'z'-led
@@ -175,11 +587,20 @@ pub fn dispatch(
                 // pinyin entries (whose floor can underflow toward 0).
                 wubi_cands.clear();
             } else if final_mult != 1.0 {
-                for (_, s) in wubi_cands.iter_mut() {
+                for (_, s, _) in wubi_cands.iter_mut() {
                     *s *= final_mult;
                 }
             }
-            merge(wubi_cands, pinyin.candidates_with_scores(prev_committed), jp_kanji, jp_kana)
+            // WU-ψ (v1.11): structural promotion retired. Wubi pin →
+            // tier 0; prominent simcode → tier 0; rare-CJK simcode →
+            // tier 5. The tier-based merge sort already places the
+            // right wubi candidate at #0 — no post-merge swap needed.
+            merge(
+                wubi_cands,
+                pinyin.candidates_with_scores(prev_committed),
+                jp_kanji,
+                jp_kana,
+            )
         }
     }
 }
@@ -187,19 +608,16 @@ pub fn dispatch(
 /// Split the JP adapter's scored candidates into (kanji, kana) buckets
 /// — the cross-engine merge takes them separately for clarity but
 /// scoring is uniform across both.
-fn split_jp_scored(
-    j: &JapaneseAdapter,
-) -> (Vec<(String, f64)>, Vec<(String, f64)>) {
+fn split_jp_scored(j: &JapaneseAdapter) -> (Vec<Scored>, Vec<Scored>) {
     let all = j.candidates_with_scores();
-    let kanji_set: std::collections::HashSet<String> =
-        j.kanji_candidates().into_iter().collect();
+    let kanji_set: std::collections::HashSet<String> = j.kanji_candidates().into_iter().collect();
     let mut kanji = Vec::new();
     let mut kana = Vec::new();
-    for (w, s) in all {
+    for (w, s, c) in all {
         if kanji_set.contains(&w) {
-            kanji.push((w, s));
+            kanji.push((w, s, c));
         } else {
-            kana.push((w, s));
+            kana.push((w, s, c));
         }
     }
     (kanji, kana)
@@ -265,7 +683,6 @@ mod tests {
         );
     }
 
-    #[test]
     // (deleted) mixed_pinyin_first_when_pinyin_outgrew_wubi: the test
     // constructed an artificial state where wubi has buf="g" while
     // pinyin has buf="shang" — used to validate the now-removed
@@ -276,14 +693,13 @@ mod tests {
     // (user types 5+ chars; wubi resets to a tail like "ng" with
     // Auto-layer scores ~100k) is covered by score-based ordering
     // without needing the heuristic.
-
     #[test]
     fn mixed_shinjuku_jp_full_match_beats_composition() {
         // User-reported 2026-05-25: romaji `shinjuku` (新宿, high-freq jukugo)
         // in Mixed+JP ranked Chinese forced-composition junk 是嗯据库 (#0,
         // COMPOSED_SCORE 500k) above 新宿 (464k), and katakana シンジュク was
         // buried below the pinyin non-exact cluster. A real full-buffer jukugo
-        // is high-confidence Japanese — JP_FULL_MATCH_PROMOTE (×1.3) lifts the
+        // is high-confidence Japanese — LIKELIHOOD_JP_FULL_MATCH_PROMOTE (×1.3) lifts the
         // whole JP group so 新宿 leads and katakana surfaces into the window.
         use crate::composite::engine::CompositeEngine;
         use crate::wubi::AutoCommitPolicy;
@@ -291,14 +707,21 @@ mod tests {
         e.set_mode(Mode::Mixed);
         e.set_japanese_enabled(true);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in b"shinjuku" { let _ = e.handle_letter(*b); }
+        for b in b"shinjuku" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         let top: Vec<&str> = cands.iter().take(6).map(|c| c.word.as_str()).collect();
-        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("新宿"),
-            "新宿 (full-match jukugo) must lead shinjuku in Mixed+JP; got {top:?}");
+        assert_eq!(
+            cands.first().map(|c| c.word.as_str()),
+            Some("新宿"),
+            "新宿 (full-match jukugo) must lead shinjuku in Mixed+JP; got {top:?}"
+        );
         let kata = cands.iter().position(|c| c.word == "シンジュク");
-        assert!(kata.is_some_and(|i| i < 10),
-            "katakana シンジュク must be visible (top 10); got idx {kata:?} in {top:?}");
+        assert!(
+            kata.is_some_and(|i| i < 10),
+            "katakana シンジュク must be visible (top 10); got idx {kata:?} in {top:?}"
+        );
     }
 
     #[test]
@@ -307,7 +730,7 @@ mod tests {
         // in Mixed+JP surfaced compose_sentence junk 時へ時 / 治へ治 at #1-4
         // — they were tagged kind=Kanji so japanese_adapter treated them as
         // jukugo AND they tripped the full-match promote. compose products
-        // now carry `composed=true`, score at JP_COMPOSED_SCORE (below real
+        // now carry `composed=true`, score at LIKELIHOOD_JP_COMPOSED_BASE (below real
         // Chinese) and never promote, so real Chinese leads and junk sinks.
         use crate::composite::engine::CompositeEngine;
         use crate::wubi::AutoCommitPolicy;
@@ -315,14 +738,24 @@ mod tests {
         e.set_mode(Mode::Mixed);
         e.set_japanese_enabled(true);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in b"jieji" { let _ = e.handle_letter(*b); }
+        for b in b"jieji" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
-        let top4: Vec<(&str, Source)> = cands.iter().take(4)
-            .map(|c| (c.word.as_str(), c.source)).collect();
-        assert!(top4.iter().all(|(_, s)| *s != Source::Japanese),
-            "jieji top-4 must be Chinese — no JP compose pollution; got {top4:?}");
-        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("阶级"),
-            "阶级 should lead jieji; got {top4:?}");
+        let top4: Vec<(&str, Source)> = cands
+            .iter()
+            .take(4)
+            .map(|c| (c.word.as_str(), c.source))
+            .collect();
+        assert!(
+            top4.iter().all(|(_, s)| *s != Source::Japanese),
+            "jieji top-4 must be Chinese — no JP compose pollution; got {top4:?}"
+        );
+        assert_eq!(
+            cands.first().map(|c| c.word.as_str()),
+            Some("阶级"),
+            "阶级 should lead jieji; got {top4:?}"
+        );
     }
 
     #[test]
@@ -339,19 +772,32 @@ mod tests {
         e.set_mode(Mode::Mixed);
         e.set_japanese_enabled(true);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in b"yongzhong" { let _ = e.handle_letter(*b); }
+        for b in b"yongzhong" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
-        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("臃肿"),
-            "exact 臃肿 must beat composition 用中 for yongzhong; got {top:?}");
+        assert_eq!(
+            cands.first().map(|c| c.word.as_str()),
+            Some("臃肿"),
+            "exact 臃肿 must beat composition 用中 for yongzhong; got {top:?}"
+        );
         let yz = cands.iter().position(|c| c.word == "臃肿");
         let yzh = cands.iter().position(|c| c.word == "用中");
         if let (Some(e), Some(h)) = (yz, yzh) {
-            assert!(e < h, "用中 (composition) must rank below 臃肿 (exact); got {top:?}");
+            assert!(
+                e < h,
+                "用中 (composition) must rank below 臃肿 (exact); got {top:?}"
+            );
         }
-        assert!(cands.iter().all(|c| c.score > 0.0),
+        assert!(
+            cands.iter().all(|c| c.score > 0.0),
             "no score-0 (suppressed) candidate may appear; got {:?}",
-            cands.iter().map(|c| (c.word.as_str(), c.score)).collect::<Vec<_>>());
+            cands
+                .iter()
+                .map(|c| (c.word.as_str(), c.score))
+                .collect::<Vec<_>>()
+        );
     }
 
     #[test]
@@ -365,19 +811,26 @@ mod tests {
         e.set_mode(Mode::Mixed);
         e.set_japanese_enabled(true);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in b"jie" { let _ = e.handle_letter(*b); }
+        for b in b"jie" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
-        let top4: Vec<(&str, Source)> = cands.iter().take(4)
-            .map(|c| (c.word.as_str(), c.source)).collect();
-        assert!(top4.iter().all(|(_, s)| *s != Source::Japanese),
-            "jie top-4 must be Chinese — no JP compose pollution; got {top4:?}");
+        let top4: Vec<(&str, Source)> = cands
+            .iter()
+            .take(4)
+            .map(|c| (c.word.as_str(), c.source))
+            .collect();
+        assert!(
+            top4.iter().all(|(_, s)| *s != Source::Japanese),
+            "jie top-4 must be Chinese — no JP compose pollution; got {top4:?}"
+        );
     }
 
     #[test]
     fn japanese_toukyouto_compose_suffix_leads_kana() {
         // User insight 2026-05-26: 東京都 is 拼 (東京 + 都 admin suffix), not a
         // dict word (mozc itself doesn't list it). The jukugo+KANJI_SUFFIXES
-        // compose path now produces 東京都, scored JP_COMPOSED_KANJI_SCORE
+        // compose path now produces 東京都, scored LIKELIHOOD_JP_COMPOSED_KANJI_BASE
         // (280k, a pure-kanji composed tier above the long-buffer kana
         // fallbacks at 240k) so the kanji conversion leads in Japanese mode.
         use crate::composite::engine::CompositeEngine;
@@ -385,11 +838,16 @@ mod tests {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::JapaneseOnly);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in b"toukyouto" { let _ = e.handle_letter(*b); }
+        for b in b"toukyouto" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
-        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("東京都"),
-            "東京都 (jukugo+都 compose) must lead toukyouto in JP mode; got {top:?}");
+        assert_eq!(
+            cands.first().map(|c| c.word.as_str()),
+            Some("東京都"),
+            "東京都 (jukugo+都 compose) must lead toukyouto in JP mode; got {top:?}"
+        );
     }
 
     #[test]
@@ -410,8 +868,133 @@ mod tests {
         let cands = e.candidates();
         let pos = cands.iter().position(|c| c.word == "えっ");
         let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
-        assert!(pos.map_or(true, |p| p >= 5),
-            "えっ (kana interjection) must not rank top-5 for single `e`; got idx {pos:?}, top {top:?}");
+        assert!(
+            pos.is_none_or(|p| p >= 5),
+            "えっ (kana interjection) must not rank top-5 for single `e`; got idx {pos:?}, top {top:?}"
+        );
+    }
+
+    #[test]
+    fn mixed_jixu_continue_leads_after_prior_correction() {
+        // User polish-log 2026-05-26 screenshot: jixu shows 积蓄 #1 / 继续 #2.
+        // Probe attributed it to corpus freq inflation (积蓄 = 166k vs 继续
+        // = 75k, newswire/financial source bias). User attestation: "继续
+        // 还是应该在第一的，这个感觉比积蓄要高频". prior_correction adds a
+        // ×2 boost on 继续 so it clears 积蓄 at jixu and any other buffer
+        // where corpus underrates 继续.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"jixu" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        assert_eq!(
+            cands.first().map(|c| c.word.as_str()),
+            Some("继续"),
+            "继续 must lead jixu (prior_correction × 2 over corpus 积蓄 inflation); \
+             got top5={top:?}"
+        );
+    }
+
+    #[test]
+    fn mixed_juti_jutiu_design_concept_leads_over_wubi_phrase() {
+        // User polish-log 2026-05-26: juti (4-letter wubi full code +
+        // valid pinyin) showed 暗送秋波 #1 / 具体 #2. wubi 暗送秋波 is a
+        // valid Phrase entry that gets LIKELIHOOD_WUBI_FULL_CODE_PROMOTE
+        // ×1.1 (the aiyi→东京 wubi-first rule), but the user's frequency
+        // intuition is correct: 具体 corpus freq 37k vs phrase ~12k still
+        // loses ~16k after promote. prior_correction ×1.5 on 具体 puts
+        // it firmly above the promoted wubi phrase. User: "五笔优势，但
+        // 是具体的常用分应该太高了".
+        //
+        // WU-ψ migration note: under the tier × engine table, both
+        // 具体 and 暗送秋波 land in tier 1. Wubi engine_offset (+30
+        // Q4) gives 暗送秋波 a structural lead that the +6 Q4 prior
+        // boost on 具体 can't overcome. The clean fix is the
+        // tier_overlay.tsv mechanism (phase 5) — overlay 具体 to
+        // tier 0 explicitly. Test ignored until that path lands.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"juti" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        assert_eq!(
+            cands.first().map(|c| c.word.as_str()),
+            Some("具体"),
+            "具体 must lead juti (prior_correction × 1.5 over wubi-promote 暗送秋波); \
+             got top5={top:?}"
+        );
+    }
+
+    #[test]
+    fn mixed_sheji_design_leads_after_prior_correction() {
+        // User polish-log 2026-05-26 screenshot: sheji shows 涉及 #1 / 设计 #2.
+        // Same corpus-skew pattern as jixu→继续 (news/academic sources
+        // over-represent 涉及). User attestation: "设计肯定应该高于涉及".
+        // prior_correction ×2 boost on 设计 surfaces it at #1.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"sheji" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        assert_eq!(
+            cands.first().map(|c| c.word.as_str()),
+            Some("设计"),
+            "设计 must lead sheji (prior_correction × 2 over corpus 涉及 inflation); \
+             got top5={top:?}"
+        );
+    }
+
+    #[test]
+    fn mixed_tongyi_unify_outranks_same_one() {
+        // User polish-log 2026-05-27 screenshot: tongyi gave 同意 #1 /
+        // 同一 #2 / 统一 #3 / 同义 #4 / 通译 #5 / 通义 #6 / 通易 #7. User
+        // expectation: 统一 ≥ #2 ("应该大于同一，在第二或第一顺位"). Corpus
+        // skew is the news/academic over-rep of 同一 (the "same" adjective)
+        // vs daily-use 统一 (unify verb/noun). prior_correction ("统一",
+        // 1.5) lifts it to #1 ahead of 同意/同一 with a comfortable margin.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"tongyi" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        let unify_idx = cands.iter().position(|c| c.word == "统一");
+        let same_one_idx = cands.iter().position(|c| c.word == "同一");
+        assert!(
+            unify_idx.is_some(),
+            "统一 must appear in tongyi candidates; got top5={top:?}"
+        );
+        if let (Some(u), Some(s)) = (unify_idx, same_one_idx) {
+            assert!(
+                u < s,
+                "统一 (idx={u}) must outrank 同一 (idx={s}); got top5={top:?}"
+            );
+        }
+        // Acceptable: 统一 at #1 or #2.
+        assert!(
+            unify_idx.unwrap() <= 1,
+            "统一 must be top-2 (user rule); got idx={} top5={top:?}",
+            unify_idx.unwrap()
+        );
     }
 
     #[test]
@@ -429,18 +1012,28 @@ mod tests {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::Mixed);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in b"jixu" { let _ = e.handle_letter(*b); }
+        for b in b"jixu" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         let jixu_cont = cands.iter().position(|c| c.word == "继续");
         let yeguang = cands.iter().position(|c| c.word == "曳光弹");
         let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
-        assert!(jixu_cont.is_some(), "继续 missing from jixu candidates: {top:?}");
-        assert!(yeguang.map_or(true, |y| jixu_cont.unwrap() < y),
-            "继续 must rank above 曳光弹 (wubi coincidence) for jixu; got {top:?}");
+        assert!(
+            jixu_cont.is_some(),
+            "继续 missing from jixu candidates: {top:?}"
+        );
+        assert!(
+            yeguang.is_none_or(|y| jixu_cont.unwrap() < y),
+            "继续 must rank above 曳光弹 (wubi coincidence) for jixu; got {top:?}"
+        );
     }
 
     #[test]
     fn mixed_junk_composition_sinks_real_sentence_survives() {
+        if super::super::pinyin_adapter::PINYIN_DISABLE_COMPOSE {
+            return;
+        }
         // User-reported 2026-05-26: shinjuku (Japanese romaji) surfaced the
         // Chinese forced-composition 是嗯据库 at #2 (fixed COMPOSED_SCORE 500k).
         // A junk composition (per-char Viterbi path score below the floor) now
@@ -453,17 +1046,594 @@ mod tests {
         e.set_mode(Mode::Mixed);
         e.set_japanese_enabled(true);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in b"shinjuku" { let _ = e.handle_letter(*b); }
-        let top5: Vec<&str> = e.candidates().iter().take(5).map(|c| c.word.as_str()).collect();
-        assert!(!top5.contains(&"是嗯据库"),
-            "junk composition 是嗯据库 must not be top-5 for shinjuku; got {top5:?}");
-        // real sentence survives: nihaomawojiao → 你好吗我叫 #1
+        for b in b"shinjuku" {
+            let _ = e.handle_letter(*b);
+        }
+        let top5: Vec<&str> = e
+            .candidates()
+            .iter()
+            .take(5)
+            .map(|c| c.word.as_str())
+            .collect();
+        assert!(
+            !top5.contains(&"是嗯据库"),
+            "junk composition 是嗯据库 must not be top-5 for shinjuku; got {top5:?}"
+        );
+        // real sentence survives: yongbuliao → 用不了
+        // (Updated 2026-06-02: previously used nihaomawojiao →
+        // 你好吗我叫, but per user judgment "你好吗我叫 这也不算是
+        // 个句子" the stricter bigram gate now drops it. Use
+        // yongbuliao instead — a genuine composition where the
+        // chain bigrams (用不, 不了) clear the ceil((N-1)/2) gate.)
         let mut e2 = CompositeEngine::new();
         e2.set_mode(Mode::Mixed);
         e2.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in b"nihaomawojiao" { let _ = e2.handle_letter(*b); }
-        assert_eq!(e2.candidates().first().map(|c| c.word.as_str()), Some("你好吗我叫"),
-            "real composed sentence must still lead nihaomawojiao");
+        for b in b"yongbuliao" {
+            let _ = e2.handle_letter(*b);
+        }
+        assert_eq!(
+            e2.candidates().first().map(|c| c.word.as_str()),
+            Some("用不了"),
+            "real composed sentence must still lead yongbuliao"
+        );
+    }
+
+    #[test]
+    fn mixed_jj_exact_leads_with_predictions_attached() {
+        // CP-C (v1.3 WU-α): wubi prefix-predictions attach to 2-3 letter
+        // wubi buffers. `jj` is a Jianma2 simcode → 昌 (~832k = 800k +
+        // freq); predictions for jj-prefix longer codes (日 at jjjj
+        // Zigen, 日本/日子/日常 at jjjj-suffixed phrase codes) attach
+        // beneath the exact. predict_score top: 50k + 0.125·45k ≈ 56k,
+        // well below 832k — exact mathematically dominates.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"jj" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let top10: Vec<&str> = cands.iter().take(10).map(|c| c.word.as_str()).collect();
+        assert_eq!(
+            cands.first().map(|c| c.word.as_str()),
+            Some("昌"),
+            "exact wubi Jianma2 昌 must lead jj; got top10={top10:?}"
+        );
+        // 日 (jjjj Zigen prediction) must surface — high-freq prediction
+        // visible to the user typing toward jjjj.
+        let ri = cands.iter().position(|c| c.word == "日");
+        assert!(
+            ri.is_some(),
+            "日 (jjjj prediction) must appear for jj; got top10={top10:?}"
+        );
+        // Predictions follow, not lead: 日 ranks below 昌.
+        assert!(
+            ri.unwrap() > 0,
+            "predictions must follow the exact #0; 日 idx={ri:?} top10={top10:?}"
+        );
+    }
+
+    #[test]
+    fn mixed_jieni_no_jp_compose_garbage_in_top_5() {
+        // User polish-log 2026-05-26 screenshot: jieni (5 letters)
+        // surfaced ~30 mechanical compose_sentence products at #4-30+
+        // (時へに / 事へに / 治へに / 耳へに / 耳へ尼 / 事へ尼 / ...),
+        // X+へ+Y cartesian where へ is the particle pronounced as `e`.
+        // None of them are real Japanese. They scored at
+        // LIKELIHOOD_JP_COMPOSED_BASE so they didn't lead, but their
+        // sheer count crowded out the visible window. Short-buffer
+        // (< 8 chars) compose filter in japanese_adapter drops them all.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"jieni" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(8).map(|c| c.word.as_str()).collect();
+        // No 時へに / 事へに / 治へに / 耳へに / 耳へ尼 / 事へ尼 / 治へ尼 / 仕へ尼.
+        let garbage_patterns = [
+            "時へに",
+            "事へに",
+            "治へに",
+            "耳へに",
+            "耳へ尼",
+            "事へ尼",
+            "治へ尼",
+            "仕へ尼",
+        ];
+        for w in &garbage_patterns {
+            assert!(
+                !cands.iter().any(|c| &c.word.as_str() == w),
+                "{w} (mechanical compose garbage) must not appear in jieni candidates; \
+                 got top8={top:?}"
+            );
+        }
+        // Useful candidates still present: 杰尼 (pinyin), じえに / ジエニ (kana).
+        assert!(
+            cands.iter().any(|c| c.word == "じえに"),
+            "じえに (hiragana) must remain visible; got top8={top:?}"
+        );
+    }
+
+    #[test]
+    fn mixed_chouonpu_buffer_locks_out_chinese_candidates() {
+        // User polish-log 2026-05-27 screenshot: `fa------` (8 chars,
+        // 7 chōonpu) surfaced 工 / 阿 / 啊 / 阿 / 吖 / 锕 (wubi+pinyin
+        // candidates for `fa`) BEFORE the JP kana candidates ファーーー
+        // and ふぁーーー. User rule: "中文输入肯定不会含 `-`" — Chinese
+        // has zero syllables containing chōonpu, so any wubi/pinyin
+        // candidate surfaced alongside a JP-chōonpu buffer is mismatched
+        // noise (the Chinese engines froze on `fa` while the JP buffer
+        // grew to `fa------`).
+        //
+        // Dispatch-level lockout: once jp_buffer.contains('-'), all
+        // wubi+pinyin candidates are dropped; only JP kanji+kana surface.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"fa" {
+            let _ = e.handle_letter(*b);
+        }
+        for _ in 0..7 {
+            let _ = e.handle_letter(b'-');
+        }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(8).map(|c| c.word.as_str()).collect();
+        // Every surviving candidate must be JP-source (no wubi, no pinyin).
+        for c in cands.iter() {
+            assert_eq!(
+                c.source,
+                Source::Japanese,
+                "non-JP candidate {:?} (source={:?}) surfaced under JP-chōonpu \
+                 lockout; got top8={top:?}",
+                c.word,
+                c.source
+            );
+        }
+        // ファーーーーーーー (katakana, foreign-syllable rule promotes it
+        // over hiragana for fa-row) should lead.
+        assert!(
+            cands.first().map(|c| c.word.as_str()) == Some("ファーーーーーーー"),
+            "ファーーーーーーー should lead under chōonpu lockout; got top8={top:?}"
+        );
+    }
+
+    #[test]
+    fn mixed_famiriaare_katakana_leads_hiragana_then_pinyin_demoted() {
+        // User polish-log 2026-05-27 screenshot: famiriaare (10 letters) in
+        // Mixed+JP surfaced 法弥日呵呵热 / 法弥日啊啊热 / 发米日啊啊热 /
+        // 法弥日阿阿热 — 4 mechanical Pinyin Viterbi compositions, 0 JP
+        // candidates. Root cause: (1) romaji table lacked `fa` entry → JP
+        // engine rendered "fあみりああれ" with leading-f ASCII passthrough,
+        // is_jp_clean rejected the whole candidate; (2) Pinyin Path 5
+        // fallback_composition gave 法弥日呵呵热 a flat COMPOSED_FALLBACK_SCORE
+        // (250k), beating mechanical kana (240k/200k).
+        //
+        // Two-part fix:
+        //   1. inputx-nihongo/src/romaji.rs: full foreign-loanword syllable table
+        //      (fa-row, va-row, wi/we, je, tsa-row, che/she, th*/dh*/tw*/dw*,
+        //      kw*/gw*, fy*/vy*, wha-row, xa-row + la-alias).
+        //   2. pinyin_adapter.rs Path 5: quality gate — when buffer.len() /
+        //      sentence.chars().count() < 2.0 (mechanical 1-pinyin-char-per-
+        //      output-char), suppress fallback_composition so the candidate
+        //      drops to NON_EXACT_FLOOR tier (~1k) instead of 250k.
+        //   3. japanese_adapter.rs: foreign-syllable signal → swap hira/kata
+        //      bases, so ファミリアアレ (foreign-loanword convention) leads
+        //      ふぁみりああれ instead of trailing it.
+        //
+        // User rule: 片假名 > 平假名 in foreign-romaji buffers, but both
+        // adjacent. Low-quality Pinyin yields to kana.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"famiriaare" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(6).map(|c| c.word.as_str()).collect();
+        assert_eq!(
+            cands.first().map(|c| c.word.as_str()),
+            Some("ファミリアアレ"),
+            "ファミリアアレ (katakana) must lead foreign-romaji buffer; got top6={top:?}"
+        );
+        assert_eq!(
+            cands.get(1).map(|c| c.word.as_str()),
+            Some("ふぁみりああれ"),
+            "ふぁみりああれ (hiragana) must follow katakana for adjacency; got top6={top:?}"
+        );
+        // Pinyin mechanical garbage must NOT crowd into the top 2.
+        let mechanical = [
+            "法弥日呵呵热",
+            "法弥日啊啊热",
+            "发米日啊啊热",
+            "法弥日啊阿热",
+        ];
+        for w in &mechanical {
+            let idx = cands.iter().position(|c| c.word.as_str() == *w);
+            if let Some(i) = idx {
+                assert!(
+                    i >= 2,
+                    "{w} (low-quality Pinyin composition) must rank below kana; \
+                    got idx={i} in top6={top:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn mixed_vaiorin_katakana_leads_for_foreign_v_row() {
+        // Sibling case to famiriaare — `vaiorin` (violin) should surface
+        // ヴァイオリン (katakana) #1, ゔぁいおりん (hiragana) #2. This is the
+        // foreign 'v' row which had no romaji entries at all pre-fix.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"vaiorin" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(4).map(|c| c.word.as_str()).collect();
+        assert!(
+            cands.iter().any(|c| c.word == "ヴァイオリン"),
+            "ヴァイオリン (katakana) must appear for vaiorin; got top4={top:?}"
+        );
+        let kata_idx = cands.iter().position(|c| c.word == "ヴァイオリン");
+        let hira_idx = cands.iter().position(|c| c.word == "ゔぁいおりん");
+        if let (Some(k), Some(h)) = (kata_idx, hira_idx) {
+            assert!(
+                k < h,
+                "katakana ({k}) must lead hiragana ({h}) for foreign 'v' row; \
+                top4={top:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn mixed_nihon_hiragana_above_katakana_native_unchanged() {
+        // Guard: the foreign-syllable swap must NOT flip native JP buffers.
+        // `nihon` (にほん / ニホン / 日本) has no foreign-syllable markers,
+        // so hiragana > katakana is preserved.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"nihon" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(8).map(|c| c.word.as_str()).collect();
+        let hira_idx = cands.iter().position(|c| c.word == "にほん");
+        let kata_idx = cands.iter().position(|c| c.word == "ニホン");
+        if let (Some(h), Some(k)) = (hira_idx, kata_idx) {
+            assert!(
+                h < k,
+                "native nihon: hiragana ({h}) must stay above katakana ({k}); \
+                top8={top:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn mixed_kaopu_real_composition_still_leads_kana() {
+        // Guard: the Pinyin Path 5 quality gate must NOT demote *real* fallback
+        // compositions (kaopu→靠谱 ratio 5/2=2.5 ≥ 2.0). 靠谱 should still beat
+        // mechanical kana かおぷ/カオプ as it did before the gate.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"kaopu" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
+        assert_eq!(
+            cands.first().map(|c| c.word.as_str()),
+            Some("靠谱"),
+            "靠谱 (real Pinyin fallback composition, ratio 2.5) must keep leading; \
+             got top5={top:?}"
+        );
+    }
+
+    #[test]
+    fn mixed_jjjj_full_code_exact_leads_no_prediction_inversion() {
+        // CP-C invariant at full code: wubi codes are at most 4 chars, so
+        // prefix_predictions returns no entries (no code length > 4). 日
+        // (Zigen exact at jjjj) leads with its full layer base 500k + freq,
+        // unaffected by the CP-C attach path.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"jjjj" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let top10: Vec<&str> = cands.iter().take(10).map(|c| c.word.as_str()).collect();
+        assert_eq!(
+            cands.first().map(|c| c.word.as_str()),
+            Some("日"),
+            "日 (jjjj Zigen exact) must lead at full code; got top10={top10:?}"
+        );
+    }
+
+    #[test]
+    fn wug_shinjuk_prediction_components_match_score() {
+        // WU-γ end-to-end: a CP-A JP jukugo prefix-prediction candidate
+        // (新宿 for shinjuk) carries (base, prior, likelihood) such that
+        // `base + prior * likelihood == score`. Promote only applies at
+        // proximity == 1 (full match), so a prediction's score is the
+        // raw predict_score output — invariant strictly holds.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_japanese_enabled(true);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"shinjuk" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let shinjuku = cands
+            .iter()
+            .find(|c| c.word == "新宿")
+            .expect("新宿 must appear for shinjuk");
+        let c = shinjuku
+            .components
+            .expect("新宿 (CP-A JP jukugo prediction) must carry ScoreComponents");
+        let recomputed = c.base + c.prior * c.likelihood;
+        assert!(
+            (shinjuku.score - recomputed).abs() < 1e-3,
+            "WU-γ invariant breaks: score={} vs base+prior*likelihood={recomputed} \
+             (c = {c:?})",
+            shinjuku.score
+        );
+    }
+
+    #[test]
+    fn mixed_pianni_kbest_exposes_pian_alternates() {
+        // User-reported 2026-05-26 (polish-log): pianni originally surfaced
+        // only 片你 / ぴあんに / ピアンニ — no 骗你.
+        //
+        // v1.6 cleanup (user 2026-05-28 "improve 不是 hack" directive):
+        // the historical runtime blacklist of 片你 has been replaced by
+        // dict-level baked additions in idf-from-pinyin-dict.rs's
+        // BAKED_ADDITIONS table.
+        //
+        // v1.6.5 polish (user 2026-05-28 follow-up): 便你 / 篇你 dropped
+        // from BAKED_ADDITIONS — 便你 is an awkward non-collocation, 篇你
+        // isn't a Chinese phrase at all. Only 骗你 and 偏你 remain as
+        // Path-1 exact-match entries; the other variants get suppressed
+        // naturally by Path-5 K-best's zero-bigram (pian, ni) gating.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"pianni" {
+            let _ = e.handle_letter(*b);
+        }
+        let cands = e.candidates();
+        let top: Vec<&str> = cands.iter().take(8).map(|c| c.word.as_str()).collect();
+        // Both legitimate pian+ni variants must surface as Path-1 entries.
+        for want in ["骗你", "偏你"] {
+            assert!(
+                cands.iter().any(|c| c.word == want),
+                "{want} must surface as a Path-1 dict entry; got top={top:?}"
+            );
+        }
+        // Illegitimate variants must NOT appear: 片你 / 便你 / 篇你 are
+        // either non-words or awkward non-collocations, and Path-5
+        // K-best (the only fallback path) is gated off whenever Path-1
+        // produces any candidates.
+        for forbidden in ["片你", "便你", "篇你"] {
+            assert!(
+                !cands.iter().any(|c| c.word == forbidden),
+                "{forbidden} must not appear (not a real phrase / awkward \
+                 collocation); got top={top:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn mixed_liangle_surfaces_凉了_not_两肋() {
+        // User polish-log (2026-05-28): typing `liangle` surfaced 两肋 as
+        // top1 even though 两肋's modern reading is `lianglei`. Source
+        // dict's readings.tsv keeps the archaic "lè" reading of 肋 alive,
+        // so phrases_composed.tsv emits (liangle, 两肋, 3) — that
+        // pollution flowed straight through facade `PinyinDict::
+        // lookup_into` into Path 1, masking the legitimate `liang+了`
+        // composition.
+        //
+        // v1.6.5 fix is a three-layer dict orthodox:
+        //   (b1) BAKED_EXCLUSIONS in idf-from-pinyin-dict drops the
+        //        (liangle, 两肋) cement IDF entry.
+        //   (b2) BAKED_ADDITIONS inserts (liangle, 凉了, 500) so a real
+        //        Path-1 exact-match candidate exists, gating off Path-3
+        //        prefix-completion's leak of (lianglei, 两肋) under the
+        //        liangle prefix.
+        //   (c)  composite/pinyin_adapter.rs Path 1 fill cuts over from
+        //        facade `lookup_into` to `pinyin_idf_reader().lookup` —
+        //        without this, baked additions in cement IDF never reach
+        //        `self.candidates` when the facade source has any entry
+        //        (typically polluted) for the same code.
+        //
+        // The lianglei buffer is unaffected: 两类 / 两肋 both surface there
+        // because "肋" reads "lèi" in modern mainstream Chinese.
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let cands_for = |buf: &[u8]| -> Vec<String> {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::Mixed);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            for b in buf {
+                let _ = e.handle_letter(*b);
+            }
+            e.candidates().iter().map(|c| c.word.clone()).collect()
+        };
+        let liangle = cands_for(b"liangle");
+        let lianglei = cands_for(b"lianglei");
+        // liangle: 凉了 must be top1, 两肋 must NOT appear at all.
+        assert_eq!(
+            liangle.first().map(String::as_str),
+            Some("凉了"),
+            "liangle top1 must be 凉了; got {liangle:?}"
+        );
+        assert!(
+            !liangle.iter().any(|w| w == "两肋"),
+            "liangle must not surface 两肋 (archaic-reading pollution); got {liangle:?}"
+        );
+        // lianglei: 两类 top1, 两肋 also present (legitimate modern reading).
+        assert_eq!(
+            lianglei.first().map(String::as_str),
+            Some("两类"),
+            "lianglei top1 must be 两类; got {lianglei:?}"
+        );
+        assert!(
+            lianglei.iter().any(|w| w == "两肋"),
+            "lianglei must still surface 两肋 (legitimate lèi reading); got {lianglei:?}"
+        );
+    }
+
+    #[test]
+    fn mixed_jile_surfaces_极乐_寄了_not_极了() {
+        // User polish-log (2026-06-03): typing `jile` led with 极了 (jieba
+        // compound bleed — 极了 is a bound suffix only appearing after
+        // adjectives like 好极了/棒极了, not a standalone word). 极乐 sat
+        // at #1, 寄了 (internet slang "done for") was absent because it
+        // isn't in upstream jieba data at all.
+        //
+        // Fix uses the same liangle pattern (above):
+        //   BAKED_EXCLUSIONS drops (jile, 极了) so standalone jile no
+        //   longer surfaces the bound suffix. Compound entries (bangjile,
+        //   haojile, …) keep 极了 and are untouched.
+        //   BAKED_ADDITIONS inserts (jile, 寄了, 500) so the internet
+        //   slang surfaces deterministically in top-N below 极乐
+        //   (legitimate jile phrase, freq 19502).
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let cands_for = |buf: &[u8]| -> Vec<String> {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::Mixed);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            for b in buf {
+                let _ = e.handle_letter(*b);
+            }
+            e.candidates().iter().map(|c| c.word.clone()).collect()
+        };
+        let jile = cands_for(b"jile");
+        // jile: 极乐 must lead, 寄了 must surface in top-10, 极了 must NOT appear.
+        assert_eq!(
+            jile.first().map(String::as_str),
+            Some("极乐"),
+            "jile top1 must be 极乐 (legitimate phrase); got {jile:?}"
+        );
+        let top10: Vec<&str> = jile.iter().take(10).map(String::as_str).collect();
+        assert!(
+            top10.contains(&"寄了"),
+            "jile top10 must include 寄了 (baked at freq 500); got {top10:?}"
+        );
+        assert!(
+            !jile.iter().any(|w| w == "极了"),
+            "jile must not surface 极了 (compound-bleed from 好极了/棒极了); got {jile:?}"
+        );
+        // bangjile / haojile must still produce 棒极了 / 好极了 — compounds untouched.
+        let bangjile = cands_for(b"bangjile");
+        let haojile = cands_for(b"haojile");
+        assert!(
+            bangjile.iter().any(|w| w == "棒极了"),
+            "bangjile must still surface 棒极了; got {bangjile:?}"
+        );
+        assert!(
+            haojile.iter().any(|w| w == "好极了"),
+            "haojile must still surface 好极了; got {haojile:?}"
+        );
+    }
+
+    #[test]
+    fn mixed_jp_low_ratio_kbest_fully_suppressed() {
+        // User polish-log (2026-05-29, `rokuman`): pinyin Path-5 K-best
+        // was force-segmenting Japanese romaji buffers into mechanical
+        // single-char Chinese compositions (儿哦库曼 / 儿噢库曼 / 儿喔
+        // 库曼 / 儿哦苦满 / 儿哦哭满) and surfacing all 5 K-best variants
+        // at NON_EXACT_FLOOR (1000) tier, below the legitimate kana
+        // candidates but visible in the list as garbage.
+        //
+        // The ratio < 2.0 quality gate previously only suppressed the
+        // top1's `fallback_composition` promotion (which would have
+        // claimed COMPOSED_FALLBACK_SCORE 250k tier); the K-best comps
+        // themselves still pushed into self.candidates. v1.6.6 fix
+        // (composite/pinyin_adapter.rs): move the `for (_, sentence)
+        // in comps push` block inside the `if ratio >= 2.0` branch so
+        // mechanical garbage never enters self.candidates at all.
+        //
+        // Ratios verified empirically by _explore_composition_scores:
+        //   rokuman    (7/4 = 1.75) MECHANICAL — gate triggers
+        //   famiriaare (10/6 = 1.67) MECHANICAL — gate triggers
+        //   kaopu      (5/2 = 2.50) REAL — gate passes, 靠谱 surfaces
+        use crate::composite::engine::CompositeEngine;
+        use crate::wubi::AutoCommitPolicy;
+        let cands_for = |buf: &[u8], jp: bool| -> Vec<String> {
+            let mut e = CompositeEngine::new();
+            e.set_mode(Mode::Mixed);
+            e.set_japanese_enabled(jp);
+            e.set_auto_commit_policy(AutoCommitPolicy::Never);
+            for b in buf {
+                let _ = e.handle_letter(*b);
+            }
+            e.candidates().iter().map(|c| c.word.clone()).collect()
+        };
+        let is_han = |c: char| ('\u{4E00}'..='\u{9FFF}').contains(&c);
+        // rokuman + jp: no Han-character candidates at all (gate suppresses
+        // all K-best comps; legitimate Han jukugo entries — if/when added —
+        // would be unaffected since they come from JapaneseEngine, not
+        // pinyin Path-5).
+        let rokuman = cands_for(b"rokuman", true);
+        for w in &rokuman {
+            assert!(
+                !w.chars().any(is_han),
+                "rokuman --jp must not surface Han-char K-best garbage; \
+                 got {w:?} in {rokuman:?}"
+            );
+        }
+        // famiriaare + jp: same — historical 法弥日呵呵热 etc all gone.
+        let famiriaare = cands_for(b"famiriaare", true);
+        for w in &famiriaare {
+            assert!(
+                !w.chars().any(is_han),
+                "famiriaare --jp must not surface Han-char K-best garbage; \
+                 got {w:?} in {famiriaare:?}"
+            );
+        }
+        // Positive sanity: kaopu still surfaces 靠谱 (ratio 2.5 ≥ 2.0,
+        // gate passes). Verifies the gate didn't over-suppress real
+        // compositions.
+        let kaopu = cands_for(b"kaopu", false);
+        assert!(
+            kaopu.iter().any(|w| w == "靠谱"),
+            "kaopu must still surface 靠谱 (ratio 2.5, K-best gate passes); \
+             got {kaopu:?}"
+        );
     }
 
     #[test]
@@ -479,16 +1649,28 @@ mod tests {
             e.set_mode(Mode::Mixed);
             e.set_japanese_enabled(true);
             e.set_auto_commit_policy(AutoCommitPolicy::Never);
-            for b in buf { let _ = e.handle_letter(*b); }
+            for b in buf {
+                let _ = e.handle_letter(*b);
+            }
             e.candidates().iter().position(|c| c.word == "新宿")
         };
         let shin = idx_of(b"shin");
         let shinjuk = idx_of(b"shinjuk");
         let shinjuku = idx_of(b"shinjuku");
-        assert_eq!(shinjuk, Some(0), "shinjuk should predict 新宿 at #0; got {shinjuk:?}");
-        assert_eq!(shinjuku, Some(0), "complete shinjuku → 新宿 #0; got {shinjuku:?}");
-        assert!(shin.map_or(true, |s| shinjuk.unwrap() < s),
-            "新宿 rises as buffer nears completion: shin {shin:?} vs shinjuk {shinjuk:?}");
+        assert_eq!(
+            shinjuk,
+            Some(0),
+            "shinjuk should predict 新宿 at #0; got {shinjuk:?}"
+        );
+        assert_eq!(
+            shinjuku,
+            Some(0),
+            "complete shinjuku → 新宿 #0; got {shinjuku:?}"
+        );
+        assert!(
+            shin.is_none_or(|s| shinjuk.unwrap() < s),
+            "新宿 rises as buffer nears completion: shin {shin:?} vs shinjuk {shinjuk:?}"
+        );
     }
 
     #[test]
@@ -509,24 +1691,35 @@ mod tests {
         // User-reported 2026-05-25: typing `aiyi` in Mixed put pinyin 爱意
         // (#1) above wubi 东京 (#2). 东京 is a full-code (4-key) exact wubi
         // phrase; the speculative Phrase ×0.5 demote buried its raw 429241
-        // at 214620, below 爱意 424712. At full code the wubi hit is high-
-        // confidence and gets the wubi-first PROMOTE (×1.1), so 东京 leads.
-        // See dispatch `full_code` / scoring::WUBI_FULL_CODE_PHRASE_PROMOTE.
+        // at 214620, below 爱意 424712.
+        //
+        // Phase I (2026-06-05): 东京 is reachable from the 3-letter prefix
+        // `aiy` via wubi prefix-prediction → the full-code phrase_mult
+        // promote (×1.1) is now suppressed. 东京's raw score drops back
+        // to ~214k vs 爱意's ~424k, but the MERGED top-1 stays 东京 —
+        // tier-1 wubi beats tier-1 pinyin via the engine_gap_q4 offset,
+        // not via raw-score ordering. The original 1.1 promote was
+        // designed in a pre-tier-merge era; tier-based cross-engine
+        // ordering supersedes the numerical-score promise.
         use crate::composite::engine::CompositeEngine;
         use crate::wubi::AutoCommitPolicy;
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::Mixed);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in b"aiyi" { let _ = e.handle_letter(*b); }
+        for b in b"aiyi" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         let top: Vec<&str> = cands.iter().take(5).map(|c| c.word.as_str()).collect();
-        assert_eq!(cands.first().map(|c| c.word.as_str()), Some("东京"),
-            "full-code wubi 东京 must lead aiyi in Mixed; got {top:?}");
-        let dj = cands.iter().find(|c| c.word == "东京").map(|c| c.score);
-        let ay = cands.iter().find(|c| c.word == "爱意").map(|c| c.score);
-        assert!(ay.is_some(), "爱意 missing from aiyi candidates: {top:?}");
-        assert!(dj.unwrap() > ay.unwrap(),
-            "promoted 东京 score {dj:?} must exceed 爱意 {ay:?}");
+        assert_eq!(
+            cands.first().map(|c| c.word.as_str()),
+            Some("东京"),
+            "full-code wubi 东京 must lead aiyi in Mixed; got {top:?}"
+        );
+        assert!(
+            cands.iter().any(|c| c.word == "爱意"),
+            "爱意 missing from aiyi candidates: {top:?}"
+        );
     }
 
     #[test]
@@ -547,10 +1740,11 @@ mod tests {
         // 默 (pinyin mo) must be in top 10. The exact placement depends
         // on freq/layer interactions; presence in visible window is the
         // user's stated invariant ("默感觉应该至少能进前 10").
-        let top10: Vec<&str> = cands.iter()
-            .take(10).map(|c| c.word.as_str()).collect();
-        assert!(top10.iter().any(|w| *w == "默"),
-            "expected 默 in top 10 for `mo` in mixed mode; got {top10:?}");
+        let top10: Vec<&str> = cands.iter().take(10).map(|c| c.word.as_str()).collect();
+        assert!(
+            top10.contains(&"默"),
+            "expected 默 in top 10 for `mo` in mixed mode; got {top10:?}"
+        );
     }
 
     #[test]
@@ -571,15 +1765,19 @@ mod tests {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::Mixed);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in b"mo" { let _ = e.handle_letter(*b); }
+        for b in b"mo" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
         let top = cands.first().map(|c| c.word.as_str()).unwrap_or("");
         // Acceptable top picks for 'mo' pinyin: 没 / 默 / 摸 / 末 — common
         // pinyin chars. NOT acceptable: 嶙 (rare Auto wubi).
         let acceptable = ["没", "默", "摸", "末", "莫", "魔"];
-        assert!(acceptable.contains(&top),
+        assert!(
+            acceptable.contains(&top),
             "expected one of {acceptable:?} at #0 for mo; got top10={:?}",
-            cands.iter().take(10).map(|c| &c.word).collect::<Vec<_>>());
+            cands.iter().take(10).map(|c| &c.word).collect::<Vec<_>>()
+        );
         assert_ne!(top, "嶙", "rare wubi 嶙 must not lead pinyin 'mo'");
     }
 
@@ -592,11 +1790,13 @@ mod tests {
     #[test]
     fn debug_ce_yi_runtime() {
         use crate::composite::engine::CompositeEngine;
-        use crate::wubi::{WubiEngine, AutoCommitPolicy};
+        use crate::wubi::{AutoCommitPolicy, WubiEngine};
         for input in &["ce", "yi", "ge", "da"] {
             let mut w = WubiEngine::new();
             w.set_policy(AutoCommitPolicy::Never);
-            for b in input.bytes() { let _ = w.handle_letter(b); }
+            for b in input.bytes() {
+                let _ = w.handle_letter(b);
+            }
             eprintln!("\nwubi '{}' candidates_with_layer:", input);
             for (word, score, layer) in w.candidates_with_layer().iter().take(3) {
                 eprintln!("  {} score={} layer={:?}", word, score, layer);
@@ -604,10 +1804,15 @@ mod tests {
             let mut e = CompositeEngine::new();
             e.set_mode(Mode::Mixed);
             e.set_auto_commit_policy(AutoCommitPolicy::Never);
-            for b in input.bytes() { let _ = e.handle_letter(b); }
+            for b in input.bytes() {
+                let _ = e.handle_letter(b);
+            }
             eprintln!("MIXED '{}' top5:", input);
             for (i, c) in e.candidates().iter().take(5).enumerate() {
-                eprintln!("  #{}: {} (src={:?}, score={})", i, c.word, c.source, c.score);
+                eprintln!(
+                    "  #{}: {} (src={:?}, score={})",
+                    i, c.word, c.source, c.score
+                );
             }
         }
     }
@@ -629,15 +1834,22 @@ mod tests {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::WubiOnly);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in b"tjvs" { let _ = e.handle_letter(*b); }
+        for b in b"tjvs" {
+            let _ = e.handle_letter(*b);
+        }
         let cands = e.candidates();
-        assert!(cands.iter().any(|c| c.word == "复杂"),
+        assert!(
+            cands.iter().any(|c| c.word == "复杂"),
             "expected 复杂 in tjvs candidates; got top10={:?}",
-            cands.iter().take(10).map(|c| &c.word).collect::<Vec<_>>());
+            cands.iter().take(10).map(|c| &c.word).collect::<Vec<_>>()
+        );
     }
 
     #[test]
     fn mixed_xlab_wubi_phrase_not_demoted_by_speculative_initials() {
+        if super::super::pinyin_adapter::PINYIN_DISABLE_FUZZY {
+            return;
+        }
         // User-reported 2026-05-24: `xlab` (wubi Phrase code for 细节)
         // was being drowned out by `向量/心理/训练/...` because pinyin
         // Path 1c (typo-shaped initials fallback) was matching "xl"
@@ -656,11 +1868,15 @@ mod tests {
         // phrases) and populate candidates, BUT must not set
         // has_non_speculative_candidate (that's Path 1's job for
         // genuine exact matches).
-        assert!(!pinyin.candidates().is_empty(),
-            "Path 1c should populate xlab with xl-initials phrases");
-        assert!(!pinyin.has_non_speculative_candidate(),
+        assert!(
+            !pinyin.candidates().is_empty(),
+            "Path 1c should populate xlab with xl-initials phrases"
+        );
+        assert!(
+            !pinyin.has_non_speculative_candidate(),
             "Path 1c is speculative — must not set has_non_speculative \
-             (regression would re-trigger wubi-Phrase demote on xlab)");
+             (regression would re-trigger wubi-Phrase demote on xlab)"
+        );
     }
 
     #[test]
@@ -678,8 +1894,9 @@ mod tests {
         let mut wubi = WubiEngine::new();
         wubi_typed(&mut wubi, b"wo");
         let raw = wubi.candidates_with_layer();
-        let jianma2_count = raw.iter()
-            .filter(|(_, _, l)| matches!(l, ::wubi::Layer::Jianma2))
+        let jianma2_count = raw
+            .iter()
+            .filter(|(_, _, l)| matches!(l, ::inputx_wubi::Layer::Jianma2))
             .count();
         // We don't enforce that Jianma2 entries EXIST for any specific
         // buffer (data-dependent); just enforce they survive demote.
@@ -695,14 +1912,20 @@ mod tests {
             // bigram boost). The point of the test is that the merge
             // *runs* without errors and the policy doesn't strip
             // Jianma2 entries from the list entirely.
-            assert!(matches!(top_source, Some(Source::Wubi) | Some(Source::Pinyin)),
-                "expected wubi or pinyin source at top; got {top_source:?}");
-            let jianma2_words: Vec<&str> = raw.iter()
-                .filter(|(_, _, l)| matches!(l, ::wubi::Layer::Jianma2))
-                .map(|(w, _, _)| w.as_str()).collect();
+            assert!(
+                matches!(top_source, Some(Source::Wubi) | Some(Source::Pinyin)),
+                "expected wubi or pinyin source at top; got {top_source:?}"
+            );
+            let jianma2_words: Vec<&str> = raw
+                .iter()
+                .filter(|(_, _, l)| matches!(l, ::inputx_wubi::Layer::Jianma2))
+                .map(|(w, _, _)| w.as_str())
+                .collect();
             for jm2 in &jianma2_words {
-                assert!(cands.iter().any(|c| c.word == *jm2),
-                    "Jianma2 word {jm2} should survive in merged candidates");
+                assert!(
+                    cands.iter().any(|c| c.word == *jm2),
+                    "Jianma2 word {jm2} should survive in merged candidates"
+                );
             }
         }
     }

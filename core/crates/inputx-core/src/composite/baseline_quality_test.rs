@@ -28,24 +28,36 @@
 #[cfg(test)]
 #[cfg(not(feature = "bootstrap_only"))]
 mod tests {
-    use crate::composite::engine::CompositeEngine;
     use crate::composite::Mode;
+    use crate::composite::engine::CompositeEngine;
     use crate::wubi::AutoCommitPolicy;
 
     fn mixed_top(buffer: &[u8]) -> Vec<String> {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::Mixed);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in buffer { let _ = e.handle_letter(*b); }
-        e.candidates().iter().take(10).map(|c| c.word.clone()).collect()
+        for b in buffer {
+            let _ = e.handle_letter(*b);
+        }
+        e.candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect()
     }
 
     fn pinyin_top(buffer: &[u8]) -> Vec<String> {
         let mut e = CompositeEngine::new();
         e.set_mode(Mode::PinyinOnly);
         e.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for b in buffer { let _ = e.handle_letter(*b); }
-        e.candidates().iter().take(10).map(|c| c.word.clone()).collect()
+        for b in buffer {
+            let _ = e.handle_letter(*b);
+        }
+        e.candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect()
     }
 
     fn assert_baseline_mixed(cases: &[(&str, &str)]) {
@@ -95,14 +107,14 @@ mod tests {
     fn baseline_multi_syllable_pinyins() {
         let cases: &[(&str, &str)] = &[
             // Polish-log hits.
-            ("lixiang", "理想"),     // not 立项 (user 2026-05-24)
-            ("queshi", "缺失"),      // user picked 4×
-            ("youshi", "优势"),      // user picked 5×
-            ("rongyu", "冗余"),      // user picked 5×
-            ("zhineng", "智能"),     // polish-log n=3
-            ("fanye", "翻页"),       // polish-log n=3
-            ("maoding", "锚定"),     // polish-log n=3
-            ("yuming", "域名"),      // user 2026-05-24 (modern_vocab boost)
+            ("lixiang", "理想"), // not 立项 (user 2026-05-24)
+            ("queshi", "确实"),  // user 2026-06-27 re-attestation: 确实 > 缺失
+            ("youshi", "优势"),  // user picked 5×
+            ("rongyu", "冗余"),  // user picked 5×
+            ("zhineng", "智能"), // polish-log n=3
+            ("fanye", "翻页"),   // polish-log n=3
+            ("maoding", "锚定"), // polish-log n=3
+            ("yuming", "域名"),  // user 2026-05-24 (modern_vocab boost)
             // Universal common compounds.
             ("nihao", "你好"),
             ("zhongguo", "中国"),
@@ -164,7 +176,7 @@ mod tests {
             ("ba", "吧"),
             ("ne", "呢"),
             ("ya", "呀"),
-            ("la", "啦"),   // CP3d-cutover: colloquial 啦 leads (hybrid normalizer)
+            ("la", "啦"), // CP3d-cutover: colloquial 啦 leads (hybrid normalizer)
             ("kan", "看"),
             ("ting", "听"),
             ("zuo", "做"),
@@ -180,9 +192,9 @@ mod tests {
             ("di", "的"),
             ("bu", "不"),
             ("yi", "一"),
-            ("ge", "个"),       // PinyinOnly: 个 leads (no wubi 表)
-            ("da", "大"),       // PinyinOnly: 大 leads (no wubi 左)
-            // mo: 没/默 acceptable swap depending on polish-log picks.
+            ("ge", "个"), // PinyinOnly: 个 leads (no wubi 表)
+            ("da", "大"), // PinyinOnly: 大 leads (no wubi 左)
+                          // mo: 没/默 acceptable swap depending on polish-log picks.
         ];
         assert_baseline_pinyin_only(cases);
     }

@@ -7,7 +7,7 @@
 use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use golia_pinyin::{PinyinEngine, char_to_pinyin, segment};
+use inputx_pinyin::{PinyinEngine, char_to_pinyin, segment};
 
 fn bench_lookup(c: &mut Criterion) {
     let eng = PinyinEngine::new();
@@ -77,9 +77,10 @@ fn bench_prefix_for_each_raw(c: &mut Criterion) {
         group.bench_function(format!("count_only_{prefix}"), |b| {
             b.iter(|| {
                 let mut n = 0u64;
-                eng.dict().prefix_for_each_raw(black_box(prefix), |_, _, _| {
-                    n += 1;
-                });
+                eng.dict()
+                    .prefix_for_each_raw(black_box(prefix), |_, _, _| {
+                        n += 1;
+                    });
                 black_box(n)
             });
         });
@@ -126,10 +127,8 @@ fn bench_record_pick(c: &mut Criterion) {
     // shared global state with N-many counters.
     group.bench_function("zhongguo_to_zhongguo", |b| {
         b.iter_with_setup(PinyinEngine::new, |eng| {
-            black_box(
-                eng.dict()
-                    .record_pick(black_box("zhongguo"), black_box("中国")),
-            );
+            eng.dict()
+                .record_pick(black_box("zhongguo"), black_box("中国"));
         });
     });
     group.finish();

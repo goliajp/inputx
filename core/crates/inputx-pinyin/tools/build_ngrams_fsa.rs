@@ -105,12 +105,31 @@ fn pack_dict(tsv_path: &Path, dict_path: &Path) {
 
 fn main() {
     let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let sup = crate_dir
-        .parent().expect("crates parent")
-        .parent().expect("workspace root")
-        .join("../tools/scoring/data/supplemental");
-    let data = crate_dir.join("data");
-    pack_fsa(&sup.join("pinyin_bigrams_inter_v1.tsv"), &data.join("bigrams.fsa"));
-    pack_fsa(&sup.join("pinyin_bigrams_intra_v1.tsv"), &data.join("bigrams_intra.fsa"));
-    pack_dict(&sup.join("pinyin_trigrams_inter_v1.tsv"), &data.join("trigrams.dict"));
+    // 2026-06-03 治理 Phase 6: n-gram source files moved from
+    // `tools/scoring/data/supplemental/pinyin_*` into the engine's own
+    // `data/` directory. Output FSAs write DIRECTLY to the sibling
+    // data stones (`inputx-pinyin-data-bigrams` / `inputx-pinyin-data-
+    // trigrams`) — same single-source-of-truth pattern build_dict.rs
+    // uses for pinyin.dict.
+    let src = crate_dir.join("data");
+    let bigrams_data = crate_dir
+        .parent()
+        .expect("crates parent")
+        .join("inputx-pinyin-data-bigrams/data");
+    let trigrams_data = crate_dir
+        .parent()
+        .expect("crates parent")
+        .join("inputx-pinyin-data-trigrams/data");
+    pack_fsa(
+        &src.join("bigrams_inter.tsv"),
+        &bigrams_data.join("bigrams.fsa"),
+    );
+    pack_fsa(
+        &src.join("bigrams_intra.tsv"),
+        &bigrams_data.join("bigrams_intra.fsa"),
+    );
+    pack_dict(
+        &src.join("trigrams_inter.tsv"),
+        &trigrams_data.join("trigrams.dict"),
+    );
 }

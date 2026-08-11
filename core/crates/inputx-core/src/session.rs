@@ -4,7 +4,7 @@
 //! wubi-only shape; new dual-engine knobs (`mode`, `candidate_source`,
 //! `export_l0_json`) are additive.
 
-use crate::composite::{Candidate, CompositeEngine, Mode, Source, l0_json};
+use crate::composite::{Candidate, CompositeEngine, Mode, ScoreComponents, Source, l0_json};
 use crate::input_mode::InputMode;
 use crate::locale::punct::SmartQuoteState;
 use crate::wubi::{self, AutoCommitPolicy, L0Snapshot};
@@ -28,6 +28,16 @@ pub struct Session {
     /// `source_cache` for the W/P indicator.
     cand_cache: Vec<String>,
     source_cache: Vec<Source>,
+    /// Per-candidate unified score, mirrors `cand_cache` index-for-index.
+    /// Exposed via `candidate_score()` so `inputx-probe` can print the
+    /// engine's ranking signal (v1.3 WU-γ).
+    score_cache: Vec<f64>,
+    /// Per-candidate (base, prior, likelihood) decomposition when the
+    /// score flowed through `scoring::predict_score_with_components`
+    /// (CP-A JP / CP-B pinyin / CP-C wubi prefix-prediction). `None`
+    /// for paths that don't yet emit the split (exact / fuzzy /
+    /// composed / fallback) — those remain pre-v1.4 architecture.
+    components_cache: Vec<Option<ScoreComponents>>,
     /// Text the engine has decided should be committed but the host hasn't
     /// drained yet. Drained via `take_pending_commit`. Multiple commits
     /// within one keystroke get concatenated.
@@ -50,12 +60,66 @@ impl Default for Session {
     }
 }
 
+/// v1.15 hot-reload failure kinds returned by
+/// [`Session::reload_engine_data`]. Each variant stringifies its
+/// underlying cause so the FFI can surface a single `char*` without
+/// coupling to the concrete parse-error types.
+#[derive(Debug)]
+pub enum EngineReloadError {
+    /// Reading `pinyin.dict` from the target directory failed.
+    ReadDict(String),
+    /// Reading `words.idf` from the target directory failed.
+    ReadIdf(String),
+    /// Parsing the new `pinyin.dict` bytes failed.
+    Dict(String),
+    /// Parsing the new `words.idf` bytes failed.
+    Idf(String),
+    /// Parsing the new `bigrams.ngm` bytes failed (only reached when
+    /// the file was present on disk).
+    NgmIntra(String),
+    /// Parsing the new `bigrams_inter.ngm` bytes failed.
+    NgmInter(String),
+    /// Parsing the new `wubi.idf` bytes failed (only reached when the
+    /// file was present on disk).
+    WubiIdf(String),
+    /// Parsing the new `wubi86.dict` bytes failed.
+    WubiDict(String),
+    /// Parsing the new `kanji.idf` bytes failed.
+    NihongoKanjiIdf(String),
+    /// Parsing the new `jukugo.idf` bytes failed.
+    NihongoJukugoIdf(String),
+}
+
+/// Pre-v1.17 name, when the reload covered only the pinyin engine.
+pub type PinyinReloadError = EngineReloadError;
+
+impl std::fmt::Display for EngineReloadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ReadDict(s) => write!(f, "read pinyin.dict failed: {s}"),
+            Self::ReadIdf(s) => write!(f, "read words.idf failed: {s}"),
+            Self::Dict(s) => write!(f, "parse pinyin.dict failed: {s}"),
+            Self::Idf(s) => write!(f, "parse words.idf failed: {s}"),
+            Self::NgmIntra(s) => write!(f, "parse bigrams.ngm failed: {s}"),
+            Self::NgmInter(s) => write!(f, "parse bigrams_inter.ngm failed: {s}"),
+            Self::WubiIdf(s) => write!(f, "parse wubi.idf failed: {s}"),
+            Self::WubiDict(s) => write!(f, "parse wubi86.dict failed: {s}"),
+            Self::NihongoKanjiIdf(s) => write!(f, "parse kanji.idf failed: {s}"),
+            Self::NihongoJukugoIdf(s) => write!(f, "parse jukugo.idf failed: {s}"),
+        }
+    }
+}
+
+impl std::error::Error for EngineReloadError {}
+
 impl Session {
     pub fn new() -> Self {
         Self {
             composite: CompositeEngine::new(),
             cand_cache: Vec::with_capacity(16),
             source_cache: Vec::with_capacity(16),
+            score_cache: Vec::with_capacity(16),
+            components_cache: Vec::with_capacity(16),
             pending_commit: None,
             smart_quote: SmartQuoteState::new(),
             input_mode: InputMode::Cjk,
@@ -64,8 +128,41 @@ impl Session {
 
     /// Map an ASCII quote char to its smart-CJK form, advancing state.
     /// Non-quote chars return `None`.
+    /// CP-5.2 step-3: forward TOML cell-dict bytes into the underlying
+    /// PinyinDict L0.5 layer. Returns the number of entries accepted on
+    /// success, or a human-readable error string on parse failure. Multiple
+    /// calls accumulate; `clear_cell_dict` wipes everything.
+    pub fn load_cell_dict(&self, toml: &str) -> Result<usize, String> {
+        self.composite.load_cell_dict(toml)
+    }
+
+    pub fn clear_cell_dict(&self) {
+        self.composite.clear_cell_dict();
+    }
+
+    pub fn cell_dict_count(&self) -> usize {
+        self.composite.cell_dict_count()
+    }
+
     pub fn smart_quote(&mut self, c: char) -> Option<char> {
         self.smart_quote.map(c)
+    }
+
+    /// Context-based smart quote: decide the curly form from the document
+    /// text before the caret (`ctx_before`) rather than the in-memory
+    /// toggle. Stateless and nesting-aware — survives IME switches, mouse
+    /// clicks, and mid-text edits, and handles Chinese `他说“…”` (no space
+    /// before the opener). Hosts that can read document context should
+    /// prefer this; the toggle [`Self::smart_quote`] remains the fallback
+    /// for hosts that cannot.
+    ///
+    /// Also syncs the toggle to the derived direction, so if the *next*
+    /// quote is typed in a context-less host the fallback continues from
+    /// the right side rather than a stale toggle value.
+    pub fn smart_quote_ctx(&mut self, c: char, ctx_before: &str) -> Option<char> {
+        let mapped = crate::locale::punct::quote_direction(ctx_before, c)?;
+        self.smart_quote.sync_after(c, mapped);
+        Some(mapped)
     }
 
     /// Reset the smart-quote alternator (e.g., after `clear()` or when
@@ -177,6 +274,38 @@ impl Session {
             return true;
         }
 
+        // 联想 cancellation guard: when the engine is sitting in a
+        // pure-prediction state (no composing buffer, but pending
+        // next-word predictions from a prior commit), any non-letter
+        // input interrupts the flow and must drop the predictions.
+        // Letter input is the only continuation path — it starts a new
+        // composing round whose next commit will rebuild predictions
+        // anyway via `refresh_predictions`. Everything else (digit,
+        // punct, Space, Enter, Tab, Backspace, Escape, function keys,
+        // arrow keys, …) reaches here and must clear the stale view
+        // before falling through to its normal routing below.
+        //
+        // Ctrl/Cmd modifiers short-circuit earlier so app shortcuts
+        // can't accidentally wipe predictions.
+        if !self.composite.is_composing() && self.composite.has_predictions() {
+            self.composite.cancel_predictions();
+            self.refresh_caches();
+        }
+
+        // `-` (chōonpu / long-vowel mark) routes to the engine ONLY when JP
+        // is mid-composition (e.g., `koohi` + `-` → コーヒー). Outside JP
+        // composing — wubi/pinyin in progress, or no engine composing — `-`
+        // falls through to the IME controller's locale punct path so it
+        // ends up as raw ASCII / 全角 hyphen on the host. User-reported
+        // 2026-05-27: `-` must be typeable as chōonpu in JP mode.
+        if codepoint == b'-' as u32 && self.composite.japanese_is_composing() {
+            if let Some(text) = self.composite.handle_letter(b'-') {
+                self.append_pending(text);
+            }
+            self.refresh_caches();
+            return true;
+        }
+
         match codepoint {
             CP_SPACE => {
                 if !self.composite.is_composing() {
@@ -267,6 +396,18 @@ impl Session {
         }
     }
 
+    /// `true` iff the JP sub-engine currently has a non-empty buffer.
+    /// Lets the IME controller decide whether `-` should route through
+    /// the engine as chōonpu (when JP composing) or fall to locale
+    /// punct (otherwise). EN mode forces false: there's no engine
+    /// composing at all.
+    pub fn japanese_is_composing(&self) -> bool {
+        match self.input_mode {
+            InputMode::Cjk => self.composite.japanese_is_composing(),
+            InputMode::En => false,
+        }
+    }
+
     pub fn candidates(&self) -> &[String] {
         &self.cand_cache
     }
@@ -281,7 +422,8 @@ impl Session {
     /// panel visible post-commit, showing predictions as the user's
     /// likely next pick (Sogou-style 联想 panel).
     pub fn predictions(&self) -> Vec<String> {
-        self.composite.predicted_candidates()
+        self.composite
+            .predicted_candidates()
             .iter()
             .map(|c| c.word.clone())
             .collect()
@@ -289,6 +431,22 @@ impl Session {
 
     pub fn prediction_count(&self) -> usize {
         self.composite.predicted_candidates().len()
+    }
+
+    /// Drop pending 联想 candidates. Mirrors `composite.cancel_predictions`
+    /// at the session boundary so the host (Swift / Obj-C) can clear
+    /// stale predictions when its own keyDown path doesn't reach
+    /// `handle_key_cjk` (e.g. punct that the IMK controller maps to a
+    /// 全角 codepoint and routes around the engine — Path B in
+    /// IMEController). `handle_key_cjk` already guards this internally,
+    /// so this method exists solely for those out-of-band cancel sites.
+    ///
+    /// Leaves `last_committed_word` / `second_last_committed_word`
+    /// intact — those only feed *next* commit's bigram / trigram LM
+    /// scoring, not the currently visible prediction panel. Use
+    /// `clear()` for a full session reset.
+    pub fn cancel_predictions(&mut self) {
+        self.composite.cancel_predictions();
     }
 
     /// Commit a prediction by index. Returns the committed text on
@@ -313,8 +471,42 @@ impl Session {
         self.source_cache.get(index).map(|s| s.as_u8())
     }
 
+    /// Unified score for the candidate at `index` (the value used for
+    /// cross-engine sort). `None` if the index is out of range.
+    /// Exposed for diagnostic tooling (`inputx-probe`); UI code should
+    /// not depend on the absolute value.
+    pub fn candidate_score(&self, index: usize) -> Option<f64> {
+        self.score_cache.get(index).copied()
+    }
+
+    /// (base, prior, likelihood) decomposition for the candidate at
+    /// `index` when its score came from `scoring::predict_score_with_components`;
+    /// `None` for paths that don't yet emit the split. Invariant when
+    /// present: `base + prior * likelihood == predict_score(..)` — the
+    /// final `candidate_score()` may exceed this by an additive
+    /// bigram_bonus / multiplicative promote applied downstream.
+    pub fn candidate_components(&self, index: usize) -> Option<ScoreComponents> {
+        self.components_cache.get(index).copied().flatten()
+    }
+
     pub fn commit_index(&mut self, index: usize) -> Option<String> {
         let r = self.composite.commit_index(index);
+        self.refresh_caches();
+        r
+    }
+
+    // Segment mode (拼音手动分段, user 2026-06-07). Pinyin-only; delegate
+    // straight to the composite engine's pinyin adapter.
+    pub fn segment_anchors(&self) -> Vec<usize> {
+        self.composite.segment_anchors()
+    }
+
+    pub fn segment_candidates(&self, k: usize) -> Vec<String> {
+        self.composite.segment_candidates(k)
+    }
+
+    pub fn commit_segment(&mut self, k: usize, idx: usize) -> Option<String> {
+        let r = self.composite.commit_segment(k, idx);
         self.refresh_caches();
         r
     }
@@ -390,6 +582,105 @@ impl Session {
         }
     }
 
+    /// v1.15 hot-reload, extended in v1.17 to cover all three engines.
+    /// Reads the files a polish rebuild regenerates from `dir` — the
+    /// caller supplies the directory (typically the running IME
+    /// bundle's `Contents/Resources/data/`) — and drives:
+    ///
+    /// - process-global `pinyin_idf_reader` via
+    ///   [`inputx_pinyin_helpers::set_pinyin_idf_bytes`],
+    /// - this session's `PinyinDict.map` via
+    ///   [`crate::composite::CompositeEngine::reload_pinyin_dict`],
+    /// - process-global `wubi_idf_reader` / `nihongo_{kanji,jukugo}_idf_reader`
+    ///   via their `set_*_idf_bytes` counterparts.
+    ///
+    /// Pinyin's two files are required; everything else is optional and
+    /// skipped when absent. That is what lets a bundle roll back to a
+    /// version that predates a given file without failing the reload —
+    /// the NGM tables have always worked this way, and the three engine
+    /// IDFs join them because bundles built before v1.17 don't ship
+    /// them. A file that IS present but fails to parse is still a hard
+    /// error: silently keeping a stale dict is the failure mode this
+    /// whole path exists to remove.
+    ///
+    /// Returns Ok(()) on success. On any parse or IO failure, leaves
+    /// both the process-global slots and the session dict in their
+    /// prior state and returns an error — never a half-applied swap.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn reload_engine_data(&mut self, dir: &std::path::Path) -> Result<(), EngineReloadError> {
+        let dict_bytes = std::fs::read(dir.join("pinyin.dict"))
+            .map_err(|e| EngineReloadError::ReadDict(format!("{e}")))?;
+        let idf_bytes = std::fs::read(dir.join("words.idf"))
+            .map_err(|e| EngineReloadError::ReadIdf(format!("{e}")))?;
+        // Optional: NGM tables aren't polish-regenerated in the
+        // current pipeline, but read them if present so future polish
+        // rounds that update them "just work" without another code
+        // release.
+        let bigrams_ngm = std::fs::read(dir.join("bigrams.ngm")).ok();
+        let inter_ngm = std::fs::read(dir.join("bigrams_inter.ngm")).ok();
+        // v1.17: the wubi and nihongo engines' IDF tables. Optional for
+        // the same reason the NGMs are — a bundle built before v1.17
+        // doesn't ship them, and rolling back to one must not brick the
+        // reload.
+        let wubi_idf = std::fs::read(dir.join("wubi.idf")).ok();
+        let kanji_idf = std::fs::read(dir.join("kanji.idf")).ok();
+        let jukugo_idf = std::fs::read(dir.join("jukugo.idf")).ok();
+        // The wubi FST is a second, independent table: the .idf above
+        // feeds the cross-engine composite path, this one feeds
+        // `Mode::WubiOnly` and the engine's own candidate list — which
+        // is what auto-commit's uniqueness check reads. Reloading one
+        // without the other would let those two disagree about which
+        // words exist at a code.
+        let wubi_dict = std::fs::read(dir.join("wubi86.dict")).ok();
+
+        // Order matters: parse-check everything BEFORE swapping any
+        // slot, so a broken new .idf can't leave a good old dict
+        // paired with a bad new IdfReader.
+        inputx_pinyin_helpers::set_pinyin_idf_bytes(idf_bytes)
+            .map_err(|e| EngineReloadError::Idf(format!("{e:?}")))?;
+        if let Some(bytes) = bigrams_ngm {
+            crate::composite::set_bigrams_ngm_bytes(bytes)
+                .map_err(|e| EngineReloadError::NgmIntra(format!("{e:?}")))?;
+        }
+        if let Some(bytes) = inter_ngm {
+            crate::composite::set_inter_bigrams_ngm_bytes(bytes)
+                .map_err(|e| EngineReloadError::NgmInter(format!("{e:?}")))?;
+        }
+        if let Some(bytes) = wubi_idf {
+            inputx_wubi_data::set_wubi_idf_bytes(bytes)
+                .map_err(|e| EngineReloadError::WubiIdf(format!("{e}")))?;
+        }
+        if let Some(bytes) = wubi_dict {
+            inputx_wubi_data::set_wubi_dict_bytes(bytes)
+                .map_err(|e| EngineReloadError::WubiDict(format!("{e:?}")))?;
+        }
+        if let Some(bytes) = kanji_idf {
+            inputx_nihongo_data_kanji::set_nihongo_kanji_idf_bytes(bytes)
+                .map_err(|e| EngineReloadError::NihongoKanjiIdf(format!("{e}")))?;
+        }
+        if let Some(bytes) = jukugo_idf {
+            inputx_nihongo_data_jukugo::set_nihongo_jukugo_idf_bytes(bytes)
+                .map_err(|e| EngineReloadError::NihongoJukugoIdf(format!("{e}")))?;
+        }
+        self.composite
+            .reload_pinyin_dict(dict_bytes)
+            .map_err(|e| EngineReloadError::Dict(format!("{e:?}")))?;
+        // v1.16: v2 engine's polish overlay TSVs live behind ArcSwap
+        // too. If a `polish/` subdir exists next to `pinyin.dict`,
+        // swap those bytes so v2's `words()` / `tier_overlay()` /
+        // `quickfix_boost()` / etc. rebuild on next query. Without
+        // this step, the running Inputx binary would keep using the
+        // compile-time-embedded TSV even after a hot-reload — which
+        // is what made every polish since v2's default flip look
+        // like it worked (per probe) while actually being invisible
+        // to the running IME.
+        let polish_dir = dir.join("polish");
+        if polish_dir.is_dir() {
+            inputx_pinyin_v2::set_polish_data_dir(&polish_dir);
+        }
+        Ok(())
+    }
+
     fn append_pending(&mut self, text: String) {
         match &mut self.pending_commit {
             Some(p) => p.push_str(&text),
@@ -401,9 +692,13 @@ impl Session {
         let cands: Vec<Candidate> = self.composite.candidates().to_vec();
         self.cand_cache.clear();
         self.source_cache.clear();
+        self.score_cache.clear();
+        self.components_cache.clear();
         for c in cands {
             self.cand_cache.push(c.word);
             self.source_cache.push(c.source);
+            self.score_cache.push(c.score);
+            self.components_cache.push(c.components);
         }
     }
 }
@@ -417,6 +712,110 @@ mod tests {
     }
 
     #[test]
+    fn chouonpu_backspace_returns_to_same_candidates() {
+        // User polish-log 2026-05-27: "删除的时候与输入的时候，一样的码
+        // 不一样的候选". Concretely: type `fa-----` (5 chouonpu), record
+        // candidates; backspace 3 times (removing 3 `-`), then type 3 `-`
+        // back; buffer is `fa-----` again — but candidates differ. This
+        // indicates one of the sub-engines (wubi/pinyin/jp) isn't being
+        // backspaced symmetrically with typing, so state drifts across
+        // a backspace-then-retype cycle.
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_japanese_enabled(true);
+        // Phase A: type fa-----
+        for b in b"fa" {
+            assert!(sess.handle_key(*b as u32, 0));
+        }
+        for _ in 0..5 {
+            assert!(sess.handle_key(b'-' as u32, 0));
+        }
+        let preedit_a = sess.preedit().to_string();
+        let cands_a: Vec<String> = sess.candidates().to_vec();
+        // Phase B: backspace 3 times (delete trailing 3 `-`)
+        for _ in 0..3 {
+            assert!(sess.handle_key(0x08, 0)); // BS
+        }
+        // Phase C: retype the 3 `-` back
+        for _ in 0..3 {
+            assert!(sess.handle_key(b'-' as u32, 0));
+        }
+        let preedit_b = sess.preedit().to_string();
+        let cands_b: Vec<String> = sess.candidates().to_vec();
+        assert_eq!(
+            preedit_a, preedit_b,
+            "preedit must be identical after backspace-then-retype; got A={preedit_a:?} B={preedit_b:?}"
+        );
+        assert_eq!(
+            cands_a, cands_b,
+            "candidates must be identical after backspace-then-retype; got\n  A={cands_a:?}\n  B={cands_b:?}"
+        );
+    }
+
+    #[test]
+    fn chouonpu_hyphen_extends_jp_composition() {
+        // User polish 2026-05-27: `-` must be typeable as chōonpu (ー) in
+        // JP mode. Mozc-standard romaji for コーヒー is `ko-hi-` (chōonpu
+        // entered explicitly with `-`). With JP enabled and a romaji buffer
+        // in progress, each `-` keystroke should be routed to the engine,
+        // extending the JP composition so コーヒー surfaces among candidates.
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_japanese_enabled(true);
+        for b in b"ko" {
+            assert!(sess.handle_key(*b as u32, 0));
+        }
+        assert!(
+            sess.japanese_is_composing(),
+            "JP buffer should be composing after typing romaji"
+        );
+        assert!(
+            sess.handle_key(b'-' as u32, 0),
+            "`-` keystroke must be consumed when JP is composing"
+        );
+        for b in b"hi" {
+            assert!(sess.handle_key(*b as u32, 0));
+        }
+        assert!(
+            sess.handle_key(b'-' as u32, 0),
+            "trailing `-` must be consumed"
+        );
+        let preedit = sess.preedit().to_string();
+        assert_eq!(
+            preedit, "ko-hi-",
+            "preedit should reflect full chouonpu romaji buffer; got {preedit:?}"
+        );
+        // The katakana with chōonpu must surface as a candidate.
+        let cands = sess.candidates();
+        assert!(
+            cands.iter().any(|w| w == "コーヒー"),
+            "コーヒー expected after ko-hi-; got top10={:?}",
+            cands.iter().take(10).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn chouonpu_hyphen_falls_through_when_not_jp_composing() {
+        // Outside JP composition (no JP enabled, or JP buffer empty), `-`
+        // must NOT be consumed by the engine — it should fall through so
+        // the host gets a regular hyphen via locale punct routing.
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        // No JP enabled, no composing — `-` falls through.
+        assert!(
+            !sess.handle_key(b'-' as u32, 0),
+            "`-` must NOT be consumed when no engine is composing"
+        );
+        // Even with JP enabled but empty buffer, `-` falls through.
+        sess.set_japanese_enabled(true);
+        assert!(!sess.japanese_is_composing());
+        assert!(
+            !sess.handle_key(b'-' as u32, 0),
+            "`-` must NOT be consumed with JP enabled but empty buffer"
+        );
+    }
+
+    #[test]
     fn q_bare_letter_single_chars_lead_phrases() {
         // User 2026-05-24: "单个字的评分也肯定要更高，现在 q 这列表根本
         // 不能看" — typing a bare letter `q` showed multi-char phrases
@@ -424,7 +823,7 @@ mod tests {
         // (去/起/前) via raw corpus freq. Fix: `scoring::length_bias`
         // in `compute_single_letter_top_k` favors single chars for
         // bare-letter prefix completion. wubi Jianma1 (q→我) stays #0.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'q' as u32, 0);
         let cands = sess.candidates();
@@ -451,7 +850,7 @@ mod tests {
 
     #[test]
     fn typing_g_with_unique_policy_auto_commits_yi() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::OnUniqueMatch);
         assert!(sess.handle_key(b'g' as u32, 0));
         assert_eq!(sess.take_pending_commit().as_deref(), Some("一"));
@@ -460,7 +859,7 @@ mod tests {
 
     #[test]
     fn typing_jeg_then_space_commits_first_candidate() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'j' as u32, 0);
         sess.handle_key(b'e' as u32, 0);
@@ -474,7 +873,7 @@ mod tests {
 
     #[test]
     fn typing_jeg_then_digit_2_commits_second_candidate() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'j' as u32, 0);
         sess.handle_key(b'e' as u32, 0);
@@ -487,26 +886,26 @@ mod tests {
 
     #[test]
     fn digit_when_not_composing_passes_through() {
-        let mut sess = s();
+        let mut sess = Session::new();
         assert!(!sess.handle_key(b'5' as u32, 0));
     }
 
     #[test]
     fn cmd_combo_passes_through() {
-        let mut sess = s();
+        let mut sess = Session::new();
         assert!(!sess.handle_key(b'c' as u32, 1 << 3));
         assert!(!sess.handle_key(b'a' as u32, 1 << 1));
     }
 
     #[test]
     fn space_when_not_composing_passes_through() {
-        let mut sess = s();
+        let mut sess = Session::new();
         assert!(!sess.handle_key(CP_SPACE, 0));
     }
 
     #[test]
     fn backspace_pops_then_passes_through_when_empty() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'g' as u32, 0);
         sess.handle_key(b'g' as u32, 0);
@@ -519,7 +918,7 @@ mod tests {
 
     #[test]
     fn escape_clears_composition() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'd' as u32, 0);
         sess.handle_key(b'd' as u32, 0);
@@ -530,7 +929,7 @@ mod tests {
 
     #[test]
     fn punctuation_mid_composition_commits_top_and_passes_through() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'g' as u32, 0);
         let consumed = sess.handle_key(b',' as u32, 0);
@@ -550,7 +949,7 @@ mod tests {
 
     #[test]
     fn typing_ipbf_with_default_auto_commits_xue() {
-        let mut sess = s();
+        let mut sess = Session::new();
         for cp in b"ipbf" {
             sess.handle_key(*cp as u32, 0);
         }
@@ -567,7 +966,7 @@ mod tests {
         // (The original ROADMAP wording said `wgkf → 国` — wrong wubi code;
         // 国 is `lgyi`, 中国 phrase is `khlg`. khlg is the canonical
         // multi-candidate test code in the wubi crate's own tests.)
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         for cp in b"khlg" {
             sess.handle_key(*cp as u32, 0);
@@ -587,7 +986,7 @@ mod tests {
         // `yeguangdan`). If this test ever fails, the pinyin engine
         // has acquired a fuzzy / heteronym path that's pulling
         // 曳光弹 into jixu candidates and needs to be traced.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.set_mode(crate::composite::Mode::PinyinOnly);
         for cp in b"jixu" {
@@ -606,7 +1005,7 @@ mod tests {
         assert!(
             !cands.iter().any(|w| w == "曳光弹"),
             "曳光弹 must not appear for jixu — its reading is yeguangdan. Got candidates: {:?}",
-            &cands.iter().take(10).collect::<Vec<_>>()
+            cands.iter().take(10).collect::<Vec<_>>()
         );
     }
 
@@ -618,7 +1017,7 @@ mod tests {
         // single-char with corpus presence (鹟 freq 5961) above the
         // phrase, even when the phrase had far higher actual frequency
         // (公司 freq 42817). The corrected rule compares freqs.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         for cp in b"wcng" {
             sess.handle_key(*cp as u32, 0);
@@ -640,7 +1039,7 @@ mod tests {
         // Pre-fix, 两 (Auto layer, base ~100k) lost to 两败俱伤 (Phrase
         // layer, base ~400k) at gmww. The full-code single-char-wins
         // rule in `inputx_wubi::dict::lookup_into` corrects this.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         for cp in b"gmww" {
             sess.handle_key(*cp as u32, 0);
@@ -663,7 +1062,7 @@ mod tests {
     #[test]
     fn item_47_mixed_pinyin_input_gives_pinyin_candidate() {
         // Manual probe per ROADMAP item 47: `zhongguo` → 中国 (Source::Pinyin).
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         for cp in b"zhongguo" {
             sess.handle_key(*cp as u32, 0);
@@ -675,7 +1074,7 @@ mod tests {
 
     #[test]
     fn item_44_mode_switch_round_trip() {
-        let mut sess = s();
+        let mut sess = Session::new();
         assert_eq!(sess.mode(), Mode::Mixed);
         sess.set_mode(Mode::WubiOnly);
         assert_eq!(sess.mode(), Mode::WubiOnly);
@@ -685,7 +1084,7 @@ mod tests {
 
     #[test]
     fn item_44_pinyin_only_mode_skips_wubi() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_mode(Mode::PinyinOnly);
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         for cp in b"women" {
@@ -748,7 +1147,7 @@ mod tests {
 
     #[test]
     fn set_input_mode_toggles() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::En);
         assert_eq!(sess.input_mode(), InputMode::En);
         sess.set_input_mode(InputMode::Cjk);
@@ -757,7 +1156,7 @@ mod tests {
 
     #[test]
     fn set_input_mode_same_is_noop() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::Cjk);
         assert_eq!(sess.input_mode(), InputMode::Cjk);
         assert!(sess.take_pending_commit().is_none());
@@ -767,10 +1166,13 @@ mod tests {
     fn en_mode_consumes_no_keys() {
         // Every keystroke variety should pass straight through to the host:
         // letters, digits, punct, space, return, backspace, escape, ctrl/cmd.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::En);
         for cp in b"hello world! 12,3.45" {
-            assert!(!sess.handle_key(*cp as u32, 0), "letter/digit/punct should passthrough");
+            assert!(
+                !sess.handle_key(*cp as u32, 0),
+                "letter/digit/punct should passthrough"
+            );
         }
         assert!(!sess.handle_key(CP_RETURN, 0));
         assert!(!sess.handle_key(CP_BACKSPACE, 0));
@@ -782,7 +1184,7 @@ mod tests {
     #[test]
     fn en_mode_has_no_preedit_or_candidates() {
         // Engine never runs in EN — preedit empty, no candidates, no commits.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::En);
         for cp in b"khlg" {
             sess.handle_key(*cp as u32, 0);
@@ -796,7 +1198,7 @@ mod tests {
     fn cjk_to_en_with_preedit_commits_raw_ascii() {
         // User types "jeg" in CJK, then toggles to EN. The preedit
         // letters ship as English (user signaled "not CJK after all").
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'j' as u32, 0);
         sess.handle_key(b'e' as u32, 0);
@@ -812,7 +1214,7 @@ mod tests {
     #[test]
     fn cjk_to_en_without_preedit_just_switches() {
         // No in-flight composing → toggle is a pure state flip.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::En);
         assert!(sess.take_pending_commit().is_none());
         assert_eq!(sess.input_mode(), InputMode::En);
@@ -822,7 +1224,7 @@ mod tests {
     fn cjk_return_with_preedit_commits_raw_ascii() {
         // Return in CJK while composing ships the raw codes as ASCII
         // and swallows the event (no \n to host).
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.handle_key(b'h' as u32, 0);
         sess.handle_key(b'u' as u32, 0);
@@ -839,7 +1241,7 @@ mod tests {
     fn cjk_return_without_preedit_passes_through() {
         // Plain return with no composing → engine doesn't consume it
         // so the host receives the \n normally.
-        let mut sess = s();
+        let mut sess = Session::new();
         assert!(!sess.handle_key(CP_RETURN, 0));
         assert!(sess.take_pending_commit().is_none());
     }
@@ -849,7 +1251,7 @@ mod tests {
         // Tab while composing must not leak to the host (no \t in the
         // text field) and must not disturb preedit. Reserved for future
         // candidate page navigation.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         for cp in b"jeg" {
             sess.handle_key(*cp as u32, 0);
@@ -866,7 +1268,7 @@ mod tests {
     fn cjk_tab_without_preedit_passes_through() {
         // Plain tab with no composing → engine doesn't consume so the
         // host receives \t as a tab character.
-        let mut sess = s();
+        let mut sess = Session::new();
         assert!(!sess.handle_key(0x09, 0));
         assert!(sess.take_pending_commit().is_none());
     }
@@ -874,7 +1276,7 @@ mod tests {
     #[test]
     fn en_to_cjk_is_pure_state_flip_no_commit() {
         // EN→Cjk has nothing to drain (EN doesn't buffer). Just flips state.
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::En);
         for cp in b"hel" {
             sess.handle_key(*cp as u32, 0);
@@ -887,7 +1289,7 @@ mod tests {
 
     #[test]
     fn clear_resets_input_mode() {
-        let mut sess = s();
+        let mut sess = Session::new();
         sess.set_input_mode(InputMode::En);
         sess.clear();
         assert_eq!(sess.input_mode(), InputMode::Cjk);
@@ -1048,7 +1450,9 @@ mod prefix_completion_suppression {
         let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.set_mode(crate::composite::Mode::PinyinOnly);
-        for cp in b"lianxiang" { sess.handle_key(*cp as u32, 0); }
+        for cp in b"lianxiang" {
+            sess.handle_key(*cp as u32, 0);
+        }
         let cands = sess.candidates();
         assert!(
             cands.iter().any(|w| w == "联想"),
@@ -1073,7 +1477,9 @@ mod prefix_completion_suppression {
         let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.set_mode(crate::composite::Mode::PinyinOnly);
-        for cp in b"zho" { sess.handle_key(*cp as u32, 0); }
+        for cp in b"zho" {
+            sess.handle_key(*cp as u32, 0);
+        }
         let cands = sess.candidates();
         assert!(
             !cands.is_empty(),
@@ -1095,27 +1501,67 @@ mod wubi_simcode_priority {
     fn top(input: &[u8]) -> String {
         let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for cp in input { sess.handle_key(*cp as u32, 0); }
+        for cp in input {
+            sess.handle_key(*cp as u32, 0);
+        }
         sess.candidates().first().cloned().unwrap_or_default()
     }
-    #[test] fn wo_wubi_伙()  { assert_eq!(top(b"wo"),  "伙"); }
-    #[test] fn ni_wubi_悄()  { assert_eq!(top(b"ni"),  "悄"); }
-    #[test] fn ta_wubi_长()  { assert_eq!(top(b"ta"),  "长"); }
-    #[test] fn de_wubi_胡()  { assert_eq!(top(b"de"),  "胡"); }
-    #[test] fn shi_wubi_椒() { assert_eq!(top(b"shi"), "椒"); }
-    #[test] fn you_wubi_亦() { assert_eq!(top(b"you"), "亦"); }
+    #[test]
+    fn wo_wubi_伙() {
+        assert_eq!(top(b"wo"), "伙");
+    }
+    #[test]
+    fn ni_wubi_悄() {
+        assert_eq!(top(b"ni"), "悄");
+    }
+    #[test]
+    fn ta_wubi_长() {
+        assert_eq!(top(b"ta"), "长");
+    }
+    #[test]
+    fn de_wubi_胡() {
+        assert_eq!(top(b"de"), "胡");
+    }
+    // shi_wubi_椒 retired 2026-06-03 — user "shi 肯定不能是 椒，要是
+    // '是'"; pair moved to tier_overlay tier 5, expected top1=是.
+    #[test]
+    fn shi_pinyin_是() {
+        assert_eq!(top(b"shi"), "是");
+    }
+    #[test]
+    fn you_wubi_亦() {
+        assert_eq!(top(b"you"), "亦");
+    }
     // User-confirmed via runtime (2026-05-24): Jianma2 common-char
     // entries also must lead via Session path (same flow the Mac IME
     // uses). Adding these pins more of the user-stated invariant so
     // a regression at the Session layer can't slip past wubi_simcode_
     // priority's protect list silently.
-    #[test] fn ce_wubi_能() { assert_eq!(top(b"ce"), "能"); }
-    #[test] fn yi_wubi_就() { assert_eq!(top(b"yi"), "就"); }
-    #[test] fn ge_wubi_表() { assert_eq!(top(b"ge"), "表"); }
-    #[test] fn da_wubi_左() { assert_eq!(top(b"da"), "左"); }
+    #[test]
+    fn ce_wubi_能() {
+        assert_eq!(top(b"ce"), "能");
+    }
+    #[test]
+    fn yi_wubi_就() {
+        assert_eq!(top(b"yi"), "就");
+    }
+    #[test]
+    fn ge_wubi_表() {
+        assert_eq!(top(b"ge"), "表");
+    }
+    #[test]
+    fn da_wubi_左() {
+        assert_eq!(top(b"da"), "左");
+    }
     // Jianma1 (1-letter) keeps its hard floor too.
-    #[test] fn e_wubi_有() { assert_eq!(top(b"e"), "有"); }
-    #[test] fn g_wubi_一() { assert_eq!(top(b"g"), "一"); }
+    #[test]
+    fn e_wubi_有() {
+        assert_eq!(top(b"e"), "有");
+    }
+    #[test]
+    fn g_wubi_一() {
+        assert_eq!(top(b"g"), "一");
+    }
 }
 
 #[cfg(test)]
@@ -1130,7 +1576,9 @@ mod beyond_wubi_window {
     fn type_in_mixed(input: &[u8]) -> Vec<String> {
         let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
-        for cp in input { sess.handle_key(*cp as u32, 0); }
+        for cp in input {
+            sess.handle_key(*cp as u32, 0);
+        }
         sess.candidates().to_vec()
     }
 
@@ -1210,7 +1658,9 @@ mod cross_engine_pin {
         let n = sess.import_l0_json(1, pin_json);
         assert_eq!(n, 1, "L0 import should accept the pin");
 
-        for cp in b"jixu" { sess.handle_key(*cp as u32, 0); }
+        for cp in b"jixu" {
+            sess.handle_key(*cp as u32, 0);
+        }
         let cands = sess.candidates();
         assert_eq!(
             cands.first().map(String::as_str),
@@ -1221,7 +1671,6 @@ mod cross_engine_pin {
     }
 }
 
-
 #[cfg(test)]
 mod jigao_coverage {
     use super::*;
@@ -1230,13 +1679,219 @@ mod jigao_coverage {
         let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.set_mode(crate::composite::Mode::PinyinOnly);
-        for cp in b"jigao" { sess.handle_key(*cp as u32, 0); }
+        for cp in b"jigao" {
+            sess.handle_key(*cp as u32, 0);
+        }
         let cands = sess.candidates();
         assert!(
             cands.iter().any(|w| w == "极高"),
             "极高 must be in jigao candidates after supplemental dict add. Got: {:?}",
             cands.iter().take(10).collect::<Vec<_>>()
         );
+    }
+}
+
+#[cfg(test)]
+mod association_cancel_guard {
+    //! Bugfix 2026-06-16 — 联想 cancellation on non-continuation input.
+    //!
+    //! User report: "联想候选如果在中间间隔输入了任何别的东西都要取消，
+    //! 比如无候选的数字、符号、功能按键等".
+    //!
+    //! The contract verified here: when the engine is in a pure
+    //! prediction state (no composing buffer, but `prediction_buf` has
+    //! candidates from a prior commit), any non-letter input arriving
+    //! via `handle_key` must clear `prediction_buf` before falling
+    //! through to its normal routing. Letter input is the only
+    //! continuation path — it starts a new composing round whose next
+    //! commit will rebuild predictions.
+    //!
+    //! Predictions are seeded via the `test_seed_prediction` test
+    //! helper on `CompositeEngine` so these tests don't depend on
+    //! real bigram / trigram corpus loading (which is feature-gated
+    //! and slow).
+    use super::*;
+    use crate::composite::Mode;
+
+    fn s_with_pred() -> Session {
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(Mode::PinyinOnly);
+        sess.composite.test_seed_prediction("吗");
+        sess.composite.test_seed_prediction("嗨");
+        sess.refresh_caches();
+        assert!(
+            sess.composite.has_predictions(),
+            "test setup: predictions not seeded"
+        );
+        assert!(
+            !sess.composite.is_composing(),
+            "test setup: must be in pure-prediction state, not composing"
+        );
+        sess
+    }
+
+    #[test]
+    fn digit_cancels_predictions() {
+        let mut sess = s_with_pred();
+        let consumed = sess.handle_key(b'1' as u32, 0);
+        assert!(
+            !consumed,
+            "digit with no composing buffer should pass through to host"
+        );
+        assert!(
+            !sess.composite.has_predictions(),
+            "digit must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn punct_cancels_predictions() {
+        let mut sess = s_with_pred();
+        let consumed = sess.handle_key(b'.' as u32, 0);
+        assert!(
+            !consumed,
+            "punct with no composing buffer should pass through to host"
+        );
+        assert!(
+            !sess.composite.has_predictions(),
+            "punct must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn space_cancels_predictions() {
+        let mut sess = s_with_pred();
+        let consumed = sess.handle_key(b' ' as u32, 0);
+        assert!(
+            !consumed,
+            "space with no composing buffer should pass through to host"
+        );
+        assert!(
+            !sess.composite.has_predictions(),
+            "space must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn enter_cancels_predictions() {
+        let mut sess = s_with_pred();
+        // CP_RETURN_CR = 0x0D
+        let consumed = sess.handle_key(0x0D, 0);
+        assert!(
+            !consumed,
+            "Enter with no composing buffer should pass through to host"
+        );
+        assert!(
+            !sess.composite.has_predictions(),
+            "Enter must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn escape_cancels_predictions() {
+        let mut sess = s_with_pred();
+        // CP_ESCAPE = 0x1B
+        let _ = sess.handle_key(0x1B, 0);
+        assert!(
+            !sess.composite.has_predictions(),
+            "Escape must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn backspace_cancels_predictions() {
+        let mut sess = s_with_pred();
+        // CP_BACKSPACE = 0x08
+        let _ = sess.handle_key(0x08, 0);
+        assert!(
+            !sess.composite.has_predictions(),
+            "Backspace must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn tab_cancels_predictions() {
+        let mut sess = s_with_pred();
+        // CP_TAB = 0x09
+        let _ = sess.handle_key(0x09, 0);
+        assert!(
+            !sess.composite.has_predictions(),
+            "Tab must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn arrow_key_codepoint_cancels_predictions() {
+        // Function keys / arrows arrive as private-use codepoints
+        // (e.g. macOS NSLeftArrowFunctionKey = 0xF702). Any non-letter
+        // non-digit non-punct codepoint should still cancel.
+        let mut sess = s_with_pred();
+        let _ = sess.handle_key(0xF702, 0);
+        assert!(
+            !sess.composite.has_predictions(),
+            "Arrow-key codepoint must cancel 联想 predictions"
+        );
+    }
+
+    #[test]
+    fn letter_does_not_eagerly_cancel_predictions() {
+        // Letters are the continuation path: they start a new composing
+        // round. The guard must not run on letters — handle_letter has
+        // its own state-management. In practice the new composing buffer
+        // overrides what the host UI displays, and a subsequent commit
+        // will refresh predictions via update_bigram_context.
+        let mut sess = s_with_pred();
+        let consumed = sess.handle_key(b'n' as u32, 0);
+        assert!(consumed, "letter should be consumed");
+        // We don't assert on has_predictions here — handle_letter may
+        // or may not have touched prediction_buf depending on whether
+        // the letter triggered ASCII fallback or a commit. The
+        // important invariant is just that the guard didn't preemptively
+        // cancel before letting handle_letter run. Verify by checking
+        // that the engine has started a composing buffer (the
+        // continuation path was taken).
+        assert!(
+            sess.composite.is_composing(),
+            "letter must start a new composing round (continuation path)"
+        );
+    }
+
+    #[test]
+    fn ctrl_modifier_short_circuits_guard() {
+        // Ctrl+anything short-circuits the entire handle_key_cjk before
+        // reaching the guard — app shortcuts (Ctrl+C / Ctrl+A / …) must
+        // not wipe predictions as a side effect. Same for Cmd.
+        let mut sess = s_with_pred();
+        let consumed = sess.handle_key(b'c' as u32, MOD_CTRL);
+        assert!(!consumed, "Ctrl+c should fall through to host");
+        assert!(
+            sess.composite.has_predictions(),
+            "Ctrl modifier must short-circuit before the cancel guard"
+        );
+
+        // Cmd too.
+        let consumed = sess.handle_key(b'c' as u32, MOD_CMD);
+        assert!(!consumed, "Cmd+c should fall through to host");
+        assert!(
+            sess.composite.has_predictions(),
+            "Cmd modifier must short-circuit before the cancel guard"
+        );
+    }
+
+    #[test]
+    fn guard_no_op_when_no_predictions() {
+        // Sanity: when prediction_buf is empty, non-letter input still
+        // routes correctly (just no cancellation work to do). Catches a
+        // hypothetical regression where the guard could double-fire
+        // refresh_caches and corrupt cand_cache.
+        let mut sess = Session::new();
+        sess.set_auto_commit_policy(AutoCommitPolicy::Never);
+        sess.set_mode(Mode::PinyinOnly);
+        assert!(!sess.composite.has_predictions());
+        let consumed = sess.handle_key(b'1' as u32, 0);
+        assert!(!consumed, "digit at fresh state passes through");
+        assert!(!sess.composite.has_predictions());
     }
 }
 
@@ -1248,14 +1903,136 @@ mod jiazai_ranking {
         let mut sess = Session::new();
         sess.set_auto_commit_policy(AutoCommitPolicy::Never);
         sess.set_mode(crate::composite::Mode::PinyinOnly);
-        for cp in b"jiazai" { sess.handle_key(*cp as u32, 0); }
+        for cp in b"jiazai" {
+            sess.handle_key(*cp as u32, 0);
+        }
         let cands = sess.candidates();
         let pos = |w: &str| cands.iter().position(|c| c == w);
         let p_load = pos("加载");
         let p_at = pos("加在");
-        assert!(p_load.is_some(), "加载 must be present. Got: {:?}", cands.iter().take(5).collect::<Vec<_>>());
+        assert!(
+            p_load.is_some(),
+            "加载 must be present. Got: {:?}",
+            cands.iter().take(5).collect::<Vec<_>>()
+        );
         if let (Some(load), Some(at)) = (p_load, p_at) {
-            assert!(load < at, "加载 (pos {}) must outrank 加在 (pos {})", load, at);
+            assert!(
+                load < at,
+                "加载 (pos {}) must outrank 加在 (pos {})",
+                load,
+                at
+            );
+        }
+    }
+}
+
+/// v1.17 hot-reload wiring.
+///
+/// Before v1.17 only the pinyin half of a bundle's data dir was ever read
+/// back. The wubi and nihongo tables were `include_bytes!`-only, so a wubi
+/// or JP polish could not reach a running process at all — and once
+/// `reinstall.py` classified those paths as data-only, such a polish took
+/// the SIGUSR1 fast path and shipped nothing while reporting success.
+/// These tests pin the wiring that closed it.
+#[cfg(test)]
+mod engine_data_reload {
+    use super::*;
+
+    /// Stage a directory shaped like a bundle's `Contents/Resources/data/`
+    /// from the embedded blobs, so the reload path can be exercised
+    /// without an installed .app.
+    #[cfg(not(target_arch = "wasm32"))]
+    fn stage_data_dir(tag: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "inputx-reload-{}-{}-{tag}",
+            std::process::id(),
+            std::time::SystemTime::UNIX_EPOCH
+                .elapsed()
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).expect("create staging dir");
+        let w = |name: &str, bytes: &[u8]| {
+            std::fs::write(dir.join(name), bytes).unwrap_or_else(|e| panic!("write {name}: {e}"))
+        };
+        w("pinyin.dict", inputx_pinyin_data_core::EMBEDDED_PINYIN_DICT);
+        w("words.idf", inputx_pinyin_helpers::EMBEDDED_PINYIN_IDF);
+        w("wubi.idf", inputx_wubi_data::EMBEDDED_WUBI_IDF);
+        w("wubi86.dict", inputx_wubi::DICT_BYTES);
+        w(
+            "kanji.idf",
+            inputx_nihongo_data_kanji::EMBEDDED_NIHONGO_KANJI_IDF,
+        );
+        w(
+            "jukugo.idf",
+            inputx_nihongo_data_jukugo::EMBEDDED_NIHONGO_JUKUGO_IDF,
+        );
+        dir
+    }
+
+    #[test]
+    #[cfg(not(target_arch = "wasm32"))]
+    fn reload_engine_data_round_trips_all_three_engines() {
+        let dir = stage_data_dir("ok");
+        let mut sess = Session::new();
+        sess.reload_engine_data(&dir).expect("reload must succeed");
+
+        // Same bytes in as were already loaded, so every engine must
+        // still answer identically afterwards.
+        for (buf, expect) in [("wyet", "信用"), ("jixu", "继续")] {
+            sess.clear();
+            for b in buf.bytes() {
+                sess.handle_key(b as u32, 0);
+            }
+            assert!(
+                sess.candidates().iter().any(|c| c == expect),
+                "{buf} lost {expect} after reload; got {:?}",
+                sess.candidates().iter().take(5).collect::<Vec<_>>()
+            );
+        }
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    #[cfg(not(target_arch = "wasm32"))]
+    fn reload_engine_data_tolerates_a_pre_v1_17_bundle() {
+        // A bundle built before v1.17 ships only the pinyin files. The
+        // reload must still succeed on it — rolling back to an older
+        // .app must not brick the signal path.
+        let dir = stage_data_dir("old-bundle");
+        for gone in ["wubi.idf", "wubi86.dict", "kanji.idf", "jukugo.idf"] {
+            std::fs::remove_file(dir.join(gone)).expect("remove");
+        }
+        let mut sess = Session::new();
+        sess.reload_engine_data(&dir)
+            .expect("missing engine files must be skipped, not fatal");
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    #[cfg(not(target_arch = "wasm32"))]
+    fn reload_engine_data_rejects_a_corrupt_wubi_table() {
+        // Proves the wubi files are genuinely read and parsed by this
+        // path rather than being listed and ignored — the failure mode
+        // that let a wubi polish "succeed" while shipping nothing.
+        for (name, want) in [
+            ("wubi86.dict", "wubi86.dict"),
+            ("wubi.idf", "wubi.idf"),
+            ("kanji.idf", "kanji.idf"),
+            ("jukugo.idf", "jukugo.idf"),
+        ] {
+            let dir = stage_data_dir(name);
+            std::fs::write(dir.join(name), b"not a dict at all").expect("corrupt");
+            let mut sess = Session::new();
+            let err = sess
+                .reload_engine_data(&dir)
+                .expect_err("a corrupt {name} must fail the reload");
+            let msg = format!("{err}");
+            assert!(
+                msg.contains(want),
+                "error should name the offending file; got {msg:?}"
+            );
+            std::fs::remove_dir_all(&dir).ok();
         }
     }
 }

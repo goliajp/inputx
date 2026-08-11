@@ -1,0 +1,165 @@
+# Corpus digest log — append-only audit trail of every "eat" event
+# for the inputx library files (pinyin, wubi, nihongo).
+#
+# Per 2026-06-03 治理 architecture (`.claude/PLAN-corpus-治理.md`):
+#
+#   - Library files are source-agnostic (no upstream identity in rows).
+#     Per-event provenance lives here and ONLY here.
+#
+#   - Each digest event records:
+#       event_id        — unique identifier (date + source name)
+#       engine          — pinyin | wubi | nihongo
+#       source_type     — self (we made it) | external (3rd-party)
+#       source_name     — display name (e.g. "jieba-phrases-dict")
+#       source_version  — upstream version tag or our own version
+#       source_sha256   — sha256 of the upstream artifact (n/a for legacy)
+#       ingested_at     — date
+#       rows_added      — count attributed to this event
+#       rows_rejected   — count rejected by garbage filter
+#       notes           — free-text context
+#
+#   - Library rows themselves are source-agnostic ("digested" or "polish").
+#     Row → event mapping is intentionally NOT recorded — the policy is
+#     "结果内化到我们自己的库中，再不能有原来的影子".
+#
+# Adding a new event: append a new [[event]] block at the bottom. Never
+# rewrite history.
+
+version = 1
+
+# ─────────────────────────────────────────────────────────────────────
+# Legacy ingestion anchor — all weights.tsv content as of 2026-06-03
+# attributed here without per-row provenance. The pre-治理 build chain
+# (`pinyin-build-weights`) was non-deterministic and didn't track which
+# row came from which upstream; this event closes the books on that
+# era. Future events go incremental from this baseline.
+# ─────────────────────────────────────────────────────────────────────
+
+[[event]]
+event_id = "pinyin-legacy-2026-06-03"
+engine = "pinyin"
+source_type = "self"
+source_name = "legacy-merge"
+source_version = "pre-治理"
+source_sha256 = "n/a"
+ingested_at = "2026-06-03"
+rows_added = 397493
+rows_rejected = 0
+library_sha256_after = "a9ffa1d20a38e6146626f7808e7ba4d6030296c1ba28bb44e3ed8c4ec3892c5b"
+notes = """
+First-iteration legacy ingestion for the pinyin engine. Closes the books
+on the non-deterministic pre-治理 `pinyin-build-weights` pipeline. All
+397493 rows attributed here without per-row provenance; the historical
+intermediate files (phrases_jieba.tsv, readings.tsv, readings_unihan.tsv,
+phrases_composed.tsv, heteronyms_curated.tsv, bootstrap.tsv,
+pypinyin_phrases.json) are retired from the source tree in the same
+commit.
+
+The 4 polish-added rows (jile/寄了, liangle/凉了, pianni/偏你, pianni/
+骗你) are excluded from this count — they're tagged `source=polish` in
+library.tsv and represent post-治理 hand-edits.
+
+Future jieba / unihan / etc. updates will be digested incrementally
+against this baseline by the corpus-digest tool (TBD).
+"""
+
+# ─────────────────────────────────────────────────────────────────────
+# Wubi engine legacy ingestion — same anchor pattern as pinyin. All
+# pre-治理 weights.tsv content attributed here. 4 polish-edited rows
+# (hang/虛, rang/拒, yang/讵, yang/詎 freq=0 demotes) tagged source=
+# polish in library.tsv; not counted in rows_added.
+# ─────────────────────────────────────────────────────────────────────
+
+[[event]]
+event_id = "wubi-legacy-2026-06-03"
+engine = "wubi"
+source_type = "self"
+source_name = "legacy-merge"
+source_version = "pre-治理"
+source_sha256 = "n/a"
+ingested_at = "2026-06-03"
+rows_added = 135813
+rows_rejected = 5
+library_sha256_after = "1b0100d821c6abe67b60291a1983189b0b0afabb58183bd26faafe025c981860"
+notes = """
+Closes the books on the non-deterministic pre-治理 `wubi-build-weights`
+pipeline. All 135813 rows attributed here without per-row provenance.
+
+rows_rejected = 5: yong/恋情, deng/有情, geng/表情, tong/释怀,
+jixu/曳光弹 — phrases that were polish-deleted from phrases.txt in
+commits 1afec0f (wubi sweep) but lingered as orphaned freq rows in
+weights.tsv. Cleaned up in this migration; they remain D1 in
+corpus_garbage_filter_v1.tsv (the wubi side hasn't been recorded
+there yet; will be added in Phase 2b absorption).
+
+Phase 2b deferred: phrases.txt absorption (merge its rows into
+library.tsv as layer=Phrase entries). Requires build.rs refactor;
+keeping phrases.txt as the structural source of phrase entries for
+now to minimize Phase 2 blast radius.
+"""
+
+# ─────────────────────────────────────────────────────────────────────
+# Nihongo engine — first ingestion under 治理 architecture. Source was
+# previously a 28k-line const array in src/{jukugo,kanji}.rs (generated
+# by build_jukugo_rs.py / build_kanji_rs.py from supplemental TSVs).
+# Migrated to data/library.tsv with type col (jukugo|kanji); the
+# const arrays and codegen scripts are retired.
+# ─────────────────────────────────────────────────────────────────────
+
+[[event]]
+event_id = "nihongo-legacy-2026-06-03"
+engine = "nihongo"
+source_type = "self"
+source_name = "legacy-merge"
+source_version = "pre-治理"
+source_sha256 = "n/a"
+ingested_at = "2026-06-03"
+rows_added = 29046
+rows_rejected = 0
+library_sha256_after = "7708c37e4bc7d423197e2d3e2fbc3d3016bffdf8124e7aa8f481f1f4cb5b7487"
+notes = """
+First-iteration legacy ingestion for nihongo. Closes the books on the
+pre-治理 codegen pipeline (build_jukugo_rs.py / build_kanji_rs.py
+generating const arrays in src/{jukugo,kanji}.rs).
+
+Flat structure: each row is one (reading, word, type, freq) tuple.
+Multi-reading kanji (人 → jin/nin/hito) appear as 3 rows here. Total
+breakdown:
+  - 27380 jukugo entries
+  - 1666 kanji entries (flattened from ~850 multi-reading kanji)
+
+Retired in this commit:
+  - src/jukugo.rs JUKUGO_TABLE const (~27k lines)
+  - src/kanji.rs KANJI_TABLE const (~850 lines)
+  - tools/nihongo/{build_jukugo_rs.py, build_kanji_rs.py, build_mozc_jukugo.py, build_brands_tsv.py, build_counters_tsv.py}
+  - tools/scoring/data/supplemental/jp_{jukugo,jukugo_mozc,kanji,brands,counters}_v1.tsv
+"""
+
+# ─── auto-emitted by corpus-digest ────────────────────────────────
+[[event]]
+event_id = "jieba-phrases-dict-2026-06-03"
+engine = "pinyin"
+source_type = "external"
+source_name = "结巴中文分词词典 (主词典 dict.txt)"
+source_version = "git:HEAD"
+source_sha256 = "7197c3211ddd98962b036cdf40324d1ea2bfaa12bd028e68faa70111a88e12a8"
+ingested_at = "2026-06-03"
+rows_added = 24757
+rows_updated = 0
+rows_rejected = 42750
+library_sha256_after = "1d7b6c1d789dffe3a6bdf967c0978901e4cd78497c339b268b6dbfd159f01c9c"
+notes = """
+Phase B-3c milestone (v2 safe-reading): first external source ingested under 治理后 v2 '吃' semantics. 24757 new words via fold; 281k existing rows preserved (库自主); 38k 多音字 + 4.7k 非 Han dropped (safe-reading filter).
+
+fold_a = 8.4238
+fold_b = 0.2390
+fold_p5 = 2367
+fold_p95 = 26381
+fold_n_pairs = 179554
+added_freq_min = 5375
+added_freq_med = 6343
+added_freq_max = 26381
+skipped_same = 0
+skipped_library_wins = 281539
+skipped_polish = 0
+"""

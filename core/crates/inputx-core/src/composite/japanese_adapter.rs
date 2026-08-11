@@ -1,5 +1,8 @@
-//! Thin wrapper around [`inputx_jp::JapaneseEngine`] so the composite
-//! layer can plug it next to `PinyinAdapter` with a matching shape:
+//! Thin wrapper around the composite-side [`crate::japanese::JapaneseEngine`]
+//! (v1.5.1 WU-κ carved out of `inputx_nihongo::JapaneseEngine` —
+//! same API surface, jukugo / kanji lookups now route through IDF
+//! readers instead of facade const tables) so the composite layer
+//! can plug it next to `PinyinAdapter` with a matching shape:
 //! `handle_letter` / `backspace` / `escape` / `clear_all` / `is_composing`
 //! / `buffer_str` / `candidates` / `commit_index`.
 //!
@@ -9,13 +12,19 @@
 //! three engines uniformly without inputx-core taking a hard compile-
 //! time switch on whether JP is in the build.
 
-use inputx_jp::JapaneseEngine;
+// v1.5.1 WU-κ carve-out: composite-side JapaneseEngine reads jukugo /
+// kanji corpus through cement IDF readers instead of the facade
+// `JUKUGO_TABLE` / `KANJI_TABLE` const tables. Facade
+// `inputx_nihongo::JapaneseEngine` stays intact for direct-facade
+// consumers (notably `inputx-nihongo-wasm`); see
+// `crate::japanese::mod` for the carve-out rationale.
+use crate::japanese::JapaneseEngine;
 
 /// Filter: drop candidates that aren't usable IME output. Two rejection
 /// classes, both products of the engine's mechanical rendering rather than
 /// of real conversion:
 ///
-/// 1. **Residual ASCII letters.** `inputx_jp`'s Hepburn romaji→kana state
+/// 1. **Residual ASCII letters.** `inputx_nihongo`'s Hepburn romaji→kana state
 ///    machine treats unclaimed letters (e.g. `g` not followed by a vowel)
 ///    as literal Latin passthrough. For `gkih` it produces `g` →
 ///    (consumes `ki` as `き`) → `h` and emits `gきh` / `gキh` —
@@ -34,12 +43,11 @@ fn is_jp_clean(word: &str) -> bool {
     if word.chars().any(|c| c.is_ascii_alphabetic()) {
         return false;
     }
-    if word.chars().any(is_kanji) {
-        if let Some(first) = word.chars().next() {
-            if !is_kanji(first) {
-                return false;
-            }
-        }
+    if word.chars().any(is_kanji)
+        && let Some(first) = word.chars().next()
+        && !is_kanji(first)
+    {
+        return false;
     }
     true
 }
@@ -51,6 +59,104 @@ fn is_jp_clean(word: &str) -> bool {
 fn is_kanji(c: char) -> bool {
     ('\u{4E00}'..='\u{9FFF}').contains(&c)
 }
+
+/// `true` if `buf` contains a romaji substring that's only used for foreign
+/// loanwords — i.e., a syllable from the extended-Hepburn table that native
+/// JP vocabulary doesn't use. Triggers the katakana > hiragana score swap
+/// in `candidates_with_scores` so words like `famiriaare` (ファミリアアレ),
+/// `vaiorin` (ヴァイオリン), `pa-thi-` (パーティー) surface katakana ahead
+/// of hiragana — matching real JP convention for gairaigo.
+///
+/// Patterns are the foreign-syllable subset of `inputx_nihongo::romaji::TABLE`.
+/// Order: longest first (so 3-letter matches lock before 2-letter could).
+/// Doesn't include kunrei-vs-Hepburn pairs (shi/si, chi/ti, tsu/tu, ji/zi):
+/// those are native JP, not foreign loanword markers.
+fn buffer_is_foreign_romaji(buf: &str) -> bool {
+    // Patterns sorted longest-first to avoid false positives via prefix
+    // overlap (none of these prefix-overlap with native syllables — `fa`
+    // doesn't prefix any native, etc. — but length-desc is the convention).
+    const FOREIGN: &[&str] = &[
+        // 3-letter foreign extensions
+        "fya", "fyu", "fyo", "vya", "vyu", "vyo", "tsa", "tsi", "tse", "tso", "che", "she", "kwa",
+        "kwi", "kwe", "kwo", "gwa", "gwi", "gwe", "gwo", "wha", "whi", "whe", "who", "tha", "thi",
+        "the", "tho", "dha", "dhi", "dhe", "dho", "twu", "dwu",
+        // 2-letter foreign extensions
+        "fa", "fi", "fe", "fo", "va", "vi", "vu", "ve", "vo", "wi", "we", "je", "xa", "xi", "xu",
+        "xe", "xo", "la", "li", "lu", "le", "lo",
+    ];
+    let lower = buf.to_ascii_lowercase();
+    FOREIGN.iter().any(|p| lower.contains(p))
+}
+
+/// Ceiling-first JP band model (user directive 2026-07-29):
+///
+/// > 如果有明显命中的中文常见词，不应该在日语以下，特别是长词，但是我也
+/// > 希望，单个的假名或者两个音节的假名，排名还是要确保能在中文的预测词和
+/// > 低频率词前面 […] 日语真正的高分档还是应该不低，但再高几乎也不应该
+/// > 超过 100% 命中的拼音常见词，更不可能超过五笔。
+///
+/// Translated into the 10-tier × 3-engine matrix, that is a **ceiling**,
+/// not an ordering rule — and the ceiling is fully determined by what
+/// already occupies the neighbouring tiers:
+///
+/// ```text
+///   t0/t1  wubi prominent simcode          ← JP must never reach
+///   t≤4    pinyin exact-hit common word    ← EXACT_COMMON_TIER_CAP = 4
+///   t4     ***JP CEILING***                ← every JP dict / kana path
+///   t5/t6  pinyin low-freq exact words     ← JP must outrank
+///   t7..t9 predictions / compose / fuzzy   ← JP must outrank
+/// ```
+///
+/// At tier 4 the tier × engine table finishes the job with no extra
+/// rule: `engine_gap_q4 (110) > within_tier_max_q4 (100)` means an
+/// exact-hit common Chinese word ALWAYS beats a same-tier JP candidate
+/// (px > nx), while the tier gap means that same JP candidate always
+/// beats Chinese low-freq and predicted candidates at t5+. Both halves
+/// of the user's rule fall out of one number.
+///
+/// Consequently NO JP path may emit a tier below this value. Paths that
+/// used to (pure-kana jukugo t2, the freq-quantile dict band t2/t3) are
+/// clamped here; the dict tail keeps its own spread at t5/t6/t9 via the
+/// nihongo quantile in `engine_weights.toml`.
+const JP_TIER_CEILING: u8 = 4;
+
+/// The one sanctioned exception to the ceiling: kana on a buffer of
+/// [`JP_SHORT_BUFFER_MAX`] letters or fewer.
+///
+/// This is not a carve-out — it is the ceiling's own premise failing to
+/// apply. The ceiling exists to keep JP under "exact-hit common Chinese
+/// **word**", and `words.tsv` contains **zero** codes of ≤2 letters
+/// (measured 2026-07-29), so at these buffers there is no such word to
+/// protect. What IS present is the pinyin single-char path, whose common
+/// chars sit at t1/t2 and therefore still lead — while rare chars at
+/// t5/t6 correctly yield (see `pinyin_rare_cjk_chars_yield_to_jp_basic_kana`).
+///
+/// Keeping it at tier 1 also preserves the 2026-06-03 ruling
+/// 「常规假名短字符一定要比其他日语高」: `ki` must give き/キ over
+/// 気/起/記. At a shared tier the within-tier freq score puts the kanji
+/// first, so the separation has to be a tier.
+///
+/// Tier 1 is safe against the pinyin single-char path too: v2 grades
+/// chars 1/2/3 only (通用规范汉字表 一/二/三级), so a 一级字 ties here
+/// and still wins on px > nx, while a 三级字 at t3 correctly yields —
+/// which is the "假名要在低频前面" half of the same directive. Demoting
+/// this to t3 was tried and pushed も / え out of the top 50 entirely
+/// at `mo` / `e`, because every competing char sits at t1-t3.
+const JP_TIER_SHORT_KANA: u8 = 1;
+const JP_SHORT_BUFFER_MAX: usize = 2;
+
+/// Mechanical kana on a buffer long enough to be unambiguously a Chinese
+/// multi-syllable word shape. Below the ceiling so a real JP dict entry
+/// leads its own reading (`akashi` → 明石, not あかし) — the mirror of
+/// the short-buffer rule above.
+const JP_TIER_LONG_KANA: u8 = 5;
+const JP_LONG_BUFFER_MIN: usize = 5;
+
+/// Speculative JP band — prefix predictions and `compose_sentence`
+/// products. Machine-spliced output is not a dict hit and must sit
+/// with the other engines' speculative candidates, below every real
+/// entry of every engine.
+const JP_TIER_SPECULATIVE: u8 = 7;
 
 pub struct JapaneseAdapter {
     engine: JapaneseEngine,
@@ -64,7 +170,9 @@ impl Default for JapaneseAdapter {
 
 impl JapaneseAdapter {
     pub fn new() -> Self {
-        Self { engine: JapaneseEngine::new() }
+        Self {
+            engine: JapaneseEngine::new(),
+        }
     }
 
     pub fn handle_letter(&mut self, b: u8) -> bool {
@@ -105,7 +213,7 @@ impl JapaneseAdapter {
     }
 
     pub fn kanji_candidates(&self) -> Vec<String> {
-        use inputx_jp::KanaKind;
+        use inputx_nihongo::KanaKind;
         self.engine
             .candidates()
             .iter()
@@ -117,7 +225,7 @@ impl JapaneseAdapter {
 
     #[allow(dead_code)]
     pub fn kana_candidates(&self) -> Vec<String> {
-        use inputx_jp::KanaKind;
+        use inputx_nihongo::KanaKind;
         self.engine
             .candidates()
             .iter()
@@ -138,10 +246,10 @@ impl JapaneseAdapter {
     /// kanji-with-readings tables), so we synthesize per-kind scores
     /// chosen to slot into the cross-engine ranking:
     ///
-    ///   * Single-kanji (whole-buffer on/kun reading) → scoring::JP_SINGLE_KANJI_SCORE
-    ///   * Hiragana (mechanical kana rendering)        → scoring::JP_HIRAGANA_SCORE
-    ///   * Katakana                                    → scoring::JP_KATAKANA_SCORE
-    /// plus scoring::JP_FREQ_MULTIPLIER × freq (mechanical kana renders carry
+    ///   * Single-kanji (whole-buffer on/kun reading) → scoring::LIKELIHOOD_JP_SINGLE_KANJI_BASE
+    ///   * Hiragana (mechanical kana rendering)        → scoring::LIKELIHOOD_JP_HIRAGANA_BASE
+    ///   * Katakana                                    → scoring::LIKELIHOOD_JP_KATAKANA_BASE
+    /// plus scoring::PRIOR_FREQ_MULT_JP × freq (mechanical kana renders carry
     /// freq 0). scoring.rs is the source of truth — values currently are
     /// single-kanji 100k, hiragana 150k, katakana 110k (do NOT hardcode copies
     /// here; this comment drifted once and mislabeled hiragana as 100k).
@@ -152,15 +260,30 @@ impl JapaneseAdapter {
     /// confident JP matches aren't drowned out. The user can override
     /// per-buffer via picking #2/#3 — that goes to PolishLog and gets
     /// rolled into next pipeline run.
-    pub fn candidates_with_scores(&self) -> Vec<(String, f64)> {
-        use inputx_jp::KanaKind;
+    pub fn candidates_with_scores(&self) -> Vec<super::merge::Scored> {
         use crate::composite::scoring;
+        use inputx_nihongo::KanaKind;
+        // Short-buffer compose_sentence garbage filter (user polish-log
+        // 2026-05-26, jieni): for short romaji buffers (< 8 chars), the
+        // engine's compose_sentence path can produce ~30 mechanical
+        // "X+particle+Y" cartesian products that aren't real Japanese —
+        // jieni → 時へに / 事へに / 治へに / 耳へに / ... (X=ji-yomi kanji,
+        // particle=へ from `e`, Y=ni-reading). They score at
+        // LIKELIHOOD_JP_COMPOSED_BASE so they don't lead the candidate
+        // list, but their sheer count (~30) crowds out the visible window.
+        //
+        // The 8-char cutoff mirrors pinyin Path 0b Viterbi: under 8 chars
+        // the user isn't typing a multi-segment JP sentence, so any
+        // composed product is noise. Real long-form composed sentences
+        // (私は学生, watashiwagakusei = 14 chars) survive — at ≥8 chars
+        // there's enough buffer for a genuine compose to be intentional.
+        let short_buffer = self.engine.preedit().chars().count() < 8;
         // Full-match signal: a real full-buffer jukugo (multi-char kanji
         // with freq > 0) means the entire romaji buffer maps to a genuine
         // Japanese word — high-confidence "user is typing Japanese". In
         // that case the whole JP group is promoted so a high-freq jukugo
         // (新宿) beats the Chinese forced-composition fallback and kana
-        // (esp. katakana) surfaces. See scoring::JP_FULL_MATCH_PROMOTE.
+        // (esp. katakana) surfaces. See scoring::LIKELIHOOD_JP_FULL_MATCH_PROMOTE.
         // EXCLUDES compose_sentence products (`c.composed`): those are
         // mechanical guesses, not real dictionary words, so they must not
         // count as a full-match signal nor receive the promote.
@@ -176,29 +299,74 @@ impl JapaneseAdapter {
                 && c.freq > 0
                 && !is_pure_kana(&c.word)
         });
-        let promote = if full_match { scoring::JP_FULL_MATCH_PROMOTE } else { 1.0 };
+        let promote = if full_match {
+            scoring::LIKELIHOOD_JP_FULL_MATCH_PROMOTE
+        } else {
+            1.0
+        };
         self.engine
             .candidates()
             .iter()
             .filter(|c| is_jp_clean(&c.word))
+            .filter(|c| !(short_buffer && c.composed))
             .map(|c| {
                 // compose_sentence products score below real Chinese words
                 // (so 時へ時 never pollutes the top of jieji/jieshou) and are
                 // never promoted. Two tiers, split by whether the product is
                 // pure kanji: a "jukugo+suffix" compound like 東京都 is a
-                // high-confidence kanji conversion → JP_COMPOSED_KANJI_SCORE
+                // high-confidence kanji conversion → LIKELIHOOD_JP_COMPOSED_KANJI_BASE
                 // (above kana so it leads in JP mode); a particle-bearing
                 // compose like 時へ時 / 東京と (carries kana) stays at the low
-                // JP_COMPOSED_SCORE. Both still surface when there's no
+                // LIKELIHOOD_JP_COMPOSED_BASE. Both still surface when there's no
                 // Chinese competition (watashiwa→私は) and neither promotes.
                 if c.composed {
                     let pure_kanji = c.word.chars().all(|ch| ('一'..='鿿').contains(&ch));
                     let s = if pure_kanji {
-                        scoring::JP_COMPOSED_KANJI_SCORE
+                        scoring::LIKELIHOOD_JP_COMPOSED_KANJI_BASE
                     } else {
-                        scoring::JP_COMPOSED_SCORE
+                        scoring::LIKELIHOOD_JP_COMPOSED_BASE
                     };
-                    return (c.word.clone(), s);
+                    // bigram_links=0 — JP compose is mechanical, no bigram
+                    // chain support (cf. pinyin which gates compose on
+                    // ≥1 bigram link).
+                    let mt = inputx_scoring::MatchType::Composed { bigram_links: 0 };
+                    // v1.4.7 A2 step 3 orthodox decomposition: compose
+                    // products have no raw corpus freq (mechanical
+                    // jukugo+suffix / particle splice), so log_prior_q4 = 0
+                    // by construction; the per-tier base is purely a
+                    // likelihood signal (how confident the engine is in
+                    // *this kind* of composed structure). Pattern mirrors
+                    // wubi/pinyin exact-path A2 step 1+2: pure-data axis
+                    // emitted at the source, no synth helper indirection.
+                    let log_likelihood_q4 =
+                        (s.max(1.0).ln() * inputx_scoring::Q4 as f64).round() as i32;
+                    // v1.7.4: compose products with no raw corpus freq
+                    // get the freq-0 floor `log_prob_corpus_from_freq(0,
+                    // total)` so they sit at the bottom of the prior
+                    // axis (matching the legacy below-real-entries
+                    // intent). Reuse the jukugo total since JP compose
+                    // products are jukugo-shaped (multi-char kanji
+                    // compounds + particle splices).
+                    let log_prior_q4 = inputx_scoring::log_prob_corpus_from_freq(
+                        0,
+                        inputx_nihongo_data_jukugo::nihongo_jukugo_corpus_total(),
+                    );
+                    // 2026-07-29 ceiling-first: compose products are
+                    // machine-spliced, not dict hits — they belong in
+                    // the speculative band with JP predictions (7), not
+                    // at the JP ceiling. Pre-fix they sat at tier 4 and
+                    // were held down only by mechanical kana occupying
+                    // the same tier with a higher within-tier score; the
+                    // moment kana moved, 係ます / 日か吏ます led
+                    // `kakarimasu`. Tier is the honest place to say
+                    // "speculative".
+                    let components = super::merge::ScoreComponents::three_axis(
+                        log_prior_q4,
+                        log_likelihood_q4,
+                        mt,
+                    )
+                    .with_tier(JP_TIER_SPECULATIVE);
+                    return (c.word.clone(), s, Some(components));
                 }
                 // base = per-kind floor; freq-weighted add lifts high-freq
                 // JP above rare Chinese (per user rule: JP base < wubi/
@@ -214,28 +382,240 @@ impl JapaneseAdapter {
                         // single-kanji tier so えっ doesn't rank like a real
                         // 熟语 (user 2026-05-26: えっ at #3 for single `e`).
                         if is_pure_kana(&c.word) {
-                            scoring::JP_SINGLE_KANJI_SCORE
+                            scoring::LIKELIHOOD_JP_SINGLE_KANJI_BASE
                         } else if c.word.chars().count() > 1 {
-                            scoring::JP_JUKUGO_SCORE
+                            scoring::LIKELIHOOD_JP_JUKUGO_BASE
                         } else {
-                            scoring::JP_SINGLE_KANJI_SCORE
+                            scoring::LIKELIHOOD_JP_SINGLE_KANJI_BASE
                         }
                     }
-                    KanaKind::Hiragana => scoring::JP_HIRAGANA_SCORE,
-                    KanaKind::Katakana => scoring::JP_KATAKANA_SCORE,
+                    // Foreign-syllable buffer swap (user 2026-05-27, famiriaare):
+                    // when the romaji buffer contains a foreign-loanword syllable
+                    // (fa/va/wi/ti via thi/dhi/etc.), the user is typing a foreign
+                    // word — katakana (ファミリアアレ) is the conventional written
+                    // form, hiragana (ふぁみりああれ) is rare / unnatural. Swap
+                    // the two bases so katakana leads hiragana in this regime,
+                    // but stay below jukugo / kanji. Native-romaji buffers
+                    // (nihon→にほん) keep hiragana > katakana as before.
+                    KanaKind::Hiragana => {
+                        if buffer_is_foreign_romaji(self.engine.preedit()) {
+                            scoring::LIKELIHOOD_JP_KATAKANA_BASE
+                        } else {
+                            scoring::LIKELIHOOD_JP_HIRAGANA_BASE
+                        }
+                    }
+                    KanaKind::Katakana => {
+                        if buffer_is_foreign_romaji(self.engine.preedit()) {
+                            scoring::LIKELIHOOD_JP_HIRAGANA_BASE
+                        } else {
+                            scoring::LIKELIHOOD_JP_KATAKANA_BASE
+                        }
+                    }
                 };
-                // Prefix-prediction proximity decay: an exact candidate has
-                // proximity 1.0 (no change); a predicted one (shinjuk→新宿,
-                // 0.875) decays its freq contribution by proximity^K so it
-                // sits above simpdy noise but below the eventual full match,
-                // and rises as the user types closer. See PLAN-prefix-prediction.
+                // Prefix-prediction proximity decay via shared `predict_score`
+                // helper: an exact candidate has proximity 1.0 (no decay); a
+                // predicted one (shinjuk→新宿, 0.875) decays its freq
+                // contribution by proximity^K so it sits above simpdy noise
+                // but below the eventual full match, and rises as the user
+                // types closer. The helper unifies pinyin (CP-B), wubi
+                // (CP-C), and JP (CP-A) prefix scoring around the
+                // `base + freq·freq_mult·proximity^K` shape. See
+                // PLAN-prefix-prediction §4 and PLAN-probabilistic-model.
                 let proximity = c.proximity_milli as f64 / 1000.0;
-                let freq_term = scoring::JP_FREQ_MULTIPLIER * c.freq as f64
-                    * proximity.powf(scoring::PREDICT_PROXIMITY_K);
+                // v1.7.4: JP corpus_total picks the engine matching
+                // the candidate's origin:
+                //   * multi-char kanji (jukugo) → jukugo.idf total
+                //   * single-char kanji         → kanji.idf total
+                //   * Hiragana/Katakana renders → jukugo.idf total
+                //     (kana have no native corpus signal but the kana
+                //     `c.freq` carries the underlying kanji's freq for
+                //     ranking; the much-larger jukugo total presses
+                //     their log_prior into the bottom band where kana
+                //     belongs in the merge, below real kanji entries).
+                let corpus_total = match c.kind {
+                    KanaKind::Kanji if c.word.chars().count() > 1 && !is_pure_kana(&c.word) => {
+                        inputx_nihongo_data_jukugo::nihongo_jukugo_corpus_total()
+                    }
+                    KanaKind::Kanji => inputx_nihongo_data_kanji::nihongo_kanji_corpus_total(),
+                    KanaKind::Hiragana | KanaKind::Katakana => {
+                        inputx_nihongo_data_jukugo::nihongo_jukugo_corpus_total()
+                    }
+                };
+                let (pre_promote, mut components) = scoring::predict_score_with_components(
+                    base,
+                    c.freq as u64,
+                    scoring::PRIOR_FREQ_MULT_JP,
+                    proximity,
+                    corpus_total,
+                );
                 // Predictions (proximity < 1) never ride the full-match promote.
-                let mult = if c.proximity_milli >= 1000 { promote } else { 1.0 };
-                let score = (base + freq_term) * mult;
-                (c.word.clone(), score)
+                let mult = if c.proximity_milli >= 1000 {
+                    promote
+                } else {
+                    1.0
+                };
+                let score = pre_promote * mult;
+                // v1.4.2 WU-γ: full-match promote folds into log_likelihood
+                // (multiplicative in linear space → additive in log space).
+                // Without this, score_q4() would not equal the legacy sort
+                // key in rank order at the post-promote tier; the cement
+                // layer cutover (v1.4.5+) needs the promote represented
+                // in the log-space view. The v1.3 (base, prior, likelihood)
+                // legacy view intentionally stays UN-promoted — the
+                // user-visible `score` then carries the promote implicitly
+                // (`score / (base + prior · likelihood) == promote`).
+                if mult > 1.0 {
+                    let delta_q4 = (mult.ln() * inputx_scoring::Q4 as f64).round() as i32;
+                    components.log_likelihood_q4 =
+                        components.log_likelihood_q4.saturating_add(delta_q4);
+                }
+                // Tier assignment for JP candidates:
+                //   - prediction (proximity < 1000) → 7 (specialty)
+                //   - exact match by kind:
+                //     - Hiragana / Katakana matching buffer → 4 (mechanical
+                //       rendering — no dict signal, fallback only)
+                //     - Jukugo (multi-char kanji)          → 1 (real dict)
+                //     - Single kanji                       → 2 (real dict)
+                //
+                // Phase C (2026-06-03): mechanical kana rendering (the
+                // `romaji::to_hiragana` / `to_katakana` fallback in
+                // inputx-nihongo/src/engine.rs lines 246-265) used to
+                // sit at tier 1 — that meant typing `tuijian` surfaced
+                // ついじあん / ツイジアン above pinyin tier-2 推荐 in
+                // Mixed+jp mode.  Demote mechanical kana to tier 4 so
+                // pinyin/wubi real candidates lead in Mixed; in JP-only
+                // mode the merge has no other engine so mechanical kana
+                // still surfaces (just below any real dict jukugo /
+                // single-kanji hits, which is correct ordering).
+                //
+                // Real dict basic kana (も in jukugo TSV freq=95, で
+                // freq=100, etc.) are emitted by `jukugo::lookup_by_
+                // reading` as KanaKind::Kanji + pure_kana, so they fall
+                // into the KanaKind::Kanji branch below and keep their
+                // tier 2 — they're not affected by this change.
+                // Mechanical kana buffer-length 3-band split:
+                //   1-2 chars (ka, ki, mo, sa — basic 50音 single
+                //     syllable) → tier 1.  These are unambiguous "user
+                //     wants the kana" cases, even when no pinyin syllable
+                //     overlaps (ki).  Coexists with dict basic kana
+                //     entries (も で を に etc.) which also land tier 1
+                //     via the KanaKind::Kanji single+pure_kana branch.
+                //   3 chars (sai → さい, kana → かな) → tier 2.
+                //     Genuinely ambiguous between JP word and Chinese
+                //     pinyin (ka=卡/か, sai=塞/さい); cohabits with
+                //     pinyin tier-2 single chars.
+                //   4 chars (fudu → ふづ, tuli → ツィ) → tier 5.
+                //     2-syllable Chinese pinyin shape (CV+CV); buffer
+                //     is overwhelmingly Chinese intent.  Demote to tier
+                //     5 so mid-freq pinyin (z≥0.3 → tier 3) outranks
+                //     mechanical kana noise.
+                //   ≥ 5 chars (tuijian → ついじあん, kaopu → かおぷ,
+                //     kakarimasu → かかります) → tier 4.
+                //     Long buffers ARE typically Chinese (3+ syllable
+                //     compounds), but Phase E forced-segmentation gate
+                //     can leave Chinese K-best noise like 下か吏ます
+                //     (Path 1 char-mix tier 1) on the table — tier 4
+                //     mechanical kana suppresses it.
+                //
+                // User report 2026-06-04: "tuli/fudu/maizai 这些日语
+                // 不应该在正常中频拼音前面" — recurring complaint on
+                // 4-char Chinese-shaped buffers.  Phase C 2026-06-03
+                // had `3-4 chars → tier 2` which left mid-freq pinyin
+                // (z<1.3 → tier 3+) buried under mechanical kana.
+                // Phase C-3 2026-06-04 splits 3 ↔ 4 ↔ 5+ to push
+                // 4-char into tier 5 (less_common bucket): genuinely
+                // Chinese buffers always lead, basic kana single-syll
+                // (tier 1) still surfaces for top-10 JP visibility.
+                //
+                // User report 2026-06-03 ki: 記/起/気 etc. nihongo single
+                // kanji shouldn't outrank きキ — basic kana 50音 single
+                // syllable is invariant priority over single-kanji
+                // candidates ("常规假名短字符一定要比其他日语高").
+                let buf_len = self.engine.preedit().chars().count();
+                let short_buf = buf_len <= JP_SHORT_BUFFER_MAX;
+                let tier_jp: u8 = if c.proximity_milli < 1000 {
+                    JP_TIER_SPECULATIVE
+                } else {
+                    match c.kind {
+                        // Mechanical kana rendering. Pre-2026-07-29 this
+                        // was a 4-band split (1-2→1, 3→2, 4→5, ≥5→4)
+                        // guessing Chinese-vs-Japanese intent from buffer
+                        // length. The ceiling collapses the middle: at
+                        // tier 4 kana loses to every exact-hit common
+                        // Chinese word via px > nx and beats every
+                        // low-freq / predicted Chinese candidate via the
+                        // tier gap, so 3-letter and 4-letter buffers no
+                        // longer need to differ. Only the two ends keep a
+                        // band of their own, each for a documented reason
+                        // (see the consts above).
+                        KanaKind::Hiragana | KanaKind::Katakana => {
+                            if short_buf {
+                                JP_TIER_SHORT_KANA
+                            } else if buf_len >= JP_LONG_BUFFER_MIN {
+                                JP_TIER_LONG_KANA
+                            } else {
+                                JP_TIER_CEILING
+                            }
+                        }
+                        KanaKind::Kanji => {
+                            let multi = c.word.chars().count() > 1;
+                            let pure_kana = is_pure_kana(&c.word);
+                            match (multi, pure_kana) {
+                                // Multi-char real kanji jukugo (新宿,
+                                // 大学, 自主 etc.) — Phase D 2026-06-03:
+                                // route through nihongo z-score quantile
+                                // so low-freq jukugo (自主 freq=26,
+                                // z=-0.65) sinks to tier 5 instead of
+                                // unconditional tier 1.  This respects
+                                // the user directive "日语整体应该偏低,
+                                // 张得相对开" — Chinese phrases of
+                                // comparable corpus prominence win
+                                // mixed-mode排序.
+                                (true, false) => {
+                                    inputx_scoring::nihongo_tier_from_freq(c.freq as u64)
+                                        .max(JP_TIER_CEILING)
+                                }
+                                // Pure-kana multi-char "jukugo" (えっ,
+                                // ありがとう) — kana 感叹/寒暄 in the
+                                // hand TSV, not real 熟语.  Demoted to
+                                // tier 2 per user 2026-05-26
+                                // ("えっ at #3 for single `e` is wrong").
+                                // FIXED tier 2 (not via quantile) —
+                                // this is a non-freq attestation.
+                                (true, true) => JP_TIER_CEILING,
+                                // Single basic kana from dict (も で
+                                // を に — jukugo TSV entries of one
+                                // char pure_kana).  Phase C 2026-06-03:
+                                // FIXED tier 1 (user attestation —
+                                // basic kana 在很高级).
+                                // Dict basic kana (も で を) — same
+                                // short-buffer rule as mechanical kana
+                                // above; they are the same thing to the
+                                // user, only sourced differently.
+                                (false, true) => {
+                                    if short_buf {
+                                        JP_TIER_SHORT_KANA
+                                    } else {
+                                        JP_TIER_CEILING
+                                    }
+                                }
+                                // Single kanji (a kanji char emitted by
+                                // kanji::lookup_by_reading — 気 起 記
+                                // etc.) — Phase D 2026-06-03: route
+                                // through nihongo quantile.  Median
+                                // single-kanji (freq ≈ 50, z ≈ 0)
+                                // lands tier 4; rare-Han single kanji
+                                // (low freq) sinks to tier 5-6.
+                                (false, false) => {
+                                    inputx_scoring::nihongo_tier_from_freq(c.freq as u64)
+                                        .max(JP_TIER_CEILING)
+                                }
+                            }
+                        }
+                    }
+                };
+                let components = components.with_tier(tier_jp);
+                (c.word.clone(), score, Some(components))
             })
             .collect()
     }
@@ -297,7 +677,9 @@ mod tests {
         // The clean kana renderings (をやお / ヲヤオ) must still survive so
         // JP isn't left empty for this buffer.
         assert!(
-            jp.candidates().iter().any(|c| c.chars().all(|ch| !is_kanji(ch))),
+            jp.candidates()
+                .iter()
+                .any(|c| c.chars().all(|ch| !is_kanji(ch))),
             "expected at least one pure-kana candidate to survive, got {:?}",
             jp.candidates()
         );

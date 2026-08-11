@@ -1,0 +1,29 @@
+[package]
+name = "inputx-l0"
+version = "1.4.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+description = "Per-user pin / boost store for IME engines. L0v1 binary format, hard-reset friendly (mounts old / unknown format as empty). Q4 log-prior boost (additive on top of dict log_prior)."
+authors = ["GOLIA K.K."]
+repository = "https://github.com/goliajp/inputx"
+homepage = "https://github.com/goliajp/inputx"
+keywords = ["ime", "personalization", "pin", "user-data", "fixed-point"]
+categories = ["data-structures", "encoding"]
+
+[lib]
+crate-type = ["rlib"]
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+# Zero external deps — own L0v1 binary format.
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

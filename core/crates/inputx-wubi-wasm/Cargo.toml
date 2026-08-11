@@ -1,6 +1,6 @@
 [package]
 name = "inputx-wubi-wasm"
-version = "1.2.0"
+version = "1.5.0"
 edition = "2024"
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
@@ -13,14 +13,13 @@ keywords = ["wubi", "ime", "chinese", "wasm", "wasm-bindgen"]
 categories = ["text-processing", "internationalization", "wasm"]
 
 [lib]
-name = "wubi_wasm"
 crate-type = ["cdylib"]
 
 [dependencies]
-# `package = "inputx-wubi"` rename keeps the `use wubi::...` import path
-# stable across the rename. Path dep for local-dev edit cycle; version
-# constraint kicks in for crates.io consumers.
-wubi = { package = "inputx-wubi", version = "1.0", path = "../inputx-wubi" }
+# Path dep for local-dev edit cycle; version constraint kicks in for
+# crates.io consumers. Consumer imports via canonical `use inputx_wubi::...`
+# (PLAN.md D8: lib name 完全 inputx_* default, no overrides).
+inputx-wubi = { version = "1.4", path = "../inputx-wubi" }
 wasm-bindgen = "0.2"
 js-sys = "0.3"
 
@@ -34,3 +33,6 @@ js-sys = "0.3"
 # unoptimized output (still ~33KB code).
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
+
+[lints]
+workspace = true

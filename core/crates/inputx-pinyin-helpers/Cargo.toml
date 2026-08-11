@@ -1,0 +1,33 @@
+[package]
+name = "inputx-pinyin-helpers"
+version = "1.6.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+description = "Pinyin-specific stateless helpers + embedded IDFv1 dict (with prior_correction baked) + embedded NGMv1 bigram blob, for the inputx-pinyin engine. Bigram boost helpers, log_prior round-trip inverse, IdfReader OnceLock. Successor to inputx-pinyin-cement under the v1.5 D11 taxonomy correction (cement = application source; this crate is pure stones — no per-session state, no application glue)."
+authors = ["GOLIA K.K."]
+repository = "https://github.com/goliajp/inputx"
+homepage = "https://github.com/goliajp/inputx"
+keywords = ["pinyin", "ime", "chinese", "ngram", "embedded"]
+categories = ["text-processing", "internationalization"]
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+# Pinyin facade — engine type used in the legacy bigram boost helper
+# signature for caller-context bigram weighting.
+inputx-pinyin = { workspace = true }
+inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
+inputx-ngram = { path = "../inputx-ngram", version = "1.4" }
+inputx-scoring = { path = "../inputx-scoring", version = "1.4" }
+# v1.15 hot-reload:pinyin_idf_reader() 换成 ArcSwap 支撑,让 polish
+# 后 process-global IdfReader 可以原地替换而不 kill IME 进程。
+arc-swap = "1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

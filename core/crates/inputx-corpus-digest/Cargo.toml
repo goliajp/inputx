@@ -1,0 +1,44 @@
+[package]
+name = "inputx-corpus-digest"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Tool only; no library API. Hosts the `corpus-digest` binary, the
+# implementation of the 3-layer corpus persistence model designed in
+# `.claude/PLAN-corpus-digest.md`:
+#
+#   library.tsv (per engine)  — truth, what runtime reads
+#   digest_log.toml           — append-only event history
+#   source_registry.toml      — current state per source, queryable
+#
+# Phase A MVP (this crate's first cut):
+#   - list / show / events  (read-only)
+#   - ingest <id> [--apply]  (single source full pipeline)
+#   - fetch_kind = "file"
+#   - ingest_format = "simple_tsv"
+#   - pinyin engine only
+#
+# Phase B (later): HTTP fetch, jieba_phrase parser, wubi/nihongo
+# engines, check/auto.
+
+[[bin]]
+name = "corpus-digest"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+toml = "1.1"
+sha2 = "0.11"
+# HTTP client for fetch_kind=http sources (Phase B-1).  rustls TLS so no
+# system OpenSSL dependency; blocking API so no tokio runtime.
+ureq = { version = "3", default-features = false, features = ["rustls", "gzip"] }
+# Phase B-3: jieba_phrase parser needs per-char pinyin readings to derive
+# `code` for word-only upstream sources (jieba dict.txt carries word+freq+pos
+# but no reading). `inputx_pinyin::char_to_pinyin` walks the embedded
+# pinyin.dict reverse-index. Pulled at workspace version.
+inputx-pinyin = { workspace = true }
+
+[lints]
+workspace = true

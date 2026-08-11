@@ -26,6 +26,24 @@ final class InputxSessionIntegrationTests: XCTestCase {
                        "gmww top candidate should be 两 (single char)")
     }
 
+    /// Segment mode (拼音手动分段) chain over the FFI. xiaomingzaixizao →
+    /// ← stop points [8,7,6,4,3,2] (xiaoming/xiaomin/xiaomi/xiao/xia/xi);
+    /// committing the first segment keeps the remainder for the next round.
+    func testSegmentChainForLongPinyin() {
+        let s = session()
+        s.setAutoCommitPolicy(.never)
+        for cp in "xiaomingzaixizao".unicodeScalars {
+            _ = s.handleKey(codepoint: cp.value, modifiers: [])
+        }
+        XCTAssertEqual(s.segmentAnchors(), [8, 7, 6, 4, 3, 2])
+        let k = s.segmentAnchors()[0]
+        XCTAssertGreaterThan(s.segmentCandidateCount(prefixLen: k), 0)
+        XCTAssertNotNil(s.segmentCandidate(prefixLen: k, at: 0))
+        XCTAssertNotNil(s.commitSegment(prefixLen: k, at: 0))
+        XCTAssertEqual(s.preedit, "zaixizao",
+                       "remainder kept after committing the xiaoming segment")
+    }
+
     /// CJK wubi pipeline still works: `khlg` + space → "中国". khlg is the
     /// canonical multi-candidate test code in the engine's own tests; using
     /// the same input keeps this test deterministic across data refreshes.

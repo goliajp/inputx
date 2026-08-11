@@ -2,12 +2,6 @@ import Cocoa
 import InputMethodKit
 import InputxKit
 
-extension Notification.Name {
-    /// Posted whenever any `InputxController` toggles between CJK and EN.
-    /// `userInfo["mode"]` is a `UInt8` matching `InputxInputMode.rawValue`.
-    /// Used by `MenubarSettings` to refresh its status-item indicator.
-    static let inputxInputModeChanged = Notification.Name("InputxInputModeChanged")
-}
 
 /// IMKit input controller — one instance per client (text view / editor).
 ///
@@ -31,19 +25,44 @@ extension Notification.Name {
 @objc(InputxController)
 final class InputxController: IMKInputController {
     private let session = InputxSession()
-    private var candidatePanel: CandidatePanel?
+    // Shared, process-wide panel — IMKit churns controllers per input
+    // context; a per-controller NSPanel leaks on dealloc (2026-08-02
+    // audit: 1,341 orphaned window clusters / 1.2 GB RSS). See
+    // CandidatePanel's class doc.
+    private let candidatePanel = CandidatePanel.shared
     /// Detects pure shift single-clicks (no other key in between) to
     /// toggle `InputxInputMode` between `.cjk` and `.en`. See
     /// `InputxShiftSingleClickDetector` for the state machine.
     private let shiftDetector = InputxShiftSingleClickDetector()
+
+    /// macOS virtual keyCode for the CapsLock key (`kVK_CapsLock`). Used
+    /// in `handleFlagsChanged` to recognize a CapsLock toggle so we can
+    /// drop any in-flight composition.
+    private static let capsLockKeyCode: UInt16 = 57
+
+    // MARK: - Segment mode (拼音手动分段) state
+    //
+    // `segmentAnchorIdx == nil` → auto mode (normal). When the user presses
+    // ← while pinyin-composing, we enter segment mode: `segmentAnchors` is a
+    // snapshot of the ← stop points (descending prefix lengths with
+    // candidates) and `segmentAnchorIdx` indexes into it (0 = largest /
+    // longest first segment; ← increments toward shorter, → decrements).
+    private var segmentAnchorIdx: Int? = nil
+    private var segmentAnchors: [Int] = []
+    /// Already-confirmed Chinese prefix during 逐段确认 (e.g. "小明"). Stays in
+    /// the marked-text region — caret right after it — until the whole string
+    /// is segmented, then the accumulated text is inserted into the host.
+    private var segmentCommitted: String = ""
 
     override init!(server: IMKServer!, delegate: Any!, client inputClient: Any!) {
         super.init(server: server, delegate: delegate, client: inputClient)
         applySettingsToSession()
         // Custom CandidatePanel (no IMKServer needed — see CandidatePanel.swift
         // for why we dropped IMKCandidates in favor of a custom NSWindow).
+        // The panel itself is `CandidatePanel.shared`, initialized as a
+        // stored-property default above — first controller pays the
+        // one-time pre-warm, every later controller reuses the window.
         _ = server
-        self.candidatePanel = CandidatePanel()
         // Pay the FST / 简拼-index cold-start cost up front so the first
         // measured keystroke doesn't take ~1-2 s.
         session.warmup()
@@ -52,15 +71,26 @@ final class InputxController: IMKInputController {
         // Process-global rare-CJK toggle reads from prefs at startup.
         InputxRareChars.enabled = inputxSettings.showRareChars
 
-        // Listen for live settings changes (broadcast by MenubarSettings
-        // and SettingsWindow). Without this, the user has to switch input
-        // sources out and back to trigger `activateServer` before a
-        // freshly toggled JP-enable / engine-mode / policy / locale flag
-        // actually reaches the running engine.
+        // Listen for live settings changes (broadcast by SettingsWindow
+        // and by this controller's own menu() actions). Without this,
+        // the user has to switch input sources out and back to trigger
+        // `activateServer` before a freshly toggled JP-enable / engine-
+        // mode / policy / locale flag actually reaches the running engine.
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleSettingsChanged),
             name: .inputxSettingsChanged,
+            object: nil
+        )
+        // v1.15 hot-reload observer. Posted by the AppDelegate SIGUSR1
+        // handler after `reinstall.py` swaps the pinyin data files
+        // under Contents/Resources/data/. Each running InputxController
+        // reloads its own PinyinDict from that directory so subsequent
+        // keystrokes see freshly-baked polish without a preedit break.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDictReloaded),
+            name: .inputxDictReloaded,
             object: nil
         )
     }
@@ -72,6 +102,19 @@ final class InputxController: IMKInputController {
     @objc private func handleSettingsChanged() {
         applySettingsToSession()
         InputxRareChars.enabled = inputxSettings.showRareChars
+    }
+
+    @objc private func handleDictReloaded() {
+        guard let dir = Bundle.main.resourceURL?.appendingPathComponent("data").path else {
+            NSLog("Inputx hot-reload: no bundle resource dir")
+            return
+        }
+        let ok = session.reloadEngineData(from: dir)
+        NSLog("Inputx hot-reload session=%p dir=%@ ok=%d", self, dir, ok ? 1 : 0)
+        // Kick a warmup so the first keystroke after the swap doesn't
+        // eat the FST re-walk cost. Warmup is a session method; if it
+        // ever fails we still just take the cost on next keystroke.
+        session.warmup()
     }
 
     // MARK: - IMKit overrides ------------------------------------------------
@@ -87,7 +130,7 @@ final class InputxController: IMKInputController {
         // Client switched away while composing — drop in-flight state rather
         // than auto-commit into a textfield the user just left.
         session.clear()
-        candidatePanel?.hide()
+        candidatePanel.hide()
         clearMarkedText(client: sender)
         // A shift held across deactivation would otherwise leave the
         // detector armed forever; reset.
@@ -120,13 +163,176 @@ final class InputxController: IMKInputController {
                     words.append(w)
                 }
             }
-            candidatePanel?.showPredictions(
+            candidatePanel.showPredictions(
                 words: words,
                 client: sender as AnyObject?
             )
         } else {
-            candidatePanel?.hide()
+            candidatePanel.hide()
         }
+    }
+
+    // MARK: - Segment mode (拼音手动分段) helpers ----------------------------
+
+    /// Enter segment mode from auto mode. Only when pinyin-composing with ≥1
+    /// stop point. Returns false (caller falls back to page-turn) otherwise.
+    private func tryEnterSegmentMode(client sender: Any!) -> Bool {
+        guard session.isComposing else { return false }
+        let anchors = session.segmentAnchors()
+        guard !anchors.isEmpty else { return false }
+        segmentCommitted = ""
+        segmentAnchors = anchors
+        segmentAnchorIdx = 0
+        refreshSegmentPanel(client: sender)
+        return true
+    }
+
+    /// Route a key while in segment mode. ← shrink, → grow (idx 0 + → exits),
+    /// ↑↓ move selection, digit / space commit the active segment. Letters /
+    /// backspace leave the mode (the accumulated Chinese is committed first)
+    /// and return false so the caller re-handles the key normally.
+    private func handleSegmentKey(codepoint: UInt32, client sender: Any!) -> Bool {
+        guard let idx = segmentAnchorIdx, idx < segmentAnchors.count else {
+            return false
+        }
+        switch codepoint {
+        case 0xF702: // ← shrink to next shorter anchor (clamp at shortest)
+            segmentAnchorIdx = min(idx + 1, segmentAnchors.count - 1)
+            refreshSegmentPanel(client: sender)
+            return true
+        case 0xF703: // → grow; growing past the longest anchor leaves the mode
+            if idx == 0 {
+                leaveSegmentMode(commitAccumulated: true, client: sender)
+                return true
+            }
+            segmentAnchorIdx = idx - 1
+            refreshSegmentPanel(client: sender)
+            return true
+        case 0xF700: // ↑
+            _ = candidatePanel.moveSelectionUp()
+            return true
+        case 0xF701: // ↓
+            _ = candidatePanel.moveSelectionDown()
+            return true
+        case 0x20: // space → commit highlighted segment candidate
+            commitSegmentStep(
+                candIdx: candidatePanel.selectedAbsoluteIndex() ?? 0,
+                client: sender
+            )
+            return true
+        case 0x1B: // esc → drop everything (accumulated Chinese + buffer)
+            session.clear()
+            segmentCommitted = ""
+            exitSegmentState()
+            candidatePanel.hide()
+            clearMarkedText(client: sender)
+            return true
+        default:
+            // digit 1-9 / 0 → commit that segment candidate
+            if let cand = candidatePanel.candidateIndex(forNumberKey: codepoint) {
+                commitSegmentStep(candIdx: cand, client: sender)
+                return true
+            }
+            // letter / backspace / etc. → leave (commit accumulated), then the
+            // key gets normal handling by the caller.
+            leaveSegmentMode(commitAccumulated: true, client: sender)
+            return false
+        }
+    }
+
+    /// Show the active segment's candidates + render the composition.
+    private func refreshSegmentPanel(client sender: Any!) {
+        guard let idx = segmentAnchorIdx, idx < segmentAnchors.count else { return }
+        let k = segmentAnchors[idx]
+        let count = session.segmentCandidateCount(prefixLen: k)
+        var words: [String] = []
+        words.reserveCapacity(count)
+        for i in 0..<count {
+            if let w = session.segmentCandidate(prefixLen: k, at: i) {
+                words.append(w)
+            }
+        }
+        candidatePanel.showPredictions(words: words, client: sender as AnyObject?)
+        updateSegmentPreedit(client: sender)
+    }
+
+    /// Commit the active segment as Chinese into `segmentCommitted`; the
+    /// remainder re-segments. When nothing's left, insert the accumulated
+    /// Chinese into the host and leave segment mode.
+    private func commitSegmentStep(candIdx: Int, client sender: Any!) {
+        guard let idx = segmentAnchorIdx, idx < segmentAnchors.count else { return }
+        let k = segmentAnchors[idx]
+        guard let word = session.commitSegment(prefixLen: k, at: candIdx),
+              !word.isEmpty else { return }
+        segmentCommitted += word
+        let remaining = session.preedit ?? ""
+        if remaining.isEmpty {
+            commitText(segmentCommitted, to: sender)
+            segmentCommitted = ""
+            exitSegmentState()
+            candidatePanel.hide()
+        } else {
+            segmentAnchors = session.segmentAnchors()
+            segmentAnchorIdx = 0
+            refreshSegmentPanel(client: sender)
+        }
+    }
+
+    /// Leave segment mode. If `commitAccumulated`, the already-confirmed
+    /// Chinese is inserted into the host first; the remaining pinyin buffer
+    /// then falls back to normal auto composition.
+    private func leaveSegmentMode(commitAccumulated: Bool, client sender: Any!) {
+        if commitAccumulated, !segmentCommitted.isEmpty {
+            commitText(segmentCommitted, to: sender)
+        }
+        segmentCommitted = ""
+        exitSegmentState()
+        updatePreedit(client: sender)
+        if session.isComposing {
+            candidatePanel.refresh(session: session, client: sender as AnyObject?)
+        } else {
+            candidatePanel.hide()
+        }
+    }
+
+    private func exitSegmentState() {
+        segmentAnchorIdx = nil
+        segmentAnchors = []
+    }
+
+    /// Marked text = `segmentCommitted`(已确认中文) + remaining pinyin. The
+    /// active segment `[committed ..< committed+k]` gets a thick underline,
+    /// the rest a thin one, and the caret sits right after the committed
+    /// Chinese — matching the user's `小明|‸zai‸xizao` spec.
+    private func updateSegmentPreedit(client sender: Any?) {
+        guard let client = sender as? IMKTextInput,
+              let idx = segmentAnchorIdx, idx < segmentAnchors.count else { return }
+        let k = segmentAnchors[idx]
+        let remaining = session.preedit ?? ""
+        let full = segmentCommitted + remaining
+        let attr = NSMutableAttributedString(string: full)
+        let cN = (segmentCommitted as NSString).length
+        let segLen = min(k, (remaining as NSString).length)
+        attr.addAttribute(
+            .underlineStyle,
+            value: NSUnderlineStyle.thick.rawValue,
+            range: NSRange(location: cN, length: segLen)
+        )
+        let restStart = cN + segLen
+        let restLen = (full as NSString).length - restStart
+        if restLen > 0 {
+            attr.addAttribute(
+                .underlineStyle,
+                value: NSUnderlineStyle.single.rawValue,
+                range: NSRange(location: restStart, length: restLen)
+            )
+        }
+        lastPreeditSent = full
+        client.setMarkedText(
+            attr,
+            selectionRange: NSRange(location: cN, length: 0),
+            replacementRange: NSRange(location: NSNotFound, length: 0)
+        )
     }
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
@@ -136,8 +342,53 @@ final class InputxController: IMKInputController {
             return handleFlagsChanged(event: event, client: sender)
         }
         guard event.type == .keyDown else { return false }
+        // Measure IMK→Swift dispatch latency (kernel + IMK pipeline
+        // cost upstream of our handler — the part the user perceives
+        // as "switch-to-IME first-keystroke lag" that's invisible to
+        // CandidatePanel PerfTimer). NSEvent.timestamp is in the same
+        // base as ProcessInfo.processInfo.systemUptime (seconds since
+        // boot), so the delta is wall-clock from keyDown to handle()
+        // entry.
+        let imkLatencyMs = (ProcessInfo.processInfo.systemUptime - event.timestamp) * 1000
+        PerfTimer.record(label: "IMK.dispatch", ms: imkLatencyMs)
+        // Total Swift handler latency (Path A/B/C dispatch + engine
+        // FFI + candidate panel refresh + host text insertion).
+        let handlerStart = CFAbsoluteTimeGetCurrent()
+        defer {
+            let elapsed = (CFAbsoluteTimeGetCurrent() - handlerStart) * 1000
+            PerfTimer.record(label: "IMEController.handle", ms: elapsed)
+        }
         // Any keyDown disarms the shift detector — shift wasn't alone.
         shiftDetector.observeKeyDown()
+
+        // CapsLock override (user 2026-06-07): while CapsLock is ON the
+        // IME enforces uppercase ASCII letters + half-width ASCII punct,
+        // regardless of CJK/EN mode, any prior composition, or a held
+        // Shift. The in-flight composition (if any) was already dropped
+        // when CapsLock toggled on (see `handleFlagsChanged`), so there's
+        // no panel/preedit to clean up here.
+        //
+        //   • Letter keys → commit the UPPERCASE letter directly. We read
+        //     `charactersIgnoringModifiers` + `.uppercased()` instead of
+        //     passing through, so CapsLock+Shift can't XOR the letter back
+        //     to lowercase ("强制大写" — user-confirmed).
+        //   • Cmd / Ctrl / Option combos → step aside: ⌘-shortcuts and
+        //     ⌥-dead-key / special-character input must reach the host
+        //     intact, not be rewritten to a letter.
+        //   • Everything else (digits, punct, function / arrow keys) →
+        //     step aside; they arrive as raw half-width ASCII.
+        if event.modifierFlags.contains(.capsLock) {
+            if !event.modifierFlags.contains(.command),
+               !event.modifierFlags.contains(.control),
+               !event.modifierFlags.contains(.option),
+               let base = event.charactersIgnoringModifiers,
+               let scalar = base.unicodeScalars.first,
+               isAsciiLetter(scalar.value) {
+                commitText(base.uppercased(), to: sender)
+                return true
+            }
+            return false
+        }
 
         // EN mode: IME steps aside. Host receives the raw ASCII keystroke
         // (including return / backspace / cmd-combos) directly. We still
@@ -151,8 +402,33 @@ final class InputxController: IMKInputController {
         // producing the user-observed "stale prediction shows next to
         // unrelated typing" bug.
         if session.inputMode == .en {
-            if let panel = candidatePanel, panel.isVisible, panel.isPredictionMode {
-                panel.hide()
+            if candidatePanel.isVisible, candidatePanel.isPredictionMode {
+                candidatePanel.hide()
+            }
+            // ⇧space and 全角英数 both still apply here: EN mode hands raw
+            // ASCII to the host, so this early-return is the only place
+            // either can see an EN-mode keystroke. Modifier combos step
+            // aside (⌘-shortcuts, ⌥-dead-keys) as in the CapsLock path.
+            if !event.modifierFlags.contains(.command),
+               !event.modifierFlags.contains(.control),
+               !event.modifierFlags.contains(.option),
+               let typed = event.characters,
+               let scalar = typed.unicodeScalars.first {
+                // Read `characters`, not `charactersIgnoringModifiers`:
+                // EN mode is a literal passthrough, so the shifted glyph
+                // is what the host would have received. (Gating on the
+                // unshifted form would widen shift+1's `!` through the
+                // digit branch.)
+                if scalar.value == 0x20, event.modifierFlags.contains(.shift) {
+                    toggleFullWidthMode(client: sender)
+                    return true
+                }
+                if inputxSettings.useFullWidth,
+                   isFullWidthAlnumKey(scalar.value),
+                   let wide = stringFromCodepoint(InputxLocale.fullWidth(scalar.value)) {
+                    commitText(wide, to: sender)
+                    return true
+                }
             }
             return false
         }
@@ -162,23 +438,119 @@ final class InputxController: IMKInputController {
         else { return false }
         var codepoint = firstScalar.value
 
-        // Shift+digit re-anchor (user-reported 2026-05-24: shift+1 was
-        // committing candidate #1 instead of inserting '!').
-        // `charactersIgnoringModifiers` returns the digit (0-9) even when
-        // shift is held — but on US/JP/etc keyboards shift+digit produces
-        // a symbol (!@#$%^&*()). Without this remap, Path A would route
-        // shift+1 as candidate-pick #1 and the symbol the user actually
-        // typed would be dropped on the floor.
+        // Shift+non-letter re-anchor. `charactersIgnoringModifiers`
+        // returns the unshifted ASCII (digit / punct) even when shift
+        // is held — but on US/JP/etc keyboards shift+non-letter
+        // produces a different glyph that needs to flow through the
+        // CJK punct mapping (or Path A's candidate-pick branch for
+        // digits).
         //
-        // Scope: only affects digit codepoints. Shift+letter (uppercase)
-        // and shift+other-punct paths are unchanged — both already
-        // produce a sensible codepoint via the unmodified char and
-        // engine canonicalization handles case.
+        // Originally only covered digits (2026-05-24 fix: shift+1 was
+        // committing candidate #1 instead of inserting '!'). 2026-05-31
+        // user-reported: shift+; produced 全角; instead of 全角:. The
+        // root cause is the same — the unshifted char `;` flows into
+        // Path B's `:→:`-less semicolon mapping. Extended scope to
+        // also cover punct keys so shift+;/'/,/./[/]/-/etc. all reach
+        // the locale punct table as their shifted-key form.
+        //
+        // Letters stay unchanged: shift+a → 'A' is harmless because
+        // the engine lowercases internally; routing through this path
+        // would set codepoint=0x41 which the engine handles same as
+        // 0x61. We exclude option/ctrl/cmd modifier combos to avoid
+        // remapping dead-key / shortcut chars.
         if event.modifierFlags.contains(.shift),
-           (0x30...0x39).contains(codepoint),
+           !event.modifierFlags.contains(.option),
+           !event.modifierFlags.contains(.control),
+           !event.modifierFlags.contains(.command),
+           codepoint < 0x80,
+           !(0x41...0x5A).contains(codepoint),   // not uppercase letter
+           !(0x61...0x7A).contains(codepoint),   // not lowercase letter
            let typed = event.characters,
            let typedScalar = typed.unicodeScalars.first {
             codepoint = typedScalar.value
+        }
+
+        // ---- ⇧space toggles 全角英数 --------------------------------------
+        //
+        // The mode has no affordance you can see while typing (the IMK
+        // menu checkmark needs a mouse trip), so it gets a keyboard flip
+        // + HUD toast, the same deal shift-single-click gets for CJK/EN.
+        //
+        // Runs ahead of everything — segment mode, the Space-commits-#0
+        // paths, the 全角 branch below — because ⇧space has to stay
+        // reachable from every state, including mid-composition and mid-
+        // 全角. ⌘/⌃/⌥+space stay clear of it: those belong to Spotlight
+        // and the system input-source switcher.
+        if codepoint == 0x20,
+           event.modifierFlags.contains(.shift),
+           !event.modifierFlags.contains(.command),
+           !event.modifierFlags.contains(.control),
+           !event.modifierFlags.contains(.option) {
+            toggleFullWidthMode(client: sender)
+            return true
+        }
+
+        // ---- Segment mode (拼音手动分段, user 2026-06-07) -----------------
+        // Once active (user pressed ← while pinyin-composing), ALL keys route
+        // through `handleSegmentKey` first and bypass the prediction/normal
+        // candidate paths below. `segmentAnchorIdx` is the source of truth;
+        // the panel borrows `showPredictions` only to render the segment's
+        // candidate list. Keys segment mode doesn't own (letters, etc.) exit
+        // the mode and fall through to normal handling.
+        if segmentAnchorIdx != nil {
+            if handleSegmentKey(codepoint: codepoint, client: sender) {
+                return true
+            }
+            // handleSegmentKey already left segment mode (and committed any
+            // accumulated Chinese); fall through to normal handling of this
+            // key (letter / backspace).
+        }
+
+        // ← enters segment mode from auto mode whenever pinyin-composing —
+        // INDEPENDENT of candidate-panel visibility. A long pinyin string like
+        // `xiaomingzaixizao` has no whole-string candidate so the panel is
+        // hidden; without this, ← would fall through to the host and wipe the
+        // marked text. Must run before the PUA arrow / pagination blocks.
+        if codepoint == 0xF702, segmentAnchorIdx == nil, session.isComposing,
+           tryEnterSegmentMode(client: sender) {
+            return true
+        }
+
+        // ---- 全角英数 mode -------------------------------------------------
+        //
+        // `useFullWidth` is a *mode*, not a punct modifier (user 2026-08-08:
+        // "打开以后输入直接上屏用日语全角的英文和数字"). While it's on, ASCII
+        // letters, digits and the space bar never reach the engine — they
+        // commit straight through as their full-width forms (`nihao` →
+        // ｎｉｈａｏ, `123` → １２３, space → U+3000), matching macOS 日本語
+        // IM's 「英字（全角）」 mode. Chinese composing resumes the moment
+        // the toggle goes back off.
+        //
+        // Punctuation deliberately stays on Path B: 中文标点 wins there when
+        // it's on (`,` → `，`), and the width pass only picks up what the CJK
+        // punct table didn't map.
+        //
+        // Placed ahead of every candidate-panel path (Space-commits-#0,
+        // number-key pick, 联想 dismissals) because in this mode those keys
+        // are literal text, not panel navigation. The panel can only be a
+        // leftover from before the toggle flipped, which the flush below
+        // clears. Segment mode keeps first refusal above — it exits itself
+        // on the keys it doesn't own and falls through to here.
+        if inputxSettings.useFullWidth,
+           codepoint < 0x80, isFullWidthAlnumKey(codepoint),
+           !event.modifierFlags.contains(.command),
+           !event.modifierFlags.contains(.control),
+           !event.modifierFlags.contains(.option) {
+            // Defends the paths that flip the setting without going
+            // through `toggleFullWidthMode` — the IMK menu item and the
+            // Settings window, neither of which holds a client to drain
+            // an in-flight composition into.
+            flushCompositionForFullWidth(client: sender)
+            if let wide = stringFromCodepoint(InputxLocale.fullWidth(codepoint)) {
+                commitText(wide, to: sender)
+                return true
+            }
+            return false
         }
 
         // Prediction-mode dismissals. When the panel is showing 联想
@@ -187,17 +559,17 @@ final class InputxController: IMKInputController {
         // hide the panel. Letter keys naturally dismiss via Path C's
         // refresh; Esc / Backspace need explicit handling because they
         // wouldn't otherwise reach a panel-refresh call.
-        if let panel = candidatePanel, panel.isPredictionMode, panel.isVisible {
+        if candidatePanel.isPredictionMode, candidatePanel.isVisible {
             // Esc → dismiss + consume (don't propagate to host).
             if codepoint == 0x1B {
-                panel.hide()
+                candidatePanel.hide()
                 updatePreedit(client: sender)
                 return true
             }
             // Backspace / forward-delete → dismiss + consume (no buffer
             // to delete; the user pressed it to back out of predictions).
             if codepoint == 0x08 || codepoint == 0x7F {
-                panel.hide()
+                candidatePanel.hide()
                 updatePreedit(client: sender)
                 return true
             }
@@ -219,7 +591,7 @@ final class InputxController: IMKInputController {
                 && codepoint != 0x2D   // '-'
                 && codepoint != 0x3D   // '='
             {
-                panel.hide()
+                candidatePanel.hide()
                 // fall through; Path B below applies locale mapping.
             }
         }
@@ -229,19 +601,20 @@ final class InputxController: IMKInputController {
         // keys still pass through to the host. When the panel is hidden,
         // all PUA passes through.
         if (0xF700...0xF8FF).contains(codepoint) {
-            if let panel = candidatePanel, panel.isVisible {
+            if candidatePanel.isVisible {
                 switch codepoint {
                 case 0xF700: // up arrow
-                    _ = panel.moveSelectionUp()
+                    _ = candidatePanel.moveSelectionUp()
                     return true
                 case 0xF701: // down arrow
-                    _ = panel.moveSelectionDown()
+                    _ = candidatePanel.moveSelectionDown()
                     return true
-                case 0xF702: // left arrow → previous page
-                    _ = panel.prevPage()
+                case 0xF702: // left arrow → previous page (segment-mode entry
+                    // is handled earlier, before this block)
+                    _ = candidatePanel.prevPage()
                     return true
                 case 0xF703: // right arrow → next page
-                    _ = panel.nextPage()
+                    _ = candidatePanel.nextPage()
                     return true
                 default:
                     break
@@ -250,29 +623,97 @@ final class InputxController: IMKInputController {
             return false
         }
 
-        // ---- Panel pagination via Tab / + / - -----------------------------
-        // Same effect as ← / → arrows, exposed under the keys the user
-        // already has muscle memory for. Tab = next page (Shift+Tab =
-        // previous), + = next, - = previous. Intercepts BEFORE Path B
-        // (locale punct) so the `+`/`-` keystrokes never reach the host
+        // ---- Panel pagination via Tab / [ / ] -----------------------------
+        // Same effect as ← / → arrows, exposed under bracket keys. Tab =
+        // next page (Shift+Tab = previous), [ = previous, ] = next.
+        // Shifted braces { / } follow the unshifted bracket bindings for
+        // symmetry (no separate semantics). Intercepts BEFORE Path B
+        // (locale punct) so the bracket keystrokes never reach the host
         // when the panel is up.
-        if let panel = candidatePanel, panel.isVisible {
+        //
+        // Previously `-` / `+` / `=` were paginate keys; those were freed
+        // 2026-05-27 so `-` could be typed as chōonpu (ー) in JP mode
+        // (see Path B chōonpu skip below + inputx-nihongo engine `-` accept).
+        // User: "`-` 是假名输入中的长音符号，必须要变成可输入的字符".
+        if candidatePanel.isVisible {
             let shifted = event.modifierFlags.contains(.shift)
             switch codepoint {
             case 0x09: // Tab
-                if shifted { _ = panel.prevPage() } else { _ = panel.nextPage() }
+                if shifted { _ = candidatePanel.prevPage() } else { _ = candidatePanel.nextPage() }
                 return true
-            case 0x2B, 0x3D: // '+' or '=' (= is what's actually printed
-                             // without shift on the same key; user expects
-                             // either to page forward)
-                _ = panel.nextPage()
+            case 0x5B, 0x7B: // '[' or '{' — previous page
+                _ = candidatePanel.prevPage()
                 return true
-            case 0x2D: // '-'
-                _ = panel.prevPage()
+            case 0x5D, 0x7D: // ']' or '}' — next page
+                _ = candidatePanel.nextPage()
                 return true
             default:
                 break
             }
+        }
+
+        // ---- Path A0b: Return → commit highlighted (English fallback) ----
+        // User 2026-06-16 (refined): "如果没有上下或 [] 调整过选择的话，
+        // 回车是英文上屏". Enter splits on `candidatePanel.selectionTouched`:
+        //
+        //   - panel visible AND user actively moved selection (↑/↓ or
+        //     `[`/`]`) → commit the highlighted candidate (Sogou-style
+        //     "commit my pick"). Restores 2026-06-14's selected-commit
+        //     semantic for the case where the user expressed intent.
+        //
+        //   - panel visible BUT untouched → fall through to the
+        //     raw-preedit path below. The user typed pinyin and pressed
+        //     Enter without picking anything; that's an unambiguous
+        //     "I meant English, not Chinese — let me out" intent.
+        //
+        //   - panel hidden but composing (no candidates) → raw preedit
+        //     up-screen so the user isn't trapped by an unmatched
+        //     buffer (this branch was already correct).
+        //
+        //   - nothing in flight → fall through to the host as a literal
+        //     newline.
+        //
+        // Prediction mode follows the same rule: untouched Enter in the
+        // 联想 panel = raw preedit (which is empty in prediction mode,
+        // so effectively a no-op committed dismissal that lets the
+        // user keep typing). Touched Enter commits the selected
+        // prediction (chained 联想).
+        //
+        // 0x0D = main-keyboard Return; 0x03 = numpad Enter (Apple's ETX).
+        if codepoint == 0x0D || codepoint == 0x03 {
+            if candidatePanel.isVisible, candidatePanel.selectionTouched {
+                let idx = candidatePanel.selectedAbsoluteIndex() ?? 0
+                if candidatePanel.isPredictionMode {
+                    if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
+                        commitText(committed, to: sender)
+                    }
+                } else {
+                    let bufferBefore = session.preedit ?? ""
+                    let candsBefore = candidatePanel.current
+                    if let committed = session.commit(at: idx), !committed.isEmpty {
+                        commitText(committed, to: sender)
+                        PolishLog.recordIfMiss(
+                            buffer: bufferBefore,
+                            candidates: candsBefore,
+                            pickedIdx: idx,
+                            pickedWord: committed,
+                            engineMode: inputxSettings.engineMode.rawValue,
+                            japaneseEnabled: inputxSettings.japaneseEnabled
+                        )
+                    }
+                }
+                showPredictionsOrHide(client: sender)
+                updatePreedit(client: sender)
+                return true
+            }
+            if session.isComposing, let pre = session.preedit, !pre.isEmpty {
+                commitText(pre, to: sender)
+                session.clear()
+                candidatePanel.hide()
+                clearMarkedText(client: sender)
+                return true
+            }
+            return false
         }
 
         // ---- Path A0a: Space commits the prediction in 联想 mode -------
@@ -284,8 +725,8 @@ final class InputxController: IMKInputController {
         // predictions (Path C / refresh); Esc / Backspace dismiss
         // explicitly (handled above).
         if codepoint == 0x20,
-           let panel = candidatePanel, panel.isVisible, panel.isPredictionMode {
-            let idx = panel.selectedAbsoluteIndex() ?? 0
+           candidatePanel.isVisible, candidatePanel.isPredictionMode {
+            let idx = candidatePanel.selectedAbsoluteIndex() ?? 0
             if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
                 commitText(committed, to: sender)
             }
@@ -300,12 +741,12 @@ final class InputxController: IMKInputController {
         // (panel just opened), this matches the legacy "Space = commit #0"
         // semantic via Path C below. Falls through if not composing.
         if codepoint == 0x20,
-           let panel = candidatePanel, panel.isVisible,
-           let idx = panel.selectedAbsoluteIndex(),
+           candidatePanel.isVisible,
+           let idx = candidatePanel.selectedAbsoluteIndex(),
            idx > 0
         {
             let bufferBefore = session.preedit ?? ""
-            let candsBefore = panel.current
+            let candsBefore = candidatePanel.current
             if let committed = session.commit(at: idx), !committed.isEmpty {
                 commitText(committed, to: sender)
                 PolishLog.recordIfMiss(
@@ -325,14 +766,14 @@ final class InputxController: IMKInputController {
         // ---- Path A: number-key candidate commit ---------------------------
         // When the panel is up, 1-9 + 0 picks the corresponding candidate
         // (0 → 10th slot) without touching the engine state machine.
-        if let panel = candidatePanel, panel.isVisible,
-           let idx = panel.candidateIndex(forNumberKey: codepoint) {
+        if candidatePanel.isVisible,
+           let idx = candidatePanel.candidateIndex(forNumberKey: codepoint) {
             // Route based on whether the panel is showing predictions
             // (post-commit 联想) or regular buffer-driven candidates.
             // Predictions commit through `commitPrediction(at:)` which
             // triggers a fresh round of predictions internally (chained
             // 联想 — Sogou 句串 style).
-            if panel.isPredictionMode {
+            if candidatePanel.isPredictionMode {
                 if let committed = session.commitPrediction(at: idx), !committed.isEmpty {
                     commitText(committed, to: sender)
                 }
@@ -341,7 +782,7 @@ final class InputxController: IMKInputController {
                 return true
             }
             let bufferBefore = session.preedit ?? ""
-            let candsBefore = panel.current
+            let candsBefore = candidatePanel.current
             if let committed = session.commit(at: idx), !committed.isEmpty {
                 commitText(committed, to: sender)
                 // Telemetry: log #0 != #picked as a polish-corpus signal.
@@ -379,24 +820,46 @@ final class InputxController: IMKInputController {
         //       `applyLocaleIfApplicable` so it can read the live shift
         //       state and route 0x27+shift to the double-quote map.
         if codepoint < 0x80 && isAsciiPunctKey(codepoint) {
-            if session.isComposing {
-                if let top = session.commit(at: 0), !top.isEmpty {
-                    commitText(top, to: sender)
+            // `-` chōonpu carve-out (user 2026-05-27): when JP is actively
+            // composing, route `-` through the engine (Path C below) so it
+            // becomes a ー in the kana buffer (`koohi` + `-` → コーヒー).
+            // Outside JP composing, fall into the regular Path B punct flow
+            // — the host gets a raw / 全角 hyphen.
+            if codepoint != 0x2D || !session.isComposingJapanese {
+                if session.isComposing {
+                    if let top = session.commit(at: 0), !top.isEmpty {
+                        commitText(top, to: sender)
+                    }
+                    showPredictionsOrHide(client: sender)
+                    updatePreedit(client: sender)
+                    // Fall through — punct is now in "not composing" state.
+                } else {
+                    // 联想 cancellation — pure-prediction state at the
+                    // host side. The engine's handle_key_cjk guard never
+                    // sees this codepoint (Path B routes around it via
+                    // applyLocaleIfApplicable), so the host must cancel
+                    // predictions itself and resync the candidate panel.
+                    // Without this, ghost predictions persist after a
+                    // user types punct following a CJK commit.
+                    if session.predictionCount > 0 {
+                        session.cancelPredictions()
+                        showPredictionsOrHide(client: sender)
+                    }
                 }
-                showPredictionsOrHide(client: sender)
-                updatePreedit(client: sender)
-                // Fall through — punct is now in "not composing" state.
+                if let mapped = applyLocaleIfApplicable(
+                    codepoint: codepoint,
+                    event: event,
+                    client: sender as? IMKTextInput
+                ) {
+                    commitText(mapped, to: sender)
+                    return true
+                }
+                // No CJK mapping (and useCjkPunct may be off) — pass the
+                // raw ASCII punct through to host via IMK default routing.
+                return false
             }
-            if let mapped = applyLocaleIfApplicable(
-                codepoint: codepoint,
-                event: event
-            ) {
-                commitText(mapped, to: sender)
-                return true
-            }
-            // No CJK mapping (and useCjkPunct may be off) — pass the
-            // raw ASCII punct through to host via IMK default routing.
-            return false
+            // else: `-` + JP composing → fall through to Path C, engine
+            // accepts the byte as chōonpu input.
         }
 
         // ---- Path C: engine input ------------------------------------------
@@ -407,6 +870,16 @@ final class InputxController: IMKInputController {
             // so the next `"` opens fresh rather than continuing the previous
             // open/close alternation across a sentence boundary.
             session.smartQuoteReset()
+            // Sync the candidate panel with the engine's prediction
+            // state. handle_key_cjk's association-cancel guard runs
+            // before returning false (digit / Escape / Backspace /
+            // arrow / function keys all reach it), so the engine has
+            // already dropped its prediction buffer here — but the
+            // host's CandidatePanel keeps a local `isPredictionMode`
+            // and won't notice unless we tell it. Without this call,
+            // the panel keeps showing ghost candidates after the user
+            // types a digit following a CJK commit.
+            showPredictionsOrHide(client: sender)
             return false
         }
 
@@ -421,11 +894,11 @@ final class InputxController: IMKInputController {
         // commit and is now idle, show predictions in the panel
         // instead of leaving it empty.
         if session.isComposing {
-            candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+            candidatePanel.refresh(session: session, client: sender as AnyObject?)
         } else if drained != nil {
             showPredictionsOrHide(client: sender)
         } else {
-            candidatePanel?.refresh(session: session, client: sender as AnyObject?)
+            candidatePanel.refresh(session: session, client: sender as AnyObject?)
         }
         return true
     }
@@ -441,11 +914,58 @@ final class InputxController: IMKInputController {
         return !isDigit && !isUpper && !isLower
     }
 
+    /// `true` iff `codepoint` is an ASCII letter (A–Z or a–z). Used by the
+    /// CapsLock override to decide which keys to force-uppercase.
+    private func isAsciiLetter(_ codepoint: UInt32) -> Bool {
+        return (0x41...0x5A).contains(codepoint) || (0x61...0x7A).contains(codepoint)
+    }
+
+    /// `true` iff `codepoint` is an ASCII letter, digit, or the space bar —
+    /// the set 全角英数 mode widens (space → U+3000 IDEOGRAPHIC SPACE, as
+    /// macOS 日本語 IM's 「英字（全角）」 does). Punct is excluded: it belongs
+    /// to Path B, where 中文标点 gets first refusal before the width pass.
+    private func isFullWidthAlnumKey(_ codepoint: UInt32) -> Bool {
+        return isAsciiLetter(codepoint)
+            || (0x30...0x39).contains(codepoint)
+            || codepoint == 0x20
+    }
+
     /// Process a `flagsChanged` event. Routes shift toggles through the
     /// single-click detector; non-shift modifier toggles disarm it. Never
     /// consumes the event (host apps need to see modifier state).
     private func handleFlagsChanged(event: NSEvent, client sender: Any!) -> Bool {
         let kc = event.keyCode
+
+        // CapsLock toggled (either direction): end any in-flight
+        // composition (user 2026-06-07). Rather than discarding the
+        // buffer, commit the raw input letters in UPPERCASE — once
+        // CapsLock engages, the in-flight pinyin/wubi letters are most
+        // likely meant as literal uppercase English, so "上大写" beats
+        // "丢弃". `preedit` is the raw lowercased ASCII the user typed
+        // (no syllable separators — see pinyin_adapter buffer), so
+        // `.uppercased()` yields e.g. "nihao" → "NIHAO". `insertText`
+        // replaces + ends the host's marked-text region, same as the
+        // Path B punct commit flow.
+        //
+        // We preserve the CJK/EN input mode: CapsLock is an orthogonal
+        // uppercase-ASCII override, not a mode switch. `session.clear()`
+        // resets the core to default CJK mode as a side effect, so we
+        // re-apply the saved mode afterward (a no-op when it was already
+        // CJK; a clean state-flip for EN since clear() left nothing).
+        if kc == Self.capsLockKeyCode {
+            let savedMode = session.inputMode
+            if session.isComposing, let pre = session.preedit, !pre.isEmpty {
+                commitText(pre.uppercased(), to: sender)
+            }
+            session.clear()
+            if savedMode != .cjk { _ = session.setInputMode(savedMode) }
+            candidatePanel.hide()
+            clearMarkedText(client: sender)
+            // CapsLock isn't shift; disarm any half-armed shift single-click.
+            shiftDetector.observeOtherModifierChange()
+            return false
+        }
+
         let isShiftKey =
             (kc == InputxShiftSingleClickDetector.leftShiftKeyCode
                 || kc == InputxShiftSingleClickDetector.rightShiftKeyCode)
@@ -471,71 +991,174 @@ final class InputxController: IMKInputController {
             commitText(committed, to: sender)
         }
         updatePreedit(client: sender)
-        candidatePanel?.refresh(session: session, client: sender as AnyObject?)
-        NotificationCenter.default.post(
-            name: .inputxInputModeChanged,
-            object: nil,
-            userInfo: ["mode": newMode.rawValue]
-        )
+        candidatePanel.refresh(session: session, client: sender as AnyObject?)
         InputModeToast.shared.show(mode: newMode)
+    }
+
+    /// Flip 全角英数 from the keyboard (⇧space). Lands any in-flight
+    /// composition first, mirrors the new state to the menu/Settings
+    /// observers, and flashes the 全角/半角 HUD so the user can see which
+    /// side of the toggle they landed on.
+    private func toggleFullWidthMode(client sender: Any!) {
+        flushCompositionForFullWidth(client: sender)
+        inputxSettings.useFullWidth.toggle()
+        broadcastSettingsChanged()
+        InputModeToast.shared.show(fullWidth: inputxSettings.useFullWidth)
+    }
+
+    /// Land whatever the engine is holding before 全角英数 takes over the
+    /// keyboard. Commits the *raw preedit*, not the top candidate: this
+    /// is the same "not CJK after all" signal the CJK→EN flip carries, so
+    /// it commits the ASCII the user literally typed. No-op when nothing
+    /// is in flight, which is the common case.
+    ///
+    /// `session.clear()` resets the core to CJK as a side effect, so the
+    /// input mode is saved and re-applied — this runs from the EN path too.
+    private func flushCompositionForFullWidth(client sender: Any!) {
+        // Segment mode owns its own accumulated-Chinese buffer and marked
+        // text; unwind it through its own exit so `segmentCommitted` isn't
+        // dropped and `segmentAnchorIdx` doesn't leak into 全角 mode.
+        if segmentAnchorIdx != nil {
+            leaveSegmentMode(commitAccumulated: true, client: sender)
+        }
+        let composing = session.isComposing
+        guard composing || session.predictionCount > 0 else { return }
+        if composing, let pre = session.preedit, !pre.isEmpty {
+            commitText(pre, to: sender)
+        }
+        let savedMode = session.inputMode
+        session.cancelPredictions()
+        session.clear()
+        if savedMode != .cjk { _ = session.setInputMode(savedMode) }
+        candidatePanel.hide()
+        clearMarkedText(client: sender)
     }
 
     // MARK: - System input-source menu integration ---------------------------
 
-    /// Injects entries into the macOS system input-source switcher
-    /// dropdown (the menu that drops down when the user clicks the
-    /// active input source's title in the menu bar — same menu that
-    /// hosts macOS's "编辑自定义短语…" / "显示表情与符号" etc.).
+    /// Two-tier settings architecture:
     ///
-    /// This is the conventional entry point for IME-specific settings
-    /// on macOS — Sogou / Microsoft / Apple's bundled IMEs all hang
-    /// their "Preferences…" item here. Our menubar NSStatusItem stays
-    /// as a secondary entry, but it's auto-hide-prone + visually
-    /// collides with the system "入" indicator, so this menu is the
-    /// reliable surface users will discover first.
+    /// - **IMK menu (this method)** — slim, only the toggles a user
+    ///   flips frequently while typing: engine mode (per-task language
+    ///   switch), JP attachment (situational), CJK punctuation /
+    ///   full-width digits (per writing context). Plus the "Inputx
+    ///   设置…" entry into the full panel.
+    /// - **Settings window (`SettingsWindowController`)** — everything
+    ///   else: auto-commit policy (set-once config), 显示生僻字 toggle
+    ///   (set-once after font install), L0 learning sub-actions
+    ///   (打开数据目录 / polish 日志 / 重置 — diagnostic, infrequent),
+    ///   about / version info.
+    ///
+    /// Guiding principle per user feedback [[feedback-imk-menu-minimal]]:
+    /// IMK menu is a high-frequency glance surface, not a config panel.
+    /// New items default to Settings window unless there's evidence the
+    /// user toggles them multiple times a session.
+    ///
+    /// Rebuilt fresh every time macOS asks for it, so radio/toggle
+    /// states reflect live settings without needing manual refresh.
     override func menu() -> NSMenu! {
         let m = NSMenu(title: "Inputx")
-        let settingsItem = NSMenuItem(
+
+        // Settings window — first item for discoverability + ⌘, keystroke.
+        let openSettings = NSMenuItem(
             title: "Inputx 设置…",
             action: #selector(openInputxSettings),
             keyEquivalent: ","
         )
-        settingsItem.target = self
-        settingsItem.keyEquivalentModifierMask = [.command]
-        m.addItem(settingsItem)
+        openSettings.target = self
+        openSettings.keyEquivalentModifierMask = [.command]
+        m.addItem(openSettings)
         m.addItem(.separator())
 
-        let jpItem = NSMenuItem(
-            title: "日语扩展（候补に假名 + 共形汉字）",
-            action: #selector(toggleJapaneseEnhancement),
-            keyEquivalent: ""
-        )
-        jpItem.target = self
-        jpItem.state = inputxSettings.japaneseEnabled ? .on : .off
-        m.addItem(jpItem)
-
+        // Engine mode picker (header + 4 radio items).
+        let modeHeader = NSMenuItem(title: "输入方案", action: nil, keyEquivalent: "")
+        modeHeader.isEnabled = false
+        m.addItem(modeHeader)
+        addModeItem(m, "混合（五笔为主，拼音兜底）", mode: .mixed)
+        addModeItem(m, "仅五笔", mode: .wubiOnly)
+        addModeItem(m, "仅拼音", mode: .pinyinOnly)
+        addModeItem(m, "仅日语", mode: .japaneseOnly)
         m.addItem(.separator())
-        let logItem = NSMenuItem(
-            title: "打开 polish 日志（候选未取首位的记录）",
-            action: #selector(revealPolishLog),
-            keyEquivalent: ""
-        )
-        logItem.target = self
-        m.addItem(logItem)
 
+        // Japanese plugin attachment — only meaningful under Chinese
+        // engine modes; under .japaneseOnly the toggle is implicit.
+        if inputxSettings.engineMode != .japaneseOnly {
+            let jp = NSMenuItem(
+                title: "日本語拡張（候補に平仮名・片仮名・漢字を追加）",
+                action: #selector(toggleJapaneseEnhancement),
+                keyEquivalent: ""
+            )
+            jp.target = self
+            jp.state = inputxSettings.japaneseEnabled ? .on : .off
+            m.addItem(jp)
+            m.addItem(.separator())
+        }
+
+        // Locale toggles — per writing context (Chinese prose vs code
+        // / mixed-English text), so high-frequency enough to stay in
+        // the menu.
+        addToggle(m, "中文标点（，。？！…）",
+                  isOn: inputxSettings.useCjkPunct,
+                  selector: #selector(toggleCjkPunct))
+        addToggle(m, "英文数字全角（⇧空格）",
+                  isOn: inputxSettings.useFullWidth,
+                  selector: #selector(toggleFullWidth))
+
+        // NOT shown here (in the Settings window instead):
+        //   - 自动上屏 policy radio    — set-once config
+        //   - 显示生僻字 toggle         — set-once after font install
+        //   - 学习记录 (L0) sub-items   — diagnostic, infrequent
+        //   - 关于 Inputx              — informational, one-off
         return m
     }
 
-    @objc private func revealPolishLog() {
-        NSWorkspace.shared.activateFileViewerSelecting([PolishLog.url])
+    // MARK: - menu() item builders -------------------------------------------
+
+    private func addModeItem(_ m: NSMenu, _ title: String, mode: InputxEngineMode) {
+        let item = NSMenuItem(title: title,
+                              action: #selector(pickMode(_:)),
+                              keyEquivalent: "")
+        item.target = self
+        item.tag = Int(mode.rawValue)
+        item.state = (inputxSettings.engineMode == mode) ? .on : .off
+        m.addItem(item)
     }
+
+    private func addToggle(_ m: NSMenu, _ title: String, isOn: Bool, selector: Selector) {
+        let item = NSMenuItem(title: title, action: selector, keyEquivalent: "")
+        item.target = self
+        item.state = isOn ? .on : .off
+        m.addItem(item)
+    }
+
+    // MARK: - menu() actions -------------------------------------------------
 
     @objc private func openInputxSettings() {
         SettingsWindowController.shared.show()
     }
 
+    @objc private func pickMode(_ sender: NSMenuItem) {
+        guard let mode = InputxEngineMode(rawValue: UInt8(sender.tag)) else { return }
+        inputxSettings.engineMode = mode
+        broadcastSettingsChanged()
+    }
+
+    @objc private func toggleCjkPunct() {
+        inputxSettings.useCjkPunct.toggle()
+        broadcastSettingsChanged()
+    }
+
+    @objc private func toggleFullWidth() {
+        inputxSettings.useFullWidth.toggle()
+        broadcastSettingsChanged()
+    }
+
     @objc private func toggleJapaneseEnhancement() {
         inputxSettings.japaneseEnabled.toggle()
+        broadcastSettingsChanged()
+    }
+
+    private func broadcastSettingsChanged() {
         NotificationCenter.default.post(
             name: .inputxSettingsChanged,
             object: nil
@@ -553,6 +1176,11 @@ final class InputxController: IMKInputController {
         session.setEngineMode(inputxSettings.engineMode)
         session.setAutoCommitPolicy(inputxSettings.autoCommitPolicy)
         session.setJapaneseEnabled(inputxSettings.japaneseEnabled)
+        InputxCellDictRegistry.apply(
+            enabledIds: inputxSettings.enabledCellDictPackIds,
+            from: InputxCellDictPacksCache.shared.all,
+            to: session
+        )
     }
 
     private func mapModifiers(_ flags: NSEvent.ModifierFlags) -> InputxModifiers {
@@ -573,9 +1201,40 @@ final class InputxController: IMKInputController {
     /// returns 0x27 (apostrophe) regardless of whether shift is held —
     /// pressing shift on the same physical key clearly signals "double
     /// quote intent" and we route accordingly.
+    /// Longest preceding-text window (UTF-16 units) read for smart-quote
+    /// nesting. Quotations are opened/closed within a line in normal
+    /// typing; a few hundred units covers realistic lines cheaply. The
+    /// Rust side scopes counting to the current line within this window.
+    private static let smartQuoteContextWindow = 500
+
+    /// The caret's document context for smart-quote direction.
+    private enum CaretContext {
+        /// Document text before the caret (possibly empty at doc start).
+        case text(String)
+        /// Client can't report a caret / surrounding text (terminals,
+        /// some web/Electron views) → use the toggle fallback.
+        case unavailable
+    }
+
+    /// Read the text immediately before the caret from `client`, up to
+    /// `smartQuoteContextWindow` UTF-16 units. Returns `.unavailable` when
+    /// the client can't report a caret or context.
+    private func caretContext(client: IMKTextInput) -> CaretContext {
+        let sel = client.selectedRange()
+        if sel.location == NSNotFound { return .unavailable }
+        if sel.location == 0 { return .text("") }
+        let take = min(sel.location, Self.smartQuoteContextWindow)
+        let range = NSRange(location: sel.location - take, length: take)
+        guard let s = client.attributedSubstring(from: range)?.string else {
+            return .unavailable
+        }
+        return .text(s)
+    }
+
     private func applyLocaleIfApplicable(
         codepoint: UInt32,
-        event: NSEvent
+        event: NSEvent,
+        client: IMKTextInput?
     ) -> String? {
         guard inputxSettings.useCjkPunct else {
             // Pure full-width mode: only the width toggle applies.
@@ -584,7 +1243,11 @@ final class InputxController: IMKInputController {
                 : nil
         }
 
-        // Quote chars route through the session's stateful smart-quote.
+        // Quote chars: prefer the stateless context path (curly form
+        // derived from the caret's preceding character), which survives
+        // IME switches, mouse clicks, and mid-text edits. Fall back to the
+        // in-memory toggle only when the client can't report context
+        // (terminals, some web/Electron views).
         // Apostrophe + shift → force-interpret as double-quote regardless
         // of what the layout returned. (`charactersIgnoringModifiers` on
         // some layouts returns 0x27 for shift+apostrophe; trust the
@@ -596,7 +1259,12 @@ final class InputxController: IMKInputController {
             } else {
                 codepoint
             }
-            let mapped = session.smartQuote(cp)
+            let mapped: UInt32 = switch client.map(caretContext(client:)) ?? .unavailable {
+            case .text(let ctx):
+                session.smartQuoteCtx(cp, contextBefore: ctx)
+            case .unavailable:
+                session.smartQuote(cp)
+            }
             if mapped != cp {
                 return stringFromCodepoint(mapped)
             }
@@ -625,33 +1293,69 @@ final class InputxController: IMKInputController {
 
     private func commitText(_ text: String, to sender: Any?) {
         guard let client = sender as? IMKTextInput else { return }
-        client.insertText(
-            text,
-            replacementRange: NSRange(location: NSNotFound, length: 0)
-        )
+        // Host accepted the text + cleared its marked-text area; sync our
+        // cache so the next `updatePreedit("")` correctly recognizes the
+        // host as already-cleared and short-circuits.
+        lastPreeditSent = nil
+        PerfTimer.measure("IMK.insertText") {
+            client.insertText(
+                text,
+                replacementRange: NSRange(location: NSNotFound, length: 0)
+            )
+        }
     }
+
+    /// Last preedit string actually delivered to the host via
+    /// `setMarkedText`. `updatePreedit` consults this cache to skip
+    /// the IMK IPC when the new preedit matches — each `setMarkedText`
+    /// is a cross-process round-trip (PerfTimer measured ~1ms p50),
+    /// and the 9 different `updatePreedit` call sites in `handle`
+    /// occasionally fire back-to-back with the same content (commit
+    /// drain → predictions setup → refresh, all touching the same
+    /// empty/active preedit). `nil` means "host's marked-text area is
+    /// known empty" (right after launch, post-commit, post-deactivate).
+    private var lastPreeditSent: String? = nil
 
     private func updatePreedit(client sender: Any?) {
         guard let client = sender as? IMKTextInput else { return }
-        if let preedit = session.preedit, !preedit.isEmpty {
-            let attr = NSAttributedString(string: preedit)
+        let preedit = session.preedit ?? ""
+        if preedit.isEmpty {
+            // No marked text. Skip the IPC if the host is already cleared.
+            if lastPreeditSent == nil { return }
+            lastPreeditSent = nil
+            PerfTimer.measure("IMK.setMarkedText(clear)") {
+                client.setMarkedText(
+                    NSAttributedString(string: ""),
+                    selectionRange: NSRange(location: 0, length: 0),
+                    replacementRange: NSRange(location: NSNotFound, length: 0)
+                )
+            }
+            return
+        }
+        // Skip the IPC if the host already has this exact preedit string.
+        if lastPreeditSent == preedit { return }
+        lastPreeditSent = preedit
+        let attr = NSAttributedString(string: preedit)
+        PerfTimer.measure("IMK.setMarkedText(update)") {
             client.setMarkedText(
                 attr,
                 selectionRange: NSRange(location: preedit.count, length: 0),
                 replacementRange: NSRange(location: NSNotFound, length: 0)
             )
-        } else {
-            clearMarkedText(client: sender)
         }
     }
 
     private func clearMarkedText(client sender: Any?) {
         guard let client = sender as? IMKTextInput else { return }
-        client.setMarkedText(
-            NSAttributedString(string: ""),
-            selectionRange: NSRange(location: 0, length: 0),
-            replacementRange: NSRange(location: NSNotFound, length: 0)
-        )
+        if lastPreeditSent == nil { return }
+        lastPreeditSent = nil
+        PerfTimer.measure("IMK.setMarkedText(clear)") {
+            client.setMarkedText(
+                NSAttributedString(string: ""),
+                selectionRange: NSRange(location: 0, length: 0),
+                replacementRange: NSRange(location: NSNotFound, length: 0)
+            )
+        }
     }
 }
 

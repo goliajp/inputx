@@ -1,0 +1,26 @@
+[package]
+name = "inputx-nihongo-data-kanji"
+version = "1.6.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+description = "Embedded Japanese kanji (multi-reading) IDFv1 dict blob + IdfReader OnceLock for the inputx-nihongo engine. Pure data + stateless lookup helpers; successor to inputx-nihongo-cement's kanji half under the v1.5 D11 taxonomy correction."
+authors = ["GOLIA K.K."]
+repository = "https://github.com/goliajp/inputx"
+homepage = "https://github.com/goliajp/inputx"
+keywords = ["japanese", "ime", "kanji", "data", "embedded"]
+categories = ["text-processing", "internationalization"]
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+# Lock-free swap of the process-global IdfReader, so a polish rebuild
+# can replace the dict under a running IME without exiting. Mirrors
+# inputx-pinyin-helpers.
+arc-swap = "1"
+inputx-dict-format = { path = "../inputx-dict-format", version = "1.4" }
+
+[lints]
+workspace = true

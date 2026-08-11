@@ -1,8 +1,8 @@
-//! WASM bindings for `golia-pinyin`. Exposes a small, JS-friendly API
+//! WASM bindings for `inputx-pinyin`. Exposes a small, JS-friendly API
 //! that browser and Node consumers can import via `wasm-pack` output.
 //!
 //! Build:
-//!     wasm-pack build crates/golia-pinyin-wasm --target web --release
+//!     wasm-pack build crates/inputx-pinyin-wasm --target web --release
 //!
 //! Default build bakes the bootstrap dict (1.7 KB) — the full 15 MB
 //! `pinyin.fst` is too large for typical wasm bundles. Item 33 of the
@@ -25,7 +25,7 @@
 
 use wasm_bindgen::prelude::*;
 
-use golia_pinyin::{L0Snapshot, PinyinDict, char_to_pinyin};
+use inputx_pinyin::{L0Snapshot, PinyinDict, char_to_pinyin};
 
 /// Pinyin engine wrapping the embedded FST dictionary plus a per-instance
 /// L0 layer (in-memory; persistence is up to the host via `exportL0` /
@@ -94,15 +94,16 @@ impl PinyinEngine {
 
     // -------------------------------------------------------------------
     // L0 mutation — host calls these to drive learning. All counter logic
-    // lives inside `golia-pinyin`; the host only signals events.
+    // lives inside `inputx-pinyin`; the host only signals events.
     // -------------------------------------------------------------------
 
     /// Tell the dictionary that the user just committed `word` for
-    /// `pinyin`. Returns `true` if this call caused an auto-promotion to
-    /// L0.
+    /// `pinyin`. Bumps the usage counter only — candidate order never
+    /// changes as a result (auto-pin removed 2026-07-20). Use `pin` to
+    /// change order.
     #[wasm_bindgen(js_name = recordPick)]
-    pub fn record_pick(&self, pinyin: &str, word: &str) -> bool {
-        self.dict.record_pick(pinyin, word)
+    pub fn record_pick(&self, pinyin: &str, word: &str) {
+        self.dict.record_pick(pinyin, word);
     }
 
     /// Force-pin a word as L0 default for `pinyin` without going through
@@ -212,5 +213,9 @@ fn parse_snapshot(obj: &js_sys::Object) -> L0Snapshot {
         })
         .unwrap_or_default();
 
-    L0Snapshot { pins, pick_counts }
+    L0Snapshot {
+        pins,
+        pick_counts,
+        ..Default::default()
+    }
 }

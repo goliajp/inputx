@@ -1,0 +1,36 @@
+# Python deps for inputx eval harness + Phase 2 LM training.
+#
+# IMPORTANT — Python version constraint
+# -------------------------------------
+# Use Python 3.12.x  (`brew install python@3.12`).
+# Do NOT use Python 3.14+: several deps below ship pre-compiled wheels
+# that have not been updated to the strict CPython 3.14 ABI / numpy 2 /
+# re._parser / pickle._batch_setitems changes. Specifically (logged
+# 2026-06-15 during Phase 2 CP-2.2):
+#   - wikiextractor 3.0.6 → re._parser global-flag rejection
+#   - kenlm pip      → _PyLong_AsByteArray API signature change
+#   - fasttext-wheel → numpy 2 strict copy=False rejection
+#   - dill (used by datasets) → pickle._batch_setitems signature change
+# Phase 2 climb-plan errata documents the full trap list.
+#
+# Rebuild .venv if the python interpreter is wrong:
+#   /opt/homebrew/opt/python@3.12/bin/python3.12 -m venv tools/eval/.venv
+#   tools/eval/.venv/bin/pip install --upgrade pip
+#   tools/eval/.venv/bin/pip install -r tools/eval/requirements.txt
+#
+# Phase 2 CP-2.3 prerequisites: brew install boost eigen (for kenlm).
+# brew has NO `kenlm` formula — use pip kenlm + the brew C++ deps.
+
+# Phase 0 evaluation harness
+pypinyin==0.55.0
+
+# Phase 2 LM training pipeline (clean.py + KenLM)
+datasets<4               # HF dataset loaders; <4 still supports script-based loaders (silver/lccc, cc100)
+datasketch==1.10.0       # MinHash-LSH dedup
+fasttext-wheel==0.9.2    # language-id (lid.176.bin); pinned because newer wheels may regress
+huggingface_hub          # used implicitly by datasets streaming
+jieba==0.42.1            # Chinese tokenization
+kenlm                    # bigram LM training + binary builder (lmplz / build_binary CLI come with the pip pkg)
+numpy<2                  # fasttext-wheel needs numpy<2 (strict copy=False rejection in numpy 2.x)
+opencc-python-reimplemented==0.1.7   # traditional → simplified (t2s); pure-Python so no brew opencc needed
+tqdm                     # progress bars

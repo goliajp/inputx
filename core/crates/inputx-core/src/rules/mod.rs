@@ -58,10 +58,10 @@ use std::time::Duration;
 
 use crate::composite::Mode;
 
-pub mod candidate;
-pub mod prediction;
-pub mod commit;
 pub mod builtin;
+pub mod candidate;
+pub mod commit;
+pub mod prediction;
 
 /// Snapshot of the IME state a rule sees when deciding whether/how to
 /// fire. Read-only — rules don't mutate this; effect routes via the
@@ -211,7 +211,10 @@ mod tests {
         let _ = RuleEffect::NoOp;
         let _ = RuleEffect::Added(3);
         let _ = RuleEffect::Removed(1);
-        let _ = RuleEffect::Filtered { kept: 5, dropped: 2 };
+        let _ = RuleEffect::Filtered {
+            kept: 5,
+            dropped: 2,
+        };
         let _ = RuleEffect::Reranked;
         let _ = RuleEffect::PromotedToFront("理想".to_string());
         let _ = RuleEffect::AutoCommitted {

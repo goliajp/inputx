@@ -1,0 +1,27 @@
+# Productive Japanese category-suffix kanji for "jukugo + suffix"
+# composition (東京+都 = 東京都). Whitelisted to keep the composer
+# from emitting junk like 東京渡 (渡 also reads `to`).
+#
+# Polishable: new productive suffixes (道 for 北海道, 寺 for 清水寺,
+# 川 for 江戸川 etc.) can be added by appending rows. Lives as data
+# (TSV) per project policy `.claude/RANKING-MODEL-INVARIANTS.md`.
+#
+# Format:
+#   <reading>\t<kanji>[\t# comment]
+#
+# Loaded via `include_str!` from
+#   core/crates/inputx-core/src/japanese/compose.rs
+#   core/crates/inputx-nihongo/src/engine.rs
+
+to	都
+fu	府
+ken	県
+shi	市
+ku	区
+chou	町
+son	村
+mura	村
+shima	島
+gun	郡
+jin	人
+go	語

@@ -12,4 +12,4 @@
 
 pub mod repeated_letter;
 
-pub use repeated_letter::{RepeatedLetterExpansion, REPEATED_LETTER_SCORE};
+pub use repeated_letter::{REPEATED_LETTER_SCORE, RepeatedLetterExpansion};

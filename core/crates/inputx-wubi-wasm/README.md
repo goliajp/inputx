@@ -49,9 +49,9 @@ eng.importL0(JSON.parse(localStorage.getItem("wubi-l0") ?? "{}"));
 
 ## What ships
 
-- `wubi_wasm_bg.wasm` — packed FST + ranking + L0 logic (~3 MB)
-- `wubi_wasm.js` — ES-module wrapper
-- `wubi_wasm.d.ts` — TypeScript types
+- `inputx_wubi_wasm_bg.wasm` — packed FST + ranking + L0 logic (~3 MB)
+- `inputx_wubi_wasm.js` — ES-module wrapper
+- `inputx_wubi_wasm.d.ts` — TypeScript types
 - 135,822 dictionary entries (字根 / 简码 / phrases / auto-decomposed CJK)
 
 ## Build from source
@@ -64,8 +64,22 @@ wasm-pack build core/crates/inputx-wubi-wasm --target web --release
 
 For Node-target bundles: `wasm-pack build --target nodejs`.
 
+## API stability
+
+The 1.x line follows semver:
+
+- **`WubiEngine` constructor + method set** — no breaking changes
+  within 1.x. New methods may be added as minor bumps.
+- **`Layer` enum discriminants** — fixed (0=Auto … 5=Jianma1);
+  matches the native `inputx-wubi` `Layer::as_u8`.
+- **`exportL0` / `importL0` JSON shape** —
+  `{ pins: [[code, word]], pickCounts: [[code, word, n]], layerPrefs: [...6] }` —
+  stable across 1.x; v1.5 carries L0 state forward unchanged from
+  prior 1.x JSON.
+
 ## See also
 
 - Native Rust crate: [`inputx-wubi`](../inputx-wubi/)
 - Parent IME repo: [Inputx](https://github.com/goliajp/inputx)
-- Sibling pinyin engine: [`@goliapkg/pinyin`](../inputx-pinyin-wasm/)
+- Sibling engines: [`@goliapkg/pinyin`](../inputx-pinyin-wasm/) ·
+  [`@goliapkg/nihongo`](../inputx-nihongo-wasm/)

@@ -52,10 +52,10 @@ SWIFT_SOURCES=(
     Sources/Globals.swift
     Sources/IMEController.swift
     Sources/CandidatePanel.swift
-    Sources/MenubarSettings.swift
     Sources/InputModeToast.swift
     Sources/SettingsWindow.swift
     Sources/PolishLog.swift
+    Sources/PerfTimer.swift
 )
 # swiftc refuses cross-arch .swiftmodule loads, so compile each arch
 # against the matching-arch SPM bin-path's Modules/ directory.
@@ -89,6 +89,59 @@ cp Info.plist "$APP_DIR/Contents/Info.plist"
 # a 1-resolution legacy `il32` blob that crashes host apps on input-source
 # switch. See mac/Info.plist comment on CFBundleIconFile for details.
 cp -R Resources/. "$APP_DIR/Contents/Resources/"
+# CP-5.2 step-3: ship the bundled cell-dict packs from `docs/cell-dicts/`
+# at runtime path `Resources/cell-dicts/*.toml`. SettingsWindow scans
+# this directory via `InputxCellDictRegistry.bundled(in: .main)` and
+# renders one toggle per pack; user prefs key each pack by filename stem.
+CELL_DICT_SRC="../docs/cell-dicts"
+CELL_DICT_DST="$APP_DIR/Contents/Resources/cell-dicts"
+if [ -d "$CELL_DICT_SRC" ]; then
+    mkdir -p "$CELL_DICT_DST"
+    cp -f "$CELL_DICT_SRC"/*.toml "$CELL_DICT_DST/" 2>/dev/null || true
+    echo "[build] bundled cell-dicts: $(ls "$CELL_DICT_DST"/*.toml 2>/dev/null | wc -l | tr -d ' ') pack(s)"
+fi
+
+# v1.15 hot-reload: ship the engine data blobs into the bundle so
+# reinstall.py's data-only fast path can atomically replace them
+# without killing Inputx.app. Startup reads them via
+# InputxEngineData.setDirectory before IMKServer construction.
+#
+# v1.17: wubi + nihongo joined. Their tables used to be reachable ONLY
+# by replacing the binary, so a wubi or JP polish forced a full
+# reinstall — and, until the whitelist was corrected, could take the
+# fast path and ship nothing at all. Note the renames: both wubi and
+# pinyin call their IDF `words.idf` in-crate, so wubi's lands here as
+# `wubi.idf` to keep the flat data dir unambiguous.
+ENGINE_DATA_DST="$APP_DIR/Contents/Resources/data"
+mkdir -p "$ENGINE_DATA_DST"
+cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-data-core/data/pinyin.dict"     "$ENGINE_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/words.idf"         "$ENGINE_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/bigrams.ngm"       "$ENGINE_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-pinyin-helpers/data/bigrams_inter.ngm" "$ENGINE_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-wubi-data/data/words.idf"              "$ENGINE_DATA_DST/wubi.idf"
+cp -f "$PROJECT_ROOT/core/crates/inputx-wubi-data/data/wubi86.dict"            "$ENGINE_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-nihongo-data-kanji/data/kanji.idf"     "$ENGINE_DATA_DST/"
+cp -f "$PROJECT_ROOT/core/crates/inputx-nihongo-data-jukugo/data/jukugo.idf"   "$ENGINE_DATA_DST/"
+PINYIN_DATA_DST="$ENGINE_DATA_DST"
+
+# v1.16 hot-reload: v2 engine reads polish overlay TSVs at runtime
+# via ArcSwap slots. Ship the 6 polish TSVs so Session::reload_pinyin_data
+# can find them at `Contents/Resources/data/polish/` and swap them in
+# on SIGUSR1 without a binary swap.
+POLISH_DST="$PINYIN_DATA_DST/polish"
+mkdir -p "$POLISH_DST"
+cp -f "$PROJECT_ROOT/tools/scoring/data/polish/tier_overlay.tsv"             "$POLISH_DST/"
+cp -f "$PROJECT_ROOT/tools/scoring/data/polish/quickfix_boost.tsv"           "$POLISH_DST/"
+cp -f "$PROJECT_ROOT/tools/scoring/data/polish/exclusions_v1.tsv"            "$POLISH_DST/"
+cp -f "$PROJECT_ROOT/tools/scoring/data/polish/prior_corrections_v1.tsv"     "$POLISH_DST/"
+cp -f "$PROJECT_ROOT/tools/scoring/data/polish/modern_vocab_v1.tsv"          "$POLISH_DST/"
+cp -f "$PROJECT_ROOT/tools/scoring/data/polish/corpus_garbage_filter_v1.tsv" "$POLISH_DST/"
+
+shasum -a 256 "$PINYIN_DATA_DST"/*.dict "$PINYIN_DATA_DST"/*.idf "$PINYIN_DATA_DST"/*.ngm \
+    > "$PINYIN_DATA_DST/manifest.sha256"
+shasum -a 256 "$POLISH_DST"/*.tsv > "$POLISH_DST/manifest.sha256"
+echo "[build] bundled pinyin data: $(ls "$PINYIN_DATA_DST" | grep -Ev '^manifest|^polish' | wc -l | tr -d ' ') file(s) + $(ls "$POLISH_DST" | grep -v '^manifest' | wc -l | tr -d ' ') polish tsv(s)"
+
 printf "APPLINPX" > "$APP_DIR/Contents/PkgInfo"
 
 # ----- Codesign -----
@@ -96,7 +149,7 @@ printf "APPLINPX" > "$APP_DIR/Contents/PkgInfo"
 # for Developer ID / distribution signing.
 # Apple's cert team-ID is the OU field, NOT the parenthesized identifier
 # in the cert CN — see notes in mac/release.sh.
-SIGN_IDENTITY="${SIGN_IDENTITY:-159E4E05CB2166A0641FAF1A8AE61A0FE0277D0D}"
+SIGN_IDENTITY="${SIGN_IDENTITY:-491B13377E1850BDBFB56310CDF1A94B31CF8AE6}"
 TIMESTAMP_ARG="--timestamp"
 # Local-only smoke tests can `SIGN_TIMESTAMP=none ./build.sh` to skip the
 # TSA round-trip (~1s). Apple's notarytool rejects un-timestamped sigs.

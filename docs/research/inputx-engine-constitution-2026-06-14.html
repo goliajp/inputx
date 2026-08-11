@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>inputx 引擎宪法 · 七律 + 正交矩阵 · 2026-06-14</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=ZCOOL+XiaoWei&family=JetBrains+Mono:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f4ecd8;
+  --paper-2:#ebe1c8;
+  --paper-3:#e0d4b6;
+  --ink:#1a2540;
+  --ink-2:#2a3556;
+  --ink-soft:#4a5474;
+  --vermillion:#c43a3a;
+  --vermillion-deep:#962b2b;
+  --vermillion-darker:#6e1f1f;
+  --gold:#a87f2c;
+  --moss:#5e6d3f;
+  --rule:#c8b886;
+  --rule-soft:#dccfa6;
+  --wubi:#962b2b;
+  --pinyin:#a87f2c;
+  --nihongo:#3d4827;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--paper);color:var(--ink);font-family:"Crimson Pro","Noto Serif SC",Georgia,serif;font-size:18px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body{
+  background-image:
+    radial-gradient(circle at 15% 8%, rgba(196,58,58,.05), transparent 40%),
+    radial-gradient(circle at 85% 92%, rgba(26,37,64,.06), transparent 45%),
+    repeating-linear-gradient(0deg, rgba(168,127,44,.025) 0 1px, transparent 1px 4px);
+}
+::selection{background:var(--vermillion);color:var(--paper)}
+
+section{padding:56px clamp(28px,4vw,84px);position:relative}
+section + section{border-top:1px solid var(--rule-soft)}
+
+h1,h2,h3,h4{font-family:"Noto Serif SC","Crimson Pro",serif;color:var(--ink);font-weight:700;line-height:1.18}
+h2{font-size:clamp(36px,4.2vw,60px);font-weight:800;letter-spacing:-.012em}
+h3{font-size:clamp(22px,1.8vw,30px);margin-top:36px;margin-bottom:14px;border-bottom:1px solid var(--rule-soft);padding-bottom:8px}
+h4{font-size:20px;color:var(--vermillion-deep);margin-top:24px;margin-bottom:10px}
+p{margin-bottom:14px}
+em{color:var(--vermillion-deep);font-style:italic}
+strong{color:var(--ink)}
+code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.84em;background:rgba(26,37,64,.07);padding:1px 6px;border-radius:3px}
+a{color:var(--vermillion-deep);border-bottom:1px solid rgba(150,43,43,.3);text-decoration:none}
+
+/* ===== HERO ===== */
+.hero{padding:80px clamp(28px,4vw,84px) 56px;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;top:40px;right:60px;width:240px;height:240px;border:3px solid var(--vermillion);border-radius:50%;opacity:.08;pointer-events:none}
+.hero::after{content:"";position:absolute;bottom:80px;left:80px;width:140px;height:140px;border:2px solid var(--ink);border-radius:50%;opacity:.06;pointer-events:none}
+.hero-frame{border:3px double var(--ink);padding:clamp(28px,3.5vw,52px);background:rgba(244,236,216,.5);position:relative}
+.hero-frame::before,.hero-frame::after{content:"";position:absolute;width:22px;height:22px;border:3px solid var(--vermillion);background:var(--paper)}
+.hero-frame::before{top:-12px;left:-12px}
+.hero-frame::after{bottom:-12px;right:-12px;border-radius:50%}
+
+.brand{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.35em;text-transform:uppercase;color:var(--vermillion-deep);margin-bottom:18px}
+.hero h1{font-family:"ZCOOL XiaoWei","Noto Serif SC",serif;font-size:clamp(64px,8.5vw,156px);font-weight:400;letter-spacing:-.01em;line-height:.92;color:var(--ink)}
+.hero h1 .seal{display:inline-block;color:var(--vermillion);font-style:italic;font-weight:700}
+.hero-sub{margin-top:32px;font-size:clamp(20px,1.7vw,28px);font-style:italic;color:var(--ink-2);max-width:1300px;line-height:1.5}
+.declare{margin-top:36px;padding:24px 28px;background:var(--ink);color:var(--paper);font-family:"Noto Serif SC",serif;font-size:18px;line-height:1.7;font-weight:300;border-left:6px solid var(--vermillion)}
+.declare strong{color:#e6a370}
+
+.hero-meta{margin-top:36px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px 28px;padding:20px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.hero-meta dl dt{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;color:var(--vermillion-deep);text-transform:uppercase;margin-bottom:3px}
+.hero-meta dl dd{font-family:"Noto Serif SC",serif;font-size:14px;color:var(--ink)}
+
+/* ===== seal ===== */
+.seal-row{display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin:24px 0}
+.law-seal{display:inline-flex;align-items:center;justify-content:center;width:80px;height:80px;background:var(--vermillion);color:var(--paper);border-radius:50%;font-family:"ZCOOL XiaoWei",serif;font-size:34px;font-weight:700;letter-spacing:-.02em;flex-shrink:0;box-shadow:2px 2px 0 rgba(150,43,43,.35);position:relative}
+.law-seal::after{content:"";position:absolute;inset:6px;border:2px solid var(--paper);border-radius:50%}
+.law-seal .ch{position:relative;z-index:1}
+
+/* ===== law card ===== */
+.law{margin:48px 0 0;padding-top:32px;border-top:4px double var(--vermillion);position:relative}
+.law-num{font-family:"ZCOOL XiaoWei",serif;font-size:14px;letter-spacing:.5em;color:var(--vermillion);margin-bottom:4px}
+.law-title{font-family:"Noto Serif SC",serif;font-size:clamp(28px,2.6vw,40px);font-weight:800;color:var(--ink);line-height:1.2;margin-bottom:8px}
+.law-summary{font-family:"Crimson Pro",serif;font-style:italic;font-size:20px;color:var(--ink-2);margin-bottom:24px;max-width:1200px}
+.law-body{display:grid;grid-template-columns:1fr;gap:32px;margin-top:18px}
+@media(min-width:1100px){.law-body{grid-template-columns:1fr 1fr}}
+.law-section{padding-left:24px;border-left:3px solid var(--accent,var(--vermillion))}
+.law-section h4{margin-top:0;color:var(--accent,var(--vermillion-deep));font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;border:none;padding:0}
+.law-section h4 + *{margin-top:10px}
+.law-section p{font-size:15px;line-height:1.65;color:var(--ink-2)}
+.law-section ul,.law-section ol{margin:8px 0 8px 22px;font-size:15px;line-height:1.7}
+.law-section li{margin-bottom:6px}
+
+.history{background:rgba(196,58,58,.06);border-left:4px solid var(--vermillion);padding:14px 20px;margin-top:18px;font-size:14px;line-height:1.65;color:var(--ink-2)}
+.history b{display:block;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--vermillion-deep);margin-bottom:6px}
+
+.contrast{background:#fff8e7;border:1px solid var(--gold);padding:14px 20px;margin-top:18px;font-size:14px;line-height:1.65}
+.contrast b{display:block;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+
+/* ===== matrix vis ===== */
+.matrix-wrap{margin:32px 0;background:rgba(244,236,216,.6);border:2px solid var(--ink);padding:24px}
+.matrix-head{display:grid;grid-template-columns:140px repeat(3,1fr);gap:6px;margin-bottom:6px}
+.matrix-head .h{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;text-align:center;padding:8px;color:var(--paper)}
+.matrix-head .h.wx{background:var(--wubi)}
+.matrix-head .h.px{background:var(--pinyin)}
+.matrix-head .h.nx{background:var(--nihongo)}
+.matrix-head .corner{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);padding:8px;text-align:right}
+.matrix-row{display:grid;grid-template-columns:140px repeat(3,1fr);gap:6px;margin-bottom:5px;align-items:stretch}
+.matrix-row .tier-label{font-family:"Noto Serif SC",serif;font-size:13px;font-weight:600;color:var(--ink);padding:10px 12px;background:var(--paper-3);display:flex;flex-direction:column;justify-content:center}
+.matrix-row .tier-label .tn{font-family:"JetBrains Mono",monospace;font-size:9px;color:var(--ink-soft);letter-spacing:.1em;margin-top:2px;font-weight:400}
+.matrix-row .cell{background:var(--paper-2);padding:8px 10px;border-left:3px solid var(--accent-c);font-size:12px;color:var(--ink-2);line-height:1.4;min-height:46px;display:flex;align-items:center}
+.matrix-row .cell.wx{--accent-c:var(--wubi)}
+.matrix-row .cell.px{--accent-c:var(--pinyin)}
+.matrix-row .cell.nx{--accent-c:var(--nihongo)}
+.matrix-row.t0 .tier-label{background:var(--ink);color:var(--paper)}
+.matrix-row.t0 .tier-label .tn{color:rgba(244,236,216,.6)}
+.matrix-row.t0 .cell{background:rgba(26,37,64,.08);font-style:italic;color:var(--ink-soft);font-size:11px}
+.matrix-legend{margin-top:18px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.05em;line-height:1.6}
+.matrix-legend b{color:var(--ink);letter-spacing:.18em;text-transform:uppercase;font-size:10px;display:block;margin-bottom:4px}
+
+/* ===== sort algo box ===== */
+.sort-box{background:var(--ink);color:var(--paper);padding:24px 28px;margin:20px 0;font-family:"JetBrains Mono",monospace;font-size:13px;line-height:1.85}
+.sort-box .ks{color:var(--vermillion);font-weight:700;letter-spacing:.05em}
+.sort-box .cm{color:#e6a370;font-style:italic}
+.sort-box .vl{color:#7fc99c}
+.sort-box .nm{color:#9bb8e6}
+
+/* ===== anti-pattern code blocks ===== */
+.anti{background:#fff0ee;border:1px solid var(--vermillion);padding:14px 18px;margin:14px 0;font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.7;position:relative}
+.anti::before{content:"✗ FORBIDDEN";position:absolute;top:-10px;left:14px;background:var(--vermillion);color:var(--paper);padding:2px 10px;font-size:10px;letter-spacing:.2em}
+.allowed{background:#f0f5ea;border:1px solid var(--moss);padding:14px 18px;margin:14px 0;font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.7;position:relative}
+.allowed::before{content:"✓ STRUCTURAL";position:absolute;top:-10px;left:14px;background:var(--moss);color:var(--paper);padding:2px 10px;font-size:10px;letter-spacing:.2em}
+
+/* ===== comparison table ===== */
+.compare-table{width:100%;border-collapse:collapse;margin:24px 0;font-size:14px;background:rgba(244,236,216,.5)}
+.compare-table thead th{background:var(--ink);color:var(--paper);font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;padding:12px;text-align:left;font-weight:500}
+.compare-table tbody td{padding:12px;border-bottom:1px solid var(--rule-soft);vertical-align:top;line-height:1.55}
+.compare-table tbody tr:hover td{background:rgba(196,58,58,.04)}
+.compare-table .ix{background:rgba(196,58,58,.06);font-weight:600;color:var(--ink)}
+.compare-table .yes{color:var(--moss)}
+.compare-table .no{color:var(--ink-soft);font-style:italic}
+
+/* ===== checklist ===== */
+.checklist{background:var(--paper-2);border:2px solid var(--ink);padding:32px;margin-top:24px}
+.checklist h3{font-family:"Noto Serif SC",serif;color:var(--ink);margin-top:0;padding-bottom:12px;border-bottom:2px solid var(--vermillion);font-size:24px}
+.checklist ol{counter-reset:check;list-style:none;padding:0;margin-top:18px}
+.checklist ol li{counter-increment:check;padding:14px 0 14px 56px;border-bottom:1px dashed var(--rule-soft);position:relative;font-size:15px;line-height:1.6}
+.checklist ol li::before{content:counter(check,decimal-leading-zero);position:absolute;left:0;top:14px;font-family:"Bebas Neue",sans-serif;font-size:30px;color:var(--vermillion);line-height:1;width:44px;text-align:center;border-right:1px solid var(--rule)}
+.checklist ol li strong{color:var(--ink);display:block;margin-bottom:4px;font-family:"Noto Serif SC",serif}
+.checklist ol li:last-child{border-bottom:none}
+
+/* ===== top of laws nav ===== */
+.law-toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:24px 0}
+.law-toc a{background:var(--paper-2);border-left:4px solid var(--vermillion);padding:14px 18px;text-decoration:none;border-bottom:none;display:flex;flex-direction:column;gap:6px;transition:transform .15s}
+.law-toc a:hover{transform:translateY(-2px);background:rgba(196,58,58,.08)}
+.law-toc a .tn{font-family:"ZCOOL XiaoWei",serif;font-size:18px;color:var(--vermillion);letter-spacing:.05em}
+.law-toc a .tt{font-family:"Noto Serif SC",serif;font-weight:700;font-size:14px;color:var(--ink);line-height:1.3}
+
+/* ===== relation diagram ===== */
+.relation{display:grid;grid-template-columns:1fr;gap:18px;margin:24px 0}
+@media(min-width:900px){.relation{grid-template-columns:2fr 1fr 2fr 1fr 2fr}}
+.relation .rdoc{background:var(--paper-2);border:1px solid var(--rule);padding:18px 20px;display:flex;flex-direction:column;gap:6px}
+.relation .rdoc.con{border:2px solid var(--vermillion);background:rgba(196,58,58,.06)}
+.relation .rdoc h5{font-family:"Noto Serif SC",serif;font-size:16px;color:var(--ink);margin:0}
+.relation .rdoc .sub{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;color:var(--ink-soft);text-transform:uppercase}
+.relation .rdoc p{font-size:13px;color:var(--ink-2);margin:6px 0 0;line-height:1.5}
+.relation .arrow{display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;color:var(--vermillion);font-size:32px;letter-spacing:.05em}
+@media(max-width:899px){.relation .arrow{transform:rotate(90deg);padding:6px 0}}
+
+/* ===== footer ===== */
+.foot{background:var(--ink);color:var(--paper);padding:56px clamp(28px,4vw,84px)}
+.foot h3{color:var(--paper);border:none;font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.2em;text-transform:uppercase;margin-top:0;padding:0}
+.foot a{color:#e6a370;border-bottom-color:rgba(230,163,112,.3)}
+.foot .credit{margin-top:32px;padding-top:18px;border-top:1px solid rgba(244,236,216,.15);font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,236,216,.5);display:flex;justify-content:space-between;flex-wrap:wrap}
+.pull-final{font-family:"ZCOOL XiaoWei",serif;font-size:clamp(28px,2.6vw,38px);color:#e6a370;line-height:1.45;max-width:1200px;margin-top:24px}
+.pull-final em{color:var(--paper);font-style:italic}
+</style>
+</head>
+<body>
+
+<!-- ====================== HERO ====================== -->
+<section class="hero">
+  <div class="hero-frame">
+    <div class="brand">supreme protocol · inputx engine constitution · 2026.06.14</div>
+    <h1>金身<span class="seal">·</span>七律。</h1>
+    <p class="hero-sub">这不是改进路径,也不是差距研究 —— 是<strong>所有改进路径必须服从</strong>的上位文件。从主流借鉴任何东西之前,先确认它<em>没有破金身</em>。</p>
+
+    <div class="declare">
+      <strong>立约</strong>:inputx 的核心架构不是"一个拼音引擎",是 <strong>wubi × pinyin × nihongo 三引擎共存</strong> + <strong>10-tier × 3-engine 正交矩阵</strong>。这套"正交"机制主流单引擎 IME 根本不需要 —— 但对我们,这是<em>解耦三种输入方式的唯一方法</em>。学习搜狗 / libpinyin / Mozc 是为了让<strong>各引擎更强</strong>,不是为了把它们都熔成一个拼音引擎。
+    </div>
+
+    <div class="hero-meta">
+      <dl><dt>立约日期</dt><dd>2026.06.03 · 用户永久指令</dd></dl>
+      <dl><dt>权威源</dt><dd>.claude/RANKING-MODEL-INVARIANTS.md(317 行)</dd></dl>
+      <dl><dt>地位</dt><dd>上位文件 · 优先于研究报告 & 爬升路径</dd></dl>
+      <dl><dt>违反代价</dt><dd>跨引擎 sweep 复杂度爆成 n² · "就是地狱"</dd></dl>
+      <dl><dt>修订程序</dt><dd>stop → propose extension → 用户 sign-off</dd></dl>
+      <dl><dt>核心立场</dt><dd>不为追主流破金身</dd></dl>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====================== 关系图 ====================== -->
+<section>
+  <h2>三份文档的关系</h2>
+  <p style="color:var(--ink-soft);font-style:italic">先看清这份宪法<em>在文档体系中的位置</em>。它不是补丁,是顶。</p>
+
+  <div class="relation">
+    <div class="rdoc con">
+      <span class="sub">supreme</span>
+      <h5>▶ 引擎宪法(本文)</h5>
+      <p>七律 · 不可动的金身设计。所有改进必须服从。</p>
+    </div>
+    <div class="arrow">▸▸</div>
+    <div class="rdoc">
+      <span class="sub">analysis</span>
+      <h5><a href="./pinyin-quality-gap-2026-06-14.html" style="border:none">差距研究报告</a></h5>
+      <p>"我们差什么 / 主流领先什么 / 怎么补差距"。<strong>受宪法约束</strong>:补差距的方式不能破金身。</p>
+    </div>
+    <div class="arrow">▸▸</div>
+    <div class="rdoc">
+      <span class="sub">execution</span>
+      <h5><a href="./pinyin-climb-plan-2026-06-14.html" style="border:none">爬升执行表</a></h5>
+      <p>38 个 checkpoint · 每个 CP 完成时必须自检"是否违宪"。<strong>受宪法约束</strong>。</p>
+    </div>
+  </div>
+
+  <div class="declare" style="margin-top:18px">
+    <strong>读法</strong>:先读这份(20 分钟),建立"什么不可动"的底线;再读差距研究(认识"我们差什么");最后看爬升执行表(知道"下一脚踩哪")。<em>反过来读会出事</em> —— 没建立金身意识,改进路径里"学搜狗 LM"等动作可能不知不觉破宪。
+  </div>
+</section>
+
+
+<!-- ====================== TOC ====================== -->
+<section>
+  <h2>七律 · 速览</h2>
+  <p style="margin-bottom:8px">每律一个圆印,代号 <code>律一</code> 到 <code>律七</code>。点击直达。</p>
+
+  <div class="law-toc">
+    <a href="#law-1"><span class="tn">律 一</span><span class="tt">正交矩阵<br>10-tier × 3-engine</span></a>
+    <a href="#law-2"><span class="tn">律 二</span><span class="tt">五笔优先<br>wx > px > nx</span></a>
+    <a href="#law-3"><span class="tn">律 三</span><span class="tt">Tier 0 神圣<br>仅留 user assertion</span></a>
+    <a href="#law-4"><span class="tn">律 四</span><span class="tt">禁特殊列表<br>无 per-entry 硬编码</span></a>
+    <a href="#law-5"><span class="tn">律 五</span><span class="tt">六张 TSV<br>唯一数据通道</span></a>
+    <a href="#law-6"><span class="tn">律 六</span><span class="tt">公式优先<br>系统改公式,非碎修</span></a>
+    <a href="#law-7"><span class="tn">律 七</span><span class="tt">修宪程序<br>stop → propose → sign-off</span></a>
+  </div>
+</section>
+
+
+<!-- ====================== 律一 · 正交矩阵 ====================== -->
+<section id="law-1">
+  <div class="seal-row">
+    <div class="law-seal"><span class="ch">壹</span></div>
+    <div>
+      <div class="law-num">律 · 一</div>
+      <h2 class="law-title">10-tier × 3-engine 正交矩阵</h2>
+      <p class="law-summary">运行时只有<em>一个</em>排序维度 —— <code>(tier_id, engine_id)</code> 二元对。所有候选在此矩阵的格子里就位,<strong>严格 lexicographic sort</strong>。</p>
+    </div>
+  </div>
+
+  <div class="sort-box">
+<span class="cm">// 全局排序公式 · 锁定不动</span>
+<span class="ks">sort by</span>:
+  <span class="nm">1.</span> <span class="vl">tier_id</span>        <span class="cm">// smaller = higher priority. tier 0..9</span>
+  <span class="nm">2.</span> <span class="vl">engine_id</span>      <span class="cm">// wubi=2 > pinyin=1 > nihongo=0</span>
+  <span class="nm">3.</span> <span class="vl">within_tier</span>    <span class="cm">// log_prior + log_likelihood + length_weight</span>
+                  <span class="cm">// clamped to [0, within_tier_max_q4=100]</span>
+
+<span class="cm">// 关键不变量</span>
+engine_gap_q4 = <span class="vl">110</span>   <span class="cm">// 大于 within_tier_max,保证 engine 永远翻不过</span></div>
+
+  <div class="matrix-wrap">
+    <div class="matrix-head">
+      <div class="corner">tier ↓ / engine →</div>
+      <div class="h wx">wx · wubi</div>
+      <div class="h px">px · pinyin</div>
+      <div class="h nx">nx · nihongo</div>
+    </div>
+    <div class="matrix-row t0">
+      <div class="tier-label">0 · absolute<span class="tn">reserved</span></div>
+      <div class="cell wx">user pin only</div>
+      <div class="cell px">user pin only</div>
+      <div class="cell nx">user pin only</div>
+    </div>
+    <div class="matrix-row">
+      <div class="tier-label">1 · top<span class="tn">prominent / 顶</span></div>
+      <div class="cell wx">jianma1 / 显著简码</div>
+      <div class="cell px">顶频单字</div>
+      <div class="cell nx">基本假名</div>
+    </div>
+    <div class="matrix-row">
+      <div class="tier-label">2 · phrase<span class="tn">full-buffer match</span></div>
+      <div class="cell wx">五笔 phrase</div>
+      <div class="cell px">完整 phrase 命中</div>
+      <div class="cell nx">jukugo 词组</div>
+    </div>
+    <div class="matrix-row">
+      <div class="tier-label">3 · common<span class="tn">中频</span></div>
+      <div class="cell wx">中频简码 / zigen</div>
+      <div class="cell px">中频字</div>
+      <div class="cell nx">常用 kanji</div>
+    </div>
+    <div class="matrix-row">
+      <div class="tier-label">4 · standard<span class="tn">字典标准</span></div>
+      <div class="cell wx">jianma2 难检</div>
+      <div class="cell px">标准 dict 条目</div>
+      <div class="cell nx">标准 kanji</div>
+    </div>
+    <div class="matrix-row">
+      <div class="tier-label">5 · less_common<span class="tn">低频</span></div>
+      <div class="cell wx">低频 / rare-CJK 简码</div>
+      <div class="cell px">低频字</div>
+      <div class="cell nx">不常 kanji</div>
+    </div>
+    <div class="matrix-row">
+      <div class="tier-label">6 · rare<span class="tn">罕用</span></div>
+      <div class="cell wx">罕用</div>
+      <div class="cell px">罕用</div>
+      <div class="cell nx">罕用</div>
+    </div>
+    <div class="matrix-row">
+      <div class="tier-label">7 · specialty<span class="tn">前缀预测</span></div>
+      <div class="cell wx">—</div>
+      <div class="cell px">prefix 补全</div>
+      <div class="cell nx">prefix 补全</div>
+    </div>
+    <div class="matrix-row">
+      <div class="tier-label">8 · predict<span class="tn">推测</span></div>
+      <div class="cell wx">—</div>
+      <div class="cell px">推测 / 长尾</div>
+      <div class="cell nx">推测</div>
+    </div>
+    <div class="matrix-row">
+      <div class="tier-label">9 · longtail<span class="tn">最后兜底</span></div>
+      <div class="cell wx">—</div>
+      <div class="cell px">fuzzy / initials</div>
+      <div class="cell nx">—</div>
+    </div>
+    <div class="matrix-legend">
+      <b>读图法</b>
+      Tier 1 wubi 永远压住 Tier 1 pinyin 永远压住 Tier 1 nihongo(同 tier 跨 engine);Tier 1 任何 engine 永远压住 Tier 2 任何 engine(跨 tier 无视 engine)。within-tier 的频率打分只在同一格内排队。<br>
+      <span style="color:var(--vermillion-deep)">三引擎在矩阵中"正交" —— 各自有自己的 tier 分布公式,不互相干扰。</span>
+    </div>
+  </div>
+
+  <div class="law-body">
+    <div class="law-section">
+      <h4>为什么这条不可动</h4>
+      <p>主流单引擎 IME(搜狗 / libpinyin)根本没有这个问题 —— 它只有一种输入路径,排序就是单一维度。inputx 是<strong>三引擎共存</strong>,如果允许跨引擎调参,任何一处变动同时影响三方关系 —— 复杂度爆成 n²。</p>
+      <p>正交矩阵的意义就在于:<strong>把 n² 解成 n + n + n</strong>。pinyin 排序问题只调 pinyin 的 tier 分布(<code>tier_quantile_pinyin</code> μ/σ + 各 tier z 阈值);wubi 只调 <code>tier_wubi</code> 的 freq floor;nihongo 只调 nihongo z-score 分布。</p>
+    </div>
+    <div class="law-section">
+      <h4>主流为什么不需要</h4>
+      <p>libpinyin / SunPinyin / Mozc 都是单引擎:输入 = pinyin / 注音 / kana 之一,候选生成 = 单一路径,排序 = 单维。它们没有"三种输入方式同时出现"的问题。</p>
+      <p>这套正交机制是 inputx 独有的<strong>架构资产</strong> —— 主流抄不来,因为它们不需要;但我们抄主流任何东西的时候,必须先证明<em>新东西不破这个矩阵</em>。</p>
+    </div>
+  </div>
+
+  <div class="contrast">
+    <b>跟律二的关系</b>
+    本律建立"格子",律二建立"格子间的 wx > px > nx 偏序"。两律合起来才是完整正交矩阵。
+  </div>
+</section>
+
+
+<!-- ====================== 律二 · 五笔优先 ====================== -->
+<section id="law-2">
+  <div class="seal-row">
+    <div class="law-seal" style="background:var(--wubi)"><span class="ch">贰</span></div>
+    <div>
+      <div class="law-num">律 · 二</div>
+      <h2 class="law-title">wx > px > nx · 五笔雷打不动优先</h2>
+      <p class="law-summary">同 tier 内,五笔永远压住拼音,拼音永远压住日语 —— 由 <code>engine_gap_q4 = 110</code> 物理保证(大于 <code>within_tier_max_q4 = 100</code>)。</p>
+    </div>
+  </div>
+
+  <div class="law-body" style="--accent:var(--wubi)">
+    <div class="law-section">
+      <h4>"inputx 五笔" 的品牌承诺</h4>
+      <p>"inputx 五笔优先"<strong>不在 per-entry 代码里</strong>,而在 engine offset 这一个常数里。任何候选属于 wubi 引擎,只要进了 tier N,就自动在该 tier 内压住 pinyin / nihongo。</p>
+      <p>Wubi 一级简码 floor = <code>1,000,000</code>(<code>core/crates/inputx-wubi/src/layer.rs:47-54</code>),对应 tier 1 顶部。<em>这是 Inputx 五笔的技术承诺</em> —— 你的肌肉记忆<strong>不会被任何 pinyin 高频词夺走</strong>。</p>
+    </div>
+    <div class="law-section">
+      <h4>多级编码的冗余保护</h4>
+      <p>用户 2026-06-07 洞察:五笔有多级编码(简码 <code>cu</code> / 更长 <code>cua</code> / 全码 <code>cuah</code>)本身就是冗余路径。<strong>简码层按字频退一点点是安全的</strong> —— 因为全码层始终精确 #0。</p>
+      <p>实测案例:<code>cu → 骈 #5</code>(让位给 粗 / 促),但 <code>cua → 骈 #0</code> 且 <code>cuah → 骈 #0</code>。<em>五笔用户真要生僻字,多打 1-2 码即 #0,零损失</em>。</p>
+    </div>
+  </div>
+
+  <div class="history">
+    <b>历史教训 · 2026-06-07 engine_gap=40 探测</b>
+    我曾尝试调 <code>engine_gap_q4</code> 从 110 → 40。结果:日语越过拼音 + 常用五笔被高频拼音夺 #0,完全失控。<strong>动这一个常数同时影响三引擎关系</strong>,这就是律二禁止跨引擎调参的实证。30 分钟后 revert,作为本律永久案例。
+  </div>
+
+  <div class="history">
+    <b>历史教训 · 2026-06-03 跨引擎 sweep</b>
+    我曾按"pinyin freq=0"把 wubi 简码批量降到 tier 5。<strong>违背 wx > px,误伤 39 个高频五笔字</strong>(碰 / 虎 / 拉 / 谍 / 东…),后来全部 revert。从此立约:<em>禁止跨引擎 per-(buffer, word) 批量 sweep</em>。
+  </div>
+
+  <div class="contrast">
+    <b>对照主流 · 搜狗有没有这个</b>
+    搜狗没有"五笔优先"这种东西 —— 它就是单一拼音引擎。你要五笔得装独立软件。inputx 把<strong>"切换无感的多引擎共存 + 五笔肌肉记忆受保护"</strong>做成核心价值,这是主流根本不做的差异化。<em>学搜狗的 LM 是为了拼音侧更强,不是为了让五笔让位给拼音</em>。
+  </div>
+</section>
+
+
+<!-- ====================== 律三 · Tier 0 ====================== -->
+<section id="law-3">
+  <div class="seal-row">
+    <div class="law-seal"><span class="ch">叁</span></div>
+    <div>
+      <div class="law-num">律 · 叁</div>
+      <h2 class="law-title">Tier 0 神圣 · 仅留 user assertion</h2>
+      <p class="law-summary">Tier 0 是绝对顶,<strong>只为用户的显式 pin 和结构性 top 保留</strong>。任何其他想要"顶 #0"的需求,都在 tier 1 + engine offset 里实现。</p>
+    </div>
+  </div>
+
+  <div class="law-body">
+    <div class="law-section">
+      <h4>为什么 tier 0 不能随便填</h4>
+      <p>如果系统默认就把"我认为应该在顶"的词放 tier 0,那么用户的<strong>显式偏好</strong>就没有专属表达空间 —— 因为 tier 0 已经被算法占用了。</p>
+      <p>留 tier 0 给 user assertion,意味着:用户 pin 一个词,它<em>无条件</em>压住任何其他候选。这是用户控制权的最后一层保障。</p>
+    </div>
+    <div class="law-section">
+      <h4>结构性 top 走 tier 1</h4>
+      <p>"wubi 简码应该在顶" —— 这是结构性 top,走 tier 1 + engine offset(因为 wubi engine offset 已让 tier 1 wubi 永远压住 tier 1 pinyin)。</p>
+      <p>"jukugo 应该在顶" —— 不,jukugo 走 tier 2 phrase。如果它真的高频,会在 within-tier 内自然胜出。</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====================== 律四 · 禁特殊列表 ====================== -->
+<section id="law-4">
+  <div class="seal-row">
+    <div class="law-seal"><span class="ch">肆</span></div>
+    <div>
+      <div class="law-num">律 · 肆</div>
+      <h2 class="law-title">禁特殊列表 · Rust 里没有 per-entry 硬编码</h2>
+      <p class="law-summary">任何形如 <code>const FOO: &[(&str, &str)] = &[...]</code> 或 <code>if (buffer, word) == ("yi", "就") { ... }</code> 的 per-entry carveout <strong>永久禁止</strong>。</p>
+    </div>
+  </div>
+
+  <div class="anti">
+const BAKED_EXCLUSIONS: &[(&str, &str)] = &[(...), (...)];          ✗
+const PRIOR_CORRECTIONS: &[(&str, i32)] = &[(...), (...)];          ✗
+if (buffer, word) == ("yi", "就") { score *= 1000.0; }              ✗
+let protect_list = &["就", "民", "长", ...];                         ✗
+fn is_protected(buf: &str, w: &str) -> bool { matches!(... ) }      ✗
+  </div>
+
+  <div class="allowed">
+match layer { Jianma2 => 1, Auto => 4, ... }                        ✓  // layer→tier 是结构性
+if pinyin_dict.char_max_freq(c) >= 20_000 { tier 1 } else { ... }   ✓  // 频率阈值统一应用
+'z' carve-out for wubi standalone                                   ✓  // 五笔 86 语言性质
+l/n + ü pinyin morphology aliasing                                  ✓  // 拼音拼写规则
+  </div>
+
+  <div class="law-body">
+    <div class="law-section">
+      <h4>"特殊"的判定线</h4>
+      <p>一份 list 是"特殊"的,当且仅当它编码了 <strong>per-(buffer, word) 数据</strong>且<em>没有结构性依据</em>。区分线:</p>
+      <ul>
+        <li><strong>结构性</strong> = 编码输入系统本身的性质(拼写、layer 模型、IME 模式),这是<em>框架</em>。允许。</li>
+        <li><strong>数据</strong> = 因为 polish-log 证据要求才存在的 (buffer, word) / (word, value) tuple。这只能进 <code>tier_overlay.tsv</code> / <code>quickfix_boost.tsv</code> 等 TSV,<strong>不能</strong>进 Rust 源码。</li>
+      </ul>
+    </div>
+    <div class="law-section">
+      <h4>这条规则永久 · 不打折</h4>
+      <p>本规则<strong>不论谁提议都不松</strong>:</p>
+      <ul>
+        <li>不论是我(Claude)主动提出</li>
+        <li>不论用户明确请求</li>
+        <li>不论"就这一条很无害"的诱惑</li>
+        <li>不论 deadline 多紧</li>
+      </ul>
+      <p>如果一个 polish 需求矩阵 + 数据面表达不了,结论是 <strong>"框架缺一条结构性规则"</strong> —— 不是"加一个 carveout"。</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====================== 律五 · 六张 TSV ====================== -->
+<section id="law-5">
+  <div class="seal-row">
+    <div class="law-seal"><span class="ch">伍</span></div>
+    <div>
+      <div class="law-num">律 · 伍</div>
+      <h2 class="law-title">六张 TSV · 唯一 per-entry 数据通道</h2>
+      <p class="law-summary">per-entry polish 需求只能落在<strong>六张约定 TSV</strong>(加三张引擎 library.tsv)中,绝无"第七张 emergency overlay"。</p>
+    </div>
+  </div>
+
+  <table class="compare-table" style="margin-top:18px">
+    <thead>
+      <tr><th style="width:30%">文件</th><th>形状</th><th>用途</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>inputx-pinyin/data/library.tsv</code></td><td><code>code\tword\tfreq\tsource</code></td><td>拼音 dict 源真理。Class A 加词,D1 删错条。</td></tr>
+      <tr><td><code>inputx-wubi/data/library.tsv</code></td><td><code>code\tword\tlayer\tfreq\tsource</code></td><td>五笔 dict 源真理。<code>layer</code> = Jianma1/2/3 / Zigen / Auto / Phrase。</td></tr>
+      <tr><td><code>inputx-nihongo/data/library.tsv</code></td><td><code>code\tword\ttype\tfreq\tsource</code></td><td>日语 dict 源真理。<code>type</code> ∈ {kanji, jukugo}。</td></tr>
+      <tr><td><code>polish/exclusions_v1.tsv</code></td><td><code>code\tword</code></td><td><strong>D2 隐藏正条</strong>。Path-1 display filter;条目<em>留在 dict</em> 让 K-best 仍可用。</td></tr>
+      <tr><td><code>polish/corpus_garbage_filter_v1.tsv</code></td><td><code>code\tword\tdate</code></td><td><strong>D1 删除记录</strong>。让未来 corpus-digest 不再 re-admit。</td></tr>
+      <tr><td><code>polish/prior_corrections_v1.tsv</code></td><td><code>word\tboost_q4</code></td><td>Word-level Q4 log-prior boost。</td></tr>
+      <tr><td><code>polish/tier_overlay.tsv</code></td><td><code>buffer\tword\ttier</code></td><td><strong>Class C</strong> per-(buffer, word) tier 覆盖。</td></tr>
+      <tr><td><code>polish/quickfix_boost.tsv</code></td><td><code>buffer\tword\tfreq</code></td><td><strong>Class B</strong> per-(buffer, word) MAX freq overlay。</td></tr>
+    </tbody>
+  </table>
+
+  <div class="law-body">
+    <div class="law-section">
+      <h4>关键陷阱 · kongdang method</h4>
+      <p>2026-06-13 发现的 polish 陷阱(<code>daiban</code> 案例):当 Class B 重排集合<em>含一个刚加的 source=polish 行</em>,<code>quickfix_boost</code> MAX overlay <strong>不可靠地驱动顺序</strong> —— probe score 显示 boost 起作用,但 engine 返回的 ORDER 把新 polish 行沉到末尾。</p>
+      <p><strong>正解 = kongdang method</strong>:直接在 <code>library.tsv</code> 设 clean-descending freq + 全部标 <code>source=polish</code>。让 base freq 确定性地驱动 IDF Path-1 snapshot 顺序,<em>单一真理源,不靠 quickfix overlay</em>。</p>
+    </div>
+    <div class="law-section">
+      <h4>没有第七张表</h4>
+      <p>如果你发现自己想创建第七张 overlay 文件 —— <strong>框架缺一个结构性 knob</strong>,修在 <code>engine_weights.toml</code> 或 producer 的 natural-tier 逻辑里,<em>不是在新的 per-entry 表里</em>。</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====================== 律六 · 公式优先 ====================== -->
+<section id="law-6">
+  <div class="seal-row">
+    <div class="law-seal"><span class="ch">陆</span></div>
+    <div>
+      <div class="law-num">律 · 陆</div>
+      <h2 class="law-title">公式优先 · 系统改公式,per-case 用 overlay</h2>
+      <p class="law-summary">用户 2026-06-03 永久指令:"长期保持调整公式和 w / p / n 内部排序和疏密度来解决,不单独处理。"</p>
+    </div>
+  </div>
+
+  <p style="font-style:italic;color:var(--ink-soft);margin-top:14px">本律是律四的<strong>加强版</strong> —— 律四禁止 Rust 里的 per-entry 列表,本律进一步禁止"系统性问题用数据面 TSV 当快通"。</p>
+
+  <table class="compare-table">
+    <thead>
+      <tr><th>报告 / 现象</th><th>系统 or per-case</th><th>正确做法</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>jishu 自主 #0</code><br>(低频 nihongo jukugo freq=26 压过高频 pinyin 技术 freq=39604)</td>
+        <td class="ix">系统性</td>
+        <td>整个"nihongo jukugo 无条件 tier 1"的类设置错了 → Phase D 让 jukugo 走 z-score band</td>
+      </tr>
+      <tr>
+        <td><code>mo 第三个万哪来的</code><br>(<code>万</code> 是 corpus noise,错读音)</td>
+        <td class="ix">per-case</td>
+        <td>D1 删除该 dict 行</td>
+      </tr>
+      <tr>
+        <td><code>ki 假名应该比 single kanji 高</code><br>(整个 "短 buffer 机械 kana 被 kanji 压"类)</td>
+        <td class="ix">系统性</td>
+        <td>Phase C-2 加 3-band 机械 kana split</td>
+      </tr>
+      <tr>
+        <td><code>juti 具体 不在 top1</code><br>(用户实测偏好 具体)</td>
+        <td class="ix">per-case</td>
+        <td>C: <code>tier_overlay.tsv (juti, 具体, 0)</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="law-body">
+    <div class="law-section">
+      <h4>如何区分系统 vs per-case</h4>
+      <p><strong>判断线</strong>:同一类问题<em>会不会在其他 buffer / entry 上重现</em>?</p>
+      <ul>
+        <li><strong>会重现</strong>(低频 jukugo / single-kanji / 机械 kana 长 buffer 等)→ 系统性 → 改公式</li>
+        <li><strong>只此一例</strong>(用户对某词的独特偏好)→ per-case → 用 overlay TSV</li>
+      </ul>
+    </div>
+    <div class="law-section">
+      <h4>本律的禁条</h4>
+      <ul>
+        <li><strong>禁</strong>:用 <code>tier_overlay.tsv</code> 修一个 class 级 tier 错配。→ 改框架公式</li>
+        <li><strong>禁</strong>:用 <code>quickfix_boost.tsv</code> 补偿 μ/σ 偏差。→ 改 toml</li>
+        <li><strong>禁</strong>:用 <code>prior_corrections_v1.tsv</code> 推个别词上 tier。→ 改 producer-side natural-tier 公式</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+
+<!-- ====================== 律七 · 修宪程序 ====================== -->
+<section id="law-7">
+  <div class="seal-row">
+    <div class="law-seal"><span class="ch">柒</span></div>
+    <div>
+      <div class="law-num">律 · 柒</div>
+      <h2 class="law-title">修宪程序 · 觉得规则错了怎么办</h2>
+      <p class="law-summary">不会有这种事。但万一确实<em>矩阵 + 数据面表达不了</em>用户需求,程序如下 —— <strong>不准用 per-entry carveout 作 workaround</strong>。</p>
+    </div>
+  </div>
+
+  <div class="checklist" style="background:rgba(244,236,216,.7)">
+    <h3 style="color:var(--vermillion-deep);border-bottom-color:var(--vermillion)">修宪 6 步</h3>
+    <ol>
+      <li><strong>STOP</strong>。先停下,不写代码,不动 TSV。</li>
+      <li><strong>articulate gap</strong>:精确说出"什么结构性规则缺了"。不能是"我需要把这个词排前"。要是"low-freq jukugo 的 tier 1 placement rule 缺少 freq-aware 截断"。</li>
+      <li><strong>propose framework extension</strong>:新 tier-naming rule / 新 producer-side natural-tier 公式 / 新 TOML knob。具体到改哪个文件、加什么常数、怎么计算。</li>
+      <li><strong>get user sign-off</strong>。用户明确点头才能继续。</li>
+      <li><strong>extend the framework</strong>。改公式 / 加 knob。</li>
+      <li><strong>continue</strong>。回到正常 polish 流程。</li>
+    </ol>
+  </div>
+
+  <div class="declare" style="margin-top:24px">
+    <strong>carveout 永远是错答案</strong>。carveout 的代价<em>会复利</em>(下一个类似问题没法靠 carveout,要么再加一个 carveout,要么承认框架缺失);framework gap 修一次<em>永久受益</em>。这是 inputx 不变成"补丁堆"的关键。
+  </div>
+</section>
+
+
+<!-- ====================== 与主流的对比 ====================== -->
+<section>
+  <h2>这些金身 · 主流为什么没有</h2>
+  <p>主流 IME 都是<strong>单引擎</strong> —— 它们不需要解耦"多种输入方式";它们的复杂度天然是 n,不是 n²。所以它们没有正交矩阵、没有 wx > px > nx 这种偏序。</p>
+
+  <table class="compare-table">
+    <thead>
+      <tr><th>金身条款</th><th>inputx</th><th>搜狗 / libpinyin / Mozc</th><th>对照解释</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>正交矩阵 (tier × engine)</td>
+        <td class="ix">必需 · 三引擎共存的解耦机制</td>
+        <td class="no">不需要 · 单引擎</td>
+        <td>它们只有"一种输入" → 单维度排序 → n 复杂度</td>
+      </tr>
+      <tr>
+        <td>wx > px > nx 偏序</td>
+        <td class="ix">必需 · 五笔肌肉记忆保护</td>
+        <td class="no">不存在 · 五笔得装另一个软件</td>
+        <td>"切换无感的多引擎共存"是 inputx 独有差异化</td>
+      </tr>
+      <tr>
+        <td>禁特殊列表(律四)</td>
+        <td class="ix">永久 · 防补丁堆腐烂</td>
+        <td>各家不一</td>
+        <td>libpinyin 偶有 const 列表;Mozc 走数据面更严谨</td>
+      </tr>
+      <tr>
+        <td>公式优先(律六)</td>
+        <td class="ix">永久 · 系统性问题改公式</td>
+        <td>主流靠云端 retrain 解决</td>
+        <td>我们不靠云,所以本地公式必须更可调</td>
+      </tr>
+      <tr>
+        <td>修宪程序(律七)</td>
+        <td class="ix">必需 · 防止 carveout 复利</td>
+        <td>商业项目不需要这种自律</td>
+        <td>开源 + 小团队 + 长期维护,自律是唯一保护</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="declare">
+    <strong>不为追主流破金身</strong>。学搜狗 LM 是为了让<em>各引擎在自己 tier 内排得更准</em>(within-tier scoring 升级),<strong>不是</strong>为了把三引擎熔成一个、不是为了拿掉 wx > px > nx、不是为了在 Rust 里加 per-entry carveout 来"压主流一头"。<em>金身先于性能</em>。
+  </div>
+</section>
+
+
+<!-- ====================== 违宪自检清单 ====================== -->
+<section>
+  <h2>违宪自检 · 每次改动 PR 必过</h2>
+  <p>研究报告、爬升执行表中的<strong>每一个 CP 完成后</strong>,把这 8 个 ☐ 过一遍。不能全过就不能 merge。</p>
+
+  <div class="checklist">
+    <h3>PR 自检 · 8 问</h3>
+    <ol>
+      <li><strong>改动是否引入了新的 per-(buffer, word) const list 或 if-branch?</strong><br>grep <code>const.*\[(.*,.*)\]</code> + <code>if .* == \(".*",.*"\)</code>。有任何匹配 = 违律四。</li>
+
+      <li><strong>改动是否动了 engine_gap_q4 / within_tier_max_q4?</strong><br>grep <code>engine_gap_q4</code> 在 diff 里出现 = 违律二。修宪程序走起。</li>
+
+      <li><strong>改动是否动了 tier 0 的填充规则?</strong><br>grep <code>tier.*0</code> 在 producer 代码里赋值 = 违律三。tier 0 只能由用户 pin 写入。</li>
+
+      <li><strong>改动是否创建了新的 overlay TSV 文件?</strong><br><code>git status</code> 含 <code>tools/scoring/data/polish/*.tsv</code> 中不在 §05 六张表的新文件 = 违律五。</li>
+
+      <li><strong>改动是否用 overlay TSV 修了一个 class 级问题?</strong><br>检查 polish 报告:同一类问题(低频 X 压高频 Y)在其他 buffer 是否会重现?会 = 系统性 = 改公式,不是 overlay。违律六。</li>
+
+      <li><strong>改动是否跨引擎调参?</strong><br>diff 同时改了 <code>tier_quantile_wubi</code> + <code>tier_quantile_pinyin</code> + <code>tier_quantile_nihongo</code> 中两个或以上 = 警示。律一禁跨引擎耦合。</li>
+
+      <li><strong>改动是否破坏 wubi 简码 #0 承诺?</strong><br>跑 <code>cargo test session::wubi_simcode_priority</code>。有任何 fixture 不再 #0 = 违律二。回退或修宪。</li>
+
+      <li><strong>改动是否绕过了修宪程序?</strong><br>如果改动属于"我觉得规则错了" —— STOP。律七 6 步走完没?用户 sign-off 拿到没?</li>
+    </ol>
+  </div>
+</section>
+
+
+<!-- ====================== 与差距/爬升的接驳 ====================== -->
+<section>
+  <h2>与差距研究 / 爬升执行表的接驳</h2>
+  <p>本宪法是上位文件,前两份必须服从。具体接驳点:</p>
+
+  <h3>差距研究报告的"领先"补丁</h3>
+  <p>原研究报告 §00 Executive 强调"差一代"。需要在那之后补一节 <strong>§00.5 · 我们已经领先的设计</strong>,内容由本宪法七律压缩成 4-5 行 + 链接来本文。这样读者拿到的画面是<em>平衡</em>的:既知差距,也知金身。</p>
+
+  <h3>爬升执行表的宪法门</h3>
+  <p>原 climb plan 6 阶段 38 CP 默认"每 CP 跑 MIU + polish-log 守"。需要在每个 Phase 验收门 + 每个跨阶段决策树里<strong>显式</strong>加宪法门:</p>
+  <ul style="margin-left:24px;line-height:1.9">
+    <li>Phase 0 验收门 + ☐ 评测脚手架没有 hardcoded "应该 #0"列表(防 PR 通过<em>提供作弊数据</em>蒙混)</li>
+    <li>Phase 1 翻 gate 后 ☐ wubi 简码 #0 fixture 全过 · 五笔肌肉记忆未受影响</li>
+    <li>Phase 2 LM 上线后 ☐ wx 内候选排序不受 pinyin LM 干扰(LM 项只对 px 评分)</li>
+    <li>Phase 3 lattice 重构后 ☐ 三引擎仍各自独立产生候选,矩阵 sort 仍是唯一入口</li>
+    <li>Phase 4 用户 bigram 后 ☐ user_bigram 只学拼音侧,不污染 wubi/nihongo 候选</li>
+    <li>Phase 5 任何"神经 rerank"前 ☐ rerank 只在 tier 内重排,不跨 tier · 不跨 engine</li>
+  </ul>
+
+  <p style="margin-top:16px;font-style:italic;color:var(--ink-soft)">→ 我会在下一步把这些"宪法门"具体补回 climb plan。本节是承诺,不是空话。</p>
+</section>
+
+
+<!-- ====================== FOOTER ====================== -->
+<section class="foot">
+  <h3>About this constitution</h3>
+  <p style="max-width:1300px;color:var(--paper-2);font-style:italic;margin-top:14px">这份宪法是仓库 <code>.claude/RANKING-MODEL-INVARIANTS.md</code>(317 行严谨章程,用户 2026-06-03 永久指令)的可视化展示版。源文档是契约,本文是"对外解释"。两者出入,以源文档为准。</p>
+
+  <p class="pull-final">"<em>我们不是要造一个更好的搜狗 —— 我们是要造一个搜狗不可能造出来的东西。</em>正交矩阵 + 三引擎共存 + 五笔肌肉记忆保护,是 inputx 的金身。不为追主流破金身。"</p>
+
+  <div style="margin-top:36px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:28px">
+    <div>
+      <h3>本宪法引用源</h3>
+      <ul style="list-style:none;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--paper-2);line-height:2">
+        <li>· .claude/RANKING-MODEL-INVARIANTS.md(317 行)</li>
+        <li>· docs/SCORING.md §2 Runtime score</li>
+        <li>· core/.../engine_weights.toml(tier 参数)</li>
+        <li>· core/crates/inputx-wubi/src/layer.rs:47-54</li>
+        <li>· memory: ranking_orthogonal_table_model.md</li>
+        <li>· memory: polish_ordering_quickfix_vs_libraryfreq.md</li>
+      </ul>
+    </div>
+    <div>
+      <h3>历史违宪案例(自警)</h3>
+      <ul style="list-style:none;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--paper-2);line-height:2">
+        <li>· 2026-06-03 跨引擎 sweep(39 个五笔字误伤)</li>
+        <li>· 2026-06-07 engine_gap=40 探测(三引擎崩盘)</li>
+        <li>· 2026-06-13 daiban 用 quickfix(kongdang 重排)</li>
+        <li>· commit ce2dec0 · D1 删 (shen, 什) 致 wsm → 为什么 死</li>
+      </ul>
+    </div>
+    <div>
+      <h3>姐妹文档</h3>
+      <ul style="list-style:none;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:2">
+        <li><a href="./pinyin-quality-gap-2026-06-14.html">差距研究报告 v2</a></li>
+        <li><a href="./pinyin-climb-plan-2026-06-14.html">爬升执行表</a></li>
+        <li>docs/SCORING.md(评分公式)</li>
+        <li>docs/POLISH-ARCHITECTURE.md(polish 架构)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="credit">
+    <span>supreme protocol · inputx engine constitution</span>
+    <span>2026.06.14 · 七律 · zh-hans</span>
+    <span>opus 4.7 · for doracawl 守金身</span>
+  </div>
+</section>
+
+</body>
+</html>

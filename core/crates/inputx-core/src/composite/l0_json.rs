@@ -6,7 +6,7 @@
 //! writer + a small panic-free recursive-descent parser live below. This
 //! replaces the former serde/serde_json dependency (Stage A of the
 //! zero-dep engine milestone, see `.claude/PLAN-self-built-fsa.md`). The
-//! wubi + golia-pinyin crates already carry no serde; inputx-core now
+//! inputx-wubi + inputx-pinyin crates already carry no serde; inputx-core now
 //! matches them.
 //!
 //! f64 fidelity note: the writer uses std's `{}` Display for floats, which
@@ -103,7 +103,7 @@ fn push_triples(out: &mut String, triples: &[(String, String, u32)]) {
     out.push(']');
 }
 
-pub fn wubi_to_json(snap: &wubi::L0Snapshot) -> String {
+pub fn wubi_to_json(snap: &inputx_wubi::L0Snapshot) -> String {
     let mut s = String::with_capacity(64 + snap.pins.len() * 16 + snap.pick_counts.len() * 18);
     s.push_str("{\"version\":");
     s.push_str(&SCHEMA_VERSION.to_string());
@@ -122,7 +122,7 @@ pub fn wubi_to_json(snap: &wubi::L0Snapshot) -> String {
     s
 }
 
-pub fn wubi_from_json(json: &str) -> Option<wubi::L0Snapshot> {
+pub fn wubi_from_json(json: &str) -> Option<inputx_wubi::L0Snapshot> {
     let v = mini_json::parse(json)?;
     if v.get("version")?.as_u32()? != SCHEMA_VERSION {
         return None;
@@ -132,7 +132,7 @@ pub fn wubi_from_json(json: &str) -> Option<wubi::L0Snapshot> {
     }
     let pins = parse_pairs(v.get("pins")?)?;
     let pick_counts = parse_triples(v.get("pick_counts")?)?;
-    let mut layer_prefs = wubi::DEFAULT_LAYER_PREFS;
+    let mut layer_prefs = inputx_wubi::DEFAULT_LAYER_PREFS;
     if let Some(lp) = v.get("layer_prefs").and_then(mini_json::Json::as_arr) {
         for (i, item) in lp.iter().enumerate().take(layer_prefs.len()) {
             if let Some(f) = item.as_f64() {
@@ -140,14 +140,14 @@ pub fn wubi_from_json(json: &str) -> Option<wubi::L0Snapshot> {
             }
         }
     }
-    Some(wubi::L0Snapshot {
+    Some(inputx_wubi::L0Snapshot {
         pins,
         pick_counts,
         layer_prefs,
     })
 }
 
-pub fn pinyin_to_json(snap: &golia_pinyin::L0Snapshot) -> String {
+pub fn pinyin_to_json(snap: &inputx_pinyin::L0Snapshot) -> String {
     let mut s = String::with_capacity(48 + snap.pins.len() * 16 + snap.pick_counts.len() * 18);
     s.push_str("{\"version\":");
     s.push_str(&SCHEMA_VERSION.to_string());
@@ -159,7 +159,7 @@ pub fn pinyin_to_json(snap: &golia_pinyin::L0Snapshot) -> String {
     s
 }
 
-pub fn pinyin_from_json(json: &str) -> Option<golia_pinyin::L0Snapshot> {
+pub fn pinyin_from_json(json: &str) -> Option<inputx_pinyin::L0Snapshot> {
     let v = mini_json::parse(json)?;
     if v.get("version")?.as_u32()? != SCHEMA_VERSION {
         return None;
@@ -169,7 +169,11 @@ pub fn pinyin_from_json(json: &str) -> Option<golia_pinyin::L0Snapshot> {
     }
     let pins = parse_pairs(v.get("pins")?)?;
     let pick_counts = parse_triples(v.get("pick_counts")?)?;
-    Some(golia_pinyin::L0Snapshot { pins, pick_counts })
+    Some(inputx_pinyin::L0Snapshot {
+        pins,
+        pick_counts,
+        ..Default::default()
+    })
 }
 
 fn parse_pairs(v: &mini_json::Json) -> Option<Vec<(String, String)>> {
@@ -211,6 +215,9 @@ mod mini_json {
     /// 32 is generous headroom while bounding stack use on hostile input.
     const MAX_DEPTH: usize = 32;
 
+    // The Bool/Num/... fields model the complete JSON grammar even though the
+    // schema consumer only reads a subset — keep the full value model.
+    #[allow(dead_code)]
     #[derive(Debug)]
     pub enum Json {
         Null,
@@ -257,7 +264,10 @@ mod mini_json {
     }
 
     pub fn parse(s: &str) -> Option<Json> {
-        let mut p = Parser { b: s.as_bytes(), i: 0 };
+        let mut p = Parser {
+            b: s.as_bytes(),
+            i: 0,
+        };
         p.skip_ws();
         let v = p.value(0)?;
         p.skip_ws();
@@ -497,10 +507,10 @@ mod tests {
 
     #[test]
     fn wubi_round_trip_empty() {
-        let snap = wubi::L0Snapshot {
+        let snap = inputx_wubi::L0Snapshot {
             pins: vec![],
             pick_counts: vec![],
-            layer_prefs: wubi::DEFAULT_LAYER_PREFS,
+            layer_prefs: inputx_wubi::DEFAULT_LAYER_PREFS,
         };
         let json = wubi_to_json(&snap);
         assert!(json.contains("\"engine\":\"wubi\""));
@@ -512,7 +522,7 @@ mod tests {
 
     #[test]
     fn wubi_round_trip_populated() {
-        let snap = wubi::L0Snapshot {
+        let snap = inputx_wubi::L0Snapshot {
             pins: vec![("khlg".into(), "中国".into())],
             pick_counts: vec![("khlg".into(), "跑车".into(), 2)],
             layer_prefs: [0.5, 1.0, 1.5, 1.0, 1.0, 1.0],
@@ -526,9 +536,10 @@ mod tests {
 
     #[test]
     fn pinyin_round_trip() {
-        let snap = golia_pinyin::L0Snapshot {
+        let snap = inputx_pinyin::L0Snapshot {
             pins: vec![("zhongguo".into(), "中国".into())],
             pick_counts: vec![("women".into(), "我们".into(), 1)],
+            ..Default::default()
         };
         let json = pinyin_to_json(&snap);
         assert!(json.contains("\"engine\":\"pinyin\""));
@@ -539,9 +550,10 @@ mod tests {
 
     #[test]
     fn wrong_engine_rejected() {
-        let snap = golia_pinyin::L0Snapshot {
+        let snap = inputx_pinyin::L0Snapshot {
             pins: vec![],
             pick_counts: vec![],
+            ..Default::default()
         };
         let json = pinyin_to_json(&snap);
         // Trying to import as wubi → fails (engine mismatch).
@@ -579,13 +591,13 @@ mod tests {
     use proptest::prelude::*;
 
     /// Shrinkable strategy producing valid wubi L0Snapshots.
-    fn wubi_snap_strategy() -> impl Strategy<Value = wubi::L0Snapshot> {
+    fn wubi_snap_strategy() -> impl Strategy<Value = inputx_wubi::L0Snapshot> {
         let pins = proptest::collection::vec(
             (
                 proptest::collection::vec(b'a'..=b'z', 1..6)
                     .prop_map(|v| String::from_utf8(v).unwrap()),
-                "[\u{4e00}-\u{9fff}]{1,4}".prop_filter(
-                    "non-empty word", |s: &String| !s.is_empty()),
+                "[\u{4e00}-\u{9fff}]{1,4}"
+                    .prop_filter("non-empty word", |s: &String| !s.is_empty()),
             ),
             0..16,
         );
@@ -593,14 +605,14 @@ mod tests {
             (
                 proptest::collection::vec(b'a'..=b'z', 1..6)
                     .prop_map(|v| String::from_utf8(v).unwrap()),
-                "[\u{4e00}-\u{9fff}]{1,4}".prop_filter(
-                    "non-empty word", |s: &String| !s.is_empty()),
+                "[\u{4e00}-\u{9fff}]{1,4}"
+                    .prop_filter("non-empty word", |s: &String| !s.is_empty()),
                 0u32..1000,
             ),
             0..16,
         );
         let layer_prefs = (
-            -100.0f64..100.0,  // intentionally include negatives + extremes
+            -100.0f64..100.0, // intentionally include negatives + extremes
             0.0f64..10.0,
             0.0f64..10.0,
             0.0f64..10.0,
@@ -608,7 +620,7 @@ mod tests {
             0.0f64..10.0,
         );
         (pins, pick_counts, layer_prefs).prop_map(|(p, pc, (l0, l1, l2, l3, l4, l5))| {
-            wubi::L0Snapshot {
+            inputx_wubi::L0Snapshot {
                 pins: p,
                 pick_counts: pc,
                 layer_prefs: [l0, l1, l2, l3, l4, l5],
@@ -616,13 +628,13 @@ mod tests {
         })
     }
 
-    fn pinyin_snap_strategy() -> impl Strategy<Value = golia_pinyin::L0Snapshot> {
+    fn pinyin_snap_strategy() -> impl Strategy<Value = inputx_pinyin::L0Snapshot> {
         let pins = proptest::collection::vec(
             (
                 proptest::collection::vec(b'a'..=b'z', 1..12)
                     .prop_map(|v| String::from_utf8(v).unwrap()),
-                "[\u{4e00}-\u{9fff}]{1,4}".prop_filter(
-                    "non-empty word", |s: &String| !s.is_empty()),
+                "[\u{4e00}-\u{9fff}]{1,4}"
+                    .prop_filter("non-empty word", |s: &String| !s.is_empty()),
             ),
             0..16,
         );
@@ -630,15 +642,16 @@ mod tests {
             (
                 proptest::collection::vec(b'a'..=b'z', 1..12)
                     .prop_map(|v| String::from_utf8(v).unwrap()),
-                "[\u{4e00}-\u{9fff}]{1,4}".prop_filter(
-                    "non-empty word", |s: &String| !s.is_empty()),
+                "[\u{4e00}-\u{9fff}]{1,4}"
+                    .prop_filter("non-empty word", |s: &String| !s.is_empty()),
                 0u32..1000,
             ),
             0..16,
         );
-        (pins, pick_counts).prop_map(|(p, pc)| golia_pinyin::L0Snapshot {
+        (pins, pick_counts).prop_map(|(p, pc)| inputx_pinyin::L0Snapshot {
             pins: p,
             pick_counts: pc,
+            user_bigram: vec![],
         })
     }
 

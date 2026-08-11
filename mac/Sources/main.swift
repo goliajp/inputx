@@ -7,6 +7,34 @@ import InputxKit
 // each declared input mode. install.sh runs this immediately after copying
 // the .app into place so the IME shows up in the picker AND lands in the
 // user's enabled input-source list in one step.
+// DIAGNOSTIC 2026-05-26 — direct candidate dump bypassing IMK/LaunchAgent.
+// Verifies whether the mac binary's bundled inputx-core gives the same
+// candidate order as cli inputx-probe. If yes: IME-layer caching/timing
+// bug. If no: the mac binary links a different (stale) inputx-core.
+if CommandLine.arguments.count >= 3, CommandLine.arguments[1] == "probe" {
+    let buf = CommandLine.arguments[2]
+    // v1.15 hot-reload: probe reads the same bundled data blobs the
+    // running IME would after startup. Failure here (missing bundle
+    // resource dir when the probe runs from a raw binary path)
+    // silently falls back to embedded — good enough for a smoke check.
+    if let resDir = Bundle.main.resourceURL?.appendingPathComponent("data") {
+        _ = InputxEngineData.setDirectory(resDir.path)
+    }
+    let sess = InputxSession()
+    sess.setEngineMode(.mixed)
+    sess.setJapaneseEnabled(true)
+    for codepoint in buf.unicodeScalars {
+        _ = sess.handleKey(codepoint: codepoint.value, modifiers: InputxModifiers(rawValue: 0))
+    }
+    let n = min(sess.candidateCount, 5)
+    for i in 0..<n {
+        let w = sess.candidate(at: i) ?? "?"
+        let s = sess.candidateSource(at: i)
+        print("#\(i+1) \(w) (\(s))")
+    }
+    exit(0)
+}
+
 if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "install" {
     let modeIDs: [String] = {
         guard let comp = Bundle.main.infoDictionary?["ComponentInputModeDict"] as? [String: Any],
@@ -20,7 +48,30 @@ if CommandLine.arguments.count >= 2, CommandLine.arguments[1] == "install" {
         let id = Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
         return modeIDs.contains(id)
     }
+    // TISRegisterInputSource policy — single contract:
+    //   - 0 rows match expected mode IDs → register (this is the
+    //     first-install path; macOS will prompt for TCC consent).
+    //   - exactly 1 row per expected mode ID → already registered,
+    //     do not re-register (TIS appends; re-register creates
+    //     duplicates).
+    //   - any other state (duplicates, orphan IDs with our bundle
+    //     prefix, etc.) → FAIL. Caller (mac/reinstall.py) detects
+    //     this earlier and instructs the user to run `--clean`.
+    //
+    // Pre-2026-06-02 commits had orphan cleanup + duplicate dedupe
+    // here as defensive bandaids for a different bug (missing
+    // TISInputSourceID in Info.plist + an "always re-register"
+    // policy that compounded the mess). Per project rule
+    // (no-defensive-programming): root cause fixed in d6cdc52,
+    // bandaids removed here.
     let alreadyRegistered = all.filter(match)
+    if alreadyRegistered.count > modeIDs.count {
+        NSLog("Inputx install: REFUSING to install — TIS has "
+            + "\(alreadyRegistered.count) rows for \(modeIDs.count) "
+            + "expected mode IDs (duplicates or orphans). Run "
+            + "`mac/reinstall.py --clean` then retry.")
+        exit(1)
+    }
     if alreadyRegistered.isEmpty {
         let status = TISRegisterInputSource(Bundle.main.bundleURL as CFURL)
         guard status == noErr else {
@@ -43,34 +94,69 @@ let kConnectionName = "jp.golia.inputmethod.wubi_Connection"
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var server: IMKServer?
-    var menubar: MenubarSettings?
+    /// v1.15 hot-reload signal source. Retained on the delegate so it
+    /// isn't dropped after `applicationDidFinishLaunching` returns —
+    /// DispatchSourceSignal fires only while the source is alive.
+    private var reloadSignalSource: DispatchSourceSignal?
 
     func applicationDidFinishLaunching(_ note: Notification) {
         // Pin process-global rare-CJK toggle so spawned InputxController
         // instances inherit the persisted pref.
         InputxRareChars.enabled = inputxSettings.showRareChars
 
+        // v1.15 hot-reload bootstrap. Point the Rust core at the
+        // bundle's `Contents/Resources/data/` so subsequent
+        // `inputx_session_new` calls (one per InputxController /
+        // client the OS spawns) initialise their pinyin dict from
+        // freshly-baked polish data on disk rather than the compile-
+        // time-embedded blobs. Failure here is soft — the Rust core
+        // stays on embedded and this build still runs; a future
+        // hot-reload signal will retry against the same directory.
+        if let resDir = Bundle.main.resourceURL?.appendingPathComponent("data") {
+            let ok = InputxEngineData.setDirectory(resDir.path)
+            NSLog("Inputx pinyin data dir=%@ ok=%d", resDir.path, ok ? 1 : 0)
+        }
+
         guard let bundleID = Bundle.main.bundleIdentifier else {
             NSLog("Inputx: missing bundle identifier")
             exit(1)
         }
         server = IMKServer(name: kConnectionName, bundleIdentifier: bundleID)
-        // Settings entry points (in order of discoverability):
-        //   1. Click the active input source in the macOS menu bar (the
-        //      one labelled "入 Inputx 五笔") — IMKInputController.menu()
-        //      override on `InputxController` injects "Inputx 设置…" as
-        //      the first item there.
-        //   2. NSStatusItem in the menu bar (`MenubarSettings`) — visible
-        //      when the user doesn't have menu-bar auto-hide on.
+
+        // v1.15 hot-reload: SIGUSR1 lands on the .main queue, which is
+        // the same queue IMKit uses to dispatch keystrokes. That
+        // guarantees the reload runs *between* keystrokes — a mid-
+        // preedit swap can't tear a lookup. The default signal handler
+        // for SIGUSR1 would terminate the process, so we `signal(…,
+        // SIG_IGN)` first to hand ownership over to the DispatchSource
+        // exclusively. `reinstall.py --hot-reload` fires this after it
+        // atomically replaces Contents/Resources/data/.
+        signal(SIGUSR1, SIG_IGN)
+        let src = DispatchSource.makeSignalSource(signal: SIGUSR1, queue: .main)
+        src.setEventHandler {
+            NSLog("Inputx SIGUSR1 → dict reload broadcast")
+            NotificationCenter.default.post(name: .inputxDictReloaded, object: nil)
+        }
+        src.resume()
+        self.reloadSignalSource = src
+        // Settings entry point: click the active input source in the macOS
+        // menu bar (the "Inputx Wubi" item next to the keyboard layout
+        // icon). `InputxController.menu()` hosts every toggle / radio /
+        // action — see IMEController.swift `// MARK: - System input-source
+        // menu integration`.
+        //
+        // The pre-2026-06-06 NSStatusItem ("五" status item with its own
+        // dropdown) was retired here per user request: it duplicated every
+        // entry of the IMK menu, cluttered the menu bar, and visually
+        // collided with the system input-source indicator. Apple-canonical
+        // IME behavior: settings live ONLY inside IMKInputController.menu().
         //
         // We deliberately do NOT auto-open the Settings window from
         // `applicationShouldHandleReopen` / `applicationOpenUntitledFile`
         // because macOS dispatches those events during LaunchServices /
-        // IMK activation cycles too, which means every `launchctl bootout
-        // + bootstrap` (every dev reinstall, every system reboot) was
-        // popping the window. The IMK-menu entry covers the discoverability
-        // need without the side-effect.
-        menubar = MenubarSettings()
+        // IMK activation cycles too, which means every reinstall (dev or
+        // system) was popping the window. The IMK-menu entry covers the
+        // discoverability need without the side-effect.
     }
 }
 

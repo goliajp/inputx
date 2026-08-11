@@ -1,0 +1,111 @@
+# Pinyin dict Path-1 DISPLAY FILTER — (code, word) pairs that should
+# not surface as direct dict-lookup results at the user-typed buffer.
+#
+# IMPORTANT — this is NOT dict data removal. Entries listed here STAY
+# in `pinyin.dict` (so K-best composition, reverse-lookup for initials
+# like `wsm → 为什么`, and other dict-as-index uses keep working);
+# they're skipped only when the IDF snapshot is built, which means
+# the cement-layer composite engine's Path-1 ranking won't surface
+# them at the buffer they're listed under.
+#
+# Use this for "I see this character/word at top of buffer X, I don't
+# want it there" — e.g. archaic 异读 (`(shen, 什)` would surface 什 at
+# the rare `shen` reading even though daily-use buffer for 什 is
+# part of `shenme`/`weishenme` compounds). Deleting from `weights.tsv`
+# directly would also kill the reverse-lookup signal — initials `wsm`
+# would lose `为什么`. Filtering at IDF stage preserves it.
+#
+# Format:
+#   <code>\t<word>[\t# comment]
+#
+# Loaded by `idf_from_pinyin_dict.rs` via `include_str!` so cargo
+# tracks the file as a build dependency. `make polish-rebuild` is
+# the entire edit loop.
+#
+# Audit trail: git commit message + row-level diff.
+
+# 2026-05-28 user polish-log: typing `liangle` surfaced 两肋 as a
+# Path-1 Exact match, gating off Path-5 K-best → 凉了 never
+# generated. Source dict (readings.tsv:18800) maps "两肋" to BOTH
+# `liangle` and `lianglei` because "肋" has an archaic "lè" reading
+# that survives in jieba phrase data; modern mainstream reads "lèi"
+# only. Filtering (liangle, 两肋) at IDF stage lets K-best compose
+# 凉+了 → 凉了. (lianglei, 两肋) is kept — legitimate per modern
+# reading.
+liangle	两肋
+
+# 2026-06-03 user polish-log: `jile` led with 极了 (freq 33555 from
+# 好极了/棒极了 compound bleed in jieba data). "极了" is a bound suffix,
+# not a free word — standalone "jile" shouldn't surface it. Filter
+# lets 极乐 lead naturally; (jile, 寄了) lives in weights.tsv directly
+# as a polish-added entry. Compounds like 棒极了 (bangjile) keep their
+# entry untouched (they're under different codes).
+jile	极了
+
+# (cipin, 次贫) reclassified D1 2026-06-03 — user confirmed "次贫
+# 不存在", removed from weights.tsv directly instead.
+
+# 2026-06-03 user polish-log: `ciping` surfaced 茨坪 at #1.
+# 茨坪 is an obscure place name (a town in Jinggangshan, Jiangxi).
+# Real word per geographic record; kept in dict for completeness,
+# only Path-1 filtered.
+ciping	茨坪
+
+# 2026-06-03 80-buffer sweep — pinyin secondary-reading pollution
+# at top1 of common single-syllables. Each is a character whose
+# mainstream reading is something else; the secondary reading bleeds
+# in from compound corpus freq. Compound entries (kuaiji, shenme,
+# zhuozhuang, zhaoji, …) live under their own codes and aren't
+# affected. Reverse-lookup signal preserved (see file header) — `wsm`
+# initials still find 为什么 via `weishenme → 为什么`.
+kuai	会
+shen	什
+zhuo	着
+zhao	着
+
+# 2026-06-03 80-buffer sweep — jieba sub-word / homophone-noise
+# entries cluttering top-5 of common multi-syllable buffers. All
+# pinyin-source with non-trivial corpus freq but no daily-use meaning.
+# (D1 reclassifications 2026-06-03 audit batch moved to weights.tsv
+#  direct delete + corpus_garbage_filter_v1.tsv — see commit log.
+#  Remaining entries are D2: real words / readings, just hidden from
+#  the typed buffer's top-1.)
+zhege	哲哥	# 网络昵称,边缘真用
+yige	一格	# "一格画面" 等量词组合
+yige	亿个	# "一亿个" 分解
+yige	毅哥	# 网络昵称,边缘真用
+tamen	塔门	# 塔之门 / 香港塔门岛
+meiyou	没油	# "没油了" 短语分解
+shihou	狮吼	# 真词(狮子吼),古汉语 / 佛教
+jintian	津田	# 日本姓氏(中日混排可能用)
+kandao	砍倒	# 砍倒(动补)真用法;砍刀单独是真词,另在 weights.tsv 保留
+wenti	吻替	# 影视圈"亲吻替身"术语
+ruguo	入锅	# 烹饪"入锅"真用
+ruguo	辱国	# 真词(政治色彩)
+suoyi	缩衣	# 缩衣节食 (成语分解)
+ziji	子鸡	# 童子鸡分解
+
+# 2026-06-03 user: "yichu 一出 不应该存在, 一处 不应该高排序甚至可以
+# 没有, 一触 也是一样的问题" — Phase E bigram gate 在数词起头 phrase 上
+# 失效("一"高频字让 一出=37k, 一处=46k, 一触=27k bigram 全 > 25k floor;
+# 真词 一团=36k, 一夜=40k 跟 noise 区分不开).  Per §5.5 acceptable
+# per-case D2: hide Path-1, dict 保留供 K-best / initials reverse.
+yichu	一出
+yichu	一处
+yichu	一触
+# 剑麻 (sisal — botanical) kept in dict for initials reverse-lookup / K-best
+# but hidden from Path-1 display at `jianma` so 简码 / 键码 lead naturally.
+# User 2026-06-06: "捡骂 剑麻 不应该出现，他们不是词" (剑麻 IS technically
+# a real plant name; D2 default-conservative per the protocol "would any
+# path usefully exercise this entry" question).
+jianma	剑麻
+daiban	带班	# user 2026-06-13: 真词读音对(带=dài)但 daiban 只要 待办/代班/代办/呆板; D2 隐藏保留 reverse-lookup
+shouyin	首音	# 2026-07-03 user: shouyin 首音 不需要 (phonology term, hide from Path-1)
+xiaxi	罅隙	# 2026-07-04 user: 罅隙 太生僻了 (literary/formal crack term, hide from Path-1)
+shoujian	兽奸	# 2026-07-11 user: 太小众恶劣了 (vile niche term, hide from Path-1)
+shoujiao	兽交	# 2026-07-11 user: 这种词删了 (vile niche term, hide from Path-1)
+shoujiao	手交	# 2026-07-11 user: 这种词删了 (vile niche term, hide from Path-1)
+nanwei	男卫	# 2026-07-12 user: 删掉 (cedict niche abbrev, modern_freq 0, hide from Path-1)
+qingliang	清亮	# 2026-07-13 user: 清亮不是个词 (hide from Path-1; stays in dict for reverse-lookup)
+zuowei	做为	# 2026-07-13 user: 做为不是词要删 (v2 cedict row suppressed; v1 row D1-deleted)
+fangzhong	房仲	# 2026-07-20 user: 台湾用语删了吧 (房屋仲介 abbrev, TW-only; hide from Path-1)

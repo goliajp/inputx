@@ -1,10 +1,13 @@
 import Cocoa
 import InputxKit
 
-/// Brief HUD shown when the user toggles `InputxInputMode` via shift
-/// single-click. Standard macOS HUD style — rounded translucent square
-/// at screen center with a large glyph ("入" for CJK, "A" for EN),
-/// shown for ~600ms then faded out over ~200ms.
+/// Brief HUD shown when the user flips a keyboard-level mode from the
+/// keyboard itself — `InputxInputMode` via shift single-click ("五" /
+/// "A"), 全角英数 via ⇧space ("全角" / "半角"). Standard macOS HUD style
+/// — rounded translucent square at screen center, shown for ~600ms then
+/// faded out over ~200ms. These flips have no on-screen affordance of
+/// their own (the IMK menu checkmark isn't visible while typing), so the
+/// toast is the only feedback the user gets.
 ///
 /// Single-instance. IMK invokes `handle()` (and thus toggleInputMode)
 /// on the main thread, which AppKit also requires for window mutations
@@ -21,9 +24,19 @@ final class InputModeToast {
 
     /// Show the toast for the given mode, replacing any in-flight toast.
     func show(mode: InputxInputMode) {
-        let glyph = (mode == .cjk) ? "入" : "A"
+        show(text: (mode == .cjk) ? "五" : "A")
+    }
+
+    /// Show the toast for the 全角英数 width mode.
+    func show(fullWidth: Bool) {
+        show(text: fullWidth ? "全角" : "半角")
+    }
+
+    /// Show arbitrary short text, replacing any in-flight toast. The
+    /// panel picks its own point size from the string length.
+    func show(text: String) {
         let p = ensurePanel()
-        p.setGlyph(glyph)
+        p.setGlyph(text)
         p.centerOnActiveScreen()
         p.alphaValue = 1.0
         p.orderFrontRegardless()
@@ -102,8 +115,12 @@ private final class ToastPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
+    /// Set the HUD text, scaling the point size so a two-character label
+    /// ("全角") fits the same 160pt square a single glyph ("五") does.
     func setGlyph(_ s: String) {
         label.stringValue = s
+        let points: CGFloat = s.count <= 1 ? 90 : 52
+        label.font = .systemFont(ofSize: points, weight: .medium)
     }
 
     /// Center the panel on the screen containing the mouse cursor, or

@@ -1,6 +1,6 @@
-# Two undocumented gates between your macOS Input Method and a typed character
+# Three undocumented gates between your macOS Input Method and a polished, typed character
 
-**A fresh `InputMethodKit` bundle on macOS 26 (Tahoe) fails silently in two independent ways. This is the recipe to pass both, plus the investigation that found them.**
+**A fresh `InputMethodKit` bundle on macOS 26 (Tahoe) fails silently in three independent ways: the picker won't enumerate it, the IMK service won't launch it, and the picker tile next to its name won't render. This is the recipe to pass all three, plus the investigation that found them.**
 
 > **Verified on:** macOS 26.5 (Tahoe), Xcode 17, Swift 6, Apple Silicon (also x86_64 universal). macOS 14 / 15 likely apply the same rules, but only macOS 26 was bisection-tested.
 >
@@ -21,6 +21,8 @@ Decision tree. Match the user's complaint to a row; the right column points at t
 | "Picker shows my IME but switching to it instantly auto-skips to the next IME" | Either `imklaunchagent` refused the launch (no Mach service running), OR LaunchAgent plist incorrectly declared `MachServices` (collides with binary's `IMKServer` self-register). | [Skeleton — LaunchAgent](#launchagent), [Investigation §9](#9-launchagent-workaround) |
 | "Picker shows my IME, switching works, but typing does nothing" | `imklaunchagent` silently refused to launch the binary. Most common cause: `Info.plist` missing `InputMethodServerDataSourceClass` and `InputMethodSessionController`. Residual: `imklaunchagent` may refuse even with those keys; fix is the LaunchAgent workaround. | [Skeleton — `Info.plist`](#infoplist), [Skeleton — LaunchAgent](#launchagent), [Investigation §7](#7-locate-the-imklaunchagent-refusal), [Investigation §9](#9-launchagent-workaround) |
 | "My IME used to work but stopped after I was debugging" | Someone ran `killall cfprefsd`, which wiped the user's `AppleEnabledInputSources`. The IME has to be re-Added through System Settings UI to repopulate. | [Symptom → fix table](#symptom--fix-table) row 12 |
+| "Add Input Source dialog shows my IME but the tile next to its name is blank / outline-only / a solid blue blob" | Gate 3 — mode dict keys mix Apple-template path (`TISIconLabels`, `TISInputSourceID` in mode dict) with chip-design tiff, confusing the picker's render dispatch. | [Gate 3 investigation](#investigation--gate-3-picker-tile-rendering) |
+| "Ctrl+Space switcher HUD shows my app's .icns icon (logo, brand mark) instead of the menu/picker icon" | Gate 3 — `CFBundleIconName` (modern asset catalog reference) is set, so macOS 26 picker resolves icon via the asset path → `.icns`. Removing `CFBundleIconName` makes picker fall through to `tsInputModePaletteIconFileKey` → `.tiff`. | [Gate 3 — Ctrl+Space surface](#investigation--gate-3-picker-tile-rendering) |
 | "The IMK Programming Guide says my bundle should work" | The IMK Programming Guide hasn't been updated since 2007. macOS 26 added requirements (2 new `Info.plist` keys, 4 new entitlements, multi-resolution `.icns`, notarization, often a LaunchAgent) that the guide doesn't mention. | [TL;DR](#tldr) |
 
 Apply Gate 1 first — no point chasing Gate 2 if the picker doesn't even show the IME. Full bundle skeleton in [Skeleton](#skeleton). Code blocks are self-contained and copy-pasteable.
@@ -29,9 +31,27 @@ Apply Gate 1 first — no point chasing Gate 2 if the picker doesn't even show t
 
 ---
 
+## macOS 26 — where the enabled-IME state actually lives (2026-06-06 addendum)
+
+Apple split the per-user enabled-IME plist by source:
+
+| Plist file | Key | Contents |
+|---|---|---|
+| `~/Library/Preferences/com.apple.HIToolbox.plist` | `AppleEnabledInputSources` | Apple's BUILT-IN IMEs only (`com.apple.inputmethod.SCIM`, `com.apple.CharacterPaletteIM`, keyboard layouts like ABC) |
+| `~/Library/Preferences/com.apple.inputsources.plist` | `AppleEnabledThirdPartyInputSources` | THIRD-PARTY IMEs (yours, vChewing, Sogou, Squirrel, …) |
+| `~/Library/Preferences/com.apple.HIToolbox.plist` | `AppleInputSourceHistory` | Recently-used selection history (both sources) |
+
+If you write a verify / "is my IME in the picker" script: read `AppleEnabledThirdPartyInputSources` from `com.apple.inputsources`, not `AppleEnabledInputSources` from `com.apple.HIToolbox`. The latter will always be empty for your bundle. The Settings UI "Add Input Source" flow writes to whichever plist matches the source — third-party adds go to the `inputsources` plist.
+
+The macOS 26 picker (TextInputMenuAgent) reads BOTH plists and merges. Older scripts that only check `AppleEnabledInputSources` will incorrectly report "missing" for a perfectly working install.
+
+(References to `AppleEnabledInputSources` further down in this doc are from the pre-split era and still apply to Apple's built-in IMEs — but for your own bundle, read `AppleEnabledThirdPartyInputSources` from `com.apple.inputsources`.)
+
+---
+
 ## TL;DR
 
-A third-party IME on macOS 26 has to clear two independent gates. Each has its own set of rules; satisfying one tells you nothing about the other. The investigation order matters: solve Gate 1 first because Gate 2 isn't even meaningful until the picker shows your IME.
+A third-party IME on macOS 26 has to clear three independent gates. Each has its own set of rules; satisfying one tells you nothing about the others. The investigation order matters: solve Gate 1 first because Gate 2 isn't even meaningful until the picker shows your IME; solve Gate 2 second because Gate 3 is cosmetic (it polishes how the picker draws your IME's tile, after the picker already sees and launches it).
 
 ### Gate 1 — picker enumeration
 
@@ -48,6 +68,15 @@ A third-party IME on macOS 26 has to clear two independent gates. Each has its o
 8. **Run the IME binary as a `KeepAlive` user LaunchAgent.** Even after #3–7 are correct, `imklaunchagent` may *still* silently refuse to launch the binary on demand. The workaround: install `~/Library/LaunchAgents/<bundle-id>.plist` that keeps the binary always running. The binary's own `IMKServer(name:)` publishes the Mach service permanently, host apps connect to it directly, `imklaunchagent`'s decision becomes irrelevant. *Do NOT declare `MachServices` in the LaunchAgent plist* — launchd would then own the Mach name and conflict with IMKServer's self-register, putting the IME into a "switch-to-it-then-auto-skip" state.
 
 The rest of the bundle (`LSUIElement`, `TISIntendedLanguage`, `.lproj` per-mode display labels, `install` subcommand, sandbox keys) fixes display name, icon, language tab routing, and modern security baseline. Skeletons below.
+
+### Gate 3 — picker tile rendering (the chip next to your IME in System Settings)
+
+Even with Gates 1 + 2 satisfied, the picker UI in **System Settings → Keyboard → Input Sources → Add** still needs to know which **rendering path** to use for the small tile next to your IME's name. The picker has two:
+
+9. **Apple-template path**: mode dict contains `TISIconLabels.Primary` (e.g. `"五笔"`), `TISInputSourceID`, `TISIntendedLanguage`. Top-level `TISIconIsTemplate=true`. TIFF is alpha-on-transparent (all RGB=0, alpha varies). Picker draws own chip frame + tints alpha mask. Works for Apple SCIM Pinyin/Wubi/Stroke.
+10. **Third-party-chip path**: mode dict contains `tsInputModeAlternateMenuIconFileKey`, `tsInputModeDefaultStateKey`, `tsInputModeKeyEquivalentKey=""`, `tsInputModeKeyEquivalentModifiersKey=4608`. **NO** `TISIconLabels`, **NO** `TISInputSourceID` in mode dict, **NO** `TISIntendedLanguage` in mode dict, **NO** top-level `TISIconIsTemplate`. TIFF is full chip design (white solid bg + ink + LANCZOS-antialiased edges). Picker draws your tiff bytes verbatim. Works for Sogou WB.
+11. **Mixing them** (any `TIS*` mode key + a chip-design tiff, or any `tsInputModeKeyEquivalent*` + an alpha-mask tiff) → picker hits the wrong branch and renders a blank chip / outline-only glyph / solid-color blob. Pick one path, match the tiff to it, don't mix. See [Gate 3 investigation](#investigation--gate-3-picker-tile-rendering) for the eleven-iteration bisect that found this.
+12. **Remove `CFBundleIconName` from `Info.plist`.** With both `CFBundleIconFile` and `CFBundleIconName` set, the Ctrl+Space switcher HUD resolves icon via the modern asset-catalog reference (`.icns`) instead of falling through to `tsInputModePaletteIconFileKey` (`.tiff`) — same plist, different surface, different lookup order. Keep `CFBundleIconFile` (Dock/Finder uses it); delete `CFBundleIconName` to free the menu/picker fallback chain.
 
 The reference codebase is [Inputx](https://github.com/goliajp/inputx) (MIT-licensed Chinese IME on Rust + Swift). Live working files cited inline.
 
@@ -90,6 +119,7 @@ The reference codebase is [Inputx](https://github.com/goliajp/inputx) (MIT-licen
   - [7. Locate the `imklaunchagent` refusal + decode `_allowedInputMethodConnectionNames`](#7-locate-the-imklaunchagent-refusal)
   - [8. Match vChewing's bundle config bit-for-bit](#8-match-vchewings-bundle-config-bit-for-bit)
   - [9. Discover the residual block — LaunchAgent workaround](#9-launchagent-workaround)
+- [Investigation — Gate 3](#investigation--gate-3-picker-tile-rendering): picker tile rendering in the Add Input Source dialog
 - [Debug knobs to know](#debug-knobs-to-know)
 - [Recap](#recap)
 - [References](#references)
@@ -278,7 +308,29 @@ iconutil -c icns "$ICONSET" -o myime_app_icon.icns
 
 Result: a ~137 KB modern `ic12` `.icns` that `IconRef` resolves cleanly. Verify with `file myime_app_icon.icns` — should report `"ic12" type` not `"TOC " type` or `"il32" type`.
 
-### LaunchAgent
+### LaunchAgent — **RETROSPECTIVELY RETIRED 2026-06-06**
+
+> **Update.** This section is preserved as historical record only. **You probably don't need a LaunchAgent.** With all four IMK keys in [§Info.plist](#infoplist) and all six entitlements in [§Entitlements](#entitlements) present, `imklaunchagent` is reliable on macOS 26: it lazy-spawns the binary on first host-app use, the binary's `IMKServer(name:)` self-registers the Mach name, host apps connect directly. Single spawn path, single live process.
+>
+> **Why the LaunchAgent existed.** When this recipe was first written, `imklaunchagent` silently refused to launch the binary on demand even after correct Info.plist + entitlements. The KeepAlive LaunchAgent bypassed that decision by keeping the binary always running. The refusal turned out to be caused by missing IMK keys (`InputMethodServerDataSourceClass` + `InputMethodSessionController`) — both now mandatory per [§Info.plist](#infoplist). Once those are present, the refusal scenario doesn't reproduce.
+>
+> **Why the LaunchAgent is actively harmful now.** It races `imklaunchagent`: during a reinstall, the brief window where the LaunchAgent's old PID is being killed but its replacement hasn't published its Mach service yet, a host-app IMK lookup will trigger `imklaunchagent` to also spawn a fresh instance. Two processes end up both `bootstrap_register`'d on the Mach name. The user sees two identical IME entries in the macOS input-source menubar. Each host app is connected to whichever PID was alive at its first lookup, so killing "the duplicate" silently breaks every host app that was wired to the killed PID until those apps restart.
+>
+> **The clean architecture (canonical macOS IMK lifecycle):**
+>
+> 1. Install bundle to `~/Library/Input Methods/<AppName>.app` (atomic-swap during reinstall to prevent `HIToolbox`'s "bundle disappeared" enabled-state strip).
+> 2. `lsregister -f` the install path (drops stray duplicates, asserts a single LS record).
+> 3. After atomic swap: `lsregister -u` the staging-path inode BEFORE `rm -rf` (otherwise the old cdhash lingers in the LS dump as a phantom).
+> 4. Sweep `lsregister -u` over any non-canonical `.app` under the project tree (iOS build products especially — Xcode's `xcodebuild -destination "iOS Device"` produces platform=iOS bundles that LaunchServices auto-registers and the macOS input-source picker enumerates).
+> 5. Kill any running Inputx process. Next host-app use triggers `imklaunchagent` to lazy-spawn the new bundle.
+> 6. Verify post-conditions: TIS row exists, `_ls_paths_for_bundle_id(BUNDLE_ID)` returns exactly one path (the install path). No PID check — there is no PID until the lazy spawn fires.
+> 7. Validate binary health via a `probe` CLI subcommand on the binary itself (runs core logic, exits early, never instantiates IMKServer) — cheap, reliable, no race conditions.
+>
+> If you encounter the "silently refuses to launch" symptom that originally motivated this section, **debug it at the source**: enable private-data unification in the log (see [§3](#3-unredact-private-in-unified-log)) and check `process == "imklaunchagent"` for refusal messages. Common causes: missing Info.plist key, entitlement mismatch, code signature problem. Each is fixable directly; reaching for a LaunchAgent workaround layers a worse bug on top.
+>
+> The original LaunchAgent recipe follows for historical reference. **Do not use it on new installs.**
+
+---
 
 The final piece. After everything above is correct, `imklaunchagent` may *still* silently refuse to launch your binary on demand. The workaround: bypass it. Ship a user-level LaunchAgent that runs the binary continuously; the binary's own `IMKServer(name:)` publishes the Mach service and host apps connect directly.
 
@@ -766,6 +818,76 @@ I did not isolate the actual root cause of `imklaunchagent`'s residual refusal. 
 
 ---
 
+## Investigation — Gate 3 (picker tile rendering)
+
+Gate 1 enumerates your IME. Gate 2 makes it type. Gate 3 is what makes **System Settings → Keyboard → Input Sources → Add** (and the Ctrl+Space switcher HUD) paint a proper tile next to your IME's name — Apple ABC shows a dark chip with a white "A", Sogou WB shows its white-chip + black "S" logo. A naive third-party bundle gets a blank chip outline, or worse, a one-color solid tile where chip and ink fuse into the same fill.
+
+The interesting properties of the Gate 3 problem:
+
+- The failure is **visible**, not silent. The tile is *drawn* — just wrong. Empty outline, outline-only "五" with white fill, solid blue chip on selection. Each broken state is a clue about which rendering path the picker picked.
+- TIS API metadata is perfect throughout. `TISCreateInputSourceList` returns your IME, `kTISPropertyIconImageURL` points at your tiff, file exists, size matches. Picker has the data; it just draws it wrong.
+- Rendering doesn't dispatch on `TISIconIsTemplate`. It dispatches on the **shape of `ComponentInputModeDict.tsInputModeListKey.<mode-id>` — which keys are present** — plus the pixel composition of the tiff. The two must be consistent.
+- Apple's own SCIM (Pinyin/Wubi/Stroke) and Sogou WB use **two completely different recipes that both work**. Mixing them — which we did initially, taking the `TIS*` keys from SCIM and the chip-design tiff from Sogou — puts picker into a broken intermediate state.
+
+### Two valid recipes
+
+| Aspect | Apple-template (SCIM) | Third-party-chip (Sogou) |
+|---|---|---|
+| Mode dict has | `TISInputSourceID`, `TISIntendedLanguage`, `TISIconLabels.Primary`, `tsInputModeCharacterRepertoireKey` | none of those, but has `tsInputModeAlternateMenuIconFileKey`, `tsInputModeDefaultStateKey`, `tsInputModeKeyEquivalentKey` (can be ""), `tsInputModeKeyEquivalentModifiersKey` (= 4608) |
+| Top-level `TISIconIsTemplate` | `true` | (omit entirely) |
+| TIFF | Alpha-on-transparent. All RGB=(0,0,0), only alpha varies (0 = transparent, 255 = ink). No chip background. Apple's `wubixing.tiff` has 4 corner pixels at alpha=6, center at alpha=238. | White solid rounded chip + black ink. Chip edges are RGB=255 with alpha gradient (PIL LANCZOS produces (255,255,255,142) naturally). Sogou's chip edges are RGB=0 alpha=128 — same idea, different convention. |
+| Picker draws | A dark chip frame itself, tints the alpha mask to white text on top. Selection state recolors the chip. | The tiff bytes as-is. Your chip is what shows. Selection state composites a transparent blue overlay on top. |
+
+The picker dispatches on the mode dict keys: presence of `TISIconLabels` (or any `TIS*` mode-dict key) → Apple-template path. Absence of all `TIS*` mode-dict keys + presence of the `tsInputModeKeyEquivalentKey/Modifiers` pair → third-party-chip path. Default fallback (when picker can't classify) → render an empty chip outline.
+
+### The investigation path
+
+After Gates 1 + 2 were solved and Inputx was actually usable, the picker tile next to "Inputx 五笔" in **System Settings → Keyboard → Input Sources → Add** was a blank chip outline. ABC and Sogou both rendered correctly in the same dialog. The TIFF was a 16×16 / 32×32 multipage from `tiffutil -cathidpicheck`, matching Apple TamilIM's tiff structure bit-for-bit. The plist had `tsInputModePaletteIconFileKey` pointing at the right file. Nothing else was obviously wrong.
+
+Eleven iterations to figure out which lever does what:
+
+1. **Set `TISIconLabels.Primary = "五笔"`.** No change.
+2. **Set `TISIconIsTemplate = true`.** No change.
+3. **Fix `tsInputModeScriptKey` from `smUnicode` (not a real ScriptCode) to `smSimpChinese`** (matches SCIM Pinyin). No change.
+4. **Delete `TISIconLabels`** (testing whether picker walks tiff path when label is absent). No change.
+5. **Switch tiff from alpha-on-transparent black ink to white-chip + black-ink + opaque gray border (RGB=160,160,160 alpha=255).** → Tile **renders for the first time**, but as **outline-only "五"** — picker treats opaque gray edge pixels as a separate stroke channel and only paints outlines.
+6. **Remove gray outline; build chip via supersample-LANCZOS** so edges are RGB=255 with alpha gradient (no opaque non-white-non-black pixels). → Tile renders as **solid blue chip** when the row is selected. Picker now thinks the whole tiff is an alpha mask and tints chip-bg + ink uniformly to selection color.
+7. **Pixel-level diff our tiff vs Sogou's** with `Counter(img.getdata())`. Sogou's edge antialias is RGB=(0,0,0) alpha=128 (half-transparent black). Ours is RGB=(255,255,255) alpha=142 (half-transparent white). Both gradient-not-opaque, but picker still treats them differently.
+8. **Diff every key in our `ComponentInputModeDict` against Sogou's.** Sogou's mode dict has 9 keys, 4 of which are unique to it (`AlternateMenuIconFileKey`, `DefaultStateKey`, `KeyEquivalentKey`, `KeyEquivalentModifiersKey`). Ours has 9 too but mixed in `TISInputSourceID` + `TISIntendedLanguage` + `tsInputModeCharacterRepertoireKey` from SCIM.
+9. **Mirror Sogou's mode dict bit-for-bit.** Remove `TISInputSourceID` + `TISIntendedLanguage` + `tsInputModeCharacterRepertoireKey` from mode dict. Add `tsInputModeAlternateMenuIconFileKey` + `tsInputModeDefaultStateKey` + `tsInputModeKeyEquivalentKey="" `+ `tsInputModeKeyEquivalentModifiersKey=4608`. Also delete top-level `TISIconIsTemplate` (Sogou doesn't set it). → **Tile renders correctly.** White chip + black "五", matching Sogou's "S" tile in the same dialog.
+10. **Glyph polish — heavier weight for legibility.** First pass used STHeiti Medium; "五" rendered as a thin gray smear at 16×16 because antialiasing leaves too little black ink. Switched to Hiragino Sans W9 (heaviest CJK macOS ships). Glyph went solid black but felt heavy. Switched again to PingFang SC Medium (`PingFang.ttc` index 7) for a more PingFang/macOS-native look.
+11. **Drop the alpha hardening step**. While Hiragino was the glyph font I added `alpha = a.point(lambda v: 255 if v >= 160 else (v*1.4 if v >= 60 else 0))` to force gray antialias pixels to solid black. With PingFang Medium this stairsteps the edge instead of smoothing it. Removing the step lets LANCZOS produce clean antialiased edges that read as solid black at display size without looking jagged on close inspection.
+
+Final asset: [`mac/Resources/inputx_menu_icon.tiff`](https://github.com/goliajp/inputx/blob/develop/mac/Resources/inputx_menu_icon.tiff), 16×16 @72dpi + 32×32 @144dpi LZW multipage, white chip + LANCZOS-antialiased PingFang SC Medium "五" at inkbox 12/24 (~75% of canvas). Reproducible from [`mac/generate_menu_icon.py`](https://github.com/goliajp/inputx/blob/develop/mac/generate_menu_icon.py).
+
+### Two new mental models from this gate
+
+1. **Picker has at least two rendering paths**, dispatched by mode-dict key presence, not by `TISIconIsTemplate`. Mix the paths → undefined intermediate state → broken tile. Pick one recipe (chip-style if you want full control over visual, template-style if you want system tinting / dark-mode adaptation) and **don't mix `TIS*` mode-dict keys with `ts*KeyEquivalent*` keys** in the same mode.
+2. **The TIFF pixel composition has to match the chosen recipe.** Apple-template path expects RGB=0 everywhere, alpha varies. Third-party-chip path expects RGB=255 in chip body, RGB=0 in ink, antialias edges with alpha gradient on RGB=255 (or RGB=0). **Never opaque RGB=128 mid-gray pixels** — picker classifies those as stroke-only commands and renders outlines.
+
+### What's still unknown
+
+I didn't extract the picker UI code to confirm the dispatch logic — the empirical "presence of `TIS*` mode keys = template path, absence + `KeyEquivalent` pair = chip path" rule is reverse-engineered from how rendering changes when keys are toggled. The actual classifier may be more or less precise. If you isolate the source code branch, please file an issue.
+
+Also: the Ctrl+Space switcher HUD (the floating picker that appears when holding Control and tapping Space) reads from the same plist + tiff and should render the same chip — but on my macOS 26.5 it didn't update until `TextInputSwitcher` was killed via `kill -9 $PID` directly (not `killall`, which silently fails on SIP-protected system services). After force-kill, launchd respawns it and the new instance reads fresh assets. Add this to your asset-refresh dance: `kill -9 $(pgrep -x TextInputSwitcher)` alongside `kill -9 $(pgrep -x TextInputMenuAgent)`.
+
+### Gate 3.5 — `CFBundleIconName` makes Ctrl+Space switcher read your app .icns instead of menu .tiff
+
+Even with mode dict mirrored to Sogou and the menu .tiff rendering correctly in the Add Input Source dialog, the **Ctrl+Space switcher HUD** kept showing my `.icns` icon shrunk to 16×16 — the navy-bg + white "笔" + W/P dot from `inputx_app_icon.icns`, scaled down to where the "笔" became an unrecognizable smudge that read as "λ" or "入" depending on the angle.
+
+The difference between picker contexts:
+
+- **Add Input Source dialog tile**: reads `tsInputModePaletteIconFileKey` (.tiff). Works once mode dict is right.
+- **Ctrl+Space switcher HUD**: on macOS 26, reads `CFBundleIconName` *first* if it's set, resolves to the named asset catalog or .icns. Only falls through to `tsInputModePaletteIconFileKey` if `CFBundleIconName` is absent.
+
+Sogou's plist has `CFBundleIconFile = "sogou.icns"` but **no `CFBundleIconName`** — so the Ctrl+Space switcher walks the fallback chain and ends up at `tsInputModeMenuIconFileKey` (`sogou_menu_icon.tiff`). Ours had both `CFBundleIconFile = "inputx_app_icon"` and `CFBundleIconName = "inputx_app_icon"`, so the switcher resolved the modern-style asset reference and never reached the .tiff.
+
+**Fix**: delete `CFBundleIconName` from `Info.plist`. Keep `CFBundleIconFile` (Dock/Finder use it). The Ctrl+Space switcher now reads the menu .tiff and shows the same chip as the Add Input Source dialog.
+
+This trap doesn't show up in Apple's IMK documentation because the 2007 guide doesn't mention `CFBundleIconName` at all (it's a macOS 11+ asset catalog convention added for Dock/Finder integration). Apple's own SCIM/TamilIM bundles also don't set it. The trap is invisible until you encounter both surfaces and notice they're rendering different things.
+
+---
+
 ## Debug knobs to know
 
 - **`AppleTISTraceCacheRebuild`** — HIToolbox's own verbose trace. No profile required.
@@ -798,6 +920,14 @@ I did not isolate the actual root cause of `imklaunchagent`'s residual refusal. 
 - **`@objc(<YourController>)`** annotation on the Swift `IMKInputController` subclass.
 - **User-level `KeepAlive` LaunchAgent** at `~/Library/LaunchAgents/<bundle-id>.plist` that runs the IME binary continuously. Bypasses `imklaunchagent`'s opaque refusal. *Do NOT declare `MachServices` in the plist* (causes "switch-then-auto-skip" via Mach name conflict with `IMKServer(name:)`).
 
+### Gate 3 — picker tile rendering
+
+- **Pick one rendering path and don't mix.** Apple-template (alpha-on-transparent + `TISIconLabels` + `TISInputSourceID` in mode dict + `TISIconIsTemplate=true`) vs third-party-chip (white-chip tiff + `tsInputModeAlternateMenuIconFileKey` + `tsInputModeDefaultStateKey` + `tsInputModeKeyEquivalentKey="" `+ `tsInputModeKeyEquivalentModifiersKey=4608`, with NONE of the `TIS*` mode keys and NO top-level `TISIconIsTemplate`).
+- **TIFF for chip path**: 16×16 @72 + 32×32 @144 multipage LZW, white solid rounded rect + black ink + LANCZOS-antialiased edges. Build chip at 8× supersample then downscale (PIL: `Image.new(RGBA, (size*8, size*8))` + `ImageDraw.rounded_rectangle(fill=(255,255,255,255))` + `Image.LANCZOS`). **Never opaque mid-gray pixels** (RGB=128 alpha=255) — picker classifies these as stroke commands and renders outlines only.
+- **No alpha hardening on the glyph.** LANCZOS downscale of supersampled ink produces clean antialiased edges; a `if alpha > threshold` step function stairsteps the edge and looks worse.
+- **`kill -9 $(pgrep -x TextInputSwitcher)`** after a TIFF swap to refresh the Ctrl+Space switcher HUD cache. `killall TextInputSwitcher` silently fails on SIP-protected system services on macOS 26; `kill -9` by PID works (launchd respawns it).
+- **No `CFBundleIconName`** in `Info.plist` — otherwise Ctrl+Space switcher HUD resolves icon via modern asset-catalog path → `.icns` instead of falling through to `tsInputModePaletteIconFileKey` → `.tiff`. Keep `CFBundleIconFile` for Dock/Finder; remove `CFBundleIconName` to free the menu/picker fallback chain.
+
 ### Process notes
 
 - **Don't `killall cfprefsd`** during IME debugging — wipes user's `AppleEnabledInputSources`, forcing re-Add through System Settings UI.
@@ -819,6 +949,8 @@ I did not isolate the actual root cause of `imklaunchagent`'s residual refusal. 
   - [`mac/Inputx.entitlements`](https://github.com/goliajp/inputx/blob/develop/mac/Inputx.entitlements) — 6-entitlement set
   - [`mac/Resources/LaunchAgent.plist.template`](https://github.com/goliajp/inputx/blob/develop/mac/Resources/LaunchAgent.plist.template) — Gate-2 LaunchAgent template
   - [`mac/Resources/inputx_app_icon.icns`](https://github.com/goliajp/inputx/blob/develop/mac/Resources/inputx_app_icon.icns) — real multi-res .icns example
+  - [`mac/Resources/inputx_menu_icon.tiff`](https://github.com/goliajp/inputx/blob/develop/mac/Resources/inputx_menu_icon.tiff) — Gate-3 chip-style menu/picker icon (16×16 + 32×32 multipage)
+  - [`mac/generate_menu_icon.py`](https://github.com/goliajp/inputx/blob/develop/mac/generate_menu_icon.py) — reproducible script for the chip-style tiff
   - [`mac/Sources/main.swift`](https://github.com/goliajp/inputx/blob/develop/mac/Sources/main.swift)
   - [`mac/install.sh`](https://github.com/goliajp/inputx/blob/develop/mac/install.sh) — Gate-1 install + Gate-2 LaunchAgent bootstrap
   - [`mac/pkg/scripts/postinstall`](https://github.com/goliajp/inputx/blob/develop/mac/pkg/scripts/postinstall) — same as above, .pkg-flavored

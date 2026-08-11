@@ -24,7 +24,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use wubi::{Decomp, Shape, Stroke, embedded_seed, encode, iter_jianma1, iter_zigen};
+use inputx_wubi::{Decomp, Shape, Stroke, embedded_seed, encode, iter_jianma1, iter_zigen};
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -114,24 +114,24 @@ fn main() {
         }
         if let Some(decomp) = try_decompose(&code, &by_letter) {
             // sanity: round-trip
-            if let Ok(encoded) = encode(&decomp) {
-                if encoded.as_str() == code {
-                    let zg: String = decomp
-                        .zigen
-                        .iter()
-                        .map(|c| c.to_string())
-                        .collect::<Vec<_>>()
-                        .join(" ");
-                    let st: String = decomp
-                        .strokes
-                        .iter()
-                        .map(|s| (*s as u8).to_string())
-                        .collect::<Vec<_>>()
-                        .join(" ");
-                    let sh = decomp.shape as u8;
-                    println!("{ch}\t{zg}\t{st}\t{sh}");
-                    emitted += 1;
-                }
+            if let Ok(encoded) = encode(&decomp)
+                && encoded.as_str() == code
+            {
+                let zg: String = decomp
+                    .zigen
+                    .iter()
+                    .map(|c| c.to_string())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                let st: String = decomp
+                    .strokes
+                    .iter()
+                    .map(|s| (*s as u8).to_string())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                let sh = decomp.shape as u8;
+                println!("{ch}\t{zg}\t{st}\t{sh}");
+                emitted += 1;
             }
         }
     }

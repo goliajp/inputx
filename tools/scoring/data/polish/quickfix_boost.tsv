@@ -1,0 +1,1344 @@
+# repeat-miss-driven quickfix (review before applying)
+# format: pinyin\tword\tfreq\t(original_count)
+# boost auto-tuned to beat top peer at same pinyin under MAX overlay semantics
+jixu	积蓄	166366	# n=28 base=26366 peer=44652
+jixu	急需	58032	# n=6 base=28032 peer=44652
+jixu	继续	74652	# n=6 base=44652 peer=28032
+youshi	优势	75000	# n=5 base=50000 peer=38542
+rongyu	冗余	50000	# n=5 base=16889 peer=33654
+dan	单	61782	# n=4 base=41782 peer=52646
+jizhi	极致	45000	# n=4 base=23713 peer=32501
+bushu	部署	53133	# n=4 base=33133 peer=35000
+yuming	域名	45000	# n=4 base=22550 peer=23014
+shiye	视野	48177	# n=4 base=28177 peer=37292
+jin	金	65773	# n=4 base=45773 peer=48170
+pingfen	评分	55000	# n=3 base=40000 peer=26002
+fanye	翻页	55000	# n=3 base=40000 peer=12912
+jiagou	架构	40000	# n=3 base=24954 peer=28000
+jiaofu	交付	41892	# n=3 base=26892 peer=27454
+jishi	及时	49078	# n=3 base=34078 peer=40014
+maoding	锚定	40000	# n=3 base=11582 peer=15410
+dibu	底部	43322	# n=3 base=28322 peer=30385
+zhineng	智能	46694	# n=3 base=31694 peer=39376
+beijing	背景	63000	# n=3 base=35496 peer=58000
+exin	恶心	47851	# n=2 base=37851 peer=0
+zuojia	作假	41027	# n=2 base=22698 peer=36027
+pinlv	频率	40975	# n=2 base=30975 peer=5791
+jimu	积木	36583	# n=2 base=19279 peer=31583
+shengyu	剩余	39250	# n=2 base=29250 peer=30252
+kao	靠	52324	# n=2 base=42324 peer=42438
+tuidao	推倒	30000	# 2026-06-30 v2 ingest: 推倒 must lead per polish_log_promoted_words_lead test (v1 had this via corpus freq 23966 > 推导 boost 20000)
+tuidao	推导	20000	# 2026-06-28 user: "推导 > 退到" base=16696 peer=退到16854 (stay below 推倒23966)
+# 2026-06-03 Phase B tier-by-quantile: 涉及 quickfix retired —
+# overlay freq 44925 put 涉及 into pinyin tier 1 (z=2.31 ≥ 2.3) while
+# 设计 (raw 38468, z=2.11) landed in tier 2; prior_correction +11 for
+# 设计 was meant to flip within-tier order but can't cross tiers.
+# Removing the quickfix returns 涉及 to its base freq (34925, z=1.97,
+# tier 2), letting prior_correction drive 设计 > 涉及 as the user
+# attested 2026-05-26 ("设计 肯定应该高于涉及").
+# sheji	涉及	44925	# n=2 base=34925 peer=39773  [retired Phase B]
+yilai	依赖	42992	# n=2 base=31114 peer=37992
+zhidao	指导	60554	# n=2 base=34601 peer=55554
+tuo	托	49610	# n=2 base=39610 peer=40566
+chai	拆	46627	# n=2 base=35440 peer=41627
+duan	短	51005	# n=2 base=41005 peer=44464
+shiji	实际	47404	# n=2 base=37404 peer=38582
+# RETIRED-r10-bad-order shoushu	收束	44073	# n=2 base=8129 peer=39073
+mo	默	59857	# n=2 base=36029 peer=54857
+buzhou	步骤	22674	# user pick | top=不周 base=19628
+cipin	词频	10000	# user pick over 疵品 | base=6824 peer=疵品 7836 — push above 疵品 but keep 次品 #0
+xian	现	55000	# user 2026-06-03: 多音字 见 (jiàn) 不能压 现 | top=见 50235 base=现 49971
+jiao	叫	53000	# user 2026-06-03: 多音字 觉 (jué) 不能压 叫 | top=觉 48781 base=叫 47837
+jianchi	坚持	55000	# user 2026-06-03: 坚持 必须 > 减持 | 减持 modern_vocab=50000 压过 坚持 base=42131
+fudu	幅度	60500	# user 2026-06-04: 幅度 要在 复读 前面 | top peer 复读 55000 + 10% margin
+fudu	复读	55000	# user 2026-06-04: fudu 三个中文词都应该在日语 ふづ/フヅ 上面 | base 24182 (tier2) → 55000 (z=2.46, tier1)
+fudu	服毒	50000	# user 2026-06-04: 同上 | base 15348 (tier3) → 50000 (z=2.32, tier1)
+yangshi	样式	27000	# user 2026-06-04: 样式 比 央视 高一点点 | top peer 央视 24744 + 10% margin
+jianti	简体	21200	# user 2026-06-05: 简体 必须在 健体 前面 | top peer 健体 19242 + 10% margin
+# jianma 简码/键码 boost retired 2026-06-06 same-day — root cause was 捡骂
+# (jieba sub-word noise) + 剑麻 (sisal, real but obscure) sitting above the
+# real words. After D1 删 捡骂 + D2 hide 剑麻, 简码 (4193) > 键码 (3861) > rest
+# leads naturally without boost.
+# jianma	简码	12000	[retired by D1/D2 cleanup commit on jianma]
+# jianma	键码	11000	[retired by D1/D2 cleanup commit on jianma]
+jianma	简码	55000	# user 2026-06-06: 简码应该高于日语 — base 4193 (tier 3) → 55000 (tier 1) to beat JP exact-prefix kana じあんま/ジアンマ; same calibration as fudu 复读 55000
+# 2026-06-03 Phase E (bigram quality gate) retires juli 举例 quickfix
+# — 局里 / 剧里 (bigram 16k / 14k < floor 25k) now auto-demoted one
+# tier, so 距离 / 举例 surface ahead naturally without per-buffer boost.
+# juli	举例	27000	[retired by Phase E framework rule]
+biguo	敝国	21000	# user 2026-06-07: 敝国>比过; 比国 D1-deleted as corpus noise
+quanquan	全权	29500	# 2026-06-10 user: "全权 > 圈圈" — 圈圈 base 26401, boost 全权 to 26401+10% so 全权 leads via data, not via tier interaction
+aijie	娭毑	55000	# 2026-06-10 user: "娭毑现在 t 几，我想在日语前面" — base 3000 → 55000 to beat JP exact-prefix kana あいじえ/アイジエ; same calibration as jianma 简码 55000 / fudu 复读 55000
+edu	额度	24000	# 2026-06-10 user: "额度应该第二甚至也可以第一" — base 15305 below tier-1 cutoff; boost to 24000 (between 恶毒 26372 base and the cutoff) so 额度 enters tier 1 above JP exact-prefix kana えづ while keeping 恶毒 at top
+dongdong	洞洞	35000	# 2026-06-10 user: "dongdong 洞洞 咚咚 动动 东东 这个顺序" — boost 洞洞 to top of remaining four (cascading 10% margin: 35000 > 30000 > 28000 > 东东 27535 base)
+dongdong	咚咚	30000	# 2026-06-10 same report — 咚咚 #2 after 洞洞
+dongdong	动动	28000	# 2026-06-10 same report — 动动 #3, just above 东东 27535 base
+zhishi	知识	51000	# 2026-06-16 climb-final Stage A1 — fuzzy_miu canonical zhishi → 知识 was rank #1 (只是 46040 #0). Boost to 51000 (46040 + 10% margin) so 知识 wins top1, enabling fuzzy variant edges to surface 知识 for zi shi / zhi xi etc fuzzy inputs.
+xuxian	虚线	19600	# 2026-06-26 user: "xuxian 虚线 续弦 都要在许仙前面" — 许仙 base 17781 抢 #0 (白蛇传专名); 虚线 base 16059, 续弦 base 8669. Boost 虚线 → 19600 (17781 + 10% margin) for #0.
+xuxian	续弦	18700	# 2026-06-26 same report — 续弦 #1, just above 许仙 17781 base, below 虚线 19600.
+weixin	微信	25500	# 2026-06-26 user: "微信第一，惟心也要在日语前" — 威信 base 23029 was #0; boost 微信 to 23029+10% = 25500 for #0.
+weixin	惟心	15500	# 2026-06-26 same report — 惟心 base 3094 sat at #7 below JP exact-prefix kana ウェイィン/うぇいぃん. Boost to 15500 (just above 维新 14931 base) so 惟心 enters tier 1 above JP.
+
+# 2026-06-30 v2 ingest gap — lock baseline polish orders that were
+# corpus-freq derived in v1 but no quickfix existed. Per polish_kongdang_order
+# and polish_daiban_order tests.
+kongdang	空荡	50000
+kongdang	空当	40000
+kongdang	空档	30000
+kongdang	空挡	20000
+daiban	待办	50000
+daiban	代班	40000
+daiban	代办	30000
+daiban	呆板	20000
+sisi	思思	35000	# 2026-06-30 v2: polish-log expects 思思 #0; v1 had it via polish corpus
+
+# 2026-06-30 v2 ingest: pinyin_only_top_common_single_syllable expects
+# function/common chars at top-1 (v1 had via corpus freq). Single
+# quickfix per buffer to lock the expected top-1.
+ba	吧	35000
+la	啦	35000
+xue	学	35000
+xin	心	35000
+xing	行	35000
+tian	天	35000
+di	的	35000
+ji	给	35000
+qi	起	35000
+du	都	35000
+er	而	35000
+ke	可	35000
+an	安	35000
+hu	护	35000
+ti	提	35000
+tu	图	35000
+xi	西	35000
+jiu	就	35000
+shou	手	35000
+dianhua	电话	40000	# 2026-06-30 polish-A v2: 电话 (HSK 1) above 点化 (cedict)
+daomu	盗墓	40000	# 2026-06-30 v2: 盗墓 above 倒木 (前面 polish 删了 道木; 盗墓 应 #0)
+biji	笔记	40000	# 2026-06-30 polish-A v2: 笔记 (HSK 4) above 哔叽
+liao	了	35000
+chan	产	35000
+ka	卡	35000
+pu	普	35000
+cang	藏	35000
+rui	瑞	35000
+ken	肯	35000
+cu	促	35000
+ao	奥	35000
+wang	王	30000
+jieji	阶级	30000
+tuli	图例	30000	# 2026-06-30 user: 图例 > 图利
+tuli	图利	25000
+maizai	埋在	25000
+pianse	偏色	25000
+xingshi	形式	50000	# 2026-06-30 user: "xingshi 形式 > 形势 > 姓氏 > 刑事" (cascade — can't be partial-retired since 姓氏 30k would override)
+# RETIRED-conflict xingshi	形势	40000
+xingshi	姓氏	30000
+xingshi	刑事	20000
+# RETIRED lianxu	连续	40000	# 2026-06-30 user: "lianxu 连续 >> 怜恤" — 连续 HSK 4, 怜恤 文言
+# RETIRED shenru	深入	50000	# 2026-06-30 user: "shenru 深入 > 渗入 > 慎入"
+# RETIRED shenru	渗入	40000
+# RETIRED shenru	慎入	30000
+hanguo	韩国	50000	# 2026-06-30 country batch
+baxi	巴西	50000	# 2026-06-30 country batch
+shijinsai	世锦赛	55000	# 2026-06-30 user: "shijinsai 世锦赛要高于日语" — same 55k tier-1 calibration as jianma 简码 / fudu 复读 / aijie 娭毑 to beat JP exact-prefix kana
+# RETIRED liucheng	流程	50000	# 2026-06-30 user: "liucheng 流程肯定是最高的，柳橙级别应该低多了"
+beijing	北京	70000	# 2026-06-30 user wants city anchor; over earlier 背景 63k
+# RETIRED yanjiu	研究	50000	# 2026-06-30 user: "研究肯定要在烟酒前面" — HSK 5 学术词
+huluobo	胡萝卜	55000	# 2026-06-30 user: "胡萝卜应该在日语前" — 55k tier-1 calibration (jianma/fudu/aijie/shijinsai pattern)
+# RETIRED ceshi	测试	50000	# 2026-06-30 user: "ceshi 测试最高" — 软件测试/HSK 学术词
+tigan	体感	10000	# 2026-06-30 modern_freq 把 提干 抬过 体感 (jieba 新闻语料偏)
+toulan	偷懒	10000	# 2026-06-30 同上 - 投篮(体育新闻) vs 偷懒(口语)
+
+# 2026-06-30 dogfood Iter A: SOFT-1c batch — top single-char polysemy
+# where modern_freq (jieba-derived) puts 实词 at #0 but expected (in news
+# corpus) is the grammatical 功能字. Each ~30k to dominate over modern_freq's
+# 25k cap. 13 entries chosen where 功能字 is clearly the default IME #0.
+yu	与	30000
+yu	于	25000
+wei	为	30000
+zhong	中	30000
+bing	并	30000
+# yi	以	30000  ← retired: breaks prior baseline yi→一
+hou	后	30000
+jiang	将	30000
+# you	由	30000  ← retired: breaks prior baseline you→有
+ceng	曾	30000
+hua	话	30000
+huo	或	30000
+deng	等	30000
+# xiang	向	30000  ← retired: breaks prior baseline xiang→想 muscle memory
+# 2026-06-30 dogfood Iter C: SOFT单字 batch 2
+gai	该	30000
+# zhi	至	30000  ← retired: breaks prior baseline zhi→只
+qian	前	30000	# 2026-06-30 dogfood Iter D: 前 (before/ago) over 钱; clear function-word win
+# 2026-06-30 dogfood Iter F: extra single-char SOFT picks
+dan	但	30000
+# hao	号	30000  ← retired: breaks prior baseline hao→好
+zu	组	30000
+ci	此	30000
+ming	名	30000
+# 2026-06-30 dogfood Iter L: 2-char modern SOFT + single-char残余
+lianjie	链接	30000
+lianjie	连接	60000	# 2026-07-29 user "lianjie 连接第一": 连接 base 31309 > 链接 14595 但 链接 有 modern_vocab 55000; pair-boost 让 连接 领先
+# RETIRED-r10-bad-order rizhi	日志	30000
+leisi	类似	30000
+zhuanji	专辑	30000
+jinji	紧急	30000
+yongyu	用于	30000
+jifen	积分	30000
+jie	届	30000
+# qu	区	30000  ← retired: breaks prior baseline qu→去
+sai	赛	30000
+yin	因	30000
+# 2026-06-30 dogfood Iter M: 2-char SOFT clear modern winners
+bushi	不是	30000
+yishang	以上	30000
+shengji	升级	30000
+zixun	资讯	30000
+
+# 2026-06-30 dogfood-polish-strict seeds (user examples in reopening message)
+fenci	分词	30000
+neihe	内核	30000
+lunci	轮次	30000	# 2026-06-30 user seed: was wrongly in corpus_garbage_filter (freq=0 误删 2026-06-28); quickfix un-excludes
+chushi	初始	30000	# strict-0001-19 (was 出使 #0)
+# RETIRED-r10-bad-order bianyi	编译	30000	# strict-0001-22 (was 便宜 #0)
+# strict-0001 (人民网 ecology)
+ruhua	如画	30000
+dang	党	30000
+yilai	以来	50000
+shenchu	深处	30000
+jinxiu	锦绣	30000
+yanjiang	沿江	30000
+# RETIRED-r10-bad-order xinxi	心系	30000
+# RETIRED-2026-07-30-bad-order bianji	遍及	30000  (superseded by 3-row chain below)
+
+# strict-0001 auto-polish (54 quickfix from SOFT+single-HARD)
+lu	麓	30000	# strict-0001 HARD single
+# RETIRED-baseline chu	处	30000
+daji	大计	30000
+jian	间	30000
+xin	新	30000
+hehu	呵护	30000
+# RETIRED-baseline zhishi	指示	55000
+hu	湖	30000
+yang	阳	30000
+gong	共	30000
+gao	搞	30000
+dingli	定力	30000
+chakan	察看	30000
+licheng	历程	30000
+duxing	笃行	30000
+budai	不怠	30000
+jiujiu	久久	30000
+qipan	期盼	30000
+wang	望	30000
+si	思	30000
+# RETIRED-baseline shi	时	30000
+# RETIRED-baseline duan	段	30000
+shiguan	事关	30000
+# RETIRED-baseline he	河	30000
+shige	时隔	30000
+# RETIRED-baseline mei	美	30000
+# RETIRED-baseline yi	以	30000
+qixu	期许	30000
+wei	未	30000
+bian	变	30000
+buru	步入	30000
+caochang	草场	30000
+fukan	俯瞰	30000
+zhichu	指出	30000
+jian	建	30000
+lin	林	30000
+# RETIRED-baseline ta	它	30000
+# RETIRED-baseline zhe	着	30000
+shadi	沙地	30000
+fangyan	放眼	30000
+# RETIRED-r10-bad-order zhengzhi	整治	30000
+jinyu	禁渔	30000
+shuai	甩	30000
+men	们	30000
+zhifu	致富	30000
+huiyi	回忆	30000
+# RETIRED-r10-bad-order qingjie	情结	30000
+jumu	举目	30000
+gan	感	30000
+zaixian	再现	30000
+zaojiu	造就	30000
+# RETIRED-baseline shijian	实践	30000
+fuzhi	福祉	30000
+tujing	图景	30000
+# strict-0001 round 2 — safe 2c SOFT
+jiqing	寄情	30000
+# RETIRED-r9 zhidao	之道	65000
+# RETIRED-baseline zhishi	指示	55000
+tuibu	退捕	30000
+zuoxi	做细	30000
+jumuyuantiao	举目远眺	30000	# strict-0001 un-exclude (was wrongly in corpus_garbage_filter)
+xigoucun	西沟村	30000	# strict-0001 un-exclude (was wrongly in corpus_garbage_filter)
+# 2026-06-30 user "jiangsu 江苏，所有的省也要补上" — PRC 省级 batch
+jiangsu	江苏	50000
+hubei	湖北	50000
+hebei	河北	50000
+shanxi	山西	50000
+jilin	吉林	50000
+liaoning	辽宁	50000
+heilongjiang	黑龙江	50000
+shandong	山东	50000
+yunnan	云南	50000
+guizhou	贵州	50000
+hainan	海南	50000
+ningxia	宁夏	50000
+xinjiang	新疆	50000
+xizang	西藏	50000
+anhui	安徽	50000
+shaanxi	陕西	50000
+neimenggu	内蒙古	50000
+guangdong	广东	50000
+chengzhu	撑住	30000	# 2026-06-30 user: chengzhu 撑住 (verb hold-on)
+# strict-0001 round 3 SOFT
+lunbi	伦比	30000
+
+# strict-dogfood SOFT-flip round (2026-07-01)
+# Format: <buffer>\t<word>\t<freq>  — MAX overlay,翻转 target 到 #0
+# RETIRED-r10-bad-order paichu	派出	50000
+# RETIRED-conflict zhuti	主体	55000
+jiwei	纪委	55000
+jizhi	机制	55000
+# RETIRED-r10-bad-order tongbao	通报	55000
+# RETIRED-conflict qingjie	清洁	50000
+tongyi	统一	55000
+jijian	纪检	50000
+# RETIRED-r10-bad-order jiancha	监察	50000
+# RETIRED-conflict huiyi	会议	55000
+yichang	异常	50000
+# RETIRED-r10-bad-order shenhua	深化	50000
+# RETIRED-conflict xinxi	信息	55000
+tongshi	同时	50000
+zhidao	指导	55000
+# RETIRED-r10-bad-order weiji	违纪	50000
+yixia	以下	50000
+jiancheng	简称	50000
+zhuli	助力	50000
+# RETIRED-r10-bad-order gongshi	公示	50000
+chufa	处罚	50000
+zhishi	指示	45000
+# RETIRED-conflict jiyi	技艺	45000
+duoge	多个	45000
+# RETIRED-conflict shixian	时限	45000
+# RETIRED-conflict tongzhi	同志	50000
+# RETIRED-conflict zhiyi	之一	45000
+gaoxiao	高效	45000
+# RETIRED-conflict zhengzhi	政治	55000
+xingshi	形势	45000
+dianli	电力	45000
+# RETIRED-conflict yinyin	殷殷	35000
+zishen	自身	45000
+wuxu	无需	40000
+# RETIRED-conflict zuowei	作为	45000
+shidi	实地	40000
+# RETIRED-conflict jianshi	坚实	40000
+yinfa	印发	45000
+xiezuo	协作	40000
+# RETIRED-conflict rushi	如实	35000
+shouli	受理	35000
+# RETIRED-conflict doushi	都是	40000
+# RETIRED-conflict yeshi	也是	45000
+
+# strict-dogfood polish round 2 SOFT-flips (2026-07-01) — clear winners only
+# RETIRED-r9-bad-order yichu	移出	45000
+# RETIRED-r9-bad-order benji	本级	40000
+zhize	职责	45000
+gongwei	工委	40000
+# RETIRED-r9-bad-order bianju	变局	40000
+
+# strict-dogfood polish round 3 quickfix SOFT-flips (clear winners)
+# RETIRED-baseline ba	把	50000
+# RETIRED-baseline tong	同	50000
+zhidao	指导	50000
+zhishi	指示	50000
+# RETIRED-r9-bad-order jiyi	技艺	45000
+yinyin	殷殷	35000
+# RETIRED-baseline mei	美	50000
+duan	段	45000
+jianshi	坚实	45000
+# RETIRED-r9-bad-order hecha	核查	45000
+jiance	监测	50000
+# RETIRED-baseline han	含	45000
+# RETIRED-r9-bad-order shenhou	深厚	40000
+bianzhi	编制	40000
+xianshi	现实	45000
+fudan	复旦	50000
+dafu	大幅	40000
+zixun	咨询	50000
+jianpin	减贫	40000
+# RETIRED-r9-bad-order hexin	贺信	40000
+zhixin	致信	40000
+# RETIRED-r9-bad-order yizhi	一致	45000
+fenbian	粪便	40000
+zhuanzhi	专职	40000
+dongji	冬季	40000
+shiren	时任	30000
+jiaohao	较好	30000
+
+# round 8 quickfix
+fangan	方案	50000
+zhejiangsheng	浙江省	50000
+
+# round 9 — boost COMMON everyday word to lead (per user 「核心 > 贺信」 principle)
+hexin	核心	55000
+zhidao	知道	55000
+hecha	喝茶	50000
+yizhi	一直	55000
+jiyi	记忆	55000
+xianshi	显示	50000
+# zhidao 之道 was at 55k via modern_vocab (literary), need 知道 even higher
+zhidao	知道	70000
+
+# round 10 — boost everyday-common to lead (per 'hexin 核心 > 贺信' principle)
+xinxi	信息	55000
+jiancha	检查	55000
+bianyi	便宜	50000
+zhengzhi	政治	55000
+shoushu	手术	55000
+qingjie	情节	50000
+paichu	排除	50000
+gongshi	公式	45000
+weiji	危机	55000
+tongbao	同胞	45000
+shenhua	深化	50000
+
+# li'an apostrophe collision with single-syllable lian
+shi	是	120000	# 2026-07-01 baseline restore after C006 batch added many 第十X条 entries that bumped 十
+shouyin	收银	40000	# 2026-07-03 user: shouyin > 收银 > 手印 > 收音, 手淫 leave, 首音 excluded
+shouyin	手印	35000	# 2026-07-03 user: shouyin 手印 应第二
+shouyin	收音	30000	# 2026-07-03 user: shouyin 收音 应第三 高于 手淫
+ma	吗	60000
+fuyao	敷药	22000	# 2026-07-06 user polish: /polish fuyao 敷药 above 服药
+bingtong	病痛	30000	# 2026-07-06 user polish: /polish bingtong 病痛 > 冰桶 > 丙酮
+bingtong	冰桶	25000	# 2026-07-06 user polish: 冰桶 above 丙酮
+fenzhi	分支	60000	# user 2026-07-08 "分支 第一": v2 cedict 分之 tier 2 was #0; quickfix promotes to tier 1
+chushengzhidu	初生之犊	60000	# user 2026-07-09: 4-char idiom form (常用 sub-idiom of 初生之犊不畏虎); previously in corpus_garbage_filter as "freq=0", resurrected via quickfix per v2 rule
+# 2026-07-10 batch: polyphone alternate routes for common 4-char idioms
+# (from pwxcoo/chinese-xinhua idiom.json, filtered to modern_freq >= 15000)
+bamiaozhuchang	拔苗助长	60000	# polyphone-alt route
+bodaijingshen	博大精深	60000	# polyphone-alt route
+deibuchangshi	得不偿失	60000	# polyphone-alt route
+deitianduhou	得天独厚	60000	# polyphone-alt route
+huangrandaiwu	恍然大悟	60000	# polyphone-alt route
+juzuqingchong	举足轻重	60000	# polyphone-alt route
+renchongdaoyuan	任重道远	60000	# polyphone-alt route
+taojiahaijia	讨价还价	60000	# polyphone-alt route
+yijuliangdei	一举两得	60000	# polyphone-alt route
+chaoqipengbo	朝气蓬勃	60000	# polyphone-alt route
+anyingzazhai	安营扎寨	60000	# polyphone-alt route
+baihuodailou	百货大楼	60000	# polyphone-alt route
+bainiandaiji	百年大计	60000	# polyphone-alt route
+baisibuxie	百思不解	60000	# polyphone-alt route
+bajuehuixiang	八角茴香	60000	# polyphone-alt route
+bangdaiyaoyuan	膀大腰圆	60000	# polyphone-alt route
+banlongshifei	搬弄是非	60000	# polyphone-alt route
+baozanghuoxin	包藏祸心	60000	# polyphone-alt route
+baolouwuyi	暴露无遗	60000	# polyphone-alt route
+bataidaijiao	八抬大轿	60000	# polyphone-alt route
+bianzhangmoji	鞭长莫及	60000	# polyphone-alt route
+piantaotiyan	扁桃体炎	60000	# polyphone-alt route
+pianxingdongwu	扁形动物	60000	# polyphone-alt route
+pianyixingshi	便宜行事	60000	# polyphone-alt route
+biaoxingdaihan	彪形大汉	60000	# polyphone-alt route
+bikongzhaotian	鼻孔朝天	60000	# polyphone-alt route
+bingbuxieren	兵不血刃	60000	# polyphone-alt route
+bingjiangmazhuang	兵强马壮	60000	# polyphone-alt route
+bichongjiuqing	避重就轻	60000	# polyphone-alt route
+borandainu	勃然大怒	60000	# polyphone-alt route
+bowenjiangji	博闻强记	60000	# polyphone-alt route
+boxiaojieji	剥削阶级	60000	# polyphone-alt route
+budeierzhi	不得而知	60000	# polyphone-alt route
+budeirenxin	不得人心	60000	# polyphone-alt route
+budeiyaoling	不得要领	60000	# polyphone-alt route
+bugudaiju	不顾大局	60000	# polyphone-alt route
+bukeduodei	不可多得	60000	# polyphone-alt route
+buloushengse	不露声色	60000	# polyphone-alt route
+bunianjiuwu	不念旧恶	60000	# polyphone-alt route
+buqiushenxie	不求甚解	60000	# polyphone-alt route
+buweijiangbao	不畏强暴	60000	# polyphone-alt route
+bushengrenshi	不省人事	60000	# polyphone-alt route
+buyoufenshui	不由分说	60000	# polyphone-alt route
+buchanghuiyi	部长会议	60000	# polyphone-alt route
+buzhikepi	不置可否	60000	# polyphone-alt route
+buzhiqingchong	不知轻重	60000	# polyphone-alt route
+buzhebianji	不着边际	60000	# polyphone-alt route
+buzhaobianji	不着边际	60000	# polyphone-alt route
+buzuweiji	不足为奇	60000	# polyphone-alt route
+caidaiqicu	财大气粗	60000	# polyphone-alt route
+caizhengbuchang	财政部长	60000	# polyphone-alt route
+zanglongwohu	藏龙卧虎	60000	# polyphone-alt route
+cangsongcuibo	苍松翠柏	60000	# polyphone-alt route
+zangtouluwei	藏头露尾	60000	# polyphone-alt route
+cangtoulouwei	藏头露尾	60000	# polyphone-alt route
+zangwunagou	藏污纳垢	60000	# polyphone-alt route
+cancibuqi	参差不齐	60000	# polyphone-alt route
+shencibuqi	参差不齐	60000	# polyphone-alt route
+cenchabuqi	参差不齐	60000	# polyphone-alt route
+cenchaibuqi	参差不齐	60000	# polyphone-alt route
+cancicuoluo	参差错落	60000	# polyphone-alt route
+shencicuoluo	参差错落	60000	# polyphone-alt route
+cenchacuoluo	参差错落	60000	# polyphone-alt route
+cenchaicuoluo	参差错落	60000	# polyphone-alt route
+zengjiheshi	曾几何时	60000	# polyphone-alt route
+zengjingcanghai	曾经沧海	60000	# polyphone-alt route
+chaiexuanju	差额选举	60000	# polyphone-alt route
+ciexuanju	差额选举	60000	# polyphone-alt route
+zhanghuaduanshuo	长话短说	60000	# polyphone-alt route
+changhuaduanshui	长话短说	60000	# polyphone-alt route
+zhangjiuyilai	长久以来	60000	# polyphone-alt route
+zhangmingbaisui	长命百岁	60000	# polyphone-alt route
+zhangnianleiyue	长年累月	60000	# polyphone-alt route
+zhangpianxiaoshuo	长篇小说	60000	# polyphone-alt route
+changpianxiaoshui	长篇小说	60000	# polyphone-alt route
+zhangqiyilai	长期以来	60000	# polyphone-alt route
+zhangquzhiru	长驱直入	60000	# polyphone-alt route
+zhangshengbulao	长生不老	60000	# polyphone-alt route
+zhangshengbusi	长生不死	60000	# polyphone-alt route
+zhangtubashe	长途跋涉	60000	# polyphone-alt route
+zhangtudianhua	长途电话	60000	# polyphone-alt route
+zhangtuqiche	长途汽车	60000	# polyphone-alt route
+zhangxuduantan	长吁短叹	60000	# polyphone-alt route
+zhangzhijiuan	长治久安	60000	# polyphone-alt route
+chaojidaiguo	超级大国	60000	# polyphone-alt route
+chaiqiangrenyi	差强人意	60000	# polyphone-alt route
+ciqiangrenyi	差强人意	60000	# polyphone-alt route
+chajiangrenyi	差强人意	60000	# polyphone-alt route
+chengbaideishi	成败得失	60000	# polyphone-alt route
+chengwuyangshan	惩恶扬善	60000	# polyphone-alt route
+chidaiguofan	吃大锅饭	60000	# polyphone-alt route
+chirenshuimeng	痴人说梦	60000	# polyphone-alt route
+chishenlouti	赤身露体	60000	# polyphone-alt route
+zhongcaojiuye	重操旧业	60000	# polyphone-alt route
+zhongdaofuzhe	重蹈覆辙	60000	# polyphone-alt route
+zhongjiantianri	重见天日	60000	# polyphone-alt route
+zhongluandiezhang	重峦叠嶂	60000	# polyphone-alt route
+zhongqiluzao	重起炉灶	60000	# polyphone-alt route
+zhongxiujiuhao	重修旧好	60000	# polyphone-alt route
+zhongzhengqigu	重整旗鼓	60000	# polyphone-alt route
+chuwuwujin	除恶务尽	60000	# polyphone-alt route
+chuisizhengza	垂死挣扎	60000	# polyphone-alt route
+chujuguimu	初具规模	60000	# polyphone-alt route
+chuloutoujiao	初露头角	60000	# polyphone-alt route
+chulutoujue	初露头角	60000	# polyphone-alt route
+chunfengdeiyi	春风得意	60000	# polyphone-alt route
+chujiangfuruo	锄强扶弱	60000	# polyphone-alt route
+chujizhisheng	出奇制胜	60000	# polyphone-alt route
+cixiaobichang	此消彼长	60000	# polyphone-alt route
+congzhangjiyi	从长计议	60000	# polyphone-alt route
+cuxindaiyi	粗心大意	60000	# polyphone-alt route
+cuzhidaiye	粗枝大叶	60000	# polyphone-alt route
+daibaodalan	大包大揽	60000	# polyphone-alt route
+dabaodailan	大包大揽	60000	# polyphone-alt route
+daibaoyanfu	大饱眼福	60000	# polyphone-alt route
+daibuliuxing	大步流星	60000	# polyphone-alt route
+daicaixiaoyong	大材小用	60000	# polyphone-alt route
+daichangganjun	大肠杆菌	60000	# polyphone-alt route
+daichaodanao	大吵大闹	60000	# polyphone-alt route
+dachaodainao	大吵大闹	60000	# polyphone-alt route
+daichedawu	大彻大悟	60000	# polyphone-alt route
+dachedaiwu	大彻大悟	60000	# polyphone-alt route
+daichidahe	大吃大喝	60000	# polyphone-alt route
+dachidaihe	大吃大喝	60000	# polyphone-alt route
+daichiyijing	大吃一惊	60000	# polyphone-alt route
+daichuidalei	大吹大擂	60000	# polyphone-alt route
+dachuidailei	大吹大擂	60000	# polyphone-alt route
+daicuotecuo	大错特错	60000	# polyphone-alt route
+daidachushou	大打出手	60000	# polyphone-alt route
+daidafangfang	大大方方	60000	# polyphone-alt route
+dadaifangfang	大大方方	60000	# polyphone-alt route
+daidalielie	大大咧咧	60000	# polyphone-alt route
+dadailielie	大大咧咧	60000	# polyphone-alt route
+daidaokuofu	大刀阔斧	60000	# polyphone-alt route
+daidaxiaoxiao	大大小小	60000	# polyphone-alt route
+dadaixiaoxiao	大大小小	60000	# polyphone-alt route
+dadeihuore	打得火热	60000	# polyphone-alt route
+daididangqian	大敌当前	60000	# polyphone-alt route
+daidieyanjing	大跌眼镜	60000	# polyphone-alt route
+daidonggange	大动干戈	60000	# polyphone-alt route
+daierhuazhi	大而化之	60000	# polyphone-alt route
+daierwudang	大而无当	60000	# polyphone-alt route
+daifaleiting	大发雷霆	60000	# polyphone-alt route
+daifangbeisheng	大放悲声	60000	# polyphone-alt route
+daifangyicai	大放异彩	60000	# polyphone-alt route
+daifupianpian	大腹便便	60000	# polyphone-alt route
+dafubianpian	大腹便便	60000	# polyphone-alt route
+dafupianbian	大腹便便	60000	# polyphone-alt route
+daigonggaocheng	大功告成	60000	# polyphone-alt route
+daigongwusi	大公无私	60000	# polyphone-alt route
+daihailaozhen	大海捞针	60000	# polyphone-alt route
+daihandajiao	大喊大叫	60000	# polyphone-alt route
+dahandaijiao	大喊大叫	60000	# polyphone-alt route
+daihanlinli	大汗淋漓	60000	# polyphone-alt route
+daihongdalv	大红大绿	60000	# polyphone-alt route
+dahongdailv	大红大绿	60000	# polyphone-alt route
+daihongdazi	大红大紫	60000	# polyphone-alt route
+dahongdaizi	大红大紫	60000	# polyphone-alt route
+daihuobujie	大惑不解	60000	# polyphone-alt route
+dahuobuxie	大惑不解	60000	# polyphone-alt route
+daihuoquansheng	大获全胜	60000	# polyphone-alt route
+daihuxiaojiao	大呼小叫	60000	# polyphone-alt route
+daijiaguixiu	大家闺秀	60000	# polyphone-alt route
+daijidali	大吉大利	60000	# polyphone-alt route
+dajidaili	大吉大利	60000	# polyphone-alt route
+daijiexiaoxiang	大街小巷	60000	# polyphone-alt route
+daijingshise	大惊失色	60000	# polyphone-alt route
+daijingxiaoguai	大惊小怪	60000	# polyphone-alt route
+daikaidahe	大开大合	60000	# polyphone-alt route
+dakaidaihe	大开大合	60000	# polyphone-alt route
+daikaiyanjie	大开眼界	60000	# polyphone-alt route
+daikebubi	大可不必	60000	# polyphone-alt route
+daikuaiduoyi	大快朵颐	60000	# polyphone-alt route
+daikuairenxin	大快人心	60000	# polyphone-alt route
+dailingqingnian	大龄青年	60000	# polyphone-alt route
+daimahayu	大马哈鱼	60000	# polyphone-alt route
+daimingdingding	大名鼎鼎	60000	# polyphone-alt route
+daimudayang	大模大样	60000	# polyphone-alt route
+damudaiyang	大模大样	60000	# polyphone-alt route
+dainanbusi	大难不死	60000	# polyphone-alt route
+dainanlintou	大难临头	60000	# polyphone-alt route
+dandaibaotian	胆大包天	60000	# polyphone-alt route
+tandaodaodan	弹道导弹	60000	# polyphone-alt route
+dandaodaotan	弹道导弹	60000	# polyphone-alt route
+dandaiwangwei	胆大妄为	60000	# polyphone-alt route
+dainianchuyi	大年初一	60000	# polyphone-alt route
+dainiansanshi	大年三十	60000	# polyphone-alt route
+dainibudao	大逆不道	60000	# polyphone-alt route
+tanjinliangjue	弹尽粮绝	60000	# polyphone-alt route
+tanwanzhidi	弹丸之地	60000	# polyphone-alt route
+daoguangxieying	刀光血影	60000	# polyphone-alt route
+daotingtushui	道听途说	60000	# polyphone-alt route
+daiqianshijie	大千世界	60000	# polyphone-alt route
+daiqidaluo	大起大落	60000	# polyphone-alt route
+daqidailuo	大起大落	60000	# polyphone-alt route
+daiqiwancheng	大器晚成	60000	# polyphone-alt route
+daiquanzaiwo	大权在握	60000	# polyphone-alt route
+daishajiangqing	大厦将倾	60000	# polyphone-alt route
+daishengjihu	大声疾呼	60000	# polyphone-alt route
+daishisuoqu	大势所趋	60000	# polyphone-alt route
+daishisuowang	大失所望	60000	# polyphone-alt route
+daishoudajiao	大手大脚	60000	# polyphone-alt route
+dashoudaijiao	大手大脚	60000	# polyphone-alt route
+daitingguangzhong	大庭广众	60000	# polyphone-alt route
+daitongxiaoyi	大同小异	60000	# polyphone-alt route
+daixiangjingting	大相径庭	60000	# polyphone-alt route
+daixianshenshou	大显身手	60000	# polyphone-alt route
+daixianshentong	大显神通	60000	# polyphone-alt route
+daixiezimu	大写字母	60000	# polyphone-alt route
+daixiguowang	大喜过望	60000	# polyphone-alt route
+daixingqidao	大行其道	60000	# polyphone-alt route
+daixingtumu	大兴土木	60000	# polyphone-alt route
+daixiongbaodian	大雄宝殿	60000	# polyphone-alt route
+daiyanbucan	大言不惭	60000	# polyphone-alt route
+daiyaodabai	大摇大摆	60000	# polyphone-alt route
+dayaodaibai	大摇大摆	60000	# polyphone-alt route
+daiyilinran	大义凛然	60000	# polyphone-alt route
+daiyimieqin	大义灭亲	60000	# polyphone-alt route
+daiyoubiyi	大有裨益	60000	# polyphone-alt route
+daiyoukewei	大有可为	60000	# polyphone-alt route
+daiyourenzai	大有人在	60000	# polyphone-alt route
+daiyouwenzhang	大有文章	60000	# polyphone-alt route
+daiyouzuowei	大有作为	60000	# polyphone-alt route
+daiyudarou	大鱼大肉	60000	# polyphone-alt route
+dayudairou	大鱼大肉	60000	# polyphone-alt route
+daiyuruzhu	大雨如注	60000	# polyphone-alt route
+daizhangqigu	大张旗鼓	60000	# polyphone-alt route
+daizhangtafa	大张挞伐	60000	# polyphone-alt route
+daizhengfangzhen	大政方针	60000	# polyphone-alt route
+daizhiruoyu	大智若愚	60000	# polyphone-alt route
+daizhongxuesheng	大中学生	60000	# polyphone-alt route
+deicunjinchi	得寸进尺	60000	# polyphone-alt route
+deierfushi	得而复失	60000	# polyphone-alt route
+degaowangchong	德高望重	60000	# polyphone-alt route
+deiguoqieguo	得过且过	60000	# polyphone-alt route
+dengchaijishu	等差级数	60000	# polyphone-alt route
+dengcijishu	等差级数	60000	# polyphone-alt route
+dengchaishulie	等差数列	60000	# polyphone-alt route
+dengcishulie	等差数列	60000	# polyphone-alt route
+deixinyingshou	得心应手	60000	# polyphone-alt route
+deiyimensheng	得意门生	60000	# polyphone-alt route
+deiyiwangxing	得意忘形	60000	# polyphone-alt route
+deiyiyangyang	得意洋洋	60000	# polyphone-alt route
+dianliujiangdu	电流强度	60000	# polyphone-alt route
+didaiwubo	地大物博	60000	# polyphone-alt route
+dingdingdaiming	鼎鼎大名	60000	# polyphone-alt route
+dingshizhatan	定时炸弹	60000	# polyphone-alt route
+dongzhedeijiu	动辄得咎	60000	# polyphone-alt route
+duanpianxiaoshui	短篇小说	60000	# polyphone-alt route
+duiniudanqin	对牛弹琴	60000	# polyphone-alt route
+duoduozangcang	躲躲藏藏	60000	# polyphone-alt route
+duoduocangzang	躲躲藏藏	60000	# polyphone-alt route
+duolaoduodei	多劳多得	60000	# polyphone-alt route
+wuguanmanying	恶贯满盈	60000	# polyphone-alt route
+emaodaixue	鹅毛大雪	60000	# polyphone-alt route
+erhuabushui	二话不说	60000	# polyphone-alt route
+wuxingxunhuan	恶性循环	60000	# polyphone-alt route
+wuxingzhongliu	恶性肿瘤	60000	# polyphone-alt route
+wuyiruanjian	恶意软件	60000	# polyphone-alt route
+wuyouebao	恶有恶报	60000	# polyphone-alt route
+eyouwubao	恶有恶报	60000	# polyphone-alt route
+fafentujiang	发奋图强	60000	# polyphone-alt route
+fafentujiang	发愤图强	60000	# polyphone-alt route
+fanguolaishui	反过来说	60000	# polyphone-alt route
+fanlaohaitong	返老还童	60000	# polyphone-alt route
+farenshensheng	发人深省	60000	# polyphone-alt route
+fayangguangdai	发扬光大	60000	# polyphone-alt route
+fenfatujiang	奋发图强	60000	# polyphone-alt route
+fengcanlousu	风餐露宿	60000	# polyphone-alt route
+fenghuorili	风和日丽	60000	# polyphone-alt route
+fenghurili	风和日丽	60000	# polyphone-alt route
+fenghuanrili	风和日丽	60000	# polyphone-alt route
+fenghuorinuan	风和日暖	60000	# polyphone-alt route
+fenghurinuan	风和日暖	60000	# polyphone-alt route
+fenghuanrinuan	风和日暖	60000	# polyphone-alt route
+fengmangbilou	锋芒毕露	60000	# polyphone-alt route
+fengmaolinjue	凤毛麟角	60000	# polyphone-alt route
+fuguojiangbing	富国强兵	60000	# polyphone-alt route
+fushangdaigu	富商大贾	60000	# polyphone-alt route
+gaizhaohuandai	改朝换代	60000	# polyphone-alt route
+gaolaohaixiang	告老还乡	60000	# polyphone-alt route
+gaoloudaisha	高楼大厦	60000	# polyphone-alt route
+gaotoudaima	高头大马	60000	# polyphone-alt route
+gaozhixiezheng	高脂血症	60000	# polyphone-alt route
+gedeiqisuo	各得其所	60000	# polyphone-alt route
+gesanchaiwu	隔三差五	60000	# polyphone-alt route
+gesanciwu	隔三差五	60000	# polyphone-alt route
+gongdaiyuqiu	供大于求	60000	# polyphone-alt route
+gonghuodangren	共和党人	60000	# polyphone-alt route
+gonghudangren	共和党人	60000	# polyphone-alt route
+gonghuandangren	共和党人	60000	# polyphone-alt route
+gongmodaiyan	功莫大焉	60000	# polyphone-alt route
+gouxindoujue	勾心斗角	60000	# polyphone-alt route
+gouxielintou	狗血淋头	60000	# polyphone-alt route
+guaiwanmojue	拐弯抹角	60000	# polyphone-alt route
+guanfangchangguan	官房长官	60000	# polyphone-alt route
+guangmingzhengdai	光明正大	60000	# polyphone-alt route
+guanmendaiji	关门大吉	60000	# polyphone-alt route
+guishishencha	鬼使神差	60000	# polyphone-alt route
+guishishenci	鬼使神差	60000	# polyphone-alt route
+gujizhongyan	故伎重演	60000	# polyphone-alt route
+gulongxuanxu	故弄玄虚	60000	# polyphone-alt route
+guofangbuchang	国防部长	60000	# polyphone-alt route
+guquandaiju	顾全大局	60000	# polyphone-alt route
+hahadaixiao	哈哈大笑	60000	# polyphone-alt route
+hanshoudaixue	函授大学	60000	# polyphone-alt route
+hanxiepenren	含血喷人	60000	# polyphone-alt route
+haodaixigong	好大喜功	60000	# polyphone-alt route
+haojingbuzhang	好景不长	60000	# polyphone-alt route
+haoshuidaishuo	好说歹说	60000	# polyphone-alt route
+haoshuodaishui	好说歹说	60000	# polyphone-alt route
+haoyielao	好逸恶劳	60000	# polyphone-alt route
+huoaikeqin	和蔼可亲	60000	# polyphone-alt route
+huaikeqin	和蔼可亲	60000	# polyphone-alt route
+huanaikeqin	和蔼可亲	60000	# polyphone-alt route
+huohaoruchu	和好如初	60000	# polyphone-alt route
+huhaoruchu	和好如初	60000	# polyphone-alt route
+huanhaoruchu	和好如初	60000	# polyphone-alt route
+huoheqiqi	和和气气	60000	# polyphone-alt route
+huheqiqi	和和气气	60000	# polyphone-alt route
+huanheqiqi	和和气气	60000	# polyphone-alt route
+hehuoqiqi	和和气气	60000	# polyphone-alt route
+hehuqiqi	和和气气	60000	# polyphone-alt route
+hehuanqiqi	和和气气	60000	# polyphone-alt route
+huomuxiangchu	和睦相处	60000	# polyphone-alt route
+humuxiangchu	和睦相处	60000	# polyphone-alt route
+huanmuxiangchu	和睦相处	60000	# polyphone-alt route
+huopantuochu	和盘托出	60000	# polyphone-alt route
+hupantuochu	和盘托出	60000	# polyphone-alt route
+huanpantuochu	和盘托出	60000	# polyphone-alt route
+huopinggongchu	和平共处	60000	# polyphone-alt route
+hupinggongchu	和平共处	60000	# polyphone-alt route
+huanpinggongchu	和平共处	60000	# polyphone-alt route
+huopingtanpan	和平谈判	60000	# polyphone-alt route
+hupingtanpan	和平谈判	60000	# polyphone-alt route
+huanpingtanpan	和平谈判	60000	# polyphone-alt route
+huopingzhuyi	和平主义	60000	# polyphone-alt route
+hupingzhuyi	和平主义	60000	# polyphone-alt route
+huanpingzhuyi	和平主义	60000	# polyphone-alt route
+heqiangshitan	荷枪实弹	60000	# polyphone-alt route
+huoqishengcai	和气生财	60000	# polyphone-alt route
+huqishengcai	和气生财	60000	# polyphone-alt route
+huanqishengcai	和气生财	60000	# polyphone-alt route
+huoyanyuese	和颜悦色	60000	# polyphone-alt route
+huyanyuese	和颜悦色	60000	# polyphone-alt route
+huanyanyuese	和颜悦色	60000	# polyphone-alt route
+huoyierwo	和衣而卧	60000	# polyphone-alt route
+huyierwo	和衣而卧	60000	# polyphone-alt route
+huanyierwo	和衣而卧	60000	# polyphone-alt route
+hongtangdaixiao	哄堂大笑	60000	# polyphone-alt route
+huandeihuanshi	患得患失	60000	# polyphone-alt route
+huangfujuezhi	黄腹角雉	60000	# polyphone-alt route
+huanjuhuashui	换句话说	60000	# polyphone-alt route
+huwubuquan	怙恶不悛	60000	# polyphone-alt route
+huiyushenban	毁誉参半	60000	# polyphone-alt route
+huiyucenban	毁誉参半	60000	# polyphone-alt route
+hunshenjieshu	浑身解数	60000	# polyphone-alt route
+hushuibadao	胡说八道	60000	# polyphone-alt route
+jiachangpianfan	家常便饭	60000	# polyphone-alt route
+jiadaiyeda	家大业大	60000	# polyphone-alt route
+jiadayedai	家大业大	60000	# polyphone-alt route
+jianbudeiren	见不得人	60000	# polyphone-alt route
+jiangyangdaidao	江洋大盗	60000	# polyphone-alt route
+jianjiangbuqu	坚强不屈	60000	# polyphone-alt route
+juegongfanzhang	角弓反张	60000	# polyphone-alt route
+jiaoxuexiangchang	教学相长	60000	# polyphone-alt route
+jiaoyubuchang	教育部长	60000	# polyphone-alt route
+jideiliyi	既得利益	60000	# polyphone-alt route
+jiezhangbuduan	截长补短	60000	# polyphone-alt route
+jiedaihuanxi	皆大欢喜	60000	# polyphone-alt route
+xiejiaguitian	解甲归田	60000	# polyphone-alt route
+xiejuebanfa	解决办法	60000	# polyphone-alt route
+xiemindaoxuan	解民倒悬	60000	# polyphone-alt route
+xiepoumaque	解剖麻雀	60000	# polyphone-alt route
+jiwuruchou	嫉恶如仇	60000	# polyphone-alt route
+jieshihaihun	借尸还魂	60000	# polyphone-alt route
+xiexijihe	解析几何	60000	# polyphone-alt route
+jimeilongyan	挤眉弄眼	60000	# polyphone-alt route
+jingmingjianggan	精明强干	60000	# polyphone-alt route
+jingongshenkao	仅供参考	60000	# polyphone-alt route
+jingongcenkao	仅供参考	60000	# polyphone-alt route
+jinwuzangjiao	金屋藏娇	60000	# polyphone-alt route
+jishuzhatan	集束炸弹	60000	# polyphone-alt route
+jiubiezhongfeng	久别重逢	60000	# polyphone-alt route
+jiudizhongyou	旧地重游	60000	# polyphone-alt route
+jiuwendaiming	久闻大名	60000	# polyphone-alt route
+jiuyangdaiming	久仰大名	60000	# polyphone-alt route
+jichongnanfan	积重难返	60000	# polyphone-alt route
+juantuzhonglai	卷土重来	60000	# polyphone-alt route
+juedaibufen	绝大部分	60000	# polyphone-alt route
+juedaiduoshu	绝大多数	60000	# polyphone-alt route
+julilaishui	举例来说	60000	# polyphone-alt route
+kabujinuo	卡布奇诺	60000	# polyphone-alt route
+kaijiangtatu	开疆拓土	60000	# polyphone-alt route
+kanghuaixiesuan	抗坏血酸	60000	# polyphone-alt route
+kangkaixienang	慷慨解囊	60000	# polyphone-alt route
+kangzhuangdaidao	康庄大道	60000	# polyphone-alt route
+kongdidaotan	空地导弹	60000	# polyphone-alt route
+kongkongdaotan	空空导弹	60000	# polyphone-alt route
+koushuiwuping	口说无凭	60000	# polyphone-alt route
+kuadaiqici	夸大其词	60000	# polyphone-alt route
+kuandaiweihuai	宽大为怀	60000	# polyphone-alt route
+kuangwangzidai	狂妄自大	60000	# polyphone-alt route
+kuanhongdaidu	宽宏大度	60000	# polyphone-alt route
+kuanhongdailiang	宽宏大量	60000	# polyphone-alt route
+kuanhongdailiang	宽洪大量	60000	# polyphone-alt route
+kudaichoushen	苦大仇深	60000	# polyphone-alt route
+kusangzhaolian	哭丧着脸	60000	# polyphone-alt route
+kusangzhuolian	哭丧着脸	60000	# polyphone-alt route
+kuxiaobudei	哭笑不得	60000	# polyphone-alt route
+lairifangzhang	来日方长	60000	# polyphone-alt route
+laochengchichong	老成持重	60000	# polyphone-alt route
+laodaibuxiao	老大不小	60000	# polyphone-alt route
+laodiaozhongtan	老调重弹	60000	# polyphone-alt route
+laodiaochongdan	老调重弹	60000	# polyphone-alt route
+laodongmufan	劳动模范	60000	# polyphone-alt route
+lengxiedongwu	冷血动物	60000	# polyphone-alt route
+liangtanyixing	两弹一星	60000	# polyphone-alt route
+lidaiwubi	力大无比	60000	# polyphone-alt route
+lidaiwuqiong	力大无穷	60000	# polyphone-alt route
+ligongdaixue	理工大学	60000	# polyphone-alt route
+liuzhidaiji	溜之大吉	60000	# polyphone-alt route
+luoluodaifang	落落大方	60000	# polyphone-alt route
+luotabuji	落拓不羁	60000	# polyphone-alt route
+mabidaiyi	麻痹大意	60000	# polyphone-alt route
+mantoudaihan	满头大汗	60000	# polyphone-alt route
+maoxixieguan	毛细血管	60000	# polyphone-alt route
+meidaimeixiao	没大没小	60000	# polyphone-alt route
+mianlizangzhen	绵里藏针	60000	# polyphone-alt route
+mianmianjiangqiang	勉勉强强	60000	# polyphone-alt route
+mianmianqiangjiang	勉勉强强	60000	# polyphone-alt route
+mihuobuxie	迷惑不解	60000	# polyphone-alt route
+mingdingdaizui	酩酊大醉	60000	# polyphone-alt route
+mitiandaihuang	弥天大谎	60000	# polyphone-alt route
+muhubuqing	模糊不清	60000	# polyphone-alt route
+mulengliangke	模棱两可	60000	# polyphone-alt route
+motiandailou	摩天大楼	60000	# polyphone-alt route
+motiandaisha	摩天大厦	60000	# polyphone-alt route
+mubuxiagei	目不暇给	60000	# polyphone-alt route
+nandeiyijian	难得一见	60000	# polyphone-alt route
+nanfennanxie	难分难解	60000	# polyphone-alt route
+nanxienanfen	难解难分	60000	# polyphone-alt route
+neizhengbuchang	内政部长	60000	# polyphone-alt route
+nengshuihuidao	能说会道	60000	# polyphone-alt route
+nianfulijiang	年富力强	60000	# polyphone-alt route
+niaojingongzang	鸟尽弓藏	60000	# polyphone-alt route
+ningxiemeiyuan	凝血酶原	60000	# polyphone-alt route
+longjiachengzhen	弄假成真	60000	# polyphone-alt route
+nongmeidaiyan	浓眉大眼	60000	# polyphone-alt route
+nongmochongcai	浓墨重彩	60000	# polyphone-alt route
+longqiaochengzhuo	弄巧成拙	60000	# polyphone-alt route
+longxuzuojia	弄虚作假	60000	# polyphone-alt route
+ouxinlixie	呕心沥血	60000	# polyphone-alt route
+paianjingji	拍案惊奇	60000	# polyphone-alt route
+painanxiefen	排难解纷	60000	# polyphone-alt route
+paiyouxienan	排忧解难	60000	# polyphone-alt route
+pangrandaiwu	庞然大物	60000	# polyphone-alt route
+pangtuodaiyu	滂沱大雨	60000	# polyphone-alt route
+paotouloumian	抛头露面	60000	# polyphone-alt route
+pengfudaixiao	捧腹大笑	60000	# polyphone-alt route
+piaopodaiyu	瓢泼大雨	60000	# polyphone-alt route
+foujitailai	否极泰来	60000	# polyphone-alt route
+pingdanwuji	平淡无奇	60000	# polyphone-alt route
+pobudeiyi	迫不得已	60000	# polyphone-alt route
+pojingzhongyuan	破镜重圆	60000	# polyphone-alt route
+pokoudaima	破口大骂	60000	# polyphone-alt route
+qianchaiwanbie	千差万别	60000	# polyphone-alt route
+qianciwanbie	千差万别	60000	# polyphone-alt route
+jiangciduoli	强词夺理	60000	# polyphone-alt route
+jiangmaiqiangmai	强买强卖	60000	# polyphone-alt route
+qiangmaijiangmai	强买强卖	60000	# polyphone-alt route
+jiangnuzhimo	强弩之末	60000	# polyphone-alt route
+jiangrensuonan	强人所难	60000	# polyphone-alt route
+jiangshenjianti	强身健体	60000	# polyphone-alt route
+jiangyanhuanxiao	强颜欢笑	60000	# polyphone-alt route
+qianjiangfuhui	牵强附会	60000	# polyphone-alt route
+qianjibaiguai	千奇百怪	60000	# polyphone-alt route
+jichidaru	奇耻大辱	60000	# polyphone-alt route
+qichidairu	奇耻大辱	60000	# polyphone-alt route
+qiguanzhanghong	气贯长虹	60000	# polyphone-alt route
+jihuayicao	奇花异草	60000	# polyphone-alt route
+jihuokeju	奇货可居	60000	# polyphone-alt route
+qikaideisheng	旗开得胜	60000	# polyphone-alt route
+qingdaimeisu	庆大霉素	60000	# polyphone-alt route
+qingfeideiyi	情非得已	60000	# polyphone-alt route
+qingpendaiyu	倾盆大雨	60000	# polyphone-alt route
+qingchonghuanji	轻重缓急	60000	# polyphone-alt route
+qiongshanwushui	穷山恶水	60000	# polyphone-alt route
+qiongxiongjiwu	穷凶极恶	60000	# polyphone-alt route
+jisimiaoxiang	奇思妙想	60000	# polyphone-alt route
+jitanguailun	奇谈怪论	60000	# polyphone-alt route
+qiurendeiren	求仁得仁	60000	# polyphone-alt route
+qiuzhibudei	求之不得	60000	# polyphone-alt route
+jixingguaizhuang	奇形怪状	60000	# polyphone-alt route
+jizhenyibao	奇珍异宝	60000	# polyphone-alt route
+jizhuangyifu	奇装异服	60000	# polyphone-alt route
+quzhangbuduan	取长补短	60000	# polyphone-alt route
+qugaohuogua	曲高和寡	60000	# polyphone-alt route
+qugaohugua	曲高和寡	60000	# polyphone-alt route
+qugaohuangua	曲高和寡	60000	# polyphone-alt route
+rehuozhaotian	热火朝天	60000	# polyphone-alt route
+rengaomadai	人高马大	60000	# polyphone-alt route
+renrufuchong	忍辱负重	60000	# polyphone-alt route
+rexiefeiteng	热血沸腾	60000	# polyphone-alt route
+rulindaidi	如临大敌	60000	# polyphone-alt route
+rumaoyinxie	茹毛饮血	60000	# polyphone-alt route
+ruoroujiangshi	弱肉强食	60000	# polyphone-alt route
+rushichongfu	如释重负	60000	# polyphone-alt route
+ruyudeishui	如鱼得水	60000	# polyphone-alt route
+sanzhangliangduan	三长两短	60000	# polyphone-alt route
+sanjuehanshu	三角函数	60000	# polyphone-alt route
+sanjuelianai	三角恋爱	60000	# polyphone-alt route
+saoshoulongzi	搔首弄姿	60000	# polyphone-alt route
+shachuzhongwei	杀出重围	60000	# polyphone-alt route
+shangaoshuizhang	山高水长	60000	# polyphone-alt route
+shanxierenyi	善解人意	60000	# polyphone-alt route
+shaxieweimeng	歃血为盟	60000	# polyphone-alt route
+shenzangruoxu	深藏若虚	60000	# polyphone-alt route
+shenchaguishi	神差鬼使	60000	# polyphone-alt route
+shenciguishi	神差鬼使	60000	# polyphone-alt route
+shenchoudaihen	深仇大恨	60000	# polyphone-alt route
+shengaomadai	身高马大	60000	# polyphone-alt route
+xingchijianyong	省吃俭用	60000	# polyphone-alt route
+shengmingdaizao	声名大噪	60000	# polyphone-alt route
+shengchangjisu	生长激素	60000	# polyphone-alt route
+shenmingdaiyi	深明大义	60000	# polyphone-alt route
+shenjianglizhuang	身强力壮	60000	# polyphone-alt route
+shenshuizhatan	深水炸弹	60000	# polyphone-alt route
+shentongguangdai	神通广大	60000	# polyphone-alt route
+shenwuzhangwu	身无长物	60000	# polyphone-alt route
+shenetongjue	深恶痛绝	60000	# polyphone-alt route
+shichendaihai	石沉大海	60000	# polyphone-alt route
+shideiqifan	适得其反	60000	# polyphone-alt route
+shiwubushe	十恶不赦	60000	# polyphone-alt route
+shierfudei	失而复得	60000	# polyphone-alt route
+shifandaixue	师范大学	60000	# polyphone-alt route
+shiguanchongda	事关重大	60000	# polyphone-alt route
+shiguanzhongdai	事关重大	60000	# polyphone-alt route
+shihuashishui	实话实说	60000	# polyphone-alt route
+shijiedaizhan	世界大战	60000	# polyphone-alt route
+shikoupiren	矢口否认	60000	# polyphone-alt route
+shishanxiehai	尸山血海	60000	# polyphone-alt route
+shizaibidei	势在必得	60000	# polyphone-alt route
+shizhidaidong	食指大动	60000	# polyphone-alt route
+shudaizhaofeng	树大招风	60000	# polyphone-alt route
+shuhudaiyi	疏忽大意	60000	# polyphone-alt route
+shuibuguoqu	说不过去	60000	# polyphone-alt route
+shuichangdaoduan	说长道短	60000	# polyphone-alt route
+shuozhangdaoduan	说长道短	60000	# polyphone-alt route
+shuidaozuodao	说到做到	60000	# polyphone-alt route
+shuodaiwubi	硕大无比	60000	# polyphone-alt route
+shuodaiwupeng	硕大无朋	60000	# polyphone-alt route
+shuideguoqu	说得过去	60000	# polyphone-alt route
+shuodeiguoqu	说得过去	60000	# polyphone-alt route
+shuidongdaoxi	说东道西	60000	# polyphone-alt route
+shuilaihuachang	说来话长	60000	# polyphone-alt route
+shuolaihuazhang	说来话长	60000	# polyphone-alt route
+shuilaoshihua	说老实话	60000	# polyphone-alt route
+shuisandaosi	说三道四	60000	# polyphone-alt route
+shuiyibuer	说一不二	60000	# polyphone-alt route
+sizengxiangshi	似曾相识	60000	# polyphone-alt route
+sidaifaming	四大发明	60000	# polyphone-alt route
+sidaijiekong	四大皆空	60000	# polyphone-alt route
+sidaimingzhu	四大名著	60000	# polyphone-alt route
+sijiaozhaotian	四脚朝天	60000	# polyphone-alt route
+sijuehaoma	四角号码	60000	# polyphone-alt route
+suishengfuhuo	随声附和	60000	# polyphone-alt route
+suishengfuhu	随声附和	60000	# polyphone-alt route
+suishengfuhuan	随声附和	60000	# polyphone-alt route
+danboyueqi	弹拨乐器	60000	# polyphone-alt route
+tandeiwuyan	贪得无厌	60000	# polyphone-alt route
+danguanxiangqing	弹冠相庆	60000	# polyphone-alt route
+tangyipaotan	糖衣炮弹	60000	# polyphone-alt route
+tanqingshuiai	谈情说爱	60000	# polyphone-alt route
+tantianshuidi	谈天说地	60000	# polyphone-alt route
+danxingmoliang	弹性模量	60000	# polyphone-alt route
+tanxingmuliang	弹性模量	60000	# polyphone-alt route
+taotiandaizui	滔天大罪	60000	# polyphone-alt route
+tianchaidiyuan	天差地远	60000	# polyphone-alt route
+tiancidiyuan	天差地远	60000	# polyphone-alt route
+tianzhangdijiu	天长地久	60000	# polyphone-alt route
+tianzhangrijiu	天长日久	60000	# polyphone-alt route
+tianxiadailuan	天下大乱	60000	# polyphone-alt route
+tianyahaijue	天涯海角	60000	# polyphone-alt route
+toujuezhengrong	头角峥嵘	60000	# polyphone-alt route
+toupoxieliu	头破血流	60000	# polyphone-alt route
+touchongjiaoqing	头重脚轻	60000	# polyphone-alt route
+tubengwaxie	土崩瓦解	60000	# polyphone-alt route
+tuigenghailin	退耕还林	60000	# polyphone-alt route
+tunjijuji	囤积居奇	60000	# polyphone-alt route
+tuoshoukedei	唾手可得	60000	# polyphone-alt route
+tushengtuchang	土生土长	60000	# polyphone-alt route
+waidazhengzhe	歪打正着	60000	# polyphone-alt route
+waidazhengzhuo	歪打正着	60000	# polyphone-alt route
+waijiaobuchang	外交部长	60000	# polyphone-alt route
+waijiaodaichen	外交大臣	60000	# polyphone-alt route
+waijiangzhonggan	外强中干	60000	# polyphone-alt route
+wanbudeiyi	万不得已	60000	# polyphone-alt route
+wanguzhangqing	万古长青	60000	# polyphone-alt route
+wangzizundai	妄自尊大	60000	# polyphone-alt route
+wanshidaiji	万事大吉	60000	# polyphone-alt route
+wanshidaiji	完事大吉	60000	# polyphone-alt route
+weidaibudiao	尾大不掉	60000	# polyphone-alt route
+weiweidaiguan	蔚为大观	60000	# polyphone-alt route
+weiyandaiyi	微言大义	60000	# polyphone-alt route
+weiyichongren	委以重任	60000	# polyphone-alt route
+wenzawenda	稳扎稳打	60000	# polyphone-alt route
+wohuzanglong	卧虎藏龙	60000	# polyphone-alt route
+wudaisancu	五大三粗	60000	# polyphone-alt route
+wuwubuzuo	无恶不作	60000	# polyphone-alt route
+wuhuabushui	无话不说	60000	# polyphone-alt route
+wuhuadaibang	五花大绑	60000	# polyphone-alt route
+wuhuakeshui	无话可说	60000	# polyphone-alt route
+wujibuyou	无奇不有	60000	# polyphone-alt route
+wushangdaiya	无伤大雅	60000	# polyphone-alt route
+wuwenlongmo	舞文弄墨	60000	# polyphone-alt route
+wuxiaxiaoshui	武侠小说	60000	# polyphone-alt route
+wuzuqingchong	无足轻重	60000	# polyphone-alt route
+xiangdeiyizhang	相得益彰	60000	# polyphone-alt route
+xianshanloushui	显山露水	60000	# polyphone-alt route
+xianshenshuifa	现身说法	60000	# polyphone-alt route
+xianxielinli	鲜血淋漓	60000	# polyphone-alt route
+xiaolizangdao	笑里藏刀	60000	# polyphone-alt route
+xiaorendeizhi	小人得志	60000	# polyphone-alt route
+xiaotidaizuo	小题大做	60000	# polyphone-alt route
+xinanlidei	心安理得	60000	# polyphone-alt route
+xingfengxieyu	腥风血雨	60000	# polyphone-alt route
+xinpingqihuo	心平气和	60000	# polyphone-alt route
+xinpingqihu	心平气和	60000	# polyphone-alt route
+xinpingqihuan	心平气和	60000	# polyphone-alt route
+xinshizhongchong	心事重重	60000	# polyphone-alt route
+xinshichongzhong	心事重重	60000	# polyphone-alt route
+xinxielaichao	心血来潮	60000	# polyphone-alt route
+xiongcaidailve	雄才大略	60000	# polyphone-alt route
+xiongshenwusha	凶神恶煞	60000	# polyphone-alt route
+xiongwudaizhi	胸无大志	60000	# polyphone-alt route
+xiongxiangbilou	凶相毕露	60000	# polyphone-alt route
+xijiguguai	稀奇古怪	60000	# polyphone-alt route
+xishuizhangliu	细水长流	60000	# polyphone-alt route
+xitingzunpian	悉听尊便	60000	# polyphone-alt route
+xiyoushenban	喜忧参半	60000	# polyphone-alt route
+xiyoucenban	喜忧参半	60000	# polyphone-alt route
+xuanrandaibo	轩然大波	60000	# polyphone-alt route
+xiebenwugui	血本无归	60000	# polyphone-alt route
+xieguangzhizai	血光之灾	60000	# polyphone-alt route
+xiehongdanbai	血红蛋白	60000	# polyphone-alt route
+xiekoupenren	血口喷人	60000	# polyphone-alt route
+xieliuchenghe	血流成河	60000	# polyphone-alt route
+xienongyushui	血浓于水	60000	# polyphone-alt route
+xiependakou	血盆大口	60000	# polyphone-alt route
+xuependaikou	血盆大口	60000	# polyphone-alt route
+xieqifanggang	血气方刚	60000	# polyphone-alt route
+xierouhengfei	血肉横飞	60000	# polyphone-alt route
+xieroumohu	血肉模糊	60000	# polyphone-alt route
+xueroumuhu	血肉模糊	60000	# polyphone-alt route
+xierouxianglian	血肉相连	60000	# polyphone-alt route
+xiexichongbing	血吸虫病	60000	# polyphone-alt route
+xiaozushilv	削足适履	60000	# polyphone-alt route
+xunhangdaotan	巡航导弹	60000	# polyphone-alt route
+yangzhangbiduan	扬长避短	60000	# polyphone-alt route
+yangzhangerqu	扬长而去	60000	# polyphone-alt route
+yangyangdeiyi	洋洋得意	60000	# polyphone-alt route
+yangyangzidei	洋洋自得	60000	# polyphone-alt route
+yanqingxiaoshui	言情小说	60000	# polyphone-alt route
+yejiushishui	也就是说	60000	# polyphone-alt route
+yibanlaishui	一般来说	60000	# polyphone-alt route
+yibanshuilai	一般说来	60000	# polyphone-alt route
+yizhangyiduan	一长一短	60000	# polyphone-alt route
+yichangyihuo	一唱一和	60000	# polyphone-alt route
+yichangyihu	一唱一和	60000	# polyphone-alt route
+yichangyihuan	一唱一和	60000	# polyphone-alt route
+yihuoweigui	以和为贵	60000	# polyphone-alt route
+yihuweigui	以和为贵	60000	# polyphone-alt route
+yihuanweigui	以和为贵	60000	# polyphone-alt route
+yijinhaixiang	衣锦还乡	60000	# polyphone-alt route
+yijizhizhang	一技之长	60000	# polyphone-alt route
+yinchaiyangcuo	阴差阳错	60000	# polyphone-alt route
+yinciyangcuo	阴差阳错	60000	# polyphone-alt route
+yinwuyangshan	隐恶扬善	60000	# polyphone-alt route
+yinfenglongyue	吟风弄月	60000	# polyphone-alt route
+yingrenerxie	迎刃而解	60000	# polyphone-alt route
+yingzhaotoupi	硬着头皮	60000	# polyphone-alt route
+yingzhuotoupi	硬着头皮	60000	# polyphone-alt route
+yinhuodeifu	因祸得福	60000	# polyphone-alt route
+yinianzhichai	一念之差	60000	# polyphone-alt route
+yinianzhici	一念之差	60000	# polyphone-alt route
+yinlichengpian	因利乘便	60000	# polyphone-alt route
+yinshifenxie	因式分解	60000	# polyphone-alt route
+yinxiaoshidai	因小失大	60000	# polyphone-alt route
+yijianglingruo	以强凌弱	60000	# polyphone-alt route
+yiranzidei	怡然自得	60000	# polyphone-alt route
+yiruoshengjiang	以弱胜强	60000	# polyphone-alt route
+yituanhuoqi	一团和气	60000	# polyphone-alt route
+yituanhuqi	一团和气	60000	# polyphone-alt route
+yituanhuanqi	一团和气	60000	# polyphone-alt route
+yiweishenzhang	意味深长	60000	# polyphone-alt route
+yiwusuozhang	一无所长	60000	# polyphone-alt route
+yixiaodaifang	贻笑大方	60000	# polyphone-alt route
+yiyahaiya	以牙还牙	60000	# polyphone-alt route
+yiyanhaiyan	以眼还眼	60000	# polyphone-alt route
+yichaoyixi	一朝一夕	60000	# polyphone-alt route
+yizhenjianxue	一针见血	60000	# polyphone-alt route
+yizhibanxie	一知半解	60000	# polyphone-alt route
+yizibuchai	一字不差	60000	# polyphone-alt route
+yizibuci	一字不差	60000	# polyphone-alt route
+yongrongdaidu	雍容大度	60000	# polyphone-alt route
+youlengyoujue	有棱有角	60000	# polyphone-alt route
+youshuiyouxiao	有说有笑	60000	# polyphone-alt route
+youchaoyiri	有朝一日	60000	# polyphone-alt route
+yuanduzhongyang	远渡重洋	60000	# polyphone-alt route
+yuanxingbilou	原形毕露	60000	# polyphone-alt route
+yuanyuanliuzhang	源远流长	60000	# polyphone-alt route
+yushizhangci	与世长辞	60000	# polyphone-alt route
+yuyishenzhang	寓意深长	60000	# polyphone-alt route
+yuchongxinchang	语重心长	60000	# polyphone-alt route
+yuzhongxinzhang	语重心长	60000	# polyphone-alt route
+zenmedeiliao	怎么得了	60000	# polyphone-alt route
+zezechengji	啧啧称奇	60000	# polyphone-alt route
+zhanghuixiaoshui	章回小说	60000	# polyphone-alt route
+zhanloutoujiao	崭露头角	60000	# polyphone-alt route
+zhanlutoujue	崭露头角	60000	# polyphone-alt route
+chaobubaoxi	朝不保夕	60000	# polyphone-alt route
+chaolingxigai	朝令夕改	60000	# polyphone-alt route
+chaoqianxiti	朝乾夕惕	60000	# polyphone-alt route
+chaosanmusi	朝三暮四	60000	# polyphone-alt route
+chaosimuxiang	朝思暮想	60000	# polyphone-alt route
+chaoxixiangchu	朝夕相处	60000	# polyphone-alt route
+chaozhaomumu	朝朝暮暮	60000	# polyphone-alt route
+zhaochaomumu	朝朝暮暮	60000	# polyphone-alt route
+zazhashishi	扎扎实实	60000	# polyphone-alt route
+zhazashishi	扎扎实实	60000	# polyphone-alt route
+zhejiushishui	这就是说	60000	# polyphone-alt route
+zhengdaiguangming	正大光明	60000	# polyphone-alt route
+zhengjianghaosheng	争强好胜	60000	# polyphone-alt route
+zhengtongrenhuo	政通人和	60000	# polyphone-alt route
+zhengtongrenhu	政通人和	60000	# polyphone-alt route
+zhengtongrenhuan	政通人和	60000	# polyphone-alt route
+zhengchongqishi	郑重其事	60000	# polyphone-alt route
+zhenqiangshitan	真枪实弹	60000	# polyphone-alt route
+zhenxiangdaibai	真相大白	60000	# polyphone-alt route
+zhideiyiman	志得意满	60000	# polyphone-alt route
+zhideiyiti	值得一提	60000	# polyphone-alt route
+zhiguanchongyao	至关重要	60000	# polyphone-alt route
+zhijuezuobiao	直角坐标	60000	# polyphone-alt route
+zhishuibuzuo	只说不做	60000	# polyphone-alt route
+zhizhengchaoxi	只争朝夕	60000	# polyphone-alt route
+chongnanqingnv	重男轻女	60000	# polyphone-alt route
+zhongpianxiaoshui	中篇小说	60000	# polyphone-alt route
+chongshangzhuyi	重商主义	60000	# polyphone-alt route
+zhongshendaishi	终身大事	60000	# polyphone-alt route
+zhongshuifenyun	众说纷纭	60000	# polyphone-alt route
+chongzhongzhizhong	重中之重	60000	# polyphone-alt route
+zhongzhongzhichong	重中之重	60000	# polyphone-alt route
+zhoujidaotan	洲际导弹	60000	# polyphone-alt route
+zhuadaifangxiao	抓大放小	60000	# polyphone-alt route
+zhuangshenlonggui	装神弄鬼	60000	# polyphone-alt route
+zhuchengdaicuo	铸成大错	60000	# polyphone-alt route
+zheshouchengchun	着手成春	60000	# polyphone-alt route
+zhaoshouchengchun	着手成春	60000	# polyphone-alt route
+zhushulishui	著书立说	60000	# polyphone-alt route
+zibubishui	自不必说	60000	# polyphone-alt route
+zideiqile	自得其乐	60000	# polyphone-alt route
+zigaozidai	自高自大	60000	# polyphone-alt route
+zigeizizu	自给自足	60000	# polyphone-alt route
+zimingdeiyi	自鸣得意	60000	# polyphone-alt route
+zijiangbuxi	自强不息	60000	# polyphone-alt route
+cishitida	兹事体大	60000	# polyphone-alt route
+zishitidai	兹事体大	60000	# polyphone-alt route
+ziwoxiechao	自我解嘲	60000	# polyphone-alt route
+ziyuanqishui	自圆其说	60000	# polyphone-alt route
+zongshenmouzhang	总参谋长	60000	# polyphone-alt route
+zongcenmouzhang	总参谋长	60000	# polyphone-alt route
+zongcanmouchang	总参谋长	60000	# polyphone-alt route
+zongdelaishui	总的来说	60000	# polyphone-alt route
+zongjuezhijiao	总角之交	60000	# polyphone-alt route
+zuanniujuejian	钻牛角尖	60000	# polyphone-alt route
+zuidaieji	罪大恶极	60000	# polyphone-alt route
+zuidawuji	罪大恶极	60000	# polyphone-alt route
+zuiwutaotian	罪恶滔天	60000	# polyphone-alt route
+zuiyouyingdei	罪有应得	60000	# polyphone-alt route
+qingjiao	请教	60000	# user 2026-07-10 "青椒第二": pair-boost, 请教 stays #0
+qingjiao	青椒	50000	# user 2026-07-10 "青椒第二": lift to #1 above 倾角/清剿
+chongshi	充实	60000	# user 2026-07-10 "重试 第二": pair-boost, 充实 stays #0
+chongshi	重试	50000	# user 2026-07-10 "重试 第二": lift to #1 above 冲蚀/重拾
+jinlai	进来	60000	# user 2026-07-11 "进来 第一": lift above 近来
+tuichu	退出	60000	# user 2026-07-11 "退出 > 推出": lift above 推出
+luanma	乱码	20545	# user pick | top=乱麻 base=16953
+jianjie	间接	60000	# user 2026-07-12 "间接>简洁>简介>见解": chain-boost, 间接 stays #0
+jianjie	简洁	50000	# user 2026-07-12 "间接>简洁>简介>见解": lift to #1
+jianjie	简介	40000	# user 2026-07-12 "间接>简洁>简介>见解": lift to #2, 见解 falls to #3
+laduzi	拉肚子	60000	# user 2026-07-12 "拉肚子 要在日语前": tier lift above JP mechanical kana in Mixed+JP
+nanwei	难为	19564	# user pick | top=南纬 base=24426
+xiejiao	斜角	19276	# user pick | top=邪教 base=13841
+chongqi	重启	24533	# user pick | top=充气 base=25975
+qingliang	轻量	27385	# user pick | top=清凉 base=13967
+zuowei	作为	35662	# user pick | top=座位 base=41456
+shumu	树木	26877	# user pick | top=数目 base=23392
+tujian	图鉴	17354	# user pick | top=土建 base=17949
+# 2026-07-14 v2 non-idiom backfill 引入的新词(汴京/发疹)撞了既有 polish 的排序;
+# 用户拍板的顺序是硬约束 —— chain-boost 钉回原顺序, 新词保留在后面.
+bianjing	边境	60000	# user 2026-07-13: 边境 #0 > 辩经 #1; 汴京(backfill 新词)不得插队
+bianjing	辩经	50000	# 同上 — pair-boost 保 #1
+fazhen	法阵	60000	# user 2026-07-13: 法阵 #0; 发疹(backfill 新词)不得抢位
+# 2026-07-14 user: "xie 斜放到第四位". v2 quickfix = winner-take-all,
+# 单行 boost 会直接抢 #0 -> 必须 chain-boost 把整条顺序钉死.
+xie	些	60000	# base 49476 — 保 #0 (baseline pin)
+xie	写	55000	# base 45940 — #1
+xie	鞋	50000	# base 40834 — #2
+xie	斜	45000	# base 31350 — #3 (user 要的第四位); 歇 无 quickfix 自然退 #4
+# 2026-07-15 user: "youxiang 邮箱第二". v2 quickfix winner-take-all —
+# pair-boost 油箱 above 邮箱 to pin 邮箱 at #1 (幽香 unboosted -> #2).
+youxiang	邮箱	60000	# 2026-07-21 user "邮箱第一": swapped with 油箱 (was #1)
+youxiang	油箱	50000	# 2026-07-21 demoted to #1 (was #0)
+# 2026-07-15 user: "weidu 维度第二, 未读第三". 唯独 keeps #0.
+# v2 quickfix winner-take-all -> chain-boost the whole head in order.
+weidu	唯独	60000	# 保 #0
+weidu	维度	50000	# 第二位
+weidu	未读	40000	# 第三位
+jiejiari	节假日	55000	# 2026-07-15 user "jiejiari 现在日语在前": tier-1 lift above JP kana じえじあり/ジエジアリ; same 55k calibration as 简码/娭毑/世锦赛/复读
+chayi	差异	23000	# 2026-07-16 user "chayi 差异第一": 差异(base 28532)被 modern-freq prior 抬起的 诧异(base 20425)压在 #1; 诧异 base + 10% margin
+# 2026-07-17 user: "dangji 当即 > 宕机 > 当季 > 党籍 > 党纪, 一般政治用语都应该后置".
+# modern_vocab 有一行 党纪 45000 把政治词顶到 #0; 全序含 党籍>党纪(与自然 freq 相反)
+# -> 五词全链 boost 钉死.
+dangji	当即	60000	# #0
+dangji	宕机	55000	# #1
+dangji	当季	50000	# #2
+dangji	党籍	45000	# #3
+dangji	党纪	40000	# #4 政治用语后置
+lvli	履历	7300	# 2026-07-17 user 改口 "保留只是排第二": 撤 D2 改 B; 膂力 base 6633 + 10% margin, 履历 #0 膂力 退 #1
+tianmafan	添麻烦	55000	# 2026-07-17 user "添麻烦 第一": tier-1 lift above JP kana; 常用词完全命中应在日语前(user 一般原则), 同 55k 校准 简码/娭毑/世锦赛/复读/节假日
+tangxia	躺下	24700	# 2026-07-18 user "躺下第一": v2 里与 淌下 同tier同分同mf=0, 靠码点序输; v1 base 22445+10%, 淌下 无 v1 行
+# 2026-07-18 user: "jianju 间距 > 艰巨, 这两个在最前面". pair-boost 钉前二,
+# 检举/兼具 不 boost 自然退后.
+jianju	间距	60000	# #0
+jianju	艰巨	50000	# #1
+mideng	幂等	12800	# 2026-07-18 user "幂等第一": 技术词优先; 迷瞪(现汉方言词)base 11590+10%, 保留在 #1
+fenwei	氛围	30650	# 2026-07-18 user "氛围 > 分为": 氛围 base 29248 本高于 分为 27863, 被 modern prior 压; 分为 base+10%
+jiqi	机器	31950	# 2026-07-18 user "机器 第一": 机器 base 35883 本为组内最高, 被 v2 HSK tier 压; 极其 base 29042+10%
+shouxieti	手写体	55000	# 2026-07-18 user "手写体要在日语前": mf 18308 差 20000 阈值未入 exact-common cap; tier-1 55000 JP 校准
+jiewei	结尾	19470	# 2026-07-20 user "结尾第一": modern_freq prior 反转 (解围 23675 > 结尾 23637 差 38) 但 v1 语料 结尾 28796 >> 解围 17699; 解围 base 17699+10%
+# 2026-07-21 user "yichu 移除 > 溢出 > 益处 > 衣橱 > 一处 > 移出 > 役畜": full reorder.
+# Descending chain (winner-take-all tier 1). 役畜 (draft animals, real but
+# uncommon word) intentionally gets NO row → stays tier 4, naturally last.
+# Supersedes the old strict-0001 "一处 over 溢出" rows (removed above).
+yichu	移除	70000
+yichu	溢出	64000
+yichu	益处	58000
+yichu	衣橱	52000
+yichu	一处	46000
+yichu	移出	40000
+# 2026-07-21 user "fuzhi 复制第一 赋值第二 扶植第三": descending chain above
+# the pre-existing 福祉 30000 row, which keeps its ruling but lands at #4.
+fuzhi	复制	60000
+fuzhi	赋值	54000
+fuzhi	扶植	48000
+# 2026-07-24 user "zhifu 支付第一，制服第二，致富第三": descending chain above
+# the pre-existing 致富 30000 row, which keeps its ruling but lands at #3.
+zhifu	支付	60000
+zhifu	制服	54000
+zhifu	致富	48000
+yake	牙科	12316	# 2026-07-24 user "牙科第一": modern_freq prior 反转 (亚科分类学词占#0) 但 v1 语料 牙科 22820 >> 亚科 11196; 亚科 base 11196+10%
+yatong	牙痛	7226	# 2026-07-24 user "牙痛第一": modern_freq prior 反转 (压痛医学词占#0) 但 v1 语料 牙痛 10556 > 压痛 6569; 压痛 base 6569+10%
+xinsu	新宿	8727	# 2026-07-25 user "xinsu 新宿第一": 新宿 (modern_vocab tier 4, no modern_freq entry) 输给古语 信宿 (modern_freq 16745); v1 语料 新宿 17925 >> 信宿 7934; 信宿 base 7934+10%
+# 2026-07-26 user "现在罢了是第一，我想拔了第二，芭乐第三": descending chain.
+# 拔了 (modern_vocab tier 4, no modern_freq) was pinned at 380000 and could
+# not pass 芭乐 385408 within its tier; the next tier up would have overtaken
+# 罢了 outright. Explicit 3-row chain locks all three ranks instead — all
+# become tier 1 and the sovereignty rule strips modern_freq, so boost value
+# alone orders them (no reliance on 芭乐 landing #2 "naturally").
+bale	罢了	60000
+bale	拔了	50000
+bale	芭乐	40000
+# 2026-07-28 user "goujian 构建 > 勾践 > 构件": descending chain. 勾践
+# (modern_vocab tier 4, no modern_freq entry) was pinned at 380000 and could
+# not pass either cedict incumbent (构件 404267 / 构建 404176 = 380000 +
+# modern_freq) within its tier. Explicit 3-row chain locks all three ranks —
+# all become tier 1 and the sovereignty rule strips modern_freq, so boost
+# value alone orders them.
+goujian	构建	60000
+goujian	勾践	54000
+goujian	构件	48000
+huashuo	话说	18758	# 2026-07-29 user "huashuo 话说 > 华硕": 话说 在 v2 words.tsv (cedict tier 4) 但 modern_freq=0 (jieba 切成 话+说), 华硕 modern_vocab 15000 也是 tier 4 —— 同档同分, 最终按字母序 华(U+534E)<话(U+8BDD) 决胜。华硕 v1 语料 17053 base +10%
+# 2026-07-30 user "fangzhi 防止 > 防治 > 放置 > 仿制 > 防制 > 纺织 > 方知 >
+# 方志": all eight are pre-existing digested rows; base freq had 纺织 (17796)
+# leading over 防止 (31851) via IDF asymmetry, and 防制 (7878) needs to jump
+# above 纺织. Explicit 8-row chain — all become tier 1 where boost value alone
+# orders them (goujian precedent).
+fangzhi	防止	60000
+fangzhi	防治	58000
+fangzhi	放置	56000
+fangzhi	仿制	54000
+fangzhi	防制	52000
+fangzhi	纺织	50000
+fangzhi	方知	48000
+fangzhi	方志	46000
+# 2026-07-30 user "bianji 编辑 > 边际 > 遍及": the 06-30 dogfood row
+# (bianji 遍及 30000, retired above) promoted 遍及 to tier 1 = 540300, which
+# outranked 编辑 (cedict+hsk5 tier 3 = 434977) and 边际 (cedict tier 4 =
+# 403724). Explicit 3-row chain puts all three in tier 1 where boost value
+# alone orders them (goujian / fangzhi precedent).
+bianji	编辑	60000
+bianji	边际	55000
+bianji	遍及	50000
+# 2026-07-30 user "dongshi 懂事 第一": modern_vocab_v1 row (dongshi 董事 50000)
+# lifted 董事 above 懂事 (library 29367 > 董事 library 24272), so the modern-freq
+# overlay inverted the natural order. Single boost row promotes 懂事 to tier 1;
+# 董事 keeps its modern_vocab standing at #1.
+dongshi	懂事	55000
+# 2026-07-30 user "fanhua 繁华 > 泛化 > 反话 > 反华 > 繁花": all five are
+# pre-existing digested rows; base order was 繁华 / 繁花 / 反话 / 反华 / 泛化 —
+# 泛化 (library 10668 + modern_vocab 15000) sat last while 繁花 (19324) led the
+# rest on raw library freq. Explicit 5-row chain puts all five in tier 1 where
+# boost value alone orders them (fangzhi / bianji precedent).
+fanhua	繁华	60000
+fanhua	泛化	56000
+fanhua	反话	52000
+fanhua	反华	48000
+fanhua	繁花	44000
+yanzhi	颜值	55000	# user 2026-08-02: yanzhi 颜值第一; single-row quickfix -> tier 1, over 研制 404887 (dongshi 懂事 precedent)
+baifen	百分	55000	# user 2026-08-05: baifen 百分 > 白粉; pure codepoint tie (both tier 4, both modern_freq 22193) — single-row quickfix -> tier 1 (yanzhi precedent)

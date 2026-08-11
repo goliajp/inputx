@@ -16,7 +16,7 @@
 //! - [`jianma`] — 一级简码 lookup.
 //!
 //! ```ignore
-//! use wubi::{encode, embedded_seed};
+//! use inputx_wubi::{encode, embedded_seed};
 //! for (ch, decomp) in embedded_seed() {
 //!     let code = encode(&decomp).unwrap();
 //!     println!("{ch}\t{code}");
@@ -34,7 +34,7 @@ pub mod zigen;
 
 pub use codec::{DecompRef, EncodeError, Shape, Stroke, encode_with_lookup};
 pub use decomp::{Decomp, embedded_seed};
-pub use dict::{L0Snapshot, WubiDict, PROMOTE_THRESHOLD};
+pub use dict::{DICT_BYTES, L0Snapshot, WubiDict};
 pub use encode::{EncodedCode, encode, encode_into};
 pub use jianma::{iter_jianma1, lookup_jianma1};
 pub use layer::{DEFAULT_LAYER_PREFS, LAYER_BASE, LAYER_COUNT, Layer};
