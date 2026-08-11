@@ -8,31 +8,43 @@
 
 ## NEXT-ACTION (read first on session start)
 
-**Latest shipped tag:** `v1.13.0` (2026-06-06)
+**Latest shipped tag:** `v1.13.0` (2026-06-06) — the tag stream has
+NOT advanced since; `develop` is 1644 commits past it and `CHANGELOG.md`
+still ends at `1.3.0`. Both are known-stale; cutting the next tag is a
+user call, not autorun work.
 **Active branch:** `develop` (always at-or-ahead of `master`; master is dormant)
-**Active feature/polish branches:** none
+**Active feature/polish branches:** `feature/ios-shipping` only —
+**shelved** per `.claude/PLAN.md` §L2 ("iOS shipping currently
+SHELVED"), 1 commit ahead / 1557 behind develop. Do NOT resume it
+during autorun.
 **Commits ahead of origin/develop:** 0 (synced after last push)
 
-**Current cycle:** v1.14 — open, ~25 commits since 2026-06-06.
-Refreshed 2026-06-07.  Headline state:
+**Current cycle:** v1.14 — open. Refreshed 2026-08-11. Headline state:
 
-1. **Pinyin pipeline in minimal-debug mode** — three category gates
+1. **Pinyin pipeline in minimal-debug mode** — **four** category gates
    in `pinyin_adapter.rs` (`PINYIN_DISABLE_COMPOSE / ASSOCIATION /
-   FUZZY`) all set `true`.  Only literal-syllable lookup + FST
-   prefix completion + rare-CJK display filter active.  Per-const
-   behavior reference: `docs/pinyin-pipeline-gates.md`.  Project
-   memory `[[project-pinyin-minimal-debug-state]]` is the
-   cross-session anchor — **do not auto-flip a const without user
-   permission**; empty results for paused-family buffers (`pyin`,
-   `zg`, `zongguo`, `shehv`, `hhhh`, etc.) are intentional, not a
-   regression.
-2. **Two systemic data sweeps shipped** on 2026-06-06:
-   - wubi 繁体: 3527 TRAD chars stripped from `auto_decomp.txt`.
-     570 orphan TRAD chars KEPT until 繁体 mode toggle ships.
-     Audit + re-runnable script: `docs/wubi-trad-sweep-2026-06-06/`.
-   - pinyin er→r typo: 165 mis-encoded library rows deleted.
-     Audit: `docs/pinyin-er-typo-sweep-2026-06-06/`.
-3. **No active branches**; no commits ahead of origin.
+   FUZZY / PREDICTION`, lines 77-80) all set `true` (verified
+   2026-08-11).  Only literal-syllable lookup + FST prefix completion
+   + rare-CJK display filter active.  Per-const behavior reference:
+   `docs/pinyin-pipeline-gates.md`.  Project memory
+   `[[project-pinyin-minimal-debug-state]]` is the cross-session
+   anchor — **do not auto-flip a const without user permission**;
+   empty results for paused-family buffers (`pyin`, `zg`, `zongguo`,
+   `shehv`, `hhhh`, etc.) are intentional, not a regression.
+2. **v2 is the default pinyin engine** (`inputx_pinyin_v2::enabled()`
+   returns `true` with no config file — "Phase 7 final").  Its word
+   table is `inputx-pinyin-v2/data/words.tsv` ∪
+   `tools/scoring/data/polish/modern_vocab_v1.tsv`; it **never reads**
+   `inputx-pinyin/data/library.tsv`.  Class A 加词 that only touches
+   library.tsv rebuilds cleanly, passes baseline, and is still
+   invisible at runtime — land it on `modern_vocab_v1.tsv` too.
+   (`inputx-probe --help` still says "default = v1"; that text is
+   stale.)  The library-only rows v2 lacks are v1 corpus 淤血 and are
+   **not** a backfill target — user 2026-08-10: "这些 v1 的词都是不
+   需要的".
+3. **Recently landed on develop:** three-engine data hot-reload
+   (`e60e6f2c`), 全角英数 mode + ⇧space toggle + HUD toast
+   (`23d407fd`), polish A 蒙板 (`09794bb6`).
 
 **Default next action when user says "继续 autorun":** report this
 state + ask direction.  Per the work-picking algorithm below, every
