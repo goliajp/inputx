@@ -1,5 +1,56 @@
 # Inputx Changelog
 
+> **Coverage gap, stated plainly:** tags `v1.4.0` through `v1.13.0` shipped without CHANGELOG entries — this file jumped straight from `1.3.0` (2026-05-26) to the entry below. The `1.14.0` entry covers **only** `v1.13.0..v1.14.0`; it does not backfill the missing versions. For anything in between, `git log v1.4.0..v1.13.0` is the record.
+
+## 1.14.0 — 2026-08-11
+
+**Pinyin v2 becomes the default engine; the dictionary gets audited rather than grown.** 1,523 non-merge commits and 122 branch merges since `v1.13.0` (2026-06-06). The cycle had no pre-locked theme — it was driven by reactive polish, a 1000-article dogfood pass, and a long dictionary-quality sweep under the standing 宁缺毋滥 directive.
+
+### Pinyin engine — v2 char-centric path
+
+- **v2 is now the default** (`inputx_pinyin_v2::enabled()` returns `true` with no config file). It builds its word table from `inputx-pinyin-v2/data/words.tsv` ∪ `tools/scoring/data/polish/modern_vocab_v1.tsv` and does **not** read v1's `library.tsv` — a Class A 加词 that touches only library.tsv is invisible at runtime. Note `inputx-probe --help` still prints "default = v1"; that text is stale.
+- Prefix completions order by 字数 within one tier band, so a word always outranks the words that extend it (`fangdic` → 房地产 before 房地产业 / 房地产商).
+- Exact-common-word tier repair — common words rank above JP kana.
+- Polish overlay TSVs are hot-reloadable via `ArcSwap`; within-tier ordering moved onto the Q4 axis.
+- **Manual segment mode** (拼音手动分段) — engine + FFI + IME wiring.
+- All four `PINYIN_DISABLE_*` gates in `pinyin_adapter.rs` were flipped ON during Phase 1 (CP-1.1…CP-1.4) and then **deliberately flipped back OFF** on 2026-06-28, returning the pipeline to literal-only. Empty results for the paused families are intentional. See `docs/pinyin-pipeline-gates.md`.
+
+### Ranking framework
+
+- **Ceiling-first JP band** — every JP path capped at tier 4, dead-ended by its neighbours instead of tuned per-case.
+- **Wubi 五笔优先 restored** — full-code single-char priority + simcode prediction split.
+- Lattice work (Phases 3–5): `Edge`/`EdgeKind`/`Graph`/Viterbi data structure, then fuzzy / typo / abbrev edges wired into lattice composition; keyboard-adjacency module; abbrev length-aware channel.
+- KenLM bigram + trigram LM trained and wired behind feature gates (Phase 2 / CP-5.1).
+- **L0 pick-count auto-pin removed** from wubi + pinyin (breaking behavior change).
+- User-bigram commit hook (Phase 4).
+
+### Dictionary + vocabulary quality
+
+Net direction was **removal**, not growth:
+
+- `audit(PHASE-FREQ0)` — 142,566 `freq=0` rows deleted.
+- `audit(PHASE-SIP)` — 17,635 SIP rare chars (U+20000+) deleted.
+- `modern_vocab` full audit — 17,803 padded rows removed (26,761 → 8,941).
+- Seven strict audit rounds against obscure historical / seiyuu / footballer / redundant-compound entries; three "strictify" passes against verb-phrase and function+content artifacts.
+- v2 backfill from v1 corpus: 15,081 non-idiom words + 4,668 成语, each row reviewed individually (no whitelist heuristics).
+- A dedicated in-browser audit console (`audit.html`, 15 phases, per-row suggestions).
+- 224 `/polish` commits and ~950 dogfood-strict commits from a 1000-article zhwiki pass (`docs/pinyin-dogfood-2026-06-30/`).
+
+### mac IME
+
+- **全角英数 mode** — letters, digits and the space bar actually widen; ⇧space toggles it with a 全角/半角 HUD toast.
+- **Three-engine hot reload** — wubi and nihongo dictionaries reload without replacing the process, so a polish no longer forces apps like WeChat to be restarted.
+- `CandidatePanel` made a process-wide singleton, plugging an `NSPanel` window leak (memory footprint back to ~300–400 MB).
+- Context-based smart quotes that survive IME switches, and are nesting-aware.
+- CapsLock uppercase override + uppercase-commit on toggle; Return commits the highlighted candidate with English fallback.
+- `reinstall.py` hardened: data-only fast path for polish, SIGUSR1 hot-reload dispatch, forced IntlDataCache rebuild + `imklaunchagent` bounce + warm-cycle verify, backup snapshots relocated to the Caches dir, TIS rows auto re-enabled.
+
+### Eval + CI
+
+- MIU gold baseline refreshed 2026-07-03: `gold_top1` 0.034 → 0.093 (+5.9pp) from the dogfood vocabulary work.
+- Fixture-MIU CI gates for fuzzy / typo / abbrev floors.
+- CI matrix: rustfmt, clippy `--all-targets -D warnings`, `make baseline`, MIU eval gate, FFI staticlib build, Swift (InputxKit) tests.
+
 ## 1.3.0 — 2026-05-26
 
 **Probability model structural landing + prefix-prediction full coverage.** v1.2 set the conceptual frame (i→P→o, `P(W|i) = P(i|W)·P(W)`); v1.3 lands it structurally across the engine: scoring constants renamed to PRIOR_/LIKELIHOOD_/CUTOFF_/MARKER_ groups, the prefix-prediction shape unified across pinyin/wubi/JP, and `inputx-probe` now emits the two-axis (base, prior, likelihood) decomposition so the Bayesian split is inspectable.
