@@ -405,6 +405,31 @@ final class InputxController: IMKInputController {
             if candidatePanel.isVisible, candidatePanel.isPredictionMode {
                 candidatePanel.hide()
             }
+            // ⇧space and 全角英数 both still apply here: EN mode hands raw
+            // ASCII to the host, so this early-return is the only place
+            // either can see an EN-mode keystroke. Modifier combos step
+            // aside (⌘-shortcuts, ⌥-dead-keys) as in the CapsLock path.
+            if !event.modifierFlags.contains(.command),
+               !event.modifierFlags.contains(.control),
+               !event.modifierFlags.contains(.option),
+               let typed = event.characters,
+               let scalar = typed.unicodeScalars.first {
+                // Read `characters`, not `charactersIgnoringModifiers`:
+                // EN mode is a literal passthrough, so the shifted glyph
+                // is what the host would have received. (Gating on the
+                // unshifted form would widen shift+1's `!` through the
+                // digit branch.)
+                if scalar.value == 0x20, event.modifierFlags.contains(.shift) {
+                    toggleFullWidthMode(client: sender)
+                    return true
+                }
+                if inputxSettings.useFullWidth,
+                   isFullWidthAlnumKey(scalar.value),
+                   let wide = stringFromCodepoint(InputxLocale.fullWidth(scalar.value)) {
+                    commitText(wide, to: sender)
+                    return true
+                }
+            }
             return false
         }
 
@@ -445,6 +470,26 @@ final class InputxController: IMKInputController {
             codepoint = typedScalar.value
         }
 
+        // ---- ⇧space toggles 全角英数 --------------------------------------
+        //
+        // The mode has no affordance you can see while typing (the IMK
+        // menu checkmark needs a mouse trip), so it gets a keyboard flip
+        // + HUD toast, the same deal shift-single-click gets for CJK/EN.
+        //
+        // Runs ahead of everything — segment mode, the Space-commits-#0
+        // paths, the 全角 branch below — because ⇧space has to stay
+        // reachable from every state, including mid-composition and mid-
+        // 全角. ⌘/⌃/⌥+space stay clear of it: those belong to Spotlight
+        // and the system input-source switcher.
+        if codepoint == 0x20,
+           event.modifierFlags.contains(.shift),
+           !event.modifierFlags.contains(.command),
+           !event.modifierFlags.contains(.control),
+           !event.modifierFlags.contains(.option) {
+            toggleFullWidthMode(client: sender)
+            return true
+        }
+
         // ---- Segment mode (拼音手动分段, user 2026-06-07) -----------------
         // Once active (user pressed ← while pinyin-composing), ALL keys route
         // through `handleSegmentKey` first and bypass the prediction/normal
@@ -469,6 +514,43 @@ final class InputxController: IMKInputController {
         if codepoint == 0xF702, segmentAnchorIdx == nil, session.isComposing,
            tryEnterSegmentMode(client: sender) {
             return true
+        }
+
+        // ---- 全角英数 mode -------------------------------------------------
+        //
+        // `useFullWidth` is a *mode*, not a punct modifier (user 2026-08-08:
+        // "打开以后输入直接上屏用日语全角的英文和数字"). While it's on, ASCII
+        // letters, digits and the space bar never reach the engine — they
+        // commit straight through as their full-width forms (`nihao` →
+        // ｎｉｈａｏ, `123` → １２３, space → U+3000), matching macOS 日本語
+        // IM's 「英字（全角）」 mode. Chinese composing resumes the moment
+        // the toggle goes back off.
+        //
+        // Punctuation deliberately stays on Path B: 中文标点 wins there when
+        // it's on (`,` → `，`), and the width pass only picks up what the CJK
+        // punct table didn't map.
+        //
+        // Placed ahead of every candidate-panel path (Space-commits-#0,
+        // number-key pick, 联想 dismissals) because in this mode those keys
+        // are literal text, not panel navigation. The panel can only be a
+        // leftover from before the toggle flipped, which the flush below
+        // clears. Segment mode keeps first refusal above — it exits itself
+        // on the keys it doesn't own and falls through to here.
+        if inputxSettings.useFullWidth,
+           codepoint < 0x80, isFullWidthAlnumKey(codepoint),
+           !event.modifierFlags.contains(.command),
+           !event.modifierFlags.contains(.control),
+           !event.modifierFlags.contains(.option) {
+            // Defends the paths that flip the setting without going
+            // through `toggleFullWidthMode` — the IMK menu item and the
+            // Settings window, neither of which holds a client to drain
+            // an in-flight composition into.
+            flushCompositionForFullWidth(client: sender)
+            if let wide = stringFromCodepoint(InputxLocale.fullWidth(codepoint)) {
+                commitText(wide, to: sender)
+                return true
+            }
+            return false
         }
 
         // Prediction-mode dismissals. When the panel is showing 联想
@@ -838,6 +920,16 @@ final class InputxController: IMKInputController {
         return (0x41...0x5A).contains(codepoint) || (0x61...0x7A).contains(codepoint)
     }
 
+    /// `true` iff `codepoint` is an ASCII letter, digit, or the space bar —
+    /// the set 全角英数 mode widens (space → U+3000 IDEOGRAPHIC SPACE, as
+    /// macOS 日本語 IM's 「英字（全角）」 does). Punct is excluded: it belongs
+    /// to Path B, where 中文标点 gets first refusal before the width pass.
+    private func isFullWidthAlnumKey(_ codepoint: UInt32) -> Bool {
+        return isAsciiLetter(codepoint)
+            || (0x30...0x39).contains(codepoint)
+            || codepoint == 0x20
+    }
+
     /// Process a `flagsChanged` event. Routes shift toggles through the
     /// single-click detector; non-shift modifier toggles disarm it. Never
     /// consumes the event (host apps need to see modifier state).
@@ -901,6 +993,45 @@ final class InputxController: IMKInputController {
         updatePreedit(client: sender)
         candidatePanel.refresh(session: session, client: sender as AnyObject?)
         InputModeToast.shared.show(mode: newMode)
+    }
+
+    /// Flip 全角英数 from the keyboard (⇧space). Lands any in-flight
+    /// composition first, mirrors the new state to the menu/Settings
+    /// observers, and flashes the 全角/半角 HUD so the user can see which
+    /// side of the toggle they landed on.
+    private func toggleFullWidthMode(client sender: Any!) {
+        flushCompositionForFullWidth(client: sender)
+        inputxSettings.useFullWidth.toggle()
+        broadcastSettingsChanged()
+        InputModeToast.shared.show(fullWidth: inputxSettings.useFullWidth)
+    }
+
+    /// Land whatever the engine is holding before 全角英数 takes over the
+    /// keyboard. Commits the *raw preedit*, not the top candidate: this
+    /// is the same "not CJK after all" signal the CJK→EN flip carries, so
+    /// it commits the ASCII the user literally typed. No-op when nothing
+    /// is in flight, which is the common case.
+    ///
+    /// `session.clear()` resets the core to CJK as a side effect, so the
+    /// input mode is saved and re-applied — this runs from the EN path too.
+    private func flushCompositionForFullWidth(client sender: Any!) {
+        // Segment mode owns its own accumulated-Chinese buffer and marked
+        // text; unwind it through its own exit so `segmentCommitted` isn't
+        // dropped and `segmentAnchorIdx` doesn't leak into 全角 mode.
+        if segmentAnchorIdx != nil {
+            leaveSegmentMode(commitAccumulated: true, client: sender)
+        }
+        let composing = session.isComposing
+        guard composing || session.predictionCount > 0 else { return }
+        if composing, let pre = session.preedit, !pre.isEmpty {
+            commitText(pre, to: sender)
+        }
+        let savedMode = session.inputMode
+        session.cancelPredictions()
+        session.clear()
+        if savedMode != .cjk { _ = session.setInputMode(savedMode) }
+        candidatePanel.hide()
+        clearMarkedText(client: sender)
     }
 
     // MARK: - System input-source menu integration ---------------------------
@@ -969,7 +1100,7 @@ final class InputxController: IMKInputController {
         addToggle(m, "中文标点（，。？！…）",
                   isOn: inputxSettings.useCjkPunct,
                   selector: #selector(toggleCjkPunct))
-        addToggle(m, "英文数字全角",
+        addToggle(m, "英文数字全角（⇧空格）",
                   isOn: inputxSettings.useFullWidth,
                   selector: #selector(toggleFullWidth))
 
