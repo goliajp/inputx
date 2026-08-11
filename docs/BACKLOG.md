@@ -8,10 +8,10 @@
 
 ## NEXT-ACTION (read first on session start)
 
-**Latest shipped tag:** `v1.13.0` (2026-06-06) — the tag stream has
-NOT advanced since; `develop` is 1644 commits past it and `CHANGELOG.md`
-still ends at `1.3.0`. Both are known-stale; cutting the next tag is a
-user call, not autorun work.
+**Latest shipped tag:** `v1.14.0` (2026-08-11) — tagged on `develop`,
+same as v1.5.0 through v1.13.0. `CHANGELOG.md` has a matching `1.14.0`
+entry; entries for v1.4.0–v1.13.0 were never written and the file says
+so rather than backfilling them.
 **Active branch:** `develop` (always at-or-ahead of `master`; master is dormant)
 **Active feature/polish branches:** `feature/ios-shipping` only —
 **shelved** per `.claude/PLAN.md` §L2 ("iOS shipping currently
