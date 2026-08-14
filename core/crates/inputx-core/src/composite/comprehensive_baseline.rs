@@ -3636,6 +3636,28 @@ mod tests {
         assert_eq!(b, 1, "gaoliang: expected 高粱 at #1; got {top10:?}");
     }
 
+    /// Class D2 polish (user report 2026-08-15): "膏粱似乎不是词？".
+    /// It IS a word, but a classical one (《孟子》肥肉细粮) whose modern
+    /// use is bound: 膏粱子弟 / 膏粱年少 carry their own codes. cedict
+    /// gave the bare form full tier-4 standing at gaoliang, so
+    /// exclusions_v1 hides it from Path-1 while the dict entry stays
+    /// for reverse-lookup (qingliang 清亮 precedent).
+    #[test]
+    fn polish_gaoliang_gaoliang_hidden() {
+        let top10 = mixed_top10("gaoliang".as_bytes());
+        assert!(
+            !top10.iter().any(|x| x == "膏粱"),
+            "gaoliang: 膏粱 must not appear; got top10={top10:?}"
+        );
+        // The bound compound keeps its own code — the exclusion is
+        // buffer-scoped, not a dict deletion.
+        let long = mixed_top10("gaoliangnianshao".as_bytes());
+        assert!(
+            long.iter().any(|x| x == "膏粱年少"),
+            "gaoliangnianshao: 膏粱年少 must stay reachable; got {long:?}"
+        );
+    }
+
     /// Class C polish (user report 2026-08-02): "jianlou 检漏好像不是词?".
     /// 检漏 IS real (technical: 检漏仪 / 真空检漏) so no D1 — but at lib
     /// freq 3094 it outranked colloquial 捡漏 (15033) in the live scores,
