@@ -3658,6 +3658,22 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-08-15): "gaoliangzidi 补一下".
+    /// 膏粱子弟 is a real 成语 and its cedict row was in words.tsv all
+    /// along — but a 2026-06-28 bulk sweep logged it to
+    /// corpus_garbage_filter_v1 on a mechanical `freq=0` criterion, and
+    /// v2 folds that filter into its exclusion set, so the row was
+    /// suppressed rather than merely absent. Removing the bogus filter
+    /// row restores it.
+    #[test]
+    fn polish_gaoliangzidi_present() {
+        let top10 = mixed_top10("gaoliangzidi".as_bytes());
+        assert!(
+            top10.iter().any(|x| x == "膏粱子弟"),
+            "gaoliangzidi: 膏粱子弟 must be reachable; got top10={top10:?}"
+        );
+    }
+
     /// Class C polish (user report 2026-08-02): "jianlou 检漏好像不是词?".
     /// 检漏 IS real (technical: 检漏仪 / 真空检漏) so no D1 — but at lib
     /// freq 3094 it outranked colloquial 捡漏 (15033) in the live scores,
