@@ -3615,6 +3615,27 @@ mod tests {
         assert!(b > 0, "baifen: expected 白粉 below 百分; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-08-15): "gaoliang 高亮 > 高粱".
+    /// All three gaoliang words share v2 tier 4 (cedict), so modern_freq
+    /// decided the order — and jieba's dict has no 高亮 (score 0) while
+    /// 高粱 24194 / 膏粱 18603 both score, burying the tech term at #2.
+    /// A pair-boost (60000 / 50000 → tier 1) locks the explicit order
+    /// (bianji / fanhua chain precedent).
+    #[test]
+    fn polish_gaoliang_order() {
+        let top10 = mixed_top10("gaoliang".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("高亮"),
+            "gaoliang: expected 高亮 at #0; got top10={top10:?}"
+        );
+        let b = top10
+            .iter()
+            .position(|x| x == "高粱")
+            .expect("高粱 missing from gaoliang top10");
+        assert_eq!(b, 1, "gaoliang: expected 高粱 at #1; got {top10:?}");
+    }
+
     /// Class C polish (user report 2026-08-02): "jianlou 检漏好像不是词?".
     /// 检漏 IS real (technical: 检漏仪 / 真空检漏) so no D1 — but at lib
     /// freq 3094 it outranked colloquial 捡漏 (15033) in the live scores,

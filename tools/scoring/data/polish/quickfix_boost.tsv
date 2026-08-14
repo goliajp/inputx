@@ -1342,3 +1342,9 @@ fanhua	反华	48000
 fanhua	繁花	44000
 yanzhi	颜值	55000	# user 2026-08-02: yanzhi 颜值第一; single-row quickfix -> tier 1, over 研制 404887 (dongshi 懂事 precedent)
 baifen	百分	55000	# user 2026-08-05: baifen 百分 > 白粉; pure codepoint tie (both tier 4, both modern_freq 22193) — single-row quickfix -> tier 1 (yanzhi precedent)
+# 2026-08-15 user "gaoliang 高亮 > 高粱": v2 modern_freq has 高亮 0 (jieba dict
+# lacks the modern tech term) while 高粱 24194 / 膏粱 18603, so both grain words
+# outranked it. Pair-boost locks the explicit order in tier 1 (bianji / fanhua
+# precedent); 膏粱 stays in its own tier below.
+gaoliang	高亮	60000
+gaoliang	高粱	50000
