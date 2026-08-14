@@ -170,6 +170,11 @@ DATA_ONLY_PREFIXES: tuple[str, ...] = (
     ".github/",
     "docs/",
     "README.md",
+    # A docs-only commit landing between two polishes used to demote the
+    # next polish to a full reinstall — CHANGELOG.md was the one
+    # prose file `docs/` + README.md didn't cover. build.sh never copies
+    # it into the bundle, same as the two above.
+    "CHANGELOG.md",
 )
 
 # ─── Output ───────────────────────────────────────────────────────────
