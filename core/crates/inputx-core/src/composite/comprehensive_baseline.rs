@@ -3675,17 +3675,18 @@ mod tests {
     }
 
     /// Class B polish (user report 2026-08-17): "dangwei 挡位第一，党委
-    /// 反正在他们后面". 党委 (cedict tier 4, modern_freq 24661) led both
-    /// gear/level words. Pair-boost (60000 / 50000 → tier 1) locks the
-    /// explicit order; 党委 keeps its own tier below. Both 挡位 and 档位
-    /// stay — 挡 is the 排挡 sense, 档 the 档次 sense.
+    /// 反正在他们后面", revised same day to "档位 > 挡位". 党委 (cedict
+    /// tier 4, modern_freq 24661) led both gear/level words. Pair-boost
+    /// (60000 / 50000 → tier 1) locks the explicit order; 党委 keeps its
+    /// own tier below. Both 档位 and 挡位 stay — 档 is the 档次 sense,
+    /// 挡 the 排挡 sense.
     #[test]
     fn polish_dangwei_order() {
         let top10 = mixed_top10("dangwei".as_bytes());
         assert_eq!(
             top10.first().map(String::as_str),
-            Some("挡位"),
-            "dangwei: expected 挡位 at #0; got top10={top10:?}"
+            Some("档位"),
+            "dangwei: expected 档位 at #0; got top10={top10:?}"
         );
         let pos = |w: &str| {
             top10
@@ -3693,7 +3694,7 @@ mod tests {
                 .position(|x| x == w)
                 .unwrap_or_else(|| panic!("{w} missing from dangwei top10: {top10:?}"))
         };
-        assert_eq!(pos("档位"), 1, "dangwei: expected 档位 at #1; got {top10:?}");
+        assert_eq!(pos("挡位"), 1, "dangwei: expected 挡位 at #1; got {top10:?}");
         assert!(
             pos("党委") > 1,
             "dangwei: 党委 must sit below both gear words; got {top10:?}"
