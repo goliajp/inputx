@@ -3689,6 +3689,20 @@ mod tests {
         );
     }
 
+    /// Class D2 polish (user report 2026-08-17): "爬梳不是词". 爬梳 IS
+    /// real but literary (整理 / 梳理, alive in scholarly 爬梳史料 /
+    /// 爬梳剔抉) — so hide it rather than delete it, per the 清亮 /
+    /// 膏粱 cedict-ingest-artifact precedent. It stays in the dict for
+    /// the index consumers; only Path-1 stops surfacing it.
+    #[test]
+    fn polish_pashu_pashu_hidden() {
+        let top10 = mixed_top10("pashu".as_bytes());
+        assert!(
+            !top10.iter().any(|x| x == "爬梳"),
+            "pashu: 爬梳 must not appear; got top10={top10:?}"
+        );
+    }
+
     /// Class C polish (user report 2026-08-02): "jianlou 检漏好像不是词?".
     /// 检漏 IS real (technical: 检漏仪 / 真空检漏) so no D1 — but at lib
     /// freq 3094 it outranked colloquial 捡漏 (15033) in the live scores,
