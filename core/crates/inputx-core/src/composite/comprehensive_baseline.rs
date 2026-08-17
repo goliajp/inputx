@@ -3674,6 +3674,21 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-08-17): "pashu 爬树". 爬树 sat in
+    /// v1's library.tsv at freq 20328 but never reached v2's words.tsv —
+    /// cedict has no entry for the everyday verb-object phrase, so the
+    /// default engine surfaced only the classical 爬梳. The supplement
+    /// row puts it on the v2 surface.
+    #[test]
+    fn polish_pashu_pashu_leads() {
+        let top10 = mixed_top10("pashu".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("爬树"),
+            "pashu: expected 爬树 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class C polish (user report 2026-08-02): "jianlou 检漏好像不是词?".
     /// 检漏 IS real (technical: 检漏仪 / 真空检漏) so no D1 — but at lib
     /// freq 3094 it outranked colloquial 捡漏 (15033) in the live scores,
