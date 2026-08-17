@@ -1348,9 +1348,10 @@ baifen	百分	55000	# user 2026-08-05: baifen 百分 > 白粉; pure codepoint ti
 # precedent); 膏粱 stays in its own tier below.
 gaoliang	高亮	60000
 gaoliang	高粱	50000
-# 2026-08-17 user "dangwei 挡位第一，党委反正在他们后面": 党委 (v2 tier 4
-# cedict, modern_freq 24661) led the two gear/level words. Pair-boost lifts
-# both above it in the explicit order 挡位 > 档位 (gaoliang precedent); 党委
-# keeps its own tier below. 挡 = 排挡义, 档 = 档次义 — distinct senses, both stay.
-dangwei	挡位	60000
-dangwei	档位	50000
+# 2026-08-17 user "dangwei 挡位第一，党委反正在他们后面", revised same day to
+# "档位 > 挡位": 党委 (v2 tier 4 cedict, modern_freq 24661) led the two
+# gear/level words. Pair-boost lifts both above it in the explicit order
+# 档位 > 挡位 (gaoliang precedent); 党委 keeps its own tier below.
+# 档 = 档次义, 挡 = 排挡义 — distinct senses, both stay.
+dangwei	档位	60000
+dangwei	挡位	50000
