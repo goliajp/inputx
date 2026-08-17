@@ -3674,6 +3674,32 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-08-17): "dangwei 挡位第一，党委
+    /// 反正在他们后面". 党委 (cedict tier 4, modern_freq 24661) led both
+    /// gear/level words. Pair-boost (60000 / 50000 → tier 1) locks the
+    /// explicit order; 党委 keeps its own tier below. Both 挡位 and 档位
+    /// stay — 挡 is the 排挡 sense, 档 the 档次 sense.
+    #[test]
+    fn polish_dangwei_order() {
+        let top10 = mixed_top10("dangwei".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("挡位"),
+            "dangwei: expected 挡位 at #0; got top10={top10:?}"
+        );
+        let pos = |w: &str| {
+            top10
+                .iter()
+                .position(|x| x == w)
+                .unwrap_or_else(|| panic!("{w} missing from dangwei top10: {top10:?}"))
+        };
+        assert_eq!(pos("档位"), 1, "dangwei: expected 档位 at #1; got {top10:?}");
+        assert!(
+            pos("党委") > 1,
+            "dangwei: 党委 must sit below both gear words; got {top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-08-17): "pashu 爬树". 爬树 sat in
     /// v1's library.tsv at freq 20328 but never reached v2's words.tsv —
     /// cedict has no entry for the everyday verb-object phrase, so the
