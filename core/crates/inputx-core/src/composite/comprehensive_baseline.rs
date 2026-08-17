@@ -3714,7 +3714,11 @@ mod tests {
                 .position(|x| x == w)
                 .unwrap_or_else(|| panic!("{w} missing from dangwei top10: {top10:?}"))
         };
-        assert_eq!(pos("挡位"), 1, "dangwei: expected 挡位 at #1; got {top10:?}");
+        assert_eq!(
+            pos("挡位"),
+            1,
+            "dangwei: expected 挡位 at #1; got {top10:?}"
+        );
         assert!(
             pos("党委") > 1,
             "dangwei: 党委 must sit below both gear words; got {top10:?}"
