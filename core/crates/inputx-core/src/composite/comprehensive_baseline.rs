@@ -3674,6 +3674,26 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-08-17): "jianmo 建模第一". Both
+    /// words are v2 tier 4 (cedict), so modern_freq broke the tie —
+    /// 缄默 23220 over 建模 21286 — which inverts v1's own library order
+    /// (建模 20152 > 缄默 17614). A single-row quickfix (55000 → tier 1)
+    /// puts the modern technical term back on top.
+    #[test]
+    fn polish_jianmo_order() {
+        let top10 = mixed_top10("jianmo".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("建模"),
+            "jianmo: expected 建模 at #0; got top10={top10:?}"
+        );
+        let b = top10
+            .iter()
+            .position(|x| x == "缄默")
+            .expect("缄默 missing from jianmo top10");
+        assert!(b > 0, "jianmo: expected 缄默 below 建模; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-08-17): "dangwei 挡位第一，党委
     /// 反正在他们后面", revised same day to "档位 > 挡位". 党委 (cedict
     /// tier 4, modern_freq 24661) led both gear/level words. Pair-boost

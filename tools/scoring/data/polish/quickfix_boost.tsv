@@ -1355,3 +1355,4 @@ gaoliang	高粱	50000
 # 档 = 档次义, 挡 = 排挡义 — distinct senses, both stay.
 dangwei	档位	60000
 dangwei	挡位	50000
+jianmo	建模	55000	# user 2026-08-17: jianmo 建模第一; both v2 tier 4 (cedict) so modern_freq decided — 缄默 23220 > 建模 21286, inverting v1's own library order (建模 20152 > 缄默 17614). Single-row quickfix -> tier 1 (yanzhi / baifen precedent); 缄默 keeps #1 in its own tier.
