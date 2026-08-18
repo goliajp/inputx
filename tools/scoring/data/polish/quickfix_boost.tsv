@@ -1356,3 +1356,4 @@ gaoliang	高粱	50000
 dangwei	档位	60000
 dangwei	挡位	50000
 jianmo	建模	55000	# user 2026-08-17: jianmo 建模第一; both v2 tier 4 (cedict) so modern_freq decided — 缄默 23220 > 建模 21286, inverting v1's own library order (建模 20152 > 缄默 17614). Single-row quickfix -> tier 1 (yanzhi / baifen precedent); 缄默 keeps #1 in its own tier.
+yiliao	医疗	55000	# user 2026-08-18: yiliao 医疗第一; tier gap not freq — 意料 is v2 tier 3 (cedict+hsk6) vs 医疗 tier 4 (cedict), so HSK6 membership alone outranked it, inverting v1 library order (医疗 28413 > 意料 27204). Single-row quickfix -> tier 1 (yanzhi / baifen precedent); 意料 keeps #1 on its own tier 3.

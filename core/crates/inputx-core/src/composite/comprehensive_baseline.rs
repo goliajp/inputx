@@ -3674,6 +3674,26 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-08-18): "yiliao 医疗第一".
+    /// A tier gap, not a freq gap: 意料 is v2 tier 3 (cedict+hsk6) while
+    /// 医疗 is tier 4 (cedict), so HSK6 membership alone outranked it —
+    /// inverting v1's own library order (医疗 28413 > 意料 27204). A
+    /// single-row quickfix (55000 -> tier 1) clears the tier-3 lead.
+    #[test]
+    fn polish_yiliao_order() {
+        let top10 = mixed_top10("yiliao".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("医疗"),
+            "yiliao: expected 医疗 at #0; got top10={top10:?}"
+        );
+        let b = top10
+            .iter()
+            .position(|x| x == "意料")
+            .expect("意料 missing from yiliao top10");
+        assert!(b > 0, "yiliao: expected 意料 below 医疗; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-08-17): "jianmo 建模第一". Both
     /// words are v2 tier 4 (cedict), so modern_freq broke the tie —
     /// 缄默 23220 over 建模 21286 — which inverts v1's own library order
