@@ -3674,6 +3674,29 @@ mod tests {
         );
     }
 
+    /// Class D2 polish (user 2026-09-06, polyphone audit §1 row 2). The
+    /// 保甲 office is bǎozhǎng and stays reachable at `baozhang`; bǎocháng
+    /// is not a word, yet the row led `baochang` over 饱尝 / 报偿 / 包场.
+    #[test]
+    fn polish_baochang_hides_baozhang_reading() {
+        let top10 = mixed_top10("baochang".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("饱尝"),
+            "baochang: expected 饱尝 at #0; got top10={top10:?}"
+        );
+        assert!(
+            !top10.iter().any(|x| x == "保长"),
+            "baochang: 保长 is a bǎozhǎng reading and must not surface; got {top10:?}"
+        );
+        // Buffer-scoped: the word stays reachable at its own code.
+        let bz = mixed_top10("baozhang".as_bytes());
+        assert!(
+            bz.iter().any(|x| x == "保长"),
+            "baozhang: 保长 must stay reachable; got top10={bz:?}"
+        );
+    }
+
     /// Class D2 polish (user 2026-09-06, polyphone audit §1): "充电这个
     /// 肯定要改". 重点 is zhòngdiǎn and already leads at `zhongdian`;
     /// chóngdiǎn is not a word, yet the row outranked 充电 at `chongdian`
