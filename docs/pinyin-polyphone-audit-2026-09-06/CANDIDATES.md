@@ -106,7 +106,15 @@ Not investigated here whether the duplicate affects scoring; flagged only.
 - §1 — all three shipped: `a64533dd` chongdian · `4984e28b` baochang ·
   `9e69f1e1` shidiao. Each is a D2 row in `exclusions_v1.tsv` plus a
   buffer-scoped regression test.
-- §2 — re-reviewed and **not acted on**; three of the seven claims were
-  withdrawn on second look. See the table above.
+- §2 — four of seven acted on after the user overruled the "leave it alone"
+  recommendation: `41692406` corrects the three wrong reading labels
+  (faqia 发卡 fà · gongcha 公差 chā · zengwu 憎恶 wù), `d377948c` hides
+  `zenge 憎恶` and leaves that buffer empty. The rule the user set:
+  **being able to type something is not a reason to keep a wrong entry** —
+  an empty code is correct, a code that works through a reading that does
+  not exist teaches a wrong reading. `gongchai 公差` is untouched and stays:
+  gōngchāi (an errand) and gōngchā (tolerance) are two words, not a
+  mis-reading. `hangtou` / `tiaomen` / `yingdan` remain withdrawn — those
+  three claims were mine and did not survive review.
 - §3 — **not acted on**; the user's word already leads at every one.
 - §4 — 294 duplicate rows, still open, unrelated to polyphony.
