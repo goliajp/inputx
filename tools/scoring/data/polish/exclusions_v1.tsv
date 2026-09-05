@@ -115,3 +115,4 @@ zhongzai	重载	# 2026-09-06 user: zhongzai 不该出现 重载 (多音字错码
 chongdian	重点	# 2026-09-06 user: 充电这个肯定要改 (polyphone audit §1). 重点 = zhòngdiǎn, 在 zhongdian 码下已是 #0; chóngdiǎn 不成词, 却在 chongdian 压住 充电 (464956 vs 403736). 词条留在 dict 供 K-best, 只从 Path-1 隐藏.
 baochang	保长	# 2026-09-06 user: 处理吧 (polyphone audit §1 row 2). 保长(保甲制职务)读 bǎozhǎng, 在 baozhang 码下正常; bǎocháng 不成词, 却在 baochang 压住 饱尝/报偿/包场 (402925 vs 401105). 留在 dict 供 K-best, 只从 Path-1 隐藏.
 shidiao	失调	# 2026-09-06 user: 处理吧 (polyphone audit §1 row 3). 失调(失去平衡)读 shītiáo, 在 shitiao 码下正常; shīdiào 不成词, 却在 shidiao 压住 石雕/失掉/时调 (404199 vs 403799). 留在 dict 供 K-best, 只从 Path-1 隐藏.
+zenge	憎恶	# 2026-09-06 user: zenge 空码即可, 不能为了打出字就保留错误. 憎恶 = zēngwù (厌恶义), zēngè 无依据; zengwu 码正常可打. 空码优于用错音兜一个字.
