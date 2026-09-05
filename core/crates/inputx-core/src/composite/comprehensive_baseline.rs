@@ -3674,6 +3674,34 @@ mod tests {
         );
     }
 
+    /// Class D2 polish (user report 2026-09-06): "zhongzai 重灾，不应该是
+    /// 重载第一，而且这里有问题，多音字 chongzai 才是重载，zhongzai 根本
+    /// 不应该出现重载". The everyday sense of 重载 (reload / overload) is
+    /// chóngzài and already lives at its own code. The zhòngzài reading is
+    /// real but only surfaces inside heavy-duty compounds (重载卡车 /
+    /// 重载列车), so the row stays in the dict for K-best and is hidden
+    /// from Path-1 at this buffer only.
+    #[test]
+    fn polish_zhongzai_hides_chongzai_reading() {
+        let top10 = mixed_top10("zhongzai".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("重灾"),
+            "zhongzai: expected 重灾 at #0; got top10={top10:?}"
+        );
+        assert!(
+            !top10.iter().any(|x| x == "重载"),
+            "zhongzai: 重载 is a chóngzài reading and must not surface; got {top10:?}"
+        );
+        // The exclusion is buffer-scoped: the correct code keeps the word.
+        let chong = mixed_top10("chongzai".as_bytes());
+        assert_eq!(
+            chong.first().map(String::as_str),
+            Some("重载"),
+            "chongzai: 重载 must stay at #0; got top10={chong:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-05): "rouchang 肉肠第一" —
     /// 肉偿 is 色情-adjacent and rare in daily writing. Both candidates
     /// score an exact 380000.0 tie; log_prior_q4 100 vs 99 (肉偿 words.tsv
