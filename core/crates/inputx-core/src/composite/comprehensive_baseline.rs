@@ -3674,6 +3674,26 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-05): "rouchang 肉肠第一" —
+    /// 肉偿 is 色情-adjacent and rare in daily writing. Both candidates
+    /// score an exact 380000.0 tie; log_prior_q4 100 vs 99 (肉偿 words.tsv
+    /// tier 4 cedict vs 肉肠 modern_vocab_v1 15000) decided it by one unit.
+    /// A single-row quickfix (55000 -> tier 1) flips the pair.
+    #[test]
+    fn polish_rouchang_order() {
+        let top10 = mixed_top10("rouchang".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("肉肠"),
+            "rouchang: expected 肉肠 at #0; got top10={top10:?}"
+        );
+        let b = top10
+            .iter()
+            .position(|x| x == "肉偿")
+            .expect("肉偿 missing from rouchang top10");
+        assert!(b > 0, "rouchang: expected 肉偿 below 肉肠; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-08-18): "yiliao 医疗第一".
     /// A tier gap, not a freq gap: 意料 is v2 tier 3 (cedict+hsk6) while
     /// 医疗 is tier 4 (cedict), so HSK6 membership alone outranked it —
