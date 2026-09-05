@@ -114,3 +114,4 @@ pashu	爬梳	# 2026-08-17 user: 爬梳不是词 (real but literary — 整理/�
 zhongzai	重载	# 2026-09-06 user: zhongzai 不该出现 重载 (多音字错码感). 重载 的日常义 reload/overload 是 chóngzài — words.tsv:9416 chongzai 重载 已在。zhòngzài 读音真实存在但只活在 重载卡车/重载列车/重载铁路 (heavy-duty) 这类合成词里, 所以留在 dict 供 K-best 组词, 只从 Path-1 隐藏; 重灾 拿回 #0.
 chongdian	重点	# 2026-09-06 user: 充电这个肯定要改 (polyphone audit §1). 重点 = zhòngdiǎn, 在 zhongdian 码下已是 #0; chóngdiǎn 不成词, 却在 chongdian 压住 充电 (464956 vs 403736). 词条留在 dict 供 K-best, 只从 Path-1 隐藏.
 baochang	保长	# 2026-09-06 user: 处理吧 (polyphone audit §1 row 2). 保长(保甲制职务)读 bǎozhǎng, 在 baozhang 码下正常; bǎocháng 不成词, 却在 baochang 压住 饱尝/报偿/包场 (402925 vs 401105). 留在 dict 供 K-best, 只从 Path-1 隐藏.
+shidiao	失调	# 2026-09-06 user: 处理吧 (polyphone audit §1 row 3). 失调(失去平衡)读 shītiáo, 在 shitiao 码下正常; shīdiào 不成词, 却在 shidiao 压住 石雕/失掉/时调 (404199 vs 403799). 留在 dict 供 K-best, 只从 Path-1 隐藏.
