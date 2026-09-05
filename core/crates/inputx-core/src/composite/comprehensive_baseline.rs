@@ -3674,6 +3674,26 @@ mod tests {
         );
     }
 
+    /// Class D2 polish (user 2026-09-06): "zenge 空码即可，不能为了打出字
+    /// 就保留错误". 憎恶 is zēngwù (the 厌恶 sense); zēngè has no basis. The
+    /// row sat alone at `zenge`, so hiding it leaves the Chinese side of that
+    /// buffer empty — which the user prefers over a wrong-reading fallback.
+    #[test]
+    fn polish_zenge_leaves_buffer_empty() {
+        let top10 = mixed_top10("zenge".as_bytes());
+        assert!(
+            !top10.iter().any(|x| x == "憎恶"),
+            "zenge: 憎恶 is zēngwù and must not surface here; got {top10:?}"
+        );
+        // The word stays fully reachable at its own code.
+        let zw = mixed_top10("zengwu".as_bytes());
+        assert_eq!(
+            zw.first().map(String::as_str),
+            Some("憎恶"),
+            "zengwu: 憎恶 must stay at #0; got top10={zw:?}"
+        );
+    }
+
     /// Class D2 polish (user 2026-09-06, polyphone audit §1 row 3). 失调
     /// (loss of balance) is shītiáo and leads `shitiao`; shīdiào is not a
     /// word, yet the row led `shidiao` over 石雕 / 失掉 / 时调.
