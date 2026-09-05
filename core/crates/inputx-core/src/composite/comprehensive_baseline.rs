@@ -3674,6 +3674,30 @@ mod tests {
         );
     }
 
+    /// Class D2 polish (user 2026-09-06, polyphone audit §1 row 3). 失调
+    /// (loss of balance) is shītiáo and leads `shitiao`; shīdiào is not a
+    /// word, yet the row led `shidiao` over 石雕 / 失掉 / 时调.
+    #[test]
+    fn polish_shidiao_hides_shitiao_reading() {
+        let top10 = mixed_top10("shidiao".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("石雕"),
+            "shidiao: expected 石雕 at #0; got top10={top10:?}"
+        );
+        assert!(
+            !top10.iter().any(|x| x == "失调"),
+            "shidiao: 失调 is a shītiáo reading and must not surface; got {top10:?}"
+        );
+        // Buffer-scoped: the correct code keeps the word at #0.
+        let st = mixed_top10("shitiao".as_bytes());
+        assert_eq!(
+            st.first().map(String::as_str),
+            Some("失调"),
+            "shitiao: 失调 must stay at #0; got top10={st:?}"
+        );
+    }
+
     /// Class D2 polish (user 2026-09-06, polyphone audit §1 row 2). The
     /// 保甲 office is bǎozhǎng and stays reachable at `baozhang`; bǎocháng
     /// is not a word, yet the row led `baochang` over 饱尝 / 报偿 / 包场.
