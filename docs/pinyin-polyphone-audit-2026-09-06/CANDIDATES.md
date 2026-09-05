@@ -40,30 +40,50 @@ the dict row for K-best), same as `af0d6062`.
 
 ## §2 — Class B: reading_path is wrong, but the row sits alone at its code
 
-No user-visible ranking damage today (nothing to bury), so this is data
-hygiene, not a polish emergency. Worth fixing if a reading-path correctness
-pass ever runs; each would otherwise silently justify a wrong code.
+**Re-reviewed 2026-09-06 after §1 shipped. Most of these do not survive a
+second look — recorded here rather than silently dropped, because the first
+pass would have justified seven edits and at least three of them are wrong.**
 
-| code | word | row says | should be |
+Two failure modes in the original pass:
+
+- **A wrong `reading_path` label is not a wrong code.** For 发卡 / 公差 /
+  憎恶(zengwu) the code is exactly right; only the annotation inside the row
+  mislabels a tone or reading. That field does not drive ranking, so editing
+  it changes nothing a user can observe.
+- **"That reading doesn't exist" was asserted too fast.** 行头 hángtóu is the
+  head of a 行会 (attested, 《水浒》); 调门 tiáomén is a real mechanical term
+  (调节门); 石 as a unit of weight genuinely reads dàn, so 英石 yīngdàn has a
+  basis even if yīngshí is the modern form. These were listed as "should not
+  exist" on my reading alone.
+
+| code | word | first pass said | after re-review |
 |---|---|---|---|
-| `zenge` | 憎恶 | [憎\|zēng][恶\|è] | 憎恶 is zēngwù — `zenge` should not exist |
-| `zengwu` | 憎恶 | [恶\|wū] | code is right, tone/reading label wrong (wù) |
-| `yingdan` | 英石 | [石\|dàn] | 英石 (stone, the unit) is yīngshí — `yingdan` should not exist |
-| `faqia` | 发卡 | [发\|fā][卡\|qiǎ] | the hair clip is fàqiǎ — code right, 发 label wrong |
-| `gongcha` | 公差 | [差\|chà] | mechanical tolerance is gōngchā — code right, label wrong |
-| `hangtou` | 行头 | [行\|háng][头\|tóu] | stage costume is xíngtou — `hangtou` should not exist |
-| `tiaomen` | 调门 | [调\|tiáo][门\|mén] | 调门 is diàomén — `tiaomen` should not exist |
+| `zenge` | 憎恶 | zēngè not a word | **holds** — 憎恶 is zēngwù (厌恶 sense); zēngè has no basis |
+| `zengwu` | 憎恶 | label [恶\|wū] should be wù | label-only, code correct — no ranking effect |
+| `faqia` | 发卡 | label [发\|fā] should be fà | label-only, code correct — no ranking effect |
+| `gongcha` | 公差 | label [差\|chà] should be chā | label-only, code correct — no ranking effect |
+| `hangtou` | 行头 | hángtóu should not exist | **withdrawn** — hángtóu = head of a 行会, attested |
+| `tiaomen` | 调门 | tiáomén should not exist | **withdrawn** — 调节门, real mechanical term |
+| `yingdan` | 英石 | yīngdàn should not exist | **weakened** — 石 as a unit does read dàn |
+
+**Recommendation: change nothing here.** Every row in this table sits alone
+at its code (top-5 is itself plus Japanese romaji), so nothing is buried and
+the fix has zero upside. The one row that survives review (`zenge`) would, if
+hidden, only turn a working buffer into an empty one. D1 error cost is
+asymmetric — a wrong delete silently breaks reverse-lookup somewhere unrelated
+— and this table is exactly the shape where that cost gets paid for nothing.
 
 ## §3 — Class C: rare reading parked at #1 behind a common word
-
-Visible but not blocking — the user's word already wins #0. Low value to
-touch; listed so a future pass doesn't rediscover them.
 
 `qianshou 纤手` (behind 歉收) · `qumu 取模` (behind 曲目) ·
 `tiaosheng 调升` (behind 跳绳) · `lingchang 灵长` (behind 领唱) ·
 `zhansheng 颤声` (behind 战胜) · `tantan 啴啴` (behind 谈谈) ·
 `yuyu 喁喁` (behind 说说) · `zhengzheng 丁丁` (behind 整整) ·
 `chanchan 啴啴` (behind 潺潺)
+
+**Recommendation: change nothing.** In every one of these the word the user
+is actually typing already holds #0. Hiding the #1 row buys one slot in a
+list nobody scrolls, at the same D1/D2 risk as §2.
 
 ## §4 — Separate finding: 294 exact-duplicate rows
 
@@ -80,3 +100,13 @@ Not investigated here whether the duplicate affects scoring; flagged only.
   (大夫 dàfū/dàifū, 便宜 biànyí/piányi, 口角 kǒujiǎo/kǒujué, 同行 tóngháng/tóngxíng,
   外传 wàichuán/wàizhuàn, 总长 zǒngcháng/zǒngzhǎng, …) or rare-but-real readings
   sitting alone at their code (出圈 chūjuàn, 咱家 zájiā, 频数 pínshuò, …).
+
+## Status (2026-09-06)
+
+- §1 — all three shipped: `a64533dd` chongdian · `4984e28b` baochang ·
+  `9e69f1e1` shidiao. Each is a D2 row in `exclusions_v1.tsv` plus a
+  buffer-scoped regression test.
+- §2 — re-reviewed and **not acted on**; three of the seven claims were
+  withdrawn on second look. See the table above.
+- §3 — **not acted on**; the user's word already leads at every one.
+- §4 — 294 duplicate rows, still open, unrelated to polyphony.
