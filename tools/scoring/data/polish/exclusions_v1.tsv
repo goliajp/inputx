@@ -112,3 +112,4 @@ fangzhong	房仲	# 2026-07-20 user: 台湾用语删了吧 (房屋仲介 abbrev, 
 gaoliang	膏粱	# 2026-08-15 user: 膏粱似乎不是词 (real but classical — 《孟子》肥肉细粮; modern use is bound to 膏粱子弟 / 膏粱年少, which keep their own codes. Hide from Path-1)
 pashu	爬梳	# 2026-08-17 user: 爬梳不是词 (real but literary — 整理/梳理, survives in scholarly 爬梳史料 / 爬梳剔抉; no everyday typing demand at a buffer that means 爬树. Hide from Path-1)
 zhongzai	重载	# 2026-09-06 user: zhongzai 不该出现 重载 (多音字错码感). 重载 的日常义 reload/overload 是 chóngzài — words.tsv:9416 chongzai 重载 已在。zhòngzài 读音真实存在但只活在 重载卡车/重载列车/重载铁路 (heavy-duty) 这类合成词里, 所以留在 dict 供 K-best 组词, 只从 Path-1 隐藏; 重灾 拿回 #0.
+chongdian	重点	# 2026-09-06 user: 充电这个肯定要改 (polyphone audit §1). 重点 = zhòngdiǎn, 在 zhongdian 码下已是 #0; chóngdiǎn 不成词, 却在 chongdian 压住 充电 (464956 vs 403736). 词条留在 dict 供 K-best, 只从 Path-1 隐藏.

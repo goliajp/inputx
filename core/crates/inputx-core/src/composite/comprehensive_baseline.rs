@@ -3674,6 +3674,31 @@ mod tests {
         );
     }
 
+    /// Class D2 polish (user 2026-09-06, polyphone audit §1): "充电这个
+    /// 肯定要改". 重点 is zhòngdiǎn and already leads at `zhongdian`;
+    /// chóngdiǎn is not a word, yet the row outranked 充电 at `chongdian`
+    /// (464956 vs 403736). Same shape as the zhongzai 重载 report.
+    #[test]
+    fn polish_chongdian_hides_zhongdian_reading() {
+        let top10 = mixed_top10("chongdian".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("充电"),
+            "chongdian: expected 充电 at #0; got top10={top10:?}"
+        );
+        assert!(
+            !top10.iter().any(|x| x == "重点"),
+            "chongdian: 重点 is a zhòngdiǎn reading and must not surface; got {top10:?}"
+        );
+        // Buffer-scoped: the correct code keeps the word at #0.
+        let zhong = mixed_top10("zhongdian".as_bytes());
+        assert_eq!(
+            zhong.first().map(String::as_str),
+            Some("重点"),
+            "zhongdian: 重点 must stay at #0; got top10={zhong:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-09-06): "zhongzai 重灾，不应该是
     /// 重载第一，而且这里有问题，多音字 chongzai 才是重载，zhongzai 根本
     /// 不应该出现重载". The everyday sense of 重载 (reload / overload) is
