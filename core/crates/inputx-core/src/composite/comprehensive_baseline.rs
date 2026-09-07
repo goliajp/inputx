@@ -3794,6 +3794,27 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-07): "fanying 反应第一".
+    /// A tier gap, not a freq gap: 反映 is v2 tier 2 (cedict+hsk4) while
+    /// 反应 is tier 3 (cedict+hsk5), so HSK4 membership alone outranked it
+    /// even though 反应 leads on BOTH tiebreakers — v1 library freq
+    /// (37599 > 31707) and modern_freq (24920 > 24907). A single-row
+    /// quickfix (55000 -> tier 1) clears the tier-2 lead; 反映 keeps #1.
+    #[test]
+    fn polish_fanying_order() {
+        let top10 = mixed_top10("fanying".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("反应"),
+            "fanying: expected 反应 at #0; got top10={top10:?}"
+        );
+        let b = top10
+            .iter()
+            .position(|x| x == "反映")
+            .expect("反映 missing from fanying top10");
+        assert!(b > 0, "fanying: expected 反映 below 反应; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-05): "rouchang 肉肠第一" —
     /// 肉偿 is 色情-adjacent and rare in daily writing. Both candidates
     /// score an exact 380000.0 tie; log_prior_q4 100 vs 99 (肉偿 words.tsv
