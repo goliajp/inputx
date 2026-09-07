@@ -5052,6 +5052,40 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-09-07): "chaliang 差量".
+    ///
+    /// `chaliang` returned an EMPTY candidate list — 差量 was absent from
+    /// every surface (v1 library.tsv, v2 words.tsv, modern_vocab_v1), and
+    /// no other word or K-best composition claims that code either, so the
+    /// buffer produced literally nothing. Added to modern_vocab_v1 at
+    /// 15000 → v2 tier 4, the file's band for specialized/technical terms
+    /// (差量法 in chemistry, 差量分析 in accounting) per 生活词 > 专题词.
+    ///
+    /// The invariant pinned here is that the buffer stops being a dead end.
+    ///
+    /// Before: []   After: [差量]
+    #[test]
+    fn polish_chaliang_yields_chaliang() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"chaliang" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("差量"),
+            "chaliang Mixed+JP must lead 差量 (Class A add); got {top10:?}"
+        );
+    }
+
     /// Phase 7d framework rule (same 2026-08-05 report, second half:
     /// "预测逻辑上要做好排序，matching 怎么都应该是有序的"). The v2 prefix
     /// band orders by 字数 first inside a single tier, so a word always
