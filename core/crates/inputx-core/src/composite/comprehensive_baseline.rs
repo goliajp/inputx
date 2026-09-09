@@ -4118,14 +4118,60 @@ mod tests {
             // (牌 = thgf) must beat 2-char phrase encoding (处=th, 于=
             // gf). Phrase 处于 demoted to tier 5 via tier_overlay.
             ("thgf", "牌"),
-            // 2026-09-09 user: "靔是超级低频难检字，不管什么情况都应该
-            // 在高频字后面". Mirror of the thgf case — here the rare
-            // single char loses: 靔 (freq=0 CJK-ext) held #0 at its
-            // full code purely on the single-char-full-code rule, over
-            // 表扬 (表=ge 扬=rn). 靔 demoted to tier 9 via tier_overlay.
-            ("gern", "表扬"),
         ];
         run("wubi_phrase_full", cases, mixed_top, mixed_top10);
+    }
+
+    /// The full-code single-char promote (`gmww → 两` rule) is waived
+    /// when the competing single char has corpus freq 0.
+    ///
+    /// 2026-09-09 user report on `gern`: "靔是超级低频难检字，不管什么
+    /// 情况都应该在高频字后面". Diagnosed 2026-09-10 as a hole in
+    /// `phrase_dominates_at_full_code`: its 25000 phrase floor assumed
+    /// the competing single char is a real character (the 2026-06-10
+    /// case was 公司 42817 vs 鹟 5961), so a freq-0 char claimed the
+    /// full-code address over every phrase below the floor. 1961 four-
+    /// code buffers held that shape; 96% of a 520-buffer probe sample
+    /// had the rare char at #0. Fixed structurally in dispatch.rs by
+    /// waiving the floor when `max_single_auto_freq == 0` — NOT by
+    /// listing entries. These cases pin the resulting behavior.
+    #[test]
+    fn zero_freq_single_char_yields_to_real_phrase_at_full_code() {
+        let cases: &[(&str, &str)] = &[
+            ("gern", "表扬"),     // 靔 0 vs 表扬 22317 — the reported case
+            ("nyxl", "心细"),     // 慉 0 vs 心细 19014
+            ("puqk", "实名"),     // 袧 0 vs 实名 21869
+            ("dyfj", "矿井"),     // 䃴 0 vs 矿井 18227
+            ("qawo", "乌七八糟"), // 䲭 0 vs 乌七八糟 8383
+            ("dddj", "大碍"),     // 㔏 0 vs 大碍 12825
+            ("fcbc", "支取"),     // 叝 0 vs 支取 15665
+            ("rgnx", "看不惯"),   // 屔 0 vs 看不惯 16693
+        ];
+        run("zero_freq_single_yields", cases, mixed_top, mixed_top10);
+    }
+
+    /// Counterpart to the above — the waiver is narrow. A freq-0 single
+    /// char with NO phrase competing for its full code keeps the
+    /// promote, because `max_phrase_freq > max_single_auto_freq` still
+    /// has to hold. Without these cases a future widening of the waiver
+    /// could silently make 10k rare chars unreachable at their own
+    /// full code.
+    #[test]
+    fn zero_freq_single_char_keeps_full_code_when_uncontested() {
+        let cases: &[(&str, &str)] = &[
+            ("qjpd", "迿"),
+            ("uynk", "闙"),
+            ("dceh", "硧"),
+            ("bynn", "阸"),
+            ("hagn", "甗"),
+            ("jlff", "䘃"),
+        ];
+        run(
+            "zero_freq_single_uncontested",
+            cases,
+            mixed_top,
+            mixed_top10,
+        );
     }
 
     /// ASCII fallback positive — pure-garbage 5+ chars must commit
