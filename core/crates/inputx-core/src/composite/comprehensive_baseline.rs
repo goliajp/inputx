@@ -4118,6 +4118,12 @@ mod tests {
             // (牌 = thgf) must beat 2-char phrase encoding (处=th, 于=
             // gf). Phrase 处于 demoted to tier 5 via tier_overlay.
             ("thgf", "牌"),
+            // 2026-09-09 user: "靔是超级低频难检字，不管什么情况都应该
+            // 在高频字后面". Mirror of the thgf case — here the rare
+            // single char loses: 靔 (freq=0 CJK-ext) held #0 at its
+            // full code purely on the single-char-full-code rule, over
+            // 表扬 (表=ge 扬=rn). 靔 demoted to tier 9 via tier_overlay.
+            ("gern", "表扬"),
         ];
         run("wubi_phrase_full", cases, mixed_top, mixed_top10);
     }
