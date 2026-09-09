@@ -296,9 +296,29 @@ pub fn dispatch(
             // ywyg → 谁 35073 (Auto) vs 认证 25690 (Phrase ≥ 25k but
             // < 谁) now ranks 谁 above 认证 because the single is the
             // more popular form despite the phrase being above the floor.
+            // 2026-09-10 follow-up: the 25000 floor assumed the competing
+            // single char is a REAL character (the 2026-06-10 example was
+            // wcng → 公司 42817 vs 鹟 5961 — 鹟 has corpus freq). A char
+            // with corpus freq 0 never entered that premise, yet it still
+            // claimed the full-code address over any phrase below the
+            // floor: gern → 靔 (freq 0) preempted 表扬 (22317). Measured
+            // exposure: 1961 four-code buffers hold a BMP freq-0 single
+            // char against a sub-floor phrase, and 96% of a 520-buffer
+            // probe sample had the rare char at #0 (心细 → 慉, 实名 →
+            // 袧, 矿井 → 䃴, 乌七八糟 → 䲭, ...).
+            //
+            // A character the corpus has never once seen cannot outrank a
+            // word the corpus HAS seen on the strength of "the full code
+            // is its address" alone — so the floor is waived when the
+            // best competing single char is absent from the corpus. This
+            // completes the existing structural guard rather than listing
+            // entries: `max_phrase_freq > max_single_auto_freq` still has
+            // to hold, so a freq-0 char with no phrase competitor, or one
+            // whose phrase peer is equally absent, keeps its promote.
             let phrase_dominates_at_full_code: bool = full_code
-                && max_phrase_freq >= inputx_scoring::consts::WUBI_PHRASE_EXTREME_FREQ_FLOOR
-                && max_phrase_freq > max_single_auto_freq;
+                && max_phrase_freq > max_single_auto_freq
+                && (max_phrase_freq >= inputx_scoring::consts::WUBI_PHRASE_EXTREME_FREQ_FLOOR
+                    || max_single_auto_freq == 0);
             let has_single_char_auto_at_full_code: bool = full_code
                 && !phrase_dominates_at_full_code
                 && freq_layer.iter().any(|(w, layer, _)| {
