@@ -3794,14 +3794,36 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-18): "jiujiu 还是久久 第一吧".
+    /// The `jiujiu 久久 30000` row was retired with the dogfood-0001 batch
+    /// earlier the same day, which let 舅舅 lead on its natural tier; the
+    /// user reviewed the result and wants 久久 back. Row restored as
+    /// user-confirmed.
+    #[test]
+    fn polish_jiujiu_order() {
+        let top10 = mixed_top10("jiujiu".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("久久"),
+            "jiujiu: expected 久久 at #0; got top10={top10:?}"
+        );
+        let b = top10
+            .iter()
+            .position(|x| x == "舅舅")
+            .expect("舅舅 missing from jiujiu top10");
+        assert!(b > 0, "jiujiu: expected 舅舅 below 久久; got {top10:?}");
+    }
+
     /// Polish (user report 2026-09-18): "都处理一下吧" + "这些都是政治味,
     /// 很不舒服". The 2026-06-30 dogfood-0001 batch (8af358bb) tuned
     /// quickfix rows against one 时政 article; each `<code> <word> 30000`
     /// row lifted a 书面/时政 word to tier 1 over the everyday word on its
-    /// natural tier. 17 such rows are retired in quickfix_boost.tsv
+    /// natural tier. 16 such rows are retired in quickfix_boost.tsv
     /// (`# RETIRED-2026-09-18`); this pins the everyday word that leads
     /// once they are gone. `gong` accepts 公 or 工 — a near tie on v1
     /// library freq (47135 / 47886), not something this polish decides.
+    /// `jiujiu` was in this batch too but the user put 久久 back (see
+    /// `polish_jiujiu_order`).
     #[test]
     fn polish_dogfood_0001_retired_rows_daily_word_leads() {
         let cases: &[(&str, &[&str])] = &[
@@ -3815,7 +3837,6 @@ mod tests {
             ("caochang", &["操场"]),
             ("jumu", &["剧目"]),
             ("shige", &["诗歌"]),
-            ("jiujiu", &["舅舅"]),
             ("gong", &["公", "工"]),
             ("gao", &["高"]),
             ("shuai", &["帅"]),
