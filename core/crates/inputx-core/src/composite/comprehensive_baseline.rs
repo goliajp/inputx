@@ -3794,6 +3794,26 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-18): "budai 布袋".
+    /// Same shape as chakan / dingli / duxing: the 2026-06-30 dogfood-0001
+    /// quickfix row (budai 不怠 30000) lifted 不怠 to tier 1 while 布袋 sat
+    /// on its natural tier 4. 布袋 is the everyday word (v1 library 20310;
+    /// 不怠 has no v1 library row). A second row (布袋 33000) tops the pair.
+    #[test]
+    fn polish_budai_order() {
+        let top10 = mixed_top10("budai".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("布袋"),
+            "budai: expected 布袋 at #0; got top10={top10:?}"
+        );
+        let b = top10
+            .iter()
+            .position(|x| x == "不怠")
+            .expect("不怠 missing from budai top10");
+        assert!(b > 0, "budai: expected 不怠 below 布袋; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-18): "duxing 毒性".
     /// Same shape as chakan / dingli: the 2026-06-30 dogfood-0001 quickfix
     /// row (duxing 笃行 30000) lifted 笃行 to tier 1 while 毒性 sat on its
