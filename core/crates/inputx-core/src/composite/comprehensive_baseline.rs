@@ -3794,6 +3794,26 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-18): "duxing 毒性".
+    /// Same shape as chakan / dingli: the 2026-06-30 dogfood-0001 quickfix
+    /// row (duxing 笃行 30000) lifted 笃行 to tier 1 while 毒性 sat on its
+    /// natural tier 4, although 毒性 leads on v1 library freq
+    /// (21468 > 14876). A second row (毒性 33000) tops the pair.
+    #[test]
+    fn polish_duxing_order() {
+        let top10 = mixed_top10("duxing".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("毒性"),
+            "duxing: expected 毒性 at #0; got top10={top10:?}"
+        );
+        let b = top10
+            .iter()
+            .position(|x| x == "笃行")
+            .expect("笃行 missing from duxing top10");
+        assert!(b > 0, "duxing: expected 笃行 below 毒性; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-18): "dingli 定理".
     /// Same shape as chakan: the 2026-06-30 dogfood-0001 quickfix row
     /// (dingli 定力 30000) lifted 定力 to tier 1 while 定理 sat on its
