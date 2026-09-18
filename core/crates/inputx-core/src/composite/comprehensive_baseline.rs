@@ -3794,11 +3794,49 @@ mod tests {
         );
     }
 
+    /// Polish (user report 2026-09-18): "都处理一下吧" + "这些都是政治味,
+    /// 很不舒服". The 2026-06-30 dogfood-0001 batch (8af358bb) tuned
+    /// quickfix rows against one 时政 article; each `<code> <word> 30000`
+    /// row lifted a 书面/时政 word to tier 1 over the everyday word on its
+    /// natural tier. 17 such rows are retired in quickfix_boost.tsv
+    /// (`# RETIRED-2026-09-18`); this pins the everyday word that leads
+    /// once they are gone. `gong` accepts 公 or 工 — a near tie on v1
+    /// library freq (47135 / 47886), not something this polish decides.
+    #[test]
+    fn polish_dogfood_0001_retired_rows_daily_word_leads() {
+        let cases: &[(&str, &[&str])] = &[
+            ("daji", &["打击"]),
+            ("buru", &["不如"]),
+            ("zaixian", &["在线"]),
+            ("zaojiu", &["早就"]),
+            ("tujing", &["途径"]),
+            ("fangyan", &["方言"]),
+            ("jinyu", &["金鱼"]),
+            ("caochang", &["操场"]),
+            ("jumu", &["剧目"]),
+            ("shige", &["诗歌"]),
+            ("jiujiu", &["舅舅"]),
+            ("gong", &["公", "工"]),
+            ("gao", &["高"]),
+            ("shuai", &["帅"]),
+        ];
+        for (buffer, leaders) in cases {
+            let top10 = mixed_top10(buffer.as_bytes());
+            let first = top10.first().map(String::as_str);
+            assert!(
+                first.is_some_and(|w| leaders.contains(&w)),
+                "{buffer}: expected one of {leaders:?} at #0; got top10={top10:?}"
+            );
+        }
+    }
+
     /// Class B polish (user report 2026-09-18): "budai 布袋".
     /// Same shape as chakan / dingli / duxing: the 2026-06-30 dogfood-0001
     /// quickfix row (budai 不怠 30000) lifted 不怠 to tier 1 while 布袋 sat
     /// on its natural tier 4. 布袋 is the everyday word (v1 library 20310;
     /// 不怠 has no v1 library row). A second row (布袋 33000) tops the pair.
+    /// The 不怠 row itself was retired later the same day (see
+    /// `polish_dogfood_0001_retired_rows_daily_word_leads`).
     #[test]
     fn polish_budai_order() {
         let top10 = mixed_top10("budai".as_bytes());
@@ -3819,6 +3857,8 @@ mod tests {
     /// row (duxing 笃行 30000) lifted 笃行 to tier 1 while 毒性 sat on its
     /// natural tier 4, although 毒性 leads on v1 library freq
     /// (21468 > 14876). A second row (毒性 33000) tops the pair.
+    /// The 笃行 row itself was retired later the same day (see
+    /// `polish_dogfood_0001_retired_rows_daily_word_leads`).
     #[test]
     fn polish_duxing_order() {
         let top10 = mixed_top10("duxing".as_bytes());
@@ -3838,8 +3878,10 @@ mod tests {
     /// Same shape as chakan: the 2026-06-30 dogfood-0001 quickfix row
     /// (dingli 定力 30000) lifted 定力 to tier 1 while 定理 sat on its
     /// natural tier 4, although 定理 leads on v1 library freq
-    /// (24538 > 22190). A second row (定理 33000) tops the pair; 定力
-    /// keeps #1, matching v1 library order.
+    /// (24538 > 22190). A second row (定理 33000) tops the pair. The 定力
+    /// row itself was retired later the same day (see
+    /// `polish_dogfood_0001_retired_rows_daily_word_leads`); 定理 still
+    /// needs its row because 订立 edges it out on the natural tier.
     #[test]
     fn polish_dingli_order() {
         let top10 = mixed_top10("dingli".as_bytes());
