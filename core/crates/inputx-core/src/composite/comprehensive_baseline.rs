@@ -3794,6 +3794,27 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-18): "dingli 定理".
+    /// Same shape as chakan: the 2026-06-30 dogfood-0001 quickfix row
+    /// (dingli 定力 30000) lifted 定力 to tier 1 while 定理 sat on its
+    /// natural tier 4, although 定理 leads on v1 library freq
+    /// (24538 > 22190). A second row (定理 33000) tops the pair; 定力
+    /// keeps #1, matching v1 library order.
+    #[test]
+    fn polish_dingli_order() {
+        let top10 = mixed_top10("dingli".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("定理"),
+            "dingli: expected 定理 at #0; got top10={top10:?}"
+        );
+        let b = top10
+            .iter()
+            .position(|x| x == "定力")
+            .expect("定力 missing from dingli top10");
+        assert!(b > 0, "dingli: expected 定力 below 定理; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-18): "chakan 查看 第一".
     /// 察看 led only because the 2026-06-30 dogfood-0001 quickfix row
     /// (chakan 察看 30000) lifted it to tier 1 while 查看 sat on its natural
