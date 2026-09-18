@@ -3794,6 +3794,35 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-18): "chakan 查看 第一".
+    /// 察看 led only because the 2026-06-30 dogfood-0001 quickfix row
+    /// (chakan 察看 30000) lifted it to tier 1 while 查看 sat on its natural
+    /// tier 4. 查看 is the everyday word — it leads even in the zhwiki
+    /// dogfood segments (查看 21 / 察看 14 / 查勘 1) and on v1 library freq
+    /// (29518 > 21080). A second row (查看 33000) tops the pair; the 察看
+    /// row stays so 察看 keeps outranking 查勘.
+    #[test]
+    fn polish_chakan_order() {
+        let top10 = mixed_top10("chakan".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("查看"),
+            "chakan: expected 查看 at #0; got top10={top10:?}"
+        );
+        let observe = top10
+            .iter()
+            .position(|x| x == "察看")
+            .expect("察看 missing from chakan top10");
+        let survey = top10
+            .iter()
+            .position(|x| x == "查勘")
+            .expect("查勘 missing from chakan top10");
+        assert!(
+            observe < survey,
+            "chakan: expected 察看 above 查勘; got {top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-07): "fanying 反应第一".
     /// A tier gap, not a freq gap: 反映 is v2 tier 2 (cedict+hsk4) while
     /// 反应 is tier 3 (cedict+hsk5), so HSK4 membership alone outranked it
