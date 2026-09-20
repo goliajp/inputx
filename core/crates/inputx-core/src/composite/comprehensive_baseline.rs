@@ -3851,6 +3851,28 @@ mod tests {
         }
     }
 
+    /// Class B polish (user report 2026-09-20): "jieyi 介意第一".
+    /// Unlike chakan / dingli / duxing / budai there was no prior quickfix
+    /// row here: both words sit on the same natural tier 4 (cedict-only,
+    /// v2 words.tsv freq 4 each), so modern_freq alone decided the order
+    /// and 借以 24184 edged 介意 23292. 借以 stays in the dict (it is a real
+    /// written-register connective); 介意 is the everyday word and leads on
+    /// v1 library freq (34150 > 11474).
+    #[test]
+    fn polish_jieyi_order() {
+        let top10 = mixed_top10("jieyi".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("介意"),
+            "jieyi: expected 介意 at #0; got top10={top10:?}"
+        );
+        let j = top10
+            .iter()
+            .position(|x| x == "借以")
+            .expect("借以 missing from jieyi top10");
+        assert!(j > 0, "jieyi: expected 借以 below 介意; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-18): "budai 布袋".
     /// Same shape as chakan / dingli / duxing: the 2026-06-30 dogfood-0001
     /// quickfix row (budai 不怠 30000) lifted 不怠 to tier 1 while 布袋 sat
