@@ -3851,6 +3851,27 @@ mod tests {
         }
     }
 
+    /// Class B polish (user report 2026-09-20): "fangjia 放假第一".
+    /// Same shape as jieyi: no prior quickfix row, all four words on the
+    /// same natural tier 4 (cedict-only, v2 words.tsv freq 4 each), so
+    /// modern_freq alone decided the order and 房价 24279 edged 放假 23246.
+    /// zhwiki real-estate coverage inflates 房价; 放假 is the everyday word
+    /// and leads on v1 library freq (36469 > 15570).
+    #[test]
+    fn polish_fangjia_order() {
+        let top10 = mixed_top10("fangjia".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("放假"),
+            "fangjia: expected 放假 at #0; got top10={top10:?}"
+        );
+        let f = top10
+            .iter()
+            .position(|x| x == "房价")
+            .expect("房价 missing from fangjia top10");
+        assert!(f > 0, "fangjia: expected 房价 below 放假; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-20): "jieyi 介意第一".
     /// Unlike chakan / dingli / duxing / budai there was no prior quickfix
     /// row here: both words sit on the same natural tier 4 (cedict-only,
