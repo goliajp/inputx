@@ -5321,6 +5321,36 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-09-22): "baba 粑粑要加入，放第二吧".
+    ///
+    /// 粑粑 lived only in v1 library.tsv (25146), which the default v2 engine
+    /// does not read. Added to modern_vocab_v1 at 30000 → v2 tier 3: below
+    /// 爸爸 (tier 1, cedict+hsk1) and above 巴巴 (tier 4). A tier-4 value
+    /// (its own 25146) would have scored 380000 and landed under 巴巴.
+    ///
+    /// Before: [爸爸, 巴巴, 把拔, ...]   After: [爸爸, 粑粑, 巴巴, ...]
+    #[test]
+    fn polish_baba_baba_poop_second() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"baba" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top10.get(..2),
+            Some(&["爸爸".to_owned(), "粑粑".to_owned()][..]),
+            "baba Mixed+JP must be [爸爸, 粑粑, ...]; got {top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-09-22): "chachong 茶宠".
     ///
     /// `chachong` returned an EMPTY candidate list — 茶宠 lived only in v1
