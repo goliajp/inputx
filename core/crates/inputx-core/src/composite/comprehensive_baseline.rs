@@ -5321,6 +5321,37 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-09-22): "jianxixi 贱兮兮".
+    ///
+    /// `jianxixi` returned only Japanese kana fallbacks — 贱兮兮 was absent
+    /// from every surface (v1 library.tsv, v2 words.tsv, modern_vocab_v1).
+    /// Its siblings 惨兮兮 / 脏兮兮 / 可怜兮兮 are all present (v1 library
+    /// 15927-17028). Added to modern_vocab_v1 at 15000 → v2 tier 4, the same
+    /// colloquial band as 遭不住.
+    ///
+    /// Before: [ジアンィィ, じあんぃぃ]   After: [贱兮兮, ジアンィィ, じあんぃぃ]
+    #[test]
+    fn polish_jianxixi_yields_jianxixi() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"jianxixi" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("贱兮兮"),
+            "jianxixi Mixed+JP must lead 贱兮兮 (Class A add); got {top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-09-07): "chaliang 差量".
     ///
     /// `chaliang` returned an EMPTY candidate list — 差量 was absent from
