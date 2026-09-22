@@ -5321,6 +5321,37 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-09-22): "chachong 茶宠".
+    ///
+    /// `chachong` returned an EMPTY candidate list — 茶宠 lived only in v1
+    /// library.tsv (9392), which the default v2 engine does not read, and
+    /// the other v1 row (查重) is blocked by the garbage filter. Added to
+    /// modern_vocab_v1 at 9392 (its own v1 library freq) → v2 tier 5, a
+    /// niche tea-culture noun.
+    ///
+    /// Before: []   After: [茶宠]
+    #[test]
+    fn polish_chachong_yields_chachong() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"chachong" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("茶宠"),
+            "chachong Mixed+JP must lead 茶宠 (Class A add); got {top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-09-22): "jianxixi 贱兮兮".
     ///
     /// `jianxixi` returned only Japanese kana fallbacks — 贱兮兮 was absent
