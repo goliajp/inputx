@@ -4180,6 +4180,27 @@ mod tests {
         );
     }
 
+    /// Class C polish (user report 2026-09-23): "fada 发达第一，去芜存菁
+    /// 虽然是五笔但比发达还是差了不少". Same shape as wugu: the wubi
+    /// 4-code phrase 去芜存菁 led at #0 through 五笔 dispatch even though
+    /// its score (200000) is far below 发达 (434887), because the engine
+    /// order puts wubi ahead of pinyin at equal tier. tier_overlay
+    /// 去芜存菁 → tier 5 puts 发达 back on top; the phrase stays typeable.
+    #[test]
+    fn polish_fada_order() {
+        let top10 = mixed_top10("fada".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("发达"),
+            "fada: expected 发达 at #0; got top10={top10:?}"
+        );
+        let q = top10
+            .iter()
+            .position(|x| x == "去芜存菁")
+            .expect("去芜存菁 missing from fada top10");
+        assert!(q > 0, "fada: expected 去芜存菁 below 发达; got {top10:?}");
+    }
+
     /// Class C polish (user report 2026-07-06): "wugu 假痴不癫 肯定要放
     /// 很后面，T 级低, 无辜 > 五谷 > 无故 > 巫蛊 > 假痴不癫". Wubi
     /// 3-jianma 假痴不癫 was leading at #0 via 五笔 dispatch. tier_overlay
