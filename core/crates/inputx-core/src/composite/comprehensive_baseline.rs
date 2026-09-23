@@ -5440,6 +5440,37 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-09-23): "qigua 起卦".
+    ///
+    /// The `qigua` code had NO exact entry on any surface — the whole
+    /// candidate list was fuzzy neighbours from qiguai / qiguan
+    /// (奇怪 / 器官 / 奇观 …, the 250000-down band). Added to
+    /// modern_vocab_v1 at 13000 → v2 tier 5, calibrated on its divination
+    /// peers in v1 library (六爻 13000, 卦象 12645, 算卦 16151).
+    ///
+    /// Before: [奇怪 250000, 器官 249000, ...]   After: [起卦 350000]
+    #[test]
+    fn polish_qigua_yields_qigua() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"qigua" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("起卦"),
+            "qigua Mixed+JP must lead 起卦 (Class A add); got {top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-09-23): "chue 除厄".
     ///
     /// 除厄 was absent from every surface, and the only v1 row at this code
