@@ -3851,6 +3851,27 @@ mod tests {
         }
     }
 
+    /// Class B polish (user report 2026-09-23): "yinyuan 姻缘第一".
+    /// 音源 led at 413385 through its modern_vocab_v1 row (30000 → v2
+    /// tier 3) while 姻缘 sat on its natural tier 4 (402805); 银元 (403704)
+    /// also edged it there, so retiring the 音源 row alone would not have
+    /// been enough. 姻缘 leads on v1 library freq (22859 > 音源 18111 >
+    /// 银元 17729).
+    #[test]
+    fn polish_yinyuan_order() {
+        let top10 = mixed_top10("yinyuan".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("姻缘"),
+            "yinyuan: expected 姻缘 at #0; got top10={top10:?}"
+        );
+        let y = top10
+            .iter()
+            .position(|x| x == "音源")
+            .expect("音源 missing from yinyuan top10");
+        assert!(y > 0, "yinyuan: expected 音源 below 姻缘; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-20): "fangjia 放假第一".
     /// Same shape as jieyi: no prior quickfix row, all four words on the
     /// same natural tier 4 (cedict-only, v2 words.tsv freq 4 each), so
