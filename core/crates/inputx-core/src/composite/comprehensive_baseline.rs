@@ -4201,6 +4201,28 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-23): "tidu 梯度第一".
+    /// A modern_vocab_v1 row (tidu 梯度 45000 → tier 3) was already there
+    /// but DORMANT: 梯度 also sits in v2 words.tsv as cedict tier 4, and
+    /// `build_words` skips a modern_vocab entry whose (code, word) already
+    /// exists, so the lift never applied and 提督 led on modern_freq alone
+    /// (24076 > 23638). Same dedup trap as weibo 微博 — unstuck with a
+    /// direct tier_overlay to tier 3.
+    #[test]
+    fn polish_tidu_order() {
+        let top10 = mixed_top10("tidu".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("梯度"),
+            "tidu: expected 梯度 at #0; got top10={top10:?}"
+        );
+        let t = top10
+            .iter()
+            .position(|x| x == "提督")
+            .expect("提督 missing from tidu top10");
+        assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
+    }
+
     /// Class C polish (user report 2026-09-23): "didi 弟弟 也同理要高于
     /// 石沉大海". Same wx>px preemption as fada, but with two wubi phrases
     /// at this code: 耕耘 led at #0 (210389) and 石沉大海 sat at #1
