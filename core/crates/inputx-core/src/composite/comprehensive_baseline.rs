@@ -4180,6 +4180,31 @@ mod tests {
         );
     }
 
+    /// Class C polish (user report 2026-09-23): "didi 弟弟 也同理要高于
+    /// 石沉大海". Same wx>px preemption as fada, but with two wubi phrases
+    /// at this code: 耕耘 led at #0 (210389) and 石沉大海 sat at #1
+    /// (206536), both ahead of 弟弟 (494655). The user named 石沉大海;
+    /// 耕耘 is demoted with it because leaving it would keep 弟弟 off #0.
+    #[test]
+    fn polish_didi_order() {
+        let top10 = mixed_top10("didi".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("弟弟"),
+            "didi: expected 弟弟 at #0; got top10={top10:?}"
+        );
+        let pos = |w: &str| {
+            top10
+                .iter()
+                .position(|x| x == w)
+                .unwrap_or_else(|| panic!("{w} missing from didi top10; got {top10:?}"))
+        };
+        assert!(
+            pos("石沉大海") > 0 && pos("耕耘") > 0,
+            "didi: expected both wubi phrases below 弟弟; got {top10:?}"
+        );
+    }
+
     /// Class C polish (user report 2026-09-23): "fada 发达第一，去芜存菁
     /// 虽然是五笔但比发达还是差了不少". Same shape as wugu: the wubi
     /// 4-code phrase 去芜存菁 led at #0 through 五笔 dispatch even though
