@@ -5418,6 +5418,36 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-09-23): "chue 除厄".
+    ///
+    /// 除厄 was absent from every surface, and the only v1 row at this code
+    /// (除恶 14992) never reached v2 either, so `chue` returned nothing but
+    /// Japanese kana and fuzzy neighbours (初二 / 雏儿 at 250000). Added to
+    /// modern_vocab_v1 at 15000 → v2 tier 4, calibrated on that 除恶 row.
+    ///
+    /// Before: [ちゅえ, チュエ, 初二, 雏儿, ...]   After: [除厄, ちゅえ, チュエ]
+    #[test]
+    fn polish_chue_yields_chue() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"chue" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("除厄"),
+            "chue Mixed+JP must lead 除厄 (Class A add); got {top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-09-22): "chachong 茶宠".
     ///
     /// `chachong` returned an EMPTY candidate list — 茶宠 lived only in v1
