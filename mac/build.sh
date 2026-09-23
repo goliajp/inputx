@@ -31,10 +31,17 @@ lipo -create \
 # which we can't link against. Per-arch builds + manual lipo give us a
 # static archive we can `-lInputxKit` from the IMK glue compile.
 echo "[build] InputxKit (release, per-arch)"
-(cd "$APPLE_PKG" && swift build --arch arm64  --configuration release)
-(cd "$APPLE_PKG" && swift build --arch x86_64 --configuration release)
-SWIFTKIT_ARM64_DIR="$(cd "$APPLE_PKG" && swift build --arch arm64  --configuration release --show-bin-path)"
-SWIFTKIT_X86_DIR="$(cd "$APPLE_PKG" && swift build --arch x86_64 --configuration release --show-bin-path)"
+# Each arch needs its OWN scratch path: since Swift 6.4's build system
+# every `--arch` writes to the same `.build/out/Products/Release`, so a
+# shared scratch dir makes the second build overwrite the first and the
+# lipo below gets the same x86_64 archive twice ("lipo: same
+# architectures found in A and A").
+SWIFTKIT_ARM64_SCRATCH="$APPLE_PKG/.build-arm64"
+SWIFTKIT_X86_SCRATCH="$APPLE_PKG/.build-x86_64"
+(cd "$APPLE_PKG" && swift build --arch arm64  --configuration release --scratch-path "$SWIFTKIT_ARM64_SCRATCH")
+(cd "$APPLE_PKG" && swift build --arch x86_64 --configuration release --scratch-path "$SWIFTKIT_X86_SCRATCH")
+SWIFTKIT_ARM64_DIR="$(cd "$APPLE_PKG" && swift build --arch arm64  --configuration release --scratch-path "$SWIFTKIT_ARM64_SCRATCH" --show-bin-path)"
+SWIFTKIT_X86_DIR="$(cd "$APPLE_PKG" && swift build --arch x86_64 --configuration release --scratch-path "$SWIFTKIT_X86_SCRATCH" --show-bin-path)"
 SWIFTKIT_UNIVERSAL_DIR="$BUILD_DIR/swiftkit-universal"
 mkdir -p "$SWIFTKIT_UNIVERSAL_DIR"
 lipo -create \
@@ -58,7 +65,10 @@ SWIFT_SOURCES=(
     Sources/PerfTimer.swift
 )
 # swiftc refuses cross-arch .swiftmodule loads, so compile each arch
-# against the matching-arch SPM bin-path's Modules/ directory.
+# against the matching-arch SPM bin-path. Swift 6.4 drops the module
+# straight into the bin path (`Release/InputxKit.swiftmodule`); older
+# toolchains put it under `Release/Modules/`. Both are on the search
+# path so either layout resolves.
 for ARCH_PAIR in "arm64:$SWIFTKIT_ARM64_DIR" "x86_64:$SWIFTKIT_X86_DIR"; do
     ARCH="${ARCH_PAIR%%:*}"
     SWIFTKIT_DIR="${ARCH_PAIR#*:}"
@@ -66,6 +76,7 @@ for ARCH_PAIR in "arm64:$SWIFTKIT_ARM64_DIR" "x86_64:$SWIFTKIT_X86_DIR"; do
         -target "${ARCH}-apple-macos13.0" \
         -framework Cocoa \
         -framework InputMethodKit \
+        -I "$SWIFTKIT_DIR" \
         -I "$SWIFTKIT_DIR/Modules" \
         -I "$APPLE_PKG/Sources/InputxCoreC" \
         -L "$SWIFTKIT_DIR" -lInputxKit \
