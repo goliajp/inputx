@@ -59,3 +59,4 @@ jianlou	检漏	5	# user 2026-08-02: "检漏好像不是词?" — real but techni
 fada	去芜存菁	5	# user 2026-09-23: fada 发达第一; wubi 4-code phrase preempted the pinyin top (发达 434887 vs its own 200000) per the wx>px engine order. Same shape as wugu 假痴不癫. Demote to less_common.
 didi	耕耘	5	# user 2026-09-23: didi 弟弟 也同理要高于石沉大海; same wx>px preemption as fada 去芜存菁. 耕耘 led at #0 (210389) over 弟弟 494655 — demoted with 石沉大海 so the pinyin top leads.
 didi	石沉大海	5	# user 2026-09-23: didi 弟弟 要高于石沉大海; wubi 4-code phrase preempted 弟弟 via the wx>px engine order. Demote to less_common.
+tidu	梯度	3	# user 2026-09-23: tidu 梯度第一. modern_vocab_v1:498 already asks for 45000 (-> tier 3) but that row is DORMANT: 梯度 is in v2 words.tsv (line 40503, cedict tier 4) and build_words skips a modern_vocab entry whose (code, word) already exists, so the lift never applied and 提督 led on modern_freq (24076 > 23638). Same dedup trap as weibo 微博. Direct tier override to tier 3, matching the dormant row intent.
