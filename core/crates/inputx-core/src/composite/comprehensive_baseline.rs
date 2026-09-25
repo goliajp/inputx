@@ -4223,6 +4223,26 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class A polish (user report 2026-09-25): "jingyi 经意，放最后吧".
+    /// 经意 was absent from every v2 surface (words.tsv had 惊异 / 惊疑 /
+    /// 敬意 / 精义, all tier 4). Added to modern_vocab_v1 at 13000 → v2
+    /// tier 5, which sorts below every tier-4 peer, so it lands last.
+    #[test]
+    fn polish_jingyi_jingyi_last() {
+        let top10 = mixed_top10("jingyi".as_bytes());
+        let pos = top10
+            .iter()
+            .position(|x| x == "经意")
+            .expect("经意 missing from jingyi top10");
+        for peer in ["惊异", "惊疑", "敬意", "精义"] {
+            let p = top10
+                .iter()
+                .position(|x| x == peer)
+                .unwrap_or_else(|| panic!("{peer} missing from jingyi top10: {top10:?}"));
+            assert!(p < pos, "jingyi: expected {peer} above 经意; got {top10:?}");
+        }
+    }
+
     /// Class B polish (user report 2026-09-25): "yuebing 月饼".
     /// Both words sat on natural tier 4 and modern_freq put 阅兵 (403259)
     /// ahead of 月饼 (402698). Single-row quickfix lifts 月饼 to tier 1.
