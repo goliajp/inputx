@@ -129,7 +129,7 @@ pub fn count() -> usize {
 /// Going further would be wasted work.
 ///
 /// Used by the composite Mixed-mode pinyin dispatch (cf.
-/// `docs/PLAN-syllable-aware-pinyin.md`) to detect "the user already
+/// `.claude/docs-archive/docs/PLAN-syllable-aware-pinyin.md`) to detect "the user already
 /// committed to a clean syllable" — gates the initials-fallback typo
 /// rescue away from buffers like `shehv` / `shehb` / `xianv` where
 /// the leading 3+ chars are a clean syllable and the trailing chars
@@ -248,7 +248,7 @@ mod tests {
     // 音节意识细化 (2026-06-06): greedy left-to-right syllable
     // prefix lookup used by the Mixed-mode dispatch to gate the
     // initials-fallback typo rescue. See
-    // docs/PLAN-syllable-aware-pinyin.md.
+    // .claude/docs-archive/docs/PLAN-syllable-aware-pinyin.md.
     #[test]
     fn longest_valid_syllable_prefix_basics() {
         assert_eq!(longest_valid_syllable_prefix(""), None);

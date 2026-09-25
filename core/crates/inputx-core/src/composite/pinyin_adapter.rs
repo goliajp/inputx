@@ -67,7 +67,7 @@ use crate::rules::{Context, ContextFlags};
 //                 after-commit panel.
 //
 // Per-behavior detail + concrete examples in
-// `docs/pinyin-pipeline-gates.md`.
+// `.claude/docs-archive/docs/pinyin-pipeline-gates.md`.
 //
 // Initial state: all TRUE — only literal-syllable lookup +
 // FST prefix completion + rare-CJK display filter survive.  This
@@ -1139,7 +1139,7 @@ impl PinyinAdapter {
     ///     valid syllable prefix (if it does, the user committed
     ///     to that syllable and the trailing chars are mid-typing
     ///     junk — handled by Path 3b trim-retry instead, see
-    ///     `docs/PLAN-syllable-aware-pinyin.md`)
+    ///     `.claude/docs-archive/docs/PLAN-syllable-aware-pinyin.md`)
     ///   - prefix-up-to-first-vowel is exactly 2 consonants
     ///   - suffix length ≥ 2 (so the gate looks typo-shaped, not
     ///     just a 2-letter input)
@@ -1220,7 +1220,7 @@ impl PinyinAdapter {
     /// `is_pure_garbage` (which won't wipe such buffers).
     ///
     /// 3-char threshold rationale in
-    /// `docs/PLAN-syllable-aware-pinyin.md` §3: 2-char syllables
+    /// `.claude/docs-archive/docs/PLAN-syllable-aware-pinyin.md` §3: 2-char syllables
     /// (he/ma/...) overlap with English-word starts, false positives
     /// like `hello → he+llo`; 3+ char syllables are unambiguously
     /// Chinese-shape.
@@ -2181,7 +2181,7 @@ impl PinyinAdapter {
         //   `shehv` → trim `v` → `sheh` (prefix_exists ✓) → push 50
         //     cands (社会 / 奢华 / 设好 / 射核 / …).
         //
-        // Spec: docs/PLAN-syllable-aware-pinyin.md §5.3. Placement
+        // Spec: .claude/docs-archive/docs/PLAN-syllable-aware-pinyin.md §5.3. Placement
         // AFTER Path 5 (not after Path 3 as the spec's first draft
         // proposed) ensures Path 3b doesn't pre-empt the Viterbi
         // compose path (kaopu→靠谱, woyao→我要, taikexi→太可惜).

@@ -8,7 +8,7 @@ the OPUS endpoint on every run (cached locally).
 OpenSubtitles is colloquial dialog text — the freq distribution
 matches the *casual conversational* register that IME users actually
 type, complementing Wikipedia's formal-prose bias. The v1.9.0 audit
-(see `docs/v1.9.0-vNEXT-audit.md`) flagged wiki as freq-mismatched
+(see `.claude/docs-archive/docs/v1.9.0-vNEXT-audit.md`) flagged wiki as freq-mismatched
 to IME usage; OpenSubtitles is the v1.9.0 WU-π.b corpus pivot.
 
 Outputs: `output/zh-opensubtitles/<date>.tsv`, format:

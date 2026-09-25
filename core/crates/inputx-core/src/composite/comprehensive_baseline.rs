@@ -894,7 +894,7 @@ mod tests {
             // noise rows from library.tsv (jieba reduplication artefacts +
             // name nicknames), preserved only 翻番(double) and 泛泛
             // (superficial) — the two real fanfan words. 翻番 leads as the
-            // higher-freq true compound. See docs/pinyin-AA-redup-sweep-
+            // higher-freq true compound. See .claude/docs-archive/docs/pinyin-AA-redup-sweep-
             // 2026-06-21/ for the broader 1566-entry sweep plan.
             ("fanfan", "翻番"),
             // Polish-log 2026-06-26: "xuxian 虚线 续弦 都要在许仙前面".
@@ -1063,7 +1063,7 @@ mod tests {
     /// readings backfilled from KANJIDIC2 (round-trip-verified via the
     /// engine's romaji table).  This pins the invariant: each char is
     /// reachable in Japanese at its reading.  See
-    /// docs/wubi-jp-shinjitai-sweep-2026-06-08/.
+    /// .claude/docs-archive/docs/wubi-jp-shinjitai-sweep-2026-06-08/.
     #[test]
     fn jp_shinjitai_typeable_after_sweep() {
         // (reading, kanji_that_must_be_in_japanese_candidates)
@@ -1156,7 +1156,7 @@ mod tests {
     /// (1225 + 841 chars; nihongo single-kanji coverage was ~43%). Flat
     /// freq=10 keeps them reachable but always below corpus-attested
     /// words (guards the akashi→明石 case in phase_g). Audit:
-    /// docs/nihongo-kanji-backfill-2026-06-09/. Pins reachability of
+    /// .claude/docs-archive/docs/nihongo-kanji-backfill-2026-06-09/. Pins reachability of
     /// representative previously-missing common chars by their reading.
     #[test]
     fn polish_jouyou_backfill_reachable() {
@@ -2275,7 +2275,7 @@ mod tests {
     /// 入库"): all 36,674 v1 four-hanzi words missing from v2 were
     /// judged per-row; 4,697 proposals, 4,668 accepted after lead
     /// per-row review (29 rejected: misspellings / variant glyphs /
-    /// bad-pinyin codes). See docs/pinyin-v2-chengyu-2026-07-14/.
+    /// bad-pinyin codes). See .claude/docs-archive/docs/pinyin-v2-chengyu-2026-07-14/.
     #[test]
     fn v2_chengyu_backfill_representatives() {
         for (buf, expect) in [
@@ -2303,7 +2303,7 @@ mod tests {
     /// Garbage-filter recall sweep (user directive 2026-07-13, applied
     /// 2026-07-14): per-row LLM re-review of all 17,800 audit-P1/P2
     /// filter rows; 691 false positives recalled (see
-    /// docs/pinyin-gf-recall-2026-07-14/). Representatives pinned:
+    /// .claude/docs-archive/docs/pinyin-gf-recall-2026-07-14/). Representatives pinned:
     /// lib>0 double-kill victims (木村/出去玩), lib=0 re-adds
     /// (咋整/并没有), and the ambiguous-segmentation guard — 立案
     /// resurfaced by the recall must stay BELOW 脸/连 (tier_overlay 5
@@ -5784,7 +5784,7 @@ mod tests {
     /// 要打开繁体模式才能有" → "你系统解决吧".  Sweep removed every
     /// (code, trad_word) from wubi library.tsv where opencc t2s(word)
     /// differs AND the same code already has a simplified peer (1164
-    /// entries; see docs/wubi-trad-sweep-2026-06-06/).  Orphan TRAD
+    /// entries; see .claude/docs-archive/docs/wubi-trad-sweep-2026-06-06/).  Orphan TRAD
     /// entries (no same-code simp peer, ~2953) stay until the 繁体-mode
     /// toggle ships — deleting them would silently break wubi lookup
     /// for those chars.  This test seeds the regression invariant: 詞
@@ -5801,7 +5801,7 @@ mod tests {
             ("kmu", &["員"]),
             // 2026-06-09 systemic jianma_simplified TRAD/Shinjitai sweep
             // (90 dup deletes + 68 trad→simp rewrites; see
-            // docs/jianma-simplified-trad-sweep-2026-06-09/). Representative
+            // .claude/docs-archive/docs/jianma-simplified-trad-sweep-2026-06-09/). Representative
             // rewritten simcodes — the TRAD form must no longer surface.
             ("deu", &["長"]), // → 长
             ("lmu", &["買"]), // → 买
@@ -5839,7 +5839,7 @@ mod tests {
     /// opencc's over-reach (欠→缺, 予→豫, 芸→艺, 糸→丝 …) is protected.
     /// 217 chars stripped from auto_decomp.txt + 218 overlay rows from
     /// wubi library.tsv, all logged to corpus_garbage_filter_v1.tsv.
-    /// See docs/wubi-jp-shinjitai-sweep-2026-06-08/.  Invariant: the
+    /// See .claude/docs-archive/docs/wubi-jp-shinjitai-sweep-2026-06-08/.  Invariant: the
     /// Shinjitai form cannot resurface at its wubi code; the Simplified
     /// peer leads instead.
     #[test]
@@ -6522,7 +6522,7 @@ mod tests {
         }
     }
 
-    /// 音节意识细化 (2026-06-06, docs/PLAN-syllable-aware-pinyin.md):
+    /// 音节意识细化 (2026-06-06, .claude/docs-archive/docs/PLAN-syllable-aware-pinyin.md):
     /// buffers with a clean ≥3-char syllable prefix + invalid trailing
     /// char should route to Path 3b trim-retry, producing the same
     /// candidate top-1 as the trimmed buffer (= as if the trailing

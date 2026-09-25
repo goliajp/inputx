@@ -13,7 +13,7 @@
 - Exact-common-word tier repair — common words rank above JP kana.
 - Polish overlay TSVs are hot-reloadable via `ArcSwap`; within-tier ordering moved onto the Q4 axis.
 - **Manual segment mode** (拼音手动分段) — engine + FFI + IME wiring.
-- All four `PINYIN_DISABLE_*` gates in `pinyin_adapter.rs` were flipped ON during Phase 1 (CP-1.1…CP-1.4) and then **deliberately flipped back OFF** on 2026-06-28, returning the pipeline to literal-only. Empty results for the paused families are intentional. See `docs/pinyin-pipeline-gates.md`.
+- All four `PINYIN_DISABLE_*` gates in `pinyin_adapter.rs` were flipped ON during Phase 1 (CP-1.1…CP-1.4) and then **deliberately flipped back OFF** on 2026-06-28, returning the pipeline to literal-only. Empty results for the paused families are intentional.
 
 ### Ranking framework
 
@@ -34,7 +34,7 @@ Net direction was **removal**, not growth:
 - Seven strict audit rounds against obscure historical / seiyuu / footballer / redundant-compound entries; three "strictify" passes against verb-phrase and function+content artifacts.
 - v2 backfill from v1 corpus: 15,081 non-idiom words + 4,668 成语, each row reviewed individually (no whitelist heuristics).
 - A dedicated in-browser audit console (`audit.html`, 15 phases, per-row suggestions).
-- 224 `/polish` commits and ~950 dogfood-strict commits from a 1000-article zhwiki pass (`docs/pinyin-dogfood-2026-06-30/`).
+- 224 `/polish` commits and ~950 dogfood-strict commits from a 1000-article zhwiki pass.
 
 ### mac IME
 
@@ -96,7 +96,7 @@ Probability-framed tunes; each entry tweaks `P(i|W)` (likelihood) or `P(W)` (pri
 
 ### Dict pipeline cutover (T0)
 
-- CP1–CP5 (`PLAN-dict-pipeline`): rebuild weights from corpus per `SCORING.md`, identity-aligned to bare `build_weights` output, then evolved.
+- CP1–CP5 (`PLAN-dict-pipeline`): rebuild weights from corpus, identity-aligned to bare `build_weights` output, then evolved.
 - Hybrid normalizer (per-source-log-count → global ln+minmax) replaces the 1.1.x ad-hoc chain.
 - CP3d pollution filter (long words / traditional / particle fragments / proper-noun double-hit) replaces `strip_*/purge_*.py`.
 - LCCC colloquial source + corpus new-word discovery (CP3c) adds 18.5k high-quality words (给力/网红/吐槽/榨干/…). Shipped dict at `core/crates/inputx-pinyin/data/{pinyin.dict,bigrams.fsa,bigrams_intra.fsa,trigrams.dict}`.
@@ -105,7 +105,7 @@ Probability-framed tunes; each entry tweaks `P(i|W)` (likelihood) or `P(W)` (pri
 ### Engineering baseline (CP2 of `PLAN-v1.2`)
 
 - Perfgate `< 0.3 ms` on input paths (well under iOS keyboard 2% frame budget).
-- Binary / dict size + iOS keyboard extension memory headroom values written to `ios/AppStore-checklist.md` (real-device Instruments still pending — non-blocking).
+- Binary / dict size + iOS keyboard extension memory headroom values recorded (real-device Instruments still pending — non-blocking).
 - `strip = "symbols"` confirmed on release profile; `lto = "off"` retained (iOS linker constraint).
 
 ### Engine / robustness

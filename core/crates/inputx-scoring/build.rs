@@ -5,7 +5,7 @@
 //! composite layer's scoring formulas.
 //!
 //! This is the v1.10 "single source of truth for ranking formula"
-//! mechanism described in `docs/POLISH-ARCHITECTURE.md`. Users polish
+//! mechanism described in `.claude/docs-archive/docs/POLISH-ARCHITECTURE.md`. Users polish
 //! the TSV / TOML data assets; build.rs handles wiring; runtime stays
 //! const-only.
 

@@ -3,7 +3,7 @@
 
 Three modes (--mode):
 
-  per-source-log-count  (default, CP3b — chosen 2026-05-25) — SCORING.md §03's
+  per-source-log-count  (default, CP3b — chosen 2026-05-25) — .claude/docs-archive/docs/SCORING.md §03's
       per-source scale-free normalization, but keeping count magnitude:
       score[word] = Σ_src α[src] × ln(1+count)/max_ln[src], α = manifest.weight;
       global min-max → freq_score. Chosen over the literal rank-based log-rank
@@ -11,7 +11,7 @@ Three modes (--mode):
       219k kept) while log-count keeps full coverage AND improves gate1
       (kaopu→靠谱 to #1).
 
-  per-source-log-rank  (SCORING.md §03 literal) — within each source, dense-rank
+  per-source-log-rank  (.claude/docs-archive/docs/SCORING.md §03 literal) — within each source, dense-rank
       words by count, score 1 - ln(rank)/ln(N+1). Scale-free, but on our
       homogeneous occurrence-count sources it discards count magnitude → the
       long tail's freq_score trends to 0 and is cut by build_dict's MIN_FREQ

@@ -19,7 +19,7 @@ from pathlib import Path
 import opencc  # type: ignore
 
 ROOT = Path(__file__).resolve().parents[2]
-CORPUS = ROOT / "docs/pinyin-dogfood-2026-06-30/scratchpad/corpus_news/articles"
+CORPUS = ROOT / ".claude/docs-archive/docs/pinyin-dogfood-2026-06-30/scratchpad/corpus_news/articles"
 CORPUS.mkdir(parents=True, exist_ok=True)
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit Inputx/0.1"

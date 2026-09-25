@@ -4,7 +4,7 @@
 This is the `make diff-vs-shipped` engine (CP1 step3 of the dict-pipeline
 rebuild). Given a freshly-built `weights.tsv` and the currently-shipped
 one, it reports the input codes whose candidate ordering changed — the
-human-reviewable signal gating any cutover (SCORING.md Phase 2:
+human-reviewable signal gating any cutover (.claude/docs-archive/docs/SCORING.md Phase 2:
 "re-derive existing weights, validate identity").
 
 "Candidate list" here is the **weights-level** view: for each pinyin code,

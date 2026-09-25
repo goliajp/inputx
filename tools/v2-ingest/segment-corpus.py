@@ -2,10 +2,10 @@
 """segment-corpus.py — tokenize fetched articles + generate pinyin codes.
 
 Reads:
-  docs/pinyin-dogfood-2026-06-30/scratchpad/corpus/articles/*.txt
+  .claude/docs-archive/docs/pinyin-dogfood-2026-06-30/scratchpad/corpus/articles/*.txt
 
 Writes:
-  docs/pinyin-dogfood-2026-06-30/scratchpad/segments/segments.tsv
+  .claude/docs-archive/docs/pinyin-dogfood-2026-06-30/scratchpad/segments/segments.tsv
   columns: article_id\\tseg_idx\\tword\\tpinyin\\tnotes
 
 Strategy (IME-realistic chunk sizes):
@@ -30,8 +30,8 @@ import jieba  # type: ignore
 from pypinyin import Style, lazy_pinyin  # type: ignore
 
 ROOT = Path(__file__).resolve().parents[2]
-ARTICLES_DIR = ROOT / "docs/pinyin-dogfood-2026-06-30/scratchpad/corpus/articles"
-OUTPUT = ROOT / "docs/pinyin-dogfood-2026-06-30/scratchpad/segments/segments.tsv"
+ARTICLES_DIR = ROOT / ".claude/docs-archive/docs/pinyin-dogfood-2026-06-30/scratchpad/corpus/articles"
+OUTPUT = ROOT / ".claude/docs-archive/docs/pinyin-dogfood-2026-06-30/scratchpad/segments/segments.tsv"
 OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 
 

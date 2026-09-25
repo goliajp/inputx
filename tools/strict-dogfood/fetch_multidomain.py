@@ -26,7 +26,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[2]
-STRICT = ROOT / "docs/pinyin-dogfood-2026-06-30/strict"
+STRICT = ROOT / ".claude/docs-archive/docs/pinyin-dogfood-2026-06-30/strict"
 ARTICLES = STRICT / "articles"
 STATUS = STRICT / "articles_status.tsv"
 
