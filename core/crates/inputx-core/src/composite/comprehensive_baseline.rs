@@ -4223,6 +4223,24 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-25): "yuanquan 圆圈 第一".
+    /// 源泉 led on v2 tier 3 (cedict+hsk6, 434047) while 圆圈 sat on its
+    /// natural tier 4 (403983). Single-row quickfix lifts 圆圈 to tier 1.
+    #[test]
+    fn polish_yuanquan_order() {
+        let top10 = mixed_top10("yuanquan".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("圆圈"),
+            "yuanquan: expected 圆圈 at #0; got top10={top10:?}"
+        );
+        let y = top10
+            .iter()
+            .position(|x| x == "源泉")
+            .expect("源泉 missing from yuanquan top10");
+        assert!(y > 0, "yuanquan: expected 源泉 below 圆圈; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-25): "gongxing 共性 拱形 弓形
     /// 躬行 共形 宫刑 这个顺序才是". All six sat on natural tier 4 and
     /// modern_freq alone ordered them 拱形 > 共性 > 宫刑 > 弓形 > 躬行 >
