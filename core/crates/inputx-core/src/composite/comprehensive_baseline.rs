@@ -4223,6 +4223,24 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-25): "yuebing 月饼".
+    /// Both words sat on natural tier 4 and modern_freq put 阅兵 (403259)
+    /// ahead of 月饼 (402698). Single-row quickfix lifts 月饼 to tier 1.
+    #[test]
+    fn polish_yuebing_order() {
+        let top10 = mixed_top10("yuebing".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("月饼"),
+            "yuebing: expected 月饼 at #0; got top10={top10:?}"
+        );
+        let y = top10
+            .iter()
+            .position(|x| x == "阅兵")
+            .expect("阅兵 missing from yuebing top10");
+        assert!(y > 0, "yuebing: expected 阅兵 below 月饼; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-25): "yuanquan 圆圈 第一".
     /// 源泉 led on v2 tier 3 (cedict+hsk6, 434047) while 圆圈 sat on its
     /// natural tier 4 (403983). Single-row quickfix lifts 圆圈 to tier 1.
