@@ -1,4 +1,4 @@
-# Inputx scoring-pipeline driver. See README.md for full step docs.
+# Inputx scoring-pipeline driver. See .claude/docs-archive/tools/scoring/README.md for full step docs.
 #
 # Targets:
 #   make rebuild    — full pipeline 01→08
