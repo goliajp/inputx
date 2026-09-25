@@ -1,7 +1,7 @@
 # Corpus digest log — append-only audit trail of every "eat" event
 # for the inputx library files (pinyin, wubi, nihongo).
 #
-# Per 2026-06-03 治理 architecture (`.claude/PLAN-corpus-治理.md`):
+# Per 2026-06-03 治理 architecture:
 #
 #   - Library files are source-agnostic (no upstream identity in rows).
 #     Per-event provenance lives here and ONLY here.

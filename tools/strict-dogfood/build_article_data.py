@@ -16,11 +16,14 @@ import subprocess
 import sys
 import tempfile
 import argparse
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+# Dogfood corpus + results live outside the repository.
+DOGFOOD = Path(os.environ["INPUTX_DOGFOOD_DIR"])
 DOGFOOD = ROOT / "core/target/release/inputx-dogfood"
-CORPUS = ROOT / ".claude/docs-archive/docs/pinyin-dogfood-2026-06-30/scratchpad/corpus_news/articles"
+CORPUS = DOGFOOD / "scratchpad/corpus_news/articles"
 
 
 def find_article(article_id: str) -> tuple[str, str]:
@@ -43,7 +46,7 @@ def main():
     article_id = args.article_id
     seg_path = Path(args.segments_tsv)
     out_path = Path(args.out) if args.out else (
-        ROOT / ".claude/docs-archive/docs/pinyin-dogfood-2026-06-30/strict/data" / f"{article_id}.json"
+        DOGFOOD / "strict/data" / f"{article_id}.json"
     )
 
     title, raw_text = find_article(article_id)

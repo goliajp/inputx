@@ -31,8 +31,6 @@
 //! - **`MARKER_*`** — diagnostic anchors / documentation values not used
 //!   in ranking logic.
 //!
-//! See `.claude/PLAN-probabilistic-model.md` for the full framing.
-//!
 //! # Why Jianma1 (e→有, g→一, …) sits at #0
 //!
 //! Not because there's an `if Jianma1 { put_first() }` somewhere. Because
@@ -390,7 +388,7 @@ pub fn length_bias(word_len: usize) -> f64 {
 /// **LIKELIHOOD × PRIOR** — predicted-candidate score for a typed buffer
 /// that is a **prefix** of the candidate's full code.
 ///
-/// Decomposition (per `.claude/PLAN-probabilistic-model.md`):
+/// Decomposition:
 ///   `score(W) = base + prior(W) · likelihood(i, W)`
 ///       = base + (freq · freq_mult) · proximity^K
 ///
@@ -478,8 +476,7 @@ mod tests {
     //! the 265 baseline / dispatch / engine tests asserting specific
     //! (word, score) tuples — this module is the explicit attestation.
     //!
-    //! See `.claude/PLAN-v1.3.md` WU-β and `.claude/PLAN-probabilistic-model.md`
-    //! for the probability framing (`P(W|i) = P(i|W) · P(W)`).
+    //! Probability framing: `P(W|i) = P(i|W) · P(W)`.
     use super::*;
 
     #[test]

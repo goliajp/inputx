@@ -128,8 +128,7 @@ pub fn count() -> usize {
 /// syllables — `zhuang`/`chuang`/`shuang` — are 6 ASCII letters).
 /// Going further would be wasted work.
 ///
-/// Used by the composite Mixed-mode pinyin dispatch (cf.
-/// `.claude/docs-archive/docs/PLAN-syllable-aware-pinyin.md`) to detect "the user already
+/// Used by the composite Mixed-mode pinyin dispatch to detect "the user already
 /// committed to a clean syllable" — gates the initials-fallback typo
 /// rescue away from buffers like `shehv` / `shehb` / `xianv` where
 /// the leading 3+ chars are a clean syllable and the trailing chars
@@ -247,8 +246,7 @@ mod tests {
 
     // 音节意识细化 (2026-06-06): greedy left-to-right syllable
     // prefix lookup used by the Mixed-mode dispatch to gate the
-    // initials-fallback typo rescue. See
-    // .claude/docs-archive/docs/PLAN-syllable-aware-pinyin.md.
+    // initials-fallback typo rescue.
     #[test]
     fn longest_valid_syllable_prefix_basics() {
         assert_eq!(longest_valid_syllable_prefix(""), None);

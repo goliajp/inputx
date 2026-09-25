@@ -11,7 +11,6 @@ Writes:
     Format: <word_or_char>\t<score>
     Score: round(percentile_rank * 25000), 0 for words not in jieba.
 
-Design rationale: see .claude/docs-archive/docs/pinyin-dogfood-2026-06-30/MODERN-FREQ-DESIGN.md
 Key constraint: score ∈ [0, 25_000] — strictly less than one tier step (30k)
 so corpus freq cannot cross tier boundary. v2 dict (words/chars) is the
 authority of "what exists"; jieba is only used for "how to rank within tier".

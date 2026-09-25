@@ -22,11 +22,14 @@ import re
 import subprocess
 import sys
 import time
+import os
 from pathlib import Path
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[2]
-STRICT = ROOT / ".claude/docs-archive/docs/pinyin-dogfood-2026-06-30/strict"
+# Dogfood corpus + results live outside the repository.
+DOGFOOD = Path(os.environ["INPUTX_DOGFOOD_DIR"])
+STRICT = DOGFOOD / "strict"
 ARTICLES = STRICT / "articles"
 STATUS = STRICT / "articles_status.tsv"
 

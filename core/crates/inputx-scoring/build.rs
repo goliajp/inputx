@@ -5,7 +5,7 @@
 //! composite layer's scoring formulas.
 //!
 //! This is the v1.10 "single source of truth for ranking formula"
-//! mechanism described in `.claude/docs-archive/docs/POLISH-ARCHITECTURE.md`. Users polish
+//! mechanism. Users polish
 //! the TSV / TOML data assets; build.rs handles wiring; runtime stays
 //! const-only.
 
@@ -418,8 +418,6 @@ pub mod consts {{
     pub const WUBI_PHRASE_EXTREME_FREQ_FLOOR: u64 = {dw_phr_floor};
     // [scoring.tier_quantile_pinyin] — Phase B (2026-06-03):
     // z-score quantile tier mapping for pinyin single-char candidates.
-    // See PLAN-tier-by-quantile.md for the math + .claude/PLAN-tier-by-
-    // quantile-spike-data.md for the spike that fixed μ, σ, thresholds.
     pub const PINYIN_LOG_FREQ_MU: f64 = {pq_mu};
     pub const PINYIN_LOG_FREQ_SIGMA: f64 = {pq_sigma};
     pub const PINYIN_TIER_1_Z_ABOVE: f64 = {pq_t1};

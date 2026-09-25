@@ -5,7 +5,7 @@
 //! Same binary layout across pinyin / wubi / Japanese / future Korean
 //! and Vietnamese engines.
 //!
-//! # Architecture (per `.claude/PLAN-dict-format-IDFv1.md`)
+//! # Architecture
 //!
 //! ```text
 //! +---------+---------------+--------------+---------------+----------------+

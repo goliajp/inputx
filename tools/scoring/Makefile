@@ -1,4 +1,4 @@
-# Inputx scoring-pipeline driver. See .claude/docs-archive/tools/scoring/README.md for full step docs.
+# Inputx scoring-pipeline driver.
 #
 # Targets:
 #   make rebuild    — full pipeline 01→08
@@ -44,9 +44,9 @@ $(MARK)/02.done: $(MARK)/01.done
 	$(PYTHON) 02_extract/run_all.py
 	@touch $@
 
-# CP3b: default normalize is per-source-log-count (.claude/docs-archive/docs/SCORING.md §03 intent —
-# per-source scale-free — but keeping count magnitude; chosen over literal
-# rank-based log-rank, which collapsed coverage). See .claude/PLAN-dict-pipeline.md.
+# CP3b: default normalize is per-source-log-count (per-source scale-free,
+# but keeping count magnitude; chosen over literal rank-based log-rank,
+# which collapsed coverage).
 03-normalize: $(MARK)/03.done
 $(MARK)/03.done: $(MARK)/02.done
 	@echo "[03] CP3b: per-source-log-count normalize -> merged/"

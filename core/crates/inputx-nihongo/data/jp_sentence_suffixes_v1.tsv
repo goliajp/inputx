@@ -4,7 +4,7 @@
 #
 # Closed-class Japanese grammar — not polish-tunable in the same sense
 # as wubi/pinyin overlays. Listed here as data (not Rust const) per
-# project policy `.claude/RANKING-MODEL-INVARIANTS.md` — anything
+# project policy — anything
 # shaped as a `(reading, output)` list lives in TSV, period.
 #
 # Order matters: **longest reading first** so the greedy matcher in

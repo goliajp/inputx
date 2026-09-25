@@ -30,8 +30,7 @@ USER_TMP=$(/bin/launchctl asuser "$CONSOLE_UID" /usr/bin/getconf DARWIN_USER_CAC
 # on demand, so the IMK Mach service never appears and typing produces
 # nothing. The LaunchAgent bypasses that by always running the binary, which
 # self-registers the service. See ../../LaunchAgent.plist.template for the
-# rationale and .claude/docs-archive/docs/macos-ime-recipe-2026.md §Investigation 6 for
-# the full story.
+# rationale.
 USER_HOME=$(/usr/bin/dscl . -read "/Users/$CONSOLE_USER" NFSHomeDirectory | awk '{print $2}')
 LA_DST="$USER_HOME/Library/LaunchAgents/jp.golia.inputmethod.wubi.plist"
 LA_SRC="$APP/Contents/Resources/LaunchAgent.plist.template"

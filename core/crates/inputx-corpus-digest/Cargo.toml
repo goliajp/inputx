@@ -6,8 +6,7 @@ rust-version.workspace = true
 publish = false
 
 # Tool only; no library API. Hosts the `corpus-digest` binary, the
-# implementation of the 3-layer corpus persistence model designed in
-# `.claude/PLAN-corpus-digest.md`:
+# implementation of the 3-layer corpus persistence model:
 #
 #   library.tsv (per engine)  — truth, what runtime reads
 #   digest_log.toml           — append-only event history

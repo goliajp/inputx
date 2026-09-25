@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """inputx-calibrate — telemetry-driven EngineWeights calibration.
 
-Per `.claude/docs-archive/docs/POLISH-ARCHITECTURE.md` v1.12: read accumulated polish-log
+v1.12: read accumulated polish-log
 entries, fit `engine_weights.toml` values to minimize "user re-picked
 non-#0 candidate" frequency, emit a candidate TOML diff for human
 review before commit.

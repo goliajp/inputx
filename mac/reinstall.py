@@ -11,7 +11,7 @@ Inputx process can ever exist. This eliminates the dual-process race
 "two Inputx in menubar" + "can switch but can't type in already-open
 apps" symptoms on 2026-06-05/06.
 
-The earlier KeepAlive LaunchAgent (.claude/docs-archive/docs/macos-ime-recipe-2026.md §9)
+The earlier KeepAlive LaunchAgent
 was a workaround for "imklaunchagent silently refuses to launch" —
 that refusal was caused by missing IMK Info.plist keys
 (InputMethodServerDataSourceClass + InputMethodSessionController),
@@ -664,7 +664,6 @@ def invalidate_intl_data_cache() -> None:
     the cache is stale; nothing else invalidates it (killing
     TextInputMenuAgent, lsregister -f, FSEvents, and the private
     TISUpdateIntlFileCache() symbol all leave it untouched).
-    Documented in .claude/docs-archive/docs/macos-ime-recipe-2026.md.
 
     Pairs with `force_intl_data_cache_rebuild`: delete invalidates,
     rebuild writes fresh — together they guarantee no daemon ends up
@@ -874,9 +873,7 @@ def bounce_imklaunchagent() -> None:
 
     The host app's IMK client gets no Mach service to connect to.
     Symptom from the user side: "picker shows Inputx, clicking it
-    silently fails / typing produces nothing". Documented in
-    .claude/docs-archive/docs/macos-ime-recipe-2026.md gate 2 (symptom-fix table line 103);
-    the doc's suggested fix ("fresh `lsregister -f` + restart of
+    silently fails / typing produces nothing". The usual fix ("fresh `lsregister -f` + restart of
     `TextInputMenuAgent`") works most of the time but is insufficient
     under fast reinstall sequences — the in-process map can survive
     both.

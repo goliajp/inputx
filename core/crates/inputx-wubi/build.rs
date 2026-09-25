@@ -1,5 +1,4 @@
-//! Build-time codegen for wubi (zero external deps — see
-//! `.claude/PLAN-self-built-fsa.md`; phf/fst both replaced):
+//! Build-time codegen for wubi (zero external deps; phf/fst both replaced):
 //! - sorted `&[(char, u8)]` for 字根 → letter (`zigen.phf.rs`, legacy name;
 //!   binary-search lookup, replaces the former `phf::Map`)
 //! - sorted `&[(u8, char)]` for 一级简码 (`jianma1.phf.rs`, legacy name)
@@ -191,7 +190,7 @@ fn parse_jianma1_pairs(src: &str) -> Vec<(u8, char)> {
 
 fn write_zigen_phf(out_dir: &std::path::Path, map: &HashMap<char, u8>) {
     // Sorted-by-key `&[(char, u8)]` for binary-search lookup. Zero-dep —
-    // replaces the former phf::Map (see .claude/PLAN-self-built-fsa.md A2).
+    // replaces the former phf::Map.
     let mut pairs: Vec<(char, u8)> = map.iter().map(|(k, v)| (*k, *v)).collect();
     pairs.sort_unstable_by_key(|&(k, _)| k);
     let mut body = String::new();

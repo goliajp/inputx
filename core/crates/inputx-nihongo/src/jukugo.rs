@@ -3,8 +3,7 @@
 //! Post-治理 2026-06-03: source of truth is `data/library.tsv` (rows
 //! with type=jukugo). Parsed once via OnceLock on first access. Was a
 //! ~27k-line const array in this file pre-治理 (the biggest "special
-//! list" in the codebase per the no-special-list policy
-//! `.claude/RANKING-MODEL-INVARIANTS.md` §2); the const has been
+//! list" in the codebase per the no-special-list policy); the const has been
 //! retired.
 
 #[derive(Copy, Clone, Debug)]

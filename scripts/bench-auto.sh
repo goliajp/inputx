@@ -5,7 +5,7 @@
 # (see scripts/bench-auto.swift) into a fresh TextEdit document.
 # Captures PerfTimer + vmmap + heap snapshots before and after the
 # corpus. Outputs structured JSON to stdout (and a labeled file
-# under .claude/docs-archive/bench/results/ when --save <label> is passed) so multiple
+# under $INPUTX_BENCH_DIR when --save <label> is passed) so multiple
 # runs across commits can be compared apples-to-apples.
 #
 # Pre-conditions:
@@ -17,7 +17,7 @@
 #
 # Usage:
 #   scripts/bench-auto.sh                     # one-shot, prints JSON to stdout
-#   scripts/bench-auto.sh --save baseline     # saves JSON to .claude/docs-archive/bench/results/<HEAD>-baseline.json
+#   scripts/bench-auto.sh --save baseline     # saves JSON to $INPUTX_BENCH_DIR/<HEAD>-baseline.json
 #   scripts/bench-auto.sh --runs 3            # 3 back-to-back runs, prints array
 #   scripts/bench-auto.sh --runs 3 --save mywin    # 3 runs, saved separately
 
@@ -176,8 +176,9 @@ EOF
 } > /tmp/bench-auto-output.json
 cat /tmp/bench-auto-output.json
 if [[ -n "$LABEL" ]]; then
-    mkdir -p .claude/docs-archive/bench/results
-    OUT=".claude/docs-archive/bench/results/${HEAD_SHA}-${LABEL}.json"
+    BENCH_DIR="${INPUTX_BENCH_DIR:?set INPUTX_BENCH_DIR to the directory for saved results}"
+    mkdir -p "$BENCH_DIR"
+    OUT="$BENCH_DIR/${HEAD_SHA}-${LABEL}.json"
     cp /tmp/bench-auto-output.json "$OUT"
     echo "[bench-auto] saved → $OUT" >&2
 fi

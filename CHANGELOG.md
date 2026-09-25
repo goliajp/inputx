@@ -69,7 +69,7 @@ Net direction was **removal**, not growth:
 
 ## 1.2.0 — 2026-05-26
 
-**Polish + 首版正式发布。** 词库 pipeline 收口到唯一真相源，四维工程指标 baseline 入库，应用 UI 与日语扩展收口，mac dmg 通过 notarize + staple 上线，iOS 保留 self-use sideload 能力。本版本所有 ranking 修复按 `P(W|i) = P(i|W) · P(W)` 概率框架诠释（指导思想见 `.claude/PLAN-probabilistic-model.md`）。
+**Polish + 首版正式发布。** 词库 pipeline 收口到唯一真相源，四维工程指标 baseline 入库，应用 UI 与日语扩展收口，mac dmg 通过 notarize + staple 上线，iOS 保留 self-use sideload 能力。本版本所有 ranking 修复按 `P(W|i) = P(i|W) · P(W)` 概率框架诠释。
 
 ### Scoring / Ranking
 
