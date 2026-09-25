@@ -18,7 +18,7 @@
 # (No arguments. Idempotent — does nothing if wubi mode is already in
 # the list. Restarts TextInputMenuAgent so the menu bar re-reads.)
 #
-# See docs/macos-ime-recipe-2026.md → "Don't kill cfprefsd" + the
+# See .claude/docs-archive/docs/macos-ime-recipe-2026.md → "Don't kill cfprefsd" + the
 # Symptom → fix table row for "User's IME stops appearing in their
 # keyboard menu" for the wider context.
 
