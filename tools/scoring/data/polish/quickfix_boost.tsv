@@ -1366,3 +1366,9 @@ budai	布袋	33000	# user 2026-09-18: budai 布袋第一. Same shape as chakan /
 jieyi	介意	34150	# user 2026-09-20: jieyi 介意第一. No prior qf row here — both words sit on the same natural tier 4 (cedict-only, words.tsv freq 4 each), so modern_freq alone decided the order and 借以 24184 edged 介意 23292 by 892 (exactly the probe score gap 404184 vs 403292). 借以 is a real word (现汉 connective, kept in dict) but it is written-register; 介意 is the everyday word and leads on v1 library freq (34150 > 11474). Single-row quickfix -> tier 1 (fanying precedent); boost value = 介意 v1 library freq.
 fangjia	放假	36469	# user 2026-09-20: fangjia 放假第一. Same shape as jieyi (1bd9f3d2) — no prior qf row; all four words sit on the same natural tier 4 (cedict-only, v2 words.tsv freq 4 each), so modern_freq alone decided the order and 房价 24279 edged 放假 23246 by 1033 (exactly the probe score gap 404279 vs 403246). zhwiki real-estate coverage inflates 房价; 放假 is the everyday word and leads on v1 library freq (36469 > 15570). Single-row quickfix -> tier 1 (fanying / jieyi precedent); boost value = 放假 v1 library freq.
 yinyuan	姻缘	22859	# user 2026-09-23: yinyuan 姻缘第一. 音源 led via its modern_vocab_v1 row (30000 -> v2 tier 3, 413385) while 姻缘 sat on natural tier 4 (402805); 银元 (403704) also edged it there, so retiring the 音源 row alone would not have been enough. Single-row quickfix -> tier 1 (fanying / jieyi / fangjia precedent); boost value = 姻缘 v1 library freq (22859, ahead of 音源 18111 and 银元 17729).
+gongxing	共性	60000	# user 2026-09-25: gongxing 共性 拱形 弓形 躬行 共形 宫刑 这个顺序才是. All six sit on natural tier 4 (cedict-only, v2 words.tsv), so modern_freq alone decided: 拱形 403800 > 共性 402627 > 宫刑 402542 > 弓形 401172 > 躬行 384475 > 共形 380000. Full-order cascade lock (yichu / fangzhi / fanhua precedent): all six -> tier 1, step 4000, sovereign over modern_freq.
+gongxing	拱形	56000
+gongxing	弓形	52000
+gongxing	躬行	48000
+gongxing	共形	44000
+gongxing	宫刑	40000
