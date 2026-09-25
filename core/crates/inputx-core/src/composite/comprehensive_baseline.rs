@@ -5534,6 +5534,34 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-09-26): "banbenku 版本库".
+    ///
+    /// 版本库 was absent from every surface; the buffer returned only the
+    /// Japanese kana ばんべんく / バンベンク. Added to modern_vocab_v1 at
+    /// 13000 → v2 tier 5, calibrated on 知识库 (v1 library 12315, v2
+    /// tier 5).
+    #[test]
+    fn polish_banbenku_yields_banbenku() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        e.set_japanese_enabled(true);
+        for b in b"banbenku" {
+            let _ = e.handle_letter(*b);
+        }
+        let top10: Vec<String> = e
+            .candidates()
+            .iter()
+            .take(10)
+            .map(|c| c.word.clone())
+            .collect();
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("版本库"),
+            "banbenku Mixed+JP must lead 版本库 (Class A add); got {top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-09-23): "qigua 起卦".
     ///
     /// The `qigua` code had NO exact entry on any surface — the whole
