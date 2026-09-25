@@ -4223,6 +4223,24 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-26): "qianfei 欠费第一".
+    /// Both words sat on natural tier 4 and modern_freq put 迁飞 (401230)
+    /// ahead of 欠费 (396086). Single-row quickfix lifts 欠费 to tier 1.
+    #[test]
+    fn polish_qianfei_order() {
+        let top10 = mixed_top10("qianfei".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("欠费"),
+            "qianfei: expected 欠费 at #0; got top10={top10:?}"
+        );
+        let q = top10
+            .iter()
+            .position(|x| x == "迁飞")
+            .expect("迁飞 missing from qianfei top10");
+        assert!(q > 0, "qianfei: expected 迁飞 below 欠费; got {top10:?}");
+    }
+
     /// Class A polish (user report 2026-09-25): "jingyi 经意，放最后吧".
     /// 经意 was absent from every v2 surface (words.tsv had 惊异 / 惊疑 /
     /// 敬意 / 精义, all tier 4). Added to modern_vocab_v1 at 13000 → v2
