@@ -66,6 +66,4 @@ and a Rust toolchain (for the probe binary).
 ## Future
 
 The current build is **read-only** — viewer/explorer. Editor mode
-(edit freq, add heteronyms, trigger rebuild) is open work; see
-SCORING.md §1.3 for the larger pipeline-driven workflow that this
-serves as the human-facing front-end for.
+(edit freq, add heteronyms, trigger rebuild) is open work.

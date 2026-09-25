@@ -1,6 +1,6 @@
 # Inputx polish workflow — single-command rebuild targets.
 #
-# Per the v1.10/v1.11 design (docs/POLISH-ARCHITECTURE.md), all polish
+# Per the v1.10/v1.11 design (.claude/docs-archive/docs/POLISH-ARCHITECTURE.md), all polish
 # actions reduce to: edit a data asset (engine_weights.toml / overlay
 # TSV / corpus manifest) + `make polish-rebuild` + baseline gate.
 # This file collects those rebuild steps so users don't reassemble the

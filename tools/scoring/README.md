@@ -2,8 +2,7 @@
 
 Operator's guide for the 8-step pipeline that builds Inputx's
 unified-score `weights.tsv`. Each step is independently runnable
-and cacheable. See [`docs/SCORING.md`](../../docs/SCORING.md) for the
-design rationale; this README is *how to run the thing*.
+and cacheable. This README is *how to run the thing*.
 
 ## Quickstart
 
@@ -116,8 +115,7 @@ data/layers/jp.tsv:
   <code>\t<word>\t<layer>           # Jukugo/SingleKanji/Kana
 ```
 
-Layer choice determines the runtime `layer_floor` multiplier; see
-SCORING.md §2.
+Layer choice determines the runtime `layer_floor` multiplier.
 
 ### 05_merge — unify into weights.tsv
 
@@ -153,11 +151,10 @@ data/annotations/llm_overrides.tsv:
 Re-merge with overrides as score boost (+50% on LLM-preferred top).
 
 Cost: ~$10 per full run. Cached per-prompt so re-runs are free.
-See SCORING.md §3 for prompt template + reproducibility notes.
 
 ### 07_validate — quality gates
 
-Four gates (see SCORING.md §1.4):
+Four gates:
 
 ```
 07_validate/
@@ -214,4 +211,4 @@ Before promoting a pipeline output to a release:
 The final `pinyin.dict` artifact is committed to `inputx-pinyin/data/`;
 wubi's `wubi86.dict` is built into `OUT_DIR` by `inputx-wubi/build.rs`
 (not committed). App builds embed them via `include_bytes!`. Side-loading
-via override directory is a v0.4 future (see SCORING.md §1.3).
+via override directory is a v0.4 future.

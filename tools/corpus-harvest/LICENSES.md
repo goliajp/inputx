@@ -53,8 +53,7 @@ content.
   attribution.
 - **Why this source**: subtitles are colloquial dialog text — the
   freq distribution matches the casual conversational register that
-  IME users actually type. Complements wiki's formal-prose bias
-  (per `docs/v1.9.0-vNEXT-audit.md`).
+  IME users actually type. Complements wiki's formal-prose bias.
 
 ## Excluded sources (license-incompatible)
 

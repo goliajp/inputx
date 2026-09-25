@@ -1,7 +1,7 @@
 //! Phase 1 data tables — char + reading layer from authoritative sources.
 //!
 //! Embedded via `include_str!` so the crate has no runtime fs dependency.
-//! Sources documented in `docs/pinyin-char-centric-rewrite-2026-06-29/PLAN.md`
+//! Sources documented in `.claude/docs-archive/docs/pinyin-char-centric-rewrite-2026-06-29/PLAN.md`
 //! and regeneratable via `tools/v2-ingest/build-chars-readings.py`.
 
 use std::sync::{Arc, OnceLock};
@@ -499,7 +499,7 @@ fn build_prior_corrections() -> std::collections::HashMap<String, i32> {
 /// jieba only influences how to rank within tier.
 ///
 /// Words not in jieba (古汉语 / 罕用) get score 0 → demoted within tier.
-/// See docs/pinyin-dogfood-2026-06-30/MODERN-FREQ-DESIGN.md.
+/// See .claude/docs-archive/docs/pinyin-dogfood-2026-06-30/MODERN-FREQ-DESIGN.md.
 pub fn modern_freq() -> &'static std::collections::HashMap<String, u16> {
     use std::collections::HashMap;
     static CACHED: OnceLock<HashMap<String, u16>> = OnceLock::new();

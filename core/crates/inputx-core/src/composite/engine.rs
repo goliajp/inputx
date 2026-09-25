@@ -1801,7 +1801,7 @@ mod tests {
     /// `path1c_would_fire`, so shehv kept the buffer and Path 1c
     /// surfaced sh+h initials (时候/生活/...).
     ///
-    /// 音节意识细化 (2026-06-06, docs/PLAN-syllable-aware-pinyin.md):
+    /// 音节意识细化 (2026-06-06, .claude/docs-archive/docs/PLAN-syllable-aware-pinyin.md):
     /// the Path 1c interpretation was wrong — `she` is a clean
     /// syllable, so trailing junk should route to Path 3b trim-retry
     /// (= sheh's prefix completions: 社会/奢华/设好/...), NOT Path 1c

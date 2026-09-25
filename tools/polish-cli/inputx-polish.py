@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """inputx-polish — single-entry CLI for the v1.11 polish workflow.
 
-Per `docs/POLISH-ARCHITECTURE.md`: takes a user-reported polish action
+Per `.claude/docs-archive/docs/POLISH-ARCHITECTURE.md`: takes a user-reported polish action
 (rank fix or missing-word add), computes the minimum boost magnitude
 needed, writes to the right overlay TSV, runs `make polish-rebuild`,
 and reports the baseline gate result.
@@ -176,7 +176,7 @@ def cmd_add_phrase(args):
         sys.exit(
             f"[polish] pinyin add-phrase: implement v1.11 WU-β.2 — needs "
             f"jieba tokenization check first to avoid bigram-fragment "
-            f"pollution per docs/POLISH-ARCHITECTURE.md option (ii) "
+            f"pollution per .claude/docs-archive/docs/POLISH-ARCHITECTURE.md option (ii) "
             f"discussion."
         )
     else:

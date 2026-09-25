@@ -11,7 +11,7 @@ cases the original snapshot captured. Reports per-buffer:
   - new-empty / new-nonempty: count changed
 
 Snapshot rebuild target = WU-ρ post-WU-π cherry-pick. Drift is
-expected and audited per the v1.9.0-vNEXT-audit.md close-out section.
+expected and audited per the .claude/docs-archive/docs/v1.9.0-vNEXT-audit.md close-out section.
 """
 import json
 import subprocess
