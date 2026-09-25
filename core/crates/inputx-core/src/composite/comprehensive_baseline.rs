@@ -4223,6 +4223,26 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-25): "gongxing 共性 拱形 弓形
+    /// 躬行 共形 宫刑 这个顺序才是". All six sat on natural tier 4 and
+    /// modern_freq alone ordered them 拱形 > 共性 > 宫刑 > 弓形 > 躬行 >
+    /// 共形. Full-order cascade lock in quickfix_boost.tsv (yichu /
+    /// fangzhi precedent).
+    #[test]
+    fn polish_gongxing_full_order() {
+        let top10 = mixed_top10("gongxing".as_bytes());
+        let want = ["共性", "拱形", "弓形", "躬行", "共形", "宫刑"];
+        let got: Vec<&str> = top10
+            .iter()
+            .filter(|w| want.contains(&w.as_str()))
+            .map(String::as_str)
+            .collect();
+        assert_eq!(
+            got, want,
+            "gongxing: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class C polish (user report 2026-09-23): "didi 弟弟 也同理要高于
     /// 石沉大海". Same wx>px preemption as fada, but with two wubi phrases
     /// at this code: 耕耘 led at #0 (210389) and 石沉大海 sat at #1
