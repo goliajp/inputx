@@ -2,10 +2,10 @@
 """segment-corpus.py — tokenize fetched articles + generate pinyin codes.
 
 Reads:
-  .claude/docs-archive/docs/pinyin-dogfood-2026-06-30/scratchpad/corpus/articles/*.txt
+  $INPUTX_DOGFOOD_DIR/scratchpad/corpus/articles/*.txt
 
 Writes:
-  .claude/docs-archive/docs/pinyin-dogfood-2026-06-30/scratchpad/segments/segments.tsv
+  $INPUTX_DOGFOOD_DIR/scratchpad/segments/segments.tsv
   columns: article_id\\tseg_idx\\tword\\tpinyin\\tnotes
 
 Strategy (IME-realistic chunk sizes):
@@ -24,14 +24,17 @@ Strategy (IME-realistic chunk sizes):
 from __future__ import annotations
 
 import sys
+import os
 from pathlib import Path
 
 import jieba  # type: ignore
 from pypinyin import Style, lazy_pinyin  # type: ignore
 
 ROOT = Path(__file__).resolve().parents[2]
-ARTICLES_DIR = ROOT / ".claude/docs-archive/docs/pinyin-dogfood-2026-06-30/scratchpad/corpus/articles"
-OUTPUT = ROOT / ".claude/docs-archive/docs/pinyin-dogfood-2026-06-30/scratchpad/segments/segments.tsv"
+# Dogfood corpus + results live outside the repository.
+DOGFOOD = Path(os.environ["INPUTX_DOGFOOD_DIR"])
+ARTICLES_DIR = DOGFOOD / "scratchpad/corpus/articles"
+OUTPUT = DOGFOOD / "scratchpad/segments/segments.tsv"
 OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 
 

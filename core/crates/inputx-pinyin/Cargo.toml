@@ -27,7 +27,7 @@ crate-type = ["rlib", "cdylib", "staticlib"]
 
 [dependencies]
 # Self-built zero-dependency index — fully replaces fst on the pinyin read
-# path (main dict = Dict, n-grams = Fsa). See .claude/PLAN-self-built-fsa.md.
+# path (main dict = Dict, n-grams = Fsa).
 inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 
 # Embedded core pinyin.dict — split out of this crate's `data/` in

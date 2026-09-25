@@ -82,7 +82,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-// v1.10 single-TOML polish surface — see `.claude/docs-archive/docs/POLISH-ARCHITECTURE.md`.
+// v1.10 single-TOML polish surface.
 // `build.rs` parses `data/engine_weights.toml` at build time and emits
 // two modules of const literals:
 //
@@ -468,8 +468,7 @@ impl EngineWeights {
     /// **v1.10 polish surface**: every value below comes from
     /// `data/engine_weights.toml`, parsed at build time by
     /// `build.rs` → `__engine_weights_generated`. Editing the TOML
-    /// is the supported way to tune any of these knobs — see
-    /// `.claude/docs-archive/docs/POLISH-ARCHITECTURE.md` for the workflow. The
+    /// is the supported way to tune any of these knobs. The
     /// per-value rationale comments below stay here as the canonical
     /// explanation; the TOML row mirrors them.
     pub const fn inputx_default() -> Self {

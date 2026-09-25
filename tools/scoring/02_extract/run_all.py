@@ -11,8 +11,6 @@ a thin wrapper that invokes:
 which writes, WITHOUT touching the shipped weights.tsv:
   - tools/scoring/data/extracted/<src>/freq.tsv  (this step's output)
   - tools/scoring/data/baseline/weights-bare.tsv (the CP2 identity target)
-
-See .claude/PLAN-dict-pipeline.md (CP2 hot plan) for the strategy rationale.
 """
 
 from __future__ import annotations

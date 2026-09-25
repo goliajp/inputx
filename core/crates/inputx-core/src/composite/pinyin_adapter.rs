@@ -66,9 +66,6 @@ use crate::rules::{Context, ContextFlags};
 //                 shortcuts (简拼 / repeated-letter), not the
 //                 after-commit panel.
 //
-// Per-behavior detail + concrete examples in
-// `.claude/docs-archive/docs/pinyin-pipeline-gates.md`.
-//
 // Initial state: all TRUE — only literal-syllable lookup +
 // FST prefix completion + rare-CJK display filter survive.  This
 // is intentionally aggressive; the user will polish detail-by-
@@ -733,8 +730,7 @@ impl PinyinAdapter {
             // Pre-Phase-B: hard cutoff `raw_freq >= 20_000 → tier 1` left
             // mo / shi / zhi / yi buffers with 21-58 tier-1 candidates each,
             // burying nihongo top-tier basic-kana candidates (も, モ) at
-            // rank 22+.  See `.claude/PLAN-tier-by-quantile-spike-data.md`
-            // for the spike that fixed (μ, σ) + per-tier z thresholds.
+            // rank 22+.
             //
             // PHRASES (word_chars >= 2) share the SAME z-score function as
             // single chars.  Pre-Phase-B-pass-2 we tried `phrase → tier 1`
@@ -1138,8 +1134,7 @@ impl PinyinAdapter {
     ///   - 音节意识细化 gate: buffer does NOT have a clean ≥3-char
     ///     valid syllable prefix (if it does, the user committed
     ///     to that syllable and the trailing chars are mid-typing
-    ///     junk — handled by Path 3b trim-retry instead, see
-    ///     `.claude/docs-archive/docs/PLAN-syllable-aware-pinyin.md`)
+    ///     junk — handled by Path 3b trim-retry instead)
     ///   - prefix-up-to-first-vowel is exactly 2 consonants
     ///   - suffix length ≥ 2 (so the gate looks typo-shaped, not
     ///     just a 2-letter input)
@@ -1219,8 +1214,7 @@ impl PinyinAdapter {
     /// Path 3b trim-retry (which produces candidates for them) and
     /// `is_pure_garbage` (which won't wipe such buffers).
     ///
-    /// 3-char threshold rationale in
-    /// `.claude/docs-archive/docs/PLAN-syllable-aware-pinyin.md` §3: 2-char syllables
+    /// 3-char threshold rationale: 2-char syllables
     /// (he/ma/...) overlap with English-word starts, false positives
     /// like `hello → he+llo`; 3+ char syllables are unambiguously
     /// Chinese-shape.
@@ -2181,7 +2175,7 @@ impl PinyinAdapter {
         //   `shehv` → trim `v` → `sheh` (prefix_exists ✓) → push 50
         //     cands (社会 / 奢华 / 设好 / 射核 / …).
         //
-        // Spec: .claude/docs-archive/docs/PLAN-syllable-aware-pinyin.md §5.3. Placement
+        // Placement
         // AFTER Path 5 (not after Path 3 as the spec's first draft
         // proposed) ensures Path 3b doesn't pre-empt the Viterbi
         // compose path (kaopu→靠谱, woyao→我要, taikexi→太可惜).

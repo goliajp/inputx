@@ -24,7 +24,7 @@ default = []
 
 [dependencies]
 # Self-built zero-dependency index — replaces fst (two-level Dict: code →
-# [(word, packed layer|freq)]). See .claude/PLAN-self-built-fsa.md.
+# [(word, packed layer|freq)]).
 inputx-fsa = { path = "../inputx-fsa", version = "1.1" }
 # Lock-free swap of the code→candidates map, so a polish rebuild can
 # replace the table under a running IME without exiting — and without

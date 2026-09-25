@@ -1,8 +1,7 @@
 //! v3.0 rule engine — scaffolding (v3.0.1 checkpoint, 2026-05-24).
 //!
-//! This module is the foundation of the rule-engine refactor. See
-//! `.claude/PLAN-rule-engine.md` for the full design doc; this file is
-//! the scaffolding-only first slice.
+//! This module is the foundation of the rule-engine refactor; this file
+//! is the scaffolding-only first slice.
 //!
 //! # Why a rule engine?
 //!

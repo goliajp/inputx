@@ -15,11 +15,14 @@ Usage: fetch_news.py [target_count]
 import re
 import sys
 import urllib.request
+import os
 from pathlib import Path
 import opencc  # type: ignore
 
 ROOT = Path(__file__).resolve().parents[2]
-CORPUS = ROOT / ".claude/docs-archive/docs/pinyin-dogfood-2026-06-30/scratchpad/corpus_news/articles"
+# Dogfood corpus + results live outside the repository.
+DOGFOOD = Path(os.environ["INPUTX_DOGFOOD_DIR"])
+CORPUS = DOGFOOD / "scratchpad/corpus_news/articles"
 CORPUS.mkdir(parents=True, exist_ok=True)
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit Inputx/0.1"

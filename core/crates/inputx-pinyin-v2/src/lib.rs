@@ -33,8 +33,7 @@
 //! — which matches the 2026-06-28 4-gate-off baseline so the wire is
 //! observable + reversible without touching v1.
 //!
-//! ## Subsequent phases (see
-//! `.claude/docs-archive/docs/pinyin-char-centric-rewrite-2026-06-29/PLAN.md`)
+//! ## Subsequent phases
 //!
 //! 1. **Data layer** — `chars.tsv` + `readings.tsv` + `words.tsv`
 //!    sourced from authoritative open data (通用规范汉字表 + Unihan
@@ -574,8 +573,7 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
     // than one tier step (30000), so this CANNOT cross tier boundaries
     // — only reorders within same tier (sort key tier-first, then score).
     // Words/chars not in modern corpus get +0 → naturally demoted
-    // within tier (古汉语 / 罕用 signal). See
-    // .claude/docs-archive/docs/pinyin-dogfood-2026-06-30/MODERN-FREQ-DESIGN.md.
+    // within tier (古汉语 / 罕用 signal).
     //
     // ⚠️ SOVEREIGNTY rule: words explicitly listed in quickfix_boost.tsv
     // for the current buffer get NO modern_freq bonus — user-explicit

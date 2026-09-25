@@ -18,8 +18,8 @@ xcodegen generate --quiet
 # build needs this target rebuilt whenever Rust source changes (otherwise
 # the linker hits old symbol tables — e.g. fails on `_inputx_session_warmup`
 # until a fresh cargo build emits it).
-# Cargo's effective target dir may be redirected by a global wrapper
-# (see ~/.claude-shared/global/cargo-target-dir.md). project.yml's
+# Cargo's effective target dir may be redirected by a global wrapper.
+# project.yml's
 # LIBRARY_SEARCH_PATHS expects core/target/<arch>/release/, so make
 # core/target a symlink to the real target dir.
 CARGO_REAL_TARGET=$(cd ../core && cargo metadata --no-deps --format-version 1 \

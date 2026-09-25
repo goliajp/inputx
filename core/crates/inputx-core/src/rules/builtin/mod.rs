@@ -2,8 +2,7 @@
 //!
 //! Each file in this module is one or more rules migrated out of the
 //! inline `if`/`match` blocks in `composite/dispatch.rs`,
-//! `composite/pinyin_adapter.rs`, etc. See `.claude/PLAN-rule-engine.md`
-//! §3 for the full migration catalog.
+//! `composite/pinyin_adapter.rs`, etc.
 //!
 //! Status (2026-05-24): v3.0.2a — only `RepeatedLetterExpansion`
 //! migrated, NOT YET wired into production (the inline path is still

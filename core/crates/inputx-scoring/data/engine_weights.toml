@@ -18,8 +18,7 @@
 # scaffold reflects current behavior byte-identically. Subsequent WUs
 # (β/γ/δ/ε) add the per-formula constants from composite/scoring.rs,
 # composite/pinyin_adapter.rs, composite/dispatch.rs, and
-# composite/merge.rs — see `.claude/docs-archive/docs/POLISH-ARCHITECTURE.md` for the full
-# polish-workflow design.
+# composite/merge.rs.
 
 # ─── Tier × Engine base score table (v1.11 WU-ψ) ──────────────────
 #
@@ -203,7 +202,7 @@ predict_base_wubi = 50_000.0
 # ─── Tier落点 — Phase D (2026-06-03): nihongo z-score quantile ─────
 # Same shape as pinyin Phase B. μ/σ measured on freq>0 nihongo library
 # rows (jukugo + kanji combined: 29046 rows, jukugo n=27380 + kanji
-# n=1666). Phase A spike at .claude/PLAN-tier-by-quantile-spike-data.md.
+# n=1666).
 #
 # Applies to JP candidate tier assignment in composite/japanese_adapter:
 #   - multi-char real jukugo (新宿 大学 自主) → nihongo_tier_from_freq
@@ -311,9 +310,7 @@ inflation_ceil_freq  = 30000
 # pinyin single-char candidates. Score the candidate by its position
 # in the per-engine log-freq distribution and map z-score to tier.
 #
-# Per .claude/PLAN-tier-by-quantile.md (architecture) +
-# .claude/PLAN-tier-by-quantile-spike-data.md (实测 μ/σ from
-# 261,923 pinyin nonzero rows).
+# μ/σ measured from 261,923 pinyin nonzero rows.
 #
 # Apply to pinyin SINGLE-CHAR exact-match candidates only.  Multi-char
 # phrases stay at tier 1 (unchanged).  freq == 0 → tier 9 (longtail).

@@ -10,10 +10,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-STRICT = ROOT / ".claude/docs-archive/docs/pinyin-dogfood-2026-06-30/strict"
+# Dogfood corpus + results live outside the repository.
+DOGFOOD = Path(os.environ["INPUTX_DOGFOOD_DIR"])
+STRICT = DOGFOOD / "strict"
 DATA_DIR = STRICT / "data"
 POLISH_LOG = STRICT / "logs/polish_log.tsv"
 STATUS = STRICT / "articles_status.tsv"

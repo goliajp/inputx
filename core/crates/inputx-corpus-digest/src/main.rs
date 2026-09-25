@@ -1,7 +1,6 @@
 //! `corpus-digest` — Phase A MVP of the corpus 3-layer pipeline tool.
 //!
-//! Design: `.claude/PLAN-corpus-digest.md` (full spec, edge cases pre-
-//! decided). Invariants this tool MUST protect:
+//! Invariants this tool MUST protect:
 //!
 //!   I-1. polish > digested, always.  Library rows with source="polish"
 //!        are never touched by ingest — they win all collisions.
@@ -1388,8 +1387,6 @@ USAGE:
   corpus-digest show <source_id>
   corpus-digest events [--engine pinyin|wubi|nihongo]
   corpus-digest ingest <source_id> [--apply] [--rationale <text>] [--today YYYY-MM-DD]
-
-DESIGN: .claude/PLAN-corpus-digest.md
 
 INVARIANTS protected by ingest:
   I-1 polish > digested, always (polish rows never touched)

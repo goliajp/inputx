@@ -267,8 +267,7 @@ impl JapaneseEngine {
 }
 
 // SENTENCE_SUFFIXES / KANJI_SUFFIXES retired 2026-06-03 as Rust constants
-// per project policy `.claude/RANKING-MODEL-INVARIANTS.md` ("no special
-// lists in code"). Data lives in `tools/scoring/data/jp_sentence_
+// per project policy ("no special lists in code"). Data lives in `tools/scoring/data/jp_sentence_
 // suffixes_v1.tsv` and `jp_kanji_suffixes_v1.tsv`; both are parsed once
 // at first use via OnceLock and exposed through public accessors so the
 // composite-side carve-out (`crates/inputx-core/src/japanese/compose.rs`)

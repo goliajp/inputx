@@ -1,5 +1,5 @@
 //! `pinyin-build-ngrams-fsa` — pack the bigram/trigram TSVs into zero-dep
-//! inputx-fsa indexes (see .claude/PLAN-self-built-fsa.md B.4 / C1).
+//! inputx-fsa indexes.
 //!
 //! - bigrams + bigrams_intra → flat `Fsa` (`*.fsa`, key→count). bigram_boost
 //!   does a point `get(prev\0next)`, so flat keeps that O(keylen) and fast.

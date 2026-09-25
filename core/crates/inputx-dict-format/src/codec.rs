@@ -1,6 +1,6 @@
 //! IDFv1 binary layout — header / entry / flag types + LE codec helpers.
 //!
-//! Wire layout per `.claude/PLAN-dict-format-IDFv1.md`. Little-endian
+//! Little-endian
 //! throughout (x86_64 + arm64 are both LE; cross-platform safe).
 //! Alignment-strict: section boundaries are 8-byte aligned; `Entry` is
 //! exactly 16 bytes packed.
@@ -16,8 +16,7 @@ pub const HEADER_SIZE: usize = 64;
 /// Fixed per-entry size in bytes.
 pub const ENTRY_SIZE: usize = 16;
 
-/// Format version. v1 = the layout described in
-/// `.claude/PLAN-dict-format-IDFv1.md`. Future v2+ will live alongside
+/// Format version. v1 = the layout in this module. Future v2+ will live alongside
 /// via the `format_version` header byte; v1 readers MUST reject unknown
 /// versions with a clear error.
 #[repr(u8)]

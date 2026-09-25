@@ -5,7 +5,7 @@
 //! Self-contained, **zero external deps**: a hand-rolled compact JSON
 //! writer + a small panic-free recursive-descent parser live below. This
 //! replaces the former serde/serde_json dependency (Stage A of the
-//! zero-dep engine milestone, see `.claude/PLAN-self-built-fsa.md`). The
+//! zero-dep engine milestone). The
 //! inputx-wubi + inputx-pinyin crates already carry no serde; inputx-core now
 //! matches them.
 //!

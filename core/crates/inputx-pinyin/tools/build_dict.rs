@@ -1,6 +1,6 @@
 //! `pinyin-build-dict` — build `data/pinyin.dict` from
 //! `data/weights/weights.tsv`, the zero-dependency `inputx-fsa::Dict`
-//! replacement for `pinyin.fst` (see .claude/PLAN-self-built-fsa.md B.4).
+//! replacement for `pinyin.fst`.
 //!
 //! Identical entry selection to `pinyin-build-fst` (MIN_FREQ cutoff + MAX
 //! overlay semantics), but emits a two-level Dict (pinyin code → word list)

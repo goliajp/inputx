@@ -23,8 +23,8 @@ CONFIG="Debug"
 echo "[ios-device] regenerating Xcode project (xcodegen)"
 xcodegen generate --quiet
 
-# Cargo's effective target dir may be redirected by a global wrapper
-# (see ~/.claude-shared/global/cargo-target-dir.md). project.yml's
+# Cargo's effective target dir may be redirected by a global wrapper.
+# project.yml's
 # LIBRARY_SEARCH_PATHS expects core/target/<arch>/release/, so when
 # the redirect IS active, symlink core/target to the real target dir.
 # When NO redirect is active, cargo's real target already IS
