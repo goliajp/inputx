@@ -4219,6 +4219,16 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-26): "yifang 乙方 第二".
+    /// All three sat on natural tier 4 and modern_freq put 以防 ahead of
+    /// 乙方. Pair-boost keeps 一方 at #0 and moves 乙方 to #1.
+    #[test]
+    fn polish_yifang_order() {
+        let top10 = mixed_top10("yifang".as_bytes());
+        let head: Vec<&str> = top10.iter().take(2).map(String::as_str).collect();
+        assert_eq!(head, ["一方", "乙方"], "yifang: got top10={top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-26): "shouzhai 收债第一，收窄
     /// 第二，守斋频率应该很低，第三". All three sat on tier 4 at exactly
     /// 380000 (no modern_freq score for any of them), so codepoint order
