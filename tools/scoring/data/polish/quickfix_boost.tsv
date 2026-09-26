@@ -1381,3 +1381,5 @@ shouzhai	收债	60000	# user 2026-09-26: shouzhai 收债第一，收窄第二，
 shouzhai	收窄	50000
 yifang	一方	60000	# user 2026-09-26: yifang 乙方 第二. All three sit on natural tier 4 and modern_freq ordered them 一方 24723 > 以防 24127 > 乙方 21017. A single quickfix row would take #0, so pair-boost (qingjiao / chongshi precedent): 一方 keeps #0, 乙方 moves to #1, 以防 stays on tier 4.
 yifang	乙方	50000
+huafei	花费	60000	# user 2026-09-26: huafei 化肥 第三. 化肥 led on v2 tier 3 (cedict+hsk6, 434396) over 花费 / 话费 on tier 4. Demoting 化肥 to tier 4 alone would leave it second (modern_freq 24396 > 话费 23458), so pair-boost (qingjiao / yifang precedent) lifts 花费 / 话费 to tier 1 in v1-freq order (27100 > 25211); 化肥 stays on tier 3, third.
+huafei	话费	50000
