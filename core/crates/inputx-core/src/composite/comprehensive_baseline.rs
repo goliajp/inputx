@@ -4219,6 +4219,25 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-26): "shouzhai 收债第一，收窄
+    /// 第二，守斋频率应该很低，第三". All three sat on tier 4 at exactly
+    /// 380000 (no modern_freq score for any of them), so codepoint order
+    /// decided and 守斋 led. Pair-boost lifts 收债 / 收窄 to tier 1.
+    #[test]
+    fn polish_shouzhai_full_order() {
+        let top10 = mixed_top10("shouzhai".as_bytes());
+        let want = ["收债", "收窄", "守斋"];
+        let got: Vec<&str> = top10
+            .iter()
+            .filter(|w| want.contains(&w.as_str()))
+            .map(String::as_str)
+            .collect();
+        assert_eq!(
+            got, want,
+            "shouzhai: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-26): "jiami 加密第一".
     /// Both words sat on natural tier 4 and modern_freq put 甲醚 (403647)
     /// ahead of 加密 (402917). Single-row quickfix lifts 加密 to tier 1.
