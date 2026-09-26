@@ -4219,6 +4219,24 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-26): "jiami 加密第一".
+    /// Both words sat on natural tier 4 and modern_freq put 甲醚 (403647)
+    /// ahead of 加密 (402917). Single-row quickfix lifts 加密 to tier 1.
+    #[test]
+    fn polish_jiami_order() {
+        let top10 = mixed_top10("jiami".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("加密"),
+            "jiami: expected 加密 at #0; got top10={top10:?}"
+        );
+        let j = top10
+            .iter()
+            .position(|x| x == "甲醚")
+            .expect("甲醚 missing from jiami top10");
+        assert!(j > 0, "jiami: expected 甲醚 below 加密; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-26): "paizhao 拍照第一".
     /// Both words sat on natural tier 4 and modern_freq put 牌照 (403777)
     /// ahead of 拍照 (403471). Single-row quickfix lifts 拍照 to tier 1.
