@@ -4219,6 +4219,20 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-26): "huafei 化肥 第三".
+    /// 化肥 led on v2 tier 3 (hsk6) over 花费 / 话费 on tier 4. Pair-boost
+    /// lifts 花费 / 话费 to tier 1; 化肥 stays third.
+    #[test]
+    fn polish_huafei_order() {
+        let top10 = mixed_top10("huafei".as_bytes());
+        let head: Vec<&str> = top10.iter().take(3).map(String::as_str).collect();
+        assert_eq!(
+            head,
+            ["花费", "话费", "化肥"],
+            "huafei: got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-26): "yifang 乙方 第二".
     /// All three sat on natural tier 4 and modern_freq put 以防 ahead of
     /// 乙方. Pair-boost keeps 一方 at #0 and moves 乙方 to #1.
