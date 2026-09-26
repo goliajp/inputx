@@ -4219,6 +4219,24 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-26): "paizhao 拍照第一".
+    /// Both words sat on natural tier 4 and modern_freq put 牌照 (403777)
+    /// ahead of 拍照 (403471). Single-row quickfix lifts 拍照 to tier 1.
+    #[test]
+    fn polish_paizhao_order() {
+        let top10 = mixed_top10("paizhao".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("拍照"),
+            "paizhao: expected 拍照 at #0; got top10={top10:?}"
+        );
+        let p = top10
+            .iter()
+            .position(|x| x == "牌照")
+            .expect("牌照 missing from paizhao top10");
+        assert!(p > 0, "paizhao: expected 牌照 below 拍照; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-26): "qianfei 欠费第一".
     /// Both words sat on natural tier 4 and modern_freq put 迁飞 (401230)
     /// ahead of 欠费 (396086). Single-row quickfix lifts 欠费 to tier 1.
