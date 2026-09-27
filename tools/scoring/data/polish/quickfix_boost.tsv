@@ -1383,3 +1383,4 @@ yifang	一方	60000	# user 2026-09-26: yifang 乙方 第二. All three sit on na
 yifang	乙方	50000
 huafei	花费	60000	# user 2026-09-26: huafei 化肥 第三. 化肥 led on v2 tier 3 (cedict+hsk6, 434396) over 花费 / 话费 on tier 4. Demoting 化肥 to tier 4 alone would leave it second (modern_freq 24396 > 话费 23458), so pair-boost (qingjiao / yifang precedent) lifts 花费 / 话费 to tier 1 in v1-freq order (27100 > 25211); 化肥 stays on tier 3, third.
 huafei	话费	50000
+fangsheng	仿生	26585	# user 2026-09-27: fangsheng 仿生第一. All three sit on natural tier 4 (cedict-only, v2 words.tsv) and modern_freq ordered them 放声 24180 > 放生 21805 > 仿生 20218. Single-row quickfix -> tier 1. 仿生 has the lowest v1 library freq here (14256), so the value is the top peer 放生 24168 + 10%.
