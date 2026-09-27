@@ -4219,6 +4219,16 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-28): "jianbao 简报 剪报 前二".
+    /// All four sat on natural tier 4 and modern_freq put 见报 first.
+    /// Pair-boost lifts 简报 / 剪报 to tier 1 in that order.
+    #[test]
+    fn polish_jianbao_top2() {
+        let top10 = mixed_top10("jianbao".as_bytes());
+        let head: Vec<&str> = top10.iter().take(2).map(String::as_str).collect();
+        assert_eq!(head, ["简报", "剪报"], "jianbao: got top10={top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-28): "jianshu 简述 建树 键鼠
     /// 在前三". All eight words sat on natural tier 4; 键鼠 had no
     /// modern_freq score and came last. Cascade lock puts the three named

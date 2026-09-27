@@ -1387,3 +1387,5 @@ fangsheng	仿生	26585	# user 2026-09-27: fangsheng 仿生第一. All three sit 
 jianshu	简述	60000	# user 2026-09-28: jianshu 简述 建树 键鼠 在前三. All eight words sit on natural tier 4 and modern_freq put 剑术 first; 键鼠 has no modern_freq score and sat last (380000). Cascade lock (gongxing precedent, step 4000): the three named words go to tier 1 in the requested order; the other five keep their natural tier-4 order below.
 jianshu	建树	56000
 jianshu	键鼠	52000
+jianbao	简报	60000	# user 2026-09-28: jianbao 简报 剪报 前二. All four sit on natural tier 4 and modern_freq put 见报 first (见报 401305 > 简报 401117 > 剪报 400607; 煎包 has no modern_freq score). Pair-boost (qingjiao / yifang precedent) lifts 简报 / 剪报 to tier 1 in that order.
+jianbao	剪报	50000
