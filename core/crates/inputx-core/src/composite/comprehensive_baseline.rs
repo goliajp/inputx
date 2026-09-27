@@ -4219,6 +4219,21 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-28): "jianshu 简述 建树 键鼠
+    /// 在前三". All eight words sat on natural tier 4; 键鼠 had no
+    /// modern_freq score and came last. Cascade lock puts the three named
+    /// words on tier 1 in that order.
+    #[test]
+    fn polish_jianshu_top3() {
+        let top10 = mixed_top10("jianshu".as_bytes());
+        let head: Vec<&str> = top10.iter().take(3).map(String::as_str).collect();
+        assert_eq!(
+            head,
+            ["简述", "建树", "键鼠"],
+            "jianshu: got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-27): "fangsheng 仿生第一".
     /// All three sat on natural tier 4 and modern_freq put 仿生 last.
     /// Single-row quickfix lifts 仿生 to tier 1.
