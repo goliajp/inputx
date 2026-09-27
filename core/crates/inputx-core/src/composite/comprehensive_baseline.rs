@@ -4219,6 +4219,19 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-27): "fangsheng 仿生第一".
+    /// All three sat on natural tier 4 and modern_freq put 仿生 last.
+    /// Single-row quickfix lifts 仿生 to tier 1.
+    #[test]
+    fn polish_fangsheng_order() {
+        let top10 = mixed_top10("fangsheng".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("仿生"),
+            "fangsheng: expected 仿生 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-26): "huafei 化肥 第三".
     /// 化肥 led on v2 tier 3 (hsk6) over 花费 / 话费 on tier 4. Pair-boost
     /// lifts 花费 / 话费 to tier 1; 化肥 stays third.
