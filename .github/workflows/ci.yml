@@ -41,9 +41,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             core/target
+          # No prefix fallback: an exact hit is never re-saved, so a fallback
+          # would carry stale profile dirs into every later cache.
           key: ${{ runner.os }}-cargo-${{ hashFiles('core/Cargo.lock', 'core/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
 
       # Fast formatting gate — fails before the slow compile if any Rust
       # source isn't rustfmt-clean. The hand-grouped syllable table is
