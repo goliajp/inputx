@@ -4219,6 +4219,16 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-28): "shigu 世故第二".
+    /// 事故 leads on tier 3; 世故 sat third behind 尸骨 on tier 4.
+    /// Pair-boost keeps 事故 at #0 and moves 世故 to #1.
+    #[test]
+    fn polish_shigu_order() {
+        let top10 = mixed_top10("shigu".as_bytes());
+        let head: Vec<&str> = top10.iter().take(2).map(String::as_str).collect();
+        assert_eq!(head, ["事故", "世故"], "shigu: got top10={top10:?}");
+    }
+
     /// Class A polish (user report 2026-09-28): "bianju 边距，放第二".
     /// 边距 was absent from every surface. Added to modern_vocab_v1, and a
     /// pair-boost keeps 编剧 at #0 with 边距 right after it.

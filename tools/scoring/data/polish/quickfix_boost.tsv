@@ -1391,3 +1391,5 @@ jianbao	简报	60000	# user 2026-09-28: jianbao 简报 剪报 前二. All four s
 jianbao	剪报	50000
 bianju	编剧	60000	# user 2026-09-28: bianju 边距，放第二. 边距 was absent from every surface; added to modern_vocab_v1 at 15000 (tier 4), where it would still sit below 变局 (399265) with no modern_freq score. Pair-boost (qingjiao / yifang precedent) keeps 编剧 at #0 and puts 边距 at #1.
 bianju	边距	50000
+shigu	事故	60000	# user 2026-09-28: shigu 世故第二. 事故 leads on v2 tier 3 (hsk6); 世故 sat third on tier 4 behind 尸骨 (403358 > 401815 on modern_freq). A single row would take #0, so pair-boost (qingjiao / yifang precedent): 事故 keeps #0, 世故 moves to #1.
+shigu	世故	50000
