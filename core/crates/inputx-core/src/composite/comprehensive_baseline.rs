@@ -4219,6 +4219,24 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-28): "fenhong 粉红第一".
+    /// 分红 led on v2 tier 3 (hsk6) over 粉红 on tier 4. Single-row
+    /// quickfix lifts 粉红 to tier 1.
+    #[test]
+    fn polish_fenhong_order() {
+        let top10 = mixed_top10("fenhong".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("粉红"),
+            "fenhong: expected 粉红 at #0; got top10={top10:?}"
+        );
+        let f = top10
+            .iter()
+            .position(|x| x == "分红")
+            .expect("分红 missing from fenhong top10");
+        assert!(f > 0, "fenhong: expected 分红 below 粉红; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.
