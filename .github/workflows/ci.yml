@@ -68,12 +68,11 @@ jobs:
       # tests + the gold MIU baseline check: gold Top-K must stay within
       # ±2pp of tools/eval/results/baseline.json, else fail (an intentional
       # engine change must refresh the committed baseline). Gold-only —
-      # silver_full.tsv is gitignored and absent in CI. Debug (not
-      # --release): the workspace release profile's panic="abort" is
-      # incompatible with the integration-test harness.
+      # silver_full.tsv is gitignored and absent in CI. Release shares the
+      # dependency builds of the baseline step (cargo compiles tests with
+      # panic=unwind whatever the profile says).
       - name: MIU eval baseline gate
-        run: cargo test -p inputx-eval-runner --features eval
-        working-directory: core
+        run: make eval
 
       # Produce libinputx_core.a (staticlib) + regenerate core/include/
       # inputx_core.h via the inputx-core-ffi build.rs / cbindgen, so the
