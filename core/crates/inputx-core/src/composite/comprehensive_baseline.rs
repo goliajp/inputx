@@ -4249,6 +4249,22 @@ mod tests {
         assert!(f > 0, "fenhong: expected 分红 below 粉红; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-28): "chongfang 重放第一".
+    /// 重访 led on v2 modern_freq; single-row quickfix lifts 重放 to tier 1.
+    #[test]
+    fn polish_chongfang_order() {
+        let top10 = mixed_top10("chongfang".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("重放"),
+            "chongfang: expected 重放 at #0; got top10={top10:?}"
+        );
+        assert!(
+            top10.iter().any(|w| w == "重访"),
+            "chongfang: expected 重访 kept in top10; got {top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.
