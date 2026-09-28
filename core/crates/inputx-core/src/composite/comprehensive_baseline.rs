@@ -4265,6 +4265,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-28): "chouchu 抽搐第一，然后踌躇".
+    /// 踌躇 led on v2 tier 3; pair-boost puts 抽搐 then 踌躇 on tier 1.
+    #[test]
+    fn polish_chouchu_order() {
+        let top10 = mixed_top10("chouchu".as_bytes());
+        assert_eq!(
+            top10.get(..2),
+            Some(&["抽搐".to_string(), "踌躇".to_string()][..]),
+            "chouchu: expected [抽搐, 踌躇] first; got {top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.
