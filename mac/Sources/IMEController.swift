@@ -93,6 +93,12 @@ final class InputxController: IMKInputController {
             name: .inputxDictReloaded,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleWillTerminate),
+            name: .inputxWillTerminate,
+            object: nil
+        )
     }
 
     deinit {
@@ -115,6 +121,23 @@ final class InputxController: IMKInputController {
         // eat the FST re-walk cost. Warmup is a session method; if it
         // ever fails we still just take the cost on next keystroke.
         session.warmup()
+    }
+
+    @objc private func handleWillTerminate() {
+        let sender = client()
+        session.clear()
+        candidatePanel.hide()
+        // The marked-text cache can be stale here; clear unconditionally.
+        lastPreeditSent = ""
+        clearMarkedText(client: sender)
+        shiftDetector.reset()
+        inputxL0Storage.save(from: session)
+        // setMarkedText is a one-way message; a call that returns a value
+        // on the same connection comes back only after the client has
+        // processed it, so the clear is delivered before the process exits.
+        if let textClient = sender as? IMKTextInput {
+            _ = textClient.markedRange()
+        }
     }
 
     // MARK: - IMKit overrides ------------------------------------------------

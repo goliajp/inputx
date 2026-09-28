@@ -98,6 +98,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// isn't dropped after `applicationDidFinishLaunching` returns —
     /// DispatchSourceSignal fires only while the source is alive.
     private var reloadSignalSource: DispatchSourceSignal?
+    private var terminateSignalSource: DispatchSourceSignal?
 
     func applicationDidFinishLaunching(_ note: Notification) {
         // Pin process-global rare-CJK toggle so spawned InputxController
@@ -139,6 +140,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         src.resume()
         self.reloadSignalSource = src
+
+        // Replacing the bundle ends this process with SIGTERM. Close every
+        // open composition first: a host app left with marked text from a
+        // dead server stops accepting input until it is relaunched.
+        signal(SIGTERM, SIG_IGN)
+        let term = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        term.setEventHandler {
+            NSLog("Inputx SIGTERM → closing compositions and exiting")
+            NotificationCenter.default.post(name: .inputxWillTerminate, object: nil)
+            exit(0)
+        }
+        term.resume()
+        self.terminateSignalSource = term
         // Settings entry point: click the active input source in the macOS
         // menu bar (the "Inputx Wubi" item next to the keyboard layout
         // icon). `InputxController.menu()` hosts every toggle / radio /

@@ -456,6 +456,18 @@ def stop_running_ime() -> None:
     if LA_DST.exists():
         log(f"removing legacy LaunchAgent plist {LA_DST.name}")
         LA_DST.unlink()
+    # SIGTERM first: the binary closes every open composition before it
+    # exits. A SIGKILL mid-composition leaves the host app holding marked
+    # text from a dead server, and that app types nothing until relaunched.
+    subprocess.run(
+        ["pkill", "-TERM", "-f", PROCESS_PATTERN],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+    )
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline and subprocess.run(
+        ["pgrep", "-f", PROCESS_PATTERN], stdout=subprocess.DEVNULL, check=False,
+    ).returncode == 0:
+        time.sleep(0.1)
     subprocess.run(
         ["pkill", "-9", "-f", PROCESS_PATTERN],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
