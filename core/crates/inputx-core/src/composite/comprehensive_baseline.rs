@@ -4219,6 +4219,18 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class A polish (user report 2026-09-28): "huoxiang 货箱".
+    /// 货箱 was absent from every v2 surface; added to modern_vocab_v1 at
+    /// 15000 (tier 4). It sits below 活像 / 藿香, matching v1 library freq.
+    #[test]
+    fn polish_huoxiang_has_huoxiang() {
+        let top10 = mixed_top10("huoxiang".as_bytes());
+        assert!(
+            top10.iter().any(|w| w == "货箱"),
+            "huoxiang: expected 货箱 in top10; got {top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "fenhong 粉红第一".
     /// 分红 led on v2 tier 3 (hsk6) over 粉红 on tier 4. Single-row
     /// quickfix lifts 粉红 to tier 1.
