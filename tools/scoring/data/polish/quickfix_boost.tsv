@@ -1396,3 +1396,5 @@ shigu	世故	50000
 huabu	画布	16360	# user 2026-09-28: huabu 画布第一. Both words sit on natural tier 4 (cedict-only, v2 words.tsv), so modern_freq alone decided and 花布 (402157) edged 画布 (401034). 画布 leads on v1 library freq (16360 > 16287). Single-row quickfix -> tier 1 (yuebing / qianfei / jiami precedent); boost value = 画布 v1 library freq.
 fenhong	粉红	28446	# user 2026-09-28: fenhong 粉红第一. 分红 leads on v2 tier 3 (cedict+hsk6, 433362); 粉红 sits on tier 4 (403275). 粉红 is the everyday word and leads on v1 library freq (28446 > 16125). Single-row quickfix -> tier 1 (yinyuan / huabu precedent); boost value = 粉红 v1 library freq.
 chongfang	重放	13065	# user 2026-09-28: chongfang 重放第一. 重访 leads on v2 modern_freq (394411 vs 380000). 重放 leads on v1 library freq (13065 > 4804). Single-row quickfix -> tier 1 (huabu / fenhong precedent); boost value = 重放 v1 library freq.
+chouchu	抽搐	60000	# user 2026-09-28: chouchu 抽搐第一，然后踌躇. 踌躇 led on v2 tier 3 (434135), 抽出 (404434) and 抽搐 (403644) on tier 4. Fixed order for the top two -> pair-boost 60000/50000 (qingjiao / chongshi precedent).
+chouchu	踌躇	50000	# pair with the row above: 踌躇 second
