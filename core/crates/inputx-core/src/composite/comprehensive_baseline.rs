@@ -4277,6 +4277,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-28): "qianzhi 前置第一 潜质 牵制
+    /// 钳制 前肢 这样的顺序才对". 牵制 led on v2 tier 3; full-order cascade
+    /// puts all five on tier 1.
+    #[test]
+    fn polish_qianzhi_full_order() {
+        let top10 = mixed_top10("qianzhi".as_bytes());
+        let want = ["前置", "潜质", "牵制", "钳制", "前肢"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "qianzhi: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.
