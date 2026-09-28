@@ -386,11 +386,13 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
             }
         }
 
-        // Word prefix matches — iterate words.tsv, filter by starts_with.
-        // Hold the Arc<Vec<WordEntry>> for the scope so the refs collected
-        // into prefix_words stay valid; polish hot-reload can swap the
-        // words payload between requests but not mid-request.
-        let words_prefix_arc = data::words();
+        // Word prefix matches: the words whose code starts with the buffer
+        // form one contiguous run of the code-sorted index. Hold the index
+        // Arc for the scope so the refs collected into prefix_words stay
+        // valid; polish hot-reload can swap it between requests but not
+        // mid-request.
+        let sorted = code_sorted_index();
+        let (words_prefix_arc, by_code) = (&sorted.0, &sorted.1);
         let excl_arc = data::exclusions();
         // Ordering rule for the word prefix band (Phase 7d, 2026-08-05).
         // User report: "fangdic ... 仍然应该是房地产在前，没到底 4 字还在
@@ -421,27 +423,26 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
         // rather than twice per comparison. Keeps the path inside the
         // one-frame budget the perfgate test enforces.
         let modern_for_sort = data::modern_freq();
-        let mut prefix_words: Vec<(usize, u8, std::cmp::Reverse<u16>, usize, &str, &str)> =
-            words_prefix_arc
-                .iter()
-                .filter(|w| w.code.starts_with(buffer) && w.code.as_str() != buffer)
-                .filter(|w| !seen.contains(&w.word))
-                .filter(|w| !excl_arc.contains(&(buf_owned.clone(), w.word.clone())))
-                // Also honor exclusion against the word's OWN code — so a
-                // D1 like (yidalimian, 义大利面) blocks the prefix-completion
-                // surfacing too (yidal → ... → 义大利面 from yidalimian).
-                .filter(|w| !excl_arc.contains(&(w.code.clone(), w.word.clone())))
-                .map(|w| {
-                    (
-                        w.word.chars().count(),
-                        w.tier,
-                        std::cmp::Reverse(modern_for_sort.get(&w.word).copied().unwrap_or(0)),
-                        w.code.len(),
-                        w.code.as_str(),
-                        w.word.as_str(),
-                    )
-                })
-                .collect();
+        let run_start =
+            by_code.partition_point(|&i| words_prefix_arc[i as usize].code.as_str() < buffer);
+        let mut prefix_words: Vec<(usize, u8, std::cmp::Reverse<u16>, usize, &str, &str)> = by_code
+            [run_start..]
+            .iter()
+            .map(|&i| &words_prefix_arc[i as usize])
+            .take_while(|w| w.code.starts_with(buffer))
+            .filter(|w| w.code.as_str() != buffer)
+            .filter(|w| !seen.contains(&w.word))
+            .map(|w| {
+                (
+                    w.word.chars().count(),
+                    w.tier,
+                    std::cmp::Reverse(modern_for_sort.get(&w.word).copied().unwrap_or(0)),
+                    w.code.len(),
+                    w.code.as_str(),
+                    w.word.as_str(),
+                )
+            })
+            .collect();
         prefix_words.sort_unstable();
         // Single band for the whole word prefix-completion class: tier 7
         // ("specialty — prefix predictions" in the canonical tier table;
@@ -467,8 +468,23 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
         // just has to preserve it. Step 1000 keeps the band inside a 30k
         // window (PREFIX_CAP = 30), narrow enough that it stays in the same
         // neighbourhood as the char prefix bands it shares tier 7 with.
+        // Exclusions are checked after the sort, on the rows actually
+        // reached: an excluded row takes no slot, exactly as if it had been
+        // filtered out before sorting. Both the buffer and the word's own
+        // code count, so a D1 like (yidalimian, 义大利面) also stays out of
+        // yidal's completions.
         let word_cap = PREFIX_CAP.saturating_sub(prefix_added);
-        for (.., word) in prefix_words.iter().take(word_cap) {
+        let mut word_slots = 0;
+        for (.., code, word) in prefix_words.iter() {
+            if word_slots == word_cap {
+                break;
+            }
+            if excl_arc.contains(&(buf_owned.clone(), (*word).to_owned()))
+                || excl_arc.contains(&((*code).to_owned(), (*word).to_owned()))
+            {
+                continue;
+            }
+            word_slots += 1;
             if !seen.insert((*word).to_owned()) {
                 continue;
             }
@@ -881,6 +897,25 @@ fn bare_letter_form(reading: &str) -> String {
         out.push(stripped);
     }
     out
+}
+
+/// `data::words()` together with its indices sorted by code, so every
+/// prefix of a code maps to one contiguous run. The words Arc travels with
+/// the indices: both always come from the same polish data version.
+type CodeSortedIndex = (std::sync::Arc<Vec<data::WordEntry>>, Vec<u32>);
+
+fn code_sorted_index() -> std::sync::Arc<CodeSortedIndex> {
+    use std::sync::Arc;
+    static CACHED: OnceLock<arc_swap::ArcSwap<(u64, Arc<CodeSortedIndex>)>> = OnceLock::new();
+    let slot = CACHED.get_or_init(|| {
+        arc_swap::ArcSwap::from_pointee((u64::MAX, Arc::new((Arc::new(Vec::new()), Vec::new()))))
+    });
+    data::versioned_cache(slot, || {
+        let words = data::words();
+        let mut by_code: Vec<u32> = (0..words.len() as u32).collect();
+        by_code.sort_by(|&a, &b| words[a as usize].code.cmp(&words[b as usize].code));
+        (words, by_code)
+    })
 }
 
 /// Version-guarded index: `code` → owned [`WordEntry`] rows. Rebuilds
