@@ -352,10 +352,16 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
                 } else {
                     b.1.hsk_level
                 };
+                // reading and char close the order: char_index is a HashMap,
+                // so without them ties keep its per-process iteration order and
+                // both the selected chars and the reading a char scores under
+                // change from one launch to the next.
                 a.1.char_tier
                     .cmp(&b.1.char_tier)
                     .then_with(|| a_hsk.cmp(&b_hsk))
                     .then_with(|| (!a.1.is_primary).cmp(&!b.1.is_primary))
+                    .then_with(|| a.0.cmp(b.0))
+                    .then_with(|| a.1.ch.cmp(&b.1.ch))
             });
             // Bias: take half of cap for chars first.
             let half = PREFIX_CAP / 2;
@@ -501,10 +507,16 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
             } else {
                 b.1.hsk_level
             };
+            // reading and char close the order: char_index is a HashMap,
+            // so without them ties keep its per-process iteration order and
+            // both the selected chars and the reading a char scores under
+            // change from one launch to the next.
             a.1.char_tier
                 .cmp(&b.1.char_tier)
                 .then_with(|| a_hsk.cmp(&b_hsk))
                 .then_with(|| (!a.1.is_primary).cmp(&!b.1.is_primary))
+                .then_with(|| a.0.cmp(b.0))
+                .then_with(|| a.1.ch.cmp(&b.1.ch))
         });
         let remaining = PREFIX_CAP.saturating_sub(prefix_added);
         for (_, ce) in prefix_chars.iter().take(remaining) {
