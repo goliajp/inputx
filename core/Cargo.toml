@@ -73,3 +73,10 @@ lto = "off"
 codegen-units = 1
 strip = "symbols"
 panic = "abort"
+
+# Test gates (make baseline / make eval, CI). Release codegen, but split
+# into many codegen units: with one unit the inputx-core test target
+# compiles on a single core. Shipping builds keep using `release`.
+[profile.gate]
+inherits = "release"
+codegen-units = 16

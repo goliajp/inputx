@@ -83,15 +83,15 @@ polish-rebuild:
 # comprehensive_baseline modules. Floors are the passed-test counts the gate
 # must reach; see scripts/cargo-test-gate.sh.
 baseline:
-	cd core && ../scripts/cargo-test-gate.sh 21 -p inputx-scoring --lib --release
-	cd core && ../scripts/cargo-test-gate.sh 522 -p inputx-core --lib --release
+	cd core && ../scripts/cargo-test-gate.sh 21 -p inputx-scoring --lib --profile gate
+	cd core && ../scripts/cargo-test-gate.sh 522 -p inputx-core --lib --profile gate
 
 # Phase-0 MIU eval gate (CP-0.7): regression-alarm unit tests + gold MIU
-# within ±2pp of tools/eval/results/baseline.json. Release: cargo builds
-# tests with panic=unwind regardless of the profile, and the gold run is
-# several times faster optimized.
+# within ±2pp of tools/eval/results/baseline.json. Optimized (gate
+# profile): cargo builds tests with panic=unwind regardless of the profile,
+# and the gold run is several times faster optimized.
 eval:
-	cd core && ../scripts/cargo-test-gate.sh 8 -p inputx-eval-runner --features eval --release
+	cd core && ../scripts/cargo-test-gate.sh 8 -p inputx-eval-runner --features eval --profile gate
 
 # Re-run the build chain and compare the resulting .idf SHAs against
 # the committed bytes. Detects "I forgot to commit the regenerated
