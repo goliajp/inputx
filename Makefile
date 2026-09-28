@@ -39,6 +39,9 @@ purge-stray-ls:
 reinstall:
 	@python3 mac/reinstall.py
 
+# Release binaries, relative to core/.
+RELEASE_BIN := $(or $(CARGO_TARGET_DIR),target)/release
+
 # Full polish-rebuild chain. Steps in order:
 #   1. Regenerate weights.tsv from corpus + overlays (pinyin + wubi).
 #   2. Rebuild pinyin.dict from new weights.tsv (with quickfix /
@@ -57,14 +60,21 @@ polish-rebuild:
 	@# tool's job (TBD), not this target.
 	cd core && cargo run --features tools --release --bin pinyin-build-dict
 	@echo "[polish] (2/3) rebuild .idf snapshots"
-	cd core && cargo run --release --bin idf-from-pinyin-dict
-	cd core && cargo run --release --bin idf-from-wubi-tables
-	cd core && cargo run --release --bin idf-from-nihongo-kanji
-	cd core && cargo run --release --bin idf-from-nihongo-jukugo
+	@# The idf bins live in inputx-core and each one rewrites a file that
+	@# inputx-core embeds, so `cargo run`ning them in turn rebuilt
+	@# inputx-core before every step. Build them once, after pinyin.dict is
+	@# final, and run the binaries directly; none of them reads another
+	@# one's output.
+	cd core && cargo build --release --bin idf-from-pinyin-dict --bin idf-from-wubi-tables \
+		--bin idf-from-nihongo-kanji --bin idf-from-nihongo-jukugo --bin wubi-emit-dict
+	cd core && $(RELEASE_BIN)/idf-from-pinyin-dict
+	cd core && $(RELEASE_BIN)/idf-from-wubi-tables
+	cd core && $(RELEASE_BIN)/idf-from-nihongo-kanji
+	cd core && $(RELEASE_BIN)/idf-from-nihongo-jukugo
 	@# v1.17: re-emit the compiled wubi FST to a shippable file. build.rs
 	@# leaves it in OUT_DIR, which reinstall.py has no way to copy — that
 	@# is why a wubi polish used to need a full reinstall.
-	cd core && cargo run --release --bin wubi-emit-dict -- crates/inputx-wubi-data/data/wubi86.dict
+	cd core && $(RELEASE_BIN)/wubi-emit-dict crates/inputx-wubi-data/data/wubi86.dict
 	@echo "[polish] (3/3) baseline gate"
 	$(MAKE) baseline
 	@echo "[polish] ✓ rebuild complete + baseline green"
