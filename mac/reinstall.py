@@ -1646,7 +1646,7 @@ def _record_install_sha() -> None:
         log(f"warn: couldn't record install sha: {e}")
 
 
-def do_hot_reload_data() -> None:
+def do_hot_reload_data(*, skip_rebuild: bool = False) -> None:
     """v1.15 hot-reload fast path.
 
     Regenerate pinyin.dict + words.idf (polish-rebuild), atomically
@@ -1668,13 +1668,19 @@ def do_hot_reload_data() -> None:
         die(f"{data_dir} missing — bundle predates Phase B (v1.15). "
             "Run a full `mac/reinstall.py` to install a Phase-B bundle first.")
 
-    log("(1/4) polish-rebuild — regenerate pinyin.dict + words.idf")
     project_root = PROJECT_ROOT
-    subprocess.run(
-        ["make", "polish-rebuild"],
-        cwd=str(project_root),
-        check=True,
-    )
+    if skip_rebuild:
+        # The caller already ran `make polish-rebuild` (the /polish flow
+        # does it right before deploying); running it again repeats the
+        # dict build and the whole baseline gate.
+        log("(1/4) polish-rebuild skipped (--skip-rebuild)")
+    else:
+        log("(1/4) polish-rebuild — regenerate pinyin.dict + words.idf")
+        subprocess.run(
+            ["make", "polish-rebuild"],
+            cwd=str(PROJECT_ROOT),
+            check=True,
+        )
 
     log("(2/4) atomic swap of Contents/Resources/data/")
     sources = {
@@ -1806,6 +1812,11 @@ def main() -> None:
                         help="Disable the auto data-only branch; always run "
                              "the full reinstall + pkill flow (fallback if a "
                              "hot-reload flow breaks in production)")
+    parser.add_argument("--skip-rebuild", action="store_true",
+                        help="Hot-reload path only: ship the data files as they "
+                             "are in the workspace instead of running "
+                             "`make polish-rebuild` first (use right after a "
+                             "polish-rebuild)")
     parser.add_argument("--rehearse", action="store_true",
                         help="Print the auto-detected scope + polish-rebuild "
                              "target files then exit — no SIGUSR1, no swap")
@@ -1816,7 +1827,7 @@ def main() -> None:
         return
 
     if args.force_hot_reload:
-        do_hot_reload_data()
+        do_hot_reload_data(skip_rebuild=args.skip_rebuild)
         _record_install_sha()
         return
 
@@ -1829,7 +1840,7 @@ def main() -> None:
         return
     if scope == "data-only" and APP_DST.exists() and not args.no_hot_reload:
         log("→ data-only fast path (hot-reload; user's typing sessions stay alive)")
-        do_hot_reload_data()
+        do_hot_reload_data(skip_rebuild=args.skip_rebuild)
         _record_install_sha()
         return
 
