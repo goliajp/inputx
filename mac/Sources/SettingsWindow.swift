@@ -297,4 +297,11 @@ extension Notification.Name {
     /// observes it and calls `session.reloadEngineData(from:)` so
     /// active preedit stays alive across a polish round.
     static let inputxDictReloaded = Notification.Name("InputxDictReloaded")
+
+    /// Posted by the AppDelegate SIGTERM handler right before the process
+    /// exits (`reinstall.py` replacing the bundle). Every live
+    /// `InputxController` ends its composition the way `deactivateServer`
+    /// does, so no host app is left holding marked text owned by a dead
+    /// server — which leaves that app unable to type until it relaunches.
+    static let inputxWillTerminate = Notification.Name("InputxWillTerminate")
 }
