@@ -1398,3 +1398,8 @@ fenhong	粉红	28446	# user 2026-09-28: fenhong 粉红第一. 分红 leads on v2
 chongfang	重放	13065	# user 2026-09-28: chongfang 重放第一. 重访 leads on v2 modern_freq (394411 vs 380000). 重放 leads on v1 library freq (13065 > 4804). Single-row quickfix -> tier 1 (huabu / fenhong precedent); boost value = 重放 v1 library freq.
 chouchu	抽搐	60000	# user 2026-09-28: chouchu 抽搐第一，然后踌躇. 踌躇 led on v2 tier 3 (434135), 抽出 (404434) and 抽搐 (403644) on tier 4. Fixed order for the top two -> pair-boost 60000/50000 (qingjiao / chongshi precedent).
 chouchu	踌躇	50000	# pair with the row above: 踌躇 second
+qianzhi	前置	60000	# user 2026-09-28: qianzhi 前置第一 潜质 牵制 钳制 前肢 这样的顺序才对. 牵制 led on v2 tier 3 (434142); 前肢 402957 > 潜质 402067 > 前置 401907 > 钳制 401685 on tier 4 by modern_freq. Full-order cascade lock (gongxing precedent): all five -> tier 1, step 4000.
+qianzhi	潜质	56000
+qianzhi	牵制	52000
+qianzhi	钳制	48000
+qianzhi	前肢	44000
