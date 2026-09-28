@@ -69,19 +69,19 @@ polish-rebuild:
 	$(MAKE) baseline
 	@echo "[polish] ✓ rebuild complete + baseline green"
 
+# The inputx-core lib run includes the baseline_quality_test and
+# comprehensive_baseline modules. Floors are the passed-test counts the gate
+# must reach; see scripts/cargo-test-gate.sh.
 baseline:
-	cd core && cargo test -p inputx-scoring --lib --release 2>&1 | tail -3
-	cd core && cargo test -p inputx-core --lib baseline --release 2>&1 | tail -3 | tee /tmp/baseline-out
-	@grep -q "test result: ok" /tmp/baseline-out || (echo "[baseline] FAIL — see output above" && exit 1)
-	cd core && cargo test -p inputx-core --lib --release 2>&1 | tail -3 | tee /tmp/lib-out
-	@grep -q "test result: ok" /tmp/lib-out || (echo "[baseline] lib FAIL — see output above" && exit 1)
+	cd core && ../scripts/cargo-test-gate.sh 21 -p inputx-scoring --lib --release
+	cd core && ../scripts/cargo-test-gate.sh 522 -p inputx-core --lib --release
 
 # Phase-0 MIU eval gate (CP-0.7): regression-alarm unit tests + gold MIU
-# within ±2pp of tools/eval/results/baseline.json. Debug (not --release):
-# the release profile's panic="abort" breaks the integration-test harness.
+# within ±2pp of tools/eval/results/baseline.json. Release: cargo builds
+# tests with panic=unwind regardless of the profile, and the gold run is
+# several times faster optimized.
 eval:
-	cd core && cargo test -p inputx-eval-runner --features eval 2>&1 | tail -6 | tee /tmp/eval-out
-	@grep -q "test result: ok" /tmp/eval-out || (echo "[eval] FAIL — see output above" && exit 1)
+	cd core && ../scripts/cargo-test-gate.sh 8 -p inputx-eval-runner --features eval --release
 
 # Re-run the build chain and compare the resulting .idf SHAs against
 # the committed bytes. Detects "I forgot to commit the regenerated
