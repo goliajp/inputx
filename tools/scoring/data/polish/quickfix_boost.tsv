@@ -1389,3 +1389,5 @@ jianshu	建树	56000
 jianshu	键鼠	52000
 jianbao	简报	60000	# user 2026-09-28: jianbao 简报 剪报 前二. All four sit on natural tier 4 and modern_freq put 见报 first (见报 401305 > 简报 401117 > 剪报 400607; 煎包 has no modern_freq score). Pair-boost (qingjiao / yifang precedent) lifts 简报 / 剪报 to tier 1 in that order.
 jianbao	剪报	50000
+bianju	编剧	60000	# user 2026-09-28: bianju 边距，放第二. 边距 was absent from every surface; added to modern_vocab_v1 at 15000 (tier 4), where it would still sit below 变局 (399265) with no modern_freq score. Pair-boost (qingjiao / yifang precedent) keeps 编剧 at #0 and puts 边距 at #1.
+bianju	边距	50000

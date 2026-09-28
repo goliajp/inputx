@@ -4219,6 +4219,16 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class A polish (user report 2026-09-28): "bianju 边距，放第二".
+    /// 边距 was absent from every surface. Added to modern_vocab_v1, and a
+    /// pair-boost keeps 编剧 at #0 with 边距 right after it.
+    #[test]
+    fn polish_bianju_bianju_second() {
+        let top10 = mixed_top10("bianju".as_bytes());
+        let head: Vec<&str> = top10.iter().take(2).map(String::as_str).collect();
+        assert_eq!(head, ["编剧", "边距"], "bianju: got top10={top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-28): "jianbao 简报 剪报 前二".
     /// All four sat on natural tier 4 and modern_freq put 见报 first.
     /// Pair-boost lifts 简报 / 剪报 to tier 1 in that order.
