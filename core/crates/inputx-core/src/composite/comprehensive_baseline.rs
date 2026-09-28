@@ -4219,6 +4219,24 @@ mod tests {
         assert!(t > 0, "tidu: expected 提督 below 梯度; got {top10:?}");
     }
 
+    /// Class B polish (user report 2026-09-28): "huabu 画布第一".
+    /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
+    /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.
+    #[test]
+    fn polish_huabu_order() {
+        let top10 = mixed_top10("huabu".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("画布"),
+            "huabu: expected 画布 at #0; got top10={top10:?}"
+        );
+        let h = top10
+            .iter()
+            .position(|x| x == "花布")
+            .expect("花布 missing from huabu top10");
+        assert!(h > 0, "huabu: expected 花布 below 画布; got {top10:?}");
+    }
+
     /// Class B polish (user report 2026-09-28): "shigu 世故第二".
     /// 事故 leads on tier 3; 世故 sat third behind 尸骨 on tier 4.
     /// Pair-boost keeps 事故 at #0 and moves 世故 to #1.
