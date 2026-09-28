@@ -1393,3 +1393,4 @@ bianju	编剧	60000	# user 2026-09-28: bianju 边距，放第二. 边距 was abs
 bianju	边距	50000
 shigu	事故	60000	# user 2026-09-28: shigu 世故第二. 事故 leads on v2 tier 3 (hsk6); 世故 sat third on tier 4 behind 尸骨 (403358 > 401815 on modern_freq). A single row would take #0, so pair-boost (qingjiao / yifang precedent): 事故 keeps #0, 世故 moves to #1.
 shigu	世故	50000
+huabu	画布	16360	# user 2026-09-28: huabu 画布第一. Both words sit on natural tier 4 (cedict-only, v2 words.tsv), so modern_freq alone decided and 花布 (402157) edged 画布 (401034). 画布 leads on v1 library freq (16360 > 16287). Single-row quickfix -> tier 1 (yuebing / qianfei / jiami precedent); boost value = 画布 v1 library freq.
