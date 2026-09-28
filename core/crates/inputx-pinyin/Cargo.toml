@@ -23,7 +23,7 @@ exclude = [
 ]
 
 [lib]
-crate-type = ["rlib", "cdylib", "staticlib"]
+crate-type = ["rlib"]
 
 [dependencies]
 # Self-built zero-dependency index — fully replaces fst on the pinyin read
