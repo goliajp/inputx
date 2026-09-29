@@ -4294,6 +4294,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-29): "jizhi 极致 机智 机制 基质 ...".
+    /// Older quickfix rows put 机制 first; full-order cascade replaces them.
+    #[test]
+    fn polish_jizhi_full_order() {
+        let top10 = mixed_top10("jizhi".as_bytes());
+        let want = ["极致", "机智", "机制", "基质"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "jizhi: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.

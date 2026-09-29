@@ -7,7 +7,6 @@ jixu	继续	74652	# n=6 base=44652 peer=28032
 youshi	优势	75000	# n=5 base=50000 peer=38542
 rongyu	冗余	50000	# n=5 base=16889 peer=33654
 dan	单	61782	# n=4 base=41782 peer=52646
-jizhi	极致	45000	# n=4 base=23713 peer=32501
 bushu	部署	53133	# n=4 base=33133 peer=35000
 yuming	域名	45000	# n=4 base=22550 peer=23014
 shiye	视野	48177	# n=4 base=28177 peer=37292
@@ -305,7 +304,6 @@ lunbi	伦比	30000
 # RETIRED-r10-bad-order paichu	派出	50000
 # RETIRED-conflict zhuti	主体	55000
 jiwei	纪委	55000
-jizhi	机制	55000
 # RETIRED-r10-bad-order tongbao	通报	55000
 # RETIRED-conflict qingjie	清洁	50000
 tongyi	统一	55000
@@ -1404,3 +1402,7 @@ qianzhi	牵制	52000
 qianzhi	钳制	48000
 qianzhi	前肢	44000
 huoxiang	货箱	22153	# user 2026-09-29: huoxiang 货箱第一. 活像 (402485) and 藿香 (399638) led on v2 modern_freq; 货箱 sat at 380000 (modern_vocab add, 2026-09-28). 货箱 has the lowest v1 library freq of the three (11278), so boost = top peer 藿香 20139 + 10%. Single-row quickfix -> tier 1.
+jizhi	极致	60000	# user 2026-09-29: jizhi 极致 机智 机制 基质 .... Replaces the older rows 机制 55000 / 极致 45000, which put 机制 first. Full-order cascade lock (gongxing precedent), step 4000; the rest keep their natural order.
+jizhi	机智	56000
+jizhi	机制	52000
+jizhi	基质	48000
