@@ -4307,6 +4307,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-09-29): "kfsa 吐槽，五笔新词加入".
+    /// 吐 kfg + 槽 sgmj gives the wubi-86 phrase code kfsg (水槽 iisg,
+    /// 跳槽 khsg). Added at kfsg, freq 15324 = 叶柄 13931 + 10%.
+    #[test]
+    fn polish_kfsg_tucao_first() {
+        let top10 = mixed_top10("kfsg".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("吐槽"),
+            "kfsg: expected 吐槽 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.
