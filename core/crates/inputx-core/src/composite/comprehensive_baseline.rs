@@ -4221,13 +4221,16 @@ mod tests {
 
     /// Class A polish (user report 2026-09-28): "huoxiang 货箱".
     /// 货箱 was absent from every v2 surface; added to modern_vocab_v1 at
-    /// 15000 (tier 4). It sits below 活像 / 藿香, matching v1 library freq.
+    /// 15000 (tier 4).
+    /// Class B follow-up (user report 2026-09-29): "huoxiang 货箱第一".
+    /// Single-row quickfix lifts 货箱 to tier 1.
     #[test]
-    fn polish_huoxiang_has_huoxiang() {
+    fn polish_huoxiang_leads() {
         let top10 = mixed_top10("huoxiang".as_bytes());
-        assert!(
-            top10.iter().any(|w| w == "货箱"),
-            "huoxiang: expected 货箱 in top10; got {top10:?}"
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("货箱"),
+            "huoxiang: expected 货箱 at #0; got top10={top10:?}"
         );
     }
 
