@@ -4358,6 +4358,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-30): "tuceng 图层 涂层 土层".
+    /// modern_freq had the reverse order; full-order cascade on tier 1.
+    #[test]
+    fn polish_tuceng_full_order() {
+        let top10 = mixed_top10("tuceng".as_bytes());
+        let want = ["图层", "涂层", "土层"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "tuceng: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.
