@@ -4320,6 +4320,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-09-29): "haolei 好嘞".
+    /// haolei had no Chinese candidate on any v2 surface; 好嘞 added to
+    /// modern_vocab_v1 at 15000 (tier 4, huoxiang precedent).
+    #[test]
+    fn polish_haolei_leads() {
+        let top10 = mixed_top10("haolei".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("好嘞"),
+            "haolei: expected 好嘞 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.
