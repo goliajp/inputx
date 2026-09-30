@@ -4384,6 +4384,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-30): "zicai 紫菜第一".
+    /// 资财 led on v2 modern_freq; single-row quickfix lifts 紫菜 to tier 1.
+    #[test]
+    fn polish_zicai_leads() {
+        let top10 = mixed_top10("zicai".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("紫菜"),
+            "zicai: expected 紫菜 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.

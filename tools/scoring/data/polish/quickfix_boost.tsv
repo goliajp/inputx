@@ -1413,3 +1413,4 @@ paiban	排班	52000
 tuceng	图层	60000	# user 2026-09-30: tuceng 图层 涂层 土层. modern_freq had the reverse order: 土层 404139 > 涂层 401694 > 图层 391493. Full-order cascade lock (gongxing precedent), step 4000.
 tuceng	涂层	56000
 tuceng	土层	52000
+zicai	紫菜	21316	# user 2026-09-30: zicai 紫菜第一. 资财 (403798) led on v2 modern_freq over 紫菜 (402158). 紫菜 leads on v1 library freq (21316 > 资财 9016). Single-row quickfix -> tier 1; boost value = 紫菜 v1 library freq.
