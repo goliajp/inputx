@@ -4408,6 +4408,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-09-30): "fuxian 浮现 赋闲 复现 付现 前四".
+    /// 复线 led on v2 modern_freq; full-order cascade puts the four on tier 1.
+    #[test]
+    fn polish_fuxian_full_order() {
+        let top10 = mixed_top10("fuxian".as_bytes());
+        let want = ["浮现", "赋闲", "复现", "付现"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "fuxian: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.

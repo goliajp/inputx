@@ -1415,3 +1415,7 @@ tuceng	涂层	56000
 tuceng	土层	52000
 zicai	紫菜	21316	# user 2026-09-30: zicai 紫菜第一. 资财 (403798) led on v2 modern_freq over 紫菜 (402158). 紫菜 leads on v1 library freq (21316 > 资财 9016). Single-row quickfix -> tier 1; boost value = 紫菜 v1 library freq.
 damo	打磨	22996	# user 2026-09-30: damo 打磨第一. 大漠 (403955) led on v2 modern_freq over 打磨 (402216). 打磨 leads on v1 library freq (22996 > 大漠 18699). Single-row quickfix -> tier 1; boost value = 打磨 v1 library freq.
+fuxian	浮现	60000	# user 2026-09-30: fuxian 浮现 赋闲 复现 付现 前四. 复线 (403794) led on v2 modern_freq; the other four already followed it in the wanted order. Full-order cascade lock (gongxing precedent), step 4000; 复线 drops to #5.
+fuxian	赋闲	56000
+fuxian	复现	52000
+fuxian	付现	48000
