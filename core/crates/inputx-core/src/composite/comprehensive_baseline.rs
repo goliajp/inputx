@@ -4371,6 +4371,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-09-30): "loudiao 漏掉 loufa 漏发".
+    /// loufa had no exact Chinese candidate on any v2 surface; 漏发 added to
+    /// modern_vocab_v1 at 15000 (tier 4). loudiao already led with 漏掉.
+    #[test]
+    fn polish_loufa_leads() {
+        let top10 = mixed_top10("loufa".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("漏发"),
+            "loufa: expected 漏发 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.
