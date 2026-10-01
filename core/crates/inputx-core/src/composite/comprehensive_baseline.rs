@@ -4446,6 +4446,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-01): "renzhi 认知 任职 人质".
+    /// 人质 led on v2 tier 3; full-order cascade puts the three on tier 1.
+    #[test]
+    fn polish_renzhi_full_order() {
+        let top10 = mixed_top10("renzhi".as_bytes());
+        let want = ["认知", "任职", "人质"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "renzhi: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.
