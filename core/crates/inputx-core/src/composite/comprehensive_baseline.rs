@@ -4459,6 +4459,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-01): "shangbing 伤病第一".
+    /// 伤兵 and 伤病 tied, so codepoint order led; quickfix lifts 伤病 to tier 1.
+    #[test]
+    fn polish_shangbing_leads() {
+        let top10 = mixed_top10("shangbing".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("伤病"),
+            "shangbing: expected 伤病 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.
