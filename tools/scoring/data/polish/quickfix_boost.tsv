@@ -1426,3 +1426,4 @@ que	却	52000
 renzhi	认知	60000	# user 2026-10-01: renzhi 认知 任职 人质. 人质 led on v2 tier 3 (433469); 任职 404756 > 认知 404026 on tier 4. Full-order cascade lock (gongxing precedent), step 4000.
 renzhi	任职	56000
 renzhi	人质	52000
+shangbing	伤病	21242	# user 2026-10-01: shangbing 伤病第一. 伤兵 and 伤病 tied at 380000 (modern_vocab, no modern_freq), so codepoint order put 伤兵 first. 伤病 leads on v1 library freq (21242 > 伤兵 14581). Single-row quickfix -> tier 1; boost value = 伤病 v1 library freq.
