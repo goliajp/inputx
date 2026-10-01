@@ -4433,6 +4433,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-01): "que 缺 确 却 前三".
+    /// v2 put 却 then 瘸 first; full-order cascade puts the three on tier 1.
+    #[test]
+    fn polish_que_full_order() {
+        let top10 = mixed_top10("que".as_bytes());
+        let want = ["缺", "确", "却"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "que: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.

@@ -1420,3 +1420,6 @@ fuxian	赋闲	56000
 fuxian	复现	52000
 fuxian	付现	48000
 dajian	搭建	21369	# user 2026-10-01: dajian 搭建第一. 大件 (403834) led on v2 modern_freq over 搭建 (403307). 搭建 leads on v1 library freq (21369 > 大件 21061). Single-row quickfix -> tier 1; boost value = 搭建 v1 library freq.
+que	缺	60000	# user 2026-10-01: que 缺 确 却 前三. v2 had 却 510316 > 瘸 498088 > 确 497356 > 缺 496545. Full-order cascade lock (gongxing precedent), step 4000; 瘸 drops to #4.
+que	确	56000
+que	却	52000
