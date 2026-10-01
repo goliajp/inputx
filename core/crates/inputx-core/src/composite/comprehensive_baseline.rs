@@ -4421,6 +4421,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-01): "dajian 搭建第一".
+    /// 大件 led on v2 modern_freq; single-row quickfix lifts 搭建 to tier 1.
+    #[test]
+    fn polish_dajian_leads() {
+        let top10 = mixed_top10("dajian".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("搭建"),
+            "dajian: expected 搭建 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.
