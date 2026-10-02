@@ -1428,3 +1428,6 @@ renzhi	任职	56000
 renzhi	人质	52000
 shangbing	伤病	21242	# user 2026-10-01: shangbing 伤病第一. 伤兵 and 伤病 tied at 380000 (modern_vocab, no modern_freq), so codepoint order put 伤兵 first. 伤病 leads on v1 library freq (21242 > 伤兵 14581). Single-row quickfix -> tier 1; boost value = 伤病 v1 library freq.
 tuoxie	拖鞋	31348	# user 2026-10-02: tuoxie 拖鞋第一. 妥协 led on v2 tier 3 (434358) over 拖鞋 on tier 4 (402678). 拖鞋 v1 library freq (28454) sits just under 妥协 (28498), so boost = top peer 妥协 + 10%. Single-row quickfix -> tier 1.
+dalao	大佬	60000	# user 2026-10-02: dalao 大佬 打捞 大牢. v2 had 打捞 403336 > 大牢 402542 > 大佬 391214. Full-order cascade lock (renzhi precedent), step 4000.
+dalao	打捞	56000	# user 2026-10-02: dalao cascade #2
+dalao	大牢	52000	# user 2026-10-02: dalao cascade #3

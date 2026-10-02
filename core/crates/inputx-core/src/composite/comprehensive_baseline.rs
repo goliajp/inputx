@@ -4446,6 +4446,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-02): "dalao 大佬 打捞 大牢".
+    /// 打捞 led on v2; full-order cascade puts the three on tier 1.
+    #[test]
+    fn polish_dalao_full_order() {
+        let top10 = mixed_top10("dalao".as_bytes());
+        let want = ["大佬", "打捞", "大牢"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "dalao: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-10-01): "renzhi 认知 任职 人质".
     /// 人质 led on v2 tier 3; full-order cascade puts the three on tier 1.
     #[test]
