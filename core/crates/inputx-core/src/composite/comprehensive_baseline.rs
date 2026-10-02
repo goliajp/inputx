@@ -4446,6 +4446,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-03): "zhanjing 战警 第一".
+    /// 战警 was missing from every v2 surface; added to modern_vocab_v1 at
+    /// 30000 (tier 3) so it leads the tier-4 cedict peers 战兢 / 栈径.
+    #[test]
+    fn polish_zhanjing_leads() {
+        let top10 = mixed_top10("zhanjing".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("战警"),
+            "zhanjing: expected 战警 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-10-02): "dalao 大佬 打捞 大牢".
     /// 打捞 led on v2; full-order cascade puts the three on tier 1.
     #[test]
