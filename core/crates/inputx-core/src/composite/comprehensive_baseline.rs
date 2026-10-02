@@ -4471,6 +4471,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-02): "tuoxie 拖鞋第一".
+    /// 妥协 led on v2 tier 3; single-row quickfix lifts 拖鞋 to tier 1.
+    #[test]
+    fn polish_tuoxie_leads() {
+        let top10 = mixed_top10("tuoxie".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("拖鞋"),
+            "tuoxie: expected 拖鞋 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-09-28): "huabu 画布第一".
     /// Both words sat on natural tier 4 and modern_freq put 花布 (402157)
     /// ahead of 画布 (401034). Single-row quickfix lifts 画布 to tier 1.
