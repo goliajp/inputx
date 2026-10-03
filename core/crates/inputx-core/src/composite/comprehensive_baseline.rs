@@ -4472,6 +4472,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
+    /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
+    /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
+    #[test]
+    fn polish_xianfan_xianfan_third() {
+        let top10 = mixed_top10("xianfan".as_bytes());
+        let want = ["掀翻", "嫌犯", "嫌烦"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "xianfan: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-10-04): "xianqi 嫌弃 限期 掀起 仙气 贤妻".
     /// 掀起 led on v2 tier 3; full-order cascade puts the five on tier 1.
     #[test]
