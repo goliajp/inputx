@@ -1431,3 +1431,8 @@ tuoxie	拖鞋	31348	# user 2026-10-02: tuoxie 拖鞋第一. 妥协 led on v2 tie
 dalao	大佬	60000	# user 2026-10-02: dalao 大佬 打捞 大牢. v2 had 打捞 403336 > 大牢 402542 > 大佬 391214. Full-order cascade lock (renzhi precedent), step 4000.
 dalao	打捞	56000	# user 2026-10-02: dalao cascade #2
 dalao	大牢	52000	# user 2026-10-02: dalao cascade #3
+xianqi	嫌弃	60000	# user 2026-10-04: xianqi 嫌弃 限期 掀起 仙气 贤妻. v2 had 掀起 434549 > 先期 403992 > 限期 403733 > 嫌弃 402805 > 仙气 401761 > 贤妻 399422. Full-order cascade lock (renzhi precedent), step 4000.
+xianqi	限期	56000	# user 2026-10-04: xianqi cascade #2
+xianqi	掀起	52000	# user 2026-10-04: xianqi cascade #3
+xianqi	仙气	48000	# user 2026-10-04: xianqi cascade #4
+xianqi	贤妻	44000	# user 2026-10-04: xianqi cascade #5

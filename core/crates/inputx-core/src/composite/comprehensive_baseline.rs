@@ -4472,6 +4472,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-04): "xianqi 嫌弃 限期 掀起 仙气 贤妻".
+    /// 掀起 led on v2 tier 3; full-order cascade puts the five on tier 1.
+    #[test]
+    fn polish_xianqi_full_order() {
+        let top10 = mixed_top10("xianqi".as_bytes());
+        let want = ["嫌弃", "限期", "掀起", "仙气", "贤妻"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "xianqi: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class B polish (user report 2026-10-01): "renzhi 认知 任职 人质".
     /// 人质 led on v2 tier 3; full-order cascade puts the three on tier 1.
     #[test]
