@@ -4472,6 +4472,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-04): "chuhan 楚汉 第二".
+    /// 楚汉 was missing from every surface; added to modern_vocab_v1 at
+    /// 15000 (tier 4, no modern_freq) so it sits right after 出汗.
+    #[test]
+    fn polish_chuhan_chuhan_second() {
+        let top10 = mixed_top10("chuhan".as_bytes());
+        let want = ["出汗", "楚汉"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "chuhan: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
