@@ -4542,6 +4542,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-08): "xiaobenben 小笨笨 小本本".
+    /// Both were missing; modern_vocab_v1 puts 小笨笨 on tier 3 (30000)
+    /// and 小本本 on tier 4 (15000) so the order does not rest on a tie.
+    #[test]
+    fn polish_xiaobenben_order() {
+        let top10 = mixed_top10("xiaobenben".as_bytes());
+        let want = ["小笨笨", "小本本"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "xiaobenben: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
