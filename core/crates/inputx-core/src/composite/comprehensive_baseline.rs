@@ -4501,6 +4501,21 @@ mod tests {
         );
     }
 
+    /// Class C polish (user report 2026-10-08): "lequ 乐趣第一，胃镜相对小众
+    /// 所以五笔也后置". The wubi 4-code phrase 胃镜 led via the wx>px engine
+    /// order; tier_overlay 胃镜 → tier 5 puts 乐趣 on top and keeps 胃镜
+    /// typeable below it.
+    #[test]
+    fn polish_lequ_order() {
+        let top10 = mixed_top10("lequ".as_bytes());
+        let want = ["乐趣", "胃镜"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "lequ: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
