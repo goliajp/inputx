@@ -1439,3 +1439,7 @@ guizi	跪姿	56000	# user 2026-10-08: guizi cascade #2
 guizi	鬼子	52000	# user 2026-10-08: guizi cascade #3
 beijing	背景	60000	# user 2026-10-09: beijing 背景第一. Reverses the 2026-06-30 city-anchor call (北京 70000 over 背景 63000); both rows replaced by a cascade (jizhi precedent), step 4000.
 beijing	北京	56000	# user 2026-10-09: beijing cascade #2
+xifu	吸附	60000	# user 2026-10-09: xifu 吸附 西服 戏服 媳妇. v2 had 媳妇 434692 (tier 3, hsk6) > 吸附 403845 > 西服 402991 > 惜福 389842 > 戏服 380000. Full-order cascade lock (xianqi precedent), step 4000.
+xifu	西服	56000	# user 2026-10-09: xifu cascade #2
+xifu	戏服	52000	# user 2026-10-09: xifu cascade #3
+xifu	媳妇	48000	# user 2026-10-09: xifu cascade #4
