@@ -19,7 +19,6 @@ jishi	及时	49078	# n=3 base=34078 peer=40014
 maoding	锚定	40000	# n=3 base=11582 peer=15410
 dibu	底部	43322	# n=3 base=28322 peer=30385
 zhineng	智能	46694	# n=3 base=31694 peer=39376
-beijing	背景	63000	# n=3 base=35496 peer=58000
 exin	恶心	47851	# n=2 base=37851 peer=0
 zuojia	作假	41027	# n=2 base=22698 peer=36027
 pinlv	频率	40975	# n=2 base=30975 peer=5791
@@ -143,7 +142,6 @@ hanguo	韩国	50000	# 2026-06-30 country batch
 baxi	巴西	50000	# 2026-06-30 country batch
 shijinsai	世锦赛	55000	# 2026-06-30 user: "shijinsai 世锦赛要高于日语" — same 55k tier-1 calibration as jianma 简码 / fudu 复读 / aijie 娭毑 to beat JP exact-prefix kana
 # RETIRED liucheng	流程	50000	# 2026-06-30 user: "liucheng 流程肯定是最高的，柳橙级别应该低多了"
-beijing	北京	70000	# 2026-06-30 user wants city anchor; over earlier 背景 63k
 # RETIRED yanjiu	研究	50000	# 2026-06-30 user: "研究肯定要在烟酒前面" — HSK 5 学术词
 huluobo	胡萝卜	55000	# 2026-06-30 user: "胡萝卜应该在日语前" — 55k tier-1 calibration (jianma/fudu/aijie/shijinsai pattern)
 # RETIRED ceshi	测试	50000	# 2026-06-30 user: "ceshi 测试最高" — 软件测试/HSK 学术词
@@ -1439,3 +1437,5 @@ xianqi	贤妻	44000	# user 2026-10-04: xianqi cascade #5
 guizi	柜子	60000	# user 2026-10-08: guizi 柜子 跪姿 鬼子. v2 had 鬼子 404201 > 柜子 403298 > 跪姿 380000 (modern_vocab 15000). Full-order cascade lock (xianqi precedent), step 4000.
 guizi	跪姿	56000	# user 2026-10-08: guizi cascade #2
 guizi	鬼子	52000	# user 2026-10-08: guizi cascade #3
+beijing	背景	60000	# user 2026-10-09: beijing 背景第一. Reverses the 2026-06-30 city-anchor call (北京 70000 over 背景 63000); both rows replaced by a cascade (jizhi precedent), step 4000.
+beijing	北京	56000	# user 2026-10-09: beijing cascade #2

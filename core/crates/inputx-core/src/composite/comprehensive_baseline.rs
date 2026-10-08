@@ -469,8 +469,8 @@ mod tests {
             ("yemen", "也门"),
             ("aisaiebiya", "埃塞俄比亚"),
             ("jinbabuwei", "津巴布韦"),
-            // Cities (anchors)
-            ("beijing", "北京"),
+            // Cities (anchors). beijing is not here: the user put 背景
+            // ahead of 北京 on 2026-10-09, see polish_beijing_full_order.
             ("shanghai", "上海"),
             ("xianggang", "香港"),
             ("niuyue", "纽约"),
@@ -4553,6 +4553,20 @@ mod tests {
             top10.get(..want.len()),
             Some(&want.map(String::from)[..]),
             "xiaobenben: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
+    /// Class B polish (user report 2026-10-09): "beijing 背景第一".
+    /// Reverses the 2026-06-30 city-anchor rows (北京 70000 over 背景
+    /// 63000); a cascade 背景 60000 / 北京 56000 replaces both.
+    #[test]
+    fn polish_beijing_full_order() {
+        let top10 = mixed_top10("beijing".as_bytes());
+        let want = ["背景", "北京"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "beijing: expected order {want:?}; got top10={top10:?}"
         );
     }
 
