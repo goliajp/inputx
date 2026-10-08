@@ -4486,6 +4486,21 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-08): "benben 笨笨".
+    /// 笨笨 sat in corpus_garbage_filter_v1 as noise, which v2 also uses
+    /// as an exclusion; row removed and 笨笨 added to modern_vocab_v1 at
+    /// 30000 (tier 3) so it leads the tier-4 cedict 本本.
+    #[test]
+    fn polish_benben_benben_leads() {
+        let top10 = mixed_top10("benben".as_bytes());
+        let want = ["笨笨", "本本"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "benben: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
