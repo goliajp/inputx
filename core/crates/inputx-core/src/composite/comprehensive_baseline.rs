@@ -4529,6 +4529,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-08): "fule 服了".
+    /// 服了 was on no surface; fule offered only Japanese kana and
+    /// prefix completions. Added to modern_vocab_v1 at 30000 (tier 3).
+    #[test]
+    fn polish_fule_fule_leads() {
+        let top10 = mixed_top10("fule".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("服了"),
+            "fule: expected 服了 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
