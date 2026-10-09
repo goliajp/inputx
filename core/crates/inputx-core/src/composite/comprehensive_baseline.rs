@@ -4597,6 +4597,26 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-09): "lanzhe 蓝枕八色鸫 蓝枕花蜜鸟
+    /// 这些都不能是词 … 要加入的是 拦着". 拦着 was missing; the two bird
+    /// names only surfaced as prefix completions of lanzhen…, which drop
+    /// once an exact match exists.
+    #[test]
+    fn polish_lanzhe_lanzhe_only() {
+        let top10 = mixed_top10("lanzhe".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("拦着"),
+            "lanzhe: expected 拦着 at #0; got top10={top10:?}"
+        );
+        for bird in ["蓝枕八色鸫", "蓝枕花蜜鸟"] {
+            assert!(
+                !top10.iter().any(|w| w == bird),
+                "lanzhe: {bird} must not appear; got top10={top10:?}"
+            );
+        }
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
