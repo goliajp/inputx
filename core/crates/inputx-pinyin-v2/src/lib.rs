@@ -422,6 +422,10 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
         // HashMap probe and a UTF-8 char count — is computed once per row
         // rather than twice per comparison. Keeps the path inside the
         // one-frame budget the perfgate test enforces.
+        // Tier 6 is exactly the cedict words of 5+ chars. As completions of
+        // a shorter buffer they are mostly species names and jargon
+        // (lanzhe → 蓝枕八色鸫), so they only surface on an exact code.
+        const PREFIX_WORD_MAX_TIER: u8 = 5;
         let modern_for_sort = data::modern_freq();
         let run_start =
             by_code.partition_point(|&i| words_prefix_arc[i as usize].code.as_str() < buffer);
@@ -431,6 +435,7 @@ pub fn query(buffer: &str) -> Vec<(String, f64, u8)> {
             .map(|&i| &words_prefix_arc[i as usize])
             .take_while(|w| w.code.starts_with(buffer))
             .filter(|w| w.code.as_str() != buffer)
+            .filter(|w| w.tier <= PREFIX_WORD_MAX_TIER)
             .filter(|w| !seen.contains(&w.word))
             .map(|w| {
                 (

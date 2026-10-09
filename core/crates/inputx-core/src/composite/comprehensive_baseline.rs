@@ -6382,6 +6382,43 @@ mod tests {
         );
     }
 
+    /// Framework rule (user reports 2026-07-28 "字数越高谨慎要求也越高" and
+    /// 2026-10-09 "lanzhe 蓝枕八色鸫 蓝枕花蜜鸟 … 这种级别的肯定都不能是").
+    /// Tier 6 holds exactly the 5+ char cedict words; the prefix band no
+    /// longer completes them, so a short buffer cannot lead with a bird
+    /// name. Typing the full code still reaches them.
+    #[test]
+    fn prefix_completion_skips_tier6_long_words() {
+        let tier6: std::collections::HashSet<String> = inputx_pinyin_v2::data::words()
+            .iter()
+            .filter(|w| w.tier == 6)
+            .map(|w| w.word.clone())
+            .collect();
+        assert!(
+            tier6.contains("蓝枕八色鸫"),
+            "tier-6 probe set is empty or stale"
+        );
+        let mut failures = Vec::new();
+        for buffer in ["lanzh", "lanzhen", "tangzheye", "huayoushuo"] {
+            let top10 = mixed_top10(buffer.as_bytes());
+            let leaked: Vec<&String> = top10.iter().filter(|w| tier6.contains(*w)).collect();
+            if !leaked.is_empty() {
+                failures.push(format!("  {buffer}: {leaked:?} in {top10:?}"));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "tier-6 words completed from a shorter buffer:\n{}",
+            failures.join("\n")
+        );
+        let full = mixed_top10("lanzhenbasedong".as_bytes());
+        assert_eq!(
+            full.first().map(String::as_str),
+            Some("蓝枕八色鸫"),
+            "full code must still reach the word; got {full:?}"
+        );
+    }
+
     #[test]
     fn no_traditional_in_top5_for_common_pinyin() {
         // List of (pinyin, traditional_blocklist) — traditional forms
