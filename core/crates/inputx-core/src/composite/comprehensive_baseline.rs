@@ -4631,6 +4631,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-11): "geli 割礼 第六".
+    /// 割礼 was #1 on modern_freq. A tier-5 demote would drop it behind
+    /// the kana, so the five words ahead of it are cascaded to tier 1.
+    #[test]
+    fn polish_geli_geli_sixth() {
+        let top10 = mixed_top10("geli".as_bytes());
+        let want = ["隔离", "个例", "蛤蜊", "蛤蛎", "格力", "割礼"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "geli: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.

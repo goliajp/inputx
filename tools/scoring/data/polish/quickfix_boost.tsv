@@ -1444,3 +1444,8 @@ xifu	西服	56000	# user 2026-10-09: xifu cascade #2
 xifu	戏服	52000	# user 2026-10-09: xifu cascade #3
 xifu	媳妇	48000	# user 2026-10-09: xifu cascade #4
 chuantou	穿透	55000	# user 2026-10-09: chuantou 穿透第一; both v2 tier 4 (cedict) so modern_freq decided — 船头 404154 > 穿透 403718, inverting v1 library order (穿透 23310 > 船头 18906). Single-row quickfix -> tier 1 (yanzhi / jianmo precedent).
+geli	隔离	60000	# user 2026-10-11: "geli 割礼 第六"; before: 隔离 434307, 割礼 400919, 个例 399896, 蛤蜊 399060, 蛤蛎 385160, 格力 380000. Cascade the five ahead of it; 割礼 stays on tier 4 at #5, ahead of kana (a tier-5 demote would drop it behind kana)
+geli	个例	56000
+geli	蛤蜊	52000
+geli	蛤蛎	48000
+geli	格力	44000
