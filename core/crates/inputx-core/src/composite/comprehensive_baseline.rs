@@ -4617,6 +4617,20 @@ mod tests {
         }
     }
 
+    /// Class A polish (user report 2026-10-10): "wuyiyi 无意义".
+    /// 无意义 was on no surface; the only candidate was 无异议 (tier 3,
+    /// modern_vocab 30000). Added at 50000 (tier 2) so it leads.
+    #[test]
+    fn polish_wuyiyi_wuyiyi_leads() {
+        let top10 = mixed_top10("wuyiyi".as_bytes());
+        let want = ["无意义", "无异议"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "wuyiyi: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
