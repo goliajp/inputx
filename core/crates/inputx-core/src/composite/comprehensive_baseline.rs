@@ -4658,6 +4658,18 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-11): "fcxw 运维".
+    /// fcxw returned nothing; 运维 added to the wubi library (运 fc + 维 xw).
+    #[test]
+    fn polish_fcxw_yunwei_leads() {
+        let top10 = mixed_top10("fcxw".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("运维"),
+            "fcxw: expected 运维 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
