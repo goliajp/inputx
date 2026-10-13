@@ -4708,6 +4708,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-13): "baodi 保底第一".
+    /// 宝地 / 胞弟 led on modern_freq; a quickfix row lifts 保底 to tier 1.
+    #[test]
+    fn polish_baodi_baodi_leads() {
+        let top10 = mixed_top10("baodi".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("保底"),
+            "baodi: expected 保底 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
