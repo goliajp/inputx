@@ -4720,6 +4720,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-13): "fushu 附属 复述 负数 服输
+    /// 这四个开始". 富庶 / 复数 sat between them on modern_freq; full-order
+    /// cascade puts the four on tier 1.
+    #[test]
+    fn polish_fushu_full_order() {
+        let top10 = mixed_top10("fushu".as_bytes());
+        let want = ["附属", "复述", "负数", "服输"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "fushu: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
