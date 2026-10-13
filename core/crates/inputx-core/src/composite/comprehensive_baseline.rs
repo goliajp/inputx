@@ -4772,6 +4772,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-13): "touwei 投喂 第一".
+    /// 头位 / 头尾 / 投喂 tied at 380000 and codepoint order put 投喂
+    /// last; a quickfix row lifts 投喂 to tier 1.
+    #[test]
+    fn polish_touwei_touwei_leads() {
+        let top10 = mixed_top10("touwei".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("投喂"),
+            "touwei: expected 投喂 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
