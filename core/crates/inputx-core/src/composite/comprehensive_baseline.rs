@@ -4747,6 +4747,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-13): "shuimian 睡眠第一".
+    /// 水面 led on modern_freq; a quickfix row lifts 睡眠 to tier 1.
+    #[test]
+    fn polish_shuimian_shuimian_leads() {
+        let top10 = mixed_top10("shuimian".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("睡眠"),
+            "shuimian: expected 睡眠 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
