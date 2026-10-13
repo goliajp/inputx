@@ -4785,6 +4785,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-14): "aoshu 奥术 第二".
+    /// 奥术 was on no v2 surface; modern_vocab_v1 at 15000 keeps it on
+    /// tier 4 behind 奥数 (modern_freq) and ahead of the kana.
+    #[test]
+    fn polish_aoshu_aoshu_second() {
+        let top10 = mixed_top10("aoshu".as_bytes());
+        let want = ["奥数", "奥术"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "aoshu: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
