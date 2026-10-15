@@ -1459,3 +1459,7 @@ fushu	负数	52000
 fushu	服输	48000
 shuimian	睡眠	55000	# user 2026-10-13: "shuimian 睡眠第一"; v2 before: 水面 404726 / 睡眠 404509 (cedict tier 4). Single-row quickfix -> tier 1
 touwei	投喂	55000	# user 2026-10-13: "touwei 投喂 第一"; v2 before: 头位 / 头尾 / 投喂 all 380000 (tier 4, no modern_freq; codepoint tie-break). Single-row quickfix -> tier 1
+baoyu	暴雨	60000	# user 2026-10-15: "baoyu 暴雨 保育 鲍鱼 宝玉"; v2 before: 宝玉 404840 / 暴雨 404184 / 保育 401562 / 鲍鱼 401407 (cedict tier 4, modern_freq). Full-order cascade -> tier 1
+baoyu	保育	56000
+baoyu	鲍鱼	52000
+baoyu	宝玉	48000
