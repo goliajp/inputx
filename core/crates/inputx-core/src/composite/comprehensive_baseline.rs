@@ -4812,6 +4812,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-16): "yilai 依赖第一".
+    /// 以来 (boost 50000) led 依赖 (boost 42992); 依赖's row raised to 55000.
+    #[test]
+    fn polish_yilai_yilai_leads() {
+        let top10 = mixed_top10("yilai".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("依赖"),
+            "yilai: expected 依赖 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
