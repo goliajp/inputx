@@ -4878,6 +4878,20 @@ mod tests {
         );
     }
 
+    /// Class D1 polish (user report 2026-10-18): "正书、征戍 也去掉".
+    /// Both came from cedict in v2 words.tsv (正书 also from v1
+    /// library.tsv); garbage-filter rows hide them on v2.
+    #[test]
+    fn polish_zhengshu_archaic_absent() {
+        let top10 = mixed_top10("zhengshu".as_bytes());
+        for gone in ["正书", "征戍"] {
+            assert!(
+                !top10.iter().any(|w| w == gone),
+                "zhengshu: {gone} must not appear; got top10={top10:?}"
+            );
+        }
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
