@@ -4866,6 +4866,18 @@ mod tests {
         );
     }
 
+    /// Class D1 polish (user report 2026-10-18): "征才不是词，去掉".
+    /// 征才 came only from cedict in v2 words.tsv; the garbage-filter row
+    /// hides it on v2.
+    #[test]
+    fn polish_zhengcai_zhengcai_absent() {
+        let top10 = mixed_top10("zhengcai".as_bytes());
+        assert!(
+            !top10.iter().any(|w| w == "征才"),
+            "zhengcai: 征才 must not appear; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
