@@ -4838,6 +4838,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-18): "zhengcai 蒸菜".
+    /// 蒸菜 was only in v1 library.tsv; modern_vocab_v1 at 30000 puts it
+    /// on tier 3 ahead of 征才 (tier 4, 380000).
+    #[test]
+    fn polish_zhengcai_zhengcai_leads() {
+        let top10 = mixed_top10("zhengcai".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("蒸菜"),
+            "zhengcai: expected 蒸菜 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
