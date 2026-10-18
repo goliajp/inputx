@@ -4824,6 +4824,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-18): "guazai 挂在 第二".
+    /// 挂在 was on no v2 surface; modern_vocab_v1 at 15000 keeps it on
+    /// tier 4 behind 挂载 (modern_freq) and ahead of the kana.
+    #[test]
+    fn polish_guazai_guazai_second() {
+        let top10 = mixed_top10("guazai".as_bytes());
+        let want = ["挂载", "挂在"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "guazai: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
