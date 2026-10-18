@@ -4851,6 +4851,21 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-18): "zhengshu 蒸熟 第三".
+    /// 蒸熟 was only in v1 library.tsv; added to modern_vocab_v1 at 15000,
+    /// where it would sit behind 正数 / 正书 / 征戍, so a quickfix cascade
+    /// fixes the first three.
+    #[test]
+    fn polish_zhengshu_zhengshu_third() {
+        let top10 = mixed_top10("zhengshu".as_bytes());
+        let want = ["证书", "整数", "蒸熟"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "zhengshu: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
