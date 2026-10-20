@@ -4905,6 +4905,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-20): "lvxing 旅行第一".
+    /// 履行 (tier 3, 434666) led 旅行 (tier 4, 404531); a single quickfix
+    /// row lifts 旅行 to tier 1.
+    #[test]
+    fn polish_lvxing_lvxing_leads() {
+        let top10 = mixed_top10("lvxing".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("旅行"),
+            "lvxing: expected 旅行 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
