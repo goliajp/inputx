@@ -4918,6 +4918,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-21): "jiantie 剪贴第一".
+    /// 简帖 (cedict, 399436) led 剪贴 (modern_vocab, 380000) on tier 4; a
+    /// single quickfix row lifts 剪贴 to tier 1.
+    #[test]
+    fn polish_jiantie_jiantie_leads() {
+        let top10 = mixed_top10("jiantie".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("剪贴"),
+            "jiantie: expected 剪贴 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
