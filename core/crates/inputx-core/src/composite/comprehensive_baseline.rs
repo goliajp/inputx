@@ -4892,6 +4892,19 @@ mod tests {
         }
     }
 
+    /// Class B polish (user report 2026-10-20): "fudan 负担 第一".
+    /// 复旦 led on an old dogfood quickfix row (50000); removing that row
+    /// lets 负担 (tier 3, 434703) lead 复旦 (410000) naturally.
+    #[test]
+    fn polish_fudan_fudan_leads() {
+        let top10 = mixed_top10("fudan".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("负担"),
+            "fudan: expected 负担 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
