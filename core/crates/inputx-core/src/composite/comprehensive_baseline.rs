@@ -4931,6 +4931,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-21): "wushui 午睡第一，然后是污水，
+    /// 无水最后". All three sat on cedict tier 4 (污水 404052, 无水 402500,
+    /// 午睡 401648); boosting 午睡 and 污水 leaves 无水 last.
+    #[test]
+    fn polish_wushui_full_order() {
+        let top10 = mixed_top10("wushui".as_bytes());
+        let want = ["午睡", "污水", "无水"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "wushui: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
