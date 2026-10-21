@@ -4958,6 +4958,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-21): "yumen 郁闷".
+    /// 郁闷 (404065) led 玉门 (402141) on tier 4 by only modern_freq; a
+    /// quickfix row puts 郁闷 on tier 1 so it no longer rests on that gap.
+    #[test]
+    fn polish_yumen_yumen_leads() {
+        let top10 = mixed_top10("yumen".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("郁闷"),
+            "yumen: expected 郁闷 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
