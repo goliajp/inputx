@@ -4984,6 +4984,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-21): "chuanshen 传神第一".
+    /// 船身 (403192) led 传神 (402981) on cedict tier 4; a single quickfix
+    /// row lifts 传神 to tier 1.
+    #[test]
+    fn polish_chuanshen_chuanshen_leads() {
+        let top10 = mixed_top10("chuanshen".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("传神"),
+            "chuanshen: expected 传神 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
