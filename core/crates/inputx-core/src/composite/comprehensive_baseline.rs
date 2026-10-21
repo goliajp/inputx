@@ -4945,6 +4945,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-21): "qifu 欺负第一".
+    /// 起伏 (434527) led 欺负 (434205) on tier 3; a single quickfix row
+    /// lifts 欺负 to tier 1.
+    #[test]
+    fn polish_qifu_qifu_leads() {
+        let top10 = mixed_top10("qifu".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("欺负"),
+            "qifu: expected 欺负 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
