@@ -5053,6 +5053,22 @@ mod tests {
         );
     }
 
+    /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
+    /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
+    #[test]
+    fn polish_jiepi_jiepi_leads() {
+        let top10 = mixed_top10("jiepi".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("洁癖"),
+            "jiepi: expected 洁癖 at #0; got top10={top10:?}"
+        );
+        assert!(
+            !top10.iter().any(|w| w == "揭批"),
+            "jiepi: 揭批 should be hidden; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
