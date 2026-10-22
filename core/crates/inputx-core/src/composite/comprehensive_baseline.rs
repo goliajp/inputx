@@ -5038,6 +5038,21 @@ mod tests {
         );
     }
 
+    /// Class A+B polish (user report 2026-10-22): "chonghui 重绘 第二".
+    /// 重绘 was on no surface. Added to modern_vocab_v1 at 15000, where it
+    /// ties 冲毁 (both 380000) and loses on codepoint, so a pair boost keeps
+    /// 重回 at #0 and puts 重绘 at #1.
+    #[test]
+    fn polish_chonghui_order() {
+        let top10 = mixed_top10("chonghui".as_bytes());
+        let want = ["重回", "重绘"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "chonghui: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
