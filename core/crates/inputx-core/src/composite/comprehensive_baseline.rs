@@ -5069,6 +5069,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-22): "wentiji 问题集".
+    /// 问题集 was on no surface and only kana came back; added to
+    /// modern_vocab_v1 at 15000 (tier 4), which puts it ahead of the kana.
+    #[test]
+    fn polish_wentiji_wentiji_leads() {
+        let top10 = mixed_top10("wentiji".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("问题集"),
+            "wentiji: expected 问题集 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
