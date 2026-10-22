@@ -4997,6 +4997,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-22): "jianduan 简短 尖端 第一第二".
+    /// 尖端 led on its tier-3 hsk6 entry with 简短 third behind 间断;
+    /// a two-row cascade puts 简短 then 尖端 on tier 1.
+    #[test]
+    fn polish_jianduan_full_order() {
+        let top10 = mixed_top10("jianduan".as_bytes());
+        let want = ["简短", "尖端"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "jianduan: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class A polish (user report 2026-10-04): "xianfan 嫌烦 第三".
     /// 嫌烦 was missing from every surface; added to modern_vocab_v1 at
     /// 15000 (tier 4, no modern_freq) so it sits right after 掀翻 / 嫌犯.
