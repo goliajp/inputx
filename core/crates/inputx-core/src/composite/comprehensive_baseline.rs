@@ -5053,6 +5053,20 @@ mod tests {
         );
     }
 
+    /// Class A+B polish (user report 2026-10-26): "tiejin 贴紧 第一 贴近第二".
+    /// 贴紧 was only in the v1 library; added to modern_vocab_v1 at 30000,
+    /// and a cascade boost puts 贴紧 ahead of 贴近, both ahead of 贴金.
+    #[test]
+    fn polish_tiejin_order() {
+        let top10 = mixed_top10("tiejin".as_bytes());
+        let want = ["贴紧", "贴近"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "tiejin: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
