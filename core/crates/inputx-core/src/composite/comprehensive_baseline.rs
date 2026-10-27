@@ -5091,6 +5091,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-27): "lingyang 领养第一".
+    /// 羚羊 led 领养 on tier 4; a quickfix row lifts 领养 to tier 1.
+    #[test]
+    fn polish_lingyang_lingyang_leads() {
+        let top10 = mixed_top10("lingyang".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("领养"),
+            "lingyang: 领养 should lead; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
