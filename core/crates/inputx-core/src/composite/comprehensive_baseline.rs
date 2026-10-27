@@ -5067,6 +5067,30 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-27): "jin 斤 巾 稍微可以排序高一点，
+    /// 斤要进前10，巾可以在第二页前列". 斤 sat at #10 and 巾 at #14 among
+    /// same-tier single chars; a +1 prior correction each lifts 斤 above 津
+    /// and 巾 above 仅.
+    #[test]
+    fn polish_jin_jin_and_jin_lifted() {
+        let mut e = CompositeEngine::new();
+        e.set_mode(Mode::Mixed);
+        e.set_auto_commit_policy(AutoCommitPolicy::Never);
+        for b in b"jin" {
+            let _ = e.handle_letter(*b);
+        }
+        let words: Vec<String> = e.candidates().iter().map(|c| c.word.clone()).collect();
+        let pos = |w: &str| words.iter().position(|c| c == w);
+        assert!(
+            pos("斤").is_some_and(|p| p < 10),
+            "jin: 斤 should be in top 10; got {words:?}"
+        );
+        assert!(
+            pos("巾").is_some_and(|p| (10..13).contains(&p)),
+            "jin: 巾 should lead the second page; got {words:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
