@@ -5129,6 +5129,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-10-28): "chuanzhe 穿着".
+    /// v2 only had the zhuó reading (chuanzhuo); the common aspect-particle
+    /// reading was missing, so chuanzhe showed only prefix completions.
+    #[test]
+    fn polish_chuanzhe_chuanzhe_leads() {
+        let top10 = mixed_top10("chuanzhe".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("穿着"),
+            "chuanzhe: 穿着 should lead; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
