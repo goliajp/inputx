@@ -5142,6 +5142,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-28): "chuanzhen 穿针 第二".
+    /// 喘振 sat between 传真 and 穿针; a pair boost keeps 传真 first and
+    /// puts 穿针 second.
+    #[test]
+    fn polish_chuanzhen_order() {
+        let top10 = mixed_top10("chuanzhen".as_bytes());
+        let want = ["传真", "穿针"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "chuanzhen: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
