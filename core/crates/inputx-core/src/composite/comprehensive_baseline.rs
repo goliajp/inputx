@@ -5156,6 +5156,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-28): "shouxin 授信 第二".
+    /// 授信 sat last of four on tier 4; a pair boost keeps 手心 first and
+    /// puts 授信 second.
+    #[test]
+    fn polish_shouxin_order() {
+        let top10 = mixed_top10("shouxin".as_bytes());
+        let want = ["手心", "授信"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "shouxin: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
