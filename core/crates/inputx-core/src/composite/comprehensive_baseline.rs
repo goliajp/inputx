@@ -5117,6 +5117,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-28): "huanji 换季 第一".
+    /// 还击 and 缓急 led 换季 on tier 4; a quickfix row lifts 换季 to tier 1.
+    #[test]
+    fn polish_huanji_huanji_leads() {
+        let top10 = mixed_top10("huanji".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("换季"),
+            "huanji: 换季 should lead; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
