@@ -5195,6 +5195,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-29): "qiantao 嵌套第一".
+    /// 潜逃 led 嵌套 on modern_freq; a single quickfix row puts 嵌套 first.
+    #[test]
+    fn polish_qiantao_qiantao_leads() {
+        let top10 = mixed_top10("qiantao".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("嵌套"),
+            "qiantao: expected 嵌套 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
