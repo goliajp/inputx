@@ -5182,6 +5182,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-10-29): "wubi 务必 第一".
+    /// 无比 led 务必 by a few hundred points on tier 3; a single quickfix
+    /// row puts 务必 first.
+    #[test]
+    fn polish_wubi_wubi_leads() {
+        let top10 = mixed_top10("wubi".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("务必"),
+            "wubi: expected 务必 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
