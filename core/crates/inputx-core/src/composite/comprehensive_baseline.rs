@@ -5230,6 +5230,23 @@ mod tests {
         );
     }
 
+    /// Class C polish (user report 2026-11-02): "yuce 预测第一".
+    /// The wubi phrase 说通 led via wx>px; tier 5 puts the pinyin 预测 first.
+    #[test]
+    fn polish_yuce_order() {
+        let top10 = mixed_top10("yuce".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("预测"),
+            "yuce: expected 预测 at #0; got top10={top10:?}"
+        );
+        let s = top10
+            .iter()
+            .position(|x| x == "说通")
+            .expect("说通 missing from yuce top10");
+        assert!(s > 0, "yuce: expected 说通 below 预测; got {top10:?}");
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
