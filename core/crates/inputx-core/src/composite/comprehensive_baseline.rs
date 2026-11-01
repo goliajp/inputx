@@ -5219,6 +5219,17 @@ mod tests {
         );
     }
 
+    /// Class D1 polish (user report 2026-11-02): "yuce 预测第一，䜇删掉".
+    /// The wubi row yuce 䜇 (rare Ext-A char, freq 0) is deleted.
+    #[test]
+    fn polish_yuce_drops_rare_char() {
+        let top10 = mixed_top10("yuce".as_bytes());
+        assert!(
+            !top10.iter().any(|w| w == "䜇"),
+            "yuce: 䜇 should be gone; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
