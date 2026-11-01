@@ -5207,6 +5207,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-11-02): "fanxiang 反向第一".
+    /// 反响 led 反向 on modern_freq; a single quickfix row puts 反向 first.
+    #[test]
+    fn polish_fanxiang_fanxiang_leads() {
+        let top10 = mixed_top10("fanxiang".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("反向"),
+            "fanxiang: expected 反向 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
