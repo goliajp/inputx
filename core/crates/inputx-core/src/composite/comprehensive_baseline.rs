@@ -5247,6 +5247,18 @@ mod tests {
         assert!(s > 0, "yuce: expected 说通 below 预测; got {top10:?}");
     }
 
+    /// Class A polish (user report 2026-11-02): "jianguo 见过第一".
+    /// 见过 was on no v2 surface; a tier-3 modern_vocab row puts it ahead of 建国.
+    #[test]
+    fn polish_jianguo_jianguo_leads() {
+        let top10 = mixed_top10("jianguo".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("见过"),
+            "jianguo: expected 见过 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
