@@ -5259,6 +5259,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-11-03): "zujian 组件第一".
+    /// 组建 and 足见 led 组件 on modern_freq; a single quickfix row puts 组件 first.
+    #[test]
+    fn polish_zujian_zujian_leads() {
+        let top10 = mixed_top10("zujian".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("组件"),
+            "zujian: expected 组件 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
