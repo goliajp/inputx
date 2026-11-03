@@ -5308,6 +5308,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-11-03): "zhuanzhu 专注第一".
+    /// 专著 led 专注 by modern_freq within tier 4; a single quickfix row puts 专注 first.
+    #[test]
+    fn polish_zhuanzhu_zhuanzhu_leads() {
+        let top10 = mixed_top10("zhuanzhu".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("专注"),
+            "zhuanzhu: expected 专注 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
