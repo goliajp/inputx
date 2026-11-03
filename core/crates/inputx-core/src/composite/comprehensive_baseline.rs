@@ -5283,6 +5283,19 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-11-03): "cixi 磁吸 第一".
+    /// 慈禧 and 磁吸 tied with no modern_freq score, so codepoint order put 慈禧
+    /// first; a single quickfix row puts 磁吸 first.
+    #[test]
+    fn polish_cixi_cixi_leads() {
+        let top10 = mixed_top10("cixi".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("磁吸"),
+            "cixi: expected 磁吸 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
