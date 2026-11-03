@@ -5296,6 +5296,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-11-03): "chengdu 程度第一".
+    /// 成都 led on a tier-2 modern_vocab row; a single quickfix row puts 程度 first.
+    #[test]
+    fn polish_chengdu_chengdu_leads() {
+        let top10 = mixed_top10("chengdu".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("程度"),
+            "chengdu: expected 程度 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
