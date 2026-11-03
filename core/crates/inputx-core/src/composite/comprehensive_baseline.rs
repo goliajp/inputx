@@ -5271,6 +5271,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-11-03): "chima 尺码 第一".
+    /// 斥骂 led 尺码 on modern_freq; a single quickfix row puts 尺码 first.
+    #[test]
+    fn polish_chima_chima_leads() {
+        let top10 = mixed_top10("chima".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("尺码"),
+            "chima: expected 尺码 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
