@@ -5346,6 +5346,23 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-11-05): "moshoushijie 魔兽世界，没收世界不应该出现".
+    /// The only pinyin candidate was the composed 没收世界; adding 魔兽世界 as a word
+    /// gives an exact match, and the composition no longer surfaces.
+    #[test]
+    fn polish_moshoushijie_order() {
+        let top10 = mixed_top10("moshoushijie".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("魔兽世界"),
+            "moshoushijie: expected 魔兽世界 at #0; got top10={top10:?}"
+        );
+        assert!(
+            !top10.iter().any(|w| w == "没收世界"),
+            "moshoushijie: 没收世界 must not appear; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
