@@ -5320,6 +5320,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-11-05): "zhongduan 终端 中断 中端 中段 顺序是这样".
+    /// 中断 led on tier 3 and the three tier-4 words sat in modern_freq order;
+    /// a four-row quickfix cascade fixes the full order.
+    #[test]
+    fn polish_zhongduan_full_order() {
+        let top10 = mixed_top10("zhongduan".as_bytes());
+        let want = ["终端", "中断", "中端", "中段"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "zhongduan: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
