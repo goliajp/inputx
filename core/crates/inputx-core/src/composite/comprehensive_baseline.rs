@@ -5388,15 +5388,18 @@ mod tests {
         );
     }
 
-    /// Class A polish (user report 2026-11-05): "weijie 未接".
-    /// 未接 was only in the v1 library; 慰藉 led on tier 4. 未接 is added on tier 3.
+    /// Class A polish (user reports 2026-11-05): "weijie 未接", then
+    /// "weijie 慰藉 未解 未接 顺序还是这样". 未接 was only in the v1 library.
+    /// It sits on tier 5, below the two tier-4 cedict words; on tier 4 it would
+    /// tie with 未解 and win on codepoint order.
     #[test]
-    fn polish_weijie_weijie_leads() {
+    fn polish_weijie_order() {
         let top10 = mixed_top10("weijie".as_bytes());
+        let want = ["慰藉", "未解", "未接"];
         assert_eq!(
-            top10.first().map(String::as_str),
-            Some("未接"),
-            "weijie: expected 未接 at #0; got top10={top10:?}"
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "weijie: expected order {want:?}; got top10={top10:?}"
         );
     }
 
