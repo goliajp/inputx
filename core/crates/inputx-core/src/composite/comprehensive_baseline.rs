@@ -5400,6 +5400,23 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-11-05): "weijielaidian 未接来电".
+    /// The only pinyin candidate was the composed 慰藉来电; adding 未接来电
+    /// as a word gives an exact match ahead of the Japanese kana.
+    #[test]
+    fn polish_weijielaidian_order() {
+        let top10 = mixed_top10("weijielaidian".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("未接来电"),
+            "weijielaidian: expected 未接来电 at #0; got top10={top10:?}"
+        );
+        assert!(
+            !top10.iter().any(|w| w == "慰藉来电"),
+            "weijielaidian: 慰藉来电 must not appear; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
