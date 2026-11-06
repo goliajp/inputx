@@ -5435,6 +5435,18 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-11-06): "pingwei 评委 第一".
+    /// 评为 led 评委 on tier 4; a quickfix row lifts 评委 to tier 1.
+    #[test]
+    fn polish_pingwei_pingwei_leads() {
+        let top10 = mixed_top10("pingwei".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("评委"),
+            "pingwei: expected 评委 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
