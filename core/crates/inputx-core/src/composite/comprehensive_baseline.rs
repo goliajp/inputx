@@ -5422,6 +5422,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-11-06): "chengmai 澄迈".
+    /// 澄迈 (a county in Hainan) was only in the v1 library and chengmai
+    /// returned no candidate; modern_vocab_v1 adds it on tier 4.
+    #[test]
+    fn polish_chengmai_chengmai_leads() {
+        let top10 = mixed_top10("chengmai".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("澄迈"),
+            "chengmai: expected 澄迈 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
