@@ -5459,6 +5459,20 @@ mod tests {
         );
     }
 
+    /// Class D2 polish (user report 2026-11-08): "剪头 荐头 尖头 肩头不是词".
+    /// All four are cedict words, so they are hidden from jiantou through
+    /// exclusions_v1 rather than garbage-filtered.
+    #[test]
+    fn polish_jiantou_hides_four() {
+        let top10 = mixed_top10("jiantou".as_bytes());
+        for hidden in ["肩头", "尖头", "剪头", "荐头"] {
+            assert!(
+                !top10.iter().any(|w| w == hidden),
+                "jiantou: {hidden} should be hidden; got top10={top10:?}"
+            );
+        }
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
