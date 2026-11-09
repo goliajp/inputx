@@ -1871,19 +1871,17 @@ mod tests {
         );
     }
 
-    /// Class B polish (user report 2026-07-13): "zuowei 作为 > 座位".
-    /// 座位 (32420) led over the far more common 作为 (41456) via
-    /// tier ordering. quickfix_boost 35662 (座位 base + 10% margin,
-    /// pick-helper derived) lifts 作为 to #0.
+    /// Class B polish (user report 2026-11-10): "zuowei 座位第一".
+    /// Reverses the 2026-07-13 pick (作为 > 座位); a pair boost puts
+    /// 座位 at #0 and keeps 作为 at #1.
     #[test]
-    fn polish_zuowei_zuowei_first() {
+    fn polish_zuowei_order() {
         let top10 = mixed_top10("zuowei".as_bytes());
-        let pos = |w: &str| top10.iter().position(|x| x == w);
-        let a = pos("作为").expect("作为 missing from zuowei top10");
-        let b = pos("座位").expect("座位 missing from zuowei top10");
-        assert!(
-            a == 0 && b == 1,
-            "zuowei: expected 作为 #0, 座位 #1; got top10={top10:?}"
+        let want = ["座位", "作为"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "zuowei: expected order {want:?}; got top10={top10:?}"
         );
     }
 
