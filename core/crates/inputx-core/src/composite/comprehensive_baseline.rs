@@ -1871,13 +1871,13 @@ mod tests {
         );
     }
 
-    /// Class B polish (user report 2026-11-10): "zuowei 座位第一".
-    /// Reverses the 2026-07-13 pick (作为 > 座位); a pair boost puts
-    /// 座位 at #0 and keeps 作为 at #1.
+    /// Class B polish (user report 2026-11-11): "zuowei 作为 第一".
+    /// Reverses the 2026-11-10 pick (座位 > 作为); a pair boost puts
+    /// 作为 at #0 and keeps 座位 at #1.
     #[test]
     fn polish_zuowei_order() {
         let top10 = mixed_top10("zuowei".as_bytes());
-        let want = ["座位", "作为"];
+        let want = ["作为", "座位"];
         assert_eq!(
             top10.get(..want.len()),
             Some(&want.map(String::from)[..]),
