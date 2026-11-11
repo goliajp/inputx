@@ -394,7 +394,12 @@ zhidao	知道	70000
 # round 10 — boost everyday-common to lead (per 'hexin 核心 > 贺信' principle)
 xinxi	信息	55000
 jiancha	检查	55000
-bianyi	便宜	50000
+bianyi	变异	60000	# user 2026-11-11: bianyi 变异 贬义 编译 便衣 便意 便宜 这样的顺序. Was 便宜 540500 (boost 50000) / 贬义 429999 / 变异 404221 / 编译 403840 / 便衣 403437 / 贬抑 400083 / 便意 380000; full-order cascade replaces the single 便宜 row.
+bianyi	贬义	56000
+bianyi	编译	52000
+bianyi	便衣	48000
+bianyi	便意	44000
+bianyi	便宜	40000
 zhengzhi	政治	55000
 shoushu	手术	55000
 qingjie	情节	50000

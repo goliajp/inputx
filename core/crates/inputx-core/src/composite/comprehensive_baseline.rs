@@ -5497,6 +5497,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-11-11): "bianyi 变异 贬义 编译
+    /// 便衣 便意 便宜 这样的顺序". 便宜 led on an older single boost;
+    /// a full-order cascade puts the six on tier 1.
+    #[test]
+    fn polish_bianyi_full_order() {
+        let top10 = mixed_top10("bianyi".as_bytes());
+        let want = ["变异", "贬义", "编译", "便衣", "便意", "便宜"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "bianyi: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
