@@ -5511,6 +5511,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-11-12): "tanji 碳基 第二".
+    /// 碳基 sat behind 炭墼 on a codepoint tie; a pair boost keeps
+    /// 谈及 at #0.
+    #[test]
+    fn polish_tanji_order() {
+        let top10 = mixed_top10("tanji".as_bytes());
+        let want = ["谈及", "碳基"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "tanji: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
