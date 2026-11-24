@@ -5525,6 +5525,20 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-11-24): "gandi 甘地 第一".
+    /// 甘地 was on no v2 surface and gandi offered only 杆弟 (caddie,
+    /// cedict tier 4, kept); modern_vocab_v1 adds 甘地 on tier 3.
+    #[test]
+    fn polish_gandi_order() {
+        let top10 = mixed_top10("gandi".as_bytes());
+        let want = ["甘地", "杆弟"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "gandi: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
