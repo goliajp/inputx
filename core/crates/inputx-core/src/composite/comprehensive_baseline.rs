@@ -5539,6 +5539,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-11-24): "niubi 牛逼".
+    /// 牛逼 was on no v2 surface; niubi led with Japanese kana and the
+    /// prefix completions 牛鞭 / 牛鼻子. modern_vocab_v1 adds it on tier 3.
+    #[test]
+    fn polish_niubi_niubi_leads() {
+        let top10 = mixed_top10("niubi".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("牛逼"),
+            "niubi: expected 牛逼 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
