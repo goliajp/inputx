@@ -5552,6 +5552,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-11-26): "liudang 留档".
+    /// 留档 was on no v2 surface; liudang offered only 流荡 (tier 4).
+    /// modern_vocab_v1 adds it on tier 3 so it leads.
+    #[test]
+    fn polish_liudang_liudang_leads() {
+        let top10 = mixed_top10("liudang".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("留档"),
+            "liudang: expected 留档 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
