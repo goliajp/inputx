@@ -5565,6 +5565,23 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-11-27): "gongkuang 工况第一 工矿如果不是词就不要了".
+    /// 工矿 (402460) led 工况 (397648) on tier 4; 工矿 is a real word and stays.
+    /// quickfix_boost lifts 工况 to tier 1.
+    #[test]
+    fn polish_gongkuang_gongkuang_leads() {
+        let top10 = mixed_top10("gongkuang".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("工况"),
+            "gongkuang: expected 工况 at #0; got top10={top10:?}"
+        );
+        assert!(
+            top10.iter().any(|w| w == "工矿"),
+            "gongkuang: 工矿 should stay; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
