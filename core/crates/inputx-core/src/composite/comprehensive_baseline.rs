@@ -5582,6 +5582,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-11-28): "shuping 竖屏".
+    /// 竖屏 was on no v2 surface; 书评 (401298) and 述评 (380000) sat on tier 4.
+    /// modern_vocab 30000 puts 竖屏 on tier 3, ahead of both.
+    #[test]
+    fn polish_shuping_shuping_leads() {
+        let top10 = mixed_top10("shuping".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("竖屏"),
+            "shuping: expected 竖屏 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
