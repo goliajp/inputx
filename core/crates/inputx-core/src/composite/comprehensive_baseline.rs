@@ -5608,6 +5608,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-11-28): "dalaba 大喇叭".
+    /// 大喇叭 was hidden by a corpus_garbage_filter row (frag-np) and on no v2
+    /// surface; only kana came back. The row is gone and modern_vocab 30000 adds it.
+    #[test]
+    fn polish_dalaba_dalaba_leads() {
+        let top10 = mixed_top10("dalaba".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("大喇叭"),
+            "dalaba: expected 大喇叭 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
