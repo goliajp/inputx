@@ -5595,6 +5595,19 @@ mod tests {
         );
     }
 
+    /// Class A polish (user report 2026-11-28): "wangzai 旺仔".
+    /// wangzai returned no candidate at all; 旺仔 was only on the code wangzi.
+    /// modern_vocab 30000 puts 旺仔 on tier 3 for wangzai.
+    #[test]
+    fn polish_wangzai_wangzai_leads() {
+        let top10 = mixed_top10("wangzai".as_bytes());
+        assert_eq!(
+            top10.first().map(String::as_str),
+            Some("旺仔"),
+            "wangzai: expected 旺仔 at #0; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]
