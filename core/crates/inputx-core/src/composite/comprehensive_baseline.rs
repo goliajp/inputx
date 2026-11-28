@@ -5635,6 +5635,20 @@ mod tests {
         );
     }
 
+    /// Class B polish (user report 2026-11-28): "jingxiang 景象 镜像 径向 竞相 前四".
+    /// 竞相 and 径向 sat ahead of 镜像, with 颈项 between; a four-word cascade
+    /// fixes the order of the first four.
+    #[test]
+    fn polish_jingxiang_full_order() {
+        let top10 = mixed_top10("jingxiang".as_bytes());
+        let want = ["景象", "镜像", "径向", "竞相"];
+        assert_eq!(
+            top10.get(..want.len()),
+            Some(&want.map(String::from)[..]),
+            "jingxiang: expected order {want:?}; got top10={top10:?}"
+        );
+    }
+
     /// Class D2 polish (user report 2026-10-22): "jiepi 洁癖 第一，揭批 不是词".
     /// 揭批 led 洁癖 on tier 4; excluding it lets 洁癖 lead.
     #[test]

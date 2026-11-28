@@ -1519,3 +1519,7 @@ tanji	碳基	50000
 gongkuang	工况	55000	# user 2026-11-27: gongkuang 工况第一 (工矿 is a real word, kept). Was 工矿 402460 / 工况 397648.
 dingge	定格	60000	# user 2026-11-28 "dingge 顶格 第二": pair-boost, 定格 (402284) stays #0
 dingge	顶格	50000	# user 2026-11-28 "dingge 顶格 第二": lift to #1 above 鼎革 (382948; 顶格 was 380000)
+jingxiang	景象	60000	# user 2026-11-28 "jingxiang 景象 镜像 径向 竞相 前四": cascade; before 景象 404561, 竞相 403848, 径向 403228, 颈项 401888, 镜像 401064
+jingxiang	镜像	56000	# user 2026-11-28: cascade #1
+jingxiang	径向	52000	# user 2026-11-28: cascade #2
+jingxiang	竞相	48000	# user 2026-11-28: cascade #3
